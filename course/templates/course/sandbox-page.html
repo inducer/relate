@@ -7,14 +7,14 @@
 {% block title %}
   {% if title %}
     {% comment %} Translators: "[SB]" is abbreviation for "Sandbox" {% endcomment %}
-    {% blocktrans trimmed %}
+    {% blocktrans trimmed with title=title|safe %}
     [SB] {{ title }}
     {% endblocktrans %}
   {% else %}
     {% blocktrans %}Page Sandbox{% endblocktrans %}
   {% endif %}
   -
-  {% trans "RELATE" %}
+  {{ relate_site_name }}
 {% endblock %}
 
 {% block root_container %}

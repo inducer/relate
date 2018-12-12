@@ -4,7 +4,7 @@
 {% load crispy_forms_tags %}
 
 {% block title %}
-   {{ page_data.group_id }}/{{ page_data.page_id }} - {{ flow_identifier}} - {% trans "Grading" %} - {% trans "RELATE" %}
+   {{ page_data.group_id }}/{{ page_data.page_id }} - {{ flow_identifier}} - {% trans "Grading" %} - {{ relate_site_name }}
 {% endblock %}
 
 {% block root_container %}
@@ -102,7 +102,7 @@
             {% if max_points != None %}
               <span class="sensitive">
               {% if points_awarded != None %}
-                {{ points_awarded|floatformat:1 }}
+                {{ points_awarded|floatformat:"-2" }}
               {% else %}
                 {% trans "(unknown)" %}
               {% endif %}

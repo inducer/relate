@@ -4,7 +4,7 @@
 {% load static %}
 
 {% block title %}
-  {% trans "My Grades" %} - {% trans "RELATE" %}
+  {% trans "My Grades" %} - {{ relate_site_name }}
 {% endblock %}
 
 {% block header_extra %}
@@ -88,7 +88,9 @@
       {% endfor %}
     </tbody>
   </table>
+{% endblock %}
 
+{% block page_bottom_javascript_extra %}
   {% get_current_js_lang_name as LANG %}
   <script type="text/javascript">
     var tbl = $("table.gradebook-single").dataTable({
@@ -98,7 +100,7 @@
         "language": {url: '{% static "datatables-i18n/i18n/" %}{{LANG}}.json'},
     } );
   </script>
-
+  {{ block.super }}
 {% endblock %}
 
 

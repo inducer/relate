@@ -11,9 +11,10 @@ if False:
 # Do not change this file. All these settings can be overridden in
 # local_settings.py.
 
-from django.conf.global_settings import STATICFILES_FINDERS
+from django.conf.global_settings import STATICFILES_FINDERS, gettext_noop
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
+import sys
 import os
 from os.path import join
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
@@ -27,17 +28,19 @@ if os.environ.get("RELATE_LOCAL_TEST_SETTINGS", None):
     assert _local_settings_file != os.environ["RELATE_LOCAL_TEST_SETTINGS"]
     _local_settings_file = os.environ["RELATE_LOCAL_TEST_SETTINGS"]
 
-local_settings = {
-        "__file__": _local_settings_file,
-        }
-try:
-    with open(_local_settings_file) as inf:
-        local_settings_contents = inf.read()
-except IOError:
-    pass
-else:
-    exec(compile(local_settings_contents, "local_settings.py", "exec"),
-            local_settings)
+if not os.path.isfile(_local_settings_file):
+    raise RuntimeError(
+        "Management command '%(cmd_name)s' failed to run "
+        "because '%(local_settings_file)s' is missing."
+        % {"cmd_name": sys.argv[1],
+           "local_settings_file": _local_settings_file})
+
+local_settings_module_name, ext = (
+    os.path.splitext(os.path.split(_local_settings_file)[-1]))
+assert ext == ".py"
+exec("import %s as local_settings_module" % local_settings_module_name)
+
+local_settings = local_settings_module.__dict__  # type: ignore  # noqa
 
 # {{{ django: apps
 
@@ -51,12 +54,10 @@ INSTALLED_APPS = (
     "crispy_forms",
     "jsonfield",
     "bootstrap3_datetime",
-    "djangobower",
     "django_select2",
 
     # message queue
-    "djcelery",
-    "kombu.transport.django",
+    "django_celery_results",
 
     "accounts",
     "course",
@@ -75,7 +76,6 @@ MIDDLEWARE = (
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
-    "django.contrib.auth.middleware.SessionAuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "course.auth.ImpersonateMiddleware",
@@ -105,31 +105,10 @@ AUTH_USER_MODEL = 'accounts.User'
 
 # }}}
 
-# {{{ bower packages
-
-BOWER_COMPONENTS_ROOT = os.path.join(BASE_DIR, "components")
+# {{{ django-npm
 
 STATICFILES_FINDERS = tuple(STATICFILES_FINDERS) + (
-    "djangobower.finders.BowerFinder",
-    )
-
-BOWER_INSTALLED_APPS = (
-    "bootstrap#3.3.4",
-    "fontawesome#4.4.0",
-    "videojs#5.6.0",
-    "MathJax",
-    "codemirror#5.2.0",
-    "fullcalendar#2.3.1",
-    "jqueryui",
-    "datatables.net",
-    "datatables-i18n",
-    "datatables.net-bs",
-    "datatables.net-fixedcolumns",
-    "datatables.net-fixedcolumns-bs",
-    "jstree#3.2.1",
-    "select2#4.0.1",
-    "select2-bootstrap-css",
-    "blueimp-tmpl",
+    "npm.finders.NpmFinder",
     )
 
 CODEMIRROR_PATH = "codemirror"
@@ -138,9 +117,9 @@ CODEMIRROR_PATH = "codemirror"
 
 ROOT_URLCONF = 'relate.urls'
 
-WSGI_APPLICATION = 'relate.wsgi.application'
+CRISPY_FAIL_SILENTLY = False
 
-# {{{ templates
+WSGI_APPLICATION = 'relate.wsgi.application'
 
 # {{{ context processors
 
@@ -153,6 +132,8 @@ RELATE_EXTRA_CONTEXT_PROCESSORS = (
             )
 
 # }}}
+
+# {{{ templates
 
 CRISPY_TEMPLATE_PACK = "bootstrap3"
 
@@ -178,6 +159,12 @@ TEMPLATES = [
             }
     },
 ]
+
+RELATE_OVERRIDE_TEMPLATES_DIRS = (
+    local_settings.get("RELATE_OVERRIDE_TEMPLATES_DIRS", []))
+if RELATE_OVERRIDE_TEMPLATES_DIRS:
+    TEMPLATES[0]["DIRS"] = (
+        tuple(RELATE_OVERRIDE_TEMPLATES_DIRS) + TEMPLATES[0]["DIRS"])   # type: ignore  # noqa
 
 # }}}
 
@@ -206,6 +193,9 @@ USE_TZ = True
 # }}}
 
 LOGIN_URL = "relate-sign_in_choice"
+
+# Do not remove this setting. It is used by djangosaml2 to determine where to
+# redirect after a successful login.
 LOGIN_REDIRECT_URL = "/"
 
 # Static files (CSS, JavaScript, Images)
@@ -239,7 +229,7 @@ RELATE_TICKET_MINUTES_VALID_AFTER_USE = 0
 
 RELATE_CACHE_MAX_BYTES = 32768
 
-RELATE_ADMIN_EMAIL_LOCALE = "en_US"
+RELATE_ADMIN_EMAIL_LOCALE = "en-us"
 
 RELATE_EDITABLE_INST_ID_BEFORE_VERIFICATION = True
 
@@ -253,13 +243,26 @@ for name, val in local_settings.items():
     if not name.startswith("_"):
         globals()[name] = val
 
+RELATE_SITE_NAME = gettext_noop("RELATE")
+RELATE_CUTOMIZED_SITE_NAME = local_settings.get("RELATE_CUTOMIZED_SITE_NAME")
+if RELATE_CUTOMIZED_SITE_NAME is not None and RELATE_CUTOMIZED_SITE_NAME.strip():
+    RELATE_SITE_NAME = RELATE_CUTOMIZED_SITE_NAME
+
 # {{{ celery config
 
-BROKER_URL = 'django://'
+if "CELERY_BROKER_URL" not in globals():
+    from warnings import warn
+    warn("CELERY_BROKER_URL not set in local_settings.py: defaulting to amqp://. "
+            "If there is no queue server installed, long-running tasks will "
+            "appear to hang.")
 
-CELERY_ACCEPT_CONTENT = ['pickle']
+    CELERY_BROKER_URL = 'amqp://'
+
+CELERY_ACCEPT_CONTENT = ['pickle', 'json']
 CELERY_TASK_SERIALIZER = 'pickle'
-CELERY_RESULT_SERIALIZER = 'pickle'
+# (pickle is buggy in django-celery-results 1.0.1)
+# https://github.com/celery/django-celery-results/issues/50
+CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TRACK_STARTED = True
 
 if "CELERY_RESULT_BACKEND" not in globals():
@@ -273,10 +276,10 @@ if "CELERY_RESULT_BACKEND" not in globals():
         # transaction. But if we're using the in-memory cache, using
         # cache as a results backend doesn't make much sense.
 
-        CELERY_RESULT_BACKEND = 'djcelery.backends.cache:CacheBackend'
+        CELERY_RESULT_BACKEND = 'django-cache'
 
     else:
-        CELERY_RESULT_BACKEND = 'djcelery.backends.database:DatabaseBackend'
+        CELERY_RESULT_BACKEND = 'django-db'
 
 # }}}
 

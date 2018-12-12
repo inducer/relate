@@ -14,7 +14,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='course',
             name='ssh_private_key',
-            field=models.TextField(help_text=b'An SSH private key to use for Git authentication. Not needed for the sample URL above.', blank=True),
+            field=models.TextField(help_text='An SSH private key to use for Git authentication. Not needed for the sample URL above.', blank=True),
             preserve_default=True,
         ),
         migrations.AlterField(

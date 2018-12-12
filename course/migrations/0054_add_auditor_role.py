@@ -14,7 +14,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='participation',
             name='role',
-            field=models.CharField(help_text=b'Instructors may update course content. Teaching assistants may access and change grade data. Observers may access analytics. Each role includes privileges from subsequent roles.', max_length=50, choices=[(b'instructor', b'Instructor'), (b'ta', b'Teaching Assistant'), (b'student', b'Student'), (b'observer', b'Observer'), (b'auditor', b'Auditor')]),
+            field=models.CharField(help_text='Instructors may update course content. Teaching assistants may access and change grade data. Observers may access analytics. Each role includes privileges from subsequent roles.', max_length=50, choices=[(b'instructor', b'Instructor'), (b'ta', b'Teaching Assistant'), (b'student', b'Student'), (b'observer', b'Observer'), (b'auditor', b'Auditor')]),
         ),
         migrations.AlterField(
             model_name='participationpreapproval',

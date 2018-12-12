@@ -30,9 +30,13 @@ if False:
 from django.utils.translation import pgettext_lazy, ugettext
 # Allow 10x extra credit at the very most.
 MAX_EXTRA_CREDIT_FACTOR = 10
+DEFAULT_EMAIL_APPELLATION_PRIORITY_LIST = [
+    "first_name", "email", "username", "full_name"]
 
 
+NAME_VALID_REGEX = r"^\w+$"
 COURSE_ID_REGEX = "(?P<course_identifier>[-a-zA-Z0-9]+)"
+EVENT_KIND_REGEX = "(?P<event_kind>[_a-z0-9]+)"
 FLOW_ID_REGEX = "(?P<flow_id>[-_a-zA-Z0-9]+)"
 GRADING_OPP_ID_REGEX = "(?P<grading_opp_id>[-_a-zA-Z0-9]+)"
 # FIXME : Support page hierarchy. Add '/' here, fix validation code.
@@ -549,5 +553,7 @@ EXAM_TICKET_STATE_CHOICES = (
 
 
 ATTRIBUTES_FILENAME = ".attributes.yml"
+DEFAULT_ACCESS_KINDS = ["public", "in_exam", "student", "ta",
+                        "unenrolled", "instructor"]
 
 # vim: foldmethod=marker

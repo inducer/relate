@@ -24,7 +24,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-
+import six
 from six.moves import range
 import django.forms as forms
 from django.utils.safestring import mark_safe
@@ -34,7 +34,6 @@ from django.utils.translation import (
 from relate.utils import StyledForm, string_concat
 from course.page.base import (
         AnswerFeedback, PageBaseWithTitle, PageBaseWithValue, markup_to_html)
-from course.content import remove_prefix
 from course.validation import validate_markup, ValidationError
 
 
@@ -65,20 +64,93 @@ def markup_to_html_plain(page_context, s):
     return s
 
 
-# {{{ choice question base
+# {{{ choice data model
 
-class ChoiceQuestionBase(PageBaseWithTitle, PageBaseWithValue):
+class ChoiceModes:
+    INCORRECT = "incorrect"
+    CORRECT = "correct"
+    DISREGARD = "disregard"
+    ALWAYS_CORRECT = "always_correct"
+
+    values = [INCORRECT, CORRECT, DISREGARD, ALWAYS_CORRECT]
+
+
+class ChoiceInfo(object):
     CORRECT_TAG = "~CORRECT~"
     DISREGARD_TAG = "~DISREGARD~"
     ALWAYS_CORRECT_TAG = "~ALWAYS_CORRECT~"
 
+    def __init__(self, mode, text):
+        assert mode in ChoiceModes.values
+
+        self.mode = mode
+        self.text = text
+
+    @classmethod
+    def parse_from_yaml(cls, vctx, location, node):
+        # could be a number or a bool due to sloppy YAML
+        try:
+            node = str(node)
+        except Exception:
+            raise ValidationError(
+                    _("%(location)s: unable to convert to string")
+                    % {'location': location})
+
+        tag_mode_dict = {
+            cls.CORRECT_TAG: ChoiceModes.CORRECT,
+            cls.DISREGARD_TAG: ChoiceModes.DISREGARD,
+            cls.ALWAYS_CORRECT_TAG: ChoiceModes.ALWAYS_CORRECT
+        }
+
+        s = node
+
+        item_mode = [None]
+
+        def find_tag_by_mode(mode):
+            for k, v in six.iteritems(tag_mode_dict):  # pragma: no branch
+                if v == mode:
+                    return k
+
+        def mode_from_prefix(s):
+            for prefix in tag_mode_dict.keys():
+                if s.startswith(prefix):
+                    s = s[len(prefix):].strip()
+
+                    if item_mode[0] is not None:
+                        raise ValidationError(
+                                _("%(location)s: more than one choice modes "
+                                  "set: '%(modes)s'")
+                                % {'location': location,
+                                   'modes':
+                                       "".join([find_tag_by_mode(item_mode[0]),
+                                                  prefix])
+                                   })
+
+                    item_mode[0] = tag_mode_dict[prefix]
+                    s = mode_from_prefix(s)
+            return s
+
+        s = mode_from_prefix(s)
+
+        if item_mode[0] is None:
+            item_mode[0] = ChoiceModes.INCORRECT
+
+        if vctx is not None:
+            validate_markup(vctx, location, s)
+
+        return ChoiceInfo(item_mode[0], s)
+
+    def to_json(self):
+        return {"mode": self.mode, "text": self.text}
+
+# }}}
+
+
+# {{{ choice question base
+
+class ChoiceQuestionBase(PageBaseWithTitle, PageBaseWithValue):
     @classmethod
     def process_choice_string(cls, page_context, s):
-        if not isinstance(s, str):
-            s = str(s)
-        s = remove_prefix(cls.CORRECT_TAG, s)
-        s = remove_prefix(cls.DISREGARD_TAG, s)
-        s = remove_prefix(cls.ALWAYS_CORRECT_TAG, s)
         s = markup_to_html_plain(page_context, s)
         # allow HTML in option
         s = mark_safe(s)
@@ -91,32 +163,26 @@ class ChoiceQuestionBase(PageBaseWithTitle, PageBaseWithValue):
         self.correct_choice_count = 0
         self.disregard_choice_count = 0
         self.always_correct_choice_count = 0
-        for choice_idx, choice in enumerate(page_desc.choices):
-            try:
-                choice = str(choice)
-            except Exception:
-                raise ValidationError(
-                        string_concat(
-                            "%(location)s, ",
-                            _("choice %(idx)d: unable to convert to string")
-                            )
-                        % {'location': location, 'idx': choice_idx+1})
 
-            if choice.startswith(self.CORRECT_TAG):
+        self.choices = []
+
+        for choice_idx, choice_desc in enumerate(page_desc.choices):
+            choice = ChoiceInfo.parse_from_yaml(
+                    vctx,
+                    _("%(location)s, choice %(idx)d") %
+                    {"location": location,
+                     "idx": choice_idx+1},
+                    choice_desc)
+            self.choices.append(choice)
+
+            if choice.mode == ChoiceModes.CORRECT:
                 self.correct_choice_count += 1
 
-            if choice.startswith(self.DISREGARD_TAG):
+            if choice.mode == ChoiceModes.DISREGARD:
                 self.disregard_choice_count += 1
 
-            if choice.startswith(self.ALWAYS_CORRECT_TAG):
+            if choice.mode == ChoiceModes.ALWAYS_CORRECT:
                 self.always_correct_choice_count += 1
-
-            if vctx is not None:
-                validate_markup(vctx, location,
-                        remove_prefix(self.DISREGARD_TAG,
-                            remove_prefix(self.CORRECT_TAG,
-                                remove_prefix(self.ALWAYS_CORRECT_TAG,
-                                    choice))))
 
     def required_attrs(self):
         return super(ChoiceQuestionBase, self).required_attrs() + (
@@ -137,39 +203,37 @@ class ChoiceQuestionBase(PageBaseWithTitle, PageBaseWithValue):
 
     def initialize_page_data(self, page_context):
         import random
-        perm = list(range(len(self.page_desc.choices)))
+        perm = list(range(len(self.choices)))
         if getattr(self.page_desc, "shuffle", False):
             random.shuffle(perm)
 
         return {"permutation": perm}
 
-    def unpermuted_indices_with_tag(self, tag):
-        result = []
-        for i, choice_text in enumerate(self.page_desc.choices):
-            if str(choice_text).startswith(tag):
-                result.append(i)
-
-        return result
-
-    def unpermuted_correct_indices(self):
-        return self.unpermuted_indices_with_tag(self.CORRECT_TAG)
-
-    def unpermuted_disregard_indices(self):
-        return self.unpermuted_indices_with_tag(self.DISREGARD_TAG)
-
-    def unpermuted_always_correct_indices(self):
-        return self.unpermuted_indices_with_tag(self.ALWAYS_CORRECT_TAG)
-
-    def make_form(self, page_context, page_data,
-            answer_data, page_behavior):
+    def check_page_data(self, page_data):
         if (
                 "permutation" not in page_data
                 or (set(page_data["permutation"])
-                    != set(range(len(self.page_desc.choices))))):
+                    != set(range(len(self.choices))))):
             from course.page import InvalidPageData
             raise InvalidPageData(ugettext(
                 "existing choice permutation not "
                 "suitable for number of choices in question"))
+
+    def unpermuted_indices_with_mode(self, mode):
+        return [i for i, choice in enumerate(self.choices)
+                if choice.mode == mode]
+
+    def unpermuted_correct_indices(self):
+        return self.unpermuted_indices_with_mode(ChoiceModes.CORRECT)
+
+    def unpermuted_disregard_indices(self):
+        return self.unpermuted_indices_with_mode(ChoiceModes.DISREGARD)
+
+    def unpermuted_always_correct_indices(self):
+        return self.unpermuted_indices_with_mode(ChoiceModes.ALWAYS_CORRECT)
+
+    def make_form(self, page_context, page_data, answer_data, page_behavior):
+        self.check_page_data(page_data)
 
         if answer_data is not None:
             form_data = {"choice": answer_data["choice"]}
@@ -278,7 +342,7 @@ class ChoiceQuestion(ChoiceQuestionBase):
 
         choices = tuple(
                 (i,  self.process_choice_string(
-                    page_context, self.page_desc.choices[src_i]))
+                    page_context, self.choices[src_i].text))
                 for i, src_i in enumerate(permutation))
 
         form = ChoiceAnswerForm(
@@ -316,7 +380,7 @@ class ChoiceQuestion(ChoiceQuestionBase):
         result = (string_concat(_("A correct answer is"), ": '%s'.")
                 % self.process_choice_string(
                     page_context,
-                    self.page_desc.choices[corr_idx]).lstrip())
+                    self.choices[corr_idx].text))
 
         if hasattr(self.page_desc, "answer_explanation"):
             result += markup_to_html(page_context, self.page_desc.answer_explanation)
@@ -332,7 +396,25 @@ class ChoiceQuestion(ChoiceQuestionBase):
 
         return self.process_choice_string(
                 page_context,
-                self.page_desc.choices[permutation[choice]])
+                self.choices[permutation[choice]].text)
+
+    def normalized_bytes_answer(self, page_context, page_data, answer_data):
+        self.check_page_data(page_data)
+
+        if answer_data is None:
+            return None
+
+        permutation = page_data["permutation"]
+
+        unpermuted_choice = permutation[answer_data["choice"]]
+
+        import json
+        return ".json", json.dumps({
+                "choices": [choice.to_json() for choice in self.choices],
+                "permutation": permutation,
+                "unpermuted_choice": unpermuted_choice,
+                })
+
 # }}}
 
 
@@ -377,7 +459,15 @@ class MultipleChoiceQuestion(ChoiceQuestionBase):
         Choices marked with the prefix ``~DISREGARD~`` are
         ignored when determining the correctness of an answer.
         Choices marked with the prefix ``~ALWAYS_CORRECT~`` are
-        marked as correct whether they are selected or not.
+        marked as correct whether they are selected or not. The latter two
+        exist to ensure fair scoring of a multi-select question in which one
+        option has turned out to be flawed. The net effect of ``~DISREGARD~``
+        is to score the question as if that option didn't exist.
+        But some students may have received points from the broken option,
+        so ``~DISREGARD~`` would take those points away. Cue lots of
+        (somewhat justified) complaints from grumpy students.
+        ``~ALWAYS_CORRECT~`` prevents that by grading any answer as
+        a correct one, therefore never leading to a point decrease.
 
     .. attribute:: shuffle
 
@@ -415,8 +505,7 @@ class MultipleChoiceQuestion(ChoiceQuestionBase):
 
             if (
                     hasattr(pd, "allow_partial_credit")
-                    or
-                    hasattr(pd, "allow_partial_credit_subset_only")):
+                    or hasattr(pd, "allow_partial_credit_subset_only")):
                 raise ValidationError(
                         string_concat(
                             "%(location)s: ",
@@ -436,7 +525,8 @@ class MultipleChoiceQuestion(ChoiceQuestionBase):
                 credit_mode = "proportional"
             elif not partial and partial_subset:
                 credit_mode = "proportional_correct"
-            elif partial and partial_subset:
+            else:
+                assert partial and partial_subset
                 raise ValidationError(
                         string_concat(
                             "%(location)s: ",
@@ -444,8 +534,6 @@ class MultipleChoiceQuestion(ChoiceQuestionBase):
                             "'allow_partial_credit_subset_only' are not allowed to "
                             "coexist when both attribute are 'True'"))
                         % {'location': location})
-            else:
-                assert False
 
         if credit_mode not in [
                 "exact",
@@ -480,7 +568,7 @@ class MultipleChoiceQuestion(ChoiceQuestionBase):
 
         choices = tuple(
                 (i,  self.process_choice_string(
-                    page_context, self.page_desc.choices[src_i]))
+                    page_context, self.choices[src_i].text))
                 for i, src_i in enumerate(permutation))
 
         form = MultipleChoiceAnswerForm(
@@ -515,7 +603,7 @@ class MultipleChoiceQuestion(ChoiceQuestionBase):
         correct_idx_set = (
                 set(self.unpermuted_correct_indices()) - disregard_idx_set
                 - always_correct_idx_set)
-        num_choices = len(self.page_desc.choices) - len(disregard_idx_set)
+        num_choices = len(self.choices) - len(disregard_idx_set)
 
         if self.credit_mode == "exact":
             if unpermed_idx_set == correct_idx_set:
@@ -528,24 +616,20 @@ class MultipleChoiceQuestion(ChoiceQuestionBase):
             correctness = (
                     (
                         num_choices
-                        -
-                        len(unpermed_idx_set
+                        - len(unpermed_idx_set
                             .symmetric_difference(correct_idx_set)))
-                    /
-                    num_choices)
+                    / num_choices)
 
-        elif self.credit_mode == "proportional_correct":
+        else:
+            assert self.credit_mode == "proportional_correct"
 
             correctness = (
                     (
                         len(unpermed_idx_set & correct_idx_set)
-                        +
-                        len(always_correct_idx_set))
-                    /
-                    (
+                        + len(always_correct_idx_set))
+                    / (
                         len(correct_idx_set)
-                        +
-                        len(always_correct_idx_set)))
+                        + len(always_correct_idx_set)))
 
             if not (unpermed_idx_set <= correct_idx_set):
                 correctness = 0
@@ -561,8 +645,7 @@ class MultipleChoiceQuestion(ChoiceQuestionBase):
                     "<li>"
                     + (self.process_choice_string(
                         page_context,
-                        self.page_desc.choices[idx])
-                        .lstrip())
+                        self.choices[idx].text))
                     + "</li>"
                     )
         answer_html = "<ul>"+"".join(answer_html_list)+"</ul>"
@@ -599,6 +682,23 @@ class MultipleChoiceQuestion(ChoiceQuestionBase):
             [permutation[idx] for idx in choice],
             unpermute=True)
 
+    def normalized_bytes_answer(self, page_context, page_data, answer_data):
+        self.check_page_data(page_data)
+
+        permutation = page_data["permutation"]
+
+        if answer_data is None:
+            return None
+        else:
+            unpermuted_choices = [permutation[ch] for ch in answer_data["choice"]]
+
+        import json
+        return ".json", json.dumps({
+                "choices": [choice.to_json() for choice in self.choices],
+                "permutation": permutation,
+                "unpermuted_choices": unpermuted_choices,
+                })
+
 # }}}
 
 
@@ -614,7 +714,7 @@ class SurveyChoiceQuestion(PageBaseWithTitle):
 
     .. attribute:: type
 
-        ``ChoiceQuestion``
+        ``SurveyChoiceQuestion``
 
     .. attribute:: is_optional_page
 
@@ -641,7 +741,7 @@ class SurveyChoiceQuestion(PageBaseWithTitle):
     def process_choice_string(cls, page_context, s):
         if not isinstance(s, str):
             s = str(s)
-        s = markup_to_html(page_context, s)
+        s = markup_to_html_plain(page_context, s)
         # allow HTML in option
         s = mark_safe(s)
 
@@ -742,6 +842,17 @@ class SurveyChoiceQuestion(PageBaseWithTitle):
         return self.process_choice_string(
                 page_context,
                 self.page_desc.choices[choice])
+
+    def normalized_bytes_answer(self, page_context, page_data, answer_data):
+        if answer_data is None:
+            return None
+
+        import json
+        return ".json", json.dumps({
+                "choice": self.page_desc.choices,
+                "0_based_answer": answer_data["choice"],
+                })
+
 # }}}
 
 # vim: foldmethod=marker

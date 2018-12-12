@@ -24,7 +24,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-
+from typing import cast
 from django.utils.translation import (
         ugettext_lazy as _, ugettext)
 from django.utils.safestring import mark_safe
@@ -40,6 +40,12 @@ from course.page.text import TextQuestionBase, parse_matcher
 
 import re
 
+# {{{ for mypy
+
+if False:
+    from typing import Tuple, Text, Optional, Any, Iterable, List  # noqa
+
+# }}}
 
 # {{{ multiple text question
 
@@ -90,13 +96,14 @@ class InlineMultiQuestionForm(StyledInlineForm):
                                 correctness=correctness_list[idx])])
                 if read_only:
                     if isinstance(self.fields[field_name].widget,
-                            forms.widgets.TextInput):
-                        self.fields[field_name].widget.attrs['readonly'] \
-                                = "readonly"
-                    elif isinstance(self.fields[field_name].widget,
-                            forms.widgets.Select):
+                                  forms.widgets.Select):
+                        # This will also disable the option dropdown
                         self.fields[field_name].widget.attrs['disabled'] \
-                                = "disabled"
+                            = "disabled"
+                    else:
+                        # Then it should be a TextInput widget
+                        self.fields[field_name].widget.attrs['readonly'] \
+                            = "readonly"
         self.helper.layout.extend([HTML("<br/><br/>")])
 
     def clean(self):
@@ -109,19 +116,18 @@ class InlineMultiQuestionForm(StyledInlineForm):
             instance_idx = self.answer_instance_list[idx]
             field_name_idx = instance_idx.name
             if hasattr(instance_idx, "matchers"):
-                for i, validator in enumerate(instance_idx.matchers):
-                    if answer in cleaned_data:
-                        try:
-                            validator.validate(cleaned_data[answer])
-                        except forms.ValidationError:
-                            if i + 1 == len(instance_idx.matchers):
-                                # last one, and we flunked -> not valid
-                                import sys
-                                tp, e, _ = sys.exc_info()
-                                self.add_error(field_name_idx, e)
-                        else:
-                            # Found one that will take the input. Good enough.
-                            break
+                for i, validator in enumerate(instance_idx.matchers):  # pragma: no branch  # noqa
+                    try:
+                        validator.validate(cleaned_data[answer])
+                    except forms.ValidationError:
+                        if i + 1 == len(instance_idx.matchers):
+                            # last one, and we flunked -> not valid
+                            import sys
+                            tp, e, _ = sys.exc_info()
+                            self.add_error(field_name_idx, e)
+                    else:
+                        # Found one that will take the input. Good enough.
+                        break
 
 
 def get_question_class(location, q_type, answers_desc):
@@ -146,7 +152,7 @@ def parse_question(vctx, location, name, answers_desc):
         raise ValidationError(
                 string_concat(
                     "%s: ",
-                    _("must be struct"))
+                    _("Embedded question '%s' must be a struct" % name))
                 % location)
 
 
@@ -162,6 +168,9 @@ class AnswerBase(object):
 
         self.required = getattr(answers_desc, "required", False)
 
+    def get_answer_text(self, page_context, answer):
+        return answer
+
     def get_correct_answer_text(self, page_context):
         raise NotImplementedError()
 
@@ -169,10 +178,9 @@ class AnswerBase(object):
         raise NotImplementedError()
 
     def get_weight(self, answer):
-        if answer is not None:
-            return self.weight * self.get_correctness(answer)
-        else:
+        if answer is None or answer == "":
             return 0
+        return self.weight * self.get_correctness(answer)
 
     def get_field_layout(self, correctness=None):
         kwargs = {}
@@ -215,15 +223,16 @@ class ShortAnswer(AnswerBase):
 
     @staticmethod
     def get_length_attr_em(location, width_attr):
+        # type: (Text, Text) -> Optional[float]
         """
         generate the length for input box, the unit is 'em'
         """
 
-        if isinstance(width_attr, (int, float)):
-            return width_attr
-
         if width_attr is None:
             return None
+
+        if isinstance(width_attr, (int, float)):
+            return width_attr
 
         width_re_match = WIDTH_STR_RE.match(width_attr)
         if width_re_match:
@@ -258,7 +267,7 @@ class ShortAnswer(AnswerBase):
         if length_unit == "%":
             return float(length_value)*DEFAULT_WIDTH/100.0
         else:
-            return float(length_value)/EM_LEN_DICT[length_unit]
+            return float(length_value)/cast(float, EM_LEN_DICT[length_unit])
 
     def __init__(self, vctx, location, name, answers_desc):
         super(ShortAnswer, self).__init__(
@@ -283,19 +292,28 @@ class ShortAnswer(AnswerBase):
                 ),
             )
 
-        self.weight = getattr(answers_desc, "weight", 0)
+        weight = getattr(answers_desc, "weight", 0)
+        if weight < 0:
+            raise ValidationError(
+                    string_concat(
+                        "%s: %s: ",
+                        _("'weight' must be a non-negative value, "
+                          "got '%s' instead") % str(weight))
+                    % (location, self.name))
+        self.weight = weight
 
         if len(answers_desc.correct_answer) == 0:
             raise ValidationError(
                     string_concat(
-                        "%s: ",
+                        "%s: %s: ",
                         _("at least one answer must be provided"))
-                    % location)
+                    % (location, self.name))
 
         self.hint = getattr(self.answers_desc, "hint", "")
-        self.width = getattr(self.answers_desc, "width", None)
+        width = getattr(self.answers_desc, "width", None)
 
-        parsed_length = self.get_length_attr_em(location, self.width)
+        parsed_length = self.get_length_attr_em(
+            "%s: %s: 'width'" % (location, self.name), width)
 
         self.width = 0
         if parsed_length is not None:
@@ -321,21 +339,23 @@ class ShortAnswer(AnswerBase):
                 for matcher in self.matchers):
             raise ValidationError(
                     string_concat(
-                        "%s: ",
+                        "%s: %s: ",
                         _("no matcher is able to provide a plain-text "
                         "correct answer"))
-                    % location)
+                    % (location, self.name))
 
     def get_width_str(self, opt_width=0):
         return "width: " + str(max(self.width, opt_width)) + "em"
 
     def get_correct_answer_text(self, page_context):
-        for matcher in self.matchers:
+
+        unspec_correct_answer_text = None
+        for matcher in self.matchers:  # pragma: no branch  # noqa
             unspec_correct_answer_text = matcher.correct_answer_text()
             if unspec_correct_answer_text is not None:
                 break
 
-        assert unspec_correct_answer_text
+        assert unspec_correct_answer_text is not None
         return ("%s%s%s"
                 % (getattr(self.answers_desc, "prepended_text", "").strip(),
                    unspec_correct_answer_text,
@@ -446,6 +466,12 @@ class ChoicesAnswer(AnswerBase):
         self.hint = getattr(self.answers_desc, "hint", "")
         self.width = 0
 
+    def get_answer_text(self, page_context, answer):
+        if answer == "":
+            return answer
+        return self.process_choice_string(
+            page_context, self.answers_desc.choices[int(answer)])
+
     def get_width_str(self, opt_width=0):
         return None
 
@@ -473,13 +499,10 @@ class ChoicesAnswer(AnswerBase):
 
     def get_correctness(self, answer):
         if answer == "":
-            correctness = 0
-        elif int(answer) >= 0:
-            if int(answer) in self.correct_indices():
-                correctness = 1
-            else:
-                correctness = 0
-        return correctness
+            return 0
+        if int(answer) in self.correct_indices():
+            return 1
+        return 0
 
     def get_form_field(self, page_context, force_required=False):
         choices = tuple(
@@ -666,7 +689,6 @@ class InlineMultiQuestion(TextQuestionBase, PageBaseWithValue):
         answers_name_list = struct_to_dict(page_desc.answers).keys()
 
         invalid_answer_name = []
-        invalid_embedded_name = []
 
         if not answer_instance_list:
             raise ValidationError(
@@ -679,7 +701,7 @@ class InlineMultiQuestion(TextQuestionBase, PageBaseWithValue):
         for answers_name in answers_name_list:
             if NAME_VALIDATE_RE.match(answers_name) is None:
                 invalid_answer_name.append(answers_name)
-        if len(invalid_answer_name) > 0:
+        if invalid_answer_name:
             raise ValidationError(
                     string_concat(
                         "%s: ",
@@ -694,24 +716,6 @@ class InlineMultiQuestion(TextQuestionBase, PageBaseWithValue):
                             for name in invalid_answer_name])
                         ))
 
-        for embedded_name in self.embedded_name_list:
-            if NAME_VALIDATE_RE.match(embedded_name) is None:
-                invalid_embedded_name.append(embedded_name)
-        if len(invalid_embedded_name) > 0:
-            raise ValidationError(
-                    string_concat(
-                        "%s: ",
-                        _("invalid embedded question name %s. "),
-                        _("A valid name should start with letters. "
-                            "Alphanumeric with underscores. "
-                            "Do not use spaces."))
-                        % (
-                            location,
-                            ", ".join([
-                                "'" + name + "'"
-                                for name in invalid_embedded_name])
-                            ))
-
         if len(set(self.embedded_name_list)) < len(self.embedded_name_list):
             duplicated = list(
                  set([x for x in self.embedded_name_list
@@ -720,20 +724,10 @@ class InlineMultiQuestion(TextQuestionBase, PageBaseWithValue):
                  string_concat(
                      "%s: ",
                      _("embedded question name %s not unique."))
-                 % (location, ", ".join(duplicated)))
+                 % (location, ", ".join(["'%s'" % d for d in sorted(duplicated)])))
 
-        no_answer_set = set(self.embedded_name_list) - set(answers_name_list)
         redundant_answer_list = list(set(answers_name_list)
                 - set(self.embedded_name_list))
-
-        if no_answer_set:
-            raise ValidationError(
-                 string_concat(
-                     "%s: ",
-                     _("correct answer(s) not provided for question %s."))
-                 % (location, ", ".join(
-                     ["'" + item + "'"
-                         for item in list(no_answer_set)])))
 
         if redundant_answer_list:
             if vctx is not None:
@@ -747,20 +741,13 @@ class InlineMultiQuestion(TextQuestionBase, PageBaseWithValue):
         if vctx is not None:
             validate_markup(vctx, location, page_desc.question)
 
-            def reverse_func(*args, **kwargs):
-                pass
-
-            # FIXME This is a bit redundant since validate_markup already calls
-            # markup_to_html.
-            remainder_html = markup_to_html(vctx, page_desc.question,
-                    reverse_func=reverse_func)
-
+            remainder_html = page_desc.question
             html_list = []
             for wrapped_name in self.embedded_wrapped_name_list:
                 [html, remainder_html] = remainder_html.split(wrapped_name)
                 html_list.append(html)
 
-            if remainder_html != "":
+            if remainder_html.strip():
                 html_list.append(remainder_html)
 
             # make sure all [[ and ]] are paired.
@@ -771,7 +758,7 @@ class InlineMultiQuestion(TextQuestionBase, PageBaseWithValue):
                     raise ValidationError(
                         string_concat(
                             "%s: ",
-                            _("have unpaired '%s'."))
+                            _("question has unpaired '%s'."))
                         % (location, sep))
 
             for idx, name in enumerate(self.embedded_name_list):
@@ -809,8 +796,10 @@ class InlineMultiQuestion(TextQuestionBase, PageBaseWithValue):
             [html, remainder_html] = remainder_html.split(wrapped_name)
             html_list.append(html)
 
-        if remainder_html != "":
-            html_list.append(remainder_html)
+        # remainder_html should at least include "</p>"
+        assert remainder_html, (
+            "remainder_html is unexpected not empty: %s" % remainder_html)
+        html_list.append(remainder_html)
 
         return {
                 "html_list": html_list,
@@ -829,9 +818,8 @@ class InlineMultiQuestion(TextQuestionBase, PageBaseWithValue):
 
                 for answer_instance in self.answer_instance_list:
                     try:
-                        if answer[answer_instance.name] is not None:
-                            correctness_list.append(answer_instance.get_correctness(
-                                    answer[answer_instance.name]))
+                        correctness_list.append(answer_instance.get_correctness(
+                                answer[answer_instance.name]))
 
                     # The answer doesn't exist for newly added question
                     # for pages which have been submitted.
@@ -891,20 +879,17 @@ class InlineMultiQuestion(TextQuestionBase, PageBaseWithValue):
     def form_to_html(self, request, page_context, form, answer_data):
         """Returns an HTML rendering of *form*."""
 
-        from django.template import loader, RequestContext
-        from django import VERSION as DJANGO_VERSION
+        from django.template import loader
+        context = {"form": form}
 
-        if DJANGO_VERSION >= (1, 9):
-            return loader.render_to_string(
-                    "course/custom-crispy-inline-form.html",
-                    context={"form": form},
-                    request=request)
-        else:
-            context = RequestContext(request)
-            context.update({"form": form})
-            return loader.render_to_string(
-                    "course/custom-crispy-inline-form.html",
-                    context_instance=context)
+        # This happens when rendering the form in analytics view.
+        if not request:
+            context.update({'csrf_token': "None"})
+
+        return loader.render_to_string(
+                "course/custom-crispy-inline-form.html",
+                context=context,
+                request=request)
 
     def grade(self, page_context, page_data, answer_data, grade_data):
         if answer_data is None:
@@ -921,21 +906,46 @@ class InlineMultiQuestion(TextQuestionBase, PageBaseWithValue):
         if total_weight > 0:
             achieved_weight = 0
             for answer_instance in self.answer_instance_list:
-                if answer_dict[answer_instance.name] is not None:
-                    achieved_weight += answer_instance.get_weight(
-                            answer_dict[answer_instance.name])
+                achieved_weight += answer_instance.get_weight(
+                        answer_dict[answer_instance.name])
             correctness = achieved_weight / total_weight
 
         # for case when all questions have no weight assigned
         else:
             n_corr = 0
             for answer_instance in self.answer_instance_list:
-                if answer_dict[answer_instance.name] is not None:
-                    n_corr += answer_instance.get_correctness(
-                            answer_dict[answer_instance.name])
+                n_corr += answer_instance.get_correctness(
+                        answer_dict[answer_instance.name])
             correctness = n_corr / len(self.answer_instance_list)
 
         return AnswerFeedback(correctness=correctness)
+
+    def analytic_view_body(self, page_context, page_data):
+        form = InlineMultiQuestionForm(
+            False,
+            self.get_dict_for_form(page_context, page_data),
+            page_context)
+        return (self.body(page_context, page_data)
+                + self.form_to_html(None, page_context, form, None))
+
+    def normalized_bytes_answer(self, page_context, page_data, answer_data):
+        if answer_data is None:
+            return None
+
+        answer_dict = answer_data["answer"]
+
+        result = {}
+        for idx, name in enumerate(self.embedded_name_list):
+            single_answer_str = (
+                self.answer_instance_list[idx].get_answer_text(
+                    page_context, answer_dict[self.embedded_name_list[idx]]))
+
+            # unanswered question result in "" in answer_dict
+            if single_answer_str != "":
+                result[name] = single_answer_str
+
+        import json
+        return ".json", json.dumps(result)
 
     def normalized_answer(self, page_context, page_data, answer_data):
         if answer_data is None:
@@ -943,16 +953,11 @@ class InlineMultiQuestion(TextQuestionBase, PageBaseWithValue):
 
         answer_dict = answer_data["answer"]
 
-        nml_answer_output = self.get_question(page_context, page_data)
-
-        for idx, wrapped_name in enumerate(self.embedded_wrapped_name_list):
-            nml_answer_output = nml_answer_output.replace(
-                    wrapped_name,
-                    "<strong>"
-                    + answer_dict[self.embedded_name_list[idx]]
-                    + "</strong>")
-
-        return nml_answer_output
+        return ", ".join(
+            [self.answer_instance_list[idx].get_answer_text(
+                page_context, answer_dict[self.embedded_name_list[idx]])
+                for idx, name in enumerate(self.embedded_name_list)]
+        )
 
 # }}}
 

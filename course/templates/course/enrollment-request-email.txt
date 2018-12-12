@@ -5,4 +5,4 @@ User '{{user}}' has requested permission to enroll in your course. Please go to
 to approve or deny the request. To do so, select the course participations in question and use the "Approve enrollment" or "Deny enrollment" admin
 actions.
 {% endblocktrans %}
-{% blocktrans %}- RELATE staff {% endblocktrans %}
+- {% blocktrans %}{{ relate_site_name }} staff{% endblocktrans %}

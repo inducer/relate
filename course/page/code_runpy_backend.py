@@ -224,7 +224,7 @@ def run_code(result, run_req):
     feedback = Feedback()
     maint_ctx = {
             "feedback": feedback,
-            "user_code": user_code,
+            "user_code": run_req.user_code,
             "data_files": data_files,
             "output_html": output_html,
             "GradingComplete": GradingComplete,
@@ -232,6 +232,7 @@ def run_code(result, run_req):
 
     if setup_code is not None:
         try:
+            maint_ctx["_MODULE_SOURCE_CODE"] = run_req.setup_code
             exec(setup_code, maint_ctx)
         except Exception:
             package_exception(result, "setup_error")
@@ -250,6 +251,7 @@ def run_code(result, run_req):
     user_ctx = deepcopy(user_ctx)
 
     try:
+        user_ctx["_MODULE_SOURCE_CODE"] = run_req.user_code
         exec(user_code, user_ctx)
     except Exception:
         package_exception(result, "user_error")
@@ -293,16 +295,13 @@ def run_code(result, run_req):
 
     if test_code is not None:
         try:
+            maint_ctx["_MODULE_SOURCE_CODE"] = run_req.test_code
             exec(test_code, maint_ctx)
         except GradingComplete:
             pass
         except Exception:
             package_exception(result, "test_error")
             return
-
-    if not (feedback.points is None or 0 <= feedback.points <= 1):
-        raise ValueError("grade point value is invalid: %s"
-                % feedback.points)
 
     result["points"] = feedback.points
     result["feedback"] = feedback.feedback_items

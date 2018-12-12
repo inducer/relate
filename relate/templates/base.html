@@ -7,154 +7,239 @@
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    {% block favicon %}{% endblock %}
 
-    <title>{% block title %}{% trans "RELATE" %}{% endblock %}</title>
+    <title>{% block title %}{{ relate_site_name }}{% endblock %}</title>
 
-    <link href="{% static "bootstrap/dist/css/bootstrap.css" %}" rel="stylesheet">
-    <link href="{% static "jquery-ui/themes/smoothness/jquery-ui.css" %}" rel="stylesheet">
+    {% block head_assets %}
+      {% block head_assets_before_form_media %}
+        <link href="{% static 'bootstrap/dist/css/bootstrap.min.css' %}" rel="stylesheet">
+        <link href="{% static 'jquery-ui-dist/jquery-ui.theme.min.css' %}" rel="stylesheet">
 
-    <link rel="stylesheet" href="{% static "font-awesome/css/font-awesome.css" %}">
-    <link rel="stylesheet" href="{% static "jstree/dist/themes/default/style.min.css" %}" />
-    <link rel="stylesheet" href="/static/css/style.css" >
+        <link rel="stylesheet" href="{% static 'font-awesome/css/font-awesome.min.css' %}">
+        <link rel="stylesheet" href="{% static 'jstree/dist/themes/default/style.min.css' %}"/>
 
-    {# Don't be tempted to move all this JS stuff down to the end. #}
-    {# The datepicker generates inline JS that relies on this being loaded. #}
-    <script src="{% static "jquery/dist/jquery.js" %}"></script>
-    <script src="{% static "jquery-ui/jquery-ui.js" %}"></script>
-    <script src="{% static "bootstrap/dist/js/bootstrap.js" %}"></script>
-    <script src="{% static "jstree/dist/jstree.min.js" %}"></script>
+        {# Don't be tempted to move all this JS stuff down to the end. #}
+        {# The datepicker generates inline JS that relies on this being loaded. #}
+        <script src="{% static 'jquery/dist/jquery.min.js' %}"></script>
+        <script src="{% static 'jquery-ui-dist/jquery-ui.min.js' %}"></script>
+        <script src="{% static 'bootstrap/dist/js/bootstrap.min.js' %}"></script>
+        <script src="{% static 'jstree/dist/jstree.min.js' %}"></script>
+      {% endblock %}
 
-    {{ form.media }}
+      {% block head_assets_local %}
+        <link rel="stylesheet" href="{% static 'css/style.css' %}?rev=2017.11.30">
+        <link rel="stylesheet" href="{% static "css/ipynb.style.min.css" %}?rev=2017.11.30" >
+      {% endblock %}
 
-    {%block header_extra %}{% endblock %}
+      {% block head_assets_form_media %}
+        {{ form.media }}
+      {% endblock %}
 
-    <!-- HTML5 shim and Respond.js IE8 support of HTML5 elements and media queries -->
-    <!--[if lt IE 9]>
-      <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
-      <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
-    <![endif]-->
+      {% block header_extra %}{% endblock %}
 
-    <link href="{% static "video.js/dist/video-js.min.css" %}" rel="stylesheet">
-    <script src="{% static "video.js/dist/video.min.js" %}"></script>
-    <script type="text/javascript">
-      videojs.options.flash.swf = "{% static "videojs/dist/video-js/video-js.swf" %}"
-    </script>
+      {% block head_assets_after_form_media %}
+        <link href="{% static 'video.js/dist/video-js.min.css' %}" rel="stylesheet">
+        <script src="{% static 'video.js/dist/video.min.js' %}"></script>
+        <script type="text/javascript">
+            videojs.options.flash.swf = "{% static 'videojs/dist/video-js/video-js.swf' %}"
+        </script>
+      {% endblock %}
+
+      {% block head_assets_extra %}{% endblock %}
+    {% endblock %}
+
   </head>
 
   <body>
-
-    <!-- Fixed navbar -->
-    <div class="navbar navbar-default" role="navigation">
-      <div class="container">
-        <div class="navbar-header">
-          <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
-            <span class="sr-only">Toggle navigation</span>
-            <span class="icon-bar"></span>
-            <span class="icon-bar"></span>
-            <span class="icon-bar"></span>
-          </button>
-          <a class="navbar-brand" href="{%block brand_link %}/{% endblock %}">{%block brand %}{% trans "RELATE" %}{% endblock %}</a>
+    {% block lte_ie9_warning %}
+      <!--[if lte IE 9]>
+        <div class="browser alert alert-danger warning"><i class="fa fa-warning"></i>
+          {% trans "This website may not be compatible with your outdated Internet Explorer version. If you want use Internet Explorer, please install one with version 10 or higher." %}
         </div>
-        <div class="navbar-collapse collapse">
-          {% if not maintenance_mode %}
-          <ul class="nav navbar-nav">
+      <![endif]-->
+    {% endblock %}
+    {% block fixed_navbar %}
+      <!-- Fixed navbar -->
+      <div class="navbar navbar-default" role="navigation">
+        <div class="container">
+          <div class="navbar-header">
+            <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+              <span class="sr-only">Toggle navigation</span>
+              <span class="icon-bar"></span>
+              <span class="icon-bar"></span>
+              <span class="icon-bar"></span>
+            </button>
+              <a class="navbar-brand" href="{% block brand_link %}{% url 'relate-home' %}{% endblock %}">{%block brand %}{{ relate_site_name }}{% endblock %}</a>
+          </div>
+          <div class="navbar-collapse collapse">
+            {% if not maintenance_mode %}
+              <ul class="nav navbar-nav">
 
-            {%block navbar %}{% endblock %}
+                {% block navbar %}{% endblock %}
 
-            {% if user.is_staff or currently_impersonating or perms.course.can_issue_exam_tickets or pperm.impersonate_role or pperm.set_fake_time or pperm.set_pretend_facility %}
-            <li class="dropdown">
-              <a href="#" class="dropdown-toggle" data-toggle="dropdown">{% trans "Staff" %}<b class="caret"></b></a>
-              <ul class="dropdown-menu">
-                {% if user.is_staff %}
-                  <li><a href="/admin" target="_blank">{% trans "Admin site" %}</a></li>
-                  <li role="presentation" class="divider"></li>
-                {% endif %}
-                {% if perms.course.can_issue_exam_tickets %}
-                  <li role="presentation" class="dropdown-header">{% trans "Exams" %}</li>
-                  <li><a href="{% url "relate-issue_exam_ticket" %}">{% trans "Issue exam tickets" %}</a></li>
-                  <li><a href="{% url "relate-check_in_for_exam" %}">{% trans "Exam check-in" %}</a></li>
-                    <li role="presentation" class="divider"></li>
-                {% endif %}
-                {% if currently_impersonating or pperm.impersonate_role %}
-                  <li role="presentation" class="dropdown-header">{% trans "Test/Troubleshoot" %}</li>
+                {% block navbar_dropdown_staff %}
+                  {% if user.is_staff or currently_impersonating or perms.course.can_issue_exam_tickets or pperm.impersonate_role or pperm.set_fake_time or pperm.set_pretend_facility or request.relate_impersonate_original_user|may_set_fake_time or request.relate_impersonate_original_user|may_set_pretend_facility %}
+                    <li class="dropdown">
+                      <a href="#" class="dropdown-toggle" data-toggle="dropdown">{% trans "Staff" %}<b class="caret"></b></a>
+                      <ul class="dropdown-menu">
+                        {% block navbar_dropdown_staff_menu_admin %}
+                          {% if user.is_staff %}
+                            <li><a href="{% url 'admin:index' %}" target="_blank">{% trans "Admin site" %}</a></li>
+                          {% endif %}
+                        {% endblock %}
+                        {% block navbar_dropdown_staff_menu_purge_page_view_data %}
+                          {% if user.is_superuser or pperm.use_admin_interface %}
+                            <li role="presentation" class="divider"></li>
+                            <li><a href="{% url 'relate-purge_page_view_data' %}" target="_blank">{% trans "Purge page view data" %}</a></li>
+                          {% endif %}
+                        {% endblock %}
+                        {% block navbar_dropdown_staff_menu_exam %}
+                          {% if perms.course.can_issue_exam_tickets %}
+                            <li role="presentation" class="divider"></li>
+                            <li role="presentation" class="dropdown-header">{% trans "Exams" %}</li>
+                            <li><a href="{% url 'relate-issue_exam_ticket' %}">{% trans "Issue exam tickets" %}</a></li>
+                            <li><a href="{% url 'relate-check_in_for_exam' %}">{% trans "Exam check-in" %}</a></li>
+                          {% endif %}
+                        {% endblock %}
+                        {% block navbar_dropdown_staff_menu_trouble_shoot %}
+                          {% if currently_impersonating or pperm.impersonate_role or pperm.set_fake_time or request.relate_impersonate_original_user|may_set_fake_time  or request.relate_impersonate_original_user|may_set_pretend_facility %}
+                            <li role="presentation" class="divider"></li>
+                            <li role="presentation" class="dropdown-header">{% trans "Test/Troubleshoot" %}</li>
+                            {% if currently_impersonating %}
+                              <li><a onclick=stop_impersonate()>{% trans "Stop impersonating" %}</a></li>
+                            {% else %}
+                              <li><a href="{% url 'relate-impersonate' %}" target="_blank">{% trans "Impersonate user" %}</a></li>
+                            {% endif %}
+                            {% if pperm.set_fake_time or request.relate_impersonate_original_user|may_set_fake_time %}
+                              <li><a href="{% url 'relate-set_fake_time' %}" target="_blank">{% trans "Set fake time" %}</a></li>
+                            {% endif %}
+                            {% if pperm.set_pretend_facility  or request.relate_impersonate_original_user|may_set_pretend_facility %}
+                              <li><a href="{% url 'relate-set_pretend_facilities' %}" target="_blank">{% trans "Pretend to be in facilities" %}</a></li>
+                            {% endif %}
+                          {% endif %}
+                        {% endblock %}
+                      </ul>
+                    </li>
+                  {% endif %}
+              {% endblock %}
+              </ul>
+              <ul class="nav navbar-nav navbar-right">
+                {% block preview_status %}
+                {% endblock %}
+
+                {% if user.is_authenticated %}
+                  <li>
+                    <a href="{% url 'relate-user_profile' %}">
+                      {% blocktrans trimmed with username=user.username %}
+                        Signed in as {{ username }}
+                      {% endblocktrans %} </a>
+                  </li>
                   {% if currently_impersonating %}
-                    <li><a href="{% url "relate-stop_impersonating" %}" target="_blank">{% trans "Stop impersonating" %}</a></li>
-                  {% else %}
-                    <li><a href="{% url "relate-impersonate" %}" target="_blank">{% trans "Impersonate user" %}</a></li>
+                    <li>
+                      <p class="navbar-text">
+                        <b>{% trans "(impersonated)" %}</b>
+                      </p>
+                    </li>
+                  {% endif %}
+                {% else %}
+                  {# Error pages don't seem to run template context processors, so #}
+                  {# this variable might not be available... #}
+                  {% if student_sign_in_view %}
+                    <li><a href="{% url student_sign_in_view %}">{% trans "Sign in" %}</a></li>
                   {% endif %}
                 {% endif %}
-                {% if pperm.set_fake_time %}
-                  <li><a href="{% url "relate-set_fake_time" %}" target="_blank">{% trans "Set fake time" %}</a></li>
-                {% endif %}
-                {% if pperm.set_pretend_facility %}
-                  <li><a href="{% url "relate-set_pretend_facilities" %}" target="_blank">{% trans "Pretend to be in facilities" %}</a></li>
-                {% endif %}
               </ul>
-            </li>
-            {% endif %}
-          </ul>
-          <ul class="nav navbar-nav navbar-right">
-            {% block preview_status %}
-            {% endblock %}
-
-            {% if user.is_authenticated %}
-              <li>
-                <a href="{% url "relate-user_profile" %}">
-                    {% blocktrans trimmed with username=user.username %}
-                        Signed in as {{username}}
-                    {% endblocktrans %} </a>
-              </li>
-              {% if currently_impersonating %}
-                <li>
-                  <p class="navbar-text">
-                  <b>{% trans "(impersonated)" %}</b>
-                  </p>
-                </li>
-              {% endif %}
-            {% else %}
-              {# Error pages don't seem to run template context processors, so #}
-              {# this variable might not be available... #}
-              {% if student_sign_in_view %}
-                <li><a href="{% url student_sign_in_view %}">{% trans "Sign in" %}</a></li>
-              {% endif %}
-            {% endif %}
-          </ul>
-          {% endif %}{# not maintenance_mode #}
-        </div><!--/.nav-collapse -->
+            {% endif %}{# not maintenance_mode #}
+          </div><!--/.nav-collapse -->
+        </div>
       </div>
-    </div>
-
-    {% block root_container %}
-    <div class="container">
-      {% include "base-page-top.html" %}
-
-      {% block nav_recommendations %}
-      {% endblock %}
-
-      {% block content %}
-      {% endblock %}
-
-    </div>
     {% endblock %}
 
+    {% block pre_root_container %}{% endblock %}
+
+    {% block root_container %}
+      <div class="container">
+        {% block base_page_top %}{% include "base-page-top.html" %}{% endblock %}
+
+        {% block nav_recommendations %}
+        {% endblock %}
+
+        {% block content %}
+          {% block cover %}{% endblock %}
+          {% block course_list %}{% endblock %}
+        {% endblock %}
+
+      </div>
+    {% endblock %}
+
+    {% block post_root_container %}{% endblock %}
+
+    {% block footer %}{% endblock %}
+
     {% block page_bottom_javascript_extra %}{% endblock %}
-    <!-- JavaScript
-    ================================================== -->
-    <!-- Placed at the end of the document so the pages load faster -->
-    <script type="text/javascript"
-      src="{% static "MathJax/MathJax.js" %}?config=TeX-AMS-MML_HTMLorMML">
-    </script>
-    <script type="text/x-mathjax-config">
-      MathJax.Hub.Config({
-        extensions: ["tex2jax.js", "TeX/boldsymbol.js"],
-        messageStyle: "none",
-        // jax: ["input/TeX", "output/HTML-CSS"],
-        tex2jax: {
-          inlineMath: [ ['$','$'], ["\\(","\\)"] ],
-          displayMath: [ ['$$','$$'], ["\\[","\\]"] ],
-          processEscapes: true
-        },
-      });
-    </script>
+
+    {% block page_bottom_javascript %}
+      <!-- JavaScript
+      ================================================== -->
+      <!-- Placed at the end of the document so the pages load faster -->
+      {% if currently_impersonating and add_impersonation_header %}
+        <script type="text/javascript">
+          function stop_impersonate() {
+            $("#stop-impersonate")
+                .html(
+                    '<img src="{% static "images/busy.gif" %}" alt="Busy indicator">')
+                .show();
+              var jqxhr = $.ajax(
+                  "{% url "relate-stop_impersonating" %}",
+                  {
+                      type: "POST",
+                      data: {"stop_impersonating": true},
+                      beforeSend: function (xhr, settings) {
+                          var csrftoken = get_cookie('csrftoken');
+                          xhr.setRequestHeader("X-CSRFToken", csrftoken);
+                      }
+                  })
+                  .done(function () {
+                      window.location.reload();
+                  })
+          }
+        </script>
+      {% endif %}
+
+      <script>
+          function get_cookie(name) {
+              var cookieValue = null;
+              if (document.cookie && document.cookie != '') {
+                  var cookies = document.cookie.split(';');
+                  for (var i = 0; i < cookies.length; i++) {
+                      var cookie = jQuery.trim(cookies[i]);
+                      // Does this cookie string begin with the name we want?
+                      if (cookie.substring(0, name.length + 1) == (name + '=')) {
+                          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                          break;
+                      }
+                  }
+              }
+              return cookieValue;
+          }
+      </script>
+
+      <script type="text/javascript"
+              src="{% static "mathjax/MathJax.js" %}?config=TeX-AMS-MML_HTMLorMML">
+      </script>
+      <script type="text/x-mathjax-config">
+          MathJax.Hub.Config({
+            extensions: ["tex2jax.js", "TeX/boldsymbol.js"],
+            messageStyle: "none",
+            // jax: ["input/TeX", "output/HTML-CSS"],
+            tex2jax: {
+              inlineMath: [ ['$','$'], ["\\(","\\)"] ],
+              displayMath: [ ['$$','$$'], ["\\[","\\]"] ],
+              processEscapes: true
+            },
+          });
+      </script>
+    {% endblock %}
   </body>
 </html>

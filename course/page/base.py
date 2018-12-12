@@ -36,15 +36,14 @@ from django.utils.safestring import mark_safe
 from django.utils.functional import lazy
 from django.utils.translation import (
         ugettext_lazy as _,
-        ugettext,
+        ugettext_noop,
         )
-from django.utils import translation
 from django.conf import settings
 
 # {{{ mypy
 
 if False:
-    from typing import Text, Optional, Any, Tuple, Dict, Callable, FrozenSet  # noqa
+    from typing import Text, Optional, Any, Tuple, Dict, Callable, FrozenSet, Union  # noqa
     from django import http  # noqa
     from course.models import (  # noqa
             Course,
@@ -139,30 +138,82 @@ def markup_to_html(
 
 # {{{ answer feedback type
 
+
+class InvalidFeedbackPointsError(ValueError):
+    pass
+
+
+def round_point_count_to_quarters(value, atol=1e-5):
+    # type: (float, float) -> Union[float, int]
+    """
+    If 'value' is close to an int, a half or quarter, return the close value,
+    otherwise return the original value.
+    """
+
+    if abs(value - int(value)) < atol:
+        return int(value)
+
+    import math
+    _atol = atol * 4
+    v = value * 4
+    if abs(v - math.floor(v)) < _atol:
+        v = math.floor(v)
+    elif abs(v - math.ceil(v)) < _atol:
+        v = math.ceil(v)
+    else:
+        return value
+
+    return round(v / 4, 2)
+
+
+def validate_point_count(correctness, atol=1e-5):
+    # type: (Optional[float], float) -> (Optional[Union[float, int]])
+
+    if correctness is None:
+        return None
+
+    if correctness < -atol or correctness > MAX_EXTRA_CREDIT_FACTOR + atol:
+        raise InvalidFeedbackPointsError(
+            _("'correctness' is invalid: expecting "
+              "a value within [0, %(max_extra_credit_factor)s] or None, "
+              "got %(invalid_value)s.")
+            % {"max_extra_credit_factor": MAX_EXTRA_CREDIT_FACTOR,
+               "invalid_value": correctness}
+        )
+
+    return round_point_count_to_quarters(correctness, atol)
+
+
 def get_auto_feedback(correctness):
     # type: (Optional[float]) -> Text
+
+    correctness = validate_point_count(correctness)
+
     if correctness is None:
-        return six.text_type(_("No information on correctness of answer."))
-    elif abs(correctness - 0) < 1e-5:
-        return six.text_type(_("Your answer is not correct."))
-    elif abs(correctness - 1) < 1e-5:
-        return six.text_type(_("Your answer is correct."))
+        return six.text_type(
+            ugettext_noop("No information on correctness of answer."))
+
+    if correctness == 0:
+        return six.text_type(ugettext_noop("Your answer is not correct."))
+    elif correctness == 1:
+        return six.text_type(ugettext_noop("Your answer is correct."))
     elif correctness > 1:
         return six.text_type(
                 string_concat(
-                    _("Your answer is correct and earned bonus points."),
+                    ugettext_noop(
+                        "Your answer is correct and earned bonus points."),
                     " (%.1f %%)")
                 % (100*correctness))
     elif correctness > 0.5:
         return six.text_type(
                 string_concat(
-                    _("Your answer is mostly correct."),
+                    ugettext_noop("Your answer is mostly correct."),
                     " (%.1f %%)")
                 % (100*correctness))
     else:
         return six.text_type(
                 string_concat(
-                    _("Your answer is somewhat correct. "),
+                    ugettext_noop("Your answer is somewhat correct. "),
                     "(%.1f%%)")
                 % (100*correctness))
 
@@ -190,10 +241,7 @@ class AnswerFeedback(object):
     def __init__(self, correctness, feedback=None, bulk_feedback=None):
         # type: (Optional[float], Optional[Text], Optional[Text]) -> None
 
-        if correctness is not None:
-            # allow for extra credit
-            if correctness < 0 or correctness > MAX_EXTRA_CREDIT_FACTOR:
-                raise ValueError(_("Invalid correctness value"))
+        correctness = validate_point_count(correctness)
 
         if feedback is None:
             feedback = get_auto_feedback(correctness)
@@ -290,6 +338,7 @@ class PageBase(object):
 
     .. automethod:: grade
     .. automethod:: correct_answer
+    .. automethod:: analytic_view_body
     .. automethod:: normalized_answer
     .. automethod:: normalized_bytes_answer
     """
@@ -414,6 +463,15 @@ class PageBase(object):
 
         raise NotImplementedError()
 
+    def analytic_view_body(self, page_context, page_data):
+        # type: (PageContext, Dict) -> str
+
+        """
+        Return the (HTML) body of the page, which is shown in page analytic
+        view."""
+
+        return self.body(page_context, page_data)
+
     def body(self, page_context, page_data):
         # type: (PageContext, Dict) -> str
 
@@ -527,20 +585,12 @@ class PageBase(object):
             ):
         """Returns an HTML rendering of *form*."""
 
-        from django.template import loader, RequestContext
-        from django import VERSION as django_version  # noqa
+        from django.template import loader
 
-        if django_version >= (1, 9):
-            return loader.render_to_string(
-                    "course/crispy-form.html",
-                    context={"form": form},
-                    request=request)
-        else:
-            context = RequestContext(request)
-            context.update({"form": form})
-            return loader.render_to_string(
-                    "course/crispy-form.html",
-                    context_instance=context)
+        return loader.render_to_string(
+                "course/crispy-form.html",
+                context={"form": form},
+                request=request)
 
     # }}}
 
@@ -622,10 +672,12 @@ class PageBase(object):
         # type: (...) -> Text
         """Returns an HTML rendering of *grading_form*."""
 
+        # http://bit.ly/2GxzWr1
         from crispy_forms.utils import render_crispy_form
-        from django.template import RequestContext
-        context = RequestContext(request, {})
-        return render_crispy_form(grading_form, context=context)
+        from django.template.context_processors import csrf
+        ctx = {}  # type: Dict
+        ctx.update(csrf(request))
+        return render_crispy_form(grading_form, context=ctx)
 
     # }}}
 
@@ -664,13 +716,25 @@ class PageBase(object):
         """
         return None
 
-    def normalized_answer(self, page_context, page_data, answer_data):
+    def normalized_answer(
+            self,
+            page_context,  # type: PageContext
+            page_data,  # type: Any
+            answer_data  # type: Any
+            ):
+        # type: (...) -> Optional[Text]
         """An HTML-formatted answer to be used for summarization and
         display in analytics.
         """
         return None
 
-    def normalized_bytes_answer(self, page_context, page_data, answer_data):
+    def normalized_bytes_answer(
+            self,
+            page_context,  # type: PageContext
+            page_data,  # type: Any
+            answer_data,  # type: Any
+            ):
+        # type: (...) -> Optional[Tuple[Text, bytes]]
         """An answer to be used for batch download, given as a batch of bytes
         to be stuffed in a zip file.
 
@@ -707,7 +771,7 @@ class PageBaseWithTitle(PageBase):
             except NotImplementedError:
                 from warnings import warn
                 warn(_("PageBaseWithTitle subclass '%s' does not implement "
-                        "markdown_body_for_title()")
+                        "markup_body_for_title()")
                         % type(self).__name__)
             else:
                 from course.content import extract_title_from_markup
@@ -719,6 +783,13 @@ class PageBaseWithTitle(PageBase):
                         "%s: ",
                         _("no title found in body or title attribute"))
                     % (location))
+
+        from markdown import markdown
+        from django.utils.html import strip_tags
+        title = strip_tags(markdown(title))
+
+        if not title and vctx is not None:
+            vctx.add_warning(location, _("the rendered title is an empty string"))
 
         self._title = title
 
@@ -745,6 +816,13 @@ class PageBaseWithValue(PageBase):
                         location,
                         _("Attribute 'value' should be removed when "
                           "'is_optional_page' is True.")))
+
+            if hasattr(page_desc, "value") and page_desc.value < 0:
+                raise ValidationError(
+                    string_concat(
+                        location,
+                        _("Attribute 'value' expects a non-negative value, "
+                          "got %s instead") % str(page_desc.value)))
 
     def allowed_attrs(self):
         return super(PageBaseWithValue, self).allowed_attrs() + (
@@ -792,8 +870,9 @@ class TextInputWithButtons(forms.TextInput):
         self.button_values = button_values
         super(TextInputWithButtons, self).__init__(*args, **kwargs)
 
-    def render(self, name, value, attrs=None):
-        html = super(TextInputWithButtons, self).render(name, value, attrs)
+    def render(self, name, value, attrs=None, renderer=None):
+        html = super(TextInputWithButtons, self).render(name, value, attrs,
+                                                        renderer)
         from django.utils.html import format_html, mark_safe, escapejs
         id = attrs["id"]
 
@@ -909,26 +988,25 @@ class HumanTextFeedbackForm(StyledForm):
     def cleaned_percent(self):
         if self.point_value is None:
             return self.cleaned_data["grade_percent"]
-        elif (self.cleaned_data["grade_percent"] is not None
-                and self.cleaned_data.get("grade_points") is not None):
-            points_percent = 100*self.cleaned_data["grade_points"]/self.point_value
-            direct_percent = self.cleaned_data["grade_percent"]
-
-            if abs(points_percent - direct_percent) > 0.1:
-                raise RuntimeError(_("Grade (percent) and Grade (points) "
-                        "disagree"))
-
-            return max(points_percent, direct_percent)
-        elif self.cleaned_data["grade_percent"] is not None:
-            return self.cleaned_data["grade_percent"]
-
-        elif self.cleaned_data.get("grade_points") is not None:
-            if self.point_value:
-                return 100*self.cleaned_data["grade_points"]/self.point_value
-            else:
-                return None
         else:
-            return None
+            candidate_percentages = []
+
+            if self.cleaned_data["grade_percent"] is not None:
+                candidate_percentages.append(self.cleaned_data["grade_percent"])
+
+            if self.cleaned_data.get("grade_points") is not None:
+                candidate_percentages.append(
+                    100 * self.cleaned_data["grade_points"] / self.point_value)
+
+            if not candidate_percentages:
+                return None
+
+            if len(candidate_percentages) == 2:
+                if abs(candidate_percentages[1] - candidate_percentages[0]) > 0.1:
+                    raise RuntimeError(_("Grade (percent) and Grade (points) "
+                                         "disagree"))
+
+            return max(candidate_percentages)
 
 
 class PageBaseWithHumanTextFeedback(PageBase):
@@ -980,11 +1058,12 @@ class PageBaseWithHumanTextFeedback(PageBase):
                 grade_data[k] = grading_form.cleaned_data[k]
 
         if grading_form.cleaned_data["notify"] and page_context.flow_session:
-            with translation.override(settings.RELATE_ADMIN_EMAIL_LOCALE):
-                from django.template.loader import render_to_string
+            from course.utils import LanguageOverride
+            with LanguageOverride(page_context.course):
+                from relate.utils import render_email_template
                 from course.utils import will_use_masked_profile_for_email
                 staff_email = [page_context.course.notify_email, request.user.email]
-                message = render_to_string("course/grade-notify.txt", {
+                message = render_email_template("course/grade-notify.txt", {
                     "page_title": self.title(page_context, page_data),
                     "course": page_context.course,
                     "participation": page_context.flow_session.participation,
@@ -1018,8 +1097,9 @@ class PageBaseWithHumanTextFeedback(PageBase):
         if (grading_form.cleaned_data["notes"]
                 and grading_form.cleaned_data["notify_instructor"]
                 and page_context.flow_session):
-            with translation.override(settings.RELATE_ADMIN_EMAIL_LOCALE):
-                from django.template.loader import render_to_string
+            from course.utils import LanguageOverride
+            with LanguageOverride(page_context.course):
+                from relate.utils import render_email_template
                 from course.utils import will_use_masked_profile_for_email
                 staff_email = [page_context.course.notify_email, request.user.email]
                 use_masked_profile = will_use_masked_profile_for_email(staff_email)
@@ -1029,17 +1109,18 @@ class PageBaseWithHumanTextFeedback(PageBase):
                 else:
                     username = (
                         page_context.flow_session.user.get_email_appellation())
-                message = render_to_string("course/grade-internal-notes-notify.txt",
-                        {
-                            "page_title": self.title(page_context, page_data),
-                            "username": username,
-                            "course": page_context.course,
-                            "participation": page_context.flow_session.participation,
-                            "notes_text": grade_data["notes"],
-                            "flow_session": page_context.flow_session,
-                            "review_uri": page_context.page_uri,
-                            "sender": request.user,
-                            })
+                message = render_email_template(
+                    "course/grade-internal-notes-notify.txt",
+                    {
+                        "page_title": self.title(page_context, page_data),
+                        "username": username,
+                        "course": page_context.course,
+                        "participation": page_context.flow_session.participation,
+                        "notes_text": grade_data["notes"],
+                        "flow_session": page_context.flow_session,
+                        "review_uri": page_context.page_uri,
+                        "sender": request.user,
+                    })
 
                 from django.core.mail import EmailMessage
                 msg = EmailMessage(
@@ -1088,7 +1169,7 @@ class PageBaseWithHumanTextFeedback(PageBase):
 
         if answer_data is None:
             return AnswerFeedback(correctness=0,
-                    feedback=ugettext("No answer provided."))
+                    feedback=ugettext_noop("No answer provided."))
 
         if grade_data is None:
             return None

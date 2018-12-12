@@ -80,7 +80,9 @@ def test_code_question(page_desc, repo_root):
     run_req = {
             "setup_code": getattr(page_desc, "setup_code", ""),
             "names_for_user": getattr(page_desc, "names_for_user", []),
-            "user_code": getattr(page_desc, "correct_code", ""),
+            "user_code": (
+                getattr(page_desc, "check_user_code", "")
+                or getattr(page_desc, "correct_code", "")),
             "names_from_user": getattr(page_desc, "names_from_user", []),
             "test_code": test_code,
             "data_files": data_files,
@@ -109,7 +111,7 @@ def test_code_question(page_desc, repo_root):
         response["stdout"] = stdout.getvalue()
         response["stderr"] = stderr.getvalue()
 
-    except:
+    except Exception:
         response = {}
         package_exception(response, "uncaught_error")
 
@@ -133,7 +135,7 @@ def test_code_question(page_desc, repo_root):
                     + Style.RESET_ALL)
         elif points < 1:
             print(Fore.RED
-                    + "FAIL: correct_code did not pass test"
+                    + "FAIL: code did not pass test"
                     + Style.RESET_ALL)
         else:
             print(Fore.GREEN+response["result"].upper()+Style.RESET_ALL)
@@ -168,9 +170,9 @@ def test_code_question(page_desc, repo_root):
 def test_code_yml(yml_file, repo_root):
     data = expand_yaml(yml_file, repo_root)
 
-    from yaml import load
+    from yaml import safe_load
     from relate.utils import dict_to_struct
-    data = dict_to_struct(load(data))
+    data = dict_to_struct(safe_load(data))
 
     if hasattr(data, "id") and hasattr(data, "type"):
         test_code_question(data, repo_root)
@@ -214,6 +216,9 @@ def main():
     pass
     import os
     import argparse
+
+    os.environ["RELATE_COMMAND_LINE"] = "1"
+
     parser = argparse.ArgumentParser(
             description='RELATE course content command line tool')
     subp = parser.add_subparsers()

@@ -166,15 +166,22 @@ class FileUploadQuestion(PageBaseWithTitle, PageBaseWithValue,
 
         if not (set(page_desc.mime_types) <= set(self.ALLOWED_MIME_TYPES)):
             raise ValidationError(
-                    string_concat(
-                        "%(location)s: ",
-                        _("unrecognized mime types"),
-                        " '%(presenttype)s'")
-                    % {
-                        'location': location,
-                        'presenttype': ", ".join(
-                            set(page_desc.mime_types)
-                            - set(self.ALLOWED_MIME_TYPES))})
+                string_concat(
+                    location, ": ",
+                    _("unrecognized mime types"),
+                    " '%(presenttype)s'")
+                % {
+                    'presenttype': ", ".join(
+                        set(page_desc.mime_types)
+                        - set(self.ALLOWED_MIME_TYPES))})
+
+        if page_desc.maximum_megabytes <= 0:
+            raise ValidationError(
+                string_concat(
+                    location, ": ",
+                    _("'maximum_megabytes' expects a positive value, "
+                      "got %(value)s instead")
+                    % {'value': str(page_desc.maximum_megabytes)}))
 
         if vctx is not None:
             if not hasattr(page_desc, "value"):

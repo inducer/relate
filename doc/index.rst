@@ -16,7 +16,6 @@ features:
   * Simple, text-based format for reusable course content
   * Based on standard `YAML <https://en.wikipedia.org/wiki/YAML>`_,
     `Markdown <https://en.wikipedia.org/wiki/Markdown>`_
-  * Instructors can implement custom question/page types in Python.
 
   See `example content <https://github.com/inducer/relate-sample>`_.
 
@@ -65,6 +64,7 @@ Table of Contents
 
     content.rst
     flow.rst
+    api.rst
     faq.rst
     misc.rst
 

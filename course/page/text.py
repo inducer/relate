@@ -102,6 +102,8 @@ class TextAnswerForm(StyledForm):
                 help_text=help_text,
                 label=_("Answer"))
 
+        self.style_codemirror_widget()
+
     def clean(self):
         cleaned_data = super(TextAnswerForm, self).clean()
 
@@ -143,7 +145,7 @@ class RELATEPageValidator(object):
         import yaml
 
         try:
-            page_desc = dict_to_struct(yaml.load(new_page_source))
+            page_desc = dict_to_struct(yaml.safe_load(new_page_source))
 
             from course.validation import (
                     validate_flow_page, ValidationContext)
@@ -188,7 +190,7 @@ def parse_validator(vctx, location, validator_desc):
         raise ValidationError(
                 string_concat(
                     "%s: ",
-                    _("must be struct or string"))
+                    _("must be struct"))
                 % location)
 
     if not hasattr(validator_desc, "type"):
@@ -217,7 +219,7 @@ class TextAnswerMatcher(object):
     """
 
     def __init__(self, vctx, location, pattern):
-        pass
+        pass  # pragma: no cover
 
     def validate(self, s):
         """Called to validate form input against simple input mistakes.
@@ -225,7 +227,7 @@ class TextAnswerMatcher(object):
         Should raise :exc:`django.forms.ValidationError` on error.
         """
 
-        pass
+        pass  # pragma: no cover
 
     def grade(self, s):
         raise NotImplementedError()
@@ -253,8 +255,7 @@ class CaseSensitivePlainMatcher(TextAnswerMatcher):
     def grade(self, s):
         return int(
                 multiple_to_single_spaces(self.pattern)
-                ==
-                multiple_to_single_spaces(s))
+                == multiple_to_single_spaces(s))
 
     def correct_answer_text(self):
         return self.pattern
@@ -268,8 +269,7 @@ class PlainMatcher(CaseSensitivePlainMatcher):
     def grade(self, s):
         return int(
             multiple_to_single_spaces(self.pattern.lower())
-            ==
-            multiple_to_single_spaces(s.lower()))
+            == multiple_to_single_spaces(s.lower()))
 
 
 class RegexMatcher(TextAnswerMatcher):
@@ -282,7 +282,7 @@ class RegexMatcher(TextAnswerMatcher):
         try:
             self.pattern = re.compile(pattern, self.re_flags)
         except Exception:
-            tp, e, _ = sys.exc_info()
+            tp, e, __ = sys.exc_info()
 
             raise ValidationError(
                     string_concat(
@@ -308,7 +308,7 @@ class RegexMatcher(TextAnswerMatcher):
 
 class CaseSensitiveRegexMatcher(RegexMatcher):
     type = "case_sens_regex"
-    re_flags = 0
+    re_flags = 0  # type:ignore
     is_case_sensitive = True
     pattern_type = "string"
 
@@ -337,7 +337,7 @@ class SymbolicExpressionMatcher(TextAnswerMatcher):
         try:
             self.pattern_sym = parse_sympy(pattern)
         except ImportError:
-            tp, e, _ = sys.exc_info()
+            tp, e, __ = sys.exc_info()
             if vctx is not None:
                 vctx.add_warning(
                         location,
@@ -352,7 +352,7 @@ class SymbolicExpressionMatcher(TextAnswerMatcher):
                             })
 
         except Exception:
-            tp, e, _ = sys.exc_info()
+            tp, e, __ = sys.exc_info()
             raise ValidationError(
                     "%(location)s: %(err_type)s: %(err_str)s"
                     % {
@@ -370,9 +370,12 @@ class SymbolicExpressionMatcher(TextAnswerMatcher):
                     % {"err_type": tp.__name__, "err_str": str(e)})
 
     def grade(self, s):
-        from sympy import simplify
-        answer_sym = parse_sympy(s)
+        try:
+            answer_sym = parse_sympy(s)
+        except Exception:
+            return 0
 
+        from sympy import simplify
         try:
             simp_result = simplify(answer_sym - self.pattern_sym)
         except Exception:
@@ -407,15 +410,6 @@ def float_or_sympy_evalf(s):
 
     # return a float type value, expression not allowed
     return float(parse_sympy(s).evalf())
-
-
-def _is_valid_float(s):
-    try:
-        float_or_sympy_evalf(s)
-    except Exception:
-        return False
-    else:
-        return True
 
 
 class FloatMatcher(TextAnswerMatcher):
@@ -486,12 +480,9 @@ class FloatMatcher(TextAnswerMatcher):
 
         if (
                 not matcher_desc.value == 0
-                and
-                not hasattr(matcher_desc, "atol")
-                and
-                not hasattr(matcher_desc, "rtol")
-                and
-                vctx is not None):
+                and not hasattr(matcher_desc, "atol")
+                and not hasattr(matcher_desc, "rtol")
+                and vctx is not None):
             vctx.add_warning(location,
                     _("Float match should have either rtol or atol--"
                         "otherwise it will match any number"))
@@ -508,7 +499,10 @@ class FloatMatcher(TextAnswerMatcher):
         if s == "":
             return 0
 
-        answer_float = float_or_sympy_evalf(s)
+        try:
+            answer_float = float_or_sympy_evalf(s)
+        except Exception:
+            return 0
 
         if hasattr(self.matcher_desc, "atol"):
             if (abs(answer_float - self.matcher_desc.value)
@@ -688,26 +682,23 @@ class TextQuestionBase(PageBaseWithTitle):
     def body(self, page_context, page_data):
         return markup_to_html(page_context, self.page_desc.prompt)
 
+    def get_validators(self):
+        raise NotImplementedError()
+
     def make_form(self, page_context, page_data,
             answer_data, page_behavior):
-        read_only = not page_behavior.may_change_answer
+
+        kwargs = {
+            "read_only": not page_behavior.may_change_answer,
+            "interaction_mode": getattr(self.page_desc, "widget", None),
+            "validators": self.get_validators(),
+            "widget_type": getattr(self.page_desc, "widget", None),
+        }
 
         if answer_data is not None:
-            answer = {"answer": answer_data["answer"]}
-            form = TextAnswerForm(
-                    read_only,
-                    get_editor_interaction_mode(page_context),
-                    self.get_validators(), answer,
-                    widget_type=getattr(self.page_desc, "widget", None))
-        else:
-            answer = None
-            form = TextAnswerForm(
-                    read_only,
-                    get_editor_interaction_mode(page_context),
-                    self.get_validators(),
-                    widget_type=getattr(self.page_desc, "widget", None))
+            kwargs.update({"data": {"answer": answer_data["answer"]}})
 
-        return form
+        return TextAnswerForm(**kwargs)
 
     def process_form_post(self, page_context, page_data, post_data, files_data,
             page_behavior):
@@ -963,7 +954,8 @@ class TextQuestion(TextQuestionBase, PageBaseWithValue):
     def correct_answer(self, page_context, page_data, answer_data, grade_data):
         # FIXME: Could use 'best' match to answer
 
-        for matcher in self.matchers:
+        unspec_correct_answer_text = None
+        for matcher in self.matchers:  # pragma: no branch
             unspec_correct_answer_text = matcher.correct_answer_text()
             if unspec_correct_answer_text is not None:
                 break

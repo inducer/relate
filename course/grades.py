@@ -26,7 +26,7 @@ THE SOFTWARE.
 
 import re
 import six
-
+from decimal import Decimal
 from typing import cast
 
 from django.utils.translation import (
@@ -62,7 +62,7 @@ from course.constants import (
 # {{{ for mypy
 
 if False:
-    from typing import Tuple, Text, Optional, Any, Iterable, List  # noqa
+    from typing import Tuple, Text, Optional, Any, Iterable, List, Union  # noqa
     from course.utils import CoursePageContext  # noqa
     from course.content import FlowDesc  # noqa
     from course.models import Course, FlowPageVisitGrade  # noqa
@@ -90,17 +90,23 @@ def view_participant_grades(pctx, participation_id=None):
 
     # NOTE: It's important that these two queries are sorted consistently,
     # also consistently with the code below.
+
+    gopp_extra_filter_kwargs = {}
+    if not is_privileged_view:
+        gopp_extra_filter_kwargs = {"shown_in_participant_grade_book": True}
+
     grading_opps = list((GradingOpportunity.objects
             .filter(
                 course=pctx.course,
                 shown_in_grade_book=True,
+                **gopp_extra_filter_kwargs
                 )
             .order_by("identifier")))
 
     grade_changes = list(GradeChange.objects
             .filter(
                 participation=grade_participation,
-                opportunity__course=pctx.course,
+                opportunity__pk__in=[gopp.pk for gopp in grading_opps],
                 opportunity__shown_in_grade_book=True)
             .order_by(
                 "participation__id",
@@ -339,12 +345,32 @@ def export_gradebook_csv(pctx):
 # {{{ grades by grading opportunity
 
 class OpportunitySessionGradeInfo(object):
-    def __init__(self, grade_state_machine, flow_session, grades=None):
-        # type: (GradeStateMachine, Optional[FlowSession], Optional[Any]) ->  None
-
+    def __init__(self,
+                 grade_state_machine,  # Optional[GradeStateMachine]
+                 flow_session,  # Optional[FlowSession]
+                 flow_id=None,  # Optional[Text]
+                 grades=None,  # Optional[Any]
+                 has_finished_session=False,  # bool
+                 ):
+        # type: (...) ->  None
+        """
+        :param grade_state_machine: a :class:`GradeStateMachine:` or None.
+        :param flow_session: a :class:`FlowSession:` or None.
+        :param flow_id: optional, a :class:`str:` or None. This is used to determine
+        whether the instance is created by a flow-session-related opportunity.
+        :param grades: optional, a :class:`list:` of float or None, representing the
+        percentage grades of each page in the flow session.
+        :param has_finished_session:  a :class:`bool:`, respresent whether
+        the related participation has finished a flow-session, if the opportunity
+        is a flow-session related one. This is used to correctly order flow state,
+        if the participation has at least one finished flow session, the in-progress
+        flow session won't be ordered to top of the session state column.
+        """
         self.grade_state_machine = grade_state_machine
         self.flow_session = flow_session
+        self.flow_id = flow_id
         self.grades = grades
+        self.has_finished_session = has_finished_session
 
 
 class ModifySessionsForm(StyledForm):
@@ -487,15 +513,13 @@ def view_grades_by_opportunity(pctx, opp_id):
 
                     return redirect("relate-monitor_task", async_res.id)
 
-                elif op == "recalculate":
+                else:
+                    assert op == "recalculate"
                     async_res = recalculate_ended_sessions.delay(
                             pctx.course.id, opportunity.flow_id,
                             rule_tag)
 
                     return redirect("relate-monitor_task", async_res.id)
-
-                else:
-                    raise SuspiciousOperation("invalid operation")
 
         else:
             batch_session_ops_form = ModifySessionsForm(session_rule_tags)
@@ -567,24 +591,38 @@ def view_grades_by_opportunity(pctx, opp_id):
                         flow_session=None)))
         else:
             while (
-                    fsess_idx < len(flow_sessions) and (
-                    flow_sessions[fsess_idx].participation is None or
-                    flow_sessions[fsess_idx].participation.pk < participation.pk)):
+                    fsess_idx < len(flow_sessions)
+                    and (
+                        flow_sessions[fsess_idx].participation is None
+                        or (
+                            flow_sessions[fsess_idx].participation.pk
+                            < participation.pk))):
                 fsess_idx += 1
 
             my_flow_sessions = []
+
             while (
-                    fsess_idx < len(flow_sessions) and
-                    flow_sessions[fsess_idx].participation is not None and
-                    flow_sessions[fsess_idx].participation.pk == participation.pk):
+                    fsess_idx < len(flow_sessions)
+                    and flow_sessions[fsess_idx].participation is not None
+                    and (
+                        flow_sessions[fsess_idx].participation.pk
+                        == participation.pk)):
                 my_flow_sessions.append(flow_sessions[fsess_idx])
                 fsess_idx += 1
+
+            # When view_page_grades, participations with no started flow sessions
+            # should not be included
+            if not my_flow_sessions and not view_page_grades:
+                grade_table.append(
+                        (participation, OpportunitySessionGradeInfo(
+                            grade_state_machine=None,
+                            flow_id=opportunity.flow_id,
+                            flow_session=None)))
 
             for fsession in my_flow_sessions:
                 total_sessions += 1
 
-                if fsession is None:
-                    continue
+                assert fsession is not None
 
                 if not fsession.in_progress:
                     finished_sessions += 1
@@ -592,14 +630,17 @@ def view_grades_by_opportunity(pctx, opp_id):
                 grade_table.append(
                         (participation, OpportunitySessionGradeInfo(
                             grade_state_machine=state_machine,
-                            flow_session=fsession)))
+                            flow_id=opportunity.flow_id,
+                            flow_session=fsession,
+                            has_finished_session=bool(finished_sessions))))
 
-    if view_page_grades and len(grade_table) > 0 and all(
-            info.flow_session is not None for _dummy1, info in grade_table):
+    if view_page_grades and len(grade_table) > 0 and opportunity.flow_id is not None:
         # Query grades for flow pages
         all_flow_sessions = [
                 cast(FlowSession, info.flow_session)
                 for _dummy1, info in grade_table]
+
+        assert all(all_flow_sessions)
         max_page_count = max(fsess.page_count for fsess in all_flow_sessions)
         page_numbers = list(range(1, 1 + max_page_count))
 
@@ -649,7 +690,7 @@ class ReopenSessionForm(StyledForm):
 
         tags = [NONE_SESSION_TAG] + tags
         self.fields["set_access_rules_tag"] = forms.ChoiceField(
-                [(tag, tag) for tag in tags],
+                choices=[(tag, tag) for tag in tags],
                 initial=(current_tag
                     if current_tag is not None
                     else NONE_SESSION_TAG),
@@ -792,6 +833,26 @@ def average_grade(opportunity):
         return None, 0
 
 
+def get_single_grade_changes_and_state_machine(opportunity, participation):
+    # type: (GradingOpportunity, Participation) -> Tuple[List[GradeChange], GradeStateMachine]  # noqa
+
+    grade_changes = list(
+        GradeChange.objects.filter(
+            opportunity=opportunity,
+            participation=participation)
+        .order_by("grade_time")
+        .select_related("participation")
+        .select_related("participation__user")
+        .select_related("creator")
+        .select_related("flow_session")
+        .select_related("opportunity"))
+
+    state_machine = GradeStateMachine()
+    state_machine.consume(grade_changes, set_is_superseded=True)
+
+    return grade_changes, state_machine
+
+
 @course_view
 def view_single_grade(pctx, participation_id, opportunity_id):
     # type: (CoursePageContext, Text, Text) -> http.HttpResponse
@@ -805,6 +866,9 @@ def view_single_grade(pctx, participation_id, opportunity_id):
         raise SuspiciousOperation(_("participation does not match course"))
 
     opportunity = get_object_or_404(GradingOpportunity, id=int(opportunity_id))
+
+    if pctx.course != opportunity.course:
+        raise SuspiciousOperation(_("opportunity from wrong course"))
 
     my_grade = participation == pctx.participation
     is_privileged_view = pctx.has_permission(pperm.view_gradebook)
@@ -834,6 +898,7 @@ def view_single_grade(pctx, participation_id, opportunity_id):
     request = pctx.request
     if pctx.request.method == "POST":
         action_re = re.compile("^([a-z]+)_([0-9]+)$")
+        action_match = None
         for key in request.POST.keys():
             action_match = action_re.match(key)
             if action_match:
@@ -908,18 +973,8 @@ def view_single_grade(pctx, participation_id, opportunity_id):
 
     # }}}
 
-    grade_changes = list(GradeChange.objects
-            .filter(
-                opportunity=opportunity,
-                participation=participation)
-            .order_by("grade_time")
-            .select_related("participation")
-            .select_related("participation__user")
-            .select_related("creator")
-            .select_related("opportunity"))
-
-    state_machine = GradeStateMachine()
-    state_machine.consume(grade_changes, set_is_superseded=True)
+    grade_changes, state_machine = (
+        get_single_grade_changes_and_state_machine(opportunity, participation))
 
     if opportunity.flow_id:
         flow_sessions = list(FlowSession.objects
@@ -970,13 +1025,13 @@ def view_single_grade(pctx, participation_id, opportunity_id):
 
     # {{{ filter out pre-public grade changes
 
-    if (not show_privileged_info and
-            opportunity.hide_superseded_grade_history_before is not None):
+    if (not show_privileged_info
+            and opportunity.hide_superseded_grade_history_before is not None):
         grade_changes = [gchange
                 for gchange in grade_changes
                 if not gchange.is_superseded
-                or gchange.grade_time >=
-                        opportunity.hide_superseded_grade_history_before]
+                or gchange.grade_time
+                >= opportunity.hide_superseded_grade_history_before]
 
     # }}}
 
@@ -1034,7 +1089,8 @@ class ImportGradesForm(StyledForm):
         self.fields["attr_type"] = forms.ChoiceField(
                 choices=(
                     ("email_or_id", _("Email or NetID")),
-                    ("inst_id", _("Institutional ID")),
+                    ("institutional_id", _("Institutional ID")),
+                    ("username", _("Username")),
                     ),
                 label=_("User attribute"))
 
@@ -1063,6 +1119,15 @@ class ImportGradesForm(StyledForm):
 
     def clean(self):
         data = super(ImportGradesForm, self).clean()
+        attempt_id = data.get("attempt_id")
+        if attempt_id:
+            attempt_id = attempt_id.strip()
+            flow_session_specific_attempt_id_prefix = "flow-session-"
+            if attempt_id.startswith(flow_session_specific_attempt_id_prefix):
+                self.add_error("attempt_id",
+                               _('"%s" as a prefix is not allowed')
+                               % flow_session_specific_attempt_id_prefix)
+
         file_contents = data.get("file")
         if file_contents:
             column_idx_list = [
@@ -1089,28 +1154,37 @@ class ParticipantNotFound(ValueError):
     pass
 
 
-def find_participant_from_inst_id(course, inst_id_str):
-    inst_id_str = inst_id_str.strip()
+def find_participant_from_user_attr(course, attr_type, attr_str):
+    attr_str = attr_str.strip()
+
+    exact_mode = "exact"
+    if attr_type == "institutional_id":
+        exact_mode = "iexact"
+    kwargs = {"user__%s__%s" % (attr_type, exact_mode): attr_str}
 
     matches = (Participation.objects
             .filter(
                 course=course,
                 status=participation_status.active,
-                user__institutional_id__exact=inst_id_str)
+                **kwargs)
             .select_related("user"))
 
-    if not matches:
+    matches_count = matches.count()
+    if not matches_count or matches_count > 1:
+        from django.contrib.auth import get_user_model
+        from django.utils.encoding import force_text
+        attr_verbose_name = force_text(
+            get_user_model()._meta.get_field(attr_type).verbose_name)
+
+        map_dict = {"user_attr": attr_verbose_name, "user_attr_str": attr_str}
+
+        if not matches_count:
+            raise ParticipantNotFound(
+                    _("no participant found with %(user_attr)s "
+                    "'%(user_attr_str)s'") % map_dict)
         raise ParticipantNotFound(
-                # Translators: use institutional_id_string to find user
-                # (participant).
-                _("no participant found with institutional ID "
-                "'%(inst_id_string)s'") % {
-                    "inst_id_string": inst_id_str})
-    if len(matches) > 1:
-        raise ParticipantNotFound(
-                _("more than one participant found with institutional ID "
-                "'%(inst_id_string)s'") % {
-                    "inst_id_string": inst_id_str})
+                _("more than one participant found with %(user_attr)s "
+                "'%(user_attr_str)s'") % map_dict)
 
     return matches[0]
 
@@ -1165,6 +1239,18 @@ def fix_decimal(s):
         return s
 
 
+def points_equal(num, other):
+    # type: (Optional[Decimal], Optional[Decimal]) -> bool
+    if num is None and other is None:
+        return True
+    if ((num is None and other is not None)
+            or (num is not None and other is None)):
+        return False
+    assert num is not None
+    assert other is not None
+    return abs(num - other) < 1e-2
+
+
 def csv_to_grade_changes(
         log_lines,
         course, grading_opportunity, attempt_id, file_contents,
@@ -1173,6 +1259,8 @@ def csv_to_grade_changes(
     result = []
 
     import csv
+
+    from course.utils import get_col_contents_or_empty
 
     total_count = 0
     spamreader = csv.reader(file_contents)
@@ -1186,14 +1274,13 @@ def csv_to_grade_changes(
         try:
             if attr_type == "email_or_id":
                 gchange.participation = find_participant_from_id(
-                        course, row[attr_column-1])
-            elif attr_type == "inst_id":
-                gchange.participation = find_participant_from_inst_id(
-                        course, row[attr_column-1])
+                        course, get_col_contents_or_empty(row, attr_column-1))
+            elif attr_type in ["institutional_id", "username"]:
+                gchange.participation = find_participant_from_user_attr(
+                        course, attr_type,
+                        get_col_contents_or_empty(row, attr_column-1))
             else:
-                raise ParticipantNotFound(
-                    _("Unknown user attribute '%(attr_type)s'") % {
-                        "attr_type": attr_type})
+                raise NotImplementedError()
         except ParticipantNotFound as e:
             log_lines.append(e)
             continue
@@ -1201,16 +1288,16 @@ def csv_to_grade_changes(
         gchange.state = grade_state_change_types.graded
         gchange.attempt_id = attempt_id
 
-        points_str = row[points_column-1].strip()
+        points_str = get_col_contents_or_empty(row, points_column-1).strip()
         # Moodle's "NULL" grades look like this.
         if points_str in ["-", ""]:
             gchange.points = None
         else:
-            gchange.points = float(fix_decimal(points_str))
+            gchange.points = Decimal(fix_decimal(points_str))
 
         gchange.max_points = max_points
         if feedback_column is not None:
-            gchange.comment = row[feedback_column-1]
+            gchange.comment = get_col_contents_or_empty(row, feedback_column-1)
 
         gchange.creator = creator
         gchange.grade_time = grade_time
@@ -1226,11 +1313,10 @@ def csv_to_grade_changes(
             last_grade, = last_grades
 
             if last_grade.state == grade_state_change_types.graded:
-
                 updated = []
-                if last_grade.points != gchange.points:
+                if not points_equal(last_grade.points, gchange.points):
                     updated.append(ugettext("points"))
-                if last_grade.max_points != gchange.max_points:
+                if not points_equal(last_grade.max_points, gchange.max_points):
                     updated.append(ugettext("max_points"))
                 if last_grade.comment != gchange.comment:
                     updated.append(ugettext("comment"))
@@ -1559,6 +1645,7 @@ class EditGradingOpportunityForm(StyledModelForm):
         if not add_new:
             self.fields["identifier"].disabled = True
 
+        self.fields["course"].disabled = True
         self.fields["flow_id"].disabled = True
         self.fields["creation_time"].disabled = True
 
@@ -1568,7 +1655,7 @@ class EditGradingOpportunityForm(StyledModelForm):
     class Meta:
         model = GradingOpportunity
         exclude = (
-                "course",
+                # do not exclude 'course', used in unique_together checking
                 # not used
                 "due_time",
                 )

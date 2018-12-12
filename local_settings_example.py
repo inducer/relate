@@ -11,6 +11,14 @@ ALLOWED_HOSTS = [
 # Configure the following as url as above.
 RELATE_BASE_URL = "http://YOUR/RELATE/SITE/DOMAIN"
 
+from django.conf.global_settings import gettext_noop  # noqa
+
+# Uncomment this to configure the site name of your relate instance.
+# If not configured, "RELATE" will be used as default value.
+# Use gettext_noop() if you want it to be discovered as an i18n literal
+# for translation.
+#RELATE_CUTOMIZED_SITE_NAME = gettext_noop("My RELATE")
+
 # Uncomment this to use a real database. If left commented out, a local SQLite3
 # database will be used, which is not recommended for production use.
 #
@@ -49,6 +57,18 @@ DEBUG = True
 
 TIME_ZONE = "America/Chicago"
 
+# RELATE needs a message broker for long-running tasks.
+#
+# See here for options:
+# http://docs.celeryproject.org/en/latest/userguide/configuration.html#broker-url
+#
+# The dev server will run fine without this, but any tasks that require
+# queueing will just appear to hang. On Debian/Ubuntu, the following line
+# should be enough to satisfy this requirement.
+#
+# apt-get install rabbitmq-server
+CELERY_BROKER_URL = 'amqp://'
+
 # }}}
 
 # {{{ git storage
@@ -61,6 +81,10 @@ TIME_ZONE = "America/Chicago"
 # in production.
 #
 # The 'course identifiers' you enter will be directory names below this root.
+
+# WARNING: The default, "..", is insecure (but convenient for development).
+# It will put course repos alongside the relate git checkout in the parent
+# directory of where you put the Relate source tree.
 
 #GIT_ROOT = "/some/where"
 GIT_ROOT = ".."
@@ -201,6 +225,11 @@ RELATE_SHOW_EDITOR_FORM = True
 
 # }}}
 
+# Whether disable "markdown.extensions.codehilite" when rendering page markdown.
+# Default to True, as enable it sometimes crashes for some pages with code fences.
+# For this reason, there will be a warning when the attribute is set to False when
+# starting the server.
+#RELATE_DISABLE_CODEHILITE_MARKDOWN_EXTENSION = True
 
 # {{{ user full_name format
 
@@ -211,7 +240,7 @@ RELATE_SHOW_EDITOR_FORM = True
 # For example, you can define it like this:
 
 #<code>
-#   def my_fullname_format(firstname, lastname)
+#   def my_fullname_format(firstname, lastname):
 #         return "%s%s" % (last_name, first_name)
 #</code>
 
@@ -219,25 +248,52 @@ RELATE_SHOW_EDITOR_FORM = True
 
 #RELATE_USER_FULL_NAME_FORMAT_METHOD = my_fullname_format
 
-# You can also import it from your custom module.
+# You can also import it from your custom module, or use a dotted path of the
+# method, i.e.:
+#RELATE_USER_FULL_NAME_FORMAT_METHOD = "path.to.my_fullname_format"
 
 # }}}
 
-# {{{ system email appelation priority
+# {{{ system email appellation priority
 
-# RELATE's default email appelation of the receiver is a ordered list:
+# RELATE's default email appellation of the receiver is a ordered list:
 # ["first_name", "email", "username"], when first_name is not None
 # (e.g, first_name = "Foo"), the email will be opened
 # by "Dear Foo,". If first_name is None, then email will be used
-# as appelation, so on and so forth.
+# as appellation, so on and so forth.
 
-# you can override the appelation priority by supply a customized list
-# named RELATE_EMAIL_APPELATION_PRIORITY_LIST. The available
+# you can override the appellation priority by supply a customized list
+# named relate_email_appellation_priority_list. The available
 # elements include first_name, last_name, get_full_name, email and
 # username.
 
-# RELATE_EMAIL_APPELATION_PRIORITY_LIST = [
+# RELATE_EMAIL_APPELLATION_PRIORITY_LIST = [
 #         "full_name", "first_name", "email", "username"]
+
+# }}}
+
+# {{{ custom method for masking user profile
+# When a participation, for example, teaching assistant, has limited access to
+# students' profile (i.e., has_permission(pperm.view_participant_masked_profile)),
+# a built-in mask method (which is based on pk of user instances) is used be
+# default. The mask method can be overriden by the following a custom method, with
+# user as the args.
+
+#RELATE_USER_PROFILE_MASK_METHOD = "path.tomy_method
+# For example, you can define it like this:
+
+#<code>
+#   def my_mask_method(user):
+#         return "User_%s" % str(user.pk + 100)
+#</code>
+
+# and then uncomment the following line and enable it with:
+
+#RELATE_USER_PROFILE_MASK_METHOD = my_mask_method
+
+# You can also import it from your custom module, or use a dotted path of the
+# method, i.e.:
+#RELATE_USER_PROFILE_MASK_METHOD = "path.to.my_mask_method"
 
 # }}}
 
@@ -257,12 +313,38 @@ RELATE_SHOW_EDITOR_FORM = True
 
 # }}}
 
+# {{{ overriding built-in templates
+# Uncomment the following to enable templates overriding. It should be configured
+# as a list/tuple of path(s).
+# For example, if you the templates are in a folder named "my_templates" in the
+# root dir of the project, with base.html (project template), course_base.html,
+# and sign-in-email.txt (app templates) etc., are the templates you want to
+# override, the structure of the files should look like:
+#    ...
+#    relate/
+#    local_settings.py
+#    my_templates/
+#        base.html
+#        ...
+#        course/
+#            course_base.html
+#            sign-in-email.txt
+#                ...
+#
+
+# import os.path
+# RELATE_OVERRIDE_TEMPLATES_DIRS = [os.path.join(os.path.dirname(__file__), "my_templates"),
+#                      os.path.join(os.path.dirname(__file__), "my_other_templates")]
+
+# }}}
 
 # {{{ docker
 
 # A string containing the image ID of the docker image to be used to run
 # student Python code. Docker should download the image on first run.
-RELATE_DOCKER_RUNPY_IMAGE = "inducer/relate-runpy-i386"
+RELATE_DOCKER_RUNPY_IMAGE = "inducer/relate-runpy-amd64"
+# RELATE_DOCKER_RUNPY_IMAGE = "inducer/relate-runpy-amd64-tensorflow"
+# (bigger, but includes TensorFlow)
 
 # A URL pointing to the Docker command interface which RELATE should use
 # to spawn containers for student code.
@@ -305,7 +387,23 @@ RELATE_SITE_ANNOUNCEMENT = None
 # Make sure you have generated, translate and compile the message file of your
 # language. If commented, RELATE will use default language 'en-us'.
 
-#LANGUAGE_CODE='en-us'
+#LANGUAGE_CODE = 'en-us'
+
+# You can (and it's recommended to) override Django's built-in LANGUAGES settings
+# if you want to filter languages allowed for course-specific languages.
+# The format of languages should be a list/tuple of 2-tuples:
+# (language_code, language_description). If there are entries with the same
+# language_code, language_description will be using the one which comes latest.
+#.If LANGUAGES is not configured, django.conf.global_settings.LANGUAGES will be
+# used.
+# Note: make sure LANGUAGE_CODE you used is also in LANGUAGES, if it is not
+# the default "en-us". Otherwise translation of that language will not work.
+
+# LANGUAGES = [
+#     ('en', 'English'),
+#     ('zh-hans', 'Simplified Chinese'),
+#     ('de', 'German'),
+# ]
 
 # {{{ exams and testing
 

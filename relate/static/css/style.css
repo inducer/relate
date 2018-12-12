@@ -280,8 +280,8 @@ div.progress:hover  span.stats-percentage{
 
 /* {{{ codemirror */
 
-.sandbox-page-editor .CodeMirror {
-  height:500px;
+.CodeMirror {
+  height: 70ex !important;
 }
 
 .cm-trailingspace {
@@ -297,6 +297,15 @@ div.progress:hover  span.stats-percentage{
 
 .CodeMirror.cm-s-relate-readonly {
   background-color: #e8e8e8;
+}
+
+div.relate-codemirror-container label.control-label {
+  text-align: left;
+}
+
+div.relate-codemirror-container div.controls {
+  margin-top: .3ex;
+  width: 100%;
 }
 
 /* }}} */
@@ -331,6 +340,22 @@ a .sensitive {
 }
 .alert-info a.btn {
   text-decoration: none;
+}
+
+/* if not using  "markdown.extensions.codehilite" extension */
+div.cell.border-box-sizing.code_cell.rendered > div.input > div.inner_cell > div.input_area > pre {
+  margin: 0;
+}
+
+div.rendered_html div.highlight {
+    border: 1px solid #cfcfcf;
+    border-radius: 2px;
+    background: #f7f7f7;
+}
+
+div.rendered_html div.highlight > pre {
+    margin: 0.4em;
+    background-color: transparent;
 }
 
 /* vim: set foldmethod=marker: */

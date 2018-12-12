@@ -24,19 +24,26 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
+import os
 import six
 from django.conf import settings
 from django.core.checks import Critical, Warning, register
 from django.core.exceptions import ImproperlyConfigured
+from django.utils.module_loading import import_string
 
 REQUIRED_CONF_ERROR_PATTERN = (
     "You must configure %(location)s for RELATE to run properly.")
 INSTANCE_ERROR_PATTERN = "%(location)s must be an instance of %(types)s."
 GENERIC_ERROR_PATTERN = "Error in '%(location)s': %(error_type)s: %(error_str)s"
 
+USE_I18N = "USE_I18N"
+LANGUAGES = "LANGUAGES"
+
+RELATE_SITE_NAME = "RELATE_SITE_NAME"
+RELATE_CUTOMIZED_SITE_NAME = "RELATE_CUTOMIZED_SITE_NAME"
+RELATE_OVERRIDE_TEMPLATES_DIRS = "RELATE_OVERRIDE_TEMPLATES_DIRS"
 EMAIL_CONNECTIONS = "EMAIL_CONNECTIONS"
 RELATE_BASE_URL = "RELATE_BASE_URL"
-RELATE_EMAIL_APPELATION_PRIORITY_LIST = "RELATE_EMAIL_APPELATION_PRIORITY_LIST"
 RELATE_FACILITIES = "RELATE_FACILITIES"
 RELATE_MAINTENANCE_MODE_EXCEPTIONS = "RELATE_MAINTENANCE_MODE_EXCEPTIONS"
 RELATE_SESSION_RESTART_COOLDOWN_SECONDS = "RELATE_SESSION_RESTART_COOLDOWN_SECONDS"
@@ -47,13 +54,16 @@ RELATE_STARTUP_CHECKS_EXTRA = "RELATE_STARTUP_CHECKS_EXTRA"
 
 RELATE_STARTUP_CHECKS_TAG = "start_up_check"
 RELATE_STARTUP_CHECKS_EXTRA_TAG = "startup_checks_extra"
+RELATE_DISABLE_CODEHILITE_MARKDOWN_EXTENSION = (
+    "RELATE_DISABLE_CODEHILITE_MARKDOWN_EXTENSION")
+RELATE_CUSTOM_PAGE_TYPES_REMOVED_DEADLINE = (
+    "RELATE_CUSTOM_PAGE_TYPES_REMOVED_DEADLINE")
 
 
 class RelateCriticalCheckMessage(Critical):
     def __init__(self, *args, **kwargs):
         super(RelateCriticalCheckMessage, self).__init__(*args, **kwargs)
-        if not self.obj:
-            self.obj = ImproperlyConfigured.__name__
+        self.obj = self.obj or ImproperlyConfigured.__name__
 
 
 class DeprecatedException(Exception):
@@ -89,19 +99,16 @@ def check_relate_settings(app_configs, **kwargs):
         ))
     # }}}
 
-    # {{{ check RELATE_EMAIL_APPELATION_PRIORITY_LIST
-    relate_email_appelation_priority_list = getattr(
-        settings, RELATE_EMAIL_APPELATION_PRIORITY_LIST, None)
-    if relate_email_appelation_priority_list is not None:
-        if not isinstance(relate_email_appelation_priority_list, (list, tuple)):
-            errors.append(RelateCriticalCheckMessage(
-                msg=(
-                    INSTANCE_ERROR_PATTERN
-                    % {"location": RELATE_EMAIL_APPELATION_PRIORITY_LIST,
-                       "types": "list or tuple"}),
-                id="relate_email_appelation_priority_list.E002")
-            )
-    # }}}
+    from accounts.utils import relate_user_method_settings
+    # check RELATE_EMAIL_APPELLATION_PRIORITY_LIST
+    errors.extend(
+        relate_user_method_settings.check_email_appellation_priority_list())
+
+    # check RELATE_CSV_SETTINGS
+    errors.extend(relate_user_method_settings.check_custom_full_name_method())
+
+    # check RELATE_USER_PROFILE_MASK_METHOD
+    errors.extend(relate_user_method_settings.check_user_profile_mask_method())
 
     # {{{ check EMAIL_CONNECTIONS
     email_connections = getattr(settings, EMAIL_CONNECTIONS, None)
@@ -127,7 +134,6 @@ def check_relate_settings(app_configs, **kwargs):
                     ))
                 else:
                     if "backend" in c:
-                        from django.utils.module_loading import import_string
                         try:
                             import_string(c["backend"])
                         except ImportError as e:
@@ -281,7 +287,7 @@ def check_relate_settings(app_configs, **kwargs):
 
     # }}}
 
-    # {{{ check RELATE_SESSION_RESTART_COOLDOWN_SECONDS
+    # {{{ check RELATE_TICKET_MINUTES_VALID_AFTER_USE
     relate_ticket_minutes_valid_after_use = getattr(
         settings, RELATE_TICKET_MINUTES_VALID_AFTER_USE, None)
     if relate_ticket_minutes_valid_after_use is not None:
@@ -318,24 +324,23 @@ def check_relate_settings(app_configs, **kwargs):
             id="git_root.E002"
         ))
     else:
-        import os
         if not os.path.isdir(git_root):
             errors.append(RelateCriticalCheckMessage(
-                msg=("`%(path)s` connfigured in %(location)s is not a valid path"
+                msg=("`%(path)s` configured in %(location)s is not a valid path"
                      % {"path": git_root, "location": GIT_ROOT}),
                 id="git_root.E003"
             ))
         else:
             if not os.access(git_root, os.W_OK):
                 errors.append(RelateCriticalCheckMessage(
-                    msg=("`%(path)s` connfigured in %(location)s is not writable "
+                    msg=("`%(path)s` configured in %(location)s is not writable "
                          "by RELATE"
                          % {"path": git_root, "location": GIT_ROOT}),
                     id="git_root.E004"
                 ))
             if not os.access(git_root, os.R_OK):
                 errors.append(RelateCriticalCheckMessage(
-                    msg=("`%(path)s` connfigured in %(location)s is not readable "
+                    msg=("`%(path)s` configured in %(location)s is not readable "
                          "by RELATE"
                          % {"path": git_root, "location": GIT_ROOT}),
                     id="git_root.E005"
@@ -343,6 +348,156 @@ def check_relate_settings(app_configs, **kwargs):
 
     # }}}
 
+    # {{{ check RELATE_DISABLE_CODEHILITE_MARKDOWN_EXTENSION
+    relate_disable_codehilite_markdown_extension = getattr(
+        settings, RELATE_DISABLE_CODEHILITE_MARKDOWN_EXTENSION, None)
+    if relate_disable_codehilite_markdown_extension is not None:
+        if not isinstance(relate_disable_codehilite_markdown_extension, bool):
+            errors.append(
+                Warning(
+                    msg="%(location)s is not a Boolean value: `%(value)s`, "
+                        "assuming True"
+                        % {"location":
+                               RELATE_DISABLE_CODEHILITE_MARKDOWN_EXTENSION,
+                           "value":
+                               repr(relate_disable_codehilite_markdown_extension)},
+                    id="relate_disable_codehilite_markdown_extension.W001"))
+        elif not relate_disable_codehilite_markdown_extension:
+            errors.append(
+                Warning(
+                    msg="%(location)s is set to False "
+                        "(with 'markdown.extensions.codehilite' enabled'), "
+                        "noticing that some pages with code fence markdown "
+                        "might get crashed"
+                        % {"location":
+                               RELATE_DISABLE_CODEHILITE_MARKDOWN_EXTENSION,
+                           "value":
+                               repr(relate_disable_codehilite_markdown_extension)},
+                    id="relate_disable_codehilite_markdown_extension.W002"))
+
+    # }}}
+
+    # {{{ check LANGUAGES, why this is not done in django?
+
+    languages = settings.LANGUAGES
+
+    from django.utils.itercompat import is_iterable
+
+    if (isinstance(languages, six.string_types)
+            or not is_iterable(languages)):
+        errors.append(RelateCriticalCheckMessage(
+            msg=(INSTANCE_ERROR_PATTERN
+                 % {"location": LANGUAGES,
+                    "types": "an iterable (e.g., a list or tuple)."}),
+            id="relate_languages.E001")
+        )
+    else:
+        if any(isinstance(choice, six.string_types)
+                       or not is_iterable(choice) or len(choice) != 2
+               for choice in languages):
+            errors.append(RelateCriticalCheckMessage(
+                msg=("'%s' must be an iterable containing "
+                     "(language code, language description) tuples, just "
+                     "like the format of LANGUAGES setting ("
+                     "https://docs.djangoproject.com/en/dev/ref/settings/"
+                     "#languages)" % LANGUAGES),
+                id="relate_languages.E002")
+            )
+        else:
+            from collections import OrderedDict
+            options_dict = OrderedDict(tuple(settings.LANGUAGES))
+            all_lang_codes = [lang_code for lang_code, lang_descr
+                              in tuple(settings.LANGUAGES)]
+            for lang_code in options_dict.keys():
+                if all_lang_codes.count(lang_code) > 1:
+                    errors.append(Warning(
+                        msg=(
+                            "Duplicate language entries were found in "
+                            "settings.LANGUAGES for '%s', '%s' will be used "
+                            "as its language_description"
+                            % (lang_code, options_dict[lang_code])),
+                        id="relate_languages.W001"
+                    ))
+
+    # }}}
+
+    # {{{ check RELATE_SITE_NAME
+    try:
+        site_name = settings.RELATE_SITE_NAME
+        if site_name is None:
+            errors.append(
+                RelateCriticalCheckMessage(
+                    msg=("%s must not be None" % RELATE_SITE_NAME),
+                    id="relate_site_name.E002")
+            )
+        else:
+            if not isinstance(site_name, six.string_types):
+                errors.append(RelateCriticalCheckMessage(
+                    msg=(INSTANCE_ERROR_PATTERN
+                         % {"location": "%s/%s" % (RELATE_SITE_NAME,
+                                                   RELATE_CUTOMIZED_SITE_NAME),
+                            "types": "string"}),
+                    id="relate_site_name.E003"))
+            elif not site_name.strip():
+                errors.append(RelateCriticalCheckMessage(
+                    msg=("%s must not be an empty string" % RELATE_SITE_NAME),
+                    id="relate_site_name.E004"))
+    except AttributeError:
+        # This happens when RELATE_SITE_NAME is DELETED from settings.
+        errors.append(
+            RelateCriticalCheckMessage(
+                msg=(REQUIRED_CONF_ERROR_PATTERN
+                     % {"location": RELATE_SITE_NAME}),
+                id="relate_site_name.E001")
+        )
+    # }}}
+
+    # {{{ check RELATE_OVERRIDE_TEMPLATES_DIRS
+
+    relate_override_templates_dirs = getattr(settings,
+                                             RELATE_OVERRIDE_TEMPLATES_DIRS, None)
+    if relate_override_templates_dirs is not None:
+        if (isinstance(relate_override_templates_dirs, six.string_types)
+                or not is_iterable(relate_override_templates_dirs)):
+            errors.append(RelateCriticalCheckMessage(
+                msg=(INSTANCE_ERROR_PATTERN
+                     % {"location": RELATE_OVERRIDE_TEMPLATES_DIRS,
+                        "types": "an iterable (e.g., a list or tuple)."}),
+                id="relate_override_templates_dirs.E001"))
+        else:
+            if any(not isinstance(directory, six.string_types)
+                   for directory in relate_override_templates_dirs):
+                errors.append(RelateCriticalCheckMessage(
+                    msg=("'%s' must contain only string of paths."
+                         % RELATE_OVERRIDE_TEMPLATES_DIRS),
+                    id="relate_override_templates_dirs.E002"))
+            else:
+                for directory in relate_override_templates_dirs:
+                    if not os.path.isdir(directory):
+                        errors.append(
+                            Warning(
+                                msg=(
+                                    "Invalid Templates Dirs item '%s' in '%s', "
+                                    "it will be ignored."
+                                    % (directory, RELATE_OVERRIDE_TEMPLATES_DIRS)),
+                                id="relate_override_templates_dirs.W001"
+                            ))
+
+    # }}}
+
+    # {{{ check RELATE_CUSTOM_PAGE_TYPES_REMOVED_DEADLINE
+    relate_custom_page_types_removed_deadline = getattr(
+        settings, RELATE_CUSTOM_PAGE_TYPES_REMOVED_DEADLINE, None)
+    if relate_custom_page_types_removed_deadline is not None:
+        from datetime import datetime
+        if not isinstance(relate_custom_page_types_removed_deadline, datetime):
+            errors.append(RelateCriticalCheckMessage(
+                msg=(INSTANCE_ERROR_PATTERN
+                     % {"location": RELATE_CUSTOM_PAGE_TYPES_REMOVED_DEADLINE,
+                        "types": "datetime.datetime"}),
+                id="relate_custom_page_types_removed_deadline.E001"))
+
+    # }}}
     return errors
 
 
@@ -355,10 +510,10 @@ def register_startup_checks_extra():
     Register extra checks provided by user.
     Here we will have to raise error for Exceptions, as that can not be done
     via check: all checks, including check_relate_settings, will only be
-    executed after self.ready() is done.
+    executed after AppConfig.ready() is done.
     """
     startup_checks_extra = getattr(settings, RELATE_STARTUP_CHECKS_EXTRA, None)
-    if startup_checks_extra:
+    if startup_checks_extra is not None:
         if not isinstance(startup_checks_extra, (list, tuple)):
             raise ImproperlyConfigured(
                 INSTANCE_ERROR_PATTERN
@@ -366,7 +521,6 @@ def register_startup_checks_extra():
                    "types": "list or tuple"
                    }
             )
-        from django.utils.module_loading import import_string
         for c in startup_checks_extra:
             try:
                 check_item = import_string(c)

@@ -24,11 +24,12 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from typing import cast, Union
+from typing import cast, Union, Text
 
 from django.conf import settings
 from django.utils.translation import ugettext as _
 
+import os
 import re
 import datetime
 import six
@@ -49,7 +50,7 @@ from jinja2 import (
 from relate.utils import dict_to_struct, Struct, SubdirRepoWrapper
 from course.constants import ATTRIBUTES_FILENAME
 
-from yaml import load as load_yaml
+from yaml import safe_load as load_yaml
 
 if sys.version_info >= (3,):
     CACHE_KEY_ROOT = "py3"
@@ -197,8 +198,7 @@ def get_true_repo_and_path(repo, path):
 def get_course_repo_path(course):
     # type: (Course) -> Text
 
-    from os.path import join
-    return join(settings.GIT_ROOT, course.identifier)
+    return os.path.join(settings.GIT_ROOT, course.identifier)
 
 
 def get_course_repo(course):
@@ -224,7 +224,8 @@ def get_repo_blob(repo, full_name, commit_sha, allow_tree=True):
 
     dul_repo, full_name = get_true_repo_and_path(repo, full_name)
 
-    names = full_name.split("/")
+    # https://github.com/inducer/relate/pull/556
+    names = os.path.normpath(full_name).split(os.sep)
 
     # Allow non-ASCII file name
     full_name_bytes = full_name.encode('utf-8')
@@ -240,7 +241,7 @@ def get_repo_blob(repo, full_name, commit_sha, allow_tree=True):
     def access_directory_content(maybe_tree, name):
         # type: (Any, Text) -> Any
         try:
-            mode_and_blob_sha = tree[name.encode()]
+            mode_and_blob_sha = maybe_tree[name.encode()]
         except TypeError:
             raise ObjectDoesNotExist(_("resource '%s' is a file, "
                 "not a directory") % full_name)
@@ -346,8 +347,7 @@ def is_repo_file_accessible_as(access_kinds, repo, commit_sha, path):
     """
 
     # set the path to .attributes.yml
-    from os.path import dirname, basename, join
-    attributes_path = join(dirname(path), ATTRIBUTES_FILENAME)
+    attributes_path = os.path.join(os.path.dirname(path), ATTRIBUTES_FILENAME)
 
     # retrieve the .attributes.yml structure
     try:
@@ -357,7 +357,7 @@ def is_repo_file_accessible_as(access_kinds, repo, commit_sha, path):
         # no attributes file: not accessible
         return False
 
-    path_basename = basename(path)
+    path_basename = os.path.basename(path)
 
     # "public" is a deprecated alias for "unenrolled".
 
@@ -415,7 +415,9 @@ def process_yaml_for_expansion(yaml_str):
 
             unprocessed_block_lines.append(ln)
 
-            block_start_indent = len(LEADING_SPACES_RE.match(ln).group(1))
+            leading_spaces_match = LEADING_SPACES_RE.match(ln)
+            assert leading_spaces_match
+            block_start_indent = len(leading_spaces_match.group(1))
 
             i += 1
 
@@ -427,7 +429,9 @@ def process_yaml_for_expansion(yaml_str):
                     i += 1
                     continue
 
-                line_indent = len(LEADING_SPACES_RE.match(ln).group(1))
+                leading_spaces_match = LEADING_SPACES_RE.match(ln)
+                assert leading_spaces_match
+                line_indent = len(leading_spaces_match.group(1))
                 if line_indent <= block_start_indent:
                     break
                 else:
@@ -484,8 +488,7 @@ class YamlBlockEscapingGitTemplateLoader(GitTemplateLoader):
                 super(YamlBlockEscapingGitTemplateLoader, self).get_source(
                         environment, template)
 
-        from os.path import splitext
-        _, ext = splitext(template)
+        _, ext = os.path.splitext(template)
         ext = ext.lower()
 
         if ext in [".yml", ".yaml"]:
@@ -502,8 +505,7 @@ class YamlBlockEscapingFileSystemLoader(FileSystemLoader):
                 super(YamlBlockEscapingFileSystemLoader, self).get_source(
                         environment, template)
 
-        from os.path import splitext
-        _, ext = splitext(template)
+        _, ext = os.path.splitext(template)
         ext = ext.lower()
 
         if ext in [".yml", ".yaml"]:
@@ -525,13 +527,13 @@ def expand_yaml_macros(repo, commit_sha, yaml_str):
 
     # {{{ process explicit [JINJA] tags (deprecated)
 
-    def compute_replacement(match):
+    def compute_replacement(match):  # pragma: no cover  # deprecated
         template = jinja_env.from_string(match.group(1))
         return template.render()
 
     yaml_str, count = JINJA_YAML_RE.subn(compute_replacement, yaml_str)
 
-    if count:
+    if count:  # pragma: no cover  # deprecated
         # The file uses explicit [JINJA] tags. Assume that it doesn't
         # want anything else processed through YAML.
         return yaml_str
@@ -585,7 +587,7 @@ def get_raw_yaml_from_repo(repo, full_name, commit_sha):
     return result
 
 
-LINE_HAS_INDENTING_TABS_RE = re.compile("^\s*\t\s*", re.MULTILINE)
+LINE_HAS_INDENTING_TABS_RE = re.compile(r"^\s*\t\s*", re.MULTILINE)
 
 
 def get_yaml_from_repo(repo, full_name, commit_sha, cached=True):
@@ -769,7 +771,7 @@ class LinkFixerTreeprocessor(Treeprocessor):
                 return self.reverse("relate-get_media",
                             args=(
                                 self.get_course_identifier(),
-                                self.commit_sha,
+                                self.commit_sha.decode(),
                                 PreserveFragment(media_path)))
 
             elif url.startswith("repo:"):
@@ -777,7 +779,7 @@ class LinkFixerTreeprocessor(Treeprocessor):
                 return self.reverse("relate-get_repo_file",
                             args=(
                                 self.get_course_identifier(),
-                                self.commit_sha,
+                                self.commit_sha.decode(),
                                 PreserveFragment(path)))
 
             elif url.startswith("repocur:"):
@@ -791,12 +793,13 @@ class LinkFixerTreeprocessor(Treeprocessor):
                 return self.reverse("relate-view_calendar",
                             args=(self.get_course_identifier(),))
 
+            else:
+                return None
+
         except NoReverseMatch:
             from base64 import b64encode
             message = ("Invalid character in RELATE URL: " + url).encode("utf-8")
             return "data:text/plain;base64,"+b64encode(message).decode()
-
-        return None
 
     def process_tag(self, tag_name, attrs):
         changed_attrs = {}
@@ -896,8 +899,16 @@ def expand_markup(
         env = Environment(
                 loader=GitTemplateLoader(repo, commit_sha),
                 undefined=StrictUndefined)
+
         template = env.from_string(text)
-        text = template.render(**jinja_env)
+        kwargs = {}
+        if jinja_env:
+            kwargs.update(jinja_env)
+
+        from course.utils import IpynbJinjaMacro
+        kwargs[IpynbJinjaMacro.name] = IpynbJinjaMacro(course, repo, commit_sha)
+
+        text = template.render(**kwargs)
 
     # }}}
 
@@ -915,6 +926,11 @@ def markup_to_html(
         jinja_env={},  # type: Dict
         ):
     # type: (...) -> Text
+
+    disable_codehilite = bool(
+        getattr(settings,
+                "RELATE_DISABLE_CODEHILITE_MARKDOWN_EXTENSION", True))
+
     if course is not None and not jinja_env:
         try:
             import django.core.cache as cache
@@ -922,9 +938,12 @@ def markup_to_html(
             cache_key = None
         else:
             import hashlib
-            cache_key = ("markup:v7:%s:%d:%s:%s"
-                    % (CACHE_KEY_ROOT, course.id, str(commit_sha),
-                        hashlib.md5(text.encode("utf-8")).hexdigest()))
+            cache_key = ("markup:v7:%s:%d:%s:%s%s"
+                    % (CACHE_KEY_ROOT,
+                       course.id, str(commit_sha),
+                       hashlib.md5(text.encode("utf-8")).hexdigest(),
+                       ":NOCODEHILITE" if disable_codehilite else ""
+                       ))
 
             def_cache = cache.caches["default"]
             result = def_cache.get(cache_key)
@@ -948,14 +967,28 @@ def markup_to_html(
         return ""
 
     from course.mdx_mathjax import MathJaxExtension
+    from course.utils import NBConvertExtension
     import markdown
+
+    extensions = [
+        LinkFixerExtension(course, commit_sha, reverse_func=reverse_func),
+        MathJaxExtension(),
+        NBConvertExtension(),
+        "markdown.extensions.extra",
+    ]
+
+    if not disable_codehilite:
+        # Note: no matter whether disable_codehilite, the code in
+        # the rendered ipython notebook will be highlighted.
+        # "css_class=highlight" is to ensure that, when codehilite extension
+        # is enabled, code out side of notebook uses the same html class
+        # attribute as the default highlight class (i.e., `highlight`)
+        # used by rendered ipynb notebook cells, Thus we don't need to
+        # make 2 copies of css for the highlight.
+        extensions += ["markdown.extensions.codehilite(css_class=highlight)"]
+
     result = markdown.markdown(text,
-        extensions=[
-            LinkFixerExtension(course, commit_sha, reverse_func=reverse_func),
-            MathJaxExtension(),
-            "markdown.extensions.extra",
-            "markdown.extensions.codehilite",
-            ],
+        extensions=extensions,
         output_format="html5")
 
     assert isinstance(result, six.text_type)
@@ -965,7 +998,7 @@ def markup_to_html(
     return result
 
 
-TITLE_RE = re.compile(r"^\#+\s*(\w.*)", re.UNICODE)
+TITLE_RE = re.compile(r"^\#+\s*(.+)", re.UNICODE)
 
 
 def extract_title_from_markup(markup_text):
@@ -1075,11 +1108,9 @@ class PlusDeltaPostprocessor(DatespecPostprocessor):
             d = datetime.timedelta(days=self.count)
         elif self.period.startswith("hour"):
             d = datetime.timedelta(hours=self.count)
-        elif self.period.startswith("minute"):
-            d = datetime.timedelta(minutes=self.count)
         else:
-            raise InvalidDatespec(_("invalid period: %s" % self.period))
-
+            assert self.period.startswith("minute")
+            d = datetime.timedelta(minutes=self.count)
         return dtm + d
 
 
@@ -1116,11 +1147,7 @@ def parse_date_spec(
         return localize_if_needed(
                 datetime.datetime.combine(datespec, datetime.time.min))
 
-    try:
-        from typing import Text
-    except ImportError:
-        Text = None  # noqa
-    datespec_str = cast(Text, datespec).strip()  # type: ignore
+    datespec_str = cast(Text, datespec).strip()
 
     # {{{ parse postprocessors
 
@@ -1253,16 +1280,16 @@ def compute_chunk_weight_and_shown(
 
         # {{{ deprecated
 
-        if hasattr(rule, "roles"):
+        if hasattr(rule, "roles"):  # pragma: no cover  # deprecated
             if all(role not in rule.roles for role in roles):
                 continue
 
-        if hasattr(rule, "start"):
+        if hasattr(rule, "start"):  # pragma: no cover  # deprecated
             start_date = parse_date_spec(course, rule.start)
             if now_datetime < start_date:
                 continue
 
-        if hasattr(rule, "end"):
+        if hasattr(rule, "end"):  # pragma: no cover  # deprecated
             end_date = parse_date_spec(course, rule.end)
             if end_date < now_datetime:
                 continue
@@ -1350,7 +1377,7 @@ def normalize_flow_desc(flow_desc):
 
     if hasattr(flow_desc, "rules"):
         rules = flow_desc.rules
-        if not hasattr(rules, "grade_identifier"):
+        if not hasattr(rules, "grade_identifier"):  # pragma: no cover  # deprecated
             # Legacy content with grade_identifier in grading rule,
             # move first found grade_identifier up to rules.
 
@@ -1370,6 +1397,7 @@ def normalize_flow_desc(flow_desc):
 def get_flow_desc(repo, course, flow_id, commit_sha):
     # type: (Repo_ish, Course, Text, bytes) -> FlowDesc
 
+    # FIXME: extension should be case-insensitive
     flow_desc = get_yaml_from_repo(repo, "flows/%s.yml" % flow_id, commit_sha)
 
     flow_desc = normalize_flow_desc(flow_desc)
@@ -1464,7 +1492,7 @@ def get_flow_page_class(repo, typename, commit_sha):
 
         try:
             return module_dict[classname]
-        except AttributeError:
+        except (AttributeError, KeyError):
             raise ClassNotFoundError(typename)
     else:
         raise ClassNotFoundError(typename)
@@ -1479,25 +1507,44 @@ def instantiate_flow_page(location, repo, page_desc, commit_sha):
 # }}}
 
 
-def get_course_commit_sha(course, participation):
-    # type: (Course, Optional[Participation]) -> bytes
+class CourseCommitSHADoesNotExist(Exception):
+    pass
 
-    # logic duplicated in course.utils.CoursePageContext
+
+def get_course_commit_sha(course, participation, repo=None,
+                          raise_on_nonexistent_preview_commit=False):
+    # type: (Course, Optional[Participation], Optional[Repo_ish], Optional[bool]) -> bytes  # noqa
 
     sha = course.active_git_commit_sha
+
+    def is_commit_sha_valid(repo, commit_sha):
+        # type: (Repo_ish, Text) -> bool
+        if isinstance(repo, SubdirRepoWrapper):
+            repo = repo.repo
+        try:
+            repo[commit_sha.encode()]
+        except KeyError:
+            if raise_on_nonexistent_preview_commit:
+                raise CourseCommitSHADoesNotExist(
+                    _("Preview revision '%s' does not exist--"
+                      "showing active course content instead."
+                      % commit_sha))
+            return False
+
+        return True
 
     if participation is not None:
         if participation.preview_git_commit_sha:
             preview_sha = participation.preview_git_commit_sha
 
-            with get_course_repo(course) as repo:
-                if isinstance(repo, SubdirRepoWrapper):
-                    repo = repo.repo
+            if repo is not None:
+                commit_sha_valid = is_commit_sha_valid(repo, preview_sha)
+            else:
+                with get_course_repo(course) as repo:
+                    commit_sha_valid = is_commit_sha_valid(repo, preview_sha)
 
-                try:
-                    repo[preview_sha.encode()]
-                except KeyError:
-                    preview_sha = None
+            if not commit_sha_valid:
+                preview_sha = None
 
             if preview_sha is not None:
                 sha = preview_sha

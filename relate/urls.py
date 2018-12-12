@@ -83,8 +83,8 @@ urlpatterns = [
         name="relate-user_profile"),
     url(
         r"^course"
-        "/" + COURSE_ID_REGEX +
-        "/auth-tokens/$",
+        "/" + COURSE_ID_REGEX
+        + "/auth-tokens/$",
         course.auth.manage_authentication_tokens,
         name="relate-manage_authentication_tokens"),
 
@@ -122,94 +122,98 @@ urlpatterns = [
     url(r'^$', course.views.home, name='relate-home'),
 
     url(r"^course"
-        "/" + COURSE_ID_REGEX +
-        "/$",
+        "/" + COURSE_ID_REGEX
+        + "/$",
         course.views.course_page,
         name="relate-course_page"),
     url(r"^course"
-        "/" + COURSE_ID_REGEX +
-        "/edit/$",
+        "/" + COURSE_ID_REGEX
+        + "/edit/$",
         course.views.edit_course,
         name="relate-edit_course"),
     url(r"^course"
-        "/" + COURSE_ID_REGEX +
-        "/page"
-        "/" + STATICPAGE_PATH_REGEX +
-        "/$",
+        "/" + COURSE_ID_REGEX
+        + "/page"
+        "/" + STATICPAGE_PATH_REGEX
+        + "/$",
         course.views.static_page,
         name="relate-content_page"),
     url(r"^course"
-        "/" + COURSE_ID_REGEX +
-        "/instant-message/$",
+        "/" + COURSE_ID_REGEX
+        + "/instant-message/$",
         course.im.send_instant_message,
         name="relate-send_instant_message"),
 
     url(r"^course"
-        "/" + COURSE_ID_REGEX +
-        "/sandbox/markup/$",
+        "/" + COURSE_ID_REGEX
+        + "/sandbox/markup/$",
         course.sandbox.view_markup_sandbox,
         name="relate-view_markup_sandbox"),
 
     url(r"^course"
-        "/" + COURSE_ID_REGEX +
-        "/sandbox/page/$",
+        "/" + COURSE_ID_REGEX
+        + "/sandbox/page/$",
         course.sandbox.view_page_sandbox,
         name="relate-view_page_sandbox"),
+
+    url("^purge-pageview-data/$",
+        course.flow.purge_page_view_data,
+        name="relate-purge_page_view_data"),
 
     # }}}
 
     # {{{ grading
 
     url(r"^course"
-        "/" + COURSE_ID_REGEX +
-        "/grading/my/$",
+        "/" + COURSE_ID_REGEX
+        + "/grading/my/$",
         course.grades.view_participant_grades,
         name="relate-view_participant_grades"),
     url(r"^course"
-        "/" + COURSE_ID_REGEX +
-        "/grading/participant"
+        "/" + COURSE_ID_REGEX
+        + "/grading/participant"
         "/(?P<participation_id>[0-9]+)"
         "/$",
         course.grades.view_participant_grades,
         name="relate-view_participant_grades"),
     url(r"^course"
-        "/" + COURSE_ID_REGEX +
-        "/grading/participants/$",
+        "/" + COURSE_ID_REGEX
+        + "/grading/participants/$",
         course.grades.view_participant_list,
         name="relate-view_participant_list"),
     url(r"^course"
-        "/" + COURSE_ID_REGEX +
-        "/grading/opportunities/$",
+        "/" + COURSE_ID_REGEX
+        + "/grading/opportunities/$",
         course.grades.view_grading_opportunity_list,
         name="relate-view_grading_opportunity_list"),
     url(r"^course"
-        "/" + COURSE_ID_REGEX +
-        "/grading/overview/$",
+        "/" + COURSE_ID_REGEX
+        + "/grading/overview/$",
         course.grades.view_gradebook,
         name="relate-view_gradebook"),
     url(r"^course"
-        "/" + COURSE_ID_REGEX +
-        "/grading/overview/csv/$",
+        "/" + COURSE_ID_REGEX
+        + "/grading/overview/csv/$",
         course.grades.export_gradebook_csv,
         name="relate-export_gradebook_csv"),
     url(r"^course"
-        "/" + COURSE_ID_REGEX +
-        "/grading/by-opportunity"
+        "/" + COURSE_ID_REGEX
+        + "/grading/by-opportunity"
         "/(?P<opp_id>[0-9]+)"
         "/$",
         course.grades.view_grades_by_opportunity,
         name="relate-view_grades_by_opportunity"),
     url(r"^course"
-        "/" + COURSE_ID_REGEX +
-        "/grading/single-grade"
+        "/" + COURSE_ID_REGEX
+        + "/grading/single-grade"
         "/(?P<participation_id>[0-9]+)"
         "/(?P<opportunity_id>[0-9]+)"
         "/$",
         course.grades.view_single_grade,
         name="relate-view_single_grade"),
     url(r"^course"
-        "/" + COURSE_ID_REGEX +
-        "/grading/reopen-session"
+        "/" + COURSE_ID_REGEX
+        + "/grading/reopen-session"
         "/(?P<flow_session_id>[0-9]+)"
         "/(?P<opportunity_id>[0-9]+)"
         "/$",
@@ -217,16 +221,16 @@ urlpatterns = [
         name="relate-view_reopen_session"),
 
     url(r"^course"
-        "/" + COURSE_ID_REGEX +
-        "/grading"
+        "/" + COURSE_ID_REGEX
+        + "/grading"
         "/csv-import"
         "/$",
         course.grades.import_grades,
         name="relate-import_grades"),
 
     url(r"^course"
-        "/" + COURSE_ID_REGEX +
-        "/grading"
+        "/" + COURSE_ID_REGEX
+        + "/grading"
         "/flow-page"
         "/(?P<flow_session_id>[0-9]+)"
         "/(?P<page_ordinal>[0-9]+)"
@@ -235,8 +239,8 @@ urlpatterns = [
         name="relate-grade_flow_page"),
 
     url(r"^course"
-        "/" + COURSE_ID_REGEX +
-        "/prev_grades"
+        "/" + COURSE_ID_REGEX
+        + "/prev-grades"
         "/flow-page"
         "/(?P<flow_session_id>[0-9]+)"
         "/(?P<page_ordinal>[0-9]+)"
@@ -245,24 +249,24 @@ urlpatterns = [
         name="relate-get_prev_grades_dropdown_content"),
 
     url(r"^course"
-        "/" + COURSE_ID_REGEX +
-        "/grading/statistics"
-        "/" + FLOW_ID_REGEX +
-        "/$",
+        "/" + COURSE_ID_REGEX
+        + "/grading/statistics"
+        "/" + FLOW_ID_REGEX
+        + "/$",
         course.grading.show_grader_statistics,
         name="relate-show_grader_statistics"),
 
     url(r"^course"
-        "/" + COURSE_ID_REGEX +
-        "/grading/download-submissions"
-        "/" + FLOW_ID_REGEX +
-        "/$",
+        "/" + COURSE_ID_REGEX
+        + "/grading/download-submissions"
+        "/" + FLOW_ID_REGEX
+        + "/$",
         course.grades.download_all_submissions,
         name="relate-download_all_submissions"),
 
     url(r"^course"
-        "/" + COURSE_ID_REGEX +
-        "/edit-grading-opportunity"
+        "/" + COURSE_ID_REGEX
+        + "/edit-grading-opportunity"
          "/(?P<opportunity_id>[-0-9]+)"
         "/$",
         course.grades.edit_grading_opportunity,
@@ -273,25 +277,25 @@ urlpatterns = [
     # {{{ enrollment
 
     url(r"^course"
-        "/" + COURSE_ID_REGEX +
-        "/enroll/$",
+        "/" + COURSE_ID_REGEX
+        + "/enroll/$",
         course.enrollment.enroll_view,
         name="relate-enroll"),
     url(r"^course"
-        "/" + COURSE_ID_REGEX +
-        "/preapprove"
+        "/" + COURSE_ID_REGEX
+        + "/preapprove"
         "/$",
         course.enrollment.create_preapprovals,
         name="relate-create_preapprovals"),
     url(r"^course"
-        "/" + COURSE_ID_REGEX +
-        "/query-participations"
+        "/" + COURSE_ID_REGEX
+        + "/query-participations"
         "/$",
         course.enrollment.query_participations,
         name="relate-query_participations"),
     url(r"^course"
-        "/" + COURSE_ID_REGEX +
-        "/edit-participation"
+        "/" + COURSE_ID_REGEX
+        + "/edit-participation"
          "/(?P<participation_id>[-0-9]+)"
         "/$",
         course.enrollment.edit_participation,
@@ -302,22 +306,22 @@ urlpatterns = [
     # {{{ media
 
     url(r"^course"
-        "/" + COURSE_ID_REGEX +
-        "/media/(?P<commit_sha>[a-f0-9]+)"
+        "/" + COURSE_ID_REGEX
+        + "/media/(?P<commit_sha>[a-f0-9]+)"
         "/(?P<media_path>.*)$",
         course.views.get_media,
         name="relate-get_media"),
 
     url(r"^course"
-        "/" + COURSE_ID_REGEX +
-        "/file-version/(?P<commit_sha>[a-f0-9]+)"
+        "/" + COURSE_ID_REGEX
+        + "/file-version/(?P<commit_sha>[a-f0-9]+)"
         "/(?P<path>.*)$",
         course.views.get_repo_file,
         name="relate-get_repo_file"),
 
     url(r"^course"
-        "/" + COURSE_ID_REGEX +
-        "/f"
+        "/" + COURSE_ID_REGEX
+        + "/f"
         "/(?P<path>.*)$",
         course.views.get_current_repo_file,
         name="relate-get_current_repo_file"),
@@ -327,18 +331,18 @@ urlpatterns = [
     # {{{ calendar
 
     url(r"^course"
-        "/" + COURSE_ID_REGEX +
-        "/create-recurring-events/$",
+        "/" + COURSE_ID_REGEX
+        + "/create-recurring-events/$",
         course.calendar.create_recurring_events,
         name="relate-create_recurring_events"),
     url(r"^course"
-        "/" + COURSE_ID_REGEX +
-        "/renumber-events/$",
+        "/" + COURSE_ID_REGEX
+        + "/renumber-events/$",
         course.calendar.renumber_events,
         name="relate-renumber_events"),
     url(r"^course"
-        "/" + COURSE_ID_REGEX +
-        "/calendar/$",
+        "/" + COURSE_ID_REGEX
+        + "/calendar/$",
         course.calendar.view_calendar,
         name="relate-view_calendar"),
 
@@ -350,8 +354,8 @@ urlpatterns = [
         course.versioning.set_up_new_course,
         name="relate-set_up_new_course"),
     url(r"^course"
-        "/" + COURSE_ID_REGEX +
-        "/update/$",
+        "/" + COURSE_ID_REGEX
+        + "/update/$",
         course.versioning.update_course,
         name="relate-update_course"),
 
@@ -360,32 +364,32 @@ urlpatterns = [
     # {{{ flow-related
 
     url(r"^course"
-        "/" + COURSE_ID_REGEX +
-         "/flow"
-         "/" + FLOW_ID_REGEX +
-         "/start"
+        "/" + COURSE_ID_REGEX
+         + "/flow"
+         "/" + FLOW_ID_REGEX
+         + "/start"
          "/$",
          course.flow.view_start_flow,
          name="relate-view_start_flow"),
     url(r"^course"
-        "/" + COURSE_ID_REGEX +
-         "/flow-session"
+        "/" + COURSE_ID_REGEX
+         + "/flow-session"
          "/(?P<flow_session_id>[-0-9]+)"
          "/resume"
          "/$",
          course.flow.view_resume_flow,
          name="relate-view_resume_flow"),
     url(r"^course"
-        "/" + COURSE_ID_REGEX +
-        "/flow-session"
+        "/" + COURSE_ID_REGEX
+        + "/flow-session"
         "/(?P<flow_session_id>[0-9]+)"
         "/(?P<page_ordinal>[0-9]+)"
         "/$",
         course.flow.view_flow_page,
         name="relate-view_flow_page"),
     url(r"^course"
-        "/" + COURSE_ID_REGEX +
-        "/prev_answers"
+        "/" + COURSE_ID_REGEX
+        + "/prev_answers"
         "/flow-page"
         "/(?P<flow_session_id>[0-9]+)"
         "/(?P<page_ordinal>[0-9]+)"
@@ -393,16 +397,16 @@ urlpatterns = [
         course.flow.get_prev_answer_visits_dropdown_content,
         name="relate-get_prev_answer_visits_dropdown_content"),
     url(r"^course"
-        "/" + COURSE_ID_REGEX +
-        "/flow-session"
+        "/" + COURSE_ID_REGEX
+        + "/flow-session"
         "/(?P<flow_session_id>[-0-9]+)"
         "/update-expiration-mode"
         "/$",
         course.flow.update_expiration_mode,
         name="relate-update_expiration_mode"),
     url(r"^course"
-        "/" + COURSE_ID_REGEX +
-        "/flow-session"
+        "/" + COURSE_ID_REGEX
+        + "/flow-session"
         "/(?P<flow_session_id>[-0-9]+)"
         "/(?P<page_ordinal>[0-9]+)"
         "/update-bookmark-state"
@@ -410,16 +414,16 @@ urlpatterns = [
         course.flow.update_page_bookmark_state,
         name="relate-update_page_bookmark_state"),
     url(r"^course"
-        "/" + COURSE_ID_REGEX +
-        "/flow-session"
+        "/" + COURSE_ID_REGEX
+        + "/flow-session"
         "/(?P<flow_session_id>[0-9]+)"
         "/finish"
         "/$",
         course.flow.finish_flow_session_view,
         name="relate-finish_flow_session_view"),
     url(r"^course"
-        "/" + COURSE_ID_REGEX +
-        "/flow-session"
+        "/" + COURSE_ID_REGEX
+        + "/flow-session"
         "/(?P<flow_session_id>[0-9]+)"
         "/(?P<page_ordinal>[0-9]+)"
         "/flow-page-interaction-email"
@@ -427,8 +431,8 @@ urlpatterns = [
         course.flow.send_email_about_flow_page,
         name="relate-flow_page_interaction_email"),
     url(r"^course"
-        "/" + COURSE_ID_REGEX +
-        "/flow-session"
+        "/" + COURSE_ID_REGEX
+        + "/flow-session"
         "/(?P<flow_session_id>[0-9]+)"
         "/(?P<page_ordinal>[0-9]+)"
         "/unsubmit/$",
@@ -436,45 +440,45 @@ urlpatterns = [
         name="relate-unsubmit_flow_page"),
 
     url(r"^course"
-        "/" + COURSE_ID_REGEX +
-        "/test-flow"
+        "/" + COURSE_ID_REGEX
+        + "/test-flow"
         "/$",
         course.views.test_flow,
         name="relate-test_flow"),
     url(r"^course"
-        "/" + COURSE_ID_REGEX +
-        "/instant-flow"
+        "/" + COURSE_ID_REGEX
+        + "/instant-flow"
         "/$",
         course.views.manage_instant_flow_requests,
         name="relate-manage_instant_flow_requests"),
 
     url(r"^course"
-        "/" + COURSE_ID_REGEX +
-        "/regrade-flows"
+        "/" + COURSE_ID_REGEX
+        + "/regrade-flows"
         "/$",
         course.flow.regrade_flows_view,
         name="relate-regrade_flows_view"),
 
     url(r"^course"
-        "/" + COURSE_ID_REGEX +
-        "/grant-exception"
+        "/" + COURSE_ID_REGEX
+        + "/grant-exception"
         "/$",
         course.views.grant_exception,
         name="relate-grant_exception"),
     url(r"^course"
-        "/" + COURSE_ID_REGEX +
-        "/grant-exception"
+        "/" + COURSE_ID_REGEX
+        + "/grant-exception"
         "/(?P<participation_id>[0-9]+)"
-        "/" + FLOW_ID_REGEX +
-        "/$",
+        "/" + FLOW_ID_REGEX
+        + "/$",
         course.views.grant_exception_stage_2,
         name="relate-grant_exception_stage_2"),
     url(r"^course"
-        "/" + COURSE_ID_REGEX +
-        "/grant-exception"
+        "/" + COURSE_ID_REGEX
+        + "/grant-exception"
         "/(?P<participation_id>[0-9]+)"
-        "/" + FLOW_ID_REGEX +
-        "/(?P<session_id>[0-9]+)"
+        "/" + FLOW_ID_REGEX
+        + "/(?P<session_id>[0-9]+)"
         "/$",
         course.views.grant_exception_stage_3,
         name="relate-grant_exception_stage_3"),
@@ -484,23 +488,23 @@ urlpatterns = [
     # {{{ analytics
 
     url(r"^course"
-        "/" + COURSE_ID_REGEX +
-        "/flow-analytics"
+        "/" + COURSE_ID_REGEX
+        + "/flow-analytics"
         "/$",
         course.analytics.flow_list,
         name="relate-flow_list"),
     url(r"^course"
-        "/" + COURSE_ID_REGEX +
-        "/flow-analytics"
-        "/" + FLOW_ID_REGEX +
-        "/$",
+        "/" + COURSE_ID_REGEX
+        + "/flow-analytics"
+        "/" + FLOW_ID_REGEX
+        + "/$",
         course.analytics.flow_analytics,
         name="relate-flow_analytics"),
     url(r"^course"
-        "/" + COURSE_ID_REGEX +
-        "/flow-analytics"
-        "/" + FLOW_ID_REGEX +
-        "/page"
+        "/" + COURSE_ID_REGEX
+        + "/flow-analytics"
+        "/" + FLOW_ID_REGEX
+        + "/page"
         "/(?P<group_id>[-_a-zA-Z0-9]+)"
         "/(?P<page_id>[-_a-zA-Z0-9]+)"
         "/$",
@@ -516,8 +520,8 @@ urlpatterns = [
         course.exam.issue_exam_ticket,
         name="relate-issue_exam_ticket"),
     url(r"^course"
-        "/" + COURSE_ID_REGEX +
-        "/batch-issue-exam-tickets"
+        "/" + COURSE_ID_REGEX
+        + "/batch-issue-exam-tickets"
         "/$",
         course.exam.batch_issue_exam_tickets,
         name="relate-batch_issue_exam_tickets"),
@@ -537,10 +541,16 @@ urlpatterns = [
     #}}}
 
     url(r"^course"
-        "/" + COURSE_ID_REGEX +
-        "/api/v1/get-flow-sessions$",
+        "/" + COURSE_ID_REGEX
+        + "/api/v1/get-flow-sessions$",
         course.api.get_flow_sessions,
         name="relate-course_get_flow_session"),
+
+    url(r"^course"
+        "/" + COURSE_ID_REGEX
+        + "/api/v1/get-flow-session-content$",
+        course.api.get_flow_session_content,
+        name="relate-course_get_flow_session_content"),
 
     url(r'^admin/', admin.site.urls),
 ]
@@ -549,7 +559,7 @@ if settings.RELATE_SIGN_IN_BY_SAML2_ENABLED:
     urlpatterns.extend([
         url(r'^saml2/', include('djangosaml2.urls')),
         ])
-    if settings.DEBUG:
+    if settings.DEBUG:  # pragma: no cover
         import djangosaml2.views
         urlpatterns.extend([
             # Keep commented unless debugging SAML2.

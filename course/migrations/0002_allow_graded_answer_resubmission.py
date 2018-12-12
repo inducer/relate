@@ -19,6 +19,6 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='flowaccessexceptionentry',
             name='permission',
-            field=models.CharField(max_length=50, choices=[(b'view', b'View flow'), (b'view_past', b'Review past attempts'), (b'start_credit', b'Start for-credit session'), (b'start_no_credit', b'Start not-for-credit session'), (b'change_answer', b'Change already-graded answer'), (b'see_correctness', b'See whether answer is correct'), (b'see_answer', b'See the correct answer')]),
+            field=models.CharField(max_length=50, choices=[('view', 'View flow'), ('view_past', 'Review past attempts'), ('start_credit', 'Start for-credit session'), ('start_no_credit', 'Start not-for-credit session'), ('change_answer', 'Change already-graded answer'), ('see_correctness', 'See whether answer is correct'), ('see_answer', 'See the correct answer')]),
         ),
     ]

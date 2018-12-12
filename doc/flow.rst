@@ -707,7 +707,7 @@ The following page types are predefined:
 .. |is-optional-page-attr| replace::
 
     Optional. A Boolean value indicating whether the page is an optional page
-    which does not require answer for fully completion of the flow.
+    which does not require answer for full completion of the flow.
     If ``true``, :attr:`value` should not present. Defaults to ``false`` if not present.
     Note that ``is_optional_page: true`` differs from ``value: 0`` in that finishing flows
     with unanswered page(s) with the latter will be warned of "unanswered question(s)",
