@@ -32,12 +32,19 @@ RUN apt-get update && \
         octave-struct \
         \
         python3-dev \
+        python3-setuptools \
+        python3-pip \
+        python3-numpy \
+        python3-scipy \
+        python3-matplotlib \
         pandoc \
         ttf-dejavu && \
     apt-get clean && \
     apt-get autoremove && \
-    curl -L https://github.com/hbin/top-programming-fonts/raw/master/install.sh | bash && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+RUN apt-get update && \
+    pip3 install oct2py
 
 RUN apt-get clean
 RUN fc-cache

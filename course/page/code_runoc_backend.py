@@ -164,48 +164,13 @@ def package_exception(result, what):
 
 
 def run_code(result, run_req):
-    # {{{ silence matplotlib font cache warnings
+    # {{{ set up octave process
 
-    import warnings
-    warnings.filterwarnings(
-            "ignore", message="Matplotlib is building the font cache.*")
+    import oct2py
 
-    # }}}
-
-    # {{{ compile code
-
-    if getattr(run_req, "setup_code", None):
-        try:
-            setup_code = compile(
-                    run_req.setup_code, "[setup code]", 'exec')
-        except Exception:
-            package_exception(result, "setup_compile_error")
-            return
-    else:
-        setup_code = None
-
-    try:
-        user_code = compile(
-                run_req.user_code, "[user code]", 'exec')
-    except Exception:
-        package_exception(result, "user_compile_error")
-        return
-
-    if getattr(run_req, "test_code", None):
-        try:
-            test_code = compile(
-                    run_req.test_code, "[test code]", 'exec')
-        except Exception:
-            package_exception(result, "test_compile_error")
-            return
-    else:
-        test_code = None
+    oc = oct2py.Oct2Py()
 
     # }}}
-
-    if hasattr(run_req, "compile_only") and run_req.compile_only:
-        result["result"] = "success"
-        return
 
     # {{{ run code
 
@@ -213,7 +178,10 @@ def run_code(result, run_req):
     if hasattr(run_req, "data_files"):
         from base64 import b64decode
         for name, contents in run_req.data_files.items():
+            # This part "cheats" a litle, since Octave lets us evaluate functions
+            # in the same context as the main code.  (MATLAB segregates these.)
             data_files[name] = b64decode(contents.encode())
+            oc.eval(b64decode(contents.encode()).decode("utf-8"))
 
     generated_html = []
     result["html"] = generated_html
@@ -230,16 +198,16 @@ def run_code(result, run_req):
             "GradingComplete": GradingComplete,
             }
 
-    if setup_code is not None:
+    if run_req.setup_code is not None:
         try:
-            maint_ctx["_MODULE_SOURCE_CODE"] = run_req.setup_code
-            exec(setup_code, maint_ctx)
+            oc.eval(run_req.setup_code)
         except Exception:
             package_exception(result, "setup_error")
             return
 
+    '''
     user_ctx = {}
-    if hasattr(run_req, "names_for_user"):
+    if hasattr(run_req, "names_for_user"):  #XXX unused for Octave context currently
         for name in run_req.names_for_user:
             if name not in maint_ctx:
                 result["result"] = "setup_error"
@@ -249,10 +217,10 @@ def run_code(result, run_req):
 
     from copy import deepcopy
     user_ctx = deepcopy(user_ctx)
+    '''
 
     try:
-        user_ctx["_MODULE_SOURCE_CODE"] = run_req.user_code
-        exec(user_code, user_ctx)
+        oc.eval(run_req.user_code)
     except Exception:
         package_exception(result, "user_error")
         return
@@ -285,19 +253,20 @@ def run_code(result, run_req):
     # }}}
 
     if hasattr(run_req, "names_from_user"):
+        values = []
         for name in run_req.names_from_user:
-            if name not in user_ctx:
+            try:
+                maint_ctx[name] = oc.pull(name)
+            except oct2py.Oct2PyError:
                 feedback.add_feedback(
                         "Required answer variable '%s' is not defined."
                         % name)
                 maint_ctx[name] = None
-            else:
-                maint_ctx[name] = user_ctx[name]
 
-    if test_code is not None:
+    if run_req.test_code is not None:  # XXX test code is written in Python
         try:
             maint_ctx["_MODULE_SOURCE_CODE"] = run_req.test_code
-            exec(test_code, maint_ctx)
+            exec(run_req.test_code, maint_ctx)
         except GradingComplete:
             pass
         except Exception:
