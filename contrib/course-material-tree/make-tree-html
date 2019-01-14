@@ -10,52 +10,87 @@ section_nr = [1]
 
 
 def rewrite_org_element(args, org_el):
+    el_type = org_el[0]
+    props = org_el[1]
+    assert props is None or isinstance(props, dict)
+    contents = org_el[2:]
+
     result = {
-            "text": org_el.heading
             }
-    from PyOrgMode import OrgNode, OrgDrawer
-    children = [
-            child
-            for child in org_el.content
-            if isinstance(child, OrgNode.Element)]
+    if el_type == "org-data":
+        title, = [
+                subel[1]["key"]
+                for el in contents
+                if el[0] == "section"
+                for subel in el[2:]
+                if subel[0] == "keyword"
+                if subel[1]["key"] == "TITLE"]
+        result["text"] = title
 
-    if org_el.level < len(args.org_level_icon):
-        result["icon"] = args.org_level_icon[org_el.level]
+    elif el_type == "headline":
+        result["text"] = props["raw-value"]
 
-    properties = {
-            prop.name: prop.value
-            for ch in org_el.content
-            if isinstance(ch, OrgDrawer.Element)
-            for prop in ch.content
-            if isinstance(prop, OrgDrawer.Property)
-            }
+        prop_container = [
+                subel[2:]
+                for el in contents
+                if el[0] == "section"
+                for subel in el[2:]
+                if subel[0] == "property-drawer"]
 
-    if "RELATE_TREE_SECTION_NAME" in properties:
-        result["section"] = properties["RELATE_TREE_SECTION_NAME"]
-    if "RELATE_TREE_SECTION_OPENED" in properties:
-        result["opened"] = properties["RELATE_TREE_SECTION_OPENED"]
-    if "RELATE_TREE_ICON" in properties:
-        result["icon"] = properties["RELATE_TREE_ICON"]
-    if "RELATE_TREE_LINK" in properties:
-        result["link"] = properties["RELATE_TREE_LINK"]
+        if prop_container:
+            prop_kws = prop_container[0]
+        else:
+            prop_kws = []
 
-    if children:
-        if args.org_stop_level is not None and org_el.level < args.org_stop_level:
-            result["nodes"] = [rewrite_org_element(args, ch)
-                    for ch in children
-                    if not getattr(ch, "todo", None)]
+        properties = {
+                ch[1]["key"]: ch[1]["value"]
+                for ch in prop_kws
+                if ch[0] == "node-property"
+                }
+
+        if "RELATE_TREE_SECTION_NAME" in properties:
+            result["section"] = properties["RELATE_TREE_SECTION_NAME"]
+        if "RELATE_TREE_SECTION_OPENED" in properties:
+            result["opened"] = properties["RELATE_TREE_SECTION_OPENED"]
+        if "RELATE_TREE_ICON" in properties:
+            result["icon"] = properties["RELATE_TREE_ICON"]
+        if "RELATE_TREE_LINK" in properties:
+            result["link"] = properties["RELATE_TREE_LINK"]
+
+    if el_type == "org-data":
+        level = 0
+    else:
+        level = props.get("level")
+
+    if ("text" in result
+            and level is not None
+            and level < len(args.org_level_icon)):
+        result["icon"] = args.org_level_icon[level]
+
+        children = []
+        for ch in contents:
+            if isinstance(ch, list):
+                node_props = rewrite_org_element(args, ch)
+                if "text" in node_props:
+                    children.append(node_props)
+
+        result["nodes"] = children
+
+    if args.org_stop_level:
+        if level is not None and level > args.org_stop_level:
+            result = {}
 
     return result
 
 
-def load_org(args, infile_name):
-    # https://github.com/bjonnh/PyOrgMode
+def load_org_json(args, infile_name):
+    # https://github.com/ludios/org-to-json
 
-    import PyOrgMode
-    base = PyOrgMode.OrgDataStructure()
-    base.load_from_file(infile_name)
+    from json import loads
+    with open(infile_name, "rb") as inf:
+        json = loads(inf.read())
 
-    return rewrite_org_element(args, base.root)
+    return rewrite_org_element(args, json)
 
 
 def normalize_nodes(nodes, text_icon):
@@ -248,8 +283,8 @@ def main():
         from yaml import safe_load
         with open(args.input_file, "rb") as inf:
             root_node = safe_load(inf)
-    elif args.input_file.endswith(".org"):
-        root_node = load_org(args, args.input_file)
+    elif args.input_file.endswith(".org.json"):
+        root_node = load_org_json(args, args.input_file)
     else:
         raise ValueError("unknown extension of input file: %s" % args.input_file)
 
