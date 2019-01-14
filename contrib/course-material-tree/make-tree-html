@@ -80,6 +80,9 @@ def rewrite_org_element(args, org_el):
         if level is not None and level > args.org_stop_level:
             result = {}
 
+    if el_type == "headline" and props["todo-keyword"] is not None:
+        result = {}
+
     return result
 
 
