@@ -317,7 +317,7 @@ def main():
                         }]
 
             if args.binder_urlroot:
-                binder_url = args.binder_urlroot + "/" + trunk
+                binder_url = args.binder_urlroot + trunk
 
                 sub_nodes.append({
                     "text": "Run interactively (on mybinder.org)",
