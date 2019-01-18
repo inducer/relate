@@ -15,8 +15,8 @@ def rewrite_org_element(args, org_el):
     assert props is None or isinstance(props, dict)
     contents = org_el[2:]
 
-    result = {
-            }
+    had_relate_properties = False
+    result = {}
     if el_type == "org-data":
         title, = [
                 subel[1]["key"]
@@ -48,6 +48,9 @@ def rewrite_org_element(args, org_el):
                 if ch[0] == "node-property"
                 }
 
+        had_relate_properties = had_relate_properties or any(
+                key.startswith("RELATE_") for key in properties)
+
         if "RELATE_TREE_SECTION_NAME" in properties:
             result["section"] = properties["RELATE_TREE_SECTION_NAME"]
         if "RELATE_TREE_SECTION_OPENED" in properties:
@@ -67,17 +70,19 @@ def rewrite_org_element(args, org_el):
             and level < len(args.org_level_icon)):
         result["icon"] = args.org_level_icon[level]
 
-        children = []
-        for ch in contents:
-            if isinstance(ch, list):
-                node_props = rewrite_org_element(args, ch)
-                if "text" in node_props:
-                    children.append(node_props)
+    children = []
+    for ch in contents:
+        if isinstance(ch, list):
+            node_props = rewrite_org_element(args, ch)
+            if "text" in node_props:
+                children.append(node_props)
 
-        result["nodes"] = children
+    result["nodes"] = children
 
     if args.org_stop_level:
-        if level is not None and level > args.org_stop_level:
+        if (level is not None
+                and level > args.org_stop_level
+                and not had_relate_properties):
             result = {}
 
     if el_type == "headline" and props["todo-keyword"] is not None:
