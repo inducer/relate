@@ -138,9 +138,16 @@ def find_section_nodes(section_dict, node):
 
 
 class RenderSettings:
-    def __init__(self, default_icon, number_sections):
+    def __init__(self, default_icon, number_sections, tree_replacements):
         self.default_icon = default_icon
         self.number_sections = number_sections
+        self.tree_replacements = tree_replacements
+
+    def apply_replacements(self, s):
+        for key, val in self.tree_replacements.items():
+            s = s.replace(key, val)
+
+        return s
 
 
 def render(settings, outf, node, indent=0, skip=1):
@@ -173,11 +180,13 @@ def render(settings, outf, node, indent=0, skip=1):
             print(
                 indent * " ",
                 "<a href=\"%s\">%s</a>" % (
-                    node["link"],
-                    text),
+                    settings.apply_replacements(node["link"]),
+                    settings.apply_replacements(text)),
                 file=outf, sep="")
         else:
-            print(indent * " ", text, file=outf, sep="")
+            print(
+                    indent * " ",
+                    settings.apply_replacements(text), file=outf, sep="")
 
     subnodes = node.get("nodes", [])
     if subnodes:
@@ -275,6 +284,8 @@ def main():
     parser.add_argument("--org-stop-level", metavar="INT", type=int)
     parser.add_argument("--org-level-icon", metavar="CSS_CLASSES", nargs="*")
 
+    parser.add_argument("--tree-replacement", metavar="KEY=VALUE", nargs="*")
+
     parser.add_argument("input_file", metavar="FILE")
 
     args = parser.parse_args()
@@ -297,6 +308,13 @@ def main():
         raise ValueError("unknown extension of input file: %s" % args.input_file)
 
     normalize_nodes([root_node], args.text_icon)
+
+    tree_replacements = {}
+    for tr in args.tree_replacement:
+        eq_ind = tr.find("=")
+        if eq_ind < 0:
+            raise ValueError(f"tree replacement '{tr}' contains no equal sign")
+        tree_replacements[tr[:eq_ind]] = tr[eq_ind+1:]
 
     section_dict = {}
     find_section_nodes(section_dict, root_node)
@@ -425,7 +443,8 @@ def main():
         render(
                 RenderSettings(
                     default_icon=args.default_icon,
-                    number_sections=args.number_sections),
+                    number_sections=args.number_sections,
+                    tree_replacements=tree_replacements),
                 outf, root_node)
 
 
