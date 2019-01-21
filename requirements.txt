@@ -71,9 +71,8 @@ python-memcached
 # }}}
 
 # {{{ A task queue, used to execute long-running tasks
-celery==4.1.0
-# https://github.com/celery/kombu/issues/870
-kombu==4.1.0
+celery==4.2.1
+kombu==4.2.2-post1
 django-celery-results==1.0.1
 
 # }}}
