@@ -734,6 +734,8 @@ class ViewCalendarTest(SingleCourseTestMixin, HackRepoMixin, TestCase):
 
     def test_events_file_with_events_test1(self):
         self.switch_to_fake_commit_sha()
+        self.mock_get_now_or_fake_time.return_value = (
+                self.default_event_time - timedelta(days=5))
 
         # lecture 1
         lecture1_start_time = self.default_event_time - timedelta(weeks=1)
