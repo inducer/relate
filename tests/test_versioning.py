@@ -985,7 +985,7 @@ class GetCommitMessageAsHtmlTest(VersioningRepoMixin, SingleCourseTestMixin,
         repo_dict = {
             commit_sha_1: FakeCommit("a_commit", message=b"test a > b  "),
             commit_sha_2: FakeCommit("another_commit", message=b"  <p>test</p>"),
-            commit_sha_3: FakeCommit("another_commit", message=b"abc\uDC80"),
+            commit_sha_3: FakeCommit("another_commit", message=b"abc\\uDC80"),
         }
         repo = mock.MagicMock()
         repo.__getitem__.side_effect = repo_dict.__getitem__
