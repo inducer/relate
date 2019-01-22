@@ -288,7 +288,12 @@ class ParamikoSSHVendorTest(unittest.TestCase):
     def test_invalid(self):
         from paramiko.ssh_exception import AuthenticationException
 
-        expected_error_msg = "Authentication failed"
+        expected_error_msgs = [
+                "Authentication failed",
+
+                # Raised when run in a user account that has
+                # an (encrypted) key file in $HOME/.ssh.
+                "Private key file is encrypted"]
         with self.assertRaises(AuthenticationException) as cm:
             # This is also used to ensure paramiko.client.MissingHostKeyPolicy
             # is added to the client
@@ -297,7 +302,8 @@ class ParamikoSSHVendorTest(unittest.TestCase):
                 command="git-upload-pack '/bar/baz'",
                 username=None,
                 port=None)
-        self.assertIn(expected_error_msg, str(cm.exception))
+        self.assertTrue(any(
+            msg in str(cm.exception) for msg in expected_error_msgs))
 
         with self.assertRaises(AuthenticationException) as cm:
             self.ssh_vendor.run_command(
@@ -305,7 +311,8 @@ class ParamikoSSHVendorTest(unittest.TestCase):
                 command="git-upload-pack '/bar/baz'",
                 username="me",
                 port=22)
-        self.assertIn(expected_error_msg, str(cm.exception))
+        self.assertTrue(any(
+            msg in str(cm.exception) for msg in expected_error_msgs))
 
         expected_error_msg = "Bad authentication type"
 
@@ -985,7 +992,7 @@ class GetCommitMessageAsHtmlTest(VersioningRepoMixin, SingleCourseTestMixin,
         repo_dict = {
             commit_sha_1: FakeCommit("a_commit", message=b"test a > b  "),
             commit_sha_2: FakeCommit("another_commit", message=b"  <p>test</p>"),
-            commit_sha_3: FakeCommit("another_commit", message=b"abc\uDC80"),
+            commit_sha_3: FakeCommit("another_commit", message=b"abc\\uDC80"),
         }
         repo = mock.MagicMock()
         repo.__getitem__.side_effect = repo_dict.__getitem__

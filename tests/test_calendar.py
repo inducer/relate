@@ -602,7 +602,7 @@ class ViewCalendarTest(SingleCourseTestMixin, HackRepoMixin, TestCase):
 
         self.addCleanup(factories.EventFactory.reset_sequence)
 
-    def get_course_calender_view(self, course_identifier=None):
+    def get_course_calendar_view(self, course_identifier=None):
         course_identifier = course_identifier or self.get_default_course_identifier()
         return self.c.get(self.get_course_calender_url(course_identifier))
 
@@ -616,12 +616,12 @@ class ViewCalendarTest(SingleCourseTestMixin, HackRepoMixin, TestCase):
                 "course.utils.CoursePageContext.has_permission"
         ) as mock_has_pperm:
             mock_has_pperm.return_value = False
-            resp = self.get_course_calender_view()
+            resp = self.get_course_calendar_view()
             self.assertEqual(resp.status_code, 403)
 
     def test_neither_events_nor_event_file(self):
         self.mock_get_now_or_fake_time.return_value = self.default_faked_now
-        resp = self.get_course_calender_view()
+        resp = self.get_course_calendar_view()
         self.assertEqual(resp.status_code, 200)
         self.assertResponseContextEqual(resp, "events_json", '[]')
         self.assertResponseContextEqual(resp, "event_info_list", [])
@@ -636,7 +636,7 @@ class ViewCalendarTest(SingleCourseTestMixin, HackRepoMixin, TestCase):
             kind=self.default_event_kind, course=self.course,
             time=self.default_event_time + timedelta(hours=1))
 
-        resp = self.get_course_calender_view()
+        resp = self.get_course_calendar_view()
         self.assertEqual(resp.status_code, 200)
 
         events_json = json.loads(resp.context["events_json"])
@@ -664,7 +664,7 @@ class ViewCalendarTest(SingleCourseTestMixin, HackRepoMixin, TestCase):
             shown_in_calendar=False,
             time=self.default_event_time + timedelta(hours=1))
 
-        resp = self.get_course_calender_view()
+        resp = self.get_course_calendar_view()
         self.assertEqual(resp.status_code, 200)
 
         events_json = json.loads(resp.context["events_json"])
@@ -681,7 +681,7 @@ class ViewCalendarTest(SingleCourseTestMixin, HackRepoMixin, TestCase):
             kind=self.default_event_kind, course=self.course,
             time=self.default_event_time,
             end_time=self.default_event_time + timedelta(hours=1))
-        resp = self.get_course_calender_view()
+        resp = self.get_course_calendar_view()
         self.assertEqual(resp.status_code, 200)
 
         events_json = json.loads(resp.context["events_json"])
@@ -702,7 +702,7 @@ class ViewCalendarTest(SingleCourseTestMixin, HackRepoMixin, TestCase):
         self.course.end_date = (self.default_faked_now - timedelta(weeks=1)).date()
         self.course.save()
 
-        resp = self.get_course_calender_view()
+        resp = self.get_course_calendar_view()
         self.assertEqual(resp.status_code, 200)
 
         self.assertResponseContextEqual(resp, "events_json", '[]')
@@ -715,7 +715,7 @@ class ViewCalendarTest(SingleCourseTestMixin, HackRepoMixin, TestCase):
         self.course.end_date = (self.default_faked_now + timedelta(weeks=1)).date()
         self.course.save()
 
-        resp = self.get_course_calender_view()
+        resp = self.get_course_calendar_view()
         self.assertEqual(resp.status_code, 200)
 
         self.assertResponseContextEqual(resp, "events_json", '[]')
@@ -727,13 +727,15 @@ class ViewCalendarTest(SingleCourseTestMixin, HackRepoMixin, TestCase):
         # make sure it works
         self.switch_to_fake_commit_sha()
 
-        resp = self.get_course_calender_view()
+        resp = self.get_course_calendar_view()
 
         self.assertResponseContextEqual(resp, "events_json", '[]')
         self.assertResponseContextEqual(resp, "event_info_list", [])
 
     def test_events_file_with_events_test1(self):
         self.switch_to_fake_commit_sha()
+        self.mock_get_now_or_fake_time.return_value = (
+                self.default_event_time - timedelta(days=5))
 
         # lecture 1
         lecture1_start_time = self.default_event_time - timedelta(weeks=1)
@@ -746,7 +748,7 @@ class ViewCalendarTest(SingleCourseTestMixin, HackRepoMixin, TestCase):
             kind=self.default_event_kind, course=self.course,
             time=self.default_event_time, ordinal=2)
 
-        resp = self.get_course_calender_view()
+        resp = self.get_course_calendar_view()
 
         events_json = json.loads(resp.context["events_json"])
         self.assertEqual(len(events_json), 2)
@@ -810,7 +812,7 @@ class ViewCalendarTest(SingleCourseTestMixin, HackRepoMixin, TestCase):
             time=test_start_time,
             ordinal=None)
 
-        resp = self.get_course_calender_view()
+        resp = self.get_course_calendar_view()
 
         events_json = json.loads(resp.context["events_json"])
         self.assertEqual(len(events_json), 3)
@@ -858,7 +860,7 @@ class ViewCalendarTest(SingleCourseTestMixin, HackRepoMixin, TestCase):
                 lecture3_start_time + timedelta(minutes=5))
 
         # no EventInfo object
-        resp = self.get_course_calender_view()
+        resp = self.get_course_calendar_view()
         self.assertResponseContextEqual(resp, "event_info_list", [])
 
     def test_events_file_with_events_test3(self):
@@ -871,7 +873,7 @@ class ViewCalendarTest(SingleCourseTestMixin, HackRepoMixin, TestCase):
             time=self.default_event_time,
             end_time=exam_end_time)
 
-        resp = self.get_course_calender_view()
+        resp = self.get_course_calendar_view()
 
         events_json = json.loads(resp.context["events_json"])
         self.assertEqual(len(events_json), 1)
@@ -907,7 +909,7 @@ class ViewCalendarTest(SingleCourseTestMixin, HackRepoMixin, TestCase):
             kind=self.default_event_kind, course=self.course,
             time=lecture3_start_time, ordinal=3)
 
-        resp = self.get_course_calender_view()
+        resp = self.get_course_calendar_view()
 
         events_json = json.loads(resp.context["events_json"])
         self.assertEqual(len(events_json), 2)
@@ -924,7 +926,7 @@ class ViewCalendarTest(SingleCourseTestMixin, HackRepoMixin, TestCase):
         lecture2_evt.end_time = lecture2_end_time
         lecture2_evt.save()
 
-        resp = self.get_course_calender_view()
+        resp = self.get_course_calendar_view()
 
         events_json = json.loads(resp.context["events_json"])
         self.assertEqual(len(events_json), 2)
@@ -949,7 +951,7 @@ class ViewCalendarTest(SingleCourseTestMixin, HackRepoMixin, TestCase):
 
             lecture2_end_time += timedelta(hours=1)
 
-        resp = self.get_course_calender_view()
+        resp = self.get_course_calendar_view()
 
         events_json = json.loads(resp.context["events_json"])
         self.assertEqual(len(events_json), 2)
