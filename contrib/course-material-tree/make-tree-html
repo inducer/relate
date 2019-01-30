@@ -11,12 +11,13 @@ section_nr = [1]
 
 def rewrite_org_element(args, org_el):
     el_type = org_el[0]
-    props = org_el[1]
-    assert props is None or isinstance(props, dict)
+    org_props = org_el[1]
+    assert org_props is None or isinstance(org_props, dict)
     contents = org_el[2:]
 
     had_relate_properties = False
-    result = {}
+    promote_to_parent_level = False
+    node_props = {}
     if el_type == "org-data":
         title, = [
                 subel[1]["key"]
@@ -25,10 +26,10 @@ def rewrite_org_element(args, org_el):
                 for subel in el[2:]
                 if subel[0] == "keyword"
                 if subel[1]["key"] == "TITLE"]
-        result["text"] = title
+        node_props["text"] = title
 
     elif el_type == "headline":
-        result["text"] = props["raw-value"]
+        node_props["text"] = org_props["raw-value"]
 
         prop_container = [
                 subel[2:]
@@ -52,43 +53,52 @@ def rewrite_org_element(args, org_el):
                 key.startswith("RELATE_") for key in properties)
 
         if "RELATE_TREE_SECTION_NAME" in properties:
-            result["section"] = properties["RELATE_TREE_SECTION_NAME"]
+            node_props["section"] = properties["RELATE_TREE_SECTION_NAME"]
         if "RELATE_TREE_SECTION_OPENED" in properties:
-            result["opened"] = properties["RELATE_TREE_SECTION_OPENED"]
+            node_props["opened"] = properties["RELATE_TREE_SECTION_OPENED"]
         if "RELATE_TREE_ICON" in properties:
-            result["icon"] = properties["RELATE_TREE_ICON"]
+            node_props["icon"] = properties["RELATE_TREE_ICON"]
         if "RELATE_TREE_LINK" in properties:
-            result["link"] = properties["RELATE_TREE_LINK"]
+            node_props["link"] = properties["RELATE_TREE_LINK"]
+        if "RELATE_PROMOTE_TO_PARENT_LEVEL" in properties:
+            promote_to_parent_level = True
 
     if el_type == "org-data":
         level = 0
     else:
-        level = props.get("level")
+        level = org_props.get("level")
 
-    if ("text" in result
+    if ("text" in node_props
             and level is not None
             and level < len(args.org_level_icon)):
-        result["icon"] = args.org_level_icon[level]
+        node_props["icon"] = args.org_level_icon[level]
 
+    siblings = []
     children = []
+    node_props["nodes"] = children
+
     for ch in contents:
         if isinstance(ch, list):
-            node_props = rewrite_org_element(args, ch)
-            if "text" in node_props:
-                children.append(node_props)
+            child_props, child_siblings, promote_child_to_parent_level = \
+                    rewrite_org_element(args, ch)
+            if "text" in child_props:
+                if promote_child_to_parent_level:
+                    siblings.append(child_props)
+                else:
+                    children.append(child_props)
 
-    result["nodes"] = children
+            children.extend(child_siblings)
 
     if args.org_stop_level:
         if (level is not None
                 and level > args.org_stop_level
                 and not had_relate_properties):
-            result = {}
+            node_props = {}
 
-    if el_type == "headline" and props["todo-keyword"] is not None:
-        result = {}
+    if el_type == "headline" and org_props["todo-keyword"] is not None:
+        node_props = {}
 
-    return result
+    return node_props, siblings, promote_to_parent_level
 
 
 def load_org_json(args, infile_name):
@@ -98,7 +108,11 @@ def load_org_json(args, infile_name):
     with open(infile_name, "rb") as inf:
         json = loads(inf.read())
 
-    return rewrite_org_element(args, json)
+    node_props, siblings, promote_to_parent_level = \
+            rewrite_org_element(args, json)
+    assert not siblings
+    assert not promote_to_parent_level
+    return node_props
 
 
 def normalize_nodes(nodes, text_icon):
