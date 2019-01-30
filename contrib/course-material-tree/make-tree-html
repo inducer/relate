@@ -262,14 +262,6 @@ def main():
             help="(without the trailing slash)")
     parser.add_argument("--source-wildcard", metavar="WILDCARD", nargs="*")
 
-    # {{{ deprecated
-
-    parser.add_argument("--py-dir", metavar="DIRECTORY")
-    parser.add_argument("--py-urlroot", metavar="URL",
-            help="(without the trailing slash)")
-
-    # }}}
-
     parser.add_argument("--pdf-dir", metavar="DIRECTORY")
     parser.add_argument("--pdf-urlroot", metavar="URL",
             help="(without the trailing slash)")
@@ -394,25 +386,6 @@ def main():
                 }
                 if section_id in section_dict:
                     section_dict[section_id]["nodes"].append(src_node)
-
-    # }}}
-
-    # {{{ python source (deprecated)
-
-    if args.py_dir is not None:
-        for fn in blacklisted_glob(args.py_dir, join("*", "*.py"),
-                blacklist_regexps):
-            trunk = fn[len(args.py_dir)+1:]
-            section_id, display_name = get_section_id_and_display_name(
-                    trunk, include_extension=True)
-
-            src_node = {
-                "text": "Code: " + display_name,
-                "link": args.py_urlroot + "/" + trunk,
-                "icon": "fa fa-file-text-o",
-            }
-            if section_id in section_dict:
-                section_dict[section_id]["nodes"].append(src_node)
 
     # }}}
 
