@@ -690,11 +690,11 @@ class GitTemplateLoaderTest(SingleCourseTestMixin, TestCase):
             with mock.patch(
                     "course.content.get_repo_blob_data_cached",
                     return_value=b"blahblah"):
-                        loader = content.GitTemplateLoader(
-                            repo, self.course.active_git_commit_sha.encode())
-                        _, __, uptodate = loader.get_source(environment=environment,
-                                                            template=template)
-                        self.assertFalse(uptodate())
+                loader = content.GitTemplateLoader(
+                    repo, self.course.active_git_commit_sha.encode())
+                _, __, uptodate = loader.get_source(environment=environment,
+                                                    template=template)
+                self.assertFalse(uptodate())
 
 
 class YamlBlockEscapingFileSystemLoaderTest(SingleCourseTestMixin, TestCase):
