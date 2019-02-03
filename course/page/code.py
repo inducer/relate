@@ -167,16 +167,16 @@ def request_python_run(run_req, run_timeout, image=None):
         from traceback import format_exc
 
         def check_timeout():
-                if time() - start_time < DOCKER_TIMEOUT:
-                    sleep(0.1)
-                    # and retry
-                else:
-                    return {
-                            "result": "uncaught_error",
-                            "message": "Timeout waiting for container.",
-                            "traceback": "".join(format_exc()),
-                            "exec_host": connect_host_ip,
-                            }
+            if time() - start_time < DOCKER_TIMEOUT:
+                sleep(0.1)
+                # and retry
+            else:
+                return {
+                        "result": "uncaught_error",
+                        "message": "Timeout waiting for container.",
+                        "traceback": "".join(format_exc()),
+                        "exec_host": connect_host_ip,
+                        }
 
         while True:
             try:

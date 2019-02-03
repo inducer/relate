@@ -10,11 +10,11 @@
   variables:
     CODECOV_TOKEN: "895e3bf2-cfd0-45f8-9a14-4b7bd148f76d"
 
-Python 3.6:
+Python 3:
   script:
-  - "PY_EXE=python3.6 bash ./run-tests-for-ci.sh"
+  - "PY_EXE=python3 bash ./run-tests-for-ci.sh"
   tags:
-  - python3.6
+  - python3
   - linux
   except:
   - tags
@@ -22,11 +22,11 @@ Python 3.6:
   variables:
     CODECOV_TOKEN: "895e3bf2-cfd0-45f8-9a14-4b7bd148f76d"
 
-Python 3.6 CLI Tool:
+Python 3 CLI Tool:
   script:
-  - "PY_EXE=python3.6 bash ./test-command-line-tool.sh python3.6"
+  - "PY_EXE=python3 bash ./test-command-line-tool.sh python3"
   tags:
-  - python3.6
+  - python3
   - linux
   except:
   - tags
@@ -37,16 +37,16 @@ Documentation:
   - export RELATE_LOCAL_TEST_SETTINGS=`pwd`/local_settings_example.py
   - ". ./build-docs.sh"
   tags:
-  - python3.5
+  - python3
   only:
   - master
 
 Mypy:
   script:
   - curl -L -O -k https://gitlab.tiker.net/inducer/ci-support/raw/master/prepare-and-run-mypy.sh
-  - ". ./prepare-and-run-mypy.sh python3.6 mypy==0.641"
+  - ". ./prepare-and-run-mypy.sh python3 mypy==0.641"
   tags:
-  - python3.6
+  - python3
   except:
   - tags
 
@@ -55,6 +55,6 @@ Flake8:
   - curl -L -O -k https://gitlab.tiker.net/inducer/ci-support/raw/master/prepare-and-run-flake8.sh
   - ". ./prepare-and-run-flake8.sh relate course accounts tests bin"
   tags:
-  - python3.5
+  - python3
   except:
   - tags
