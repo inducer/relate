@@ -234,7 +234,7 @@ def run_code(result, run_req):
         try:
             maint_ctx["_MODULE_SOURCE_CODE"] = run_req.setup_code
             exec(setup_code, maint_ctx)
-        except Exception:
+        except BaseException:
             package_exception(result, "setup_error")
             return
 
@@ -253,7 +253,7 @@ def run_code(result, run_req):
     try:
         user_ctx["_MODULE_SOURCE_CODE"] = run_req.user_code
         exec(user_code, user_ctx)
-    except Exception:
+    except BaseException:
         package_exception(result, "user_error")
         return
 
@@ -299,7 +299,7 @@ def run_code(result, run_req):
             exec(test_code, maint_ctx)
         except GradingComplete:
             pass
-        except Exception:
+        except BaseException:
             package_exception(result, "test_error")
             return
 
