@@ -139,13 +139,26 @@ class GenerateCSS(object):
                              % IPYTHON_NOTEBOOK_DECLARE_STR)
 
         print("Done.")
-        if not REPLACE_HIGHLIGHT_WITH_CODEHILITE:
-            return css
-        return css.replace(HIGHLIGHT_CSS_CLASS.encode() + b" ",
-                              CODEHILITE_CSS_CLASS.encode() + b" ")
+        if REPLACE_HIGHLIGHT_WITH_CODEHILITE:
+            css = css.replace(HIGHLIGHT_CSS_CLASS.encode() + b" ",
+                                  CODEHILITE_CSS_CLASS.encode() + b" ")
+
+        import tinycss2
+        css_parsed, encoding = tinycss2.parse_stylesheet_bytes(css)
+        for n in css_parsed:
+            if isinstance(n, tinycss2.ast.QualifiedRule):
+                n.prelude[0:0] = [
+                        tinycss2.ast.LiteralToken(None, None, "."),
+                        tinycss2.ast.IdentToken(
+                            None, None, "relate-notebook-container"),
+                        tinycss2.ast.WhitespaceToken(None, None, " "),
+                        ]
+        result = tinycss2.serialize(css_parsed).encode(encoding.name)
+        return result
 
     def process_highlight_style_defs(self, style=PYGMENTS_STYLE):
         print("Processing Pygments code highlight CSS.")
+
         def get_highlight_style_defs():
             from pygments.formatters import get_formatter_by_name
             formatter = get_formatter_by_name("html", style=style)
