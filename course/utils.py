@@ -1326,7 +1326,7 @@ class IpynbJinjaMacro(RelateJinjaMacroBase):
 
         (body, resources) = html_exporter.from_notebook_node(notebook)
 
-        return body
+        return "<div class='relate-notebook-container'>%s</div>" % body
 
 
 NBCONVERT_PRE_OPEN_RE = re.compile(r"<pre\s*>\s*<relate_ipynb\s*>")
