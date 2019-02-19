@@ -41,7 +41,7 @@ HIGHLIGT_DECLARE_STR = """
 * Pygments "%s" style with "%s" css_class
 *
 */
-""" %(PYGMENTS_STYLE,
+""" % (PYGMENTS_STYLE,
       CODEHILITE_CSS_CLASS
       if REPLACE_HIGHLIGHT_WITH_CODEHILITE else HIGHLIGHT_CSS_CLASS)
 
@@ -60,14 +60,14 @@ def retry_urlopen(request, timeout=REQUEST_TIMEOUT, n_retries=REQUEST_MAX_RETRIE
     i = 0
     while True:
         try:
-            result =  urlopen(request, timeout=timeout).read()
+            result = urlopen(request, timeout=timeout).read()
             return result
         except Exception as e:
             from six.moves.urllib.error import URLError
-            from socket import timeout as TimeoutError
+            from socket import timeout as TimeoutError  # noqa: N812
             if not isinstance(e, (URLError, TimeoutError)):
                 raise e
-            if not "timed out" in str(e).lower():
+            if "timed out" not in str(e).lower():
                 raise e
             i += 1
             if i > n_retries:
@@ -95,7 +95,7 @@ class GenerateCSS(object):
             if 'ssl' in str(e).lower():
                 import sys
                 try:
-                    import pycurl
+                    import pycurl  # noqa: F401
                 except ImportError:
                     print(
                         "Failed, try again after installing PycURL with "
@@ -126,7 +126,7 @@ class GenerateCSS(object):
             css = self._download()
             print("Done.")
             return self._process_nbconvert_css(css)
-        except:
+        except Exception:
             raise
 
     def _process_nbconvert_css(self, css):
@@ -157,15 +157,15 @@ class GenerateCSS(object):
             css_class = CODEHILITE_CSS_CLASS
         else:
             css_class = HIGHLIGHT_CSS_CLASS
-        return (HIGHLIGT_DECLARE_STR +
-            "\n".join(["%s %s" % (css_class, line)
+        return (HIGHLIGT_DECLARE_STR
+            + "\n".join(["%s %s" % (css_class, line)
                        for line in style_defs.splitlines()]))
 
     def get_assembled_css(self):
         try:
             nbcovert_css = self.process_nbconvert_css()
             highlight_css = self.process_highlight_style_defs()
-        except:
+        except Exception:
             raise
         css = "\n".join([nbcovert_css.decode(), highlight_css])
         print("CSS assembled.")
