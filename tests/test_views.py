@@ -1968,10 +1968,7 @@ class GrantExceptionStage3Test(GrantExceptionTestMixin, TestCase):
             excs.filter(
                 kind=constants.flow_rule_kind.grading).count(), 1)
         if_completed_before = excs[0].rule.get("if_completed_before")
-        due_naive = due.replace(tzinfo=None)
-        self.assertEqual(if_completed_before.date(), due_naive.date())
-        self.assertEqual(if_completed_before.hour, due_naive.hour)
-        self.assertEqual(if_completed_before.minute, due_naive.minute)
+        self.assertIsNone(if_completed_before)
 
         self.assertAddMessageCallCount(1)
         self.assertAddMessageCalledWith("'Grading' exception granted to ")
@@ -2000,12 +1997,7 @@ class GrantExceptionStage3Test(GrantExceptionTestMixin, TestCase):
             excs.filter(
                 kind=constants.flow_rule_kind.grading).count(), 1)
         if_completed_before = excs[0].rule.get("if_completed_before")
-
-        # access expiration time will be used
-        expiration_time_naive = expiration_time.replace(tzinfo=None)
-        self.assertEqual(if_completed_before.date(), expiration_time_naive.date())
-        self.assertEqual(if_completed_before.hour, expiration_time_naive.hour)
-        self.assertEqual(if_completed_before.minute, expiration_time_naive.minute)
+        self.assertIsNone(if_completed_before)
 
         self.assertAddMessageCallCount(1)
         self.assertAddMessageCalledWith("'Grading' exception granted to ")
