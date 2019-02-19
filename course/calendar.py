@@ -367,6 +367,7 @@ def view_calendar(pctx):
     if not pctx.has_permission(pperm.view_calendar):
         raise PermissionDenied(_("may not view calendar"))
 
+    # must import locally for mock to work
     from course.views import get_now_or_fake_time
     now = get_now_or_fake_time(pctx.request)
 
