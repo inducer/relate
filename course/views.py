@@ -1233,7 +1233,6 @@ def grant_exception_stage_3(pctx, participation_id, flow_id, session_id):
 
                 if due_local_naive is not None:
                     new_grading_rule["due"] = due_local_naive
-                    new_grading_rule["if_completed_before"] = due_local_naive
 
                 for attr_name in ["credit_percent", "bonus_points",
                         "max_points", "max_points_enforced_cap", "generates_grade"]:
