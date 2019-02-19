@@ -55,7 +55,6 @@ from course.constants import (
         exam_ticket_states,
         participation_status,
         participation_permission as pperm)
-from course.views import get_now_or_fake_time
 
 from relate.utils import StyledForm, string_concat
 
@@ -140,6 +139,8 @@ class IssueTicketForm(StyledForm):
 
 @permission_required("course.can_issue_exam_tickets", raise_exception=True)
 def issue_exam_ticket(request):
+    # must import locally for mock to work
+    from course.views import get_now_or_fake_time
     now_datetime = get_now_or_fake_time(request)
 
     if request.method == "POST":
@@ -538,6 +539,8 @@ class ExamCheckInForm(StyledForm):
 @csrf_protect
 @never_cache
 def check_in_for_exam(request):
+    # must import locally for mock to work
+    from course.views import get_now_or_fake_time
     now_datetime = get_now_or_fake_time(request)
 
     if request.method == "POST":
@@ -790,6 +793,8 @@ class ExamLockdownMiddleware(object):
 # {{{ list available exams
 
 def list_available_exams(request):
+    # must import locally for mock to work
+    from course.views import get_now_or_fake_time
     now_datetime = get_now_or_fake_time(request)
 
     if request.user.is_authenticated:
