@@ -77,6 +77,12 @@ class ExamTestMixin(SingleCourseTestMixin, MockAddMessageMixing):
         super(ExamTestMixin, self).setUp()
         self.c.force_login(self.instructor_participation.user)
 
+        fake_get_now_or_fake_time = mock.patch(
+            "course.views.get_now_or_fake_time")
+        self.mock_get_now_or_fake_time = fake_get_now_or_fake_time.start()
+        self.mock_get_now_or_fake_time.return_value = now()
+        self.addCleanup(fake_get_now_or_fake_time.stop)
+
     def get_post_data(self, **kwargs):
         data = {
             "user": self.student_participation.user.pk,
@@ -129,6 +135,8 @@ class IssueExamTicketTest(ExamTestMixin, TestCase):
         self.assertEqual(ExamTicket.objects.count(), 0)
 
     def test_post_success(self):
+        self.mock_get_now_or_fake_time.return_value = self.default_faked_now
+
         resp = self.post_issue_exam_ticket_view(data=self.get_post_data())
         self.assertFormErrorLoose(resp, None)
         self.assertEqual(resp.status_code, 200)
@@ -138,6 +146,8 @@ class IssueExamTicketTest(ExamTestMixin, TestCase):
         self.assertAddMessageCalledWith("The ticket code is")
 
     def test_form_invalid(self):
+        self.mock_get_now_or_fake_time.return_value = self.default_faked_now
+
         with mock.patch("course.exam.IssueTicketForm.is_valid") as mock_is_valid:
             mock_is_valid.return_value = False
             resp = self.post_issue_exam_ticket_view(data=self.get_post_data())
@@ -146,6 +156,8 @@ class IssueExamTicketTest(ExamTestMixin, TestCase):
             self.assertEqual(ExamTicket.objects.count(), 0)
 
     def test_participation_not_match(self):
+        self.mock_get_now_or_fake_time.return_value = self.default_faked_now
+
         another_exam = factories.ExamFactory(
             course=factories.CourseFactory(identifier="another-course"))
         resp = self.post_issue_exam_ticket_view(
@@ -157,6 +169,8 @@ class IssueExamTicketTest(ExamTestMixin, TestCase):
         self.assertAddMessageCalledWith("User is not enrolled in course.")
 
     def test_revoke_revoke_prior_ticket(self):
+        self.mock_get_now_or_fake_time.return_value = self.default_faked_now
+
         prior_ticket = factories.ExamTicketFactory(
             exam=self.exam,
             participation=self.student_participation,
