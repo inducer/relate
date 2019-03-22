@@ -68,8 +68,9 @@ ipaddress
 # 4.6.5 causes a 403 on /saml2/acs upon sign in with djangosaml2
 pysaml2==4.6.0
 djangosaml2==0.17.2
-# Explicit dependency to work around broken dep declaration in pysaml2 4.6.0
+# Explicit dependency decls to work around broken dep declaration in pysaml2 4.6.0
 pyOpenSSL
+future
 
 # Try to avoid https://github.com/Julian/jsonschema/issues/449
 attrs>=19
