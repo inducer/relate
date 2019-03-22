@@ -29,6 +29,10 @@ setup(name="relate-courseware",
           "dulwich",
           "pyyaml",
           "nbconvert>=5.2.1",
+
+          # Try to avoid https://github.com/Julian/jsonschema/issues/449
+          "attrs>=19",
+
           "pymbolic",
           "sympy",
           ],
