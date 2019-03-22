@@ -64,7 +64,9 @@ ipaddress
 
 # {{{ For interoperation with SAML2/Shibboleth
 
-pysaml2==4.6.1
+# 4.6.1 suffers from https://github.com/IdentityPython/pysaml2/pull/543
+# 4.6.5 causes a 403 on /saml2/acs upon sign in with djangosaml2
+pysaml2==4.6.0
 djangosaml2==0.17.2
 python-memcached
 
