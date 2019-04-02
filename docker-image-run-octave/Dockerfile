@@ -1,7 +1,7 @@
 FROM inducer/debian-amd64-minbase
 MAINTAINER Neal Davis <davis68@illinois.edu>
 EXPOSE 9942
-RUN useradd runoc
+RUN useradd runcode
 
 # Based on `compdatasci/octave-desktop` Docker image
 
@@ -49,10 +49,11 @@ RUN apt-get update && \
 RUN apt-get clean
 RUN fc-cache
 
-RUN mkdir -p /opt/runoc
-ADD runoc /opt/runoc/
-COPY code_feedback.py /opt/runoc/
-COPY code_runoc_backend.py /opt/runoc/
+# TODO XXX perhaps I should genericize this as well
+RUN mkdir -p /opt/runcode
+ADD runcode /opt/runcode/
+COPY code_feedback.py /opt/runcode/
+COPY code_run_backend.py /opt/runcode/
 
 # currently no graphics support
 #RUN sed -i s/TkAgg/Agg/ /etc/matplotlibrc
