@@ -11,6 +11,7 @@ RUN echo 'APT::Default-Release "testing";' >> /etc/apt/apt.conf
 RUN apt-get update
 RUN apt-get -y -o APT::Install-Recommends=0 -o APT::Install-Suggests=0 install \
   python3-scipy \
+  python3-numpy \
   python3-pip \
   python3-matplotlib \
   python3-pillow \
@@ -38,6 +39,8 @@ RUN apt-get -y -o APT::Install-Recommends=0 -o APT::Install-Suggests=0 install \
 
 RUN apt-get clean
 RUN fc-cache
+
+RUN pip3 install numpy==1.16.1
 
 RUN mkdir -p /opt/runcode
 ADD runcode /opt/runcode/

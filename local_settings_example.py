@@ -343,7 +343,7 @@ RELATE_SHOW_EDITOR_FORM = True
 # A string containing the image ID of the docker image to be used to run
 # student Python code. Docker should download the image on first run.
 RELATE_DOCKER_RUNPY_IMAGE = "inducer/relate-runpy-amd64"
-RELATE_DOCKER_RUNOC_IMAGE = "davis68/runoc"
+RELATE_DOCKER_RUNOC_IMAGE = "davis68/relate-octave"
 # RELATE_DOCKER_RUNPY_IMAGE = "inducer/relate-runpy-amd64-tensorflow"
 # (bigger, but includes TensorFlow)
 
