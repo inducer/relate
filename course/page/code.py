@@ -56,7 +56,6 @@ class CodeForm(StyledForm):
     def __init__(self, read_only, interaction_mode, initial_code,
             language_mode, data=None, *args, **kwargs):
         super(CodeForm, self).__init__(data, *args, **kwargs)
-        self.language_mode = language_mode
 
         from course.utils import get_codemirror_widget
         cm_widget, cm_help_text = get_codemirror_widget(
@@ -107,11 +106,11 @@ def request_run(run_req, run_timeout, image=None):
         def debug_print(s):
             pass
 
-    image = self.container_image
+    #image = self.container_image  #XXX
     command_path = '/opt/runcode/runcode'
     user = 'runcode'
 
-    if SPAWN_CONTAINERS:
+    if SPAWN_CONTAINERS and image is not None:
         docker_url = getattr(settings, "RELATE_DOCKER_URL",
                 "unix://var/run/docker.sock")
         docker_tls = getattr(settings, "RELATE_DOCKER_TLS_CONFIG",
@@ -483,7 +482,6 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
 
     def __init__(self, vctx, location, page_desc, language_mode):
         super(CodeQuestion, self).__init__(vctx, location, page_desc)
-        self.language_mode = language_mode
 
         if vctx is not None and hasattr(page_desc, "data_files"):
             for data_file in page_desc.data_files:
@@ -574,6 +572,7 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
                     not page_behavior.may_change_answer,
                     get_editor_interaction_mode(page_context),
                     self._initial_code(),
+                    self.language_mode,
                     answer)
         else:
             answer = None
@@ -581,6 +580,7 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
                     not page_behavior.may_change_answer,
                     get_editor_interaction_mode(page_context),
                     self._initial_code(),
+                    self.language_mode
                     )
 
         return form
@@ -591,6 +591,7 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
                 not page_behavior.may_change_answer,
                 get_editor_interaction_mode(page_context),
                 self._initial_code(),
+                self.language_mode,
                 post_data, files_data)
 
     def answer_data(self, page_context, page_data, form, files_data):
@@ -645,7 +646,7 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
         try:
             response_dict = request_run_with_retries(run_req,
                     run_timeout=self.page_desc.timeout,
-                    language_mode=self.language_mode)
+                    image=self.container_image)
         except Exception:
             from traceback import format_exc
             response_dict = {
@@ -994,10 +995,6 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
 
 # {{{ python code question
 
-class PythonCodeForm(CodeForm):
-    def __init__(self, vctx, location, page_desc):
-        super(PythonCodeQuestion, self).__init__(self, vctx, location, page_desc, language_mode='python')
-
 class PythonCodeQuestion(CodeQuestion):
     """
     An auto-graded question allowing an answer consisting of Python code.
@@ -1187,7 +1184,7 @@ class PythonCodeQuestion(CodeQuestion):
         return '.py'
 
     def __init__(self, vctx, location, page_desc, language_mode='python'):
-        super(PythonCodeQuestion, self).__init__(self, vctx, location, page_desc)
+        super(PythonCodeQuestion, self).__init__(vctx, location, page_desc, language_mode)
 
 # }}}
 
@@ -1395,10 +1392,6 @@ class PythonCodeQuestionWithHumanTextFeedback(
 
 # {{{ octave code question
 
-class OctaveCodeForm(CodeForm):
-    def __init__(self, vctx, location, page_desc):
-        super(PythonCodeQuestion, self).__init__(self, vctx, location, page_desc, language_mode='octave')
-
 class OctaveCodeQuestion(CodeQuestion):
     """
     An auto-graded question allowing an answer consisting of Octave code.
@@ -1589,7 +1582,7 @@ class OctaveCodeQuestion(CodeQuestion):
         return '.m'
 
     def __init__(self, vctx, location, page_desc, language_mode='octave'):
-        super(OctaveCodeQuestion, self).__init__(self, vctx, location, page_desc)
+        super(OctaveCodeQuestion, self).__init__(vctx, location, page_desc, language_mode)
 
 # }}}
 
