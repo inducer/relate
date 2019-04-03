@@ -33,7 +33,7 @@ import errno
 
 from course.models import FlowSession
 from course.page.code import (
-    RUNPY_PORT, request_python_run_with_retries, InvalidPingResponse,
+    CODE_QUESTION_CONTAINER_PORT, request_python_run_with_retries, InvalidPingResponse,
     is_nuisance_failure, PythonCodeQuestionWithHumanTextFeedback)
 from course.page.code import (
     RUNOC_PORT, request_octave_run_with_retries)
@@ -1055,7 +1055,7 @@ class RequestPythonRunWithRetriesTest(unittest.TestCase):
 
             mock_inpect_ctn.return_value = {
                 "NetworkSettings": {
-                    "Ports": {"%d/tcp" % RUNPY_PORT: (
+                    "Ports": {"%d/tcp" % CODE_QUESTION_CONTAINER_PORT: (
                         {"HostIp": fake_host_ip, "HostPort": fake_host_port},
                     )}
                 }}
@@ -1154,7 +1154,7 @@ class RequestPythonRunWithRetriesTest(unittest.TestCase):
 
                 mock_inpect_ctn.return_value = {
                     "NetworkSettings": {
-                        "Ports": {"%d/tcp" % RUNPY_PORT: (
+                        "Ports": {"%d/tcp" % CODE_QUESTION_CONTAINER_PORT: (
                             {"HostIp": fake_host_ip, "HostPort": fake_host_port},
                         )}
                     }}
@@ -1203,7 +1203,7 @@ class RequestPythonRunWithRetriesTest(unittest.TestCase):
 
             mock_inpect_ctn.return_value = {
                 "NetworkSettings": {
-                    "Ports": {"%d/tcp" % RUNPY_PORT: (
+                    "Ports": {"%d/tcp" % CODE_QUESTION_CONTAINER_PORT: (
                         {"HostIp": fake_host_ip, "HostPort": fake_host_port},
                     )}
                 }}
@@ -1243,7 +1243,7 @@ class RequestPythonRunWithRetriesTest(unittest.TestCase):
 
             mock_inpect_ctn.return_value = {
                 "NetworkSettings": {
-                    "Ports": {"%d/tcp" % RUNPY_PORT: (
+                    "Ports": {"%d/tcp" % CODE_QUESTION_CONTAINER_PORT: (
                         {"HostIp": fake_host_ip, "HostPort": fake_host_port},
                     )}
                 }}
@@ -1339,7 +1339,7 @@ class RequestOctaveRunWithRetriesTest(unittest.TestCase):
 
             mock_inpect_ctn.return_value = {
                 "NetworkSettings": {
-                    "Ports": {"%d/tcp" % RUNPY_PORT: (
+                    "Ports": {"%d/tcp" % CODE_QUESTION_CONTAINER_PORT: (
                         {"HostIp": fake_host_ip, "HostPort": fake_host_port},
                     )}
                 }}
@@ -1438,7 +1438,7 @@ class RequestOctaveRunWithRetriesTest(unittest.TestCase):
 
                 mock_inpect_ctn.return_value = {
                     "NetworkSettings": {
-                        "Ports": {"%d/tcp" % RUNPY_PORT: (
+                        "Ports": {"%d/tcp" % CODE_QUESTION_CONTAINER_PORT: (
                             {"HostIp": fake_host_ip, "HostPort": fake_host_port},
                         )}
                     }}
@@ -1487,7 +1487,7 @@ class RequestOctaveRunWithRetriesTest(unittest.TestCase):
 
             mock_inpect_ctn.return_value = {
                 "NetworkSettings": {
-                    "Ports": {"%d/tcp" % RUNPY_PORT: (
+                    "Ports": {"%d/tcp" % CODE_QUESTION_CONTAINER_PORT: (
                         {"HostIp": fake_host_ip, "HostPort": fake_host_port},
                     )}
                 }}
@@ -1527,7 +1527,7 @@ class RequestOctaveRunWithRetriesTest(unittest.TestCase):
 
             mock_inpect_ctn.return_value = {
                 "NetworkSettings": {
-                    "Ports": {"%d/tcp" % RUNOC_PORT: (
+                    "Ports": {"%d/tcp" % CODE_QUESTION_CONTAINER_PORT: (
                         {"HostIp": fake_host_ip, "HostPort": fake_host_port},
                     )}
                 }}

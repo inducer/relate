@@ -1,6 +1,6 @@
 FROM inducer/runoc
 MAINTAINER Neal Davis <davis68@illinois.edu>
-EXPOSE 9942
+EXPOSE 9941
 #RUN useradd runcode
 
 #RUN apt-get update && \

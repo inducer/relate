@@ -1,6 +1,6 @@
 FROM inducer/debian-amd64-minbase
 MAINTAINER Neal Davis <davis68@illinois.edu>
-EXPOSE 9942
+EXPOSE 9941
 RUN useradd runcode
 
 # Based on `compdatasci/octave-desktop` Docker image
@@ -49,7 +49,6 @@ RUN apt-get update && \
 RUN apt-get clean
 RUN fc-cache
 
-# TODO XXX perhaps I should genericize this as well
 RUN mkdir -p /opt/runcode
 ADD runcode /opt/runcode/
 COPY code_feedback.py /opt/runcode/

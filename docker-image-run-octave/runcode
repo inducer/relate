@@ -46,7 +46,7 @@ except ImportError:
 
 from http.server import BaseHTTPRequestHandler
 
-PORT = 9942
+PORT = 9941
 OUTPUT_LENGTH_LIMIT = 16*1024
 
 TEST_COUNT = 0
@@ -82,7 +82,7 @@ class RunRequestHandler(BaseHTTPRequestHandler):
 
         try:
             print("POST RECEIVED", file=prev_stderr)
-            if self.path != "/run-octave":
+            if self.path != "/run-code":
                 raise RuntimeError("unrecognized path in POST")
 
             clength = int(self.headers['content-length'])

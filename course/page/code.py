@@ -149,7 +149,7 @@ def request_run(run_req, run_timeout, image=None):
 
             container_props = docker_cnx.inspect_container(container_id)
             (port_info,) = (container_props
-                    ["NetworkSettings"]["Ports"]["%d/tcp" % RUNOC_PORT])
+                    ["NetworkSettings"]["Ports"]["%d/tcp" % CODE_QUESTION_CONTAINER_PORT])
             port_host_ip = port_info.get("HostIp")
 
             if port_host_ip != "0.0.0.0":
@@ -223,7 +223,7 @@ def request_run(run_req, run_timeout, image=None):
             start_time = time()
 
             debug_print("BEFPOST")
-            connection.request('POST', '/run-%s'%language_mode, json_run_req, headers)
+            connection.request('POST', '/run-code', json_run_req, headers)
             debug_print("AFTPOST")
 
             http_response = connection.getresponse()
