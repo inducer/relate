@@ -5,6 +5,15 @@
   <h1>{% blocktrans %}Sign in to {{ relate_site_name }}{% endblocktrans %}</h1>
 
   <ul class="list-sign-in-methods">
+    {% if relate_sign_in_by_cas_enabled %}
+      <li>
+        <a
+          class="btn btn-primary"
+          href="{% url 'cas_ng_login' %}{{next_uri}}"
+          role="button"><i class="fa fa-institution"></i>
+          {% trans "Sign in using your institution's login" %} &raquo;</a>
+      </li>
+    {% endif %}
     {% if relate_sign_in_by_saml2_enabled %}
       <li>
         <a

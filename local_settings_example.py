@@ -210,6 +210,9 @@ RELATE_SIGN_IN_BY_EXAM_TICKETS_ENABLED = True
 # See saml_config.py.example for help.
 RELATE_SIGN_IN_BY_SAML2_ENABLED = False
 
+# If you enable this, you will also need to set up the CAS settings further down.
+RELATE_SIGN_IN_BY_CAS_ENABLED = False
+
 # }}}
 
 # {{{ editable institutional id before verification?
@@ -579,6 +582,23 @@ if RELATE_SIGN_IN_BY_SAML2_ENABLED:
             },
         'valid_for': 24,  # how long is our metadata valid
         }
+
+# }}}
+
+# {{{ cas (optional)
+
+if RELATE_SIGN_IN_BY_CAS_ENABLED:
+    # For these settings, as well as the full list of django-cas-ng settings refer to documentation
+    # at https://github.com/mingchen/django-cas-ng
+    CAS_SERVER_URL = "https://your-cas-login-domain/cas/"
+    CAS_CREATE_USER = True
+    CAS_USERNAME_ATTRIBUTE = 'username'
+
+    # This is an extra addition. To allow one to easily use a more complex attribute mapper
+    # than a simple map in CAS_RENAME_ATTRIBUTES,
+    # we have the cas-config app, which will call the function you define here
+    # with the same parameters as django-cas-ng signal cas_user_authenticated.
+    CAS_ATTRIBUTE_CALLBACK = {'module': 'cas-config.callback', 'function': 'cas_callback'}
 
 # }}}
 

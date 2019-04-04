@@ -72,6 +72,9 @@ djangosaml2==0.17.2
 pyOpenSSL
 future
 
+# To support CAS login
+django-cas-ng==3.6.0
+
 # Try to avoid https://github.com/Julian/jsonschema/issues/449
 attrs>=19
 

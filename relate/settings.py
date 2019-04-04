@@ -66,6 +66,9 @@ INSTALLED_APPS = (
 if local_settings.get("RELATE_SIGN_IN_BY_SAML2_ENABLED"):
     INSTALLED_APPS = INSTALLED_APPS + ("djangosaml2",)  # type: ignore
 
+if local_settings.get("RELATE_SIGN_IN_BY_CAS_ENABLED"):
+    INSTALLED_APPS = INSTALLED_APPS + ("django_cas_ng", 'cas-config', )  # type: ignore
+
 # }}}
 
 # {{{ django: middleware
@@ -85,6 +88,9 @@ MIDDLEWARE = (
     "relate.utils.MaintenanceMiddleware",
 )
 
+if local_settings.get("RELATE_SIGN_IN_BY_CAS_ENABLED"):
+    MIDDLEWARE = MIDDLEWARE + ('django_cas_ng.middleware.CASMiddleware',)  # type: ignore
+
 # }}}
 
 # {{{ django: auth
@@ -100,6 +106,11 @@ if local_settings.get("RELATE_SIGN_IN_BY_SAML2_ENABLED"):
     AUTHENTICATION_BACKENDS = AUTHENTICATION_BACKENDS + (  # type: ignore
             'course.auth.Saml2Backend',
             )
+
+if local_settings.get("RELATE_SIGN_IN_BY_CAS_ENABLED"):
+    AUTHENTICATION_BACKENDS = AUTHENTICATION_BACKENDS + (  # type: ignore
+         'django_cas_ng.backends.CASBackend',
+    )
 
 AUTH_USER_MODEL = 'accounts.User'
 

@@ -192,6 +192,8 @@ def settings_context_processor(request):
         settings.RELATE_SIGN_IN_BY_EXAM_TICKETS_ENABLED,
         "relate_sign_in_by_saml2_enabled":
         settings.RELATE_SIGN_IN_BY_SAML2_ENABLED,
+        "relate_sign_in_by_cas_enabled":
+        settings.RELATE_SIGN_IN_BY_CAS_ENABLED,
         "maintenance_mode": is_maintenance_mode(request),
         "site_announcement": getattr(settings, "RELATE_SITE_ANNOUNCEMENT", None),
         "relate_site_name": _(get_site_name())
