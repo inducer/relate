@@ -1585,7 +1585,7 @@ class RequestPythonRunWithRetriesTest(unittest.TestCase):
 
 
 class RequestOctaveRunWithRetriesTest(unittest.TestCase):
-    # Testing course.page.code.request_octave_run_with_retries,
+    # Testing course.page.code.request_run_with_retries,
     # adding tests for use cases that didn't cover in other tests
 
     @override_settings(RELATE_DOCKER_RUNOC_IMAGE="some_other_image")
@@ -1845,7 +1845,7 @@ class RequestOctaveRunWithRetriesTest(unittest.TestCase):
     @skipIf(six.PY2, "PY2 doesn't support subTest")
     def test_docker_container_runoc_retries_count(self):
         with (
-                mock.patch("course.page.code.request_octave_run")) as mock_req_run, (  # noqa
+                mock.patch("course.page.code.request_run")) as mock_req_run, (  # noqa
                 mock.patch("course.page.code.is_nuisance_failure")) as mock_is_nuisance_failure:  # noqa
             expected_result = "this is my custom result"
             mock_req_run.return_value = {"result": expected_result}
