@@ -462,17 +462,15 @@ id: addition
 value: 1
 timeout: 10
 data_files:
-    - question-data/random-data.npy
+    - question-data/random-data.m
     %(extra_data_file)s
 prompt: |
 
-    # Adding two numbers in Python
+    # Adding two numbers in Octave
 
 setup_code: |
-    import random
-
-    a = random.uniform(-10, 10)
-    b = random.uniform(-10, 10)
+    a = unifrnd(-10,10)
+    b = unifrnd(-10,10)
 
 names_for_user: [a, b]
 
@@ -501,18 +499,16 @@ id: addition
 value: 1
 timeout: 10
 data_files:
-    - question-data/random-data.npy
+    - question-data/random-data.m
     - - foo
       - bar
 prompt: |
 
-    # Adding two numbers in Python
+    # Adding two numbers in Octave
 
 setup_code: |
-    import random
-
-    a = random.uniform(-10, 10)
-    b = random.uniform(-10, 10)
+    a = unifrnd(-10,10)
+    b = unifrnd(-10,10)
 
 names_for_user: [a, b]
 
@@ -545,13 +541,11 @@ value: 1
 timeout: 10
 prompt: |
 
-    # Adding two numbers in Python
+    # Adding two numbers in Octave
 
 setup_code: |
-    import random
-
-    a = random.uniform(-10, 10)
-    b = random.uniform(-10, 10)
+    a = unifrnd(-10,10)
+    b = unifrnd(-10,10)
 
 names_for_user: [a, b]
 
@@ -584,13 +578,11 @@ value: 1
 timeout: 10
 prompt: |
 
-    # Adding two numbers in Python
+    # Adding two numbers in Octave
 
 setup_code: |
-    import random
-
-    a = random.uniform(-10, 10)
-    b = random.uniform(-10, 10)
+    a = unifrnd(-10,10)
+    b = unifrnd(-10,10)
 
 names_for_user: [a, b]
 
@@ -621,13 +613,11 @@ timeout: 10
 single_submission: True
 prompt: |
 
-    # Adding two numbers in Python
+    # Adding two numbers in Octave
 
 setup_code: |
-    import random
-
-    a = random.uniform(-10, 10)
-    b = random.uniform(-10, 10)
+    a = unifrnd(-10,10)
+    b = unifrnd(-10,10)
 
 names_for_user: [a, b]
 
@@ -657,13 +647,11 @@ timeout: 10
 single_submission: True
 prompt: |
 
-    # Adding two numbers in Python
+    # Adding two numbers in Octave
 
 setup_code: |
-    import random
-
-    a = random.uniform(-10, 10)
-    b = random.uniform(-10, 10)
+    a = unifrnd(-10,10)
+    b = unifrnd(-10,10)
 
 names_for_user: [a, b]
 
@@ -681,13 +669,11 @@ timeout: 10
 single_submission: True
 prompt: |
 
-    # Adding two numbers in Python
+    # Adding two numbers in Octave
 
 setup_code: |
-    import random
-
-    a = random.uniform(-10, 10)
-    b = random.uniform(-10, 10)
+    a = unifrnd(-10,10)
+    b = unifrnd(-10,10)
 
 names_for_user: [a, b]
 
@@ -714,13 +700,11 @@ value: 1
 timeout: 10
 prompt: |
 
-    # Adding two numbers in Python
+    # Adding two numbers in Octave
 
 setup_code: |
-    import random
-
-    a = random.uniform(-10, 10)
-    b = random.uniform(-10, 10)
+    a = unifrnd(-10,10)
+    b = unifrnd(-10,10)
 
 names_for_user: [a, b]
 
@@ -750,13 +734,11 @@ value: 1
 timeout: 10
 prompt: |
 
-    # Adding two numbers in Python
+    # Adding two numbers in Octave
 
 setup_code: |
-    import random
-
-    a = random.uniform(-10, 10)
-    b = random.uniform(-10, 10)
+    a = unifrnd(-10,10)
+    b = unifrnd(-10,10)
 
 names_for_user: [a, b]
 
