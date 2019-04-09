@@ -35,8 +35,6 @@ from course.models import FlowSession
 from course.page.code import (
     CODE_QUESTION_CONTAINER_PORT, request_run_with_retries, InvalidPingResponse,
     is_nuisance_failure, PythonCodeQuestionWithHumanTextFeedback)
-from course.page.code import (
-    RUNOC_PORT, request_octave_run_with_retries)
 from course.utils import FlowPageContext, CoursePageContext
 
 from course.constants import MAX_EXTRA_CREDIT_FACTOR
