@@ -98,7 +98,7 @@ def request_run(run_req, run_timeout, image=None):
     import errno
     from docker.errors import APIError as DockerAPIError
 
-    debug = True
+    debug = False
     if debug:
         def debug_print(s):
             print(s)
