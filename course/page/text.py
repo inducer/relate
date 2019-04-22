@@ -499,7 +499,6 @@ class FloatMatcher(TextAnswerMatcher):
         if s == "":
             return 0
 
-
         try:
             answer_float = float_or_sympy_evalf(s)
         except Exception:
