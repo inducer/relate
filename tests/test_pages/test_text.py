@@ -435,6 +435,9 @@ class FloatMatcherTest(unittest.TestCase):
         self.assertEqual(matcher.grade(1.005), 1)
         self.assertEqual(matcher.grade(1.02), 0)
 
+        self.assertEqual(matcher.grade(float("nan")), 0)
+        self.assertEqual(matcher.grade(float("inf")), 0)
+
     def test_float_matcher_grade_rtol(self):
         matcher = FloatMatcher(None, "",
                                dict_to_struct(
@@ -450,6 +453,33 @@ class FloatMatcherTest(unittest.TestCase):
         self.assertEqual(matcher.grade(100.9), 1)
         self.assertEqual(matcher.grade(101.11), 0)
         self.assertEqual(matcher.correct_answer_text(), str(100.1))
+
+        self.assertEqual(matcher.grade(float("nan")), 0)
+        self.assertEqual(matcher.grade(float("inf")), 0)
+
+    def test_float_matcher_grade_nan(self):
+        matcher = FloatMatcher(None, "",
+                               dict_to_struct(
+                                   {"type": "float",
+                                    "value": "nan",
+                                    "rtol": 0.01
+                                    }))
+
+        self.assertEqual(matcher.grade(float("nan")), 1)
+        self.assertEqual(matcher.grade(float("inf")), 0)
+        self.assertEqual(matcher.grade(float("20.5")), 0)
+
+    def test_float_matcher_grade_inf(self):
+        matcher = FloatMatcher(None, "",
+                               dict_to_struct(
+                                   {"type": "float",
+                                    "value": "inf",
+                                    "rtol": 0.01
+                                    }))
+
+        self.assertEqual(matcher.grade(float("nan")), 0)
+        self.assertEqual(matcher.grade(float("inf")), 1)
+        self.assertEqual(matcher.grade(float("20.5")), 0)
 
     def test_float_matcher_grade_neither_rtol_nor_atol(self):
         matcher = FloatMatcher(None, "",

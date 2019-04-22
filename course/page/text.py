@@ -504,6 +504,14 @@ class FloatMatcher(TextAnswerMatcher):
         except Exception:
             return 0
 
+        from math import isnan, isinf
+        if isinf(self.matcher_desc.value):
+            return 1 if isinf(answer_float) else 0
+        if isnan(self.matcher_desc.value):
+            return 1 if isnan(answer_float) else 0
+        if isinf(answer_float) or isnan(answer_float):
+            return 0
+
         if hasattr(self.matcher_desc, "atol"):
             if (abs(answer_float - self.matcher_desc.value)
                     > self.matcher_desc.atol):
