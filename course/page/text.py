@@ -499,9 +499,18 @@ class FloatMatcher(TextAnswerMatcher):
         if s == "":
             return 0
 
+
         try:
             answer_float = float_or_sympy_evalf(s)
         except Exception:
+            return 0
+
+        from math import isnan, isinf
+        if isinf(self.matcher_desc.value):
+            return 1 if isinf(answer_float) else 0
+        if isnan(self.matcher_desc.value):
+            return 1 if isnan(answer_float) else 0
+        if isinf(answer_float) or isnan(answer_float):
             return 0
 
         if hasattr(self.matcher_desc, "atol"):
