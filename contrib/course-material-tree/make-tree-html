@@ -97,6 +97,10 @@ def rewrite_org_element(args, org_el):
 
     if el_type == "headline" and org_props["todo-keyword"] is not None:
         node_props = {}
+    if (el_type == "headline"
+            and org_props["tags"] is not None
+            and "noexport" in org_props["tags"]):
+        node_props = {}
 
     return node_props, siblings, promote_to_parent_level
 
