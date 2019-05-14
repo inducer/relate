@@ -20,7 +20,7 @@
           class="btn btn-primary"
           href="{% url 'saml2_login' %}{{next_uri}}"
           role="button"><i class="fa fa-institution"></i>
-          {% trans "Sign in using your institution's login" (SAML) %} &raquo;</a>
+          {% trans "Sign in using your institution's login" %} (SAML) &raquo;</a>
       </li>
     {% endif %}
     {% if relate_sign_in_by_email_enabled %}
