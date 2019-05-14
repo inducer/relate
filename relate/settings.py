@@ -91,7 +91,7 @@ MIDDLEWARE = (
 
 if local_settings.get("RELATE_SIGN_IN_BY_CAS_ENABLED"):
     MIDDLEWARE = MIDDLEWARE + (
-    'django_cas_ng.middleware.CASMiddleware',)  # type: ignore
+        'django_cas_ng.middleware.CASMiddleware',)  # type: ignore
 
 # }}}
 
