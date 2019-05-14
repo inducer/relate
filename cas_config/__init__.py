@@ -1,0 +1,1 @@
+default_app_config = "cas_config.apps.CasConfig"

@@ -588,17 +588,30 @@ if RELATE_SIGN_IN_BY_SAML2_ENABLED:
 # {{{ cas (optional)
 
 if RELATE_SIGN_IN_BY_CAS_ENABLED:
-    # For these settings, as well as the full list of django-cas-ng settings refer to documentation
-    # at https://github.com/mingchen/django-cas-ng
+    # For these settings, as well as the full list of django-cas-ng settings
+    # refer to documentation at https://github.com/mingchen/django-cas-ng
     CAS_SERVER_URL = "https://your-cas-login-domain/cas/"
     CAS_CREATE_USER = True
     CAS_USERNAME_ATTRIBUTE = 'username'
 
-    # This is an extra addition. To allow one to easily use a more complex attribute mapper
-    # than a simple map in CAS_RENAME_ATTRIBUTES,
-    # we have the cas-config app, which will call the function you define here
-    # with the same parameters as django-cas-ng signal cas_user_authenticated.
-    CAS_ATTRIBUTE_CALLBACK = {'module': 'cas-config.callback', 'function': 'cas_callback'}
+    # This is an extra addition to django-cas-ng settings to permit you to
+    # configure it more flexibly. In certain cases, simply mapping CAS attributes
+    # to fields with CAS_RENAME_ATTRIBUTES is impossible or undesired, and
+    # occasionally, running actual code upon receiving them might be required to
+    # do what you need -- for example, if you want your CAS server to pass on
+    # information about course eligibility or subscriptions that RELATE must
+    # execute.
+    #
+    # To deal with this situation, we have the cas_config app, which will call the
+    # function you indicate here with the same parameters as django-cas-ng signal
+    # cas_user_authenticated.
+    #
+    # The suggested place to put your function is is cas_config/callback.py, which
+    # you can do without modifying RELATE code or forking, during your deployment
+    # process. An example callback.py is provided in contrib/cas-configuration.
+
+    CAS_ATTRIBUTE_CALLBACK = {'module': 'cas-config.callback',
+                              'function': 'cas_callback'}
 
 # }}}
 

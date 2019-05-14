@@ -1088,8 +1088,8 @@ def sign_out(request, redirect_field_name=REDIRECT_FIELD_NAME):
             response = saml2_logout(request)
 
     if settings.RELATE_SIGN_IN_BY_CAS_ENABLED:
-        from django_cas_ng.views import LogoutView as cas_logout
-        response = cas_logout.as_view()(request)
+        from django_cas_ng.views import LogoutView as CasLogout
+        response = CasLogout.as_view()(request)
 
     auth_logout(request)
 
