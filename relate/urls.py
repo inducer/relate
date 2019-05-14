@@ -570,10 +570,12 @@ if settings.RELATE_SIGN_IN_BY_CAS_ENABLED:
     from django_cas_ng.views import LoginView as CasLoginView
     from django_cas_ng.views import LogoutView as CasLogoutView
     from django_cas_ng.views import CallbackView as CasCallbackView
+
     urlpatterns.extend([
         url(r'^cas/login', CasLoginView.as_view(), name='cas_ng_login'),
         url(r'^cas/logout', CasLogoutView.as_view(), name='cas_ng_logout'),
-        url(r'^cas/callback$', CasCallbackView.as_view(), name='cas_ng_proxy_callback'),
+        url(r'^cas/callback$', CasCallbackView.as_view(),
+            name='cas_ng_proxy_callback'),
     ])
 
 # vim: fdm=marker
