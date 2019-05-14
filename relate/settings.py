@@ -67,8 +67,8 @@ if local_settings.get("RELATE_SIGN_IN_BY_SAML2_ENABLED"):
     INSTALLED_APPS = INSTALLED_APPS + ("djangosaml2",)  # type: ignore
 
 if local_settings.get("RELATE_SIGN_IN_BY_CAS_ENABLED"):
-    INSTALLED_APPS = INSTALLED_APPS + (
-        "django_cas_ng", "cas_config",)  # type: ignore
+    INSTALLED_APPS = INSTALLED_APPS + (  # type: ignore
+        "django_cas_ng", "cas_config",)
 
 # }}}
 
@@ -90,8 +90,8 @@ MIDDLEWARE = (
 )
 
 if local_settings.get("RELATE_SIGN_IN_BY_CAS_ENABLED"):
-    MIDDLEWARE = MIDDLEWARE + (
-        'django_cas_ng.middleware.CASMiddleware',)  # type: ignore
+    MIDDLEWARE = MIDDLEWARE + (  # type: ignore
+        'django_cas_ng.middleware.CASMiddleware',)
 
 # }}}
 
