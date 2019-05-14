@@ -131,6 +131,26 @@ class Feedback:
             for i, entry in enumerate(data):
                 if not isinstance(entry, entry_type):
                     self.finish(0, "'%s[%d]' has the wrong type" % (name, i))
+                    
+    def is_numeric( obj ):
+        '''
+        If it quacks like a number, it's a number.  This is much easier than trying to exhaustively enumerate all numeric types.
+        '''
+        if type( obj ) is bool: return False
+        attrs = [ '__add__','__sub__','__mul__','__truediv__','__pow__' ]
+        return all( hasattr( obj,attr ) for attr in attrs )
+
+    def is_scalar( obj ):
+        if not is_numeric( obj ): raise TypeError
+        return True if not hasattr( obj,'__len__' ) else len( obj ) <= 1
+
+    def is_real( obj ):
+        if not is_numeric( obj ): raise TypeError
+        if hasattr( obj,'imag' ):
+            from math import isclose
+            return True if isclose( obj.imag,0,abs_tol=1e-12 ) else False
+        return True
+
 
     def check_scalar(self, name, ref, data, accuracy_critical=True,
             rtol=1e-5, atol=1e-8, report_success=True, report_failure=True):
