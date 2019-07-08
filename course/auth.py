@@ -405,8 +405,10 @@ def sign_in_by_user_pw(request, redirect_field_name=REDIRECT_FIELD_NAME):
         if form.is_valid():
 
             # Ensure the user-originating redirection url is safe.
-            if not is_safe_url(url=redirect_to, host=request.get_host(),
-                               require_https=request.is_secure()):
+            if not is_safe_url(
+                    url=redirect_to,
+                    allowed_hosts=set([request.get_host()]),
+                    require_https=request.is_secure()):
                 redirect_to = resolve_url("relate-home")
 
             user = form.get_user()

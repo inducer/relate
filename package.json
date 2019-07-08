@@ -8,6 +8,7 @@
     "datatables.net-fixedcolumns": "^3.2.4",
     "datatables.net-fixedcolumns-bs": "^3.2.4",
     "datatables-i18n": "git+https://github.com/dzhuang/datatables-i18n.git",
+    "eonasdan-bootstrap-datetimepicker": "^4.17.47",
     "font-awesome": "^4.7.0",
     "fullcalendar": "^2.9.1",
     "jquery": "^3.3.1",
