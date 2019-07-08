@@ -332,7 +332,7 @@ def logout_confirmation_required(
 
 
 class EmailedTokenBackend(object):
-    def authenticate(self, user_id=None, token=None):
+    def authenticate(self, request, user_id=None, token=None):
         users = get_user_model().objects.filter(
                 id=user_id, sign_in_key=token)
 
@@ -1130,7 +1130,7 @@ def find_matching_token(
 
 
 class APIBearerTokenBackend(object):
-    def authenticate(self, course_identifier=None, token_id=None,
+    def authenticate(self, request, course_identifier=None, token_id=None,
             token_hash_str=None, now_datetime=None):
         token = find_matching_token(course_identifier, token_id, token_hash_str,
                 now_datetime)
