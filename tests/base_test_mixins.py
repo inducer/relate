@@ -2600,23 +2600,23 @@ class AdminTestMixin(TwoCourseTestMixin):
     def get_admin_form_fields_names(self, response):
         return [f.field.name for f in self.get_admin_form_fields(response)]
 
-    def get_changelist(self, request, model, modeladmin):
+    def get_changelist(self, request, model, model_admin):
         from django.contrib.admin.views.main import ChangeList
         return ChangeList(
-            request, model, modeladmin.list_display,
-            modeladmin.list_display_links, modeladmin.get_list_filter(request),
-            modeladmin.date_hierarchy, modeladmin.search_fields,
-            modeladmin.list_select_related, modeladmin.list_per_page,
-            modeladmin.list_max_show_all, modeladmin.list_editable,
-            modeladmin=modeladmin,
-            sortable_by=modeladmin.sortable_by
+            request, model, model_admin.list_display,
+            model_admin.list_display_links, model_admin.get_list_filter(request),
+            model_admin.date_hierarchy, model_admin.search_fields,
+            model_admin.list_select_related, model_admin.list_per_page,
+            model_admin.list_max_show_all, model_admin.list_editable,
+            model_admin=model_admin,
+            sortable_by=model_admin.sortable_by
         )
 
     def get_filterspec_list(self, request, changelist=None, model=None,
-                            modeladmin=None):
+                            model_admin=None):
         if changelist is None:
-            assert request and model and modeladmin
-            changelist = self.get_changelist(request, model, modeladmin)
+            assert request and model and model_admin
+            changelist = self.get_changelist(request, model, model_admin)
 
         filterspecs = changelist.get_filters(request)[0]
         filterspec_list = []
