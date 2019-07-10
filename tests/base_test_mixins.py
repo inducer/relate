@@ -2607,7 +2607,9 @@ class AdminTestMixin(TwoCourseTestMixin):
             modeladmin.list_display_links, modeladmin.get_list_filter(request),
             modeladmin.date_hierarchy, modeladmin.search_fields,
             modeladmin.list_select_related, modeladmin.list_per_page,
-            modeladmin.list_max_show_all, modeladmin.list_editable, modeladmin,
+            modeladmin.list_max_show_all, modeladmin.list_editable,
+            modeladmin=modeladmin,
+            sortable_by=modeladmin.sortable_by
         )
 
     def get_filterspec_list(self, request, changelist=None, model=None,
