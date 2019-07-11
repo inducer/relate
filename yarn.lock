@@ -146,9 +146,10 @@ jstree@^3.3.5:
   dependencies:
     jquery ">=1.9.1"
 
-mathjax@^2.7.3:
-  version "2.7.3"
-  resolved "https://registry.yarnpkg.com/mathjax/-/mathjax-2.7.3.tgz#9cf668467d9eafadcc28569cba8eb34f4ea2c9a3"
+mathjax@^2.7.4:
+  version "2.7.4"
+  resolved "https://registry.yarnpkg.com/mathjax/-/mathjax-2.7.4.tgz#a88c55392b69a9715813cdc041ce02de6548a603"
+  integrity sha512-B6SLtoETmV08kqTepRyz8eqMRGFzllPy2QASKFdFl0g0YB6SNgQVnWae11RaF3/y8ZKLTJNJ7hLbMIqmBEkLzw==
 
 min-document@^2.19.0, min-document@^2.6.1:
   version "2.19.0"
