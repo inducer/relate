@@ -52,15 +52,7 @@ export PATH=`pwd`/.env/local/bin:$PATH
 
 PIP="${PY_EXE} $(which pip)"
 
-if [[ "$PY_EXE" = python2* ]]; then
-  grep -Ev "django>|django=" requirements.txt > req.txt
-  $PIP install "django<2"
-  $PIP install mock
-else
-  cp requirements.txt req.txt
-fi
-
-$PIP install -r req.txt
+$PIP install -r requirements.txt
 
 cp local_settings_example.py local_settings.py
 
@@ -90,9 +82,7 @@ if [[ -n $(grep "msgid" output.txt) ]]; then
     exit 1;
 fi
 
-if [[ "$PY_EXE" = python3* ]]; then
-    ${PY_EXE} manage.py compilemessages
-fi
+${PY_EXE} manage.py compilemessages
 
 $PIP install codecov factory_boy
 

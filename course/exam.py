@@ -498,7 +498,7 @@ def check_exam_ticket(
 
 
 class ExamTicketBackend(object):
-    def authenticate(self, username=None, code=None, now_datetime=None,
+    def authenticate(self, request, username=None, code=None, now_datetime=None,
             facilities=None):
         is_valid, msg = check_exam_ticket(username, code, now_datetime, facilities)
 

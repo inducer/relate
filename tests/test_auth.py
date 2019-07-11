@@ -1904,10 +1904,10 @@ class EmailedTokenBackendTest(CoursesTestMixinBase, TestCase):
 
         backend = EmailedTokenBackend()
         self.assertEqual(
-            backend.authenticate(user.pk, token=user.sign_in_key), user)
+            backend.authenticate(None, user.pk, token=user.sign_in_key), user)
 
         self.assertIsNone(
-            backend.authenticate(user.pk, token="non_exist_sign_in_key"))
+            backend.authenticate(None, user.pk, token="non_exist_sign_in_key"))
 
     def test_get_user(self):
         user = factories.UserFactory()

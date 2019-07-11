@@ -69,12 +69,12 @@ class FileUploadForm(StyledForm):
         uploaded_file = self.cleaned_data['uploaded_file']
         from django.template.defaultfilters import filesizeformat
 
-        if uploaded_file._size > self.max_file_size:
+        if uploaded_file.size > self.max_file_size:
             raise forms.ValidationError(
                     _("Please keep file size under %(allowedsize)s. "
                     "Current filesize is %(uploadedsize)s.")
                     % {'allowedsize': filesizeformat(self.max_file_size),
-                        'uploadedsize': filesizeformat(uploaded_file._size)})
+                        'uploadedsize': filesizeformat(uploaded_file.size)})
 
         if self.mime_types is not None and self.mime_types == ["application/pdf"]:
             if uploaded_file.read()[:4] != b"%PDF":

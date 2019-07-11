@@ -1,8 +1,7 @@
 Installation
 ============
 
-RELATE currently works with Python 2.7 and Python 3. (By default, :file:`requirements.txt`
-is set up for Python 3. See below for edit instructions if you are using Python 2.)
+RELATE requires Python 3.
 
 Install [Node.js](https://nodejs.org) and NPM, or [Yarn](https://yarnpkg.com)
 (alternative package manager) at your option.

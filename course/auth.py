@@ -332,7 +332,7 @@ def logout_confirmation_required(
 
 
 class EmailedTokenBackend(object):
-    def authenticate(self, user_id=None, token=None):
+    def authenticate(self, request, user_id=None, token=None):
         users = get_user_model().objects.filter(
                 id=user_id, sign_in_key=token)
 
@@ -405,8 +405,10 @@ def sign_in_by_user_pw(request, redirect_field_name=REDIRECT_FIELD_NAME):
         if form.is_valid():
 
             # Ensure the user-originating redirection url is safe.
-            if not is_safe_url(url=redirect_to, host=request.get_host(),
-                               require_https=request.is_secure()):
+            if not is_safe_url(
+                    url=redirect_to,
+                    allowed_hosts=set([request.get_host()]),
+                    require_https=request.is_secure()):
                 redirect_to = resolve_url("relate-home")
 
             user = form.get_user()
@@ -1128,7 +1130,7 @@ def find_matching_token(
 
 
 class APIBearerTokenBackend(object):
-    def authenticate(self, course_identifier=None, token_id=None,
+    def authenticate(self, request, course_identifier=None, token_id=None,
             token_hash_str=None, now_datetime=None):
         token = find_matching_token(course_identifier, token_id, token_hash_str,
                 now_datetime)

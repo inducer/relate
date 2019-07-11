@@ -17,6 +17,11 @@ blueimp-tmpl@^3.11.0:
   version "3.11.0"
   resolved "https://registry.yarnpkg.com/blueimp-tmpl/-/blueimp-tmpl-3.11.0.tgz#47e78cbab16770e3922b019a250b4ad9c7b20f8f"
 
+bootstrap@^3.3:
+  version "3.4.1"
+  resolved "https://registry.yarnpkg.com/bootstrap/-/bootstrap-3.4.1.tgz#c3a347d419e289ad11f4033e3c4132b87c081d72"
+  integrity sha512-yN5oZVmRCwe5aKwzRj6736nSmKDX7pLYwsXiCj/EYmo16hODaBiT4En5btW/jhBF/seV+XMx3aYwukYC3A49DA==
+
 bootstrap@^3.3.7:
   version "3.3.7"
   resolved "https://registry.yarnpkg.com/bootstrap/-/bootstrap-3.3.7.tgz#5a389394549f23330875a3b150656574f8a9eb71"
@@ -64,6 +69,16 @@ datatables.net@1.10.16, datatables.net@^1.10.15, datatables.net@^1.10.16:
 dom-walk@^0.1.0:
   version "0.1.1"
   resolved "https://registry.yarnpkg.com/dom-walk/-/dom-walk-0.1.1.tgz#672226dc74c8f799ad35307df936aba11acd6018"
+
+eonasdan-bootstrap-datetimepicker@^4.17.47:
+  version "4.17.47"
+  resolved "https://registry.yarnpkg.com/eonasdan-bootstrap-datetimepicker/-/eonasdan-bootstrap-datetimepicker-4.17.47.tgz#7a49970044065276e7965efd16f822735219e735"
+  integrity sha1-ekmXAEQGUnbnll79Fvgic1IZ5zU=
+  dependencies:
+    bootstrap "^3.3"
+    jquery "^1.8.3 || ^2.0 || ^3.0"
+    moment "^2.10"
+    moment-timezone "^0.4.0"
 
 es5-shim@^4.5.1:
   version "4.5.10"
@@ -120,6 +135,11 @@ jquery@>=1.7, jquery@>=1.7.1, jquery@>=1.9.1, jquery@^3.3.1:
   version "3.3.1"
   resolved "https://registry.yarnpkg.com/jquery/-/jquery-3.3.1.tgz#958ce29e81c9790f31be7792df5d4d95fc57fbca"
 
+"jquery@^1.8.3 || ^2.0 || ^3.0":
+  version "3.4.1"
+  resolved "https://registry.yarnpkg.com/jquery/-/jquery-3.4.1.tgz#714f1f8d9dde4bdfa55764ba37ef214630d80ef2"
+  integrity sha512-36+AdBzCL+y6qjw5Tx7HgzeGCzC81MDDgaUP8ld2zhx58HdqXGoBd+tHdrBMiyjGQs0Hxs/MLZTu/eHNJJuWPw==
+
 jstree@^3.3.5:
   version "3.3.5"
   resolved "https://registry.yarnpkg.com/jstree/-/jstree-3.3.5.tgz#9c578db32d0a643775cddd8020ad5992f4119c13"
@@ -135,6 +155,18 @@ min-document@^2.19.0, min-document@^2.6.1:
   resolved "https://registry.yarnpkg.com/min-document/-/min-document-2.19.0.tgz#7bd282e3f5842ed295bb748cdd9f1ffa2c824685"
   dependencies:
     dom-walk "^0.1.0"
+
+moment-timezone@^0.4.0:
+  version "0.4.1"
+  resolved "https://registry.yarnpkg.com/moment-timezone/-/moment-timezone-0.4.1.tgz#81f598c3ad5e22cdad796b67ecd8d88d0f5baa06"
+  integrity sha1-gfWYw61eIs2teWtn7NjYjQ9bqgY=
+  dependencies:
+    moment ">= 2.6.0"
+
+"moment@>= 2.6.0", moment@^2.10:
+  version "2.24.0"
+  resolved "https://registry.yarnpkg.com/moment/-/moment-2.24.0.tgz#0d055d53f5052aa653c9f6eb68bb5d12bf5c2b5b"
+  integrity sha512-bV7f+6l2QigeBBZSM/6yTNq4P2fNpSWj/0e7jQcy87A8e7o2nAfP/34/2ky5Vw4B9S446EtIhodAzkFCcR4dQg==
 
 moment@>=2.5.0:
   version "2.21.0"

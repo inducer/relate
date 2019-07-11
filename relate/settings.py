@@ -53,7 +53,6 @@ INSTALLED_APPS = (
     "django.contrib.staticfiles",
     "crispy_forms",
     "jsonfield",
-    "bootstrap3_datetime",
     "django_select2",
 
     # message queue
