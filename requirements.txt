@@ -45,9 +45,7 @@ django-npm
 
 
 # For comfortable code entry
-# django-codemirror-widget
-# https://github.com/lambdalisue/django-codemirror-widget/pull/29
-git+https://github.com/inducer/django-codemirror-widget.git#egg=django-codemirror-widget
+django-codemirror-widget>=0.5
 
 # Optional, used for caching, requires 'libmemcached-dev' (Debian package name)
 # pylibmc
