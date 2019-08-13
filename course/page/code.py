@@ -45,7 +45,7 @@ from course.constants import flow_permission
 # DEBUGGING SWITCH:
 # True for 'spawn containers' (normal operation)
 # False for 'just connect to localhost:RUNPY_PORT' for runpy'
-SPAWN_CONTAINERS_FOR_RUNPY = True
+SPAWN_CONTAINERS = True
 
 
 # {{{ base code question
@@ -607,7 +607,7 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
         if correct_code is None:
             correct_code = ""
 
-        from .code_run_backend import substitute_correct_code_into_test_code
+        from .code_runpy_backend import substitute_correct_code_into_test_code
         return substitute_correct_code_into_test_code(test_code, correct_code)
 
     def grade(self, page_context, page_data, answer_data, grade_data):
