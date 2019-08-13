@@ -33,7 +33,7 @@ import errno
 
 from course.models import FlowSession
 from course.page.code import (
-    RUNPY_PORT, request_run_with_retries, InvalidPingResponse,
+    CODE_QUESTION_CONTAINER_PORT, request_run_with_retries, InvalidPingResponse,
     is_nuisance_failure, PythonCodeQuestionWithHumanTextFeedback)
 from course.utils import FlowPageContext, CoursePageContext
 
@@ -1053,7 +1053,7 @@ class RequestPythonRunWithRetriesTest(unittest.TestCase):
 
             mock_inpect_ctn.return_value = {
                 "NetworkSettings": {
-                    "Ports": {"%d/tcp" % RUNPY_PORT: (
+                    "Ports": {"%d/tcp" % CODE_QUESTION_CONTAINER_PORT: (
                         {"HostIp": fake_host_ip, "HostPort": fake_host_port},
                     )}
                 }}
@@ -1152,7 +1152,7 @@ class RequestPythonRunWithRetriesTest(unittest.TestCase):
 
                 mock_inpect_ctn.return_value = {
                     "NetworkSettings": {
-                        "Ports": {"%d/tcp" % RUNPY_PORT: (
+                        "Ports": {"%d/tcp" % CODE_QUESTION_CONTAINER_PORT: (
                             {"HostIp": fake_host_ip, "HostPort": fake_host_port},
                         )}
                     }}
@@ -1201,7 +1201,7 @@ class RequestPythonRunWithRetriesTest(unittest.TestCase):
 
             mock_inpect_ctn.return_value = {
                 "NetworkSettings": {
-                    "Ports": {"%d/tcp" % RUNPY_PORT: (
+                    "Ports": {"%d/tcp" % CODE_QUESTION_CONTAINER_PORT: (
                         {"HostIp": fake_host_ip, "HostPort": fake_host_port},
                     )}
                 }}
@@ -1241,7 +1241,7 @@ class RequestPythonRunWithRetriesTest(unittest.TestCase):
 
             mock_inpect_ctn.return_value = {
                 "NetworkSettings": {
-                    "Ports": {"%d/tcp" % RUNPY_PORT: (
+                    "Ports": {"%d/tcp" % CODE_QUESTION_CONTAINER_PORT: (
                         {"HostIp": fake_host_ip, "HostPort": fake_host_port},
                     )}
                 }}
@@ -1261,7 +1261,7 @@ class RequestPythonRunWithRetriesTest(unittest.TestCase):
     @skipIf(six.PY2, "PY2 doesn't support subTest")
     def test_docker_container_runpy_retries_count(self):
         with (
-                mock.patch("course.page.code.request_python_run")) as mock_req_run, (  # noqa
+                mock.patch("course.page.code.request_run")) as mock_req_run, (  # noqa
                 mock.patch("course.page.code.is_nuisance_failure")) as mock_is_nuisance_failure:  # noqa
             expected_result = "this is my custom result"
             mock_req_run.return_value = {"result": expected_result}

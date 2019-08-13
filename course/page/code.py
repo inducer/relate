@@ -44,7 +44,7 @@ from course.constants import flow_permission
 
 # DEBUGGING SWITCH:
 # True for 'spawn containers' (normal operation)
-# False for 'just connect to localhost:RUNPY_PORT' for runpy'
+# False for 'just connect to localhost:CODE_QUESTION_CONTAINER_PORT' for runpy'
 SPAWN_CONTAINERS = True
 
 
@@ -83,7 +83,7 @@ class CodeForm(StyledForm):
         pass
 
 
-RUNPY_PORT = 9941
+CODE_QUESTION_CONTAINER_PORT = 9941
 DOCKER_TIMEOUT = 15
 
 
