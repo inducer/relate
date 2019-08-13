@@ -828,7 +828,7 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
 
             correctness = 0
         else:
-            raise RuntimeError("invalid runoc result: %s" % response.result)
+            raise RuntimeError("invalid run result: %s" % response.result)
 
         if hasattr(response, "feedback") and response.feedback:
             def sanitize(s):
