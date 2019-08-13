@@ -108,8 +108,8 @@ def request_run(run_req, run_timeout, image=None):
             pass
 
     #image = self.container_image  #XXX
-    command_path = '/opt/runcode/runcode'
-    user = 'runcode'
+    command_path = '/opt/runpy/runpy'
+    user = 'runpy'
 
     if SPAWN_CONTAINERS and image is not None:
         docker_url = getattr(settings, "RELATE_DOCKER_URL",
@@ -168,16 +168,16 @@ def request_run(run_req, run_timeout, image=None):
         from traceback import format_exc
 
         def check_timeout():
-                if time() - start_time < DOCKER_TIMEOUT:
-                    sleep(0.1)
-                    # and retry
-                else:
-                    return {
-                            "result": "uncaught_error",
-                            "message": "Timeout waiting for container.",
-                            "traceback": "".join(format_exc()),
-                            "exec_host": connect_host_ip,
-                            }
+            if time() - start_time < DOCKER_TIMEOUT:
+                sleep(0.1)
+                # and retry
+            else:
+                return {
+                        "result": "uncaught_error",
+                        "message": "Timeout waiting for container.",
+                        "traceback": "".join(format_exc()),
+                        "exec_host": connect_host_ip,
+                        }
 
         while True:
             try:
@@ -224,7 +224,7 @@ def request_run(run_req, run_timeout, image=None):
             start_time = time()
 
             debug_print("BEFPOST")
-            connection.request('POST', '/run-code', json_run_req, headers)
+            connection.request('POST', '/run-python', json_run_req, headers)  #XXX
             debug_print("AFTPOST")
 
             http_response = connection.getresponse()
