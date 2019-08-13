@@ -33,7 +33,7 @@ import errno
 
 from course.models import FlowSession
 from course.page.code import (
-    RUNPY_PORT, request_python_run_with_retries, InvalidPingResponse,
+    RUNPY_PORT, request_run_with_retries, InvalidPingResponse,
     is_nuisance_failure, PythonCodeQuestionWithHumanTextFeedback)
 from course.utils import FlowPageContext, CoursePageContext
 
@@ -73,7 +73,7 @@ GRADE_CODE_FAILING_MSG = (
     "The grading code failed. Sorry about that."
 )
 
-RUNPY_WITH_RETRIES_PATH = "course.page.code.request_python_run_with_retries"
+RUNPY_WITH_RETRIES_PATH = "course.page.code.request_run_with_retries"
 
 AUTO_FEEDBACK_POINTS_OUT_OF_RANGE_ERROR_MSG_PATTERN = (
     "'correctness' is invalid: expecting "
@@ -409,13 +409,13 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
         self.assertSandboxHasValidPage(resp)
         self.assertSandboxWarningTextContain(resp, None)
 
-    def test_request_python_run_with_retries_raise_uncaught_error_in_sandbox(self):
+    def test_request_run_with_retries_raise_uncaught_error_in_sandbox(self):
         with mock.patch(
             RUNPY_WITH_RETRIES_PATH,
             autospec=True
         ) as mock_runpy:
             expected_error_str = ("This is an error raised with "
-                                  "request_python_run_with_retries")
+                                  "request_run_with_retries")
 
             # correct_code_explanation and correct_code
             expected_feedback = (
@@ -436,13 +436,13 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
             # No email when in sandbox
             self.assertEqual(len(mail.outbox), 0)
 
-    def test_request_python_run_with_retries_raise_uncaught_error_debugging(self):
+    def test_request_run_with_retries_raise_uncaught_error_debugging(self):
         with mock.patch(
             RUNPY_WITH_RETRIES_PATH,
             autospec=True
         ) as mock_runpy:
             expected_error_str = ("This is an error raised with "
-                                  "request_python_run_with_retries")
+                                  "request_run_with_retries")
             mock_runpy.side_effect = RuntimeError(expected_error_str)
 
             with override_settings(DEBUG=True):
@@ -455,13 +455,13 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
                 # No email when debugging
                 self.assertEqual(len(mail.outbox), 0)
 
-    def test_request_python_run_with_retries_raise_uncaught_error(self):
+    def test_request_run_with_retries_raise_uncaught_error(self):
         with mock.patch(
             RUNPY_WITH_RETRIES_PATH,
             autospec=True
         ) as mock_runpy:
             expected_error_str = ("This is an error raised with "
-                                  "request_python_run_with_retries")
+                                  "request_run_with_retries")
             mock_runpy.side_effect = RuntimeError(expected_error_str)
 
             with mock.patch("course.page.PageContext") as mock_page_context:
@@ -482,13 +482,13 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
                 self.assertEqual(len(mail.outbox), 1)
                 self.assertIn(expected_error_str, mail.outbox[0].body)
 
-    def test_send_email_failure_when_request_python_run_with_retries_raise_uncaught_error(self):  # noqa
+    def test_send_email_failure_when_request_run_with_retries_raise_uncaught_error(self):  # noqa
         with mock.patch(
             RUNPY_WITH_RETRIES_PATH,
             autospec=True
         ) as mock_runpy:
             expected_error_str = ("This is an error raised with "
-                                  "request_python_run_with_retries")
+                                  "request_run_with_retries")
             mock_runpy.side_effect = RuntimeError(expected_error_str)
 
             with mock.patch("course.page.PageContext") as mock_page_context:
@@ -546,7 +546,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
                                                                       correctness)
             self.assertEqual(len(mail.outbox), mail_count)
 
-    def test_request_python_run_with_retries_timed_out(self):
+    def test_request_run_with_retries_timed_out(self):
         self.assert_runpy_result_and_response(
             "timeout",
             "Your code took too long to execute.")
@@ -1001,7 +1001,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
 
 
 class RequestPythonRunWithRetriesTest(unittest.TestCase):
-    # Testing course.page.code.request_python_run_with_retries,
+    # Testing course.page.code.request_run_with_retries,
     # adding tests for use cases that didn't cover in other tests
 
     @override_settings(RELATE_DOCKER_RUNPY_IMAGE="some_other_image")
@@ -1013,7 +1013,7 @@ class RequestPythonRunWithRetriesTest(unittest.TestCase):
             mock_create_ctn.return_value = {}
 
             with self.assertRaises(KeyError):
-                request_python_run_with_retries(
+                request_run_with_retries(
                     run_req={}, run_timeout=0.1)
                 self.assertEqual(mock_create_ctn.call_count, 1)
                 self.assertIn("some_other_image", mock_create_ctn.call_args[0])
@@ -1029,7 +1029,7 @@ class RequestPythonRunWithRetriesTest(unittest.TestCase):
             my_image = "my_runpy_image"
 
             with self.assertRaises(KeyError):
-                request_python_run_with_retries(
+                request_run_with_retries(
                     run_req={}, image=my_image, run_timeout=0.1)
                 self.assertEqual(mock_create_ctn.call_count, 1)
                 self.assertIn(my_image, mock_create_ctn.call_args[0])
@@ -1065,7 +1065,7 @@ class RequestPythonRunWithRetriesTest(unittest.TestCase):
 
                 # force timeout
                 with mock.patch("course.page.code.DOCKER_TIMEOUT", 0.0001):
-                    res = request_python_run_with_retries(
+                    res = request_run_with_retries(
                         run_req={}, run_timeout=0.1, retry_count=0)
                     self.assertEqual(res["result"], "uncaught_error")
                     self.assertEqual(res['message'],
@@ -1081,7 +1081,7 @@ class RequestPythonRunWithRetriesTest(unittest.TestCase):
 
                 # force timeout
                 with mock.patch("course.page.code.DOCKER_TIMEOUT", 0.0001):
-                    res = request_python_run_with_retries(
+                    res = request_run_with_retries(
                         run_req={}, run_timeout=0.1, retry_count=0)
                     self.assertEqual(res["result"], "uncaught_error")
                     self.assertEqual(res['message'],
@@ -1098,7 +1098,7 @@ class RequestPythonRunWithRetriesTest(unittest.TestCase):
 
                 # force timeout
                 with mock.patch("course.page.code.DOCKER_TIMEOUT", 0.0001):
-                    res = request_python_run_with_retries(
+                    res = request_run_with_retries(
                         run_req={}, run_timeout=0.1, retry_count=0)
                     self.assertEqual(res["result"], "uncaught_error")
                     self.assertEqual(res['message'],
@@ -1114,7 +1114,7 @@ class RequestPythonRunWithRetriesTest(unittest.TestCase):
 
                 # force timeout
                 with mock.patch("course.page.code.DOCKER_TIMEOUT", 0.0001):
-                    res = request_python_run_with_retries(
+                    res = request_run_with_retries(
                         run_req={}, run_timeout=0.1, retry_count=0)
                     self.assertEqual(res["result"], "uncaught_error")
                     self.assertEqual(res['message'],
@@ -1133,12 +1133,12 @@ class RequestPythonRunWithRetriesTest(unittest.TestCase):
                 # force timeout
                 with mock.patch("course.page.code.DOCKER_TIMEOUT", 0.0001):
                     with self.assertRaises(socket_error) as e:
-                        request_python_run_with_retries(
+                        request_run_with_retries(
                             run_req={}, run_timeout=0.1, retry_count=0)
                         self.assertEqual(e.exception.errno, my_socket_error.errno)
 
                 with self.assertRaises(socket_error) as e:
-                    request_python_run_with_retries(
+                    request_run_with_retries(
                         run_req={}, run_timeout=0.1, retry_count=0)
                     self.assertEqual(e.exception.errno, my_socket_error.errno)
 
@@ -1168,7 +1168,7 @@ class RequestPythonRunWithRetriesTest(unittest.TestCase):
 
                 # force timeout
                 with mock.patch("course.page.code.DOCKER_TIMEOUT", 0.0001):
-                    res = request_python_run_with_retries(
+                    res = request_run_with_retries(
                         run_req={}, run_timeout=0.1, retry_count=0)
                     self.assertEqual(res["result"], "uncaught_error")
                     self.assertEqual(res['message'],
@@ -1213,7 +1213,7 @@ class RequestPythonRunWithRetriesTest(unittest.TestCase):
                     mock_ctn_request.side_effect = lambda x, y: None
                     mock_ctn_get_response.return_value = six.BytesIO(b"NOT OK")
 
-                    res = request_python_run_with_retries(
+                    res = request_run_with_retries(
                         run_req={}, run_timeout=0.1, retry_count=0)
                     self.assertEqual(res["result"], "uncaught_error")
                     self.assertEqual(res['message'],
@@ -1253,7 +1253,7 @@ class RequestPythonRunWithRetriesTest(unittest.TestCase):
                 mock_ctn_request.side_effect = [None, sock_timeout]
                 mock_ctn_get_response.return_value = six.BytesIO(b"OK")
 
-                res = request_python_run_with_retries(
+                res = request_run_with_retries(
                     run_req={}, run_timeout=0.1, retry_count=0)
                 self.assertEqual(res["result"], "timeout")
                 self.assertEqual(res["exec_host"], fake_host_ip)
@@ -1267,7 +1267,7 @@ class RequestPythonRunWithRetriesTest(unittest.TestCase):
             mock_req_run.return_value = {"result": expected_result}
             with self.subTest(actual_retry_count=4):
                 mock_is_nuisance_failure.side_effect = [True, True, True, False]
-                res = request_python_run_with_retries(
+                res = request_run_with_retries(
                     run_req={}, run_timeout=0.1, retry_count=5)
                 self.assertEqual(res["result"], expected_result)
                 self.assertEqual(mock_req_run.call_count, 4)
@@ -1277,7 +1277,7 @@ class RequestPythonRunWithRetriesTest(unittest.TestCase):
             mock_is_nuisance_failure.reset_mock()
             with self.subTest(actual_retry_count=2):
                 mock_is_nuisance_failure.side_effect = [True, True, True, False]
-                res = request_python_run_with_retries(
+                res = request_run_with_retries(
                     run_req={}, run_timeout=0.1, retry_count=1)
                 self.assertEqual(res["result"], expected_result)
                 self.assertEqual(mock_req_run.call_count, 2)
