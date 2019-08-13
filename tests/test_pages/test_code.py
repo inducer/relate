@@ -566,7 +566,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
         with self.assertRaises(RuntimeError) as e:
             self.assert_runpy_result_and_response(
                 "unknown_error", None)
-        self.assertIn("invalid runpy result: unknown_error", str(e.exception))
+        self.assertIn("invalid run result: unknown_error", str(e.exception))
 
     def test_traceback_in_feedback(self):
         self.assert_runpy_result_and_response(
