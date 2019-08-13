@@ -107,7 +107,6 @@ def request_run(run_req, run_timeout, image=None):
         def debug_print(s):
             pass
 
-    #image = self.container_image  #XXX
     command_path = '/opt/runpy/runpy'
     user = 'runpy'
 
@@ -121,6 +120,9 @@ def request_run(run_req, run_timeout, image=None):
                 tls=docker_tls,
                 timeout=DOCKER_TIMEOUT,
                 version="1.19")
+
+        if image is None:
+            image = self.container_image
 
         dresult = docker_cnx.create_container(
                 image=image,
