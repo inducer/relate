@@ -109,7 +109,11 @@ def request_run(run_req, run_timeout, image=None):
 
     command_path = '/opt/runpy/runpy'
     user = 'runpy'
+    # The following is necessary because tests don't arise from a CodeQuestion
+    # object, so we provide a fallback.
     debug_print('Image is %s.'%repr(image))
+    if image is None:
+        image = settings.RELATE_DOCKER_RUNPY_IMAGE
 
     if SPAWN_CONTAINERS and image is not None:
         docker_url = getattr(settings, "RELATE_DOCKER_URL",
