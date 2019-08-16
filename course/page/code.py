@@ -155,7 +155,7 @@ def request_run(run_req, run_timeout, image=None):
 
             container_props = docker_cnx.inspect_container(container_id)
             (port_info,) = (container_props
-                    ["NetworkSettings"]["Ports"]["%d/tcp" % \
+                    ["NetworkSettings"]["Ports"]["%d/tcp" %
                     CODE_QUESTION_CONTAINER_PORT])
             port_host_ip = port_info.get("HostIp")
 
@@ -1196,6 +1196,7 @@ class PythonCodeQuestion(CodeQuestion):
         language_mode)
 
 # }}}
+
 
 # {{{ python code question with human feedback
 
