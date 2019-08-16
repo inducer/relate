@@ -99,7 +99,7 @@ def request_run(run_req, run_timeout, image=None):
     import errno
     from docker.errors import APIError as DockerAPIError
 
-    debug = False
+    debug = True #False
     if debug:
         def debug_print(s):
             print(s)
@@ -121,8 +121,10 @@ def request_run(run_req, run_timeout, image=None):
                 timeout=DOCKER_TIMEOUT,
                 version="1.19")
 
+        debug_print( image )
         if image is None:
-            image = settings.RELATE_DOCKER_RUNPY_IMAGE  #XXX self.container_image
+            image = self.container_image
+        debug_print( image )
 
         dresult = docker_cnx.create_container(
                 image=image,
