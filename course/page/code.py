@@ -122,7 +122,7 @@ def request_run(run_req, run_timeout, image=None):
                 version="1.19")
 
         if image is None:
-            image = self.container_image
+            image = settings.RELATE_DOCKER_RUNPY_IMAGE  #XXX self.container_image
 
         dresult = docker_cnx.create_container(
                 image=image,
