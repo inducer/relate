@@ -109,6 +109,7 @@ def request_run(run_req, run_timeout, image=None):
 
     command_path = '/opt/runpy/runpy'
     user = 'runpy'
+    debug_print('Image is %s.'%repr(image))
 
     if SPAWN_CONTAINERS and image is not None:
         docker_url = getattr(settings, "RELATE_DOCKER_URL",
@@ -120,11 +121,6 @@ def request_run(run_req, run_timeout, image=None):
                 tls=docker_tls,
                 timeout=DOCKER_TIMEOUT,
                 version="1.19")
-
-        debug_print( image )
-        if image is None:
-            image = self.container_image
-        debug_print( image )
 
         dresult = docker_cnx.create_container(
                 image=image,
