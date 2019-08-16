@@ -112,7 +112,7 @@ def request_run(run_req, run_timeout, image=None):
 
     # The following is necessary because tests don't arise from a CodeQuestion
     # object, so we provide a fallback.
-    debug_print('Image is %s.'%repr(image))
+    debug_print('Image is %s.' % repr(image))
     if image is None:
         image = settings.RELATE_DOCKER_RUNPY_IMAGE
 
@@ -155,7 +155,8 @@ def request_run(run_req, run_timeout, image=None):
 
             container_props = docker_cnx.inspect_container(container_id)
             (port_info,) = (container_props
-                    ["NetworkSettings"]["Ports"]["%d/tcp" % CODE_QUESTION_CONTAINER_PORT])
+                    ["NetworkSettings"]["Ports"]["%d/tcp" % \
+                    CODE_QUESTION_CONTAINER_PORT])
             port_host_ip = port_info.get("HostIp")
 
             if port_host_ip != "0.0.0.0":
@@ -229,7 +230,7 @@ def request_run(run_req, run_timeout, image=None):
             start_time = time()
 
             debug_print("BEFPOST")
-            connection.request('POST', '/run-python', json_run_req, headers)  #XXX
+            connection.request('POST', '/run-python', json_run_req, headers)
             debug_print("AFTPOST")
 
             http_response = connection.getresponse()
@@ -991,13 +992,14 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
         return "<pre>%s</pre>" % escape(normalized_answer)
 
     def normalized_bytes_answer(self, page_context, page_data, answer_data):
-            if answer_data is None:
-                return None
+        if answer_data is None:
+            return None
 
-            suffix = self.suffix
-            return (suffix, answer_data["answer"].encode("utf-8"))
+        suffix = self.suffix
+        return (suffix, answer_data["answer"].encode("utf-8"))
 
 # }}}
+
 
 # {{{ python code question
 
@@ -1190,7 +1192,8 @@ class PythonCodeQuestion(CodeQuestion):
         return '.py'
 
     def __init__(self, vctx, location, page_desc, language_mode='python'):
-        super(PythonCodeQuestion, self).__init__(vctx, location, page_desc, language_mode)
+        super(PythonCodeQuestion, self).__init__(vctx, location, page_desc,
+        language_mode)
 
 # }}}
 
