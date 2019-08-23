@@ -443,44 +443,6 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
         based on its :attr:`access_rules` (not the ones of the flow), a warning
         is shown. Setting this attribute to True will silence the warning.
 
-    The following symbols are available in :attr:`setup_code` and :attr:`test_code`:
-
-    * ``GradingComplete``: An exception class that can be raised to indicated
-      that the grading code has concluded.
-
-    * ``feedback``: A class instance with the following interface::
-
-          feedback.set_points(0.5) # 0<=points<=1 (usually)
-          feedback.add_feedback("This was wrong")
-
-          # combines the above two and raises GradingComplete
-          feedback.finish(0, "This was wrong")
-
-          feedback.check_numpy_array_sanity(name, num_axes, data)
-
-          feedback.check_numpy_array_features(name, ref, data, report_failure=True)
-
-          feedback.check_numpy_array_allclose(name, ref, data,
-                  accuracy_critical=True, rtol=1e-5, atol=1e-8,
-                  report_success=True, report_failure=True)
-              # If report_failure is True, this function will only return
-              # if *data* passes the tests. It will return *True* in this
-              # case.
-              #
-              # If report_failure is False, this function will always return,
-              # and the return value will indicate whether *data* passed the
-              # accuracy/shape/kind checks.
-
-          feedback.check_list(name, ref, data, entry_type=None)
-
-          feedback.check_scalar(name, ref, data, accuracy_critical=True,
-              rtol=1e-5, atol=1e-8, report_success=True, report_failure=True)
-          # returns True if accurate
-
-          feedback.call_user(f, *args, **kwargs)
-          # Calls a user-supplied function and prints an appropriate
-          # feedback message in case of failure.
-
     * ``data_files``: A dictionary mapping file names from :attr:`data_files`
       to :class:`bytes` instances with that file's contents.
 
