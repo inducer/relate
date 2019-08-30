@@ -186,7 +186,7 @@
           {% if pperm.view_analytics %}
           <a class="btn btn-primary"
             href="{% url "relate-flow_analytics" course.identifier req.flow_id %}"
-            role="button"><b>{% trans "Go to activity analytics" %} &raquo;</b></a>
+            role="button"><b>{% trans "View activity analytics" %} &raquo;</b></a>
           {% endif %}
         {% endfor %}
       {% else %}
@@ -198,7 +198,7 @@
           {% if pperm.view_analytics %}
           <a class="btn btn-primary"
             href="{% url "relate-flow_analytics" course.identifier req.flow_id %}"
-            role="button"><b>{% trans "Go to activity" %} {{ i }} {% trans "analytics" %} &raquo;</b></a>
+            role="button"><b>{% trans "View activity" %} {{ i }} {% trans "analytics" %} &raquo;</b></a>
           {% endif %}
         {% endfor %}
       {% endif %}
