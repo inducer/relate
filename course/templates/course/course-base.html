@@ -183,6 +183,11 @@
           <a class="btn btn-primary"
             href="{% url "relate-view_start_flow" course.identifier req.flow_id %}"
             role="button"><b>{% trans "Go to activity" %} &raquo;</b></a>
+          {% if pperm.view_analytics %}
+          <a class="btn btn-primary"
+            href="{% url "relate-flow_analytics" course.identifier req.flow_id %}"
+            role="button"><b>{% trans "Go to activity analytics" %} &raquo;</b></a>
+          {% endif %}
         {% endfor %}
       {% else %}
         {% trans "There are some interactive activities going on right now." %}
@@ -190,6 +195,11 @@
           <a class="btn btn-primary"
             href="{% url "relate-view_start_flow" course.identifier req.flow_id %}"
             role="button"><b>{% trans "Go to activity" %} {{ i }} &raquo;</b></a>
+          {% if pperm.view_analytics %}
+          <a class="btn btn-primary"
+            href="{% url "relate-flow_analytics" course.identifier req.flow_id %}"
+            role="button"><b>{% trans "Go to activity" %} {{ i }} {% trans "analytics" %} &raquo;</b></a>
+          {% endif %}
         {% endfor %}
       {% endif %}
     </div>
