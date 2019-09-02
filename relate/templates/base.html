@@ -108,7 +108,7 @@
                             {% if currently_impersonating %}
                               <li><a onclick=stop_impersonate()>{% trans "Stop impersonating" %}</a></li>
                             {% else %}
-                              <li><a href="{% url 'relate-impersonate' %}" target="_blank">{% trans "Impersonate user" %}</a></li>
+                              <li><a href="{% url 'relate-impersonate' course.identifier %}" target="_blank">{% trans "Impersonate user" %}</a></li>
                             {% endif %}
                             {% if pperm.set_fake_time or request.relate_impersonate_original_user|may_set_fake_time %}
                               <li><a href="{% url 'relate-set_fake_time' %}" target="_blank">{% trans "Set fake time" %}</a></li>

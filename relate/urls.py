@@ -99,11 +99,12 @@ urlpatterns = [
         name="relate-monitor_task"),
 
     # {{{ troubleshooting
-
-    url(r'^user/impersonate/$',
+    url(r"^course"
+        "/" + COURSE_ID_REGEX
+        + "/impersonate/$",
         course.auth.impersonate,
         name="relate-impersonate"),
-    url(r'^user/stop_impersonating/$',
+    url(r"^user/stop_impersonating/$",
         course.auth.stop_impersonating,
         name="relate-stop_impersonating"),
 
