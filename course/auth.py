@@ -265,10 +265,11 @@ def impersonate(request, course_identifier):
             impersonee = form.cleaned_data["user"]
 
             request.session['impersonate_id'] = impersonee.id
-            if course_identifier is not None:
-                request.session['impersonate_course_identifier'] = course_identifier
             request.session['relate_impersonation_header'] = form.cleaned_data[
                     "add_impersonation_header"]
+            if course_identifier is not None:
+                request.session['impersonate_course_identifier'] = course_identifier
+                return redirect("/course/{}".format(course_identifier))
 
             # Because we'll likely no longer have access to this page.
             return redirect("relate-home")
