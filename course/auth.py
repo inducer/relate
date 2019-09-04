@@ -83,14 +83,13 @@ def get_pre_impersonation_user(request):
     return None
 
 
-def get_impersonable_user_qset(impersonator, course_id):
+def get_impersonable_user_qset(impersonator, course_identifier):
     # type: (User) -> query.QuerySet
 
-    print("course_id", course_id)
     my_participations = Participation.objects.filter(
         user=impersonator,
         status=participation_status.active,
-        course__id=course_id)
+        course__identifier=course_identifier)
 
     impersonable_user_qset = User.objects.none()
     for part in my_participations:
@@ -151,12 +150,11 @@ class ImpersonateMiddleware(object):
                 if request.user.is_superuser:
                     may_impersonate = True
                 else:
-                    imp_course_id = request.session['impersonate_course_id']
+                    imp_course_identifier = request.session['impersonate_course_identifier']
                     if cur_course_identifier is not None:
-                        cur_course = Course.objects.get(identifier=cur_course_identifier)
-                        if cur_course.id == imp_course_id:
+                        if cur_course_identifier == imp_course_identifier:
                             qset = get_impersonable_user_qset(cast(User, request.user),
-                                    course_id=imp_course_id)
+                                    course_identifier=imp_course_identifier)
                             if qset.filter(pk=cast(User, impersonee).pk).count():
                                 may_impersonate = True
                         else:
@@ -245,11 +243,9 @@ def impersonate(request, course_identifier):
     impersonator = cast(User, request.user)
     if impersonator.is_superuser:
         impersonable_user_qset = User.objects.exclude(pk=impersonator.pk)
-        coutse = None
     else:
-        course = Course.objects.get(identifier=course_identifier)
         impersonable_user_qset = get_impersonable_user_qset(impersonator,
-                                    course_id=course.id)
+                                    course_identifier=course_identifier)
     if not impersonable_user_qset.count():
         raise PermissionDenied()
 
@@ -269,8 +265,8 @@ def impersonate(request, course_identifier):
             impersonee = form.cleaned_data["user"]
 
             request.session['impersonate_id'] = impersonee.id
-            if course is not None:
-                request.session['impersonate_course_id'] = course.id
+            if course_identifier is not None:
+                request.session['impersonate_course_identifier'] = course_identifier
             request.session['relate_impersonation_header'] = form.cleaned_data[
                     "add_impersonation_header"]
 
@@ -1246,7 +1242,6 @@ def with_course_api_auth(f):
             token = find_matching_token(**auth_data)
             if token is None:
                 raise PermissionDenied("invalid authentication token")
-            print(course_identifier)
 
             from django.contrib.auth import authenticate, login
             user = authenticate(**auth_data)
