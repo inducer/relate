@@ -83,15 +83,14 @@ def get_pre_impersonation_user(request):
     return None
 
 
-def get_impersonable_user_qset(impersonator, course_identifier):
+def get_impersonable_user_qset(impersonator, course_id):
     # type: (User) -> query.QuerySet
 
-    course = Course.objects.get(identifier=course_identifier)
-
+    print("course_id", course_id)
     my_participations = Participation.objects.filter(
         user=impersonator,
         status=participation_status.active,
-        course=course)
+        course__id=course_id)
 
     impersonable_user_qset = User.objects.none()
     for part in my_participations:
@@ -137,8 +136,7 @@ class ImpersonateMiddleware(object):
     def __call__(self, request):
         if 'impersonate_id' in request.session:
             imp_id = request.session['impersonate_id']
-            imp_course = request.session['impersonate_course']
-            cur_course = _get_current_course_from_request(request)
+            cur_course_identifier = _get_current_course_from_request(request)
             impersonee = None
 
             try:
@@ -148,24 +146,35 @@ class ImpersonateMiddleware(object):
                 pass
 
             may_impersonate = False
+            permission_error = False
             if impersonee is not None:
                 if request.user.is_superuser:
                     may_impersonate = True
                 else:
-                    if cur_course is not None:
-                        qset = get_impersonable_user_qset(cast(User, request.user),
-                                course_identifier=cur_course)
+                    imp_course_id = request.session['impersonate_course_id']
+                    if cur_course_identifier is not None:
+                        cur_course = Course.objects.get(identifier=cur_course_identifier)
+                        if cur_course.id == imp_course_id:
+                            qset = get_impersonable_user_qset(cast(User, request.user),
+                                    course_id=imp_course_id)
+                            if qset.filter(pk=cast(User, impersonee).pk).count():
+                                may_impersonate = True
+                        else:
+                            permission_error = True
                     else:
-                        qset = get_impersonable_user_qset(cast(User, request.user),
-                                course_identifier=imp_course)
-                    if qset.filter(pk=cast(User, impersonee).pk).count():
-                        may_impersonate = True
+                        permission_error = True
 
             if may_impersonate:
                 request.relate_impersonate_original_user = request.user
                 request.user = impersonee
-            elif cur_course is not None and cur_course != imp_course:
-                raise PermissionDenied()
+            elif request.get_full_path() == "/user/stop_impersonating/":
+                pass
+            elif request.get_full_path().startswith("/logout/"):
+                pass
+            elif permission_error:
+                messages.add_message(request, messages.WARNING,
+                        _("Permission denied to impersonate this page. Falling back to " + \
+                            cast(User, request.user).username))
             else:
                 messages.add_message(request, messages.ERROR,
                         _("Error while impersonating."))
@@ -236,9 +245,11 @@ def impersonate(request, course_identifier):
     impersonator = cast(User, request.user)
     if impersonator.is_superuser:
         impersonable_user_qset = User.objects.exclude(pk=impersonator.pk)
+        coutse = None
     else:
+        course = Course.objects.get(identifier=course_identifier)
         impersonable_user_qset = get_impersonable_user_qset(impersonator,
-                                    course_identifier)
+                                    course_id=course.id)
     if not impersonable_user_qset.count():
         raise PermissionDenied()
 
@@ -258,7 +269,8 @@ def impersonate(request, course_identifier):
             impersonee = form.cleaned_data["user"]
 
             request.session['impersonate_id'] = impersonee.id
-            request.session['impersonate_course'] = course_identifier
+            if course is not None:
+                request.session['impersonate_course_id'] = course.id
             request.session['relate_impersonation_header'] = form.cleaned_data[
                     "add_impersonation_header"]
 
@@ -285,7 +297,7 @@ def stop_impersonating(request):
     if "stop_impersonating" not in request.POST:
         raise SuspiciousOperation(_("odd POST parameters"))
 
-    if not hasattr(request, "relate_impersonate_original_user"):
+    if not 'impersonate_id' in request.session:
         # prevent user without pperm to stop_impersonating
         my_participations = Participation.objects.filter(
             user=request.user,
@@ -1234,6 +1246,7 @@ def with_course_api_auth(f):
             token = find_matching_token(**auth_data)
             if token is None:
                 raise PermissionDenied("invalid authentication token")
+            print(course_identifier)
 
             from django.contrib.auth import authenticate, login
             user = authenticate(**auth_data)
