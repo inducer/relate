@@ -579,6 +579,14 @@ def update_course(pctx):
             "course": course,
             "repo": repo,
             "current_git_head": repo.head().decode(),
+<<<<<<< HEAD
+=======
+            "git_url": request.build_absolute_uri(
+                reverse("relate-git_endpoint",
+                    args=(course.identifier,""))),
+            "token_url": reverse("relate-manage_authentication_tokens",
+                    args=(course.identifier,)),
+>>>>>>> 72997a49... Working git endpoint with auth now
         })
 
 <<<<<<< HEAD
@@ -630,14 +638,14 @@ def shift_path(environ, prefix):
     environ['PATH_INFO'] = environ['PATH_INFO'][len(prefix):]
 
 
-def call_wsgi_app(application, request):
+def call_wsgi_app(application, request, prefix):
     response = http.HttpResponse()
 
     # request.environ and request.META are the same object, so changes
     # to the headers by middlewares will be seen here.
     environ = request.environ.copy()
     #if len(args) > 0:
-    #    shift_path(environ, '/' + args[0])
+    shift_path(environ, prefix)
 
     if six.PY2:
         # Django converts SCRIPT_NAME and PATH_INFO to unicode in WSGIRequest.
@@ -692,7 +700,16 @@ def git_endpoint(request, course_identifier, git_path):
 
     auth_value = request.META.get("HTTP_AUTHORIZATION")
 
+    def unauthorized_access():
+        realm = _("Relate direct git access")
+        response = http.HttpResponse(
+                _('Authorization Required'), content_type="text/plain")
+        response['WWW-Authenticate'] = 'Basic realm="%s"' % (realm)
+        response.status_code = 401
+        return response
+
     user = None
+<<<<<<< HEAD
     if auth_value is not None:
         auth_values = auth_value.split(" ")
         if len(auth_values) == 2:
@@ -714,6 +731,56 @@ def git_endpoint(request, course_identifier, git_path):
                         if check_password(
                                 token, possible_user.git_auth_token_hash):
                             user = possible_user
+=======
+    if auth_value is None:
+        return unauthorized_access()
+
+    auth_values = auth_value.split(" ")
+    if len(auth_values) != 2:
+        return unauthorized_access()
+
+    auth_method, auth_data = auth_values
+    if auth_method == "Basic":
+        from base64 import b64decode
+        auth_data = b64decode(auth_data.strip()).decode(
+                "utf-8", errors="replace")
+        auth_data_values = auth_data.split(':', 1)
+        if len(auth_data_values) != 2:
+            return unauthorized_access()
+        username, token = auth_data_values
+        try:
+            possible_user = get_user_model().objects.get(
+                    username=username)
+        except ObjectDoesNotExist:
+            return unauthorized_access()
+
+        token_values = token.split('_', 1)
+        if len(token_values) != 2:
+            return unauthorized_access()
+
+        try:
+            int(token_values[0])
+        except ValueError:
+            return unauthorized_access()
+
+        from django.utils.timezone import now
+        from django.db.models import Q
+        from django.contrib.auth.hashers import check_password
+        now_datetime = now()
+        tokens = AuthenticationToken.objects.filter(
+            user__username=username,
+            id=token_values[0],
+            participation__course__identifier=course_identifier,
+            ).filter(
+                Q(revocation_time=None)
+                | Q(revocation_time__gt=now_datetime))
+        if tokens.count() != 1:
+            return unauthorized_access()
+
+        for user_token in tokens:
+            if check_password(token_values[1], user_token.token_hash):
+                user = possible_user
+>>>>>>> 72997a49... Working git endpoint with auth now
 
     if user is None:
         realm = _("Relate direct git access")
@@ -750,10 +817,10 @@ def git_endpoint(request, course_identifier, git_path):
     base_path = base_path[:-1]
 
     import dulwich.web as dweb
-    backend = dweb.DictBackend({base_path: true_repo})
+    backend = dweb.DictBackend({"/": true_repo})
     app = dweb.make_wsgi_chain(backend)
 
-    return call_wsgi_app(app, request)
+    return call_wsgi_app(app, request, base_path)
 
 # }}}
 
