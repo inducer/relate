@@ -51,10 +51,13 @@ from django.contrib.auth import get_user_model
 
 from django.db import transaction
 
+from django import http
+
 from relate.utils import StyledForm, StyledModelForm, string_concat
 from crispy_forms.layout import Submit
 
 from course.models import (
+        AuthenticationToken,
         Course,
         Participation,
         ParticipationRole)
@@ -78,7 +81,6 @@ from typing import cast
 # {{{ for mypy
 
 if False:
-    from django import http  # noqa
     from typing import Tuple, List, Text, Any, Dict, Union, Optional  # noqa
     from dulwich.client import GitClient  # noqa
     from dulwich.objects import Commit  # noqa
@@ -580,7 +582,7 @@ def update_course(pctx):
             "current_git_head": repo.head().decode(),
             "git_url": request.build_absolute_uri(
                 reverse("relate-git_endpoint",
-                    args=(course.identifier,""))),
+                    args=(course.identifier, ""))),
             "token_url": reverse("relate-manage_authentication_tokens",
                     args=(course.identifier,)),
         })
@@ -746,10 +748,8 @@ def git_endpoint(request, course_identifier, git_path):
     else:
         check_permission = participation.has_permission
 
-    if not (
-            check_permission(pperm.update_content)
-            or
-            check_permission(pperm.preview_content)):
+    if not (check_permission(pperm.update_content)
+            or check_permission(pperm.preview_content)):
         return unauthorized_access()
 
     from course.content import get_course_repo
