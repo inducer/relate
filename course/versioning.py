@@ -84,6 +84,7 @@ if False:
     from typing import Tuple, List, Text, Any, Dict, Union, Optional  # noqa
     from dulwich.client import GitClient  # noqa
     from dulwich.objects import Commit  # noqa
+    import dulwich.web # noqa
 
 # }}}
 
@@ -351,7 +352,7 @@ def run_course_update_command(
                     max_history_check_size=20):
                 raise RuntimeError(_("fetch would discard commits, refusing"))
             if repo[b"HEAD"] != repo[remote_head] and not is_parent_commit(repo,
-                repo[b"HEAD"], repo[remote_head], max_history_check_size=20):
+                    repo[b"HEAD"], repo[remote_head], max_history_check_size=20):
                 raise RuntimeError(_("internal git repo has more commits. Fetch,"
                                      "merge and push."))
 
@@ -607,30 +608,29 @@ def update_course(pctx):
 # https://github.com/Polyconseil/django-viewsgi/blob/master/viewsgi.py
 # (BSD-licensed)
 
-def shift_path(environ, prefix):
-    assert environ['PATH_INFO'].startswith(prefix)
-    environ['SCRIPT_NAME'] += prefix
-    environ['PATH_INFO'] = environ['PATH_INFO'][len(prefix):]
-
-
 def call_wsgi_app(application, request, prefix):
+    # type: (dulwich.web.LimitedInputFilter, http.HttpRequest, Text) -> http.HttpResponse
+
     response = http.HttpResponse()
 
     # request.environ and request.META are the same object, so changes
     # to the headers by middlewares will be seen here.
     environ = request.environ.copy()
     #if len(args) > 0:
-    shift_path(environ, prefix)
+    assert environ['PATH_INFO'].startswith(prefix)
+    environ['SCRIPT_NAME'] += prefix
+    environ['PATH_INFO'] = environ['PATH_INFO'][len(prefix):]
 
     if six.PY2:
         # Django converts SCRIPT_NAME and PATH_INFO to unicode in WSGIRequest.
         environ['SCRIPT_NAME'] = environ['SCRIPT_NAME'].encode('iso-8859-1')
         environ['PATH_INFO'] = environ['PATH_INFO'].encode('iso-8859-1')
 
-    headers_set = []
-    headers_sent = []
+    headers_set = []   # type: List[Text]
+    headers_sent = []  # type: List[bool]
 
     def write(data):
+        # type: (Text) -> None
         if not headers_set:
             raise AssertionError("write() called before start_response()")
         if not headers_sent:
@@ -676,6 +676,7 @@ def git_endpoint(request, course_identifier, git_path):
     auth_value = request.META.get("HTTP_AUTHORIZATION")
 
     def unauthorized_access():
+        # type: () -> http.HttpResponse
         realm = _("Relate direct git access")
         response = http.HttpResponse(
                 _('Authorization Required'), content_type="text/plain")
@@ -741,7 +742,7 @@ def git_endpoint(request, course_identifier, git_path):
 
     course = participation.course
 
-    if user_token.restrict_to_participation_role is not None:
+    if user_token is not None and user_token.restrict_to_participation_role is not None:
         check_permission = user_token.restrict_to_participation_role.has_permission
         if course != user_token.restrict_to_participation_role.course:
             return unauthorized_access()
