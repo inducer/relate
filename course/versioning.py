@@ -608,8 +608,12 @@ def update_course(pctx):
 # https://github.com/Polyconseil/django-viewsgi/blob/master/viewsgi.py
 # (BSD-licensed)
 
-def call_wsgi_app(application, request, prefix):
-    # type: (dulwich.web.LimitedInputFilter, http.HttpRequest, Text) -> http.HttpResponse
+def call_wsgi_app(
+        application,  # type: dulwich.web.LimitedInputFilter
+        request,      # type: http.HttpRequest
+        prefix,       # type: Text
+        ):
+    # type: (...) -> http.HttpResponse
 
     response = http.HttpResponse()
 
@@ -742,7 +746,8 @@ def git_endpoint(request, course_identifier, git_path):
 
     course = participation.course
 
-    if user_token is not None and user_token.restrict_to_participation_role is not None:
+    if user_token is not None and \
+            user_token.restrict_to_participation_role is not None:
         check_permission = user_token.restrict_to_participation_role.has_permission
         if course != user_token.restrict_to_participation_role.course:
             return unauthorized_access()
