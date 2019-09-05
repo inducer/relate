@@ -344,16 +344,14 @@ def run_course_update_command(
         remote_refs = client.fetch(remote_path, repo)
         transfer_remote_refs(repo, remote_refs)
         remote_head = remote_refs[b"HEAD"]
-        if (
-                prevent_discarding_revisions
-                and repo[b"HEAD"] != repo[remote_head]
-           ):
+        if prevent_discarding_revisions:
             if is_parent_commit(repo, repo[remote_head], repo[b"HEAD"],
                     max_history_check_size=20):
                 raise RuntimeError(_("fetch would discard commits, refusing"))
-            if not is_parent_commit(repo, repo[b"HEAD"], repo[remote_head],
-                    max_history_check_size=20):
-                raise RuntimeError(_("internal git repo has more commits. Fetch, merge and push."))
+            if repo[b"HEAD"] != repo[remote_head] and not is_parent_commit(repo,
+                repo[b"HEAD"], repo[remote_head], max_history_check_size=20):
+                raise RuntimeError(_("internal git repo has more commits. Fetch,"
+                                     "merge and push."))
 
         repo[b"HEAD"] = remote_head
 
