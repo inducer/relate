@@ -711,6 +711,7 @@ def git_endpoint(request, course_identifier, git_path):
 
     user = None
 <<<<<<< HEAD
+<<<<<<< HEAD
     if auth_value is not None:
         auth_values = auth_value.split(" ")
         if len(auth_values) == 2:
@@ -733,6 +734,9 @@ def git_endpoint(request, course_identifier, git_path):
                                 token, possible_user.git_auth_token_hash):
                             user = possible_user
 =======
+=======
+    user_token = None
+>>>>>>> caaebf62... Fix permissions
     if auth_value is None:
         return unauthorized_access()
 
@@ -781,28 +785,30 @@ def git_endpoint(request, course_identifier, git_path):
         for user_token in tokens:
             if check_password(token_values[1], user_token.token_hash):
                 user = possible_user
+<<<<<<< HEAD
 >>>>>>> 72997a49... Working git endpoint with auth now
+=======
+                participation = user_token.participation
+                break
+>>>>>>> caaebf62... Fix permissions
 
     if user is None:
-        realm = _("Relate direct git access")
-        response = http.HttpResponse(
-                _('Authorization Required'), content_type="text/plain")
-        response['WWW-Authenticate'] = 'Basic realm="%s"' % (realm)
-        response.status_code = 401
-        return response
+        return unauthorized_access()
 
-    course = get_object_or_404(Course, identifier=course_identifier)
+    course = participation.course
 
-    from course.enrollment import get_participation_for_user
-    participation = get_participation_for_user(user, course)
-    if participation is None:
-        raise PermissionDenied()
+    if user_token.restrict_to_participation_role is not None:
+        check_permission = user_token.restrict_to_participation_role.has_permission
+        if course != user_token.restrict_to_participation_role.course:
+            return unauthorized_access()
+    else:
+        check_permission = participation.has_permission
 
     if not (
-            participation.has_permission(pperm.update_content)
+            check_permission(pperm.update_content)
             or
-            participation.has_permission(pperm.preview_content)):
-        raise PermissionDenied()
+            check_permission(pperm.preview_content)):
+        return unauthorized_access()
 
     from course.content import get_course_repo
     repo = get_course_repo(course)
