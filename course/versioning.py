@@ -350,6 +350,7 @@ def run_course_update_command(
         remote_head = remote_refs[b"HEAD"]
         if (
                 prevent_discarding_revisions
+                and repo[b"HEAD"] != repo[remote_head]
                 and (is_parent_commit(repo, repo[remote_head], repo[b"HEAD"],
                     max_history_check_size=20) or not is_parent_commit(repo, repo[b"HEAD"], repo[remote_head],
                     max_history_check_size=20))):
