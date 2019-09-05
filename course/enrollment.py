@@ -70,15 +70,10 @@ from pytools.lex import RE as REBase  # noqa
 
 # {{{ for mypy
 
-<<<<<<< HEAD
 if False:
     from typing import Any, Tuple, Text, Optional, List, FrozenSet  # noqa
     from course.utils import CoursePageContext  # noqa
-=======
-from typing import Any, Tuple, Text, Optional  # noqa
-from course.utils import CoursePageContext  # noqa
-import accounts.models  # noqa
->>>>>>> 016ef1d1... Add a functioning git end point (with authentication), needs preview/update integration
+    import accounts.models  # noqa
 
 # }}}
 

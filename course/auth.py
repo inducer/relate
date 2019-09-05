@@ -24,14 +24,9 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-<<<<<<< HEAD
 import re
 from typing import cast
 from django.utils.translation import ugettext_lazy as _
-=======
-from typing import cast, Text, Any, Optional  # noqa
-from django.utils.translation import ugettext_lazy as _, string_concat
->>>>>>> 016ef1d1... Add a functioning git end point (with authentication), needs preview/update integration
 from django.shortcuts import (  # noqa
         render, get_object_or_404, redirect, resolve_url)
 from django.contrib import messages
@@ -307,10 +302,6 @@ def impersonation_context_processor(request):
 
 def make_sign_in_key(user):
     # type: (User) -> Text
-<<<<<<< HEAD
-=======
-
->>>>>>> 016ef1d1... Add a functioning git end point (with authentication), needs preview/update integration
     # Try to ensure these hashes aren't guessable.
     import random
     import hashlib

@@ -73,19 +73,15 @@ from course.constants import (
         participation_permission as pperm,
         )
 
+from typing import cast
+
 # {{{ for mypy
 
-<<<<<<< HEAD
 if False:
     from django import http  # noqa
     from typing import Tuple, List, Text, Any, Dict, Union, Optional  # noqa
     from dulwich.client import GitClient  # noqa
     from dulwich.objects import Commit  # noqa
-=======
-from django import http  # noqa
-from typing import cast, Tuple, List, Text, Any  # noqa
-from dulwich.client import GitClient  # noqa
->>>>>>> 016ef1d1... Add a functioning git end point (with authentication), needs preview/update integration
 
 # }}}
 
@@ -584,40 +580,14 @@ def update_course(pctx):
             "course": course,
             "repo": repo,
             "current_git_head": repo.head().decode(),
-<<<<<<< HEAD
-=======
             "git_url": request.build_absolute_uri(
                 reverse("relate-git_endpoint",
                     args=(course.identifier,""))),
             "token_url": reverse("relate-manage_authentication_tokens",
                     args=(course.identifier,)),
->>>>>>> 72997a49... Working git endpoint with auth now
         })
 
-<<<<<<< HEAD
     assert form is not None
-=======
-    text_lines.append(
-            string_concat(
-                "<tr><th>",
-                ugettext("Direct git endpoint"),
-                "</th><td>"
-                "%(git_url)s",
-                " ",
-                '(<a href="%(token_url)s">',
-                ugettext("Manage access token"),
-                '</a>)',
-                "</td></tr>"
-                )
-            % {
-                "git_url": request.build_absolute_uri(
-                    reverse("relate-git_endpoint",
-                        args=(pctx.course.identifier,))),
-                "token_url": reverse("relate-manage_authentication_token"),
-                })
-
-    text_lines.append("</table>")
->>>>>>> 016ef1d1... Add a functioning git end point (with authentication), needs preview/update integration
 
     return render_course_page(pctx, "course/generic-course-form.html", {
         "form": form,
@@ -714,33 +684,7 @@ def git_endpoint(request, course_identifier, git_path):
         return response
 
     user = None
-<<<<<<< HEAD
-<<<<<<< HEAD
-    if auth_value is not None:
-        auth_values = auth_value.split(" ")
-        if len(auth_values) == 2:
-            auth_method, auth_data = auth_values
-            if auth_method == "Basic":
-                from base64 import b64decode
-                auth_data = b64decode(auth_data.strip()).decode(
-                        "utf-8", errors="replace")
-                auth_data_values = auth_data.split(':', 1)
-                if len(auth_data_values) == 2:
-                    username, token = auth_data_values
-                    try:
-                        possible_user = get_user_model().objects.get(
-                                username=username)
-                    except ObjectDoesNotExist:
-                        pass
-                    else:
-                        from django.contrib.auth.hashers import check_password
-                        if check_password(
-                                token, possible_user.git_auth_token_hash):
-                            user = possible_user
-=======
-=======
     user_token = None
->>>>>>> caaebf62... Fix permissions
     if auth_value is None:
         return unauthorized_access()
 
@@ -789,12 +733,8 @@ def git_endpoint(request, course_identifier, git_path):
         for user_token in tokens:
             if check_password(token_values[1], user_token.token_hash):
                 user = possible_user
-<<<<<<< HEAD
->>>>>>> 72997a49... Working git endpoint with auth now
-=======
                 participation = user_token.participation
                 break
->>>>>>> caaebf62... Fix permissions
 
     if user is None:
         return unauthorized_access()
