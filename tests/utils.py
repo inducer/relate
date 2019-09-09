@@ -183,10 +183,10 @@ def may_run_expensive_tests():
 
     # Allow run expensive tests locally, i.e., CI not detected.
     if not any([os.getenv(ci)
-                for ci in ["RL_TRAVIS_TEST", "GITLAB_CI", "APPVEYOR"]]):
+                for ci in ["RL_CI_TEST", "GITLAB_CI", "APPVEYOR"]]):
         return True
 
-    if os.getenv("RL_TRAVIS_TEST") != "test_expensive":
+    if os.getenv("RL_CI_TEST") != "test_expensive":
         return False
 
     return True
