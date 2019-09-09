@@ -98,7 +98,7 @@ jobs:
         script: |
             set -e
             curl -L -O -k https://gitlab.tiker.net/inducer/ci-support/raw/master/prepare-and-run-mypy.sh
-            ". ./prepare-and-run-mypy.sh python3 mypy==0.641"
+            . ./prepare-and-run-mypy.sh python3 mypy==0.641
 
 -
     job: 'Flake8'
