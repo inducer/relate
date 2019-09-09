@@ -722,24 +722,16 @@ def git_endpoint(request, course_identifier, git_path):
             return unauthorized_access()
 
         from django.utils.timezone import now
-        from django.db.models import Q
-        from django.contrib.auth.hashers import check_password
+        from course.auth import find_matching_token
         now_datetime = now()
-        tokens = AuthenticationToken.objects.filter(
-            user__username=username,
-            id=token_values[0],
-            participation__course__identifier=course_identifier,
-            ).filter(
-                Q(revocation_time=None)
-                | Q(revocation_time__gt=now_datetime))
-        if tokens.count() != 1:
+        user_token = find_matching_token(course_identifier, token_values[0],
+                    token_values[1], now_datetime)
+
+        if user_token is None or user_token.user.username != username:
             return unauthorized_access()
 
-        for user_token in tokens:
-            if check_password(token_values[1], user_token.token_hash):
-                user = possible_user
-                participation = user_token.participation
-                break
+        user = possible_user
+        participation = user_token.participation
 
     if user is None:
         return unauthorized_access()
