@@ -19,6 +19,7 @@ jobs:
     -
         script: |
             set -e
+            sudo apt-get install gettext
             PY_EXE=python3 bash ./run-tests-for-ci.sh
 
         displayName: 'Pytest'
@@ -49,6 +50,7 @@ jobs:
     -
         script: |
             set -e
+            sudo apt-get install gettext
             PY_EXE=python3 RL_CI_TEST=test_expensive bash ./run-tests-for-ci.sh
 
         displayName: 'Pytest'
