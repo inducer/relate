@@ -125,6 +125,7 @@ class participation_permission:  # noqa
 
     preview_content = "preview_content"
     update_content = "update_content"
+    direct_git_endpoint = "direct_git_endpoint"
     use_markup_sandbox = "use_markup_sandbox"
     use_page_sandbox = "use_page_sandbox"
     test_flow = "test_flow"
@@ -231,6 +232,8 @@ PARTICIPATION_PERMISSION_CHOICES = (
             pgettext_lazy("Participation permission", "Preview content")),
         (participation_permission.update_content,
             pgettext_lazy("Participation permission", "Update content")),
+        (participation_permission.direct_git_endpoint,
+            pgettext_lazy("Participation permission", "Use direct git endpoint")),
         (participation_permission.use_markup_sandbox,
             pgettext_lazy("Participation permission", "Use markup sandbox")),
         (participation_permission.use_page_sandbox,
