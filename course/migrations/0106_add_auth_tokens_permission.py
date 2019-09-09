@@ -26,7 +26,7 @@ def add_manage_auth_tokens_permission(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('course', '0109_add_manage_authentication_tokens_permssion'),
+        ('course', '0105_authenticationtoken'),
     ]
 
     operations = [
