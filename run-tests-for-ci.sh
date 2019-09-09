@@ -84,10 +84,12 @@ fi
 
 ${PY_EXE} manage.py compilemessages
 
-$PIP install codecov factory_boy
+$PIP install codecov factory_boy pytest-django pytest-cov
+
+PYTEST_FLAGS="--junitxml=pytest.xml --cov=relate --cov=course --cov=accounts"
 
 if [[ "$RL_CI_TEST" = "test_expensive" ]]; then
-    coverage run manage.py test tests.test_tasks \
+    ${PY_EXE} -m pytest $PYTEST_FLAGS tests.test_tasks \
                                 tests.test_admin \
                                 tests.test_pages.test_code \
                                 tests.test_pages.test_generic \
@@ -111,10 +113,10 @@ if [[ "$RL_CI_TEST" = "test_expensive" ]]; then
                                 tests.test_receivers.UpdateCouresOrUserSignalTest
 
 elif [[ "$RL_CI_TEST" = "test_postgres" ]]; then
-    coverage run manage.py test tests.test_postgres
+    ${PY_EXE} -m pytest $PYTEST_FLAGS tests.test_postgres
 
 else
-    coverage run manage.py test tests
+    ${PY_EXE} -m pytest $PYTEST_FLAGS tests
 fi
 
 coverage report -m
