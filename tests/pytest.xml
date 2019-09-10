@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?><testsuite errors="1" failures="0" name="pytest" skipped="0" tests="1" time="1.051"><testcase classname="" file="tests/test_versioning.py" name="tests.test_versioning" time="0.000"><error message="collection failure">Traceback (most recent call last):
+  File &quot;/home/isuru/projects/relate/tests/test_versioning.py&quot;, line 33, in &lt;module&gt;
+    from course.models import Course, Participation
+  File &quot;/home/isuru/projects/relate/course/models.py&quot;, line 90, in &lt;module&gt;
+    class Course(models.Model):
+  File &quot;/home/isuru/miniconda3/lib/python3.6/site-packages/django/db/models/base.py&quot;, line 103, in __new__
+    app_config = apps.get_containing_app_config(module)
+  File &quot;/home/isuru/miniconda3/lib/python3.6/site-packages/django/apps/registry.py&quot;, line 252, in get_containing_app_config
+    self.check_apps_ready()
+  File &quot;/home/isuru/miniconda3/lib/python3.6/site-packages/django/apps/registry.py&quot;, line 135, in check_apps_ready
+    raise AppRegistryNotReady(&quot;Apps aren&apos;t loaded yet.&quot;)
+django.core.exceptions.AppRegistryNotReady: Apps aren&apos;t loaded yet.</error></testcase></testsuite>

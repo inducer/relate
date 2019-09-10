@@ -488,6 +488,10 @@ class DirectGitEndpointTest(TestCase):
         response = versioning.git_endpoint(request, course.identifier, "")
         self.assertEqual(response.status_code, 401)
 
+        request.META.get.return_value = "NonBasic foo"
+        response = versioning.git_endpoint(request, course.identifier, "")
+        self.assertEqual(response.status_code, 401)
+
         request.META.get.return_value = "Basic foo"
         response = versioning.git_endpoint(request, course.identifier, "")
         self.assertEqual(response.status_code, 401)
@@ -504,6 +508,7 @@ class DirectGitEndpointTest(TestCase):
 
         course = factories.CourseFactory()
         student = factories.UserFactory()
+        student2 = factories.UserFactory()
         student_role = factories.ParticipationRoleFactory(
             course=course,
             identifier="student"
@@ -519,14 +524,42 @@ class DirectGitEndpointTest(TestCase):
                 token_hash=make_password("spam"))
         auth_token.save()
 
+        # Check invalid token format
         auth_data_unencoded = "{}:{}".format(student.username, "spam").encode()
         auth_data = b64encode(auth_data_unencoded).decode("utf-8")
-
         request = mock.MagicMock()
         request.META.get.return_value = "Basic {}".format(auth_data)
         response = versioning.git_endpoint(request, course.identifier, "")
         self.assertEqual(response.status_code, 401)
 
+        # Check invalid token id
+        auth_data_unencoded = "{}:{}_{}".format(student.username,
+                                                "eggs", "ham").encode()
+        auth_data = b64encode(auth_data_unencoded).decode("utf-8")
+        request = mock.MagicMock()
+        request.META.get.return_value = "Basic {}".format(auth_data)
+        response = versioning.git_endpoint(request, course.identifier, "")
+        self.assertEqual(response.status_code, 401)
+
+        # Check non-existing user
+        auth_data_unencoded = "{}:{}_{}".format("spam",
+                                                "eggs", "ham").encode()
+        auth_data = b64encode(auth_data_unencoded).decode("utf-8")
+        request = mock.MagicMock()
+        request.META.get.return_value = "Basic {}".format(auth_data)
+        response = versioning.git_endpoint(request, course.identifier, "")
+        self.assertEqual(response.status_code, 401)
+
+        # Check token from other user
+        auth_data_unencoded = "{}:{}_{}".format(student2.username,
+                                                "eggs", "ham").encode()
+        auth_data = b64encode(auth_data_unencoded).decode("utf-8")
+        request = mock.MagicMock()
+        request.META.get.return_value = "Basic {}".format(auth_data)
+        response = versioning.git_endpoint(request, course.identifier, "")
+        self.assertEqual(response.status_code, 401)
+
+        # Check student with no permission
         auth_data_unencoded = "{}:{}_{}".format(student.username,
                                                 auth_token.id, "spam").encode()
         auth_data = b64encode(auth_data_unencoded).decode("utf-8")
@@ -563,7 +596,7 @@ class DirectGitEndpointTest(TestCase):
         fake_call_wsgi_app = mock.patch("course.versioning.call_wsgi_app")
         fake_get_course_repo = mock.patch("course.content.get_course_repo")
         mock_call_wsgi_app = fake_call_wsgi_app.start()
-        fake_get_course_repo.start()
+        mock_get_course_repo = fake_get_course_repo.start()
 
         auth_data_unencoded = "{}:{}_{}".format(instructor.username,
                                                 auth_token.id, "spam").encode()
@@ -572,6 +605,7 @@ class DirectGitEndpointTest(TestCase):
         request.META.get.return_value = "Basic {}".format(auth_data)
         versioning.git_endpoint(request, course.identifier, "")
         self.assertEqual(mock_call_wsgi_app.call_count, 1)
+        self.assertEqual(mock_get_course_repo.call_count, 1)
 
         fake_call_wsgi_app.stop()
         fake_get_course_repo.stop()
