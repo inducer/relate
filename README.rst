@@ -15,9 +15,9 @@ Relate is an Environment for Learning And TEaching
 .. image:: https://ci.appveyor.com/api/projects/status/d5bigdw90bxnfdgy?svg=true
     :alt: Appveyor CI Status
     :target: https://ci.appveyor.com/project/inducer/relate
-.. image:: https://badge.fury.io/py/relate.png
+.. image:: https://badge.fury.io/py/relate-courseware.png
     :alt: Python Package Index Release Page
-    :target: https://pypi.org/project/relate/
+    :target: https://pypi.org/project/relate-courseware/
 
 +----------------------------------------------------------------------------------------------+------------------------------------------------------------------------------------------------+
 | .. image:: https://raw.githubusercontent.com/inducer/relate/master/doc/images/screenshot.png | .. image:: https://raw.githubusercontent.com/inducer/relate/master/doc/images/screenshot-2.png |
