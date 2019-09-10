@@ -70,6 +70,7 @@ from django_select2.forms import ModelSelect2Widget
 if False:
     from typing import Any, Text, Optional  # noqa
     from django.db.models import query  # noqa
+    import datetime # noqa
 
 
 # {{{ impersonation
@@ -1110,6 +1111,7 @@ class APIError(Exception):
 def find_matching_token(
         course_identifier=None, token_id=None, token_hash_str=None,
         now_datetime=None):
+    # type: (Text, int, Text, datetime.datetime) -> Optional[AuthenticationToken]
     try:
         token = AuthenticationToken.objects.get(
                 id=token_id,

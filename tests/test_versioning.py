@@ -463,6 +463,120 @@ class IsParentCommitTest(unittest.TestCase):
                 max_history_check_size=20))
 
 
+class DirectGitEndpointTest(TestCase):
+    def test_no_authentication_headers(self):
+        course = factories.CourseFactory()
+
+        request = mock.MagicMock()
+        obj = object()
+
+        def no_header_mock(a, b=obj):
+            if b == obj:
+                raise KeyError
+            return b
+
+        request.META.get = no_header_mock
+        response = versioning.git_endpoint(request, course.identifier, "")
+        self.assertEqual(response.status_code, 401)
+
+    def test_b64encoded_authentication_headers(self):
+        from base64 import b64encode
+        course = factories.CourseFactory()
+        request = mock.MagicMock()
+
+        request.META.get.return_value = "foo"
+        response = versioning.git_endpoint(request, course.identifier, "")
+        self.assertEqual(response.status_code, 401)
+
+        request.META.get.return_value = "Basic foo"
+        response = versioning.git_endpoint(request, course.identifier, "")
+        self.assertEqual(response.status_code, 401)
+
+        auth_data = b64encode("foo".encode()).decode("utf-8")
+        request.META.get.return_value = "Basic {}".format(auth_data)
+        response = versioning.git_endpoint(request, course.identifier, "")
+        self.assertEqual(response.status_code, 401)
+
+    def test_auth_student(self):
+        from base64 import b64encode
+        from course.models import AuthenticationToken
+        from django.contrib.auth.hashers import make_password
+
+        course = factories.CourseFactory()
+        student = factories.UserFactory()
+        student_role = factories.ParticipationRoleFactory(
+            course=course,
+            identifier="student"
+        )
+        participation1 = factories.ParticipationFactory(
+            course=course,
+            user=student)
+        participation1.roles.set([student_role])
+
+        auth_token = AuthenticationToken(
+                user=student,
+                participation=participation1,
+                token_hash=make_password("spam"))
+        auth_token.save()
+
+        auth_data_unencoded = "{}:{}".format(student.username, "spam").encode()
+        auth_data = b64encode(auth_data_unencoded).decode("utf-8")
+
+        request = mock.MagicMock()
+        request.META.get.return_value = "Basic {}".format(auth_data)
+        response = versioning.git_endpoint(request, course.identifier, "")
+        self.assertEqual(response.status_code, 401)
+
+        auth_data_unencoded = "{}:{}_{}".format(student.username,
+                                                auth_token.id, "spam").encode()
+        auth_data = b64encode(auth_data_unencoded).decode("utf-8")
+        request = mock.MagicMock()
+        request.META.get.return_value = "Basic {}".format(auth_data)
+        response = versioning.git_endpoint(request, course.identifier, "")
+        self.assertEqual(response.status_code, 401)
+
+    def test_auth_instructor(self):
+        from base64 import b64encode
+        from course.models import ParticipationRolePermission, AuthenticationToken
+        from course.constants import participation_permission as pp
+        from django.contrib.auth.hashers import make_password
+
+        course = factories.CourseFactory()
+        instructor = factories.UserFactory()
+        instructor_role = factories.ParticipationRoleFactory(
+            course=course,
+            identifier="instructor"
+        )
+        participation1 = factories.ParticipationFactory(
+            course=course,
+            user=instructor)
+        participation1.roles.set([instructor_role])
+        ParticipationRolePermission(role=instructor_role,
+                                    permission=pp.direct_git_endpoint).save()
+
+        auth_token = AuthenticationToken(
+                user=instructor,
+                participation=participation1,
+                token_hash=make_password("spam"))
+        auth_token.save()
+
+        fake_call_wsgi_app = mock.patch("course.versioning.call_wsgi_app")
+        fake_get_course_repo = mock.patch("course.content.get_course_repo")
+        mock_call_wsgi_app = fake_call_wsgi_app.start()
+        fake_get_course_repo.start()
+
+        auth_data_unencoded = "{}:{}_{}".format(instructor.username,
+                                                auth_token.id, "spam").encode()
+        auth_data = b64encode(auth_data_unencoded).decode("utf-8")
+        request = mock.MagicMock()
+        request.META.get.return_value = "Basic {}".format(auth_data)
+        versioning.git_endpoint(request, course.identifier, "")
+        self.assertEqual(mock_call_wsgi_app.call_count, 1)
+
+        fake_call_wsgi_app.stop()
+        fake_get_course_repo.stop()
+
+
 FETCHED_LITERAL = "Fetch successful."
 VALIDATE_SUCCESS_LITERAL = "Course content validated successfully."
 PREVIEW_END_LITERAL = "Preview ended."

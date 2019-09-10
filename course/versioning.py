@@ -58,7 +58,6 @@ from relate.utils import StyledForm, StyledModelForm, string_concat
 from crispy_forms.layout import Submit
 
 from course.models import (
-        AuthenticationToken,
         Course,
         Participation,
         ParticipationRole)
@@ -678,7 +677,7 @@ def call_wsgi_app(
 def git_endpoint(request, course_identifier, git_path):
     # type: (http.HttpRequest, Text, Text) -> http.HttpResponse
 
-    auth_value = request.META.get("HTTP_AUTHORIZATION")
+    auth_value = request.META.get("HTTP_AUTHORIZATION", None)
 
     def unauthorized_access():
         # type: () -> http.HttpResponse
@@ -701,8 +700,12 @@ def git_endpoint(request, course_identifier, git_path):
     auth_method, auth_data = auth_values
     if auth_method == "Basic":
         from base64 import b64decode
-        auth_data = b64decode(auth_data.strip()).decode(
-                "utf-8", errors="replace")
+        import binascii
+        try:
+            auth_data = b64decode(auth_data.strip()).decode(
+                    "utf-8", errors="replace")
+        except binascii.Error:
+            return unauthorized_access()
         auth_data_values = auth_data.split(':', 1)
         if len(auth_data_values) != 2:
             return unauthorized_access()
@@ -725,6 +728,7 @@ def git_endpoint(request, course_identifier, git_path):
         from django.utils.timezone import now
         from course.auth import find_matching_token
         now_datetime = now()
+
         user_token = find_matching_token(course_identifier, token_values[0],
                     token_values[1], now_datetime)
 
