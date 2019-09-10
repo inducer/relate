@@ -23,12 +23,11 @@ THE SOFTWARE.
 """
 
 from django.test import TestCase
-from unittest import skipUnless
+import pytest
 
 from tests.base_test_mixins import SingleCourseQuizPageTestMixin, HackRepoMixin
 from tests.test_sandbox import SingleCoursePageSandboxTestBaseMixin
 from tests.constants import PAGE_ERRORS
-from tests.utils import may_run_expensive_tests, SKIP_EXPENSIVE_TESTS_REASON
 
 UPLOAD_WITH_NEGATIVE_MAXIMUM_SIZE_MARKDOWN = """
 type: FileUploadQuestion
@@ -176,7 +175,7 @@ class FileUploadQuestionSandBoxTest(SingleCoursePageSandboxTestBaseMixin, TestCa
             self.assertFormErrorLoose(resp, "Current filesize is")
 
 
-@skipUnless(may_run_expensive_tests(), SKIP_EXPENSIVE_TESTS_REASON)
+@pytest.mark.expensive
 class UploadQuestionNormalizeTest(SingleCourseQuizPageTestMixin,
                                   HackRepoMixin, TestCase):
     def test_two_mime_types_normalize(self):

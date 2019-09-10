@@ -29,6 +29,7 @@ THE SOFTWARE.
 from datetime import datetime, timedelta
 import six
 import unittest
+import pytest
 import pytz
 
 from django.conf import settings
@@ -44,6 +45,9 @@ from course.content import dict_to_struct
 from tests.base_test_mixins import CoursesTestMixinBase
 from tests import factories
 from tests.utils import mock
+
+
+pytestmark = pytest.mark.django_db
 
 
 class CourseTest(CoursesTestMixinBase, unittest.TestCase):

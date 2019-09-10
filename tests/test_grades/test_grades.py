@@ -30,6 +30,7 @@ from django.test import TestCase
 from django.urls import reverse
 from django.utils.timezone import now, timedelta
 import unittest
+import pytest
 
 from relate.utils import local_now
 
@@ -42,7 +43,7 @@ from course.flow import reopen_session
 from course.grades import (
     get_single_grade_changes_and_state_machine as get_gc_and_machine)
 
-from tests.utils import mock, may_run_expensive_tests, SKIP_EXPENSIVE_TESTS_REASON
+from tests.utils import mock
 from tests.base_test_mixins import (
     SingleCoursePageTestMixin, SingleCourseQuizPageTestMixin,
     HackRepoMixin, MockAddMessageMixing)
@@ -372,7 +373,7 @@ class ViewParticipantGradesTest(GradesTestMixin, TestCase):
                 self.assertContains(resp, "40.0%", count=1)  # for hidden_gopp
 
 
-@unittest.skipUnless(may_run_expensive_tests(), SKIP_EXPENSIVE_TESTS_REASON)
+@pytest.mark.expensive
 class GetGradeTableTest(GradesTestMixin, TestCase):
     # test grades.get_grade_table
 

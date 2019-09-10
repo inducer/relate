@@ -24,6 +24,7 @@ THE SOFTWARE.
 
 import six
 import unittest
+import pytest
 from unittest import skipIf
 from django.test import TestCase, override_settings, RequestFactory
 
@@ -82,6 +83,7 @@ AUTO_FEEDBACK_POINTS_OUT_OF_RANGE_ERROR_MSG_PATTERN = (
 )
 
 
+@pytest.mark.expensive
 class SingleCourseQuizPageCodeQuestionTest(
             SingleCourseQuizPageTestMixin, MockAddMessageMixing,
             SubprocessRunpyContainerMixin, TestCase):
@@ -211,6 +213,7 @@ class SingleCourseQuizPageCodeQuestionTest(
                 resp, feedback_text)
 
 
+@pytest.mark.expensive
 class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
                        SubprocessRunpyContainerMixin, LocmemBackendTestsMixin,
                        TestCase):
@@ -1330,6 +1333,7 @@ class IsNuisanceFailureTest(unittest.TestCase):
         self.assertTrue(is_nuisance_failure(result))
 
 
+@pytest.mark.expensive
 class CodeQuestionWithHumanTextFeedbackSpecialCase(
         SingleCoursePageTestMixin, SubprocessRunpyContainerMixin, TestCase):
     """

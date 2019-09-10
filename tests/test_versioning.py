@@ -27,6 +27,7 @@ from copy import deepcopy
 import unittest
 from django.test import TestCase, RequestFactory
 from dulwich.contrib.paramiko_vendor import ParamikoSSHVendor
+import pytest
 
 from relate.utils import force_remove_path
 
@@ -39,11 +40,10 @@ from tests.base_test_mixins import (
     SingleCourseTestMixin, MockAddMessageMixing,
     CoursesTestMixinBase, SINGLE_COURSE_SETUP_LIST)
 from tests.utils import (
-    suppress_stdout_decorator, mock, may_run_expensive_tests,
-    SKIP_EXPENSIVE_TESTS_REASON)
+    suppress_stdout_decorator, mock)
 from tests import factories
 
-TEST_PUBLIC_KEY = """
+TEST_PRIVATE_KEY = """
 -----BEGIN RSA PRIVATE KEY-----
 MIIEowIBAAKCAQEA7A1rTpbRpCek4tZZKa8QH14/pYzraN7hDnx3BKrqRxghP/0Q
 uc98qeQkA5T3EYjHsConAAArLzbo6PMGwM9353dFixGUHegZe3jUmszX7G2veZx5
@@ -264,25 +264,25 @@ class CourseCreationTest(VersioningTestMixin, TestCase):
             self.assertTrue(resp.status_code, 200)
 
 
-@unittest.skipUnless(may_run_expensive_tests(), SKIP_EXPENSIVE_TESTS_REASON)
+@pytest.mark.expensive
 class ParamikoSSHVendorTest(unittest.TestCase):
-    # A simple integration tests, making sure ParamikoSSHVendor is used
+
+    # A simple integration test, making sure ParamikoSSHVendor is used
     # for ssh protocol.
 
-    @classmethod
-    def setUpClass(cls):  # noqa
-        course = factories.CourseFactory.create(**cls.prepare_data())
-        cls.git_client, _ = (
+    @pytest.fixture(autouse=True)
+    def create_course(self, db):  # noqa
+        course = factories.CourseFactory.create(**self.prepare_data())
+        self.git_client, _ = (
             versioning.get_dulwich_client_and_remote_path_from_course(course))
-        cls.ssh_vendor = cls.git_client.ssh_vendor
-        assert isinstance(cls.ssh_vendor, ParamikoSSHVendor)
+        self.ssh_vendor = self.git_client.ssh_vendor
+        assert isinstance(self.ssh_vendor, ParamikoSSHVendor)
 
-    @classmethod
-    def prepare_data(cls):
+    def prepare_data(self):
         data = deepcopy(SINGLE_COURSE_SETUP_LIST[0]["course"])
         data["identifier"] = "my-private-course"
         data["git_source"] = "git+ssh://foo.com:1234/bar/baz"
-        data["ssh_private_key"] = TEST_PUBLIC_KEY
+        data["ssh_private_key"] = TEST_PRIVATE_KEY
         return data
 
     def test_invalid(self):
@@ -477,6 +477,7 @@ WARNING1 = "some waring1"
 WARNING2 = "some waring2"
 
 
+@pytest.mark.django_db
 class RunCourseUpdateCommandTest(MockAddMessageMixing, unittest.TestCase):
     # test versioning.run_course_update_command
 

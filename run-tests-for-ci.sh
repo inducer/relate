@@ -90,35 +90,11 @@ PYTEST_FLAGS="-rxsw --durations=10 --tb=native  --junitxml=pytest.xml --cov=rela
 
 cd tests
 if [[ "$RL_CI_TEST" = "test_expensive" ]]; then
-    ${PY_EXE} -m pytest $PYTEST_FLAGS \
-                                test_tasks \
-                                test_admin \
-                                test_pages.test_code \
-                                test_pages.test_generic \
-                                test_pages.test_inline.InlineMultiPageUpdateTest \
-                                test_pages.test_upload.UploadQuestionNormalizeTest \
-                                test_grades.test_generic \
-                                test_grades.test_grades.GetGradeTableTest \
-                                test_grading.SingleCourseQuizPageGradeInterfaceTest \
-                                test_utils.LanguageOverrideTest \
-                                test_accounts.test_admin.AccountsAdminTest \
-                                test_flow.test_flow.AssemblePageGradesTest \
-                                test_flow.test_flow.FinishFlowSessionViewTest \
-                                test_content.SubDirRepoTest \
-                                test_auth.SignInByPasswordTest \
-                                test_analytics.FlowAnalyticsTest \
-                                test_analytics.PageAnalyticsTest \
-                                test_analytics.FlowListTest \
-                                test_analytics.IsFlowMultipleSubmitTest \
-                                test_analytics.IsPageMultipleSubmitTest \
-                                test_versioning.ParamikoSSHVendorTest \
-                                test_receivers.UpdateCouresOrUserSignalTest
-
+    ${PY_EXE} -m pytest $PYTEST_FLAGS -m expensive
 elif [[ "$RL_CI_TEST" = "test_postgres" ]]; then
     ${PY_EXE} -m pytest $PYTEST_FLAGS test_postgres
-
 else
-    ${PY_EXE} -m pytest $PYTEST_FLAGS
+    ${PY_EXE} -m pytest $PYTEST_FLAGS -m "not expensive"
 fi
 
 coverage report -m

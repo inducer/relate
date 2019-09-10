@@ -34,6 +34,7 @@ from django.contrib.auth import (
 from django.http import QueryDict, HttpResponse
 from django.urls import NoReverseMatch, reverse
 import unittest
+import pytest
 from unittest import skipIf
 from course.auth import (
     get_impersonable_user_qset, get_user_model,
@@ -46,8 +47,7 @@ from tests.base_test_mixins import (
     CoursesTestMixinBase, SingleCoursePageTestMixin, MockAddMessageMixing)
 
 from tests.utils import (
-    LocmemBackendTestsMixin, load_url_pattern_names, reload_urlconf, mock,
-    may_run_expensive_tests, SKIP_EXPENSIVE_TESTS_REASON)
+    LocmemBackendTestsMixin, load_url_pattern_names, reload_urlconf, mock)
 from tests import factories
 
 # settings names
@@ -711,7 +711,7 @@ class AuthViewNamedURLTests(AuthTestMixin, TestCase):
                                      fetch_redirect_response=False)
 
 
-@unittest.skipUnless(may_run_expensive_tests(), SKIP_EXPENSIVE_TESTS_REASON)
+@pytest.mark.expensive
 class SignInByPasswordTest(CoursesTestMixinBase,
                            AuthTestMixin, MockAddMessageMixing, TestCase):
     @override_settings(RELATE_SIGN_IN_BY_USERNAME_ENABLED=True)
@@ -1918,6 +1918,7 @@ class EmailedTokenBackendTest(CoursesTestMixinBase, TestCase):
         self.assertIsNone(backend.get_user(10000))
 
 
+@pytest.mark.django_db
 class LogoutConfirmationRequiredDecoratorTest(unittest.TestCase):
     def setUp(self):
         self.user = factories.UserFactory()

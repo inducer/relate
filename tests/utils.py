@@ -177,23 +177,4 @@ is_connection_psql = _is_connection_psql()
 SKIP_NON_PSQL_REASON = "PostgreSQL specific SQL used"
 
 
-def may_run_expensive_tests():
-    if six.PY2:
-        return False
-
-    # Allow run expensive tests locally, i.e., CI not detected.
-    if not any([os.getenv(ci)
-                for ci in ["RL_CI_TEST", "GITLAB_CI", "APPVEYOR"]]):
-        return True
-
-    if os.getenv("RL_CI_TEST") != "test_expensive":
-        return False
-
-    return True
-
-
-SKIP_EXPENSIVE_TESTS_REASON = (
-    "This expensive test is ran separately on TRAVIS-CI with test_expensive "
-    "env variable, or local tests.")
-
 # vim: fdm=marker

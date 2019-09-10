@@ -26,6 +26,9 @@ import six
 import itertools
 
 import unittest
+import pytest
+
+
 from django import http
 from django.urls import reverse
 from django.contrib.sessions.middleware import SessionMiddleware
@@ -47,7 +50,7 @@ from tests.base_test_mixins import (
     CoursesTestMixinBase, SingleCourseQuizPageTestMixin, SingleCourseTestMixin,
     HackRepoMixin)
 from tests.constants import QUIZ_FLOW_ID
-from tests.utils import mock, may_run_expensive_tests, SKIP_EXPENSIVE_TESTS_REASON
+from tests.utils import mock
 from tests import factories
 
 
@@ -229,6 +232,7 @@ class GradePageVisitTest(SingleCourseQuizPageTestMixin, TestCase):
                 self.assertIsNone(fpvg.correctness)
 
 
+@pytest.mark.django_db
 class StartFlowTest(CoursesTestMixinBase, unittest.TestCase):
     # test flow.start_flow
     def setUp(self):
@@ -373,7 +377,7 @@ class StartFlowTest(CoursesTestMixinBase, unittest.TestCase):
         self.assertEqual(self.mock_get_flow_grading_opportunity.call_count, 0)
 
 
-@unittest.skipUnless(may_run_expensive_tests(), SKIP_EXPENSIVE_TESTS_REASON)
+@pytest.mark.expensive
 class AssemblePageGradesTest(HackRepoMixin,
                              SingleCourseQuizPageTestMixin, TestCase):
     # This is actually test course.flow.assemble_page_grades
@@ -603,6 +607,7 @@ class AssemblePageGradesTest(HackRepoMixin,
             [None, 100, 100])
 
 
+@pytest.mark.django_db
 class AssembleAnswerVisitsTest(unittest.TestCase):
     # test flow.assemble_answer_visits (flowsession.answer_visits())
 
@@ -718,6 +723,7 @@ def instantiate_flow_page_with_ctx_get_interaction_kind_side_effect(fctx,
     return page_data.mock_page_attribute()
 
 
+@pytest.mark.django_db
 class GetInteractionKindTest(unittest.TestCase):
     # test flow.get_interaction_kind
     def setUp(self):
@@ -926,7 +932,7 @@ class GradeInfoTest(unittest.TestCase):
             99 < g_info.unreachable_points_percent() < 100)
 
 
-@unittest.skipUnless(may_run_expensive_tests(), SKIP_EXPENSIVE_TESTS_REASON)
+@pytest.mark.expensive
 class FinishFlowSessionViewTest(HackRepoMixin,
                                 SingleCourseQuizPageTestMixin, TestCase):
     # test flow.finish_flow_session_view
@@ -1883,15 +1889,16 @@ class ExpireFlowSessionTest(SingleCourseTestMixin, TestCase):
         self.assertEqual(self.mock_get_session_start_rule.call_count, 0)
 
 
+@pytest.mark.django_db
 class GetFlowSessionAttemptIdTest(unittest.TestCase):
     # test flow.get_flow_session_attempt_id
 
     def setUp(self):
-        def remove_all_course():
+        def remove_all_courses():
             for course in models.Course.objects.all():
                 course.delete()
 
-        self.addCleanup(remove_all_course)
+        self.addCleanup(remove_all_courses)
 
     def test(self):
         course = factories.CourseFactory()
@@ -2390,6 +2397,7 @@ class GradeFlowSessionTest(SingleCourseQuizPageTestMixin,
         self.assertEqual(current_grade_changes.last().comment, None)
 
 
+@pytest.mark.django_db
 class UnsubmitPageTest(unittest.TestCase):
     # test flow.unsubmit_page
 
@@ -2933,6 +2941,7 @@ class RecalculateSessionGradeTest(SingleCourseTestMixin, TestCase):
                 "respect_preview"])
 
 
+@pytest.mark.django_db
 class LockDownIfNeededTest(unittest.TestCase):
     # test flow.lock_down_if_needed
     def setUp(self):
@@ -3460,20 +3469,20 @@ class WillReceiveFeedbackTest(unittest.TestCase):
 @unittest.skipIf(six.PY2, "PY2 doesn't support subTest")
 class MaySendEmailAboutFlowPageTest(unittest.TestCase):
     # test flow.may_send_email_about_flow_page
-    @classmethod
-    def setUpClass(cls):
-        cls.course = course = factories.CourseFactory()
+    @pytest.fixture(autouse=True)
+    def create_course(self, db):
+        self.course = course = factories.CourseFactory()
         participation = factories.ParticipationFactory(course=course)
-        cls.fs = factories.FlowSessionFactory(
+        self.fs = factories.FlowSessionFactory(
             course=course, participation=participation)
-        cls.fs_no_participation_no_user = factories.FlowSessionFactory(
+        self.fs_no_participation_no_user = factories.FlowSessionFactory(
             course=course, participation=None, user=None)
-        cls.fs_no_user = factories.FlowSessionFactory(
+        self.fs_no_user = factories.FlowSessionFactory(
             course=course, participation=participation, user=None)
 
-    @classmethod
-    def tearDownClass(cls):
-        cls.course.delete()
+        yield course
+
+        course.delete()
 
     def test_false_has_no_send_email_about_flow_page_fperm(self):
         combinations = [(frozenset([fp]), False) for fp in

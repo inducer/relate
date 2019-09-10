@@ -27,7 +27,7 @@ from random import shuffle
 from django.utils.timezone import now, timedelta
 from django.core import mail
 from django.test import TestCase, override_settings
-from unittest import skipUnless
+import pytest
 
 from course.models import ParticipationPermission
 from course.constants import participation_permission as pperm
@@ -35,7 +35,7 @@ from course.constants import participation_permission as pperm
 from tests.base_test_mixins import (
     SingleCourseQuizPageTestMixin, MockAddMessageMixing)
 from tests import factories
-from tests.utils import mock, may_run_expensive_tests, SKIP_EXPENSIVE_TESTS_REASON
+from tests.utils import mock
 
 
 class SingleCourseQuizPageGradeInterfaceTestMixin(SingleCourseQuizPageTestMixin):
@@ -50,7 +50,7 @@ class SingleCourseQuizPageGradeInterfaceTestMixin(SingleCourseQuizPageTestMixin)
         cls.submit_page_answer_by_page_id_and_test(cls.page_id)
 
 
-@skipUnless(may_run_expensive_tests(), SKIP_EXPENSIVE_TESTS_REASON)
+@pytest.mark.expensive
 class SingleCourseQuizPageGradeInterfaceTest(
         SingleCourseQuizPageGradeInterfaceTestMixin, MockAddMessageMixing, TestCase):
 

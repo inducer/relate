@@ -23,7 +23,8 @@ THE SOFTWARE.
 """
 
 import six
-from unittest import skipIf, skipUnless
+from unittest import skipIf
+import pytest
 
 from django.test import TestCase, RequestFactory
 from django.urls import reverse
@@ -37,10 +38,9 @@ from accounts.admin import UserAdmin
 from accounts.models import User
 
 from tests.base_test_mixins import AdminTestMixin
-from tests.utils import may_run_expensive_tests, SKIP_EXPENSIVE_TESTS_REASON
 
 
-@skipUnless(may_run_expensive_tests(), SKIP_EXPENSIVE_TESTS_REASON)
+@pytest.mark.expensive
 class AccountsAdminTest(AdminTestMixin, TestCase):
 
     @classmethod
