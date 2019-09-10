@@ -5,9 +5,7 @@ try:
     from importlib import reload
 except ImportError:
     pass  # PY2
-import os
 from importlib import import_module
-import six
 from six import StringIO
 from functools import wraps
 
