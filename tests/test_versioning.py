@@ -930,14 +930,14 @@ class RunCourseUpdateCommandTest(MockAddMessageMixing, unittest.TestCase):
     def test_internal_git_repo_more_commits(self):
         from collections import defaultdict
         self.mock_is_parent_commit.return_value = False
-        repo = defaultdict(lambda : "bar")
-        repo[b"HEAD"]="foo"
+        repo = defaultdict(lambda: "bar")
+        repo[b"HEAD"] = "foo"
 
         self.check_command_message_result(
             command="fetch",
             expected_error_type=RuntimeError,
             expected_error_msg="internal git repo has more commits."
-                " Fetch, merge and push.",
+                               " Fetch, merge and push.",
             add_message_expected_call_count=0,
             prevent_discarding_revisions=True,
             repo=repo,
