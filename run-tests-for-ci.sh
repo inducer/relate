@@ -86,7 +86,7 @@ ${PY_EXE} manage.py compilemessages
 
 $PIP install codecov factory_boy pytest-django pytest-cov
 
-PYTEST_FLAGS="--junitxml=pytest.xml --cov=relate --cov=course --cov=accounts"
+PYTEST_FLAGS="-rxsw --durations=10 --tb=native  --junitxml=pytest.xml --cov=relate --cov=course --cov=accounts"
 
 if [[ "$RL_CI_TEST" = "test_expensive" ]]; then
     ${PY_EXE} -m pytest $PYTEST_FLAGS tests.test_tasks \
