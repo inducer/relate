@@ -180,7 +180,7 @@ class User(AbstractBaseUser, PermissionsMixin):
         # Intentionally don't fallback if it failed -- let user see the exception.
         result = mask_method(self)
         if not result:
-            raise RuntimeError("get_masked_profile should not None.")
+            raise RuntimeError("get_masked_profile should not return None.")
         else:
             result = str(result).strip()
         if not result:
