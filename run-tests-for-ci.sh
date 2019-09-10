@@ -88,37 +88,35 @@ $PIP install codecov factory_boy pytest-django pytest-cov
 
 PYTEST_FLAGS="-rxsw --durations=10 --tb=native  --junitxml=pytest.xml --cov=relate --cov=course --cov=accounts"
 
-cd tests
 if [[ "$RL_CI_TEST" = "test_expensive" ]]; then
-    ${PY_EXE} -m pytest $PYTEST_FLAGS \
-                                test_tasks \
-                                test_admin \
-                                test_pages.test_code \
-                                test_pages.test_generic \
-                                test_pages.test_inline.InlineMultiPageUpdateTest \
-                                test_pages.test_upload.UploadQuestionNormalizeTest \
-                                test_grades.test_generic \
-                                test_grades.test_grades.GetGradeTableTest \
-                                test_grading.SingleCourseQuizPageGradeInterfaceTest \
-                                test_utils.LanguageOverrideTest \
-                                test_accounts.test_admin.AccountsAdminTest \
-                                test_flow.test_flow.AssemblePageGradesTest \
-                                test_flow.test_flow.FinishFlowSessionViewTest \
-                                test_content.SubDirRepoTest \
-                                test_auth.SignInByPasswordTest \
-                                test_analytics.FlowAnalyticsTest \
-                                test_analytics.PageAnalyticsTest \
-                                test_analytics.FlowListTest \
-                                test_analytics.IsFlowMultipleSubmitTest \
-                                test_analytics.IsPageMultipleSubmitTest \
-                                test_versioning.ParamikoSSHVendorTest \
-                                test_receivers.UpdateCouresOrUserSignalTest
+    ${PY_EXE} -m pytest $PYTEST_FLAGS tests.test_tasks \
+                                tests.test_admin \
+                                tests.test_pages.test_code \
+                                tests.test_pages.test_generic \
+                                tests.test_pages.test_inline.InlineMultiPageUpdateTest \
+                                tests.test_pages.test_upload.UploadQuestionNormalizeTest \
+                                tests.test_grades.test_generic \
+                                tests.test_grades.test_grades.GetGradeTableTest \
+                                tests.test_grading.SingleCourseQuizPageGradeInterfaceTest \
+                                tests.test_utils.LanguageOverrideTest \
+                                tests.test_accounts.test_admin.AccountsAdminTest \
+                                tests.test_flow.test_flow.AssemblePageGradesTest \
+                                tests.test_flow.test_flow.FinishFlowSessionViewTest \
+                                tests.test_content.SubDirRepoTest \
+                                tests.test_auth.SignInByPasswordTest \
+                                tests.test_analytics.FlowAnalyticsTest \
+                                tests.test_analytics.PageAnalyticsTest \
+                                tests.test_analytics.FlowListTest \
+                                tests.test_analytics.IsFlowMultipleSubmitTest \
+                                tests.test_analytics.IsPageMultipleSubmitTest \
+                                tests.test_versioning.ParamikoSSHVendorTest \
+                                tests.test_receivers.UpdateCouresOrUserSignalTest
 
 elif [[ "$RL_CI_TEST" = "test_postgres" ]]; then
-    ${PY_EXE} -m pytest $PYTEST_FLAGS test_postgres
+    ${PY_EXE} -m pytest $PYTEST_FLAGS tests.test_postgres
 
 else
-    ${PY_EXE} -m pytest $PYTEST_FLAGS
+    ${PY_EXE} -m pytest $PYTEST_FLAGS tests
 fi
 
 coverage report -m
