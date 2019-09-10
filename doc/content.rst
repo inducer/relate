@@ -26,6 +26,12 @@ sufficient privileges) may be previewing a different version of their choosing.
     (namely, so that line endings are represented in the 'UNIX' convention,
     as a single newline character).
 
+RELATE maintains a git repository for each course and can fetch from one
+external git repository configured in the course page and update its
+internal git repository from this external git repository. A user with
+sufficient privileges can access this internal git repository using HTTPS
+protocol.
+
 .. _yaml-files:
 
 YAML
