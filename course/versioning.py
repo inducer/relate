@@ -353,7 +353,7 @@ def run_course_update_command(
                 raise RuntimeError(_("fetch would discard commits, refusing"))
             if repo[b"HEAD"] != repo[remote_head] and not is_parent_commit(repo,
                     repo[b"HEAD"], repo[remote_head], max_history_check_size=20):
-                raise RuntimeError(_("internal git repo has more commits. Fetch,"
+                raise RuntimeError(_("internal git repo has more commits. Fetch, "
                                      "merge and push."))
 
         repo[b"HEAD"] = remote_head
