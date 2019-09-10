@@ -25,7 +25,7 @@ THE SOFTWARE.
 import six
 from django.urls import reverse, NoReverseMatch
 from django.test import TestCase
-from unittest import skipIf, skipUnless
+from unittest import skipIf
 import pytest
 
 from course.models import (
