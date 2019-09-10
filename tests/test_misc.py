@@ -27,6 +27,7 @@ THE SOFTWARE.
 import six
 import re
 import unittest
+import pytest
 import datetime
 from django.test import TestCase, RequestFactory
 from django.test.utils import override_settings
@@ -582,6 +583,7 @@ class FormatDatetimeLocalTest(unittest.TestCase):
 # }}}
 
 
+@pytest.mark.xfail
 class GetLocalTestSettingsFileTest(unittest.TestCase):
     """test manage.get_local_test_settings_file"""
 
