@@ -552,7 +552,7 @@ class DirectGitEndpointTest(TestCase):
 
         # Check token from other user
         auth_data_unencoded = "{}:{}_{}".format(student2.username,
-                                                "eggs", "ham").encode()
+                                                auth_token.id, "ham").encode()
         auth_data = b64encode(auth_data_unencoded).decode("utf-8")
         request = mock.MagicMock()
         request.META.get.return_value = "Basic {}".format(auth_data)
@@ -608,6 +608,18 @@ class DirectGitEndpointTest(TestCase):
         self.assertEqual(mock_get_course_repo.call_count, 1)
 
         fake_call_wsgi_app.stop()
+        fake_get_course_repo.stop()
+
+        fake_dulwich_web_backend = mock.patch("dulwich.web.DictBackend")
+        fake_get_course_repo = mock.patch("course.content.get_course_repo")
+        mock_dulwich_web_backend = fake_dulwich_web_backend.start()
+        mock_get_course_repo = fake_get_course_repo.start()
+        request = mock.MagicMock()
+        request.META.get.return_value = "Basic {}".format(auth_data)
+        versioning.git_endpoint(request, course.identifier, "")
+        self.assertEqual(mock_dulwich_web_backend.call_count, 1)
+        self.assertEqual(mock_get_course_repo.call_count, 1)
+        fake_dulwich_web_backend.stop()
         fake_get_course_repo.stop()
 
 
@@ -910,6 +922,25 @@ class RunCourseUpdateCommandTest(MockAddMessageMixing, unittest.TestCase):
             command="fetch",
             expected_error_type=RuntimeError,
             expected_error_msg="fetch would discard commits, refusing",
+            add_message_expected_call_count=0,
+            prevent_discarding_revisions=True
+        )
+        self.assertAddMessageCallCount(0)
+
+    def test_internal_git_repo_more_commits(self):
+        self.mock_is_parent_commit.return_value = False
+
+        fake_transfer_remote_refs = mock.patch(
+            "course.versioning.transfer_remote_refs")
+        fake_transfer_remote_refs.return_value = None
+        self.mock_transfer_remote_refs = fake_transfer_remote_refs.start()
+        self.addCleanup(fake_transfer_remote_refs.stop)
+
+        self.check_command_message_result(
+            command="fetch",
+            expected_error_type=RuntimeError,
+            expected_error_msg="internal git repo has more commits."
+                "Fetch, merge and push.",
             add_message_expected_call_count=0,
             prevent_discarding_revisions=True
         )
