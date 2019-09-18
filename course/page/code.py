@@ -44,7 +44,7 @@ from course.constants import flow_permission
 
 # DEBUGGING SWITCH:
 # True for 'spawn containers' (normal operation)
-# False for 'just connect to localhost:CODE_QUESTION_CONTAINER_PORT' for runpy'
+# False for 'just connect to localhost:CODE_QUESTION_CONTAINER_PORT' as runcode'
 SPAWN_CONTAINERS = True
 
 
@@ -107,8 +107,8 @@ def request_run(run_req, run_timeout, image=None):
         def debug_print(s):
             pass
 
-    command_path = '/opt/runpy/runpy'
-    user = 'runpy'
+    command_path = '/opt/runcode/runcode'
+    user = 'runcode'
 
     # The following is necessary because tests don't arise from a CodeQuestion
     # object, so we provide a fallback.
@@ -613,7 +613,7 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
         if correct_code is None:
             correct_code = ""
 
-        from .code_runpy_backend import substitute_correct_code_into_test_code
+        from .code_run_backend import substitute_correct_code_into_test_code
         return substitute_correct_code_into_test_code(test_code, correct_code)
 
     def grade(self, page_context, page_data, answer_data, grade_data):
