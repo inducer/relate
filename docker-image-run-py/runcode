@@ -30,18 +30,18 @@ import json
 import sys
 import io
 try:
-    from code_runpy_backend import Struct, run_code, package_exception
+    from code_run_backend import Struct, run_code, package_exception
 except ImportError:
     try:
         # When faking a container for unittest
-        from course.page.code_runpy_backend import (
+        from course.page.code_run_backend import (
             Struct, run_code, package_exception)
     except ImportError:
         # When debugging, i.e., run "python runpy" command line
         import os
         sys.path.insert(0, os.path.abspath(
             os.path.join(os.path.dirname(__file__), os.pardir)))
-        from course.page.code_runpy_backend import (
+        from course.page.code_run_backend import (
             Struct, run_code, package_exception)
 
 from http.server import BaseHTTPRequestHandler
@@ -82,7 +82,7 @@ class RunRequestHandler(BaseHTTPRequestHandler):
 
         try:
             print("POST RECEIVED", file=prev_stderr)
-            if self.path != "/run-python":
+            if self.path != "/run-code":
                 raise RuntimeError("unrecognized path in POST")
 
             clength = int(self.headers['content-length'])

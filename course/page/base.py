@@ -768,6 +768,12 @@ class PageBaseWithTitle(PageBase):
         if title is None:
             try:
                 md_body = self.markup_body_for_title()
+            except AttributeError:
+                #TODO XXX
+                from warnings import warn
+                warn(_("PageBaseWithTitle subclass '%s' does not implement "
+                        "markup_body_for_title()")
+                        % type(self).__name__)
             except NotImplementedError:
                 from warnings import warn
                 warn(_("PageBaseWithTitle subclass '%s' does not implement "
