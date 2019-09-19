@@ -7,7 +7,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ('course', '0112_drop_name_uniqueness_on_participationtag'),
-        ('course', '0112_add_direct_git_endpoint_permission'),
+        ('course', '0112_add_use_git_endpoint_permission'),
     ]
 
     operations = [

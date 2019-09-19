@@ -756,7 +756,7 @@ def git_endpoint(request, course_identifier, git_path):
     else:
         check_permission = participation.has_permission
 
-    if not check_permission(pperm.direct_git_endpoint):
+    if not check_permission(pperm.use_git_endpoint):
         return unauthorized_access()
 
     from course.content import get_course_repo

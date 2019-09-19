@@ -585,7 +585,7 @@ class DirectGitEndpointTest(TestCase):
             user=instructor)
         participation1.roles.set([instructor_role])
         ParticipationRolePermission(role=instructor_role,
-                                    permission=pp.direct_git_endpoint).save()
+                                    permission=pp.use_git_endpoint).save()
 
         auth_token = AuthenticationToken(
                 user=instructor,

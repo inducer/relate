@@ -4,7 +4,7 @@ from __future__ import unicode_literals
 
 from django.db import migrations
 
-def add_direct_git_endpoint_permission(apps, schema_editor):
+def add_use_git_endpoint_permission(apps, schema_editor):
     from course.constants import participation_permission as pperm
 
     ParticipationRolePermission = apps.get_model("course", "ParticipationRolePermission")  # noqa
@@ -19,7 +19,7 @@ def add_direct_git_endpoint_permission(apps, schema_editor):
         for pk in roles_pks:
             ParticipationRolePermission.objects.get_or_create(
                 role_id=pk,
-                permission=pperm.direct_git_endpoint
+                permission=pperm.use_git_endpoint
             )
 
 
@@ -30,5 +30,5 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RunPython(add_direct_git_endpoint_permission)
+        migrations.RunPython(add_use_git_endpoint_permission)
     ]
