@@ -413,7 +413,7 @@ class ImportGradesTest(GradesTestMixin, TestCase):
 
     def test_import_file_error(self):
         expected_file_error_msg = (
-            "Error: line contains NULL byte. Are you sure the file is a "
+            "Error: line contains NUL. Are you sure the file is a "
             "CSV file other than a Microsoft Excel file?")
 
         with open(
