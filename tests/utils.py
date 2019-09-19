@@ -22,6 +22,13 @@ except ImportError:
     # Since Django >= 2.0 only support PY3
     from unittest import mock  # noqa
 
+    if sys.version_info < (3, 8):
+        # __round__ is missing from MagicMock before Py3.8
+        # https://github.com/python/cpython/pull/6880
+        # Work around this by monkeypatching mock:
+        mock._magics.add("__round__")
+        mock._all_magics = mock._magics | mock._non_defaults
+
 
 # {{{ These are copied (and maybe modified) from django official unit tests
 class BaseEmailBackendTestsMixin(object):
@@ -183,10 +190,10 @@ def may_run_expensive_tests():
 
     # Allow run expensive tests locally, i.e., CI not detected.
     if not any([os.getenv(ci)
-                for ci in ["RL_TRAVIS_TEST", "GITLAB_CI", "APPVEYOR"]]):
+                for ci in ["RL_CI_TEST", "GITLAB_CI", "APPVEYOR"]]):
         return True
 
-    if os.getenv("RL_TRAVIS_TEST") != "test_expensive":
+    if os.getenv("RL_CI_TEST") != "test_expensive":
         return False
 
     return True

@@ -614,8 +614,8 @@ Multiple of these modifiers may occur. They are applied from left to right.
 
 .. events_yml
 
-The Calendear Information File: :file:`events.yml`
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+The Calendar Information File: :file:`events.yml`
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The calendar information file, by default named :file:`events.yml`,
 augments the calendar data in the database with descriptions and
