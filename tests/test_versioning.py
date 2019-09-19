@@ -432,11 +432,11 @@ class IsParentCommitTest(unittest.TestCase):
 
         self.assertFalse(
             versioning.is_ancestor_commit(
-                self.repo, potential_parent=c0, child=c1))
+                self.repo, potential_ancestor=c0, child=c1))
 
         self.assertFalse(
             versioning.is_ancestor_commit(
-                self.repo, potential_parent=c0, child=c1,
+                self.repo, potential_ancestor=c0, child=c1,
                 max_history_check_size=2))
 
     def test_true(self):
@@ -454,12 +454,12 @@ class IsParentCommitTest(unittest.TestCase):
 
         self.assertFalse(
             versioning.is_ancestor_commit(
-                self.repo, potential_parent=c0, child=c3,
+                self.repo, potential_ancestor=c0, child=c3,
                 max_history_check_size=1))
 
         self.assertTrue(
             versioning.is_ancestor_commit(
-                self.repo, potential_parent=c0, child=c3,
+                self.repo, potential_ancestor=c0, child=c3,
                 max_history_check_size=20))
 
 
@@ -476,6 +476,7 @@ class DirectGitEndpointTest(TestCase):
             return b
 
         request.META.get = no_header_mock
+        request.environ = request.META
         response = versioning.git_endpoint(request, course.identifier, "")
         self.assertEqual(response.status_code, 401)
 
@@ -485,19 +486,23 @@ class DirectGitEndpointTest(TestCase):
         request = mock.MagicMock()
 
         request.META.get.return_value = "foo"
+        request.environ = request.META
         response = versioning.git_endpoint(request, course.identifier, "")
         self.assertEqual(response.status_code, 401)
 
         request.META.get.return_value = "NonBasic foo"
+        request.environ = request.META
         response = versioning.git_endpoint(request, course.identifier, "")
         self.assertEqual(response.status_code, 401)
 
         request.META.get.return_value = "Basic foo"
+        request.environ = request.META
         response = versioning.git_endpoint(request, course.identifier, "")
         self.assertEqual(response.status_code, 401)
 
         auth_data = b64encode("foo".encode()).decode("utf-8")
         request.META.get.return_value = "Basic {}".format(auth_data)
+        request.environ = request.META
         response = versioning.git_endpoint(request, course.identifier, "")
         self.assertEqual(response.status_code, 401)
 
@@ -529,6 +534,7 @@ class DirectGitEndpointTest(TestCase):
         auth_data = b64encode(auth_data_unencoded).decode("utf-8")
         request = mock.MagicMock()
         request.META.get.return_value = "Basic {}".format(auth_data)
+        request.environ = request.META
         response = versioning.git_endpoint(request, course.identifier, "")
         self.assertEqual(response.status_code, 401)
 
@@ -538,6 +544,7 @@ class DirectGitEndpointTest(TestCase):
         auth_data = b64encode(auth_data_unencoded).decode("utf-8")
         request = mock.MagicMock()
         request.META.get.return_value = "Basic {}".format(auth_data)
+        request.environ = request.META
         response = versioning.git_endpoint(request, course.identifier, "")
         self.assertEqual(response.status_code, 401)
 
@@ -547,6 +554,7 @@ class DirectGitEndpointTest(TestCase):
         auth_data = b64encode(auth_data_unencoded).decode("utf-8")
         request = mock.MagicMock()
         request.META.get.return_value = "Basic {}".format(auth_data)
+        request.environ = request.META
         response = versioning.git_endpoint(request, course.identifier, "")
         self.assertEqual(response.status_code, 401)
 
@@ -556,6 +564,7 @@ class DirectGitEndpointTest(TestCase):
         auth_data = b64encode(auth_data_unencoded).decode("utf-8")
         request = mock.MagicMock()
         request.META.get.return_value = "Basic {}".format(auth_data)
+        request.environ = request.META
         response = versioning.git_endpoint(request, course.identifier, "")
         self.assertEqual(response.status_code, 401)
 
@@ -565,6 +574,7 @@ class DirectGitEndpointTest(TestCase):
         auth_data = b64encode(auth_data_unencoded).decode("utf-8")
         request = mock.MagicMock()
         request.META.get.return_value = "Basic {}".format(auth_data)
+        request.environ = request.META
         response = versioning.git_endpoint(request, course.identifier, "")
         self.assertEqual(response.status_code, 401)
 
@@ -597,30 +607,29 @@ class DirectGitEndpointTest(TestCase):
         fake_get_course_repo = mock.patch("course.content.get_course_repo")
         mock_call_wsgi_app = fake_call_wsgi_app.start()
         mock_get_course_repo = fake_get_course_repo.start()
+        self.addCleanup(fake_call_wsgi_app.stop)
+        self.addCleanup(fake_get_course_repo.stop)
 
         auth_data_unencoded = "{}:{}_{}".format(instructor.username,
                                                 auth_token.id, "spam").encode()
         auth_data = b64encode(auth_data_unencoded).decode("utf-8")
         request = mock.MagicMock()
         request.META.get.return_value = "Basic {}".format(auth_data)
+        request.environ = request.META
         versioning.git_endpoint(request, course.identifier, "")
         self.assertEqual(mock_call_wsgi_app.call_count, 1)
         self.assertEqual(mock_get_course_repo.call_count, 1)
 
-        fake_call_wsgi_app.stop()
-        fake_get_course_repo.stop()
-
         fake_dulwich_web_backend = mock.patch("dulwich.web.DictBackend")
         fake_get_course_repo = mock.patch("course.content.get_course_repo")
         mock_dulwich_web_backend = fake_dulwich_web_backend.start()
-        mock_get_course_repo = fake_get_course_repo.start()
+        self.addCleanup(fake_dulwich_web_backend.stop)
         request = mock.MagicMock()
         request.META.get.return_value = "Basic {}".format(auth_data)
+        request.environ = request.META
         versioning.git_endpoint(request, course.identifier, "")
         self.assertEqual(mock_dulwich_web_backend.call_count, 1)
-        self.assertEqual(mock_get_course_repo.call_count, 1)
-        fake_dulwich_web_backend.stop()
-        fake_get_course_repo.stop()
+        self.assertEqual(mock_get_course_repo.call_count, 2)
 
 
 FETCHED_LITERAL = "Fetch successful."
@@ -731,12 +740,12 @@ class RunCourseUpdateCommandTest(MockAddMessageMixing, unittest.TestCase):
                     prevent_discarding_revisions)
                 if will_check and self.mock_is_ancestor_commit.call_count != 1:
                     self.fail(
-                        "'is_ancestor_commit' is expected for command '%s' to be "
-                        "called while not" % command)
+                        "'is_ancestor_commit' is expected for command '%s' to "
+                        "be called while not" % command)
                 elif not will_check and self.mock_is_ancestor_commit.call_count > 0:
                     self.fail(
-                        "'is_ancestor_commit' is not expected for command '%s' to be "
-                        "called while called" % command)
+                        "'is_ancestor_commit' is not expected for command '%s' to "
+                        "be called while called" % command)
 
         # when not prevent_discarding_revisions, is_ancestor_commit
         # should not be checked (expensive operation)
@@ -753,12 +762,12 @@ class RunCourseUpdateCommandTest(MockAddMessageMixing, unittest.TestCase):
                     may_update, prevent_discarding_revisions)
                 if self.mock_is_ancestor_commit.call_count > 0:
                     self.fail(
-                        "'is_ancestor_commit' is not expected for command '%s' to be "
-                        "called while called (expensive)" % command)
+                        "'is_ancestor_commit' is not expected for command '%s' to "
+                        "be called while called (expensive)" % command)
                 elif self.mock_is_ancestor_commit.call_count > 0:
                     self.fail(
-                        "'is_ancestor_commit' is not expected for command '%s' to be "
-                        "called while called" % command)
+                        "'is_ancestor_commit' is not expected for command '%s' to "
+                        "be called while called" % command)
 
     @unittest.skipIf(six.PY2, "PY2 doesn't support subTest")
     def test_is_content_validated(self):
@@ -915,17 +924,6 @@ class RunCourseUpdateCommandTest(MockAddMessageMixing, unittest.TestCase):
 
                 self.assertEqual(
                     self.course.active_git_commit_sha, expected_course_sha)
-
-    def test_fetch_prevent_discarding_revisions(self):
-        self.mock_is_ancestor_commit.return_value = True
-        self.check_command_message_result(
-            command="fetch",
-            expected_error_type=RuntimeError,
-            expected_error_msg="fetch would discard commits, refusing",
-            add_message_expected_call_count=0,
-            prevent_discarding_revisions=True
-        )
-        self.assertAddMessageCallCount(0)
 
     def test_internal_git_repo_more_commits(self):
         from collections import defaultdict

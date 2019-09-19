@@ -350,8 +350,9 @@ def run_course_update_command(
         if prevent_discarding_revisions:
             # Guard against bad scenario:
             # Local is not ancestor of remote, i.e. the branches have diverged.
-            if repo[b"HEAD"] != repo[remote_head] and not is_ancestor_commit(repo,
-                    repo[b"HEAD"], repo[remote_head], max_history_check_size=20):
+            if not is_ancestor_commit(repo, repo[b"HEAD"], repo[remote_head],
+                    max_history_check_size=20) and \
+                    repo[b"HEAD"] != repo[remote_head]:
                 raise RuntimeError(_("internal git repo has more commits. Fetch, "
                                      "merge and push."))
 

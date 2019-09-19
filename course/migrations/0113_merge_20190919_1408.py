@@ -2,6 +2,8 @@
 
 from django.db import migrations
 
+if False:
+    from typing import List, Any  # noqa
 
 class Migration(migrations.Migration):
 
@@ -10,5 +12,4 @@ class Migration(migrations.Migration):
         ('course', '0112_add_use_git_endpoint_permission'),
     ]
 
-    operations = [
-    ]
+    operations = []   # type: List[Any]
