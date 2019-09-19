@@ -29,8 +29,9 @@ sufficient privileges) may be previewing a different version of their choosing.
 RELATE maintains a git repository for each course and can fetch from one
 external git repository configured in the course page and update its
 internal git repository from this external git repository. A user with
-sufficient privileges can access this internal git repository using HTTPS
-protocol.
+sufficient privileges can access this internal git repository by using the
+HTTPS protocol with RELATE username as the username and RELATE authentication
+token as the password.
 
 .. _yaml-files:
 
