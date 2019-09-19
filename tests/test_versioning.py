@@ -431,11 +431,11 @@ class IsParentCommitTest(unittest.TestCase):
         c1 = FakeCommit(b"first", [c0])
 
         self.assertFalse(
-            versioning.is_parent_commit(
+            versioning.is_ancestor_commit(
                 self.repo, potential_parent=c0, child=c1))
 
         self.assertFalse(
-            versioning.is_parent_commit(
+            versioning.is_ancestor_commit(
                 self.repo, potential_parent=c0, child=c1,
                 max_history_check_size=2))
 
@@ -453,12 +453,12 @@ class IsParentCommitTest(unittest.TestCase):
         c3 = FakeCommit(b"third", [c2])
 
         self.assertFalse(
-            versioning.is_parent_commit(
+            versioning.is_ancestor_commit(
                 self.repo, potential_parent=c0, child=c3,
                 max_history_check_size=1))
 
         self.assertTrue(
-            versioning.is_parent_commit(
+            versioning.is_ancestor_commit(
                 self.repo, potential_parent=c0, child=c3,
                 max_history_check_size=20))
 
@@ -692,10 +692,10 @@ class RunCourseUpdateCommandTest(MockAddMessageMixing, unittest.TestCase):
         self.mock_transfer_remote_refs = fake_transfer_remote_refs.start()
         self.addCleanup(fake_transfer_remote_refs.stop)
 
-        fake_is_parent_commit = mock.patch("course.versioning.is_parent_commit")
-        self.mock_is_parent_commit = fake_is_parent_commit.start()
-        self.mock_is_parent_commit.return_value = False
-        self.addCleanup(fake_is_parent_commit.stop)
+        fake_is_ancestor_commit = mock.patch("course.versioning.is_ancestor_commit")
+        self.mock_is_ancestor_commit = fake_is_ancestor_commit.start()
+        self.mock_is_ancestor_commit.return_value = False
+        self.addCleanup(fake_is_ancestor_commit.stop)
 
         fake_validate_course_content = mock.patch(
             "course.validation.validate_course_content")
@@ -708,7 +708,7 @@ class RunCourseUpdateCommandTest(MockAddMessageMixing, unittest.TestCase):
             course.delete()
 
     @unittest.skipIf(six.PY2, "PY2 doesn't support subTest")
-    def test_is_parent_commit_checked(self):
+    def test_is_ancestor_commit_checked(self):
         may_update = True
         prevent_discarding_revisions = True
 
@@ -721,7 +721,7 @@ class RunCourseUpdateCommandTest(MockAddMessageMixing, unittest.TestCase):
             ("end_preview", False)]
 
         for command, will_check in command_tup:
-            self.mock_is_parent_commit.reset_mock()
+            self.mock_is_ancestor_commit.reset_mock()
             with self.subTest(
                     command=command,
                     prevent_discarding_revisions=prevent_discarding_revisions):
@@ -729,21 +729,21 @@ class RunCourseUpdateCommandTest(MockAddMessageMixing, unittest.TestCase):
                     self.request, self.repo, self.content_repo, self.pctx, command,
                     self.default_switch_to_sha.encode(), may_update,
                     prevent_discarding_revisions)
-                if will_check and self.mock_is_parent_commit.call_count != 1:
+                if will_check and self.mock_is_ancestor_commit.call_count != 1:
                     self.fail(
-                        "'is_parent_commit' is expected for command '%s' to be "
+                        "'is_ancestor_commit' is expected for command '%s' to be "
                         "called while not" % command)
-                elif not will_check and self.mock_is_parent_commit.call_count > 0:
+                elif not will_check and self.mock_is_ancestor_commit.call_count > 0:
                     self.fail(
-                        "'is_parent_commit' is not expected for command '%s' to be "
+                        "'is_ancestor_commit' is not expected for command '%s' to be "
                         "called while called" % command)
 
-        # when not prevent_discarding_revisions, is_parent_commit
+        # when not prevent_discarding_revisions, is_ancestor_commit
         # should not be checked (expensive operation)
 
         prevent_discarding_revisions = False
         for command, _ in command_tup:
-            self.mock_is_parent_commit.reset_mock()
+            self.mock_is_ancestor_commit.reset_mock()
             with self.subTest(
                     command=command,
                     prevent_discarding_revisions=prevent_discarding_revisions):
@@ -751,13 +751,13 @@ class RunCourseUpdateCommandTest(MockAddMessageMixing, unittest.TestCase):
                     self.request, self.repo, self.content_repo, self.pctx, command,
                     self.default_switch_to_sha.encode(),
                     may_update, prevent_discarding_revisions)
-                if self.mock_is_parent_commit.call_count > 0:
+                if self.mock_is_ancestor_commit.call_count > 0:
                     self.fail(
-                        "'is_parent_commit' is not expected for command '%s' to be "
+                        "'is_ancestor_commit' is not expected for command '%s' to be "
                         "called while called (expensive)" % command)
-                elif self.mock_is_parent_commit.call_count > 0:
+                elif self.mock_is_ancestor_commit.call_count > 0:
                     self.fail(
-                        "'is_parent_commit' is not expected for command '%s' to be "
+                        "'is_ancestor_commit' is not expected for command '%s' to be "
                         "called while called" % command)
 
     @unittest.skipIf(six.PY2, "PY2 doesn't support subTest")
@@ -802,7 +802,7 @@ class RunCourseUpdateCommandTest(MockAddMessageMixing, unittest.TestCase):
                 may_update, prevent_discarding_revisions)
 
         self.assertEqual(self.mock_validate_course_content.call_count, 0)
-        self.assertEqual(self.mock_is_parent_commit.call_count, 0)
+        self.assertEqual(self.mock_is_ancestor_commit.call_count, 0)
 
         expected_error_msg = "invalid command"
         self.assertIn(expected_error_msg, str(cm.exception))
@@ -895,7 +895,7 @@ class RunCourseUpdateCommandTest(MockAddMessageMixing, unittest.TestCase):
         for (command, add_message_call_count, expected, not_expected,
              expected_course_sha) in command_tup:
             with self.subTest(command=command):
-                self.mock_is_parent_commit.return_value = False
+                self.mock_is_ancestor_commit.return_value = False
                 self.check_command_message_result(
                     command=command,
                     add_message_expected_call_count=add_message_call_count,
@@ -904,7 +904,7 @@ class RunCourseUpdateCommandTest(MockAddMessageMixing, unittest.TestCase):
                     prevent_discarding_revisions=False
                 )
 
-                self.mock_is_parent_commit.return_value = True
+                self.mock_is_ancestor_commit.return_value = True
                 self.check_command_message_result(
                     command=command,
                     add_message_expected_call_count=add_message_call_count,
@@ -917,7 +917,7 @@ class RunCourseUpdateCommandTest(MockAddMessageMixing, unittest.TestCase):
                     self.course.active_git_commit_sha, expected_course_sha)
 
     def test_fetch_prevent_discarding_revisions(self):
-        self.mock_is_parent_commit.return_value = True
+        self.mock_is_ancestor_commit.return_value = True
         self.check_command_message_result(
             command="fetch",
             expected_error_type=RuntimeError,
@@ -929,7 +929,7 @@ class RunCourseUpdateCommandTest(MockAddMessageMixing, unittest.TestCase):
 
     def test_internal_git_repo_more_commits(self):
         from collections import defaultdict
-        self.mock_is_parent_commit.return_value = False
+        self.mock_is_ancestor_commit.return_value = False
         repo = defaultdict(lambda: "bar")
         repo[b"HEAD"] = "foo"
 
