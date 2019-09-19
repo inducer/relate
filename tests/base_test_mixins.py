@@ -2487,7 +2487,7 @@ class SubprocessRunpyContainerMixin(object):
     def setUp(self):
         super(SubprocessRunpyContainerMixin, self).setUp()
         self.faked_container_patch = mock.patch(
-            "course.page.code.SPAWN_CONTAINERS_FOR_RUNPY", False)
+            "course.page.code.SPAWN_CONTAINERS", False)
         self.faked_container_patch.start()
         self.addCleanup(self.faked_container_patch.stop)
 
@@ -2495,9 +2495,9 @@ class SubprocessRunpyContainerMixin(object):
     def tearDownClass(cls):  # noqa
         super(SubprocessRunpyContainerMixin, cls).tearDownClass()
 
-        from course.page.code import SPAWN_CONTAINERS_FOR_RUNPY
-        # Make sure SPAWN_CONTAINERS_FOR_RUNPY is reset to True
-        assert SPAWN_CONTAINERS_FOR_RUNPY
+        from course.page.code import SPAWN_CONTAINERS
+        # Make sure SPAWN_CONTAINERS is reset to True
+        assert SPAWN_CONTAINERS
         if sys.platform.startswith("win"):
             # Without these lines, tests on Appveyor hanged when all tests
             # finished.
