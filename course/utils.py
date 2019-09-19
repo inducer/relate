@@ -1084,8 +1084,13 @@ def csv_data_importable(file_contents, column_idx_list, header_count):
             err_msg += ": "
         err_msg += err_str
 
-        if "line contains NULL byte" in err_str:
+        if "line contains NUL" in err_str:
             err_msg = err_msg.rstrip(".") + ". "
+
+            # This message changed over time.
+            # Make the message uniform to please the tests.
+            err_msg = err_msg.replace("NULL byte", "NUL")
+
             err_msg += _("Are you sure the file is a CSV file other "
                          "than a Microsoft Excel file?")
 

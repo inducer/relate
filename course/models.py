@@ -55,8 +55,6 @@ from course.constants import (  # noqa
         COURSE_ID_REGEX, GRADING_OPP_ID_REGEX, NAME_VALID_REGEX, EVENT_KIND_REGEX
         )
 
-from course.page.base import AnswerFeedback
-
 
 # {{{ mypy
 
@@ -64,6 +62,7 @@ if False:
     from typing import List, Dict, Any, Optional, Text, Iterable, Tuple, FrozenSet  # noqa
     from course.content import FlowDesc  # noqa
     import datetime # noqa
+    from course.page.base import AnswerFeedback  # noqa: F401
 
 # }}}
 
@@ -369,7 +368,7 @@ class Event(models.Model):
 class ParticipationTag(models.Model):
     course = models.ForeignKey(Course,
             verbose_name=_('Course'), on_delete=models.CASCADE)
-    name = models.CharField(max_length=100, unique=True,
+    name = models.CharField(max_length=100,
             # Translators: name format of ParticipationTag
             help_text=_("Format is lower-case-with-hyphens. "
             "Do not use spaces."),
@@ -1273,6 +1272,7 @@ def get_feedback_for_grade(grade):
     except ObjectDoesNotExist:
         bulk_feedback_json = None
 
+    from course.page.base import AnswerFeedback  # noqa: F811
     return AnswerFeedback.from_json(grade.feedback, bulk_feedback_json)
 
 # }}}
