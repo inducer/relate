@@ -682,9 +682,9 @@ def git_endpoint(request, course_identifier, git_path):
 
     def unauthorized_access():
         # type: () -> http.HttpResponse
-        realm = _("Relate direct git access")
+        realm = _("Relate direct git access for {}".format(course_identifier))
         response = http.HttpResponse(
-                _('Authorization Required'), content_type="text/plain")
+                _('Authorization by API Token Required'), content_type="text/plain")
         response['WWW-Authenticate'] = 'Basic realm="%s"' % (realm)
         response.status_code = 401
         return response
