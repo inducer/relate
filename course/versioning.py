@@ -624,6 +624,7 @@ def call_wsgi_app(
 
     # request.environ and request.META are the same object, so changes
     # to the headers by middlewares will be seen here.
+    assert request.environ == request.META
     environ = request.environ.copy()
     #if len(args) > 0:
     assert environ['PATH_INFO'].startswith(prefix)
