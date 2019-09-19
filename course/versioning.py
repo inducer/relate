@@ -631,11 +631,6 @@ def call_wsgi_app(
     environ['SCRIPT_NAME'] += prefix
     environ['PATH_INFO'] = environ['PATH_INFO'][len(prefix):]
 
-    if six.PY2:
-        # Django converts SCRIPT_NAME and PATH_INFO to unicode in WSGIRequest.
-        environ['SCRIPT_NAME'] = environ['SCRIPT_NAME'].encode('iso-8859-1')
-        environ['PATH_INFO'] = environ['PATH_INFO'].encode('iso-8859-1')
-
     headers_set = []   # type: List[Text]
     headers_sent = []  # type: List[bool]
 
