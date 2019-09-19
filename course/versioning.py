@@ -348,9 +348,14 @@ def run_course_update_command(
         transfer_remote_refs(repo, remote_refs)
         remote_head = remote_refs[b"HEAD"]
         if prevent_discarding_revisions:
+            # Guard agains bad scenario:
+            # Remote is ancestor of local, i.e. we would discard commits by updating.
             if is_parent_commit(repo, repo[remote_head], repo[b"HEAD"],
                     max_history_check_size=20):
                 raise RuntimeError(_("fetch would discard commits, refusing"))
+                
+            # Guard against bad scenario:
+            # Local is not ancestor of remote, i.e. the branches have diverged.
             if repo[b"HEAD"] != repo[remote_head] and not is_parent_commit(repo,
                     repo[b"HEAD"], repo[remote_head], max_history_check_size=20):
                 raise RuntimeError(_("internal git repo has more commits. Fetch, "
