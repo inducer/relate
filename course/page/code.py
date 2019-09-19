@@ -44,23 +44,23 @@ from course.constants import flow_permission
 
 # DEBUGGING SWITCH:
 # True for 'spawn containers' (normal operation)
-# False for 'just connect to localhost:RUNPY_PORT' for runpy'
-SPAWN_CONTAINERS_FOR_RUNPY = True
+# False for 'just connect to localhost:CODE_QUESTION_CONTAINER_PORT' for runpy'
+SPAWN_CONTAINERS = True
 
 
-# {{{ python code question
+# {{{ base code question
 
-class PythonCodeForm(StyledForm):
+class CodeForm(StyledForm):
     # prevents form submission with codemirror's empty textarea
     use_required_attribute = False
 
     def __init__(self, read_only, interaction_mode, initial_code,
-            data=None, *args, **kwargs):
-        super(PythonCodeForm, self).__init__(data, *args, **kwargs)
+            language_mode, data=None, *args, **kwargs):
+        super(CodeForm, self).__init__(data, *args, **kwargs)
 
         from course.utils import get_codemirror_widget
         cm_widget, cm_help_text = get_codemirror_widget(
-                language_mode="python",
+                language_mode=language_mode,
                 interaction_mode=interaction_mode,
                 read_only=read_only,
 
@@ -83,7 +83,7 @@ class PythonCodeForm(StyledForm):
         pass
 
 
-RUNPY_PORT = 9941
+CODE_QUESTION_CONTAINER_PORT = 9941
 DOCKER_TIMEOUT = 15
 
 
@@ -91,7 +91,7 @@ class InvalidPingResponse(RuntimeError):
     pass
 
 
-def request_python_run(run_req, run_timeout, image=None):
+def request_run(run_req, run_timeout, image=None):
     import json
     from six.moves import http_client
     import docker
@@ -107,7 +107,16 @@ def request_python_run(run_req, run_timeout, image=None):
         def debug_print(s):
             pass
 
-    if SPAWN_CONTAINERS_FOR_RUNPY:
+    command_path = '/opt/runpy/runpy'
+    user = 'runpy'
+
+    # The following is necessary because tests don't arise from a CodeQuestion
+    # object, so we provide a fallback.
+    debug_print('Image is %s.' % repr(image))
+    if image is None:
+        image = settings.RELATE_DOCKER_RUNPY_IMAGE
+
+    if SPAWN_CONTAINERS:
         docker_url = getattr(settings, "RELATE_DOCKER_URL",
                 "unix://var/run/docker.sock")
         docker_tls = getattr(settings, "RELATE_DOCKER_TLS_CONFIG",
@@ -118,13 +127,10 @@ def request_python_run(run_req, run_timeout, image=None):
                 timeout=DOCKER_TIMEOUT,
                 version="1.19")
 
-        if image is None:
-            image = settings.RELATE_DOCKER_RUNPY_IMAGE
-
         dresult = docker_cnx.create_container(
                 image=image,
                 command=[
-                    "/opt/runpy/runpy",
+                    command_path,
                     "-1"],
                 host_config={
                     "Memory": 384*10**6,
@@ -133,7 +139,7 @@ def request_python_run(run_req, run_timeout, image=None):
                     # Do not enable: matplotlib stops working if enabled.
                     # "ReadonlyRootfs": True,
                     },
-                user="runpy")
+                user=user)
 
         container_id = dresult["Id"]
     else:
@@ -149,7 +155,8 @@ def request_python_run(run_req, run_timeout, image=None):
 
             container_props = docker_cnx.inspect_container(container_id)
             (port_info,) = (container_props
-                    ["NetworkSettings"]["Ports"]["%d/tcp" % RUNPY_PORT])
+                    ["NetworkSettings"]["Ports"]["%d/tcp" %
+                    CODE_QUESTION_CONTAINER_PORT])
             port_host_ip = port_info.get("HostIp")
 
             if port_host_ip != "0.0.0.0":
@@ -157,7 +164,7 @@ def request_python_run(run_req, run_timeout, image=None):
 
             port = int(port_info["HostPort"])
         else:
-            port = RUNPY_PORT
+            port = CODE_QUESTION_CONTAINER_PORT
 
         from time import time, sleep
         start_time = time()
@@ -292,9 +299,9 @@ def is_nuisance_failure(result):
     return False
 
 
-def request_python_run_with_retries(run_req, run_timeout, image=None, retry_count=3):
+def request_run_with_retries(run_req, run_timeout, image=None, retry_count=3):
     while True:
-        result = request_python_run(run_req, run_timeout, image=image)
+        result = request_run(run_req, run_timeout, image=image)
 
         if retry_count and is_nuisance_failure(result):
             retry_count -= 1
@@ -303,11 +310,12 @@ def request_python_run_with_retries(run_req, run_timeout, image=None, retry_coun
         return result
 
 
-class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
+class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
     """
-    An auto-graded question allowing an answer consisting of Python code.
+    An auto-graded question allowing an answer consisting of code.
     All user code as well as all code specified as part of the problem
-    is in Python 3.
+    is in the specified language.  This class should be treated as an
+    interface and used only as a superclass.
 
     If you are not including the
     :attr:`course.constants.flow_permission.change_answer`
@@ -329,7 +337,7 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
 
     .. attribute:: type
 
-        ``PythonCodeQuestion``
+        ``CodeQuestion``
 
     .. attribute:: is_optional_page
 
@@ -360,7 +368,7 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
     .. attribute:: setup_code
 
         Optional.
-        Python code to prepare the environment for the participants
+        Language-specific code to prepare the environment for the participants
         answer.
 
     .. attribute:: show_setup_code
@@ -435,52 +443,14 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
         based on its :attr:`access_rules` (not the ones of the flow), a warning
         is shown. Setting this attribute to True will silence the warning.
 
-    The following symbols are available in :attr:`setup_code` and :attr:`test_code`:
-
-    * ``GradingComplete``: An exception class that can be raised to indicated
-      that the grading code has concluded.
-
-    * ``feedback``: A class instance with the following interface::
-
-          feedback.set_points(0.5) # 0<=points<=1 (usually)
-          feedback.add_feedback("This was wrong")
-
-          # combines the above two and raises GradingComplete
-          feedback.finish(0, "This was wrong")
-
-          feedback.check_numpy_array_sanity(name, num_axes, data)
-
-          feedback.check_numpy_array_features(name, ref, data, report_failure=True)
-
-          feedback.check_numpy_array_allclose(name, ref, data,
-                  accuracy_critical=True, rtol=1e-5, atol=1e-8,
-                  report_success=True, report_failure=True)
-              # If report_failure is True, this function will only return
-              # if *data* passes the tests. It will return *True* in this
-              # case.
-              #
-              # If report_failure is False, this function will always return,
-              # and the return value will indicate whether *data* passed the
-              # accuracy/shape/kind checks.
-
-          feedback.check_list(name, ref, data, entry_type=None)
-
-          feedback.check_scalar(name, ref, data, accuracy_critical=True,
-              rtol=1e-5, atol=1e-8, report_success=True, report_failure=True)
-          # returns True if accurate
-
-          feedback.call_user(f, *args, **kwargs)
-          # Calls a user-supplied function and prints an appropriate
-          # feedback message in case of failure.
-
     * ``data_files``: A dictionary mapping file names from :attr:`data_files`
       to :class:`bytes` instances with that file's contents.
 
     * ``user_code``: The user code being tested, as a string.
     """
 
-    def __init__(self, vctx, location, page_desc):
-        super(PythonCodeQuestion, self).__init__(vctx, location, page_desc)
+    def __init__(self, vctx, location, page_desc, language_mode):
+        super(CodeQuestion, self).__init__(vctx, location, page_desc)
 
         if vctx is not None and hasattr(page_desc, "data_files"):
             for data_file in page_desc.data_files:
@@ -516,13 +486,13 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
                     "access_rules/add_permssions/see_correctness."))
 
     def required_attrs(self):
-        return super(PythonCodeQuestion, self).required_attrs() + (
+        return super(CodeQuestion, self).required_attrs() + (
                 ("prompt", "markup"),
                 ("timeout", (int, float)),
                 )
 
     def allowed_attrs(self):
-        return super(PythonCodeQuestion, self).allowed_attrs() + (
+        return super(CodeQuestion, self).allowed_attrs() + (
                 ("setup_code", str),
                 ("show_setup_code", bool),
                 ("names_for_user", list),
@@ -567,27 +537,30 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
 
         if answer_data is not None:
             answer = {"answer": answer_data["answer"]}
-            form = PythonCodeForm(
+            form = CodeForm(
                     not page_behavior.may_change_answer,
                     get_editor_interaction_mode(page_context),
                     self._initial_code(),
+                    self.language_mode,
                     answer)
         else:
             answer = None
-            form = PythonCodeForm(
+            form = CodeForm(
                     not page_behavior.may_change_answer,
                     get_editor_interaction_mode(page_context),
                     self._initial_code(),
+                    self.language_mode
                     )
 
         return form
 
     def process_form_post(
             self, page_context, page_data, post_data, files_data, page_behavior):
-        return PythonCodeForm(
+        return CodeForm(
                 not page_behavior.may_change_answer,
                 get_editor_interaction_mode(page_context),
                 self._initial_code(),
+                self.language_mode,
                 post_data, files_data)
 
     def answer_data(self, page_context, page_data, form, files_data):
@@ -640,8 +613,9 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
                                     page_context.commit_sha).data).decode()
 
         try:
-            response_dict = request_python_run_with_retries(run_req,
-                    run_timeout=self.page_desc.timeout)
+            response_dict = request_run_with_retries(run_req,
+                    run_timeout=self.page_desc.timeout,
+                    image=self.container_image)
         except Exception:
             from traceback import format_exc
             response_dict = {
@@ -822,7 +796,7 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
 
             correctness = 0
         else:
-            raise RuntimeError("invalid runpy result: %s" % response.result)
+            raise RuntimeError("invalid run result: %s" % response.result)
 
         if hasattr(response, "feedback") and response.feedback:
             def sanitize(s):
@@ -983,7 +957,205 @@ class PythonCodeQuestion(PageBaseWithTitle, PageBaseWithValue):
         if answer_data is None:
             return None
 
-        return (".py", answer_data["answer"].encode("utf-8"))
+        suffix = self.suffix
+        return (suffix, answer_data["answer"].encode("utf-8"))
+
+# }}}
+
+
+# {{{ python code question
+
+class PythonCodeQuestion(CodeQuestion):
+    """
+    An auto-graded question allowing an answer consisting of Python code.
+    All user code as well as all code specified as part of the problem
+    is in Python 3.
+
+    If you are not including the
+    :attr:`course.constants.flow_permission.change_answer`
+    permission for your entire flow, you likely want to
+    include this snippet in your question definition:
+
+    .. code-block:: yaml
+
+        access_rules:
+            add_permissions:
+                - change_answer
+
+    This will allow participants multiple attempts at getting
+    the right answer.
+
+    .. attribute:: id
+
+        |id-page-attr|
+
+    .. attribute:: type
+
+        ``PythonCodeQuestion``
+
+    .. attribute:: is_optional_page
+
+        |is-optional-page-attr|
+
+    .. attribute:: access_rules
+
+        |access-rules-page-attr|
+
+    .. attribute:: title
+
+        |title-page-attr|
+
+    .. attribute:: value
+
+        |value-page-attr|
+
+    .. attribute:: prompt
+
+        The page's prompt, written in :ref:`markup`.
+
+    .. attribute:: timeout
+
+        A number, giving the number of seconds for which setup code,
+        the given answer code, and the test code (combined) will be
+        allowed to run.
+
+    .. attribute:: setup_code
+
+        Optional.
+        Python code to prepare the environment for the participants
+        answer.
+
+    .. attribute:: show_setup_code
+
+        Optional. ``True`` or ``False``. If true, the :attr:`setup_code`
+        will be shown to the participant.
+
+    .. attribute:: names_for_user
+
+        Optional.
+        Symbols defined at the end of the :attr:`setup_code` that will be
+        made available to the participant's code.
+
+        A deep copy (using the standard library function :func:`copy.deepcopy`)
+        of these values is made, to prevent the user from modifying trusted
+        state of the grading code.
+
+    .. attribute:: names_from_user
+
+        Optional.
+        Symbols that the participant's code is expected to define.
+        These will be made available to the :attr:`test_code`.
+
+    .. attribute:: test_code
+
+        Optional.
+        Code that will be run to determine the correctness of a
+        student-provided solution. Will have access to variables in
+        :attr:`names_from_user` (which will be *None*) if not provided. Should
+        never raise an exception.
+
+        This may contain the marker "###CORRECT_CODE###", which will
+        be replaced with the contents of :attr:`correct_code`, with
+        each line indented to the same depth as where the marker
+        is found. The line with this marker is only allowed to have
+        white space and the marker on it.
+
+    .. attribute:: show_test_code
+
+        Optional. ``True`` or ``False``. If true, the :attr:`test_code`
+        will be shown to the participant.
+
+    .. attribute:: correct_code_explanation
+
+        Optional.
+        Code that is revealed when answers are visible
+        (see :ref:`flow-permissions`). This is shown before
+        :attr:`correct_code` as an explanation.
+
+    .. attribute:: correct_code
+
+        Optional.
+        Code that is revealed when answers are visible
+        (see :ref:`flow-permissions`).
+
+    .. attribute:: initial_code
+
+        Optional.
+        Code present in the code input field when the participant first starts
+        working on their solution.
+
+    .. attribute:: data_files
+
+        Optional.
+        A list of file names in the :ref:`git-repo` whose contents will be made
+        available to :attr:`setup_code` and :attr:`test_code` through the
+        ``data_files`` dictionary. (see below)
+
+    .. attribute:: single_submission
+
+        Optional, a Boolean. If the question does not allow multiple submissions
+        based on its :attr:`access_rules` (not the ones of the flow), a warning
+        is shown. Setting this attribute to True will silence the warning.
+
+    The following symbols are available in :attr:`setup_code` and :attr:`test_code`:
+
+    * ``GradingComplete``: An exception class that can be raised to indicated
+      that the grading code has concluded.
+
+    * ``feedback``: A class instance with the following interface::
+
+          feedback.set_points(0.5) # 0<=points<=1 (usually)
+          feedback.add_feedback("This was wrong")
+
+          # combines the above two and raises GradingComplete
+          feedback.finish(0, "This was wrong")
+
+          feedback.check_numpy_array_sanity(name, num_axes, data)
+
+          feedback.check_numpy_array_features(name, ref, data, report_failure=True)
+
+          feedback.check_numpy_array_allclose(name, ref, data,
+                  accuracy_critical=True, rtol=1e-5, atol=1e-8,
+                  report_success=True, report_failure=True)
+              # If report_failure is True, this function will only return
+              # if *data* passes the tests. It will return *True* in this
+              # case.
+              #
+              # If report_failure is False, this function will always return,
+              # and the return value will indicate whether *data* passed the
+              # accuracy/shape/kind checks.
+
+          feedback.check_list(name, ref, data, entry_type=None)
+
+          feedback.check_scalar(name, ref, data, accuracy_critical=True,
+              rtol=1e-5, atol=1e-8, report_success=True, report_failure=True)
+          # returns True if accurate
+
+          feedback.call_user(f, *args, **kwargs)
+          # Calls a user-supplied function and prints an appropriate
+          # feedback message in case of failure.
+
+    * ``data_files``: A dictionary mapping file names from :attr:`data_files`
+      to :class:`bytes` instances with that file's contents.
+
+    * ``user_code``: The user code being tested, as a string.
+    """
+
+    @property
+    def language_mode(self):
+        return 'python'
+
+    @property
+    def container_image(self):
+        return settings.RELATE_DOCKER_RUNPY_IMAGE
+
+    @property
+    def suffix(self):
+        return '.py'
+
+    def __init__(self, vctx, location, page_desc, language_mode='python'):
+        super(PythonCodeQuestion, self).__init__(vctx, location, page_desc,
+        language_mode)
 
 # }}}
 
