@@ -74,6 +74,7 @@ if False:
 
 # {{{ impersonation
 
+
 def get_pre_impersonation_user(request):
     is_impersonating = hasattr(
             request, "relate_impersonate_original_user")
@@ -1184,10 +1185,12 @@ class APIContext(object):
 
 
 TOKEN_AUTH_DATA_RE = re.compile(r"^(?P<token_id>[0-9]+)_(?P<token_hash>[a-z0-9]+)$")
-BASIC_AUTH_DATA_RE = re.compile(r"^(?P<username>\w+):(?P<token_id>[0-9]+)_(?P<token_hash>[a-z0-9]+)$")
+BASIC_AUTH_DATA_RE = re.compile(
+    r"^(?P<username>\w+):(?P<token_id>[0-9]+)_(?P<token_hash>[a-z0-9]+)$")
 
 
-def auth_course_with_token(method, func, request, course_identifier, *args, **kwargs):
+def auth_course_with_token(method, func, request,
+        course_identifier, *args, **kwargs):
 
     from django.utils.timezone import now
     now_datetime = now()
@@ -1224,8 +1227,8 @@ def auth_course_with_token(method, func, request, course_identifier, *args, **kw
         if match is None:
             raise PermissionDenied("invalid authentication token")
 
-        token_id=int(match.group("token_id"))
-        token_hash_str=match.group("token_hash")
+        token_id = int(match.group("token_id"))
+        token_hash_str = match.group("token_hash")
 
         # FIXME: Redundant db roundtrip
         token = find_matching_token(course_identifier=course_identifier,
@@ -1253,7 +1256,8 @@ def auth_course_with_token(method, func, request, course_identifier, *args, **kw
     except PermissionDenied as e:
         if method == "Basic":
             realm = _("Relate direct git access for {}".format(course_identifier))
-            response = http.HttpResponse("Forbidden: " + str(e), content_type="text/plain")
+            response = http.HttpResponse("Forbidden: " + str(e),
+                        content_type="text/plain")
             response['WWW-Authenticate'] = 'Basic realm="%s"' % (realm)
             response.status_code = 401
             return response
@@ -1274,7 +1278,8 @@ def auth_course_with_token(method, func, request, course_identifier, *args, **kw
 
 class with_course_api_auth:
     def __init__(self, method):
-        self.method=method
+        # type: (with_course_api_auth, Text) -> None
+        self.method = method
 
     def __call__(self, func):
         def wrapper(*args, **kwargs):

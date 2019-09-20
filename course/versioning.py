@@ -47,7 +47,7 @@ from django.utils.translation import (
 from django_select2.forms import Select2Widget
 from bootstrap3_datetime.widgets import DateTimePicker
 from django.urls import reverse
-from django.views.decorators.csrf import csrf_protect, csrf_exempt
+from django.views.decorators.csrf import csrf_exempt
 
 from django.db import transaction
 
@@ -86,6 +86,7 @@ if False:
     from dulwich.client import GitClient  # noqa
     from dulwich.objects import Commit  # noqa
     import dulwich.web # noqa
+    from course.auth import APIContext # noqa
 
 # }}}
 
@@ -676,10 +677,8 @@ GIT_AUTH_DATA_RE = re.compile(r"^(\w+):([0-9]+)_([a-z0-9]+)$")
 @csrf_exempt
 @with_course_api_auth("Basic")
 def git_endpoint(api_ctx, course_identifier, git_path):
-    # type: (APIContext, Text) -> http.HttpResponse
+    # type: (APIContext, Text, Text) -> http.HttpResponse
 
-    token = api_ctx.token
-    participation = api_ctx.participation
     course = api_ctx.course
     request = api_ctx.request
 
