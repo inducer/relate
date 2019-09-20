@@ -68,7 +68,7 @@ from relate.utils import StyledForm, StyledModelForm, string_concat, get_site_na
 from django_select2.forms import ModelSelect2Widget
 
 if False:
-    from typing import Any, Text, Optional  # noqa
+    from typing import Any, Text, Optional, Dict, Union, Tuple  # noqa
     from django.db.models import query  # noqa
     import datetime # noqa
 
@@ -1187,6 +1187,33 @@ class APIContext(object):
             return self.restrict_to_role.has_permission(perm, argument)
 
 
+def auth_course_with_token(
+        request,            # type: http.HttpRequest
+        course_identifier,  # type: Text
+        token_id,           # type: int
+        token_hash_str,     # type: Text
+        now_datetime        # type: datetime.datetime
+        ):
+    # type: (...) -> Tuple[User, AuthenticationToken]
+
+    # FIXME: Redundant db roundtrip
+    token = find_matching_token(course_identifier=course_identifier,
+        token_id=token_id, token_hash_str=token_hash_str,
+        now_datetime=now_datetime)
+    if token is None:
+        raise PermissionDenied("invalid authentication token")
+
+    from django.contrib.auth import authenticate, login
+    user = authenticate(course_identifier=course_identifier,
+        token_id=token_id, token_hash_str=token_hash_str,
+        now_datetime=now_datetime)
+
+    assert user is not None
+
+    login(request, user)
+    return user, token
+
+
 def with_course_api_auth(f):
     def wrapper(request, course_identifier, *args, **kwargs):
         from django.utils.timezone import now
@@ -1207,17 +1234,7 @@ def with_course_api_auth(f):
                     token_hash_str=match.group(2),
                     now_datetime=now_datetime)
 
-            # FIXME: Redundant db roundtrip
-            token = find_matching_token(**auth_data)
-            if token is None:
-                raise PermissionDenied("invalid authentication token")
-
-            from django.contrib.auth import authenticate, login
-            user = authenticate(**auth_data)
-
-            assert user is not None
-
-            login(request, user)
+            user, token = auth_course_with_token(request, **auth_data)
 
             response = f(
                     APIContext(request, token),

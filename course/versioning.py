@@ -29,14 +29,14 @@ THE SOFTWARE.
 """
 
 import six
+import re
 
 from django.shortcuts import (  # noqa
         render, get_object_or_404, redirect)
 from django.contrib import messages
 import django.forms as forms
 from django.contrib.auth.decorators import login_required, permission_required
-from django.core.exceptions import (PermissionDenied, SuspiciousOperation,
-        ObjectDoesNotExist)
+from django.core.exceptions import (PermissionDenied, SuspiciousOperation)
 from django.utils.translation import (
         ugettext_lazy as _,
         ugettext,
@@ -48,7 +48,6 @@ from django.views.decorators.csrf import csrf_exempt
 from django_select2.forms import Select2Widget
 from bootstrap3_datetime.widgets import DateTimePicker
 from django.urls import reverse
-from django.contrib.auth import get_user_model
 
 from django.db import transaction
 
@@ -669,6 +668,9 @@ def call_wsgi_app(
 # }}}
 
 
+GIT_AUTH_DATA_RE = re.compile(r"^(\w+):([0-9]+)_([a-z0-9]+)$")
+
+
 @csrf_exempt
 def git_endpoint(request, course_identifier, git_path):
     # type: (http.HttpRequest, Text, Text) -> http.HttpResponse
@@ -685,7 +687,7 @@ def git_endpoint(request, course_identifier, git_path):
         return response
 
     user = None
-    user_token = None
+    token = None
     if auth_value is None:
         return unauthorized_access()
 
@@ -702,47 +704,42 @@ def git_endpoint(request, course_identifier, git_path):
                     "utf-8", errors="replace")
         except binascii.Error:
             return unauthorized_access()
-        auth_data_values = auth_data.split(':', 1)
-        if len(auth_data_values) != 2:
-            return unauthorized_access()
-        username, token = auth_data_values
-        try:
-            possible_user = get_user_model().objects.get(
-                    username=username)
-        except ObjectDoesNotExist:
-            return unauthorized_access()
 
-        token_values = token.split('_', 1)
-        if len(token_values) != 2:
-            return unauthorized_access()
-
-        try:
-            int(token_values[0])
-        except ValueError:
+        match = GIT_AUTH_DATA_RE.match(auth_data)
+        if match is None:
             return unauthorized_access()
 
         from django.utils.timezone import now
-        from course.auth import find_matching_token
         now_datetime = now()
 
-        user_token = find_matching_token(course_identifier, token_values[0],
-                    token_values[1], now_datetime)
+        auth_data = dict(
+                course_identifier=course_identifier,
+                token_id=int(match.group(2)),
+                token_hash_str=match.group(3),
+                now_datetime=now_datetime)
+        username = match.group(1)
 
-        if user_token is None or user_token.user.username != username:
+        from course.auth import auth_course_with_token
+
+        try:
+            user, token = auth_course_with_token(request, **auth_data)
+        except PermissionDenied:
             return unauthorized_access()
 
-        user = possible_user
-        participation = user_token.participation
+        if user.username != username:
+            return unauthorized_access()
+
+        participation = token.participation
 
     if user is None:
         return unauthorized_access()
 
     course = participation.course
 
-    if user_token is not None and \
-            user_token.restrict_to_participation_role is not None:
-        check_permission = user_token.restrict_to_participation_role.has_permission
-        if course != user_token.restrict_to_participation_role.course:
+    if token is not None and \
+            token.restrict_to_participation_role is not None:
+        check_permission = token.restrict_to_participation_role.has_permission
+        if course != token.restrict_to_participation_role.course:
             return unauthorized_access()
     else:
         check_permission = participation.has_permission
