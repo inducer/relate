@@ -1276,19 +1276,17 @@ def auth_course_with_token(method, func, request,
     return response
 
 
-class with_course_api_auth:
-    def __init__(self, method):
-        # type: (with_course_api_auth, Text) -> None
-        self.method = method
-
-    def __call__(self, func):
+def with_course_api_auth(method):
+    # type: (Text,) -> Any
+    def wrapper_with_method(func):
         def wrapper(*args, **kwargs):
-            return auth_course_with_token(self.method, func, *args, **kwargs)
+            return auth_course_with_token(method, func, *args, **kwargs)
 
         from functools import update_wrapper
         update_wrapper(wrapper, func)
 
         return wrapper
+    return wrapper_with_method
 
 # }}}
 
