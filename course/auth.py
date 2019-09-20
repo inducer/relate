@@ -1230,17 +1230,17 @@ def auth_course_with_token(method, func, request,
         token_id = int(match.group("token_id"))
         token_hash_str = match.group("token_hash")
 
-        # FIXME: Redundant db roundtrip
-        token = find_matching_token(course_identifier=course_identifier,
+        auth_data_dict = dict(course_identifier=course_identifier,
             token_id=token_id, token_hash_str=token_hash_str,
             now_datetime=now_datetime)
+
+        # FIXME: Redundant db roundtrip
+        token = find_matching_token(**auth_data_dict)
         if token is None:
             raise PermissionDenied("invalid authentication token")
 
         from django.contrib.auth import authenticate, login
-        user = authenticate(course_identifier=course_identifier,
-            token_id=token_id, token_hash_str=token_hash_str,
-            now_datetime=now_datetime)
+        user = authenticate(**auth_data_dict)
 
         assert user is not None
 
