@@ -43,11 +43,11 @@ from django.utils.translation import (
         pgettext,
         pgettext_lazy,
         )
-from django.views.decorators.csrf import csrf_exempt
 
 from django_select2.forms import Select2Widget
 from bootstrap3_datetime.widgets import DateTimePicker
 from django.urls import reverse
+from django.views.decorators.csrf import csrf_protect, csrf_exempt
 
 from django.db import transaction
 
@@ -60,6 +60,8 @@ from course.models import (
         Course,
         Participation,
         ParticipationRole)
+
+from course.auth import with_course_api_auth
 
 from course.utils import (
     course_view, render_course_page,
@@ -672,80 +674,17 @@ GIT_AUTH_DATA_RE = re.compile(r"^(\w+):([0-9]+)_([a-z0-9]+)$")
 
 
 @csrf_exempt
-def git_endpoint(request, course_identifier, git_path):
-    # type: (http.HttpRequest, Text, Text) -> http.HttpResponse
+@with_course_api_auth("Basic")
+def git_endpoint(api_ctx, course_identifier, git_path):
+    # type: (APIContext, Text) -> http.HttpResponse
 
-    auth_value = request.META.get("HTTP_AUTHORIZATION", None)
+    token = api_ctx.token
+    participation = api_ctx.participation
+    course = api_ctx.course
+    request = api_ctx.request
 
-    def unauthorized_access():
-        # type: () -> http.HttpResponse
-        realm = _("Relate direct git access for {}".format(course_identifier))
-        response = http.HttpResponse(
-                _('Authorization by API Token Required'), content_type="text/plain")
-        response['WWW-Authenticate'] = 'Basic realm="%s"' % (realm)
-        response.status_code = 401
-        return response
-
-    user = None
-    token = None
-    if auth_value is None:
-        return unauthorized_access()
-
-    auth_values = auth_value.split(" ")
-    if len(auth_values) != 2:
-        return unauthorized_access()
-
-    auth_method, auth_data = auth_values
-    if auth_method == "Basic":
-        from base64 import b64decode
-        import binascii
-        try:
-            auth_data = b64decode(auth_data.strip()).decode(
-                    "utf-8", errors="replace")
-        except binascii.Error:
-            return unauthorized_access()
-
-        match = GIT_AUTH_DATA_RE.match(auth_data)
-        if match is None:
-            return unauthorized_access()
-
-        from django.utils.timezone import now
-        now_datetime = now()
-
-        auth_data = dict(
-                course_identifier=course_identifier,
-                token_id=int(match.group(2)),
-                token_hash_str=match.group(3),
-                now_datetime=now_datetime)
-        username = match.group(1)
-
-        from course.auth import auth_course_with_token
-
-        try:
-            user, token = auth_course_with_token(request, **auth_data)
-        except PermissionDenied:
-            return unauthorized_access()
-
-        if user.username != username:
-            return unauthorized_access()
-
-        participation = token.participation
-
-    if user is None:
-        return unauthorized_access()
-
-    course = participation.course
-
-    if token is not None and \
-            token.restrict_to_participation_role is not None:
-        check_permission = token.restrict_to_participation_role.has_permission
-        if course != token.restrict_to_participation_role.course:
-            return unauthorized_access()
-    else:
-        check_permission = participation.has_permission
-
-    if not check_permission(pperm.use_git_endpoint):
-        return unauthorized_access()
+    if not api_ctx.has_permission(pperm.use_git_endpoint):
+        raise PermissionDenied("insufficient privileges")
 
     from course.content import get_course_repo
     repo = get_course_repo(course)
