@@ -1262,7 +1262,7 @@ def auth_course_with_token(method, func, request,
             response.status_code = 401
             return response
 
-        elif method == "Basic":
+        elif method == "Token":
             return http.HttpResponseForbidden(
                     "403 Forbidden: " + str(e))
 
