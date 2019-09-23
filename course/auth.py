@@ -68,11 +68,12 @@ from relate.utils import StyledForm, StyledModelForm, string_concat, get_site_na
 from django_select2.forms import ModelSelect2Widget
 
 if False:
-    from typing import Any, Text, Optional  # noqa
+    from typing import Any, Text, Optional, Dict, Union, Tuple  # noqa
     from django.db.models import query  # noqa
-
+    import datetime # noqa
 
 # {{{ impersonation
+
 
 def get_pre_impersonation_user(request):
     is_impersonating = hasattr(
@@ -1110,6 +1111,7 @@ class APIError(Exception):
 def find_matching_token(
         course_identifier=None, token_id=None, token_hash_str=None,
         now_datetime=None):
+    # type: (Text, int, Text, datetime.datetime) -> Optional[AuthenticationToken]
     try:
         token = AuthenticationToken.objects.get(
                 id=token_id,
@@ -1149,9 +1151,6 @@ class APIBearerTokenBackend(object):
             return None
 
 
-AUTH_HEADER_RE = re.compile("^Token ([0-9]+)_([a-z0-9]+)$")
-
-
 class APIContext(object):
     def __init__(self, request, token):
         self.request = request
@@ -1185,54 +1184,109 @@ class APIContext(object):
             return self.restrict_to_role.has_permission(perm, argument)
 
 
-def with_course_api_auth(f):
-    def wrapper(request, course_identifier, *args, **kwargs):
-        from django.utils.timezone import now
-        now_datetime = now()
+TOKEN_AUTH_DATA_RE = re.compile(r"^(?P<token_id>[0-9]+)_(?P<token_hash>[a-z0-9]+)$")
+BASIC_AUTH_DATA_RE = re.compile(
+    r"^(?P<username>\w+):(?P<token_id>[0-9]+)_(?P<token_hash>[a-z0-9]+)$")
 
-        try:
-            auth_header = request.META.get("HTTP_AUTHORIZATION", None)
-            if auth_header is None:
-                raise PermissionDenied("No Authorization header provided")
 
-            match = AUTH_HEADER_RE.match(auth_header)
-            if match is None:
+def auth_course_with_token(method, func, request,
+        course_identifier, *args, **kwargs):
+
+    from django.utils.timezone import now
+    now_datetime = now()
+
+    try:
+        auth_header = request.META.get("HTTP_AUTHORIZATION", None)
+        if auth_header is None:
+            raise PermissionDenied("No Authorization header provided")
+
+        auth_values = auth_header.split(" ")
+        if len(auth_values) != 2:
+            raise PermissionDenied("ill-formed Authorization header")
+
+        auth_method, auth_data = auth_values
+        if auth_method != method:
+            raise PermissionDenied("ill-formed Authorization header")
+
+        if method == "Token":
+            match = TOKEN_AUTH_DATA_RE.match(auth_data)
+
+        elif method == "Basic":
+            from base64 import b64decode
+            import binascii
+            try:
+                auth_data = b64decode(auth_data.strip()).decode(
+                        "utf-8", errors="replace")
+            except binascii.Error:
                 raise PermissionDenied("ill-formed Authorization header")
+            match = BASIC_AUTH_DATA_RE.match(auth_data)
 
-            auth_data = dict(
-                    course_identifier=course_identifier,
-                    token_id=int(match.group(1)),
-                    token_hash_str=match.group(2),
-                    now_datetime=now_datetime)
+        else:
+            assert False
 
-            # FIXME: Redundant db roundtrip
-            token = find_matching_token(**auth_data)
-            if token is None:
-                raise PermissionDenied("invalid authentication token")
+        if match is None:
+            raise PermissionDenied("invalid authentication token")
 
-            from django.contrib.auth import authenticate, login
-            user = authenticate(**auth_data)
+        token_id = int(match.group("token_id"))
+        token_hash_str = match.group("token_hash")
 
-            assert user is not None
+        auth_data_dict = dict(course_identifier=course_identifier,
+            token_id=token_id, token_hash_str=token_hash_str,
+            now_datetime=now_datetime)
 
-            login(request, user)
+        # FIXME: Redundant db roundtrip
+        token = find_matching_token(**auth_data_dict)
+        if token is None:
+            raise PermissionDenied("invalid authentication token")
 
-            response = f(
-                    APIContext(request, token),
-                    course_identifier, *args, **kwargs)
-        except PermissionDenied as e:
+        from django.contrib.auth import authenticate, login
+        user = authenticate(**auth_data_dict)
+
+        assert user is not None
+
+        if method == "Basic" and match.group("username") != user.username:
+            raise PermissionDenied("invalid authentication token")
+
+        login(request, user)
+
+        response = func(
+                APIContext(request, token),
+                course_identifier, *args, **kwargs)
+
+    except PermissionDenied as e:
+        if method == "Basic":
+            realm = _("Relate direct git access for {}".format(course_identifier))
+            response = http.HttpResponse("Forbidden: " + str(e),
+                        content_type="text/plain")
+            response['WWW-Authenticate'] = 'Basic realm="%s"' % (realm)
+            response.status_code = 401
+            return response
+
+        elif method == "Token":
             return http.HttpResponseForbidden(
                     "403 Forbidden: " + str(e))
-        except APIError as e:
-            return http.HttpResponseBadRequest(
-                    "400 Bad Request: " + str(e))
 
-        return response
+        else:
+            assert False
 
-    from functools import update_wrapper
-    update_wrapper(wrapper, f)
+    except APIError as e:
+        return http.HttpResponseBadRequest(
+                "400 Bad Request: " + str(e))
 
-    return wrapper
+    return response
+
+
+def with_course_api_auth(method):
+    # type: (Text,) -> Any
+    def wrapper_with_method(func):
+        def wrapper(*args, **kwargs):
+            return auth_course_with_token(method, func, *args, **kwargs)
+
+        from functools import update_wrapper
+        update_wrapper(wrapper, func)
+
+        return wrapper
+    return wrapper_with_method
 
 # }}}
 

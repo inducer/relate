@@ -2,7 +2,11 @@
 
 from __future__ import division
 
-__copyright__ = "Copyright (C) 2014 Andreas Kloeckner"
+__copyright__ = """
+Copyright (C) 2014 Andreas Kloeckner
+Copyright (c) 2016 Polyconseil SAS. (the WSGI wrapping bits)
+Copyright (C) 2019 Isuru Fernando
+"""
 
 __license__ = """
 Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -25,23 +29,29 @@ THE SOFTWARE.
 """
 
 import six
+import re
 
 from django.shortcuts import (  # noqa
         render, get_object_or_404, redirect)
 from django.contrib import messages
 import django.forms as forms
 from django.contrib.auth.decorators import login_required, permission_required
-from django.core.exceptions import PermissionDenied, SuspiciousOperation
+from django.core.exceptions import (PermissionDenied, SuspiciousOperation)
 from django.utils.translation import (
         ugettext_lazy as _,
         ugettext,
         pgettext,
         pgettext_lazy,
         )
+
 from django_select2.forms import Select2Widget
 from bootstrap3_datetime.widgets import DateTimePicker
+from django.urls import reverse
+from django.views.decorators.csrf import csrf_exempt
 
 from django.db import transaction
+
+from django import http
 
 from relate.utils import StyledForm, StyledModelForm, string_concat
 from crispy_forms.layout import Submit
@@ -50,6 +60,8 @@ from course.models import (
         Course,
         Participation,
         ParticipationRole)
+
+from course.auth import with_course_api_auth
 
 from course.utils import (
     course_view, render_course_page,
@@ -65,13 +77,16 @@ from course.constants import (
         participation_permission as pperm,
         )
 
+from typing import cast
+
 # {{{ for mypy
 
 if False:
-    from django import http  # noqa
     from typing import Tuple, List, Text, Any, Dict, Union, Optional  # noqa
     from dulwich.client import GitClient  # noqa
     from dulwich.objects import Commit  # noqa
+    import dulwich.web # noqa
+    from course.auth import APIContext # noqa
 
 # }}}
 
@@ -292,14 +307,14 @@ def set_up_new_course(request):
 
 # {{{ update
 
-def is_parent_commit(repo, potential_parent, child, max_history_check_size=None):
+def is_ancestor_commit(repo, potential_ancestor, child, max_history_check_size=None):
     # type: (Repo, Commit, Commit, Optional[int]) -> bool
 
     queue = [repo[parent] for parent in child.parents]
 
     while queue:
         entry = queue.pop()
-        if entry == potential_parent:
+        if entry == potential_ancestor:
             return True
 
         if max_history_check_size is not None:
@@ -334,11 +349,14 @@ def run_course_update_command(
         remote_refs = client.fetch(remote_path, repo)
         transfer_remote_refs(repo, remote_refs)
         remote_head = remote_refs[b"HEAD"]
-        if (
-                prevent_discarding_revisions
-                and is_parent_commit(repo, repo[remote_head], repo[b"HEAD"],
-                    max_history_check_size=20)):
-            raise RuntimeError(_("fetch would discard commits, refusing"))
+        if prevent_discarding_revisions:
+            # Guard against bad scenario:
+            # Local is not ancestor of remote, i.e. the branches have diverged.
+            if not is_ancestor_commit(repo, repo[b"HEAD"], repo[remote_head],
+                    max_history_check_size=20) and \
+                    repo[b"HEAD"] != repo[remote_head]:
+                raise RuntimeError(_("internal git repo has more commits. Fetch, "
+                                     "merge and push."))
 
         repo[b"HEAD"] = remote_head
 
@@ -565,6 +583,11 @@ def update_course(pctx):
             "course": course,
             "repo": repo,
             "current_git_head": repo.head().decode(),
+            "git_url": request.build_absolute_uri(
+                reverse("relate-git_endpoint",
+                    args=(course.identifier, ""))),
+            "token_url": reverse("relate-manage_authentication_tokens",
+                    args=(course.identifier,)),
         })
 
     assert form is not None
@@ -574,6 +597,112 @@ def update_course(pctx):
         "form_text": form_text,
         "form_description": ugettext("Update Course Revision"),
     })
+
+# }}}
+
+
+# {{{ git endpoint
+
+
+# {{{ wsgi wrapping
+
+# Nabbed from
+# https://github.com/Polyconseil/django-viewsgi/blob/master/viewsgi.py
+# (BSD-licensed)
+
+def call_wsgi_app(
+        application,  # type: dulwich.web.LimitedInputFilter
+        request,      # type: http.HttpRequest
+        prefix,       # type: Text
+        ):
+    # type: (...) -> http.HttpResponse
+
+    response = http.HttpResponse()
+
+    # request.environ and request.META are the same object, so changes
+    # to the headers by middlewares will be seen here.
+    assert request.environ == request.META
+    environ = request.environ.copy()
+    #if len(args) > 0:
+    assert environ['PATH_INFO'].startswith(prefix)
+    environ['SCRIPT_NAME'] += prefix
+    environ['PATH_INFO'] = environ['PATH_INFO'][len(prefix):]
+
+    headers_set = []   # type: List[Text]
+    headers_sent = []  # type: List[bool]
+
+    def write(data):
+        # type: (Text) -> None
+        if not headers_set:
+            raise AssertionError("write() called before start_response()")
+        if not headers_sent:
+            # Send headers before the first output.
+            for k, v in headers_set:
+                response[k] = v
+            headers_sent[:] = [True]
+        response.write(data)
+        # We could call response.flush() here, but is actually a no-op.
+
+    def start_response(status, headers, exc_info=None):
+        # Let Django handle all errors.
+        if exc_info:
+            raise exc_info[1].with_traceback(exc_info[2])
+        if headers_set:
+            raise AssertionError("start_response() called again "
+                                 "without exc_info")
+        response.status_code = int(status.split(' ', 1)[0])
+        headers_set[:] = headers
+        # Django provides no way to set the reason phrase (#12747).
+        return write
+
+    result = application(environ, start_response)
+    try:
+        for data in result:
+            if data:
+                write(data)
+        if not headers_sent:
+            write('')
+    finally:
+        if hasattr(result, 'close'):
+            result.close()
+
+    return response
+
+# }}}
+
+
+GIT_AUTH_DATA_RE = re.compile(r"^(\w+):([0-9]+)_([a-z0-9]+)$")
+
+
+@csrf_exempt
+@with_course_api_auth("Basic")
+def git_endpoint(api_ctx, course_identifier, git_path):
+    # type: (APIContext, Text, Text) -> http.HttpResponse
+
+    course = api_ctx.course
+    request = api_ctx.request
+
+    if not api_ctx.has_permission(pperm.use_git_endpoint):
+        raise PermissionDenied("insufficient privileges")
+
+    from course.content import get_course_repo
+    repo = get_course_repo(course)
+
+    from course.content import SubdirRepoWrapper
+    if isinstance(repo, SubdirRepoWrapper):
+        true_repo = repo.repo
+    else:
+        true_repo = cast(dulwich.repo.Repo, repo)
+
+    base_path = reverse(git_endpoint, args=(course_identifier, ""))
+    assert base_path.endswith("/")
+    base_path = base_path[:-1]
+
+    import dulwich.web as dweb
+    backend = dweb.DictBackend({"/": true_repo})
+    app = dweb.make_wsgi_chain(backend)
+
+    return call_wsgi_app(app, request, base_path)
 
 # }}}
 

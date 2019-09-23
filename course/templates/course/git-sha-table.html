@@ -22,4 +22,8 @@
       <td>{% trans "None" %}</td>
   {% endif %}
   </tr>
+  <tr><th>{% trans "Direct git endpoint" %}</th>
+      <td><tt>{{ git_url }}</tt> (<a href="{{token_url}}">{% trans "Manage access tokens" %}</a>)
+      </td>
+  </tr>
 </table>

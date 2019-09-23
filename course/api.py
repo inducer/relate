@@ -77,7 +77,7 @@ def flow_session_to_json(sess):
             )
 
 
-@with_course_api_auth
+@with_course_api_auth("Token")
 def get_flow_sessions(api_ctx, course_identifier):
     # type: (APIContext, Text) -> http.HttpResponse
 
@@ -98,7 +98,7 @@ def get_flow_sessions(api_ctx, course_identifier):
     return http.JsonResponse(result, safe=False)
 
 
-@with_course_api_auth
+@with_course_api_auth("Token")
 def get_flow_session_content(api_ctx, course_identifier):
     # type: (APIContext, Text) -> http.HttpResponse
 

@@ -431,12 +431,12 @@ class IsParentCommitTest(unittest.TestCase):
         c1 = FakeCommit(b"first", [c0])
 
         self.assertFalse(
-            versioning.is_parent_commit(
-                self.repo, potential_parent=c0, child=c1))
+            versioning.is_ancestor_commit(
+                self.repo, potential_ancestor=c0, child=c1))
 
         self.assertFalse(
-            versioning.is_parent_commit(
-                self.repo, potential_parent=c0, child=c1,
+            versioning.is_ancestor_commit(
+                self.repo, potential_ancestor=c0, child=c1,
                 max_history_check_size=2))
 
     def test_true(self):
@@ -453,14 +453,183 @@ class IsParentCommitTest(unittest.TestCase):
         c3 = FakeCommit(b"third", [c2])
 
         self.assertFalse(
-            versioning.is_parent_commit(
-                self.repo, potential_parent=c0, child=c3,
+            versioning.is_ancestor_commit(
+                self.repo, potential_ancestor=c0, child=c3,
                 max_history_check_size=1))
 
         self.assertTrue(
-            versioning.is_parent_commit(
-                self.repo, potential_parent=c0, child=c3,
+            versioning.is_ancestor_commit(
+                self.repo, potential_ancestor=c0, child=c3,
                 max_history_check_size=20))
+
+
+class DirectGitEndpointTest(TestCase):
+    def test_no_authentication_headers(self):
+        course = factories.CourseFactory()
+
+        request = mock.MagicMock()
+        obj = object()
+
+        def no_header_mock(a, b=obj):
+            if b == obj:
+                raise KeyError
+            return b
+
+        request.META.get = no_header_mock
+        request.environ = request.META
+        response = versioning.git_endpoint(request, course.identifier, "")
+        self.assertEqual(response.status_code, 401)
+
+    def test_b64encoded_authentication_headers(self):
+        from base64 import b64encode
+        course = factories.CourseFactory()
+        request = mock.MagicMock()
+
+        request.META.get.return_value = "foo"
+        request.environ = request.META
+        response = versioning.git_endpoint(request, course.identifier, "")
+        self.assertEqual(response.status_code, 401)
+
+        request.META.get.return_value = "NonBasic foo"
+        request.environ = request.META
+        response = versioning.git_endpoint(request, course.identifier, "")
+        self.assertEqual(response.status_code, 401)
+
+        request.META.get.return_value = "Basic foo"
+        request.environ = request.META
+        response = versioning.git_endpoint(request, course.identifier, "")
+        self.assertEqual(response.status_code, 401)
+
+        auth_data = b64encode("foo".encode()).decode("utf-8")
+        request.META.get.return_value = "Basic {}".format(auth_data)
+        request.environ = request.META
+        response = versioning.git_endpoint(request, course.identifier, "")
+        self.assertEqual(response.status_code, 401)
+
+    def test_auth_student(self):
+        from base64 import b64encode
+        from course.models import AuthenticationToken
+        from django.contrib.auth.hashers import make_password
+
+        course = factories.CourseFactory()
+        student = factories.UserFactory()
+        student2 = factories.UserFactory()
+        student_role = factories.ParticipationRoleFactory(
+            course=course,
+            identifier="student"
+        )
+        participation1 = factories.ParticipationFactory(
+            course=course,
+            user=student)
+        participation1.roles.set([student_role])
+
+        auth_token = AuthenticationToken(
+                user=student,
+                participation=participation1,
+                token_hash=make_password("spam"))
+        auth_token.save()
+
+        # Check invalid token format
+        auth_data_unencoded = "{}:{}".format(student.username, "spam").encode()
+        auth_data = b64encode(auth_data_unencoded).decode("utf-8")
+        request = mock.MagicMock()
+        request.META.get.return_value = "Basic {}".format(auth_data)
+        request.environ = request.META
+        response = versioning.git_endpoint(request, course.identifier, "")
+        self.assertEqual(response.status_code, 401)
+
+        # Check invalid token id
+        auth_data_unencoded = "{}:{}_{}".format(student.username,
+                                                "eggs", "ham").encode()
+        auth_data = b64encode(auth_data_unencoded).decode("utf-8")
+        request = mock.MagicMock()
+        request.META.get.return_value = "Basic {}".format(auth_data)
+        request.environ = request.META
+        response = versioning.git_endpoint(request, course.identifier, "")
+        self.assertEqual(response.status_code, 401)
+
+        # Check non-existing user
+        auth_data_unencoded = "{}:{}_{}".format("spam",
+                                                "eggs", "ham").encode()
+        auth_data = b64encode(auth_data_unencoded).decode("utf-8")
+        request = mock.MagicMock()
+        request.META.get.return_value = "Basic {}".format(auth_data)
+        request.environ = request.META
+        response = versioning.git_endpoint(request, course.identifier, "")
+        self.assertEqual(response.status_code, 401)
+
+        # Check token from other user
+        auth_data_unencoded = "{}:{}_{}".format(student2.username,
+                                                auth_token.id, "ham").encode()
+        auth_data = b64encode(auth_data_unencoded).decode("utf-8")
+        request = mock.MagicMock()
+        request.META.get.return_value = "Basic {}".format(auth_data)
+        request.environ = request.META
+        response = versioning.git_endpoint(request, course.identifier, "")
+        self.assertEqual(response.status_code, 401)
+
+        # Check student with no permission
+        auth_data_unencoded = "{}:{}_{}".format(student.username,
+                                                auth_token.id, "spam").encode()
+        auth_data = b64encode(auth_data_unencoded).decode("utf-8")
+        request = mock.MagicMock()
+        request.META.get.return_value = "Basic {}".format(auth_data)
+        request.environ = request.META
+        response = versioning.git_endpoint(request, course.identifier, "")
+        self.assertEqual(response.status_code, 401)
+
+    def test_auth_instructor(self):
+        from base64 import b64encode
+        from course.models import ParticipationRolePermission, AuthenticationToken
+        from course.constants import participation_permission as pp
+        from django.contrib.auth.hashers import make_password
+
+        course = factories.CourseFactory()
+        instructor = factories.UserFactory()
+        instructor_role = factories.ParticipationRoleFactory(
+            course=course,
+            identifier="instructor"
+        )
+        participation1 = factories.ParticipationFactory(
+            course=course,
+            user=instructor)
+        participation1.roles.set([instructor_role])
+        ParticipationRolePermission(role=instructor_role,
+                                    permission=pp.use_git_endpoint).save()
+
+        auth_token = AuthenticationToken(
+                user=instructor,
+                participation=participation1,
+                token_hash=make_password("spam"))
+        auth_token.save()
+
+        fake_call_wsgi_app = mock.patch("course.versioning.call_wsgi_app")
+        fake_get_course_repo = mock.patch("course.content.get_course_repo")
+        mock_call_wsgi_app = fake_call_wsgi_app.start()
+        mock_get_course_repo = fake_get_course_repo.start()
+        self.addCleanup(fake_call_wsgi_app.stop)
+        self.addCleanup(fake_get_course_repo.stop)
+
+        auth_data_unencoded = "{}:{}_{}".format(instructor.username,
+                                                auth_token.id, "spam").encode()
+        auth_data = b64encode(auth_data_unencoded).decode("utf-8")
+        request = mock.MagicMock()
+        request.META.get.return_value = "Basic {}".format(auth_data)
+        request.environ = request.META
+        versioning.git_endpoint(request, course.identifier, "")
+        self.assertEqual(mock_call_wsgi_app.call_count, 1)
+        self.assertEqual(mock_get_course_repo.call_count, 1)
+
+        fake_dulwich_web_backend = mock.patch("dulwich.web.DictBackend")
+        fake_get_course_repo = mock.patch("course.content.get_course_repo")
+        mock_dulwich_web_backend = fake_dulwich_web_backend.start()
+        self.addCleanup(fake_dulwich_web_backend.stop)
+        request = mock.MagicMock()
+        request.META.get.return_value = "Basic {}".format(auth_data)
+        request.environ = request.META
+        versioning.git_endpoint(request, course.identifier, "")
+        self.assertEqual(mock_dulwich_web_backend.call_count, 1)
+        self.assertEqual(mock_get_course_repo.call_count, 2)
 
 
 FETCHED_LITERAL = "Fetch successful."
@@ -532,10 +701,10 @@ class RunCourseUpdateCommandTest(MockAddMessageMixing, unittest.TestCase):
         self.mock_transfer_remote_refs = fake_transfer_remote_refs.start()
         self.addCleanup(fake_transfer_remote_refs.stop)
 
-        fake_is_parent_commit = mock.patch("course.versioning.is_parent_commit")
-        self.mock_is_parent_commit = fake_is_parent_commit.start()
-        self.mock_is_parent_commit.return_value = False
-        self.addCleanup(fake_is_parent_commit.stop)
+        fake_is_ancestor_commit = mock.patch("course.versioning.is_ancestor_commit")
+        self.mock_is_ancestor_commit = fake_is_ancestor_commit.start()
+        self.mock_is_ancestor_commit.return_value = False
+        self.addCleanup(fake_is_ancestor_commit.stop)
 
         fake_validate_course_content = mock.patch(
             "course.validation.validate_course_content")
@@ -548,7 +717,7 @@ class RunCourseUpdateCommandTest(MockAddMessageMixing, unittest.TestCase):
             course.delete()
 
     @unittest.skipIf(six.PY2, "PY2 doesn't support subTest")
-    def test_is_parent_commit_checked(self):
+    def test_is_ancestor_commit_checked(self):
         may_update = True
         prevent_discarding_revisions = True
 
@@ -561,7 +730,7 @@ class RunCourseUpdateCommandTest(MockAddMessageMixing, unittest.TestCase):
             ("end_preview", False)]
 
         for command, will_check in command_tup:
-            self.mock_is_parent_commit.reset_mock()
+            self.mock_is_ancestor_commit.reset_mock()
             with self.subTest(
                     command=command,
                     prevent_discarding_revisions=prevent_discarding_revisions):
@@ -569,21 +738,21 @@ class RunCourseUpdateCommandTest(MockAddMessageMixing, unittest.TestCase):
                     self.request, self.repo, self.content_repo, self.pctx, command,
                     self.default_switch_to_sha.encode(), may_update,
                     prevent_discarding_revisions)
-                if will_check and self.mock_is_parent_commit.call_count != 1:
+                if will_check and self.mock_is_ancestor_commit.call_count != 1:
                     self.fail(
-                        "'is_parent_commit' is expected for command '%s' to be "
-                        "called while not" % command)
-                elif not will_check and self.mock_is_parent_commit.call_count > 0:
+                        "'is_ancestor_commit' is expected for command '%s' to "
+                        "be called while not" % command)
+                elif not will_check and self.mock_is_ancestor_commit.call_count > 0:
                     self.fail(
-                        "'is_parent_commit' is not expected for command '%s' to be "
-                        "called while called" % command)
+                        "'is_ancestor_commit' is not expected for command '%s' to "
+                        "be called while called" % command)
 
-        # when not prevent_discarding_revisions, is_parent_commit
+        # when not prevent_discarding_revisions, is_ancestor_commit
         # should not be checked (expensive operation)
 
         prevent_discarding_revisions = False
         for command, _ in command_tup:
-            self.mock_is_parent_commit.reset_mock()
+            self.mock_is_ancestor_commit.reset_mock()
             with self.subTest(
                     command=command,
                     prevent_discarding_revisions=prevent_discarding_revisions):
@@ -591,14 +760,14 @@ class RunCourseUpdateCommandTest(MockAddMessageMixing, unittest.TestCase):
                     self.request, self.repo, self.content_repo, self.pctx, command,
                     self.default_switch_to_sha.encode(),
                     may_update, prevent_discarding_revisions)
-                if self.mock_is_parent_commit.call_count > 0:
+                if self.mock_is_ancestor_commit.call_count > 0:
                     self.fail(
-                        "'is_parent_commit' is not expected for command '%s' to be "
-                        "called while called (expensive)" % command)
-                elif self.mock_is_parent_commit.call_count > 0:
+                        "'is_ancestor_commit' is not expected for command '%s' to "
+                        "be called while called (expensive)" % command)
+                elif self.mock_is_ancestor_commit.call_count > 0:
                     self.fail(
-                        "'is_parent_commit' is not expected for command '%s' to be "
-                        "called while called" % command)
+                        "'is_ancestor_commit' is not expected for command '%s' to "
+                        "be called while called" % command)
 
     @unittest.skipIf(six.PY2, "PY2 doesn't support subTest")
     def test_is_content_validated(self):
@@ -642,7 +811,7 @@ class RunCourseUpdateCommandTest(MockAddMessageMixing, unittest.TestCase):
                 may_update, prevent_discarding_revisions)
 
         self.assertEqual(self.mock_validate_course_content.call_count, 0)
-        self.assertEqual(self.mock_is_parent_commit.call_count, 0)
+        self.assertEqual(self.mock_is_ancestor_commit.call_count, 0)
 
         expected_error_msg = "invalid command"
         self.assertIn(expected_error_msg, str(cm.exception))
@@ -735,7 +904,7 @@ class RunCourseUpdateCommandTest(MockAddMessageMixing, unittest.TestCase):
         for (command, add_message_call_count, expected, not_expected,
              expected_course_sha) in command_tup:
             with self.subTest(command=command):
-                self.mock_is_parent_commit.return_value = False
+                self.mock_is_ancestor_commit.return_value = False
                 self.check_command_message_result(
                     command=command,
                     add_message_expected_call_count=add_message_call_count,
@@ -744,7 +913,7 @@ class RunCourseUpdateCommandTest(MockAddMessageMixing, unittest.TestCase):
                     prevent_discarding_revisions=False
                 )
 
-                self.mock_is_parent_commit.return_value = True
+                self.mock_is_ancestor_commit.return_value = True
                 self.check_command_message_result(
                     command=command,
                     add_message_expected_call_count=add_message_call_count,
@@ -756,14 +925,20 @@ class RunCourseUpdateCommandTest(MockAddMessageMixing, unittest.TestCase):
                 self.assertEqual(
                     self.course.active_git_commit_sha, expected_course_sha)
 
-    def test_fetch_prevent_discarding_revisions(self):
-        self.mock_is_parent_commit.return_value = True
+    def test_internal_git_repo_more_commits(self):
+        from collections import defaultdict
+        self.mock_is_ancestor_commit.return_value = False
+        repo = defaultdict(lambda: "bar")
+        repo[b"HEAD"] = "foo"
+
         self.check_command_message_result(
             command="fetch",
             expected_error_type=RuntimeError,
-            expected_error_msg="fetch would discard commits, refusing",
+            expected_error_msg="internal git repo has more commits."
+                               " Fetch, merge and push.",
             add_message_expected_call_count=0,
-            prevent_discarding_revisions=True
+            prevent_discarding_revisions=True,
+            repo=repo,
         )
         self.assertAddMessageCallCount(0)
 
