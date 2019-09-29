@@ -38,6 +38,8 @@ NAME_VALID_REGEX = r"^\w+$"
 COURSE_ID_REGEX = "(?P<course_identifier>[-a-zA-Z0-9]+)"
 EVENT_KIND_REGEX = "(?P<event_kind>[_a-z0-9]+)"
 FLOW_ID_REGEX = "(?P<flow_id>[-_a-zA-Z0-9]+)"
+FORM_ID_REGEX = "(?P<form_id>[-_a-zA-Z0-9]+)"
+FORM_FIELD_ID_REGEX = "(?P<form_id>[-_a-zA-Z0-9]+)"
 GRADING_OPP_ID_REGEX = "(?P<grading_opp_id>[-_a-zA-Z0-9]+)"
 # FIXME : Support page hierarchy. Add '/' here, fix validation code.
 STATICPAGE_PATH_REGEX = r"(?P<page_path>[-\w]+)"

@@ -27,7 +27,8 @@ THE SOFTWARE.
 from django.conf.urls import include, url
 from django.contrib import admin
 from django.conf import settings
-from course.constants import COURSE_ID_REGEX, FLOW_ID_REGEX, STATICPAGE_PATH_REGEX
+from course.constants import (COURSE_ID_REGEX, FLOW_ID_REGEX, STATICPAGE_PATH_REGEX,
+    FORM_ID_REGEX)
 
 import course.auth
 import course.views
@@ -41,6 +42,7 @@ import course.flow
 import course.analytics
 import course.exam
 import course.api
+import course.forms
 
 urlpatterns = [
     url(r"^login/$",
@@ -155,6 +157,18 @@ urlpatterns = [
         + "/sandbox/page/$",
         course.sandbox.view_page_sandbox,
         name="relate-view_page_sandbox"),
+
+    url(r"^course"
+        "/" + COURSE_ID_REGEX
+        + "/forms/list",
+        course.forms.view_all_forms,
+        name="relate-view_all_forms"),
+
+    url(r"^course"
+        "/" + COURSE_ID_REGEX
+        + "/forms/view/" + FORM_ID_REGEX,
+        course.forms.view_form,
+        name="relate-view_form"),
 
     url("^purge-pageview-data/$",
         course.flow.purge_page_view_data,
