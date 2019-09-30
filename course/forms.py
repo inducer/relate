@@ -46,7 +46,7 @@ from course.constants import participation_permission as pperm
 from course.utils import (  # noqa
         CoursePageContext)
 from course.content import FlowPageDesc, get_course_repo, get_repo_blob, get_yaml_from_repo, expand_yaml_macros
-from relate.utils import dict_to_struct, Struct
+from relate.utils import dict_to_struct, Struct, string_concat
 from course.versioning import run_course_update_command
 
 # {{{ for mypy
@@ -55,15 +55,6 @@ if False:
     from typing import Text, Optional, Any, Iterable, Dict  # noqa
 
 # }}}
-
-# {{{ sandbox session key prefix
-
-PAGE_SESSION_KEY_PREFIX = "cf_validated_sandbox_page"
-ANSWER_DATA_SESSION_KEY_PREFIX = "cf_page_sandbox_answer_data"
-PAGE_DATA_SESSION_KEY_PREFIX = "cf_page_sandbox_page_data"
-
-# }}}
-
 
 class CreateForm(forms.Form):
     # prevents form submission with codemirror's empty textarea
@@ -224,13 +215,11 @@ def view_form(pctx, form_id):
     if not any(role in form_info.access_roles for role in roles):
         raise PermissionDenied()
 
-    def back_to_form(form, form_info, page_errors=None, page_warnings=None):
+    def back_to_form(form, form_info):
         return render_course_page(pctx, "course/form.html", {
             "form": form,
             "description": form_info.description,
             "title": form_info.title,
-            "page_errors": page_errors,
-            "page_warnings": page_warnings,
         })
 
     request = pctx.request
@@ -247,46 +236,8 @@ def view_form(pctx, form_id):
         return back_to_form(form, form_info)
 
     page_source, file_out = form.get_jinja_text()
-    page_warnings = None
-    page_errors = None
-    try:
-        new_page_source = expand_yaml_macros(
-                pctx.repo, pctx.course_commit_sha, page_source)
 
-        yaml_data = yaml.safe_load(new_page_source)  # type: ignore
-        page_desc = dict_to_struct(yaml_data)
-
-        if not isinstance(page_desc, Struct):
-            raise ValidationError("Provided page source code is not "
-                    "a dictionary. Do you need to remove a leading "
-                    "list marker ('-') or some stray indentation?")
-
-        from course.validation import validate_flow_desc, ValidationContext
-        vctx = ValidationContext(
-                repo=pctx.repo,
-                commit_sha=pctx.course_commit_sha)
-
-        validate_flow_desc(vctx, "form", page_desc)
-
-        page_warnings = vctx.warnings
-
-    except Exception:
-        import sys
-        tp, e, _ = sys.exc_info()
-
-        page_errors = (
-                ugettext("Page failed to load/validate")
-                + ": "
-                + "%(err_type)s: %(err_str)s" % {
-                    "err_type": tp.__name__, "err_str": e})  # type: ignore
-
-        return back_to_form(form, form_info, page_errors, page_warnings)
-    else:
-        # Yay, it did validate.
-        pass
-
-    if "validate" in request.POST:
-        return back_to_form(form, form_info, page_errors, page_warnings)
+    # {{{ Check if file already exists
 
     course = pctx.course
     content_repo = pctx.repo
@@ -304,17 +255,17 @@ def view_form(pctx, form_id):
             page_errors = (ugettext("Target file already exists")
                            + ": " + file_out)
             return back_to_form(form, form_info, page_errors, page_warnings)
+    # }}}
 
-
-    from dulwich.objects import Blob, Commit
-    from dulwich.index import commit_tree
-    from time import time
-
-    # Create a blob (file) and save in object store
+    # {{{ Create a blob (file) and save in object store
+    from dulwich.objects import Blob
     blob = Blob.from_string(page_source.encode("utf-8"))
     repo.object_store.add_object(blob)
 
-    # Create a tree with the contents from HEAD and new file
+    # }}}
+
+    # {{{ Create a tree with the contents from HEAD and new file
+    from dulwich.index import commit_tree
     repo_contents.append((file_out.encode("utf-8"), blob.id, 0o100644))
     tree_id = commit_tree(repo.object_store, repo_contents)
 
@@ -322,7 +273,10 @@ def view_form(pctx, form_id):
     committer = "{} <{}>".format(user.username, user.email).encode("utf-8")
     message = "Create page {} with form {}".format(file_out, form_id).encode("utf-8")
 
-    # Create a commit with the tree and parent as HEAD.
+    # }}}
+
+    # {{{ Create a commit with the tree and parent as HEAD.
+    from dulwich.objects import Commit
     commit = Commit()
     commit.tree = tree_id
     commit.parents = [repo_head.id]
@@ -333,18 +287,55 @@ def view_form(pctx, form_id):
     commit.message = message
     repo.object_store.add_object(commit)
 
+    # }}}
+
+    # {{{ validate
+
+    from course.validation import validate_course_content, ValidationError
+    try:
+        warnings = validate_course_content(
+                content_repo, course.course_file, course.events_file,
+                commit.id, course=course)
+    except ValidationError as e:
+        messages.add_message(request, messages.ERROR,
+                _("Course content did not validate successfully: '%s' "
+                "Update not applied.") % str(e))
+        return back_to_form(form, form_info)
+    else:
+        if not warnings:
+            messages.add_message(request, messages.SUCCESS,
+                    _("Course content validated successfully."))
+        else:
+            messages.add_message(request, messages.WARNING,
+                    string_concat(
+                        _("Course content validated OK, with warnings: "),
+                        "<ul>%s</ul>")
+                    % ("".join(
+                        "<li><i>%(location)s</i>: %(warningtext)s</li>"
+                        % {'location': w.location, 'warningtext': w.text}
+                        for w in warnings)))
+    # }}}
+
+    if "validate" in request.POST:
+        return back_to_form(form, form_info)
+
+    if pctx.participation.preview_git_commit_sha is not None:
+        messages.add_message(request, messages.ERROR,
+                _("Cannot apply update while previewing. "))
+        return back_to_form(form, form_info)
+
     if repo[b"HEAD"] != repo_head:
         page_errors = (ugettext("Repo updated by somebody else. Try again.")
                        + ": " + file_out)
-        return back_to_form(form, form_info, page_errors, page_warnings)
+        return back_to_form(form, form_info)
 
-    run_course_update_command(
-        request, repo, content_repo, pctx, "update", commit.id, True,
-        False)
+    repo[b"HEAD"] = commit.id
+    course.active_git_commit_sha = commit.id.decode()
+    course.save()
+    messages.add_message(request, messages.SUCCESS,
+            _("Update applied. "))
 
-    for message in messages.get_messages(request):
-        if message.level == messages.ERROR:
-            return back_to_form(form, form_info)
+    # {{{ Create InstantFlow
 
     if form_info.type == "flow" and hasattr(form, "announce") and form.announce:
         from course.models import InstantFlowRequest
@@ -355,6 +346,7 @@ def view_form(pctx, form_id):
         ifr.start_time = form.created_time
         ifr.end_time = form.created_time + timedelta(minutes=20)
         ifr.save()
+    # }}}
 
     return back_to_form(form, form_info)
 

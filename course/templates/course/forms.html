@@ -9,7 +9,7 @@
 {% endblock %}
 
 {% block content %}
-  <h1>{% trans "Templates" %}</h1>
+  <h1>{% trans "Forms" %}</h1>
   <ul>
       {% for form in forms %}
       <li><a href="{% url "relate-view_form" course.identifier form.name %}">{{ form.title }}</a></li>
