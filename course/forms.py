@@ -108,10 +108,13 @@ class CreateForm(forms.Form):
 
 
     def get_jinja_text(self):
+        from relate.utils import as_local_time
+        created_time = as_local_time(self.created_time).strftime("%Y-%m-%d @ %H:%M")
+
         text = "{{% with id=\"{id}\",\n".format(id=self.id)
         for field in self.form_fields:
             text += "        {field_name}=\"{field_value}\",\n".format(field_name=field.id, field_value=field.value)
-        text += "        created_time=\"{created_time}\" %}}".format(created_time=self.created_time.strftime("%Y-%m-%d @ %H:%M"))
+        text += "        created_time=\"{created_time}\" %}}".format(created_time=created_time)
         text += textwrap.dedent("""
                 {{% include "{template_in}" %}}
                 {{% endwith %}}
