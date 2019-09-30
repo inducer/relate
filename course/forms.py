@@ -46,7 +46,7 @@ from course.constants import participation_permission as pperm
 from course.utils import (  # noqa
         CoursePageContext)
 from course.content import FlowPageDesc, get_course_repo, get_repo_blob, get_yaml_from_repo, expand_yaml_macros
-from relate.utils import dict_to_struct, Struct, string_concat
+from relate.utils import dict_to_struct, Struct, string_concat, as_local_time
 from course.versioning import run_course_update_command
 
 # {{{ for mypy
@@ -67,9 +67,8 @@ class CreateForm(forms.Form):
         self.helper = FormHelper()
 
         self.form_fields = form_fields
-        self.id = str(uuid.uuid1()).replace("-", "")
-
         self.created_time = now()
+        self.id = as_local_time(self.created_time).strftime("%Y%m%d_%H%M%S_%f")
 
         for field in form_fields:
             field_data = dict(required=True,
@@ -108,7 +107,6 @@ class CreateForm(forms.Form):
 
 
     def get_jinja_text(self):
-        from relate.utils import as_local_time
         created_time = as_local_time(self.created_time).strftime("%Y-%m-%d @ %H:%M")
 
         text = "{{% with id=\"{id}\",\n".format(id=self.id)
