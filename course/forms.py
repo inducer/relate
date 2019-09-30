@@ -36,6 +36,7 @@ from django.contrib import messages  # noqa
 from django.core.exceptions import PermissionDenied, ObjectDoesNotExist
 from django.utils.translation import ugettext, ugettext_lazy as _
 from django import http  # noqa
+from django.utils.timezone import now
 
 from crispy_forms.layout import Submit
 
@@ -46,6 +47,7 @@ from course.utils import (  # noqa
         CoursePageContext)
 from course.content import FlowPageDesc, get_course_repo, get_repo_blob, get_yaml_from_repo, expand_yaml_macros
 from relate.utils import dict_to_struct, Struct
+from course.versioning import run_course_update_command
 
 # {{{ for mypy
 
@@ -76,8 +78,7 @@ class CreateForm(forms.Form):
         self.form_fields = form_fields
         self.id = str(uuid.uuid1()).replace("-", "")
 
-        from django.utils.timezone import now
-        self.created_time = now().strftime("%Y-%m-%d @ %H:%M")
+        self.created_time = now()
 
         for field in form_fields:
             field_data = dict(required=True,
@@ -116,12 +117,10 @@ class CreateForm(forms.Form):
 
 
     def get_jinja_text(self):
-        text = textwrap.dedent("""
-                {{% with id="{id}",
-                """).format(id=self.id)
+        text = "{{% with id=\"{id}\",\n".format(id=self.id)
         for field in self.form_fields:
             text += "        {field_name}=\"{field_value}\",\n".format(field_name=field.id, field_value=field.value)
-        text += "        created_time=\"{created_time}\" %}}".format(created_time=self.created_time)
+        text += "        created_time=\"{created_time}\" %}}".format(created_time=self.created_time.strftime("%Y-%m-%d @ %H:%M"))
         text += textwrap.dedent("""
                 {{% include "{template_in}" %}}
                 {{% endwith %}}
@@ -247,12 +246,12 @@ def view_form(pctx, form_id):
     if "clear" in request.POST:
         return back_to_form(form, form_info)
 
-    new_page_source, file_out = form.get_jinja_text()
+    page_source, file_out = form.get_jinja_text()
     page_warnings = None
     page_errors = None
     try:
         new_page_source = expand_yaml_macros(
-                pctx.repo, pctx.course_commit_sha, new_page_source)
+                pctx.repo, pctx.course_commit_sha, page_source)
 
         yaml_data = yaml.safe_load(new_page_source)  # type: ignore
         page_desc = dict_to_struct(yaml_data)
@@ -289,9 +288,73 @@ def view_form(pctx, form_id):
     if "validate" in request.POST:
         return back_to_form(form, form_info, page_errors, page_warnings)
 
-    return render_course_page(pctx, "course/form.html", {
-        "form": form,
-        "description": form_info.description,
-        "title": form_info.title,
-    })
+    course = pctx.course
+    content_repo = pctx.repo
+
+    from course.content import SubdirRepoWrapper
+    if isinstance(content_repo, SubdirRepoWrapper):
+        repo = content_repo.repo
+    else:
+        repo = content_repo
+
+    repo_head = repo[b"HEAD"]
+    repo_contents = [(entry.path, entry.sha, entry.mode) for entry in repo.object_store.iter_tree_contents(repo_head.tree)]
+    for entry in repo_contents:
+        if entry[0].decode("utf-8") == file_out:
+            page_errors = (ugettext("Target file already exists")
+                           + ": " + file_out)
+            return back_to_form(form, form_info, page_errors, page_warnings)
+
+
+    from dulwich.objects import Blob, Commit
+    from dulwich.index import commit_tree
+    from time import time
+
+    # Create a blob (file) and save in object store
+    blob = Blob.from_string(page_source.encode("utf-8"))
+    repo.object_store.add_object(blob)
+
+    # Create a tree with the contents from HEAD and new file
+    repo_contents.append((file_out.encode("utf-8"), blob.id, 0o100644))
+    tree_id = commit_tree(repo.object_store, repo_contents)
+
+    user = pctx.participation.user
+    committer = "{} <{}>".format(user.username, user.email).encode("utf-8")
+    message = "Create page {} with form {}".format(file_out, form_id).encode("utf-8")
+
+    # Create a commit with the tree and parent as HEAD.
+    commit = Commit()
+    commit.tree = tree_id
+    commit.parents = [repo_head.id]
+    commit.author = commit.committer = committer
+    commit.commit_time = commit.author_time = int(now().timestamp())
+    commit.commit_timezone = commit.author_timezone = 0
+    commit.encoding = b"UTF-8"
+    commit.message = message
+    repo.object_store.add_object(commit)
+
+    if repo[b"HEAD"] != repo_head:
+        page_errors = (ugettext("Repo updated by somebody else. Try again.")
+                       + ": " + file_out)
+        return back_to_form(form, form_info, page_errors, page_warnings)
+
+    run_course_update_command(
+        request, repo, content_repo, pctx, "update", commit.id, True,
+        False)
+
+    for message in messages.get_messages(request):
+        if message.level == messages.ERROR:
+            return back_to_form(form, form_info)
+
+    if form_info.type == "flow" and hasattr(form, "announce") and form.announce:
+        from course.models import InstantFlowRequest
+        from datetime import timedelta
+        ifr = InstantFlowRequest()
+        ifr.course = course
+        ifr.flow_id = file_out.rsplit("/", 1)[-1][:-4]
+        ifr.start_time = form.created_time
+        ifr.end_time = form.created_time + timedelta(minutes=20)
+        ifr.save()
+
+    return back_to_form(form, form_info)
 

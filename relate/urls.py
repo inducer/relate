@@ -160,13 +160,14 @@ urlpatterns = [
 
     url(r"^course"
         "/" + COURSE_ID_REGEX
-        + "/forms/list",
+        + "/forms/$",
         course.forms.view_all_forms,
         name="relate-view_all_forms"),
 
     url(r"^course"
         "/" + COURSE_ID_REGEX
-        + "/forms/view/" + FORM_ID_REGEX,
+        + "/forms/" + FORM_ID_REGEX
+        + "/$",
         course.forms.view_form,
         name="relate-view_form"),
 

@@ -1203,7 +1203,7 @@ def validate_form_desc(vctx, location, form_desc):
 
     # Check required fields
 
-    for req_field in ["template_in", "template_out", "announce"]:
+    for req_field in ["template_in", "template_out"]:
         if req_field not in field_ids:
             raise ValidationError(
                     string_concat("%(location)s: ",
