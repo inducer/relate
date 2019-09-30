@@ -77,7 +77,7 @@ class CreateForm(forms.Form):
         self.id = str(uuid.uuid1()).replace("-", "")
 
         from django.utils.timezone import now
-        self.created_time = now().strftime("%Y-%m-%d %H:%M")
+        self.created_time = now().strftime("%Y-%m-%d @ %H:%M")
 
         for field in form_fields:
             field_data = dict(required=True,
@@ -251,10 +251,8 @@ def view_form(pctx, form_id):
     page_warnings = None
     page_errors = None
     try:
-        print(new_page_source)
         new_page_source = expand_yaml_macros(
                 pctx.repo, pctx.course_commit_sha, new_page_source)
-        print(new_page_source)
 
         yaml_data = yaml.safe_load(new_page_source)  # type: ignore
         page_desc = dict_to_struct(yaml_data)
