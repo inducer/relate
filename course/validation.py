@@ -1170,7 +1170,6 @@ def validate_form_desc(vctx, location, form_desc):
                 ("type", str),
                 ("fields", list),
                 ("access_roles", list),
-                ("template", str),
                 ],
             allowed_attrs=[],
             )
@@ -1202,6 +1201,15 @@ def validate_form_desc(vctx, location, form_desc):
 
     # }}}
 
+    # Check required fields
+
+    for req_field in ["template_in", "template_out", "announce"]:
+        if req_field not in field_ids:
+            raise ValidationError(
+                    string_concat("%(location)s: ",
+                        _("required form field id '%(field_id)s' not found"))
+                    % {'location': location, 'field_id': req_field})
+
 
 def validate_form_field(vctx, location, field_desc):
     validate_struct(
@@ -1213,14 +1221,15 @@ def validate_form_field(vctx, location, field_desc):
                 ("type", str),
                 ],
             allowed_attrs=[
-                ("values", list),
-                ("default", (str, int, float, bool)),
+                ("choices", list),
+                ("value", (str, int, float, bool)),
+                ("label", str),
                 ],
             )
 
     from course.constants import FORM_FIELD_ID_REGEX
 
-    if field_desc.type not in ["Text", "Integer", "Float", "Choice"]:
+    if field_desc.type not in ["Text", "Integer", "Float", "Choice", "Hidden"]:
         raise ValidationError(
                 string_concat("%(location)s: ",
                     _("form field type '%(field_type)s' not recognized"))

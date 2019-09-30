@@ -1,0 +1,34 @@
+{% extends "course/course-base.html" %}
+{% load i18n %}
+
+{% load crispy_forms_tags %}
+{% load static %}
+
+{% block content %}
+  <h1>{{ title }}</h1>
+  {{ description }}
+
+  {% if page_errors %}
+    <div class="alert alert-danger">
+      <i class="fa fa-ban"></i>
+      {{ page_errors | safe }}
+    </div>
+  {% endif %}
+
+  {% if page_warnings %}
+    <div class="alert alert-warning">
+      <i class="fa fa-warning"></i>
+      {% blocktrans  trimmed %} Warnings were encountered when validating the page: {% endblocktrans %}
+
+      <ul>
+      {% for w in page_warnings %}
+        <li>{{ w.location }}: {{ w.text }}</li>
+      {% endfor %}
+      </ul>
+    </div>
+  {% endif %}
+  <div class="well">
+    {% crispy form %}
+  </div>
+{% endblock %}
+
