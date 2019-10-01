@@ -443,6 +443,12 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
         based on its :attr:`access_rules` (not the ones of the flow), a warning
         is shown. Setting this attribute to True will silence the warning.
 
+    .. attribute:: docker_image
+
+        Optional.
+        Specific Docker image within which to run code for the participants
+        answer.
+
     * ``data_files``: A dictionary mapping file names from :attr:`data_files`
       to :class:`bytes` instances with that file's contents.
 
@@ -466,6 +472,9 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
                             "%(location)s: ",
                             _("data file '%(file)s' not found"))
                         % {"location": location, "file": data_file})
+
+        if hasattr(page_desc, "docker_image"):
+            image = page_desc.docker_image
 
         if not getattr(page_desc, "single_submission", False) and vctx is not None:
             is_multi_submit = False
@@ -502,6 +511,7 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
                 ("correct_code_explanation", "markup"),
                 ("correct_code", str),
                 ("initial_code", str),
+                ("docker_image", str),
                 ("data_files", list),
                 ("single_submission", bool),
                 )
