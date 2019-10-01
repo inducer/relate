@@ -474,7 +474,7 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
                         % {"location": location, "file": data_file})
 
         if hasattr(page_desc, "docker_image"):
-            image = page_desc.docker_image
+            self.container_image = page_desc.docker_image
 
         if not getattr(page_desc, "single_submission", False) and vctx is not None:
             is_multi_submit = False
