@@ -3,9 +3,6 @@ MAINTAINER Andreas Kloeckner <inform@tiker.net>
 EXPOSE 9941
 RUN useradd runcode
 
-# Temporarily needed for pandas
-RUN echo "deb http://httpredir.debian.org/debian unstable main contrib" >> /etc/apt/sources.list
-RUN echo "deb http://httpredir.debian.org/debian experimental main contrib" >> /etc/apt/sources.list
 RUN echo 'APT::Default-Release "testing";' >> /etc/apt/apt.conf
 
 RUN apt-get update
@@ -40,8 +37,6 @@ RUN apt-get -y -o APT::Install-Recommends=0 -o APT::Install-Suggests=0 install \
 RUN apt-get clean
 RUN fc-cache
 
-RUN pip3 install numpy==1.16.1
-
 RUN mkdir -p /opt/runcode
 ADD runcode /opt/runcode/
 COPY code_feedback.py /opt/runcode/
@@ -53,7 +48,7 @@ RUN echo "savefig.dpi : 80" >> /etc/matplotlibrc
 RUN echo "savefig.bbox : tight" >> /etc/matplotlibrc
 
 # RUN pip3 install --upgrade tensorflow
+#RUN  find /usr/lib/python3/ -name '*cpython-37m*.so' -delete
 RUN rm -Rf /root/.cache
-RUN  find /usr/lib/python3/ -name '*cpython-37m*.so' -delete
 
 # may use ./flatten-container.sh to reduce disk space
