@@ -772,6 +772,36 @@ class ValidateFlowGroupTest(ValidationTestMixin, unittest.TestCase):
                 )
             self.assertIn(expected_error_msg, str(cm.exception))
 
+    def test_max_page_count_with_shuffle_not_given(self):
+        with mock.patch(
+                "course.validation.validate_struct"
+        ) as mock_vs, mock.patch(
+            "course.validation.validate_flow_page"
+        ) as mock_vfp, mock.patch(
+            "course.validation.validate_identifier"
+        ) as mock_vi:
+            mock_vs.return_value = None
+            mock_vfp.return_value = None
+            mock_vi.return_value = None
+
+            validation.validate_flow_group(
+                vctx, location,
+                self.get_updated_group(max_page_count=1, shuffle=True)
+            )
+            self.assertEqual(vctx.add_warning.call_count, 0)
+
+            expected_warn_msg = (
+                "shuffle attribute will be required for groups with"
+                "max_page_count in a future version. set "
+                "'shuffle: False' to match current behavior.")
+
+            validation.validate_flow_group(
+                vctx, location,
+                self.get_updated_group(max_page_count=1)
+            )
+            self.assertIn(expected_warn_msg, vctx.add_warning.call_args[0])
+            vctx.add_warning.reset_mock()
+
 
 class ValidateSessionStartRuleTest(ValidationTestMixin, unittest.TestCase):
     # test validation.validate_session_start_rule

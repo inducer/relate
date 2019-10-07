@@ -554,13 +554,21 @@ def validate_flow_group(vctx, location, grp):
                 % (location, i+1, getattr(page_desc, "id", None)),
                 page_desc)
 
-    if hasattr(grp, "max_page_count") and grp.max_page_count <= 0:
-        raise ValidationError(
+    if hasattr(grp, "max_page_count"):
+        if grp.max_page_count <= 0:
+            raise ValidationError(
                 string_concat(
                     "%(location)s, ",
                     _("group '%(group_id)s': "
                         "max_page_count is not positive"))
                 % {'location': location, 'group_id': grp.id})
+        elif not hasattr(grp, "shuffle") and grp.max_page_count < len(grp.pages):
+            vctx.add_warning(
+                _("%(location)s, group '%(group_id)s': ") % {
+                    'location': location, 'group_id': grp.id},
+                _("shuffle attribute will be required for groups with"
+                  "max_page_count in a future version. set "
+                  "'shuffle: False' to match current behavior."))
 
     # {{{ check page id uniqueness
 
