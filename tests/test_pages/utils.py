@@ -73,7 +73,7 @@ SKIP_REAL_DOCKER_REASON = "These are tests for real docker"
 
 REAL_RELATE_DOCKER_URL = "unix:///var/run/docker.sock"
 REAL_RELATE_DOCKER_TLS_CONFIG = None
-REAL_RELATE_DOCKER_RUNPY_IMAGE = "inducer/relate-runpy-i386"
+REAL_RELATE_DOCKER_RUNPY_IMAGE = "inducer/relate-runcode-python"
 
 
 class RealDockerTestMixin(object):
