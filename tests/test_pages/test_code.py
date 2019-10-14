@@ -215,10 +215,10 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
                        SubprocessRunpyContainerMixin, LocmemBackendTestsMixin,
                        TestCase):
 
-    def test_data_files_missing_random_question_data_file(self):
+    def test_python_data_files_missing_random_question_data_file(self):
         file_name = "foo"
         markdown = (
-                markdowns.CODE_MARKDWON_PATTERN_WITH_DATAFILES
+                markdowns.PYTHON_CODE_MARKDOWN_PATTERN_WITH_DATAFILES
                 % {"extra_data_file": "- %s" % file_name}
         )
         resp = self.get_page_sandbox_preview_response(markdown)
@@ -227,17 +227,17 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
         self.assertResponseContextContains(
             resp, PAGE_ERRORS, "data file '%s' not found" % file_name)
 
-    def test_data_files_missing_random_question_data_file_bad_format(self):
-        markdown = markdowns.CODE_MARKDWON_WITH_DATAFILES_BAD_FORMAT
+    def test_python_data_files_missing_random_question_data_file_bad_format(self):
+        markdown = markdowns.PYTHON_CODE_MARKDOWN_WITH_DATAFILES_BAD_FORMAT
         resp = self.get_page_sandbox_preview_response(markdown)
         self.assertEqual(resp.status_code, 200)
         self.assertSandboxNotHasValidPage(resp)
         self.assertResponseContextContains(
             resp, PAGE_ERRORS, "data file '%s' not found" % "['foo', 'bar']")
 
-    def test_not_multiple_submit_warning(self):
+    def test_python_not_multiple_submit_warning(self):
         markdown = (
-                markdowns.CODE_MARKDWON_PATTERN_WITH_DATAFILES
+                markdowns.PYTHON_CODE_MARKDOWN_PATTERN_WITH_DATAFILES
                 % {"extra_data_file": ""}
         )
         resp = self.get_page_sandbox_preview_response(markdown)
@@ -248,8 +248,8 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
             NOT_ALLOW_MULTIPLE_SUBMISSION_WARNING
         )
 
-    def test_not_multiple_submit_warning2(self):
-        markdown = markdowns.CODE_MARKDWON_NOT_EXPLICITLY_NOT_ALLOW_MULTI_SUBMIT1
+    def test_python_not_multiple_submit_warning2(self):
+        markdown = markdowns.PYTHON_CODE_MARKDOWN_NOT_EXPLICITLY_NOT_ALLOW_MULTI_SUBMIT1
         resp = self.get_page_sandbox_preview_response(markdown)
         self.assertEqual(resp.status_code, 200)
         self.assertSandboxHasValidPage(resp)
@@ -258,8 +258,8 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
             NOT_ALLOW_MULTIPLE_SUBMISSION_WARNING
         )
 
-    def test_not_multiple_submit_warning3(self):
-        markdown = markdowns.CODE_MARKDWON_NOT_EXPLICITLY_NOT_ALLOW_MULTI_SUBMIT2
+    def test_python_not_multiple_submit_warning3(self):
+        markdown = markdowns.PYTHON_CODE_MARKDOWN_NOT_EXPLICITLY_NOT_ALLOW_MULTI_SUBMIT2
         resp = self.get_page_sandbox_preview_response(markdown)
         self.assertEqual(resp.status_code, 200)
         self.assertSandboxHasValidPage(resp)
@@ -268,16 +268,16 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
             NOT_ALLOW_MULTIPLE_SUBMISSION_WARNING
         )
 
-    def test_allow_multiple_submit(self):
-        markdown = markdowns.CODE_MARKDWON
+    def test_python_allow_multiple_submit(self):
+        markdown = markdowns.PYTHON_CODE_MARKDOWN
         resp = self.get_page_sandbox_preview_response(markdown)
         self.assertEqual(resp.status_code, 200)
         self.assertSandboxHasValidPage(resp)
         self.assertSandboxWarningTextContain(resp, None)
 
-    def test_explicity_not_allow_multiple_submit(self):
+    def test_python_explicity_not_allow_multiple_submit(self):
         markdown = (
-                markdowns.CODE_MARKDWON_PATTERN_EXPLICITLY_NOT_ALLOW_MULTI_SUBMIT
+                markdowns.PYTHON_CODE_MARKDOWN_PATTERN_EXPLICITLY_NOT_ALLOW_MULTI_SUBMIT
                 % {"extra_data_file": ""}
         )
         resp = self.get_page_sandbox_preview_response(markdown)
@@ -285,8 +285,8 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
         self.assertSandboxHasValidPage(resp)
         self.assertSandboxWarningTextContain(resp, None)
 
-    def test_question_without_test_code(self):
-        markdown = markdowns.CODE_MARKDWON_PATTERN_WITHOUT_TEST_CODE
+    def test_python_question_without_test_code(self):
+        markdown = markdowns.PYTHON_CODE_MARKDOWN_PATTERN_WITHOUT_TEST_CODE
         resp = self.get_page_sandbox_preview_response(markdown)
         self.assertEqual(resp.status_code, 200)
         self.assertSandboxHasValidPage(resp)
@@ -300,8 +300,8 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
         self.assertResponseContextAnswerFeedbackContainsFeedback(
             resp, NO_CORRECTNESS_INFO_MSG)
 
-    def test_question_without_correct_code(self):
-        markdown = markdowns.CODE_MARKDWON_PATTERN_WITHOUT_CORRECT_CODE
+    def test_python_question_without_correct_code(self):
+        markdown = markdowns.PYTHON_CODE_MARKDOWN_PATTERN_WITHOUT_CORRECT_CODE
         resp = self.get_page_sandbox_preview_response(markdown)
         self.assertEqual(resp.status_code, 200)
         self.assertSandboxHasValidPage(resp)
@@ -313,8 +313,8 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
         self.assertEqual(resp.status_code, 200)
         self.assertResponseContextAnswerFeedbackCorrectnessEquals(resp, 1)
 
-    def test_question_with_human_feedback_both_feedback_value_feedback_percentage_present(self):  # noqa
-        markdown = (markdowns.CODE_WITH_HUMAN_FEEDBACK_MARKDWON_PATTERN
+    def test_python_question_with_human_feedback_both_feedback_value_feedback_percentage_present(self):  # noqa
+        markdown = (markdowns.PYTHON_CODE_WITH_HUMAN_FEEDBACK_MARKDOWN_PATTERN
                     % {"value": 3,
                        "human_feedback": "human_feedback_value: 2",
                        "extra_attribute": "human_feedback_percentage: 20"})
@@ -326,8 +326,8 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
                                "'human_feedback_percentage' are not "
                                "allowed to coexist")
 
-    def test_question_with_human_feedback_neither_feedback_value_feedback_percentage_present(self):  # noqa
-        markdown = (markdowns.CODE_WITH_HUMAN_FEEDBACK_MARKDWON_PATTERN
+    def test_python_question_with_human_feedback_neither_feedback_value_feedback_percentage_present(self):  # noqa
+        markdown = (markdowns.PYTHON_CODE_WITH_HUMAN_FEEDBACK_MARKDOWN_PATTERN
                     % {"value": 3,
                        "human_feedback": "",
                        "extra_attribute": ""})
@@ -338,8 +338,8 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
             resp, PAGE_ERRORS, "expecting either 'human_feedback_value' "
                                "or 'human_feedback_percentage', found neither.")
 
-    def test_question_with_human_feedback_used_feedback_value_warning(self):
-        markdown = (markdowns.CODE_WITH_HUMAN_FEEDBACK_MARKDWON_PATTERN
+    def test_python_question_with_human_feedback_used_feedback_value_warning(self):
+        markdown = (markdowns.PYTHON_CODE_WITH_HUMAN_FEEDBACK_MARKDOWN_PATTERN
                     % {"value": 3,
                        "human_feedback": "human_feedback_value: 2",
                        "extra_attribute": ""})
@@ -352,8 +352,8 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
             "use 'human_feedback_percentage' instead."
         )
 
-    def test_question_with_human_feedback_used_feedback_value_bad_value(self):
-        markdown = (markdowns.CODE_WITH_HUMAN_FEEDBACK_MARKDWON_PATTERN
+    def test_python_question_with_human_feedback_used_feedback_value_bad_value(self):
+        markdown = (markdowns.PYTHON_CODE_WITH_HUMAN_FEEDBACK_MARKDOWN_PATTERN
                     % {"value": 0,
                        "human_feedback": "human_feedback_value: 2",
                        "extra_attribute": ""})
@@ -365,8 +365,8 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
                                "if value of question is 0, use "
                                "'human_feedback_percentage' instead")
 
-    def test_question_with_human_feedback_used_feedback_value_invalid(self):
-        markdown = (markdowns.CODE_WITH_HUMAN_FEEDBACK_MARKDWON_PATTERN
+    def test_python_question_with_human_feedback_used_feedback_value_invalid(self):
+        markdown = (markdowns.PYTHON_CODE_WITH_HUMAN_FEEDBACK_MARKDOWN_PATTERN
                     % {"value": 2,
                        "human_feedback": "human_feedback_value: 3",
                        "extra_attribute": ""})
@@ -377,8 +377,8 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
             resp, PAGE_ERRORS, "human_feedback_value greater than overall "
                                "value of question")
 
-    def test_question_with_human_feedback_feedback_percentage_invalid(self):
-        markdown = (markdowns.CODE_WITH_HUMAN_FEEDBACK_MARKDWON_PATTERN
+    def test_python_question_with_human_feedback_feedback_percentage_invalid(self):
+        markdown = (markdowns.PYTHON_CODE_WITH_HUMAN_FEEDBACK_MARKDOWN_PATTERN
                     % {"value": 2,
                        "human_feedback": "human_feedback_percentage: 120",
                        "extra_attribute": ""})
@@ -389,8 +389,8 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
             resp, PAGE_ERRORS, "the value of human_feedback_percentage "
                                "must be between 0 and 100")
 
-    def test_question_with_human_feedback_value_0_feedback_full_percentage(self):
-        markdown = (markdowns.CODE_WITH_HUMAN_FEEDBACK_MARKDWON_PATTERN
+    def test_python_question_with_human_feedback_value_0_feedback_full_percentage(self):
+        markdown = (markdowns.PYTHON_CODE_WITH_HUMAN_FEEDBACK_MARKDOWN_PATTERN
                     % {"value": 0,
                        "human_feedback": "human_feedback_percentage: 100",
                        "extra_attribute": ""})
@@ -399,8 +399,8 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
         self.assertSandboxHasValidPage(resp)
         self.assertSandboxWarningTextContain(resp, None)
 
-    def test_question_with_human_feedback_value_0_feedback_0_percentage(self):
-        markdown = (markdowns.CODE_WITH_HUMAN_FEEDBACK_MARKDWON_PATTERN
+    def test_python_question_with_human_feedback_value_0_feedback_0_percentage(self):
+        markdown = (markdowns.PYTHON_CODE_WITH_HUMAN_FEEDBACK_MARKDOWN_PATTERN
                     % {"value": 0,
                        "human_feedback": "human_feedback_percentage: 0",
                        "extra_attribute": ""})
@@ -409,11 +409,11 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
         self.assertSandboxHasValidPage(resp)
         self.assertSandboxWarningTextContain(resp, None)
 
-    def test_request_run_with_retries_raise_uncaught_error_in_sandbox(self):
+    def test_python_request_run_with_retries_raise_uncaught_error_in_sandbox(self):
         with mock.patch(
             RUNCODE_WITH_RETRIES_PATH,
             autospec=True
-        ) as mock_runpy:
+        ) as mock_runcode:
             expected_error_str = ("This is an error raised with "
                                   "request_run_with_retries")
 
@@ -422,10 +422,10 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
                 '<p>This is the <a href="http://example.com/1">explanation'
                 '</a>.</p>The following code is a valid answer: '
                 '<pre>\nc = 2 + 1\n</pre>')
-            mock_runpy.side_effect = RuntimeError(expected_error_str)
+            mock_runcode.side_effect = RuntimeError(expected_error_str)
 
             resp = self.get_page_sandbox_submit_answer_response(
-                markdowns.CODE_MARKDWON,
+                markdowns.PYTHON_CODE_MARKDOWN,
                 answer_data={"answer": ['c = 1 + 2\r']})
             self.assertEqual(resp.status_code, 200)
             self.assertResponseContextAnswerFeedbackCorrectnessEquals(resp,
@@ -436,18 +436,18 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
             # No email when in sandbox
             self.assertEqual(len(mail.outbox), 0)
 
-    def test_request_run_with_retries_raise_uncaught_error_debugging(self):
+    def test_python_request_run_with_retries_raise_uncaught_error_debugging(self):
         with mock.patch(
             RUNCODE_WITH_RETRIES_PATH,
             autospec=True
-        ) as mock_runpy:
+        ) as mock_runcode:
             expected_error_str = ("This is an error raised with "
                                   "request_run_with_retries")
-            mock_runpy.side_effect = RuntimeError(expected_error_str)
+            mock_runcode.side_effect = RuntimeError(expected_error_str)
 
             with override_settings(DEBUG=True):
                 resp = self.get_page_sandbox_submit_answer_response(
-                    markdowns.CODE_MARKDWON,
+                    markdowns.PYTHON_CODE_MARKDOWN,
                     answer_data={"answer": ['c = 1 + 2\r']})
                 self.assertEqual(resp.status_code, 200)
                 self.assertResponseContextAnswerFeedbackCorrectnessEquals(resp,
@@ -455,14 +455,14 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
                 # No email when debugging
                 self.assertEqual(len(mail.outbox), 0)
 
-    def test_request_run_with_retries_raise_uncaught_error(self):
+    def test_python_request_run_with_retries_raise_uncaught_error(self):
         with mock.patch(
             RUNCODE_WITH_RETRIES_PATH,
             autospec=True
-        ) as mock_runpy:
+        ) as mock_runcode:
             expected_error_str = ("This is an error raised with "
                                   "request_run_with_retries")
-            mock_runpy.side_effect = RuntimeError(expected_error_str)
+            mock_runcode.side_effect = RuntimeError(expected_error_str)
 
             with mock.patch("course.page.PageContext") as mock_page_context:
                 mock_page_context.return_value.in_sandbox = False
@@ -474,7 +474,274 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
                 mock_page_context.return_value.commit_sha = b"1234"
 
                 resp = self.get_page_sandbox_submit_answer_response(
-                    markdowns.CODE_MARKDWON,
+                    markdowns.PYTHON_CODE_MARKDOWN,
+                    answer_data={"answer": ['c = 1 + 2\r']})
+                self.assertEqual(resp.status_code, 200)
+                self.assertResponseContextAnswerFeedbackCorrectnessEquals(resp,
+                                                                          None)
+                self.assertEqual(len(mail.outbox), 1)
+                self.assertIn(expected_error_str, mail.outbox[0].body)
+
+    def test_octave_data_files_missing_random_question_data_file(self):
+        file_name = "foo"
+        markdown = (
+                markdowns.OCTAVE_CODE_MARKDOWN_PATTERN_WITH_DATAFILES
+                % {"extra_data_file": "- %s" % file_name}
+        )
+        resp = self.get_page_sandbox_preview_response(markdown)
+        self.assertEqual(resp.status_code, 200)
+        self.assertSandboxNotHasValidPage(resp)
+        self.assertResponseContextContains(
+            resp, PAGE_ERRORS, "data file '%s' not found" % file_name)
+
+    def test_octave_data_files_missing_random_question_data_file_bad_format(self):
+        markdown = markdowns.OCTAVE_CODE_MARKDOWN_WITH_DATAFILES_BAD_FORMAT
+        resp = self.get_page_sandbox_preview_response(markdown)
+        self.assertEqual(resp.status_code, 200)
+        self.assertSandboxNotHasValidPage(resp)
+        self.assertResponseContextContains(
+            resp, PAGE_ERRORS, "data file '%s' not found" % "['foo', 'bar']")
+
+    def test_octave_not_multiple_submit_warning(self):
+        markdown = (
+                markdowns.OCTAVE_CODE_MARKDOWN_PATTERN_WITH_DATAFILES
+                % {"extra_data_file": ""}
+        )
+        resp = self.get_page_sandbox_preview_response(markdown)
+        self.assertEqual(resp.status_code, 200)
+        self.assertSandboxHasValidPage(resp)
+        self.assertSandboxWarningTextContain(
+            resp,
+            NOT_ALLOW_MULTIPLE_SUBMISSION_WARNING
+        )
+
+    def test_octave_not_multiple_submit_warning2(self):
+        markdown = markdowns.OCTAVE_CODE_MARKDOWN_NOT_EXPLICITLY_NOT_ALLOW_MULTI_SUBMIT1
+        resp = self.get_page_sandbox_preview_response(markdown)
+        self.assertEqual(resp.status_code, 200)
+        self.assertSandboxHasValidPage(resp)
+        self.assertSandboxWarningTextContain(
+            resp,
+            NOT_ALLOW_MULTIPLE_SUBMISSION_WARNING
+        )
+
+    def test_octave_not_multiple_submit_warning3(self):
+        markdown = markdowns.OCTAVE_CODE_MARKDOWN_NOT_EXPLICITLY_NOT_ALLOW_MULTI_SUBMIT2
+        resp = self.get_page_sandbox_preview_response(markdown)
+        self.assertEqual(resp.status_code, 200)
+        self.assertSandboxHasValidPage(resp)
+        self.assertSandboxWarningTextContain(
+            resp,
+            NOT_ALLOW_MULTIPLE_SUBMISSION_WARNING
+        )
+
+    def test_octave_allow_multiple_submit(self):
+        markdown = markdowns.OCTAVE_CODE_MARKDOWN
+        resp = self.get_page_sandbox_preview_response(markdown)
+        self.assertEqual(resp.status_code, 200)
+        self.assertSandboxHasValidPage(resp)
+        self.assertSandboxWarningTextContain(resp, None)
+
+    def test_octave_explicity_not_allow_multiple_submit(self):
+        markdown = (
+                markdowns.OCTAVE_CODE_MARKDOWN_PATTERN_EXPLICITLY_NOT_ALLOW_MULTI_SUBMIT
+                % {"extra_data_file": ""}
+        )
+        resp = self.get_page_sandbox_preview_response(markdown)
+        self.assertEqual(resp.status_code, 200)
+        self.assertSandboxHasValidPage(resp)
+        self.assertSandboxWarningTextContain(resp, None)
+
+    def test_octave_question_without_test_code(self):
+        markdown = markdowns.OCTAVE_CODE_MARKDOWN_PATTERN_WITHOUT_TEST_CODE
+        resp = self.get_page_sandbox_preview_response(markdown)
+        self.assertEqual(resp.status_code, 200)
+        self.assertSandboxHasValidPage(resp)
+        self.assertSandboxWarningTextContain(resp, None)
+
+        resp = self.get_page_sandbox_submit_answer_response(
+            markdown,
+            answer_data={"answer": ['c = b + a\r']})
+        self.assertEqual(resp.status_code, 200)
+        self.assertResponseContextAnswerFeedbackCorrectnessEquals(resp, None)
+        self.assertResponseContextAnswerFeedbackContainsFeedback(
+            resp, NO_CORRECTNESS_INFO_MSG)
+
+    def test_octave_question_without_correct_code(self):
+        markdown = markdowns.OCTAVE_CODE_MARKDOWN_PATTERN_WITHOUT_CORRECT_CODE
+        resp = self.get_page_sandbox_preview_response(markdown)
+        self.assertEqual(resp.status_code, 200)
+        self.assertSandboxHasValidPage(resp)
+        self.assertSandboxWarningTextContain(resp, None)
+
+        resp = self.get_page_sandbox_submit_answer_response(
+            markdown,
+            answer_data={"answer": ['c = b + a\r']})
+        self.assertEqual(resp.status_code, 200)
+        self.assertResponseContextAnswerFeedbackCorrectnessEquals(resp, 1)
+
+    def test_octave_question_with_human_feedback_both_feedback_value_feedback_percentage_present(self):  # noqa
+        markdown = (markdowns.OCTAVE_CODE_WITH_HUMAN_FEEDBACK_MARKDOWN_PATTERN
+                    % {"value": 3,
+                       "human_feedback": "human_feedback_value: 2",
+                       "extra_attribute": "human_feedback_percentage: 20"})
+        resp = self.get_page_sandbox_preview_response(markdown)
+        self.assertEqual(resp.status_code, 200)
+        self.assertSandboxNotHasValidPage(resp)
+        self.assertResponseContextContains(
+            resp, PAGE_ERRORS, "'human_feedback_value' and "
+                               "'human_feedback_percentage' are not "
+                               "allowed to coexist")
+
+    def test_octave_question_with_human_feedback_neither_feedback_value_feedback_percentage_present(self):  # noqa
+        markdown = (markdowns.OCTAVE_CODE_WITH_HUMAN_FEEDBACK_MARKDOWN_PATTERN
+                    % {"value": 3,
+                       "human_feedback": "",
+                       "extra_attribute": ""})
+        resp = self.get_page_sandbox_preview_response(markdown)
+        self.assertEqual(resp.status_code, 200)
+        self.assertSandboxNotHasValidPage(resp)
+        self.assertResponseContextContains(
+            resp, PAGE_ERRORS, "expecting either 'human_feedback_value' "
+                               "or 'human_feedback_percentage', found neither.")
+
+    def test_octave_question_with_human_feedback_used_feedback_value_warning(self):
+        markdown = (markdowns.OCTAVE_CODE_WITH_HUMAN_FEEDBACK_MARKDOWN_PATTERN
+                    % {"value": 3,
+                       "human_feedback": "human_feedback_value: 2",
+                       "extra_attribute": ""})
+        resp = self.get_page_sandbox_preview_response(markdown)
+        self.assertEqual(resp.status_code, 200)
+        self.assertSandboxHasValidPage(resp)
+        self.assertSandboxWarningTextContain(
+            resp,
+            "Used deprecated 'human_feedback_value' attribute--"
+            "use 'human_feedback_percentage' instead."
+        )
+
+    def test_octave_question_with_human_feedback_used_feedback_value_bad_value(self):
+        markdown = (markdowns.OCTAVE_CODE_WITH_HUMAN_FEEDBACK_MARKDOWN_PATTERN
+                    % {"value": 0,
+                       "human_feedback": "human_feedback_value: 2",
+                       "extra_attribute": ""})
+        resp = self.get_page_sandbox_preview_response(markdown)
+        self.assertEqual(resp.status_code, 200)
+        self.assertSandboxNotHasValidPage(resp)
+        self.assertResponseContextContains(
+            resp, PAGE_ERRORS, "'human_feedback_value' attribute is not allowed "
+                               "if value of question is 0, use "
+                               "'human_feedback_percentage' instead")
+
+    def test_octave_question_with_human_feedback_used_feedback_value_invalid(self):
+        markdown = (markdowns.OCTAVE_CODE_WITH_HUMAN_FEEDBACK_MARKDOWN_PATTERN
+                    % {"value": 2,
+                       "human_feedback": "human_feedback_value: 3",
+                       "extra_attribute": ""})
+        resp = self.get_page_sandbox_preview_response(markdown)
+        self.assertEqual(resp.status_code, 200)
+        self.assertSandboxNotHasValidPage(resp)
+        self.assertResponseContextContains(
+            resp, PAGE_ERRORS, "human_feedback_value greater than overall "
+                               "value of question")
+
+    def test_octave_question_with_human_feedback_feedback_percentage_invalid(self):
+        markdown = (markdowns.OCTAVE_CODE_WITH_HUMAN_FEEDBACK_MARKDOWN_PATTERN
+                    % {"value": 2,
+                       "human_feedback": "human_feedback_percentage: 120",
+                       "extra_attribute": ""})
+        resp = self.get_page_sandbox_preview_response(markdown)
+        self.assertEqual(resp.status_code, 200)
+        self.assertSandboxNotHasValidPage(resp)
+        self.assertResponseContextContains(
+            resp, PAGE_ERRORS, "the value of human_feedback_percentage "
+                               "must be between 0 and 100")
+
+    def test_octave_question_with_human_feedback_value_0_feedback_full_percentage(self):
+        markdown = (markdowns.OCTAVE_CODE_WITH_HUMAN_FEEDBACK_MARKDOWN_PATTERN
+                    % {"value": 0,
+                       "human_feedback": "human_feedback_percentage: 100",
+                       "extra_attribute": ""})
+        resp = self.get_page_sandbox_preview_response(markdown)
+        self.assertEqual(resp.status_code, 200)
+        self.assertSandboxHasValidPage(resp)
+        self.assertSandboxWarningTextContain(resp, None)
+
+    def test_octave_question_with_human_feedback_value_0_feedback_0_percentage(self):
+        markdown = (markdowns.OCTAVE_CODE_WITH_HUMAN_FEEDBACK_MARKDOWN_PATTERN
+                    % {"value": 0,
+                       "human_feedback": "human_feedback_percentage: 0",
+                       "extra_attribute": ""})
+        resp = self.get_page_sandbox_preview_response(markdown)
+        self.assertEqual(resp.status_code, 200)
+        self.assertSandboxHasValidPage(resp)
+        self.assertSandboxWarningTextContain(resp, None)
+
+    def test_octave_request_run_with_retries_raise_uncaught_error_in_sandbox(self):
+        with mock.patch(
+            RUNCODE_WITH_RETRIES_PATH,
+            autospec=True
+        ) as mock_runcode:
+            expected_error_str = ("This is an error raised with "
+                                  "request_run_with_retries")
+
+            # correct_code_explanation and correct_code
+            expected_feedback = (
+                '<p>This is the <a href="http://example.com/1">explanation'
+                '</a>.</p>The following code is a valid answer: '
+                '<pre>\nc = 2 + 1\n</pre>')
+            mock_runcode.side_effect = RuntimeError(expected_error_str)
+
+            resp = self.get_page_sandbox_submit_answer_response(
+                markdowns.OCTAVE_CODE_MARKDOWN,
+                answer_data={"answer": ['c = 1 + 2\r']})
+            self.assertEqual(resp.status_code, 200)
+            self.assertResponseContextAnswerFeedbackCorrectnessEquals(resp,
+                                                                      None)
+
+            self.assertResponseContextContains(resp, "correct_answer",
+                                               expected_feedback)
+            # No email when in sandbox
+            self.assertEqual(len(mail.outbox), 0)
+
+    def test_octave_request_run_with_retries_raise_uncaught_error_debugging(self):
+        with mock.patch(
+            RUNCODE_WITH_RETRIES_PATH,
+            autospec=True
+        ) as mock_runcode:
+            expected_error_str = ("This is an error raised with "
+                                  "request_run_with_retries")
+            mock_runcode.side_effect = RuntimeError(expected_error_str)
+
+            with override_settings(DEBUG=True):
+                resp = self.get_page_sandbox_submit_answer_response(
+                    markdowns.OCTAVE_CODE_MARKDOWN,
+                    answer_data={"answer": ['c = 1 + 2\r']})
+                self.assertEqual(resp.status_code, 200)
+                self.assertResponseContextAnswerFeedbackCorrectnessEquals(resp,
+                                                                          None)
+                # No email when debugging
+                self.assertEqual(len(mail.outbox), 0)
+
+    def test_octave_request_run_with_retries_raise_uncaught_error(self):
+        with mock.patch(
+            RUNCODE_WITH_RETRIES_PATH,
+            autospec=True
+        ) as mock_runcode:
+            expected_error_str = ("This is an error raised with "
+                                  "request_run_with_retries")
+            mock_runcode.side_effect = RuntimeError(expected_error_str)
+
+            with mock.patch("course.page.PageContext") as mock_page_context:
+                mock_page_context.return_value.in_sandbox = False
+                mock_page_context.return_value.course = self.course
+
+                # This remove the warning caused by mocked commit_sha value
+                # "CacheKeyWarning: Cache key contains characters that
+                # will cause errors ..."
+                mock_page_context.return_value.commit_sha = b"1234"
+
+                resp = self.get_page_sandbox_submit_answer_response(
+                    markdowns.OCTAVE_CODE_MARKDOWN,
                     answer_data={"answer": ['c = 1 + 2\r']})
                 self.assertEqual(resp.status_code, 200)
                 self.assertResponseContextAnswerFeedbackCorrectnessEquals(resp,
@@ -486,10 +753,10 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
         with mock.patch(
             RUNCODE_WITH_RETRIES_PATH,
             autospec=True
-        ) as mock_runpy:
+        ) as mock_runcode:
             expected_error_str = ("This is an error raised with "
                                   "request_run_with_retries")
-            mock_runpy.side_effect = RuntimeError(expected_error_str)
+            mock_runcode.side_effect = RuntimeError(expected_error_str)
 
             with mock.patch("course.page.PageContext") as mock_page_context:
                 mock_page_context.return_value.in_sandbox = False
@@ -504,7 +771,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
                     mock_send.side_effect = RuntimeError("some email send error")
 
                     resp = self.get_page_sandbox_submit_answer_response(
-                        markdowns.CODE_MARKDWON,
+                        markdowns.PYTHON_CODE_MARKDOWN,
                         answer_data={"answer": ['c = 1 + 2\r']})
                     self.assertContains(resp, expected_error_str)
                     self.assertEqual(resp.status_code, 200)
@@ -516,13 +783,47 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
                                          not_expected_msgs=None,
                                          correctness=0, mail_count=0, in_html=False,
                                          **extra_result):
-        with mock.patch(RUNCODE_WITH_RETRIES_PATH, autospec=True) as mock_runpy:
+        with mock.patch(RUNCODE_WITH_RETRIES_PATH, autospec=True) as mock_runcode:
             result = {"result": result_type}
             result.update(extra_result)
-            mock_runpy.return_value = result
+            mock_runcode.return_value = result
 
             resp = self.get_page_sandbox_submit_answer_response(
-                markdowns.CODE_MARKDWON,
+                markdowns.PYTHON_CODE_MARKDOWN,
+                answer_data={"answer": ['c = 1 + 2\r']})
+
+            if expected_msgs is not None:
+                if isinstance(expected_msgs, six.text_type):
+                    expected_msgs = [expected_msgs]
+                for msg in expected_msgs:
+                    self.assertResponseContextAnswerFeedbackContainsFeedback(
+                        resp, msg, html=in_html)
+
+            if not_expected_msgs is not None:
+                if isinstance(not_expected_msgs, six.text_type):
+                    not_expected_msgs = [not_expected_msgs]
+                for msg in not_expected_msgs:
+                    self.assertResponseContextAnswerFeedbackNotContainsFeedback(
+                        resp, msg)
+                    self.assertResponseContextAnswerFeedbackNotContainsFeedback(
+                        resp, msg, html=True)
+
+            self.assertEqual(resp.status_code, 200)
+            self.assertResponseContextAnswerFeedbackCorrectnessEquals(resp,
+                                                                      correctness)
+            self.assertEqual(len(mail.outbox), mail_count)
+
+    def assert_runoctave_result_and_response(self, result_type, expected_msgs=None,
+                                             not_expected_msgs=None,
+                                             correctness=0, mail_count=0,
+                                             in_html=False, **extra_result):
+        with mock.patch(RUNCODE_WITH_RETRIES_PATH, autospec=True) as mock_runcode:
+            result = {"result": result_type}
+            result.update(extra_result)
+            mock_runcode.return_value = result
+
+            resp = self.get_page_sandbox_submit_answer_response(
+                markdowns.OCTAVE_CODE_MARKDOWN,
                 answer_data={"answer": ['c = 1 + 2\r']})
 
             if expected_msgs is not None:
@@ -799,7 +1100,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
     # {{{ https://github.com/inducer/relate/pull/448
 
     def test_feedback_points_close_to_1(self):
-        markdown = (markdowns.FEEDBACK_POINTS_CODE_MARKDWON_PATTERN
+        markdown = (markdowns.PYTHON_FEEDBACK_POINTS_CODE_MARKDOWN_PATTERN
                     % {
                         "full_points": 1.000000000002,
                         "min_points": 0
@@ -816,7 +1117,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
 
     def test_feedback_code_exceed_1(self):
         feedback_points = 1.1
-        markdown = (markdowns.FEEDBACK_POINTS_CODE_MARKDWON_PATTERN
+        markdown = (markdowns.PYTHON_FEEDBACK_POINTS_CODE_MARKDOWN_PATTERN
                     % {
                         "full_points": feedback_points,
                         "min_points": 0
@@ -838,7 +1139,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
 
     def test_feedback_code_positive_close_to_0(self):
         # https://github.com/inducer/relate/pull/448#issuecomment-363655132
-        markdown = (markdowns.FEEDBACK_POINTS_CODE_MARKDWON_PATTERN
+        markdown = (markdowns.PYTHON_FEEDBACK_POINTS_CODE_MARKDOWN_PATTERN
                     % {
                         "full_points": 1,
                         "min_points": 0.00000000001
@@ -856,7 +1157,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
 
     def test_feedback_code_negative_close_to_0(self):
         # https://github.com/inducer/relate/pull/448#issuecomment-363655132
-        markdown = (markdowns.FEEDBACK_POINTS_CODE_MARKDWON_PATTERN
+        markdown = (markdowns.PYTHON_FEEDBACK_POINTS_CODE_MARKDOWN_PATTERN
                     % {
                         "full_points": 1,
                         "min_points": -0.00000000001
@@ -874,7 +1175,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
 
     def test_feedback_code_error_close_below_max_auto_feedback_points(self):
         feedback_points = MAX_EXTRA_CREDIT_FACTOR - 1e-6
-        markdown = (markdowns.FEEDBACK_POINTS_CODE_MARKDWON_PATTERN
+        markdown = (markdowns.PYTHON_FEEDBACK_POINTS_CODE_MARKDOWN_PATTERN
                     % {
                         "full_points": feedback_points,
                         "min_points": 0
@@ -892,7 +1193,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
 
     def test_feedback_code_error_close_above_max_auto_feedback_points(self):
         feedback_points = MAX_EXTRA_CREDIT_FACTOR + 1e-6
-        markdown = (markdowns.FEEDBACK_POINTS_CODE_MARKDWON_PATTERN
+        markdown = (markdowns.PYTHON_FEEDBACK_POINTS_CODE_MARKDOWN_PATTERN
                     % {
                         "full_points": feedback_points,
                         "min_points": 0
@@ -910,7 +1211,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
 
     def test_feedback_code_error_negative_feedback_points(self):
         invalid_feedback_points = -0.1
-        markdown = (markdowns.FEEDBACK_POINTS_CODE_MARKDWON_PATTERN
+        markdown = (markdowns.PYTHON_FEEDBACK_POINTS_CODE_MARKDOWN_PATTERN
                     % {
                         "full_points": 1,
                         "min_points": invalid_feedback_points
@@ -937,7 +1238,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
 
     def test_feedback_code_error_exceed_max_extra_credit_factor(self):
         invalid_feedback_points = 10.1
-        markdown = (markdowns.FEEDBACK_POINTS_CODE_MARKDWON_PATTERN
+        markdown = (markdowns.PYTHON_FEEDBACK_POINTS_CODE_MARKDOWN_PATTERN
                     % {
                         "full_points": invalid_feedback_points,
                         "min_points": 0
@@ -962,7 +1263,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
 
     def test_feedback_code_error_exceed_max_extra_credit_factor_email(self):
         invalid_feedback_points = 10.1
-        markdown = (markdowns.FEEDBACK_POINTS_CODE_MARKDWON_PATTERN
+        markdown = (markdowns.PYTHON_FEEDBACK_POINTS_CODE_MARKDOWN_PATTERN
                     % {
                         "full_points": invalid_feedback_points,
                         "min_points": 0
