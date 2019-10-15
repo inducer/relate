@@ -577,6 +577,8 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
         return {"answer": form.cleaned_data["answer"].strip()}
 
     def get_test_code(self):
+        # Note to developers:  this function should be replaced in daughter
+        # classes as it defaults to Python.  It is required by grade() though.
         test_code = getattr(self.page_desc, "test_code", None)
         if test_code is None:
             return test_code
@@ -585,7 +587,7 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
         if correct_code is None:
             correct_code = ""
 
-        from .code_run_backend import substitute_correct_code_into_test_code
+        from .code_run_backend_python import substitute_correct_code_into_test_code
         return substitute_correct_code_into_test_code(test_code, correct_code)
 
     def grade(self, page_context, page_data, answer_data, grade_data):
@@ -1167,6 +1169,18 @@ class PythonCodeQuestion(CodeQuestion):
         super(PythonCodeQuestion, self).__init__(vctx, location, page_desc,
         language_mode)
 
+    def get_test_code(self):
+        test_code = getattr(self.page_desc, "test_code", None)
+        if test_code is None:
+            return test_code
+
+        correct_code = getattr(self.page_desc, "correct_code", None)
+        if correct_code is None:
+            correct_code = ""
+
+        from .code_run_backend_python import substitute_correct_code_into_test_code
+        return substitute_correct_code_into_test_code(test_code, correct_code)
+
 # }}}
 
 
@@ -1565,6 +1579,18 @@ class OctaveCodeQuestion(CodeQuestion):
 
     def __init__(self, vctx, location, page_desc, language_mode='octave'):
         super(OctaveCodeQuestion, self).__init__(vctx, location, page_desc, language_mode)
+
+    def get_test_code(self):
+        test_code = getattr(self.page_desc, "test_code", None)
+        if test_code is None:
+            return test_code
+
+        correct_code = getattr(self.page_desc, "correct_code", None)
+        if correct_code is None:
+            correct_code = ""
+
+        from .code_run_backend_octave import substitute_correct_code_into_test_code
+        return substitute_correct_code_into_test_code(test_code, correct_code)
 
 # }}}
 
