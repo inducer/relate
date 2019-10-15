@@ -220,7 +220,7 @@ def run_code(result, run_req):
         oc.push( name,user_ctx[ name ] )
 
     try:
-        oc.eval(run_req.user_code)
+        oc.eval(run_req.user_code,plot_dir='figures',plot_name='octave',plot_format='png')
     except Exception:
         package_exception(result, "user_error")
         return
