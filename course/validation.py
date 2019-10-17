@@ -1246,6 +1246,59 @@ def validate_form_field(vctx, location, field_desc):
                             "dashes and underscores."))
             % location)
 
+    if field_desc.type != "Choice":
+        required_types = {
+            "Integer": int,
+            "Float": float,
+        }
+        value_types = required_types.get(field_desc.type,
+                        (str, int, float, bool))
+        validate_struct(
+            vctx,
+            location,
+            field_desc,
+            required_attrs=[
+                ("id", str),
+                ("type", str),
+                ("value", value_types),
+                ],
+            allowed_attrs=[
+                ("label", str),
+                ],
+        )
+    else:
+        validate_struct(
+            vctx,
+            location,
+            field_desc,
+            required_attrs=[
+                ("id", str),
+                ("type", str),
+                ("choices", list),
+                ],
+            allowed_attrs=[
+                ("label", str),
+                ],
+        )
+        found_default = 0
+        for choice in field_desc.choices:
+            if choice.startswith("~DEFAULT~"):
+                found_default += 1
+        if found_default == 0:
+            raise ValidationError(
+                string_concat("%(location)s: ",
+                    _("form field '%(id)s' of type '%(field_type)s' requires"
+                      " a default value."))
+                % {'location': location, 'field_type': field_desc.type,
+                   'id': field_desc.id})
+        if found_default > 1:
+            raise ValidationError(
+                string_concat("%(location)s: ",
+                    _("form field '%(id)s' of type '%(field_type)s' requires"
+                      " only one default value."))
+                % {'location': location, 'field_type': field_desc.type,
+                   'id': field_desc.id})
+
 # }}}
 
 

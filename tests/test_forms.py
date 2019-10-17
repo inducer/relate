@@ -25,10 +25,16 @@ THE SOFTWARE.
 from django.test import TestCase
 
 from course.forms import process_form_fields
+from course.validation import ValidationError
 from relate.utils import dict_to_struct
 
 
 class CreateFormTest(TestCase):
+
+    required_fields = [
+        dict_to_struct({"id": "template_in", "type": "Text", "value": "spam"}),
+        dict_to_struct({"id": "template_out", "type": "Text", "value": "spam"}),
+    ]
 
     def test_fields_label(self):
         fields = [
@@ -67,3 +73,19 @@ class CreateFormTest(TestCase):
         self.assertEqual(fields[1].value, "choice1")
         self.assertEqual(fields[2].value, 1)
         self.assertEqual(fields[3].value, 1.5)
+
+    def test_invalid_data(self):
+        fields = [
+            dict_to_struct({"id": "template_in", "type": "Text", "value": "spam"}),
+            dict_to_struct({"id": "template_out", "type": "Text", "value": "spam"}),
+            dict_to_struct({"id": "field0", "type": "Integer", "value": 2}),
+        ]
+
+        expected_error_msg = (
+            "form field 'field0' value 'a' is not a 'Integer'.")
+        with self.assertRaises(ValidationError) as cm:
+            process_form_fields(fields, {"template_in": "eggs",
+                                         "template_out": "choice1",
+                                         "field0": "a",
+                                         })
+        self.assertIn(expected_error_msg, str(cm.exception))

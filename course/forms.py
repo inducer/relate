@@ -41,6 +41,7 @@ from course.constants import participation_permission as pperm
 from course.utils import (  # noqa
         CoursePageContext)
 from course.content import get_yaml_from_repo
+from course.validation import ValidationError
 from relate.utils import string_concat, as_local_time
 
 # {{{ for mypy
@@ -118,16 +119,18 @@ class CreateForm(forms.Form):
 
 
 def process_value(field):
-    if field.type == "Integer":
-        try:
+    try:
+        if field.type == "Integer":
             field.value = int(field.value)
-        except ValueError:
-            pass
-    elif field.type == "Float":
-        try:
+        elif field.type == "Float":
             field.value = float(field.value)
-        except ValueError:
-            pass
+    except ValueError:
+        # This condition is impossible if the user uses the web UI
+        raise ValidationError(
+                _("form field '%(id)s' value '%(field_value)s' is"
+                  " not a '%(field_type)s'.") % {'field_value': field.value,
+                                                 'field_type': field.type,
+                                                 'id': field.id})
 
 
 def process_form_fields(form_fields, data):

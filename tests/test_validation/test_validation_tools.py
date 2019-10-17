@@ -2902,7 +2902,8 @@ class ValidateFormFieldTest(ValidationTestMixin, unittest.TestCase):
 
     def get_updated_form_field(self, **kwargs):
         field_desc = {"id": "my_page_id",
-                      "type": "Text"}
+                      "type": "Text",
+                      "value": "foo"}
         field_desc.update(kwargs)
         return dict_to_struct(field_desc)
 
@@ -2926,6 +2927,29 @@ class ValidateFormFieldTest(ValidationTestMixin, unittest.TestCase):
             validation.validate_form_field(vctx, location,
                 self.get_updated_form_field(type="qwe"))
         self.assertIn(expected_error_msg, str(cm.exception))
+
+    def test_invalid_form_field_choice(self):
+        field_desc = {"id": "my_page_id",
+                      "type": "Choice",
+                      "choices": ["foo"]}
+        field_desc = dict_to_struct(field_desc)
+        expected_error_msg = (
+            "form field 'my_page_id' of type 'Choice' requires"
+            " a default value.")
+        with self.assertRaises(ValidationError) as cm:
+            validation.validate_form_field(vctx, location, field_desc)
+        self.assertIn(expected_error_msg, str(cm.exception))
+
+        field_desc.choices = ["~DEFAULT~ a", "~DEFAULT~ b", "c"]
+        expected_error_msg = (
+            "form field 'my_page_id' of type 'Choice' requires"
+            " only one default value.")
+        with self.assertRaises(ValidationError) as cm:
+            validation.validate_form_field(vctx, location, field_desc)
+        self.assertIn(expected_error_msg, str(cm.exception))
+
+        field_desc.choices = ["~DEFAULT~ a", "b"]
+        validation.validate_form_field(vctx, location, field_desc)
 
 
 class ValidateFormTest(ValidationTestMixin, unittest.TestCase):
