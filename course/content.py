@@ -1552,11 +1552,11 @@ def get_course_commit_sha(course, participation, repo=None,
     return sha.encode()
 
 
-def list_flow_ids(repo, commit_sha):
-    # type: (Repo_ish, bytes) -> List[Text]
+def list_dir_yaml_ids(repo, commit_sha, dir_name):
+    # type: (Repo_ish, bytes, Text) -> List[Text]
     flow_ids = []
     try:
-        flows_tree = get_repo_blob(repo, "flows", commit_sha)
+        flows_tree = get_repo_blob(repo, dir_name, commit_sha)
     except ObjectDoesNotExist:
         # That's OK--no flows yet.
         pass
@@ -1566,5 +1566,10 @@ def list_flow_ids(repo, commit_sha):
                 flow_ids.append(entry.path[:-4].decode("utf-8"))
 
     return sorted(flow_ids)
+
+
+def list_flow_ids(repo, commit_sha):
+    # type: (Repo_ish, bytes) -> List[Text]
+    return list_dir_yaml_ids(repo, commit_sha, "flows")
 
 # vim: foldmethod=marker

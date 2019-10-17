@@ -28,7 +28,7 @@ import textwrap
 
 import django.forms as forms
 from django.contrib import messages  # noqa
-from django.core.exceptions import PermissionDenied, ObjectDoesNotExist
+from django.core.exceptions import PermissionDenied
 from django.utils.translation import ugettext_lazy as _
 from django import http  # noqa
 from django.utils.timezone import now
@@ -40,7 +40,7 @@ from course.utils import course_view, render_course_page
 from course.constants import participation_permission as pperm
 from course.utils import (  # noqa
         CoursePageContext)
-from course.content import get_repo_blob, get_yaml_from_repo
+from course.content import get_yaml_from_repo
 from relate.utils import string_concat, as_local_time
 
 # {{{ for mypy
@@ -136,8 +136,6 @@ def process_form_fields(form_fields, data):
     for field in form_fields:
         if not hasattr(field, "label"):
             field.label = field.id
-        if not hasattr(field, "help"):
-            field.help = field.label
 
         if field.id in data:
             field.value = data[field.id]
@@ -156,22 +154,6 @@ def process_form_fields(form_fields, data):
         process_value(field)
 
 
-def list_form_names(repo, commit_sha):
-    # type: (Repo_ish, bytes) -> List[Text]
-    form_names = []
-    try:
-        form_tree = get_repo_blob(repo, "forms", commit_sha)
-    except ObjectDoesNotExist:
-        # That's OK--no forms yet.
-        pass
-    else:
-        for entry in form_tree.items():
-            if entry.path.endswith(b".yml"):
-                form_names.append(entry.path[:-4].decode("utf-8"))
-
-    return sorted(form_names)
-
-
 def get_form(repo, form_name, commit_sha):
     contents = get_yaml_from_repo(repo, "forms/%s.yml" % form_name, commit_sha)
     contents.name = form_name
@@ -179,7 +161,8 @@ def get_form(repo, form_name, commit_sha):
 
 
 def get_all_forms(repo, commit_sha):
-    form_names = list_form_names(repo, commit_sha)
+    from course.content import list_dir_yaml_ids
+    form_names = list_dir_yaml_ids(repo, commit_sha, "forms")
     forms = []
     for name in form_names:
         contents = get_form(repo, name, commit_sha)
