@@ -139,6 +139,11 @@ staticpage2_location = "spage2.yml"
 staticpage2_id = "spage2"
 staticpage2_desc = mock.MagicMock()
 
+form1_path = "forms/form1.yml"
+form1_location = "form1.yml"
+form1_id = "form1"
+form1_desc = mock.MagicMock()
+
 flow1_path = "flows/flow1.yml"
 flow1_location = "flow1.yml"
 flow1_id = "flow1"
@@ -203,6 +208,9 @@ def get_yaml_from_repo_safely_side_effect(repo, full_name, commit_sha):
     if full_name == staticpage2_path:
         return staticpage2_desc
 
+    if full_name == form1_path:
+        return form1_desc
+
     return get_yaml_from_repo_safely(repo, full_name, commit_sha)
 
 
@@ -222,6 +230,9 @@ def get_yaml_from_repo_safely_with_duplicate_grade_identifier_side_effect(
         return staticpage1_desc
     if full_name == staticpage2_path:
         return staticpage2_desc
+
+    if full_name == form1_path:
+        return form1_desc
 
     return get_yaml_from_repo_safely(repo, full_name, commit_sha)
 
@@ -247,6 +258,7 @@ def get_repo_blob_side_effect(repo, full_name, commit_sha, allow_tree=True):
     if full_name == "forms":
         tree = Tree()
         tree.add(b"not_a_form", stat.S_IFREG, b"not a form")
+        tree.add(form1_location.encode(), stat.S_IFREG, b"a form")
         return tree
     if full_name == "":
         return Tree()
@@ -343,6 +355,11 @@ class ValidateCourseContentTest(CoursesTestMixinBase, TestCase):
         self.mock_validate_staticpage_desc = fake_validate_staticpage_desc.start()
         self.addCleanup(fake_validate_staticpage_desc.stop)
 
+        fake_validate_form_desc = mock.patch(
+            "course.validation.validate_form_desc")
+        self.mock_validate_form_desc = fake_validate_form_desc.start()
+        self.addCleanup(fake_validate_form_desc.stop)
+
         fake_get_yaml_from_repo = mock.patch(
             "course.content.get_yaml_from_repo")
         self.mock_get_yaml_from_repo = fake_get_yaml_from_repo.start()
@@ -418,6 +435,10 @@ class ValidateCourseContentTest(CoursesTestMixinBase, TestCase):
 
         self.assertSetEqual(expected_validate_staticpage_desc_call_args,
                             args_set)
+
+        # make sure validate_form_desc was called with expected args
+        self.assertEqual(self.mock_validate_form_desc.call_args_list[0][0][1:],
+                            (form1_path, form1_desc))
 
         # validate_calendar_desc_struct is called
         self.assertEqual(self.mock_validate_calendar_desc_struct.call_count, 1)
