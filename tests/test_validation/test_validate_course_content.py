@@ -244,6 +244,10 @@ def get_repo_blob_side_effect(repo, full_name, commit_sha, allow_tree=True):
 
         tree.add(staticpage2_location.encode(), stat.S_IFREG, b"a static page")
         return tree
+    if full_name == "forms":
+        tree = Tree()
+        tree.add(b"not_a_form", stat.S_IFREG, b"not a form")
+        return tree
     if full_name == "":
         return Tree()
 
@@ -267,6 +271,10 @@ def get_repo_blob_side_effect1(repo, full_name, commit_sha, allow_tree=True):
 
         tree.add(staticpage2_location.encode(), stat.S_IFREG, b"a static page")
         return tree
+    if full_name == "forms":
+        tree = Tree()
+        tree.add(b"not_a_form", stat.S_IFREG, b"not a form")
+        return tree
     if full_name == "":
         return Tree()
 
@@ -285,6 +293,10 @@ def get_repo_blob_side_effect2(repo, full_name, commit_sha, allow_tree=True):
 
         tree.add(staticpage2_location.encode(), stat.S_IFREG, b"a static page")
         return tree
+    if full_name == "forms":
+        tree = Tree()
+        tree.add(b"not_a_form", stat.S_IFREG, b"not a form")
+        return tree
     if full_name == "":
         return Tree()
 
@@ -301,6 +313,10 @@ def get_repo_blob_side_effect3(repo, full_name, commit_sha, allow_tree=True):
         return tree
     if full_name == "staticpages":
         raise ObjectDoesNotExist()
+    if full_name == "forms":
+        tree = Tree()
+        tree.add(b"not_a_form", stat.S_IFREG, b"not a form")
+        return tree
     if full_name == "":
         return Tree()
 
