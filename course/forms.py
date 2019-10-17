@@ -24,17 +24,12 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from typing import cast, Tuple
-import os
-import uuid
 import textwrap
-import yaml
 
 import django.forms as forms
-from django.utils.safestring import mark_safe
 from django.contrib import messages  # noqa
 from django.core.exceptions import PermissionDenied, ObjectDoesNotExist
-from django.utils.translation import ugettext, ugettext_lazy as _
+from django.utils.translation import ugettext_lazy as _
 from django import http  # noqa
 from django.utils.timezone import now
 
@@ -45,16 +40,17 @@ from course.utils import course_view, render_course_page
 from course.constants import participation_permission as pperm
 from course.utils import (  # noqa
         CoursePageContext)
-from course.content import FlowPageDesc, get_course_repo, get_repo_blob, get_yaml_from_repo, expand_yaml_macros
-from relate.utils import dict_to_struct, Struct, string_concat, as_local_time
-from course.versioning import run_course_update_command
+from course.content import get_repo_blob, get_yaml_from_repo
+from relate.utils import string_concat, as_local_time
 
 # {{{ for mypy
 
 if False:
-    from typing import Text, Optional, Any, Iterable, Dict  # noqa
+    from typing import Text, Optional, Any, Iterable, Dict, List  # noqa
+    from relate.utils import Repo_ish  # noqa
 
 # }}}
+
 
 class CreateForm(forms.Form):
     # prevents form submission with codemirror's empty textarea
@@ -105,14 +101,15 @@ class CreateForm(forms.Form):
                 Submit("validate", _("Validate"), css_class="btn-default"),
                 )
 
-
     def get_jinja_text(self):
         created_time = as_local_time(self.created_time).strftime("%Y-%m-%d @ %H:%M")
 
         text = "{{% with id=\"{id}\",\n".format(id=self.id)
         for field in self.form_fields:
-            text += "        {field_name}=\"{field_value}\",\n".format(field_name=field.id, field_value=field.value)
-        text += "        created_time=\"{created_time}\" %}}".format(created_time=created_time)
+            text += "        {field_name}=\"{field_value}\",\n".format(
+                        field_name=field.id, field_value=field.value)
+        text += "        created_time=\"{created_time}\" %}}".format(
+                        created_time=created_time)
         text += textwrap.dedent("""
                 {{% include "{template_in}" %}}
                 {{% endwith %}}
@@ -250,12 +247,13 @@ def view_form(pctx, form_id):
         repo = content_repo
 
     repo_head = repo[b"HEAD"]
-    repo_contents = [(entry.path, entry.sha, entry.mode) for entry in repo.object_store.iter_tree_contents(repo_head.tree)]
+    repo_contents = [(entry.path, entry.sha, entry.mode) for entry in
+                        repo.object_store.iter_tree_contents(repo_head.tree)]
     for entry in repo_contents:
         if entry[0].decode("utf-8") == file_out:
-            page_errors = (ugettext("Target file already exists")
-                           + ": " + file_out)
-            return back_to_form(form, form_info, page_errors, page_warnings)
+            messages.add_message(request, messages.ERROR,
+                _("Target file: '%s'  already exists ") % file_out)
+            return back_to_form(form, form_info)
     # }}}
 
     # {{{ Create a blob (file) and save in object store
@@ -326,8 +324,8 @@ def view_form(pctx, form_id):
         return back_to_form(form, form_info)
 
     if repo[b"HEAD"] != repo_head:
-        page_errors = (ugettext("Repo updated by somebody else. Try again.")
-                       + ": " + file_out)
+        messages.add_message(request, messages.ERROR,
+                _("Repo updated by somebody else. Try again."))
         return back_to_form(form, form_info)
 
     repo[b"HEAD"] = commit.id
@@ -350,4 +348,3 @@ def view_form(pctx, form_id):
     # }}}
 
     return back_to_form(form, form_info)
-

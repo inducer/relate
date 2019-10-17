@@ -1159,6 +1159,7 @@ def validate_flow_desc(vctx, location, flow_desc):
 
 # {{{ form validation
 
+
 def validate_form_desc(vctx, location, form_desc):
     validate_struct(
             vctx,
@@ -1227,13 +1228,23 @@ def validate_form_field(vctx, location, field_desc):
                 ],
             )
 
-    from course.constants import FORM_FIELD_ID_REGEX
-
     if field_desc.type not in ["Text", "Integer", "Float", "Choice", "Hidden"]:
         raise ValidationError(
                 string_concat("%(location)s: ",
                     _("form field type '%(field_type)s' not recognized"))
                 % {'location': location, 'field_type': field_desc.type})
+
+    from course.constants import FORM_FIELD_ID_REGEX
+
+    match = re.match("^" + FORM_FIELD_ID_REGEX + "$", field_desc.id)
+    if match is None:
+        raise ValidationError(
+            string_concat("%s: ",
+                          _("invalid form field id. "
+                            "Form field id may only contain (roman) "
+                            "letters, numbers, "
+                            "dashes and underscores."))
+            % location)
 
 # }}}
 
