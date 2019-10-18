@@ -23,18 +23,14 @@ THE SOFTWARE.
 """
 
 from django.test import TestCase
+import django.forms as forms
 
-from course.forms import process_form_fields
+from course.forms import process_form_fields, CreateForm
 from course.validation import ValidationError
 from relate.utils import dict_to_struct
 
 
 class CreateFormTest(TestCase):
-
-    required_fields = [
-        dict_to_struct({"id": "template_in", "type": "Text", "value": "spam"}),
-        dict_to_struct({"id": "template_out", "type": "Text", "value": "spam"}),
-    ]
 
     def test_fields_label(self):
         fields = [
@@ -56,6 +52,15 @@ class CreateFormTest(TestCase):
         self.assertEqual(fields[1].value, "choice2")
         self.assertEqual(fields[1].choices, ["choice1", "choice2"])
 
+    def test_reset(self):
+        fields = [
+            dict_to_struct({"id": "template_in", "type": "Text", "value": "spam"}),
+            dict_to_struct({"id": "template_out", "type": "Text", "value": "eggs"}),
+        ]
+        process_form_fields(fields, {"reset": True, "template_in": "eggs"})
+        self.assertEqual(fields[0].value, "spam")
+        self.assertEqual(fields[1].value, "eggs")
+
     def test_fields_assign_data(self):
         fields = [
             dict_to_struct({"id": "template_in", "type": "Text", "value": "spam"}),
@@ -69,6 +74,7 @@ class CreateFormTest(TestCase):
                                      "field0": "1",
                                      "field1": "1.5",
                                      })
+        _ = CreateForm(fields)
         self.assertEqual(fields[0].value, "eggs")
         self.assertEqual(fields[1].value, "choice1")
         self.assertEqual(fields[2].value, 1)
@@ -89,3 +95,24 @@ class CreateFormTest(TestCase):
                                          "field0": "a",
                                          })
         self.assertIn(expected_error_msg, str(cm.exception))
+
+
+    def test_create_form(self):
+        fields = [
+            dict_to_struct({"id": "template_in", "type": "Text", "value": "spam"}),
+            dict_to_struct({"id": "template_out", "type": "Text",
+                            "value": "out.yml"}),
+            dict_to_struct({"id": "field0", "type": "Integer", "value": 2}),
+            dict_to_struct({"id": "field1", "type": "Float", "value": 2.5}),
+            dict_to_struct({"id": "field2", "type": "Choice",
+                            "choices": ["choice1", "~DEFAULT~ choice2"]}),
+            dict_to_struct({"id": "field3", "type": "Hidden", "value": 2}),
+        ]
+        process_form_fields(fields, {})
+        form = CreateForm(fields)
+        for field in ["field0", "field1", "field2", "template_in", "template_out"]:
+            self.assertIn(field, form.fields)
+        self.assertNotIn("field3", form.fields)
+        # Check that template_out has id appended
+        self.assertEqual(form.template_out, "out_{}.yml".format(form.id))
+        self.assertIn(form.id, form.get_jinja_text()[0])

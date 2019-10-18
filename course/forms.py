@@ -81,6 +81,11 @@ class CreateForm(forms.Form):
             elif field.type == "Integer":
                 self.fields[field.id] = forms.IntegerField(
                         **field_data)
+            elif field.type == "Float":
+                self.fields[field.id] = forms.FloatField(
+                        **field_data)
+            else:
+                assert field.type == "Hidden"
 
             if field.id == "template_in":
                 self.template_in = field.value
