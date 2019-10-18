@@ -96,7 +96,6 @@ class CreateFormTest(TestCase):
                                          })
         self.assertIn(expected_error_msg, str(cm.exception))
 
-
     def test_create_form(self):
         fields = [
             dict_to_struct({"id": "template_in", "type": "Text", "value": "spam"}),
@@ -110,8 +109,14 @@ class CreateFormTest(TestCase):
         ]
         process_form_fields(fields, {})
         form = CreateForm(fields)
-        for field in ["field0", "field1", "field2", "template_in", "template_out"]:
+        for field, ftype in [("field0", forms.IntegerField),
+                             ("field1", forms.FloatField),
+                             ("field2", forms.ChoiceField),
+                             ("template_in", forms.CharField),
+                             ("template_out", forms.CharField)]:
             self.assertIn(field, form.fields)
+            self.assertIsInstance(form.fields[field], ftype)
+
         self.assertNotIn("field3", form.fields)
         # Check that template_out has id appended
         self.assertEqual(form.template_out, "out_{}.yml".format(form.id))
