@@ -151,6 +151,7 @@ def process_form_fields(form_fields, data):
         if field.type == "Choice":
             choices = []
             for value in field.choices:
+                value = str(value)
                 if value.startswith("~DEFAULT~"):
                     v = value[9:].strip()
                     choices.append(v)

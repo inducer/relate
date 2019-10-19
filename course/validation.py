@@ -1282,7 +1282,7 @@ def validate_form_field(vctx, location, field_desc):
         )
         found_default = 0
         for choice in field_desc.choices:
-            if choice.startswith("~DEFAULT~"):
+            if str(choice).startswith("~DEFAULT~"):
                 found_default += 1
         if found_default == 0:
             raise ValidationError(

@@ -805,8 +805,7 @@ also provides a way to create a flow in the during a lecture.
 For example, an instructor wants to create a multiple choice question in the
 middle of the lecture and have students submit an answer within 10 minutes of
 the announcement similar to an i-clicker. Then, a templated flow looks like
-the following:
-
+the following::
 
     title: "{{ title }}"
 
@@ -852,9 +851,10 @@ the following:
           {{ description }}
 
         choices:
-          - {{ choice1 }}
+          - ~CORRECT~ {{ choice1 }}
           - {{ choice2 }}
           - {{ choice3 }}
+
 
 The jinja variables `title, description, choice1, choice2, choice3, duration,
 created_time, id` are undefined and needs to be created by the form.
@@ -865,12 +865,14 @@ which correspond to the name of the templted flow and actual flow respectively.
 A special field `announce` will create an Instant Flow request which will make
 the flow visible to all visitors to the course page.
 
-An example form description to create a form that an admin user can submit via
-the web interface is as follows. Field types are one of
-`Text, Integer, Float, Choice, Hidden`. Hidden fields are not shown to the admin
-user, but their default values are substituted in the templated flow.
+A form description file will create a form in the web interface for an admin
+user and upon submitting a new flow will be created.
+The form in the web interface can have several types of field.
+Field types are one of `Text, Integer, Float, Choice, Hidden`. Hidden
+fields are not shown to the admin user, but their default values are
+substituted in the templated flow. An example form description is as follows::
 
-title: "Create an instant flow with one multiple choice question"
+    title: "Create an instant flow with one multiple choice question"
 
     description: |
       Instructions on filling out this form
@@ -891,23 +893,23 @@ title: "Create an instant flow with one multiple choice question"
 
       - id: duration
         type: Integer
-        value: "20"
+        value: 20
         label: "Duration in minutes for the flow"
 
       - id: choice1
         type: Text
-        value: "~CORRECT~ (a)"
+        value: "(a)"
         label: "Correct choice"
 
       - id: choice2
         type: Text
         value: "(b)"
-        label: "Incorrect choice"
+        label: "An Incorrect choice"
 
       - id: choice3
         type: Text
         value: "(c)"
-        label: "Incorrect choice"
+        label: "Another incorrect choice"
 
       - id: template_in
         type: Hidden
@@ -926,7 +928,7 @@ title: "Create an instant flow with one multiple choice question"
 
 
 When the admin user submits the form, a flow will be created using the
-values the admin user filled in the web form like the following:
+values the admin user filled in the web form like the following::
 
     {% with id="20190930_022148_311577",
             title="InClass quiz",
