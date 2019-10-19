@@ -848,6 +848,19 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
         return cls.get_course_view_url("relate-edit_course", course_identifier)
 
     @classmethod
+    def get_view_all_forms_url(cls, course_identifier=None):
+        course_identifier = (
+            course_identifier or cls.get_default_course_identifier())
+        return cls.get_course_view_url("relate-view_all_forms", course_identifier)
+
+    @classmethod
+    def get_view_form_url(cls, form_id, course_identifier=None):
+        course_identifier = (
+            course_identifier or cls.get_default_course_identifier())
+        return cls.get_course_view_url("relate-view_form", course_identifier,
+                    form_id)
+
+    @classmethod
     def post_edit_course(cls, data, course=None):
         course = course or cls.get_default_course()
         edit_course_url = cls.get_edit_course_url(course.identifier)

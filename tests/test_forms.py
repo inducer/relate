@@ -29,6 +29,8 @@ from course.forms import process_form_fields, CreateForm
 from course.validation import ValidationError
 from relate.utils import dict_to_struct
 
+from tests.base_test_mixins import SingleCourseTestMixin, MockAddMessageMixing
+
 
 class CreateFormTest(TestCase):
 
@@ -121,3 +123,17 @@ class CreateFormTest(TestCase):
         # Check that template_out has id appended
         self.assertEqual(form.template_out, "out_{}.yml".format(form.id))
         self.assertIn(form.id, form.get_jinja_text()[0])
+
+
+class ViewAllFormsTest(SingleCourseTestMixin, MockAddMessageMixing, TestCase):
+
+    def test_student_no_form_access(self):
+        with self.temporarily_switch_to_user(self.student_participation.user):
+            print(self.get_course_page_url())
+            resp = self.c.get(self.get_view_all_forms_url())
+            self.assertEqual(resp.status_code, 403)
+
+    def test_instructor_forms_access(self):
+        with self.temporarily_switch_to_user(self.instructor_participation.user):
+            resp = self.c.get(self.get_view_all_forms_url())
+            self.assertEqual(resp.status_code, 200)
