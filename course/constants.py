@@ -130,6 +130,7 @@ class participation_permission:  # noqa
     use_git_endpoint = "use_git_endpoint"
     use_markup_sandbox = "use_markup_sandbox"
     use_page_sandbox = "use_page_sandbox"
+    use_forms = "use_forms"
     test_flow = "test_flow"
 
     edit_events = "edit_events"

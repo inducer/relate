@@ -181,7 +181,7 @@ def get_all_forms(repo, commit_sha):
 
 @course_view
 def view_all_forms(pctx):
-    if not pctx.has_permission(pperm.update_content):
+    if not pctx.has_permission(pperm.use_forms):
         raise PermissionDenied()
 
     forms = get_all_forms(pctx.repo, pctx.course_commit_sha)
@@ -193,7 +193,7 @@ def view_all_forms(pctx):
 
 @course_view
 def view_form(pctx, form_id):
-    if not pctx.has_permission(pperm.update_content):
+    if not pctx.has_permission(pperm.use_forms):
         raise PermissionDenied()
 
     form_info = get_form(pctx.repo, form_id, pctx.course_commit_sha)

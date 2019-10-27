@@ -27,7 +27,10 @@ import django.forms as forms
 
 from course.forms import process_form_fields, CreateForm
 from course.validation import ValidationError
+from course.constants import participation_permission as pperm
 from relate.utils import dict_to_struct
+from tests import factories
+from course.models import ParticipationRolePermission, ParticipationRole
 
 from tests.base_test_mixins import SingleCourseTestMixin, MockAddMessageMixing
 
@@ -125,15 +128,63 @@ class CreateFormTest(TestCase):
         self.assertIn(form.id, form.get_jinja_text()[0])
 
 
-class ViewAllFormsTest(SingleCourseTestMixin, MockAddMessageMixing, TestCase):
+class FormsBase(SingleCourseTestMixin, MockAddMessageMixing, TestCase):
+
+    initial_commit_sha = "f3e9d31a61714e759a6ea12b900b173accb753f5"
+    form_title = b"Create an instant flow with one multiple choice question"
+
+    def get_user_with_no_forms(self):
+        # This user has no form with access, but has access to viewing the
+        # forms list.
+        limited_instructor = factories.UserFactory()
+        limited_instructor_role = factories.ParticipationRoleFactory(
+            course=self.course,
+            identifier="limited_instructor"
+        )
+        participation = factories.ParticipationFactory(
+            course=self.course,
+            user=limited_instructor)
+        participation.roles.set([limited_instructor_role])
+        ParticipationRolePermission(role=limited_instructor_role,
+                                    permission=pperm.use_forms).save()
+        return limited_instructor
+
+
+class ViewAllFormsTest(FormsBase):
 
     def test_student_no_form_access(self):
         with self.temporarily_switch_to_user(self.student_participation.user):
-            print(self.get_course_page_url())
             resp = self.c.get(self.get_view_all_forms_url())
             self.assertEqual(resp.status_code, 403)
 
-    def test_instructor_forms_access(self):
-        with self.temporarily_switch_to_user(self.instructor_participation.user):
+    def test_use_forms_permission(self):
+        with self.temporarily_switch_to_user(self.get_user_with_no_forms()):
             resp = self.c.get(self.get_view_all_forms_url())
+            self.assertEqual(resp.status_code, 200)
+            self.assertIn(self.form_title, resp.content)
+
+
+class ViewFormTest(FormsBase):
+
+    def test_student_no_form_access(self):
+        with self.temporarily_switch_to_user(self.student_participation.user):
+            resp = self.c.get(self.get_view_form_url(form_id="instant"))
+            self.assertEqual(resp.status_code, 403)
+
+    def test_user_with_no_forms(self):
+        with self.temporarily_switch_to_user(self.get_user_with_no_forms()):
+            resp = self.c.get(self.get_view_form_url(form_id="instant"))
+            self.assertEqual(resp.status_code, 403)
+
+    def get_instructor_with_perm(self):
+        role = ParticipationRole.objects.filter(
+            identifier="instructor",
+        ).first()
+        ParticipationRolePermission(role=role,
+                                    permission=pperm.use_forms).save()
+        return self.instructor_participation.user
+
+    def test_instructor_form_access(self):
+        with self.temporarily_switch_to_user(self.get_instructor_with_perm()):
+            resp = self.c.get(self.get_view_form_url(form_id="instant"))
             self.assertEqual(resp.status_code, 200)

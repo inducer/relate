@@ -823,10 +823,10 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
         assert Course.objects.count() == existing_course_count + 1
 
     @classmethod
-    def get_course_view_url(cls, view_name, course_identifier=None):
+    def get_course_view_url(cls, view_name, course_identifier=None, *args):
         course_identifier = (
             course_identifier or cls.get_default_course_identifier())
-        return reverse(view_name, args=[course_identifier])
+        return reverse(view_name, args=[course_identifier] + list(args))
 
     @classmethod
     def get_course_calender_url(cls, course_identifier=None):
