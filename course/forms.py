@@ -222,7 +222,7 @@ def view_form(pctx, form_id):
     process_form_fields(form_info.fields, request.POST)
     form = CreateForm(form_info.fields)
 
-    if "clear" in request.POST:
+    if "reset" in request.POST:
         return back_to_form(form, form_info)
 
     page_source, file_out = form.get_jinja_text()

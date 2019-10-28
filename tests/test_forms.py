@@ -188,3 +188,12 @@ class ViewFormTest(FormsBase):
         with self.temporarily_switch_to_user(self.get_instructor_with_perm()):
             resp = self.c.get(self.get_view_form_url(form_id="instant"))
             self.assertEqual(resp.status_code, 200)
+
+    def test_form_reset(self):
+        with self.temporarily_switch_to_user(self.get_instructor_with_perm()):
+            from time import time
+            new_duration = int(time())
+            data = {"reset": "", "duration": new_duration}
+            resp = self.c.post(self.get_view_form_url(form_id="instant"), data=data)
+            self.assertEqual(resp.status_code, 200)
+            self.assertNotIn(str(new_duration), resp.content.decode("utf-8"))
