@@ -368,7 +368,7 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
     .. attribute:: setup_code
 
         Optional.
-        Language-specific code to prepare the environment for the participants
+        Language-specific code to prepare the environment for the participant's
         answer.
 
     .. attribute:: show_setup_code
