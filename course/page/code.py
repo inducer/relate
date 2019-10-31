@@ -447,7 +447,12 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
 
         Optional.
         Specific Docker image within which to run code for the participants
-        answer.
+        answer.  This overrides the image set in the `local_settings.py`
+        configuration.  The Docker image should provide two files; these are
+        supplied in RELATE's standard Python Docker image by `course/page/
+        code_run_backend_python.py` and `course/page/code_feedback.py`, for
+        instance.  Consult `docker-image-run-py/docker-build.sh` for one
+        example of a local build.
 
     * ``data_files``: A dictionary mapping file names from :attr:`data_files`
       to :class:`bytes` instances with that file's contents.
