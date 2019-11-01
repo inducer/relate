@@ -452,7 +452,8 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
         supplied in RELATE's standard Python Docker image by `course/page/
         code_run_backend_python.py` and `course/page/code_feedback.py`, for
         instance.  Consult `docker-image-run-py/docker-build.sh` for one
-        example of a local build.
+        example of a local build.  The Docker image should already be loaded
+        on the system (RELATE does not pull the image automatically).
 
     * ``data_files``: A dictionary mapping file names from :attr:`data_files`
       to :class:`bytes` instances with that file's contents.
