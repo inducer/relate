@@ -73,7 +73,7 @@ GRADE_CODE_FAILING_MSG = (
     "The grading code failed. Sorry about that."
 )
 
-RUNPY_WITH_RETRIES_PATH = "course.page.code.request_run_with_retries"
+RUNCODE_WITH_RETRIES_PATH = "course.page.code.request_run_with_retries"
 
 AUTO_FEEDBACK_POINTS_OUT_OF_RANGE_ERROR_MSG_PATTERN = (
     "'correctness' is invalid: expecting "
@@ -411,7 +411,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
 
     def test_request_run_with_retries_raise_uncaught_error_in_sandbox(self):
         with mock.patch(
-            RUNPY_WITH_RETRIES_PATH,
+            RUNCODE_WITH_RETRIES_PATH,
             autospec=True
         ) as mock_runpy:
             expected_error_str = ("This is an error raised with "
@@ -438,7 +438,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
 
     def test_request_run_with_retries_raise_uncaught_error_debugging(self):
         with mock.patch(
-            RUNPY_WITH_RETRIES_PATH,
+            RUNCODE_WITH_RETRIES_PATH,
             autospec=True
         ) as mock_runpy:
             expected_error_str = ("This is an error raised with "
@@ -457,7 +457,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
 
     def test_request_run_with_retries_raise_uncaught_error(self):
         with mock.patch(
-            RUNPY_WITH_RETRIES_PATH,
+            RUNCODE_WITH_RETRIES_PATH,
             autospec=True
         ) as mock_runpy:
             expected_error_str = ("This is an error raised with "
@@ -484,7 +484,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
 
     def test_send_email_failure_when_request_run_with_retries_raise_uncaught_error(self):  # noqa
         with mock.patch(
-            RUNPY_WITH_RETRIES_PATH,
+            RUNCODE_WITH_RETRIES_PATH,
             autospec=True
         ) as mock_runpy:
             expected_error_str = ("This is an error raised with "
@@ -516,7 +516,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
                                          not_expected_msgs=None,
                                          correctness=0, mail_count=0, in_html=False,
                                          **extra_result):
-        with mock.patch(RUNPY_WITH_RETRIES_PATH, autospec=True) as mock_runpy:
+        with mock.patch(RUNCODE_WITH_RETRIES_PATH, autospec=True) as mock_runpy:
             result = {"result": result_type}
             result.update(extra_result)
             mock_runpy.return_value = result

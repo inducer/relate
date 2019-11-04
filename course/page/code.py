@@ -44,7 +44,7 @@ from course.constants import flow_permission
 
 # DEBUGGING SWITCH:
 # True for 'spawn containers' (normal operation)
-# False for 'just connect to localhost:CODE_QUESTION_CONTAINER_PORT' for runpy'
+# False for 'just connect to localhost:CODE_QUESTION_CONTAINER_PORT' as runcode'
 SPAWN_CONTAINERS = True
 
 
@@ -107,8 +107,8 @@ def request_run(run_req, run_timeout, image=None):
         def debug_print(s):
             pass
 
-    command_path = '/opt/runpy/runpy'
-    user = 'runpy'
+    command_path = '/opt/runcode/runcode'
+    user = 'runcode'
 
     # The following is necessary because tests don't arise from a CodeQuestion
     # object, so we provide a fallback.
@@ -368,7 +368,7 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
     .. attribute:: setup_code
 
         Optional.
-        Language-specific code to prepare the environment for the participants
+        Language-specific code to prepare the environment for the participant's
         answer.
 
     .. attribute:: show_setup_code
@@ -443,6 +443,18 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
         based on its :attr:`access_rules` (not the ones of the flow), a warning
         is shown. Setting this attribute to True will silence the warning.
 
+    .. attribute:: docker_image
+
+        Optional.
+        Specific Docker image within which to run code for the participants
+        answer.  This overrides the image set in the `local_settings.py`
+        configuration.  The Docker image should provide two files; these are
+        supplied in RELATE's standard Python Docker image by `course/page/
+        code_run_backend_python.py` and `course/page/code_feedback.py`, for
+        instance.  Consult `docker-image-run-py/docker-build.sh` for one
+        example of a local build.  The Docker image should already be loaded
+        on the system (RELATE does not pull the image automatically).
+
     * ``data_files``: A dictionary mapping file names from :attr:`data_files`
       to :class:`bytes` instances with that file's contents.
 
@@ -466,6 +478,9 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
                             "%(location)s: ",
                             _("data file '%(file)s' not found"))
                         % {"location": location, "file": data_file})
+
+        if hasattr(page_desc, "docker_image"):
+            self.container_image = page_desc.docker_image
 
         if not getattr(page_desc, "single_submission", False) and vctx is not None:
             is_multi_submit = False
@@ -502,6 +517,7 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
                 ("correct_code_explanation", "markup"),
                 ("correct_code", str),
                 ("initial_code", str),
+                ("docker_image", str),
                 ("data_files", list),
                 ("single_submission", bool),
                 )
@@ -575,7 +591,7 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
         if correct_code is None:
             correct_code = ""
 
-        from .code_runpy_backend import substitute_correct_code_into_test_code
+        from .code_run_backend import substitute_correct_code_into_test_code
         return substitute_correct_code_into_test_code(test_code, correct_code)
 
     def grade(self, page_context, page_data, answer_data, grade_data):

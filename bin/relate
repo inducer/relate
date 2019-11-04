@@ -64,11 +64,11 @@ def test_code_question(page_desc, repo_root):
 
         correct_code = getattr(page_desc, "correct_code", "")
 
-        from course.page.code_runpy_backend import \
+        from course.page.code_run_backend import \
                 substitute_correct_code_into_test_code
         test_code = substitute_correct_code_into_test_code(test_code, correct_code)
 
-    from course.page.code_runpy_backend import run_code, package_exception
+    from course.page.code_run_backend import run_code, package_exception
 
     data_files = {}
 

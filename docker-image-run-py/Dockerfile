@@ -1,16 +1,14 @@
 FROM inducer/debian-amd64-minbase
 MAINTAINER Andreas Kloeckner <inform@tiker.net>
 EXPOSE 9941
-RUN useradd runpy
+RUN useradd runcode
 
-# Temporarily needed for pandas
-RUN echo "deb http://httpredir.debian.org/debian unstable main contrib" >> /etc/apt/sources.list
-RUN echo "deb http://httpredir.debian.org/debian experimental main contrib" >> /etc/apt/sources.list
 RUN echo 'APT::Default-Release "testing";' >> /etc/apt/apt.conf
 
 RUN apt-get update
 RUN apt-get -y -o APT::Install-Recommends=0 -o APT::Install-Suggests=0 install \
   python3-scipy \
+  python3-numpy \
   python3-pip \
   python3-matplotlib \
   python3-pillow \
@@ -39,17 +37,18 @@ RUN apt-get -y -o APT::Install-Recommends=0 -o APT::Install-Suggests=0 install \
 RUN apt-get clean
 RUN fc-cache
 
-RUN mkdir -p /opt/runpy
-ADD runpy /opt/runpy/
-COPY code_feedback.py /opt/runpy/
-COPY code_runpy_backend.py /opt/runpy/
+RUN mkdir -p /opt/runcode
+ADD runcode /opt/runcode/
+COPY code_feedback.py /opt/runcode/
+COPY code_run_backend.py /opt/runcode/
+RUN ls /opt/runcode
 
 RUN sed -i s/TkAgg/Agg/ /etc/matplotlibrc
 RUN echo "savefig.dpi : 80" >> /etc/matplotlibrc
 RUN echo "savefig.bbox : tight" >> /etc/matplotlibrc
 
 # RUN pip3 install --upgrade tensorflow
+#RUN  find /usr/lib/python3/ -name '*cpython-37m*.so' -delete
 RUN rm -Rf /root/.cache
-RUN  find /usr/lib/python3/ -name '*cpython-37m*.so' -delete
 
 # may use ./flatten-container.sh to reduce disk space
