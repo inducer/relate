@@ -508,7 +508,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
                 % {"extra_data_file": ""}
         )
         resp = self.get_page_sandbox_preview_response(markdown)
-        print( resp )
+        print( resp.read() )
         self.assertEqual(resp.status_code, 200)
         self.assertSandboxHasValidPage(resp)
         self.assertSandboxWarningTextContain(
