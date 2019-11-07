@@ -82,7 +82,7 @@ class RunRequestHandler(BaseHTTPRequestHandler):
 
         try:
             print("POST RECEIVED", file=prev_stderr)
-            if self.path != "/run-python":
+            if self.path != "/run-code":
                 raise RuntimeError("unrecognized path in POST")
 
             clength = int(self.headers['content-length'])

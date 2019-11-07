@@ -14,7 +14,7 @@ RUN apt-get install -y --no-install-recommends \
         build-essential \
         gfortran \
         cmake \
-        bsdtar \
+        libarchive-tools \
         rsync \
         imagemagick \
         \
@@ -48,7 +48,7 @@ RUN apt-get clean
 RUN fc-cache
 
 RUN mkdir -p /opt/runcode
-#ADD runcode /opt/runcode/
+ADD runcode /opt/runcode/
 COPY code_feedback.py /opt/runcode/
 COPY code_run_backend.py /opt/runcode/
 
