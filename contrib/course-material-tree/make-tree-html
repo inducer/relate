@@ -320,11 +320,12 @@ def main():
     normalize_nodes([root_node], args.text_icon)
 
     tree_replacements = {}
-    for tr in args.tree_replacement:
-        eq_ind = tr.find("=")
-        if eq_ind < 0:
-            raise ValueError(f"tree replacement '{tr}' contains no equal sign")
-        tree_replacements[tr[:eq_ind]] = tr[eq_ind+1:]
+    if args.tree_replacement is not None:
+        for tr in args.tree_replacement:
+            eq_ind = tr.find("=")
+            if eq_ind < 0:
+                raise ValueError(f"tree replacement '{tr}' contains no equal sign")
+            tree_replacements[tr[:eq_ind]] = tr[eq_ind+1:]
 
     section_dict = {}
     find_section_nodes(section_dict, root_node)
