@@ -1386,6 +1386,7 @@ class PythonCodeQuestionWithHumanTextFeedback(
 
 # }}}
 
+
 # {{{ octave code question
 
 class OctaveCodeQuestion(CodeQuestion):
@@ -1578,7 +1579,8 @@ class OctaveCodeQuestion(CodeQuestion):
         return '.m'
 
     def __init__(self, vctx, location, page_desc, language_mode='octave'):
-        super(OctaveCodeQuestion, self).__init__(vctx, location, page_desc, language_mode)
+        super(OctaveCodeQuestion, self).__init__(vctx, location,
+                                                 page_desc, language_mode)
 
     def get_test_code(self):
         test_code = getattr(self.page_desc, "test_code", None)

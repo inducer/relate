@@ -461,7 +461,6 @@ id: addition
 value: 1
 timeout: 10
 data_files:
-    - random-data.m
     %(extra_data_file)s
 prompt: |
 

@@ -212,14 +212,15 @@ def run_code(result, run_req):
     if hasattr(run_req, "names_for_user"):
         # parse out Octave variables to pull
         ctx_lines = []
-        oc.eval('whos',stream_handler=ctx_lines.append)
+        oc.eval('whos', stream_handler=ctx_lines.append)
         ctx_vars = []
         for line in ctx_lines:
             if ' '*8 in line:
                 line_data = line.split()
-                if line_data[0] in ('Attr','===='): continue
+                if line_data[0] in ('Attr', '===='):
+                    continue
                 ctx_vars.append(line_data[0])
-        
+
         for name in run_req.names_for_user:
             if name not in maint_ctx:
                 result["result"] = "setup_error"
@@ -235,7 +236,8 @@ def run_code(result, run_req):
     '''
 
     try:
-        oc.eval(run_req.user_code,plot_dir='figures',plot_name='octave',plot_format='png')
+        oc.eval(run_req.user_code, plot_dir='figures',
+                plot_name='octave', plot_format='png')
     except Exception:
         package_exception(result, "user_error")
         return
