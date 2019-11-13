@@ -468,8 +468,9 @@ prompt: |
     # Adding two numbers in Octave
 
 setup_code: |
-    a = unifrnd(-10,10)
-    b = unifrnd(-10,10)
+    pkg load statistics;
+    a = unifrnd(-10,10);
+    b = unifrnd(-10,10);
 
 names_for_user: [a, b]
 
@@ -506,8 +507,9 @@ prompt: |
     # Adding two numbers in Octave
 
 setup_code: |
-    a = unifrnd(-10,10)
-    b = unifrnd(-10,10)
+    pkg load statistics;
+    a = unifrnd(-10,10);
+    b = unifrnd(-10,10);
 
 names_for_user: [a, b]
 
@@ -543,8 +545,9 @@ prompt: |
     # Adding two numbers in Octave
 
 setup_code: |
-    a = unifrnd(-10,10)
-    b = unifrnd(-10,10)
+    pkg load statistics;
+    a = unifrnd(-10,10);
+    b = unifrnd(-10,10);
 
 names_for_user: [a, b]
 
@@ -580,8 +583,9 @@ prompt: |
     # Adding two numbers in Octave
 
 setup_code: |
-    a = unifrnd(-10,10)
-    b = unifrnd(-10,10)
+    pkg load statistics;
+    a = unifrnd(-10,10);
+    b = unifrnd(-10,10);
 
 names_for_user: [a, b]
 
@@ -615,8 +619,9 @@ prompt: |
     # Adding two numbers in Octave
 
 setup_code: |
-    a = unifrnd(-10,10)
-    b = unifrnd(-10,10)
+    pkg load statistics;
+    a = unifrnd(-10,10);
+    b = unifrnd(-10,10);
 
 names_for_user: [a, b]
 
@@ -649,8 +654,9 @@ prompt: |
     # Adding two numbers in Octave
 
 setup_code: |
-    a = unifrnd(-10,10)
-    b = unifrnd(-10,10)
+    pkg load statistics;
+    a = unifrnd(-10,10);
+    b = unifrnd(-10,10);
 
 names_for_user: [a, b]
 
@@ -671,8 +677,9 @@ prompt: |
     # Adding two numbers in Octave
 
 setup_code: |
-    a = unifrnd(-10,10)
-    b = unifrnd(-10,10)
+    pkg load statistics;
+    a = unifrnd(-10,10);
+    b = unifrnd(-10,10);
 
 names_for_user: [a, b]
 
@@ -702,8 +709,9 @@ prompt: |
     # Adding two numbers in Octave
 
 setup_code: |
-    a = unifrnd(-10,10)
-    b = unifrnd(-10,10)
+    pkg load statistics;
+    a = unifrnd(-10,10);
+    b = unifrnd(-10,10);
 
 names_for_user: [a, b]
 
@@ -736,8 +744,9 @@ prompt: |
     # Adding two numbers in Octave
 
 setup_code: |
-    a = unifrnd(-10,10)
-    b = unifrnd(-10,10)
+    pkg load statistics;
+    a = unifrnd(-10,10);
+    b = unifrnd(-10,10);
 
 names_for_user: [a, b]
 

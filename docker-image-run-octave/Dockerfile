@@ -19,15 +19,16 @@ RUN apt-get install -y --no-install-recommends \
         imagemagick \
         \
         gnuplot-x11 \
-        libopenblas-base \
-        \
+        libopenblas-base
+RUN apt-get install -y --no-install-recommends \
         octave \
         liboctave-dev \
         octave-info \
         octave-symbolic \
         octave-parallel \
         octave-struct \
-        \
+        octave-statistics
+RUN apt-get install -y --no-install-recommends \
         python3-dev \
         python3-setuptools \
         python3-pip \
@@ -35,8 +36,8 @@ RUN apt-get install -y --no-install-recommends \
         python3-scipy \
         python3-matplotlib \
         pandoc \
-        ttf-dejavu && \
-    apt-get clean && \
+        ttf-dejavu
+RUN apt-get clean && \
     apt-get autoremove && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 

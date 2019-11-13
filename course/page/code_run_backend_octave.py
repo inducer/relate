@@ -178,8 +178,11 @@ def run_code(result, run_req):
     if hasattr(run_req, "data_files"):
         from base64 import b64decode
         for name, contents in run_req.data_files.items():
-            # This part "cheats" a litle, since Octave lets us evaluate functions
-            # in the same context as the main code.  (MATLAB segregates these.)
+            # This part "cheats" a litle, since Octave lets us evaluate
+            # functions in the same context as the main code.
+            # (MATLAB segregates these.)
+            #
+            # Alternatively, one could use octave.addpath('/path/to/') first.
             data_files[name] = b64decode(contents.encode())
             oc.eval(b64decode(contents.encode()).decode("utf-8"))
 
@@ -207,17 +210,29 @@ def run_code(result, run_req):
 
     user_ctx = {}
     if hasattr(run_req, "names_for_user"):
+        # parse out Octave variables to pull
+        ctx_lines = []
+        oc.eval('whos',stream_handler=ctx_lines.append)
+        ctx_vars = []
+        for line in ctx_lines:
+            if ' '*8 in line:
+                line_data = line.split()
+                if line_data[0] in ('Attr','===='): continue
+                ctx_vars.append(line_data[0])
+        
         for name in run_req.names_for_user:
             if name not in maint_ctx:
                 result["result"] = "setup_error"
                 result["message"] = "Setup code did not define '%s'." % name
 
-            user_ctx[name] = maint_ctx[name]
+            user_ctx[name] = oc.pull(name)
 
     from copy import deepcopy
     user_ctx = deepcopy(user_ctx)
+    '''
     for name in user_ctx:
-        oc.push( name,user_ctx[ name ] )
+        oc.push(name,user_ctx[name])
+    '''
 
     try:
         oc.eval(run_req.user_code,plot_dir='figures',plot_name='octave',plot_format='png')
@@ -255,6 +270,15 @@ def run_code(result, run_req):
 
     if hasattr(run_req, "names_from_user"):
         values = []
+        for name in run_req.names_for_user:
+            try:
+                maint_ctx[name] = oc.pull(name)
+            except oct2py.Oct2PyError:
+                feedback.add_feedback(
+                        "Required answer variable '%s' is not defined."
+                        % name)
+                maint_ctx[name] = None
+
         for name in run_req.names_from_user:
             try:
                 maint_ctx[name] = oc.pull(name)
