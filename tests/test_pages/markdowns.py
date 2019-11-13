@@ -498,7 +498,6 @@ id: addition
 value: 1
 timeout: 10
 data_files:
-    - question-data/random-data.m
     - - foo
       - bar
 prompt: |

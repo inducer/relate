@@ -94,7 +94,7 @@ class RealDockerTestMixinPython(object):
             RELATE_DOCKER_URL=REAL_RELATE_DOCKER_URL,
             RELATE_DOCKER_RUNPY_IMAGE=REAL_RELATE_DOCKER_RUNPY_IMAGE,
             RELATE_DOCKER_TLS_CONFIG=REAL_RELATE_DOCKER_TLS_CONFIG
-        )
+        )settings.RELATE_DOCKER_RUNPY_IMAGE
         cls.override_docker_settings.enable()
         cls.make_sure_docker_image_pulled()
 
@@ -134,7 +134,7 @@ class RealDockerTestMixinOctave(object):
             RELATE_DOCKER_URL=REAL_RELATE_DOCKER_URL,
             RELATE_DOCKER_RUNPY_IMAGE=REAL_RELATE_DOCKER_RUNOCTAVE_IMAGE,
             RELATE_DOCKER_TLS_CONFIG=REAL_RELATE_DOCKER_TLS_CONFIG
-        )
+        )settings.RELATE_DOCKER_RUNOCTAVE_IMAGE
         cls.override_docker_settings.enable()
         cls.make_sure_docker_image_pulled()
 
