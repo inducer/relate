@@ -74,9 +74,10 @@ SKIP_REAL_DOCKER_REASON = "These are tests for real docker"
 REAL_RELATE_DOCKER_URL = "unix:///var/run/docker.sock"
 REAL_RELATE_DOCKER_TLS_CONFIG = None
 REAL_RELATE_DOCKER_RUNPY_IMAGE = "inducer/relate-runcode-python"
+REAL_RELATE_DOCKER_RUNOCTAVE_IMAGE = "davis/relate-runcode-octav"
 
 
-class RealDockerTestMixin(object):
+class RealDockerTestMixinPython(object):
     """
     This is used for code question test with real docker container.
     Note: the test speed is slow when using this mixin.
@@ -88,7 +89,7 @@ class RealDockerTestMixin(object):
         if skip_real_docker_test:
             raise SkipTest(SKIP_REAL_DOCKER_REASON)
 
-        super(RealDockerTestMixin, cls).setUpClass()
+        super(RealDockerTestMixinPython, cls).setUpClass()
         cls.override_docker_settings = override_settings(
             RELATE_DOCKER_URL=REAL_RELATE_DOCKER_URL,
             RELATE_DOCKER_RUNPY_IMAGE=REAL_RELATE_DOCKER_RUNPY_IMAGE,
@@ -99,7 +100,7 @@ class RealDockerTestMixin(object):
 
     @classmethod
     def tearDownClass(cls):  # noqa
-        super(RealDockerTestMixin, cls).tearDownClass()
+        super(RealDockerTestMixinPython, cls).tearDownClass()
         cls.override_docker_settings.disable()
 
     @classmethod
@@ -114,3 +115,43 @@ class RealDockerTestMixin(object):
         if not bool(cli.images(REAL_RELATE_DOCKER_RUNPY_IMAGE)):
             # This should run only once and get cached on Travis-CI
             cli.pull(REAL_RELATE_DOCKER_RUNPY_IMAGE)
+
+
+class RealDockerTestMixinOctave(object):
+    """
+    This is used for code question test with real docker container.
+    Note: the test speed is slow when using this mixin.
+    """
+
+    @classmethod
+    def setUpClass(cls):  # noqa
+        from unittest import SkipTest
+        if skip_real_docker_test:
+            raise SkipTest(SKIP_REAL_DOCKER_REASON)
+
+        super(RealDockerTestMixinOctave, cls).setUpClass()
+        cls.override_docker_settings = override_settings(
+            RELATE_DOCKER_URL=REAL_RELATE_DOCKER_URL,
+            RELATE_DOCKER_RUNPY_IMAGE=REAL_RELATE_DOCKER_RUNOCTAVE_IMAGE,
+            RELATE_DOCKER_TLS_CONFIG=REAL_RELATE_DOCKER_TLS_CONFIG
+        )
+        cls.override_docker_settings.enable()
+        cls.make_sure_docker_image_pulled()
+
+    @classmethod
+    def tearDownClass(cls):  # noqa
+        super(RealDockerTestMixinOctave, cls).tearDownClass()
+        cls.override_docker_settings.disable()
+
+    @classmethod
+    def make_sure_docker_image_pulled(cls):
+        import docker
+        cli = docker.Client(
+            base_url=REAL_RELATE_DOCKER_URL,
+            tls=None,
+            timeout=15,
+            version="1.19")
+
+        if not bool(cli.images(REAL_RELATE_DOCKER_RUNOCTAVE_IMAGE)):
+            # This should run only once and get cached on Travis-CI
+            cli.pull(REAL_RELATE_DOCKER_RUNOCTAVE_IMAGE)

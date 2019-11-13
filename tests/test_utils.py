@@ -51,6 +51,7 @@ from tests.constants import (
 from tests.base_test_mixins import (
     CoursesTestMixinBase,
     SingleCoursePageTestMixin, SubprocessRunpyContainerMixin,
+    SubprocessRunOctaveContainerMixin,
     SingleCourseTestMixin,  MockAddMessageMixing,
 )
 from tests.utils import mock
