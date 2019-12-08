@@ -24,7 +24,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-import six
 from django.utils.functional import cached_property
 from django.utils.module_loading import import_string
 
@@ -76,7 +75,7 @@ class RelateUserMethodSettingsInitializer(object):
         if custom_user_profile_mask_method is None:
             return errors
 
-        if isinstance(custom_user_profile_mask_method, six.string_types):
+        if isinstance(custom_user_profile_mask_method, str):
             try:
                 custom_user_profile_mask_method = (
                     import_string(custom_user_profile_mask_method))
@@ -105,16 +104,8 @@ class RelateUserMethodSettingsInitializer(object):
             ))
         else:
             import inspect
-            if six.PY3:
-                sig = inspect.signature(custom_user_profile_mask_method)
-                n_args = len([p.name for p in sig.parameters.values()])
-            else:
-                # Don't count the number of defaults.
-                # (getargspec returns args, varargs, varkw, defaults)
-                n_args = sum(
-                    [len(arg) for arg
-                     in inspect.getargspec(custom_user_profile_mask_method)[:3]
-                     if arg is not None])
+            sig = inspect.signature(custom_user_profile_mask_method)
+            n_args = len([p.name for p in sig.parameters.values()])
 
             if not n_args or n_args > 1:
                 errors.append(RelateCriticalCheckMessage(
@@ -209,7 +200,7 @@ class RelateUserMethodSettingsInitializer(object):
         if relate_user_full_name_format_method is None:
             return errors
 
-        if isinstance(relate_user_full_name_format_method, six.string_types):
+        if isinstance(relate_user_full_name_format_method, str):
             try:
                 relate_user_full_name_format_method = (
                     import_string(relate_user_full_name_format_method))
@@ -265,7 +256,7 @@ class RelateUserMethodSettingsInitializer(object):
                 unexpected_return_value = ""
                 if returned_name is None:
                     unexpected_return_value = "None"
-                if not isinstance(returned_name, six.string_types):
+                if not isinstance(returned_name, str):
                     unexpected_return_value = type(returned_name).__name__
                 elif not returned_name.strip():
                     unexpected_return_value = "empty string %s" % returned_name

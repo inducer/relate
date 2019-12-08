@@ -24,7 +24,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-import six
 from datetime import datetime
 from copy import deepcopy
 
@@ -294,14 +293,14 @@ class LanguageOverrideTest(SingleCoursePageTestMixin,
         self.course.force_lang = course_force_lang
         self.course.save()
 
-        for page_id, v in six.iteritems(self.page_id_literal_dict):
+        for page_id, v in self.page_id_literal_dict.items():
             if "answer" not in v:
                 continue
             self.post_answer_by_page_id(page_id, answer_data=v["answer"])
 
         self.end_flow()
 
-        for page_id, v in six.iteritems(self.page_id_literal_dict):
+        for page_id, v in self.page_id_literal_dict.items():
             with self.subTest(page_id=page_id, course_force_lang=course_force_lang):
                 resp = self.c.get(self.get_page_url_by_page_id(page_id))
                 for literal in v["literals"]:
@@ -729,7 +728,6 @@ class GetFlowRulesTest(SingleCourseTestMixin, TestCase):
 
         self.assertListEqual(result, default_rules_desc)
 
-    @unittest.skipIf(six.PY2, "PY2 doesn't support subTest")
     def test_rules_with_given_kind(self):
 
         # use real rules
@@ -751,7 +749,6 @@ class GetFlowRulesTest(SingleCourseTestMixin, TestCase):
                 # there are existing rule for those kind
                 self.assertNotEqual(result, default_rules_desc)
 
-    @unittest.skipIf(six.PY2, "PY2 doesn't support subTest")
     def test_rules_with_no_given_kind(self):
         flow_desc_dict = self.get_hacked_flow_desc(as_dict=True)
 

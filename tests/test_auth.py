@@ -1,5 +1,3 @@
-from __future__ import division
-
 __copyright__ = "Copyright (C) 2018 Dong Zhuang"
 
 __license__ = """
@@ -22,8 +20,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-import six
-from six.moves.urllib.parse import ParseResult, quote, urlparse
+from urllib.parse import ParseResult, quote, urlparse
 from djangosaml2.urls import urlpatterns as djsaml2_urlpatterns
 from django.test import TestCase, override_settings, RequestFactory
 from django.conf import settings
@@ -34,7 +31,6 @@ from django.contrib.auth import (
 from django.http import QueryDict, HttpResponse
 from django.urls import NoReverseMatch, reverse
 import unittest
-from unittest import skipIf
 from course.auth import (
     get_impersonable_user_qset, get_user_model,
     Saml2Backend, EmailedTokenBackend,
@@ -644,7 +640,6 @@ class AuthTestMixin(object):
                            data=data, follow=follow)
 
 
-@skipIf(six.PY2, "PY2 doesn't support subTest")
 class AuthViewNamedURLTests(AuthTestMixin, TestCase):
     need_logout_confirmation_named_urls = [
         ('relate-sign_in_choice', [], {}),
@@ -746,7 +741,6 @@ class SignInByPasswordTest(CoursesTestMixinBase,
             self.assertAddMessageCallCount(1)
             self.assertAddMessageCalledWith(expected_msg)
 
-    @skipIf(six.PY2, "PY2 doesn't support subTest")
     def test_security_check(self):
         self.do_test_security_check(url_name="relate-sign_in_by_user_pw")
 
@@ -1195,7 +1189,7 @@ class UserProfileTest(CoursesTestMixinBase, AuthTestMixin,
                 "%s?%s" % (
                     url,
                     "&".join(["%s=%s" % (k, v)
-                              for k, v in six.iteritems(query_string_dict)])))
+                              for k, v in query_string_dict.items()])))
         request = self.rf.post(url, data)
         request.user = self.test_user
         request.session = mock.MagicMock()
@@ -1269,7 +1263,6 @@ class UserProfileTest(CoursesTestMixinBase, AuthTestMixin,
         form_data = self.generate_profile_form_data(**update_profile_dict)
         return self.post_profile_by_request_factory(form_data, query_string_dict)
 
-    @skipIf(six.PY2, "Python2 doesn't support subTest")
     def test_update_profile_with_different_settings(self):
         disabled_inst_id_html_pattern = (
             '<input type="text" name="institutional_id" value="%s" '
@@ -1496,7 +1489,7 @@ class UserProfileTest(CoursesTestMixinBase, AuthTestMixin,
 
                     self.assertTrue(resp.status_code, 200)
                     self.test_user.refresh_from_db()
-                    for k, v in six.iteritems(conf.expected_result_dict):
+                    for k, v in conf.expected_result_dict.items():
                         self.assertEqual(self.test_user.__dict__[k], v)
 
                     if conf.assert_in_html_kwargs_list:

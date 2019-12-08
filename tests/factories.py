@@ -22,7 +22,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-import six
 import pytz
 from datetime import datetime
 
@@ -103,7 +102,7 @@ class ParticipationFactory(factory.django.DjangoModelFactory):
 
         if extracted:
             for role in extracted:
-                if isinstance(role, six.string_types):
+                if isinstance(role, str):
                     role = ParticipationRoleFactory(
                         course=self.course, identifier=role)
                 else:
@@ -122,7 +121,7 @@ class ParticipationFactory(factory.django.DjangoModelFactory):
 
         if extracted:
             for tag in extracted:
-                if isinstance(tag, six.string_types):
+                if isinstance(tag, str):
                     tag = ParticipationTagFactory(
                         course=self.course, name=tag)
                 else:
@@ -250,7 +249,7 @@ class ParticipationPreapprovalFactory(factory.django.DjangoModelFactory):
             return
         if extracted:
             for role in extracted:
-                if isinstance(role, six.string_types):
+                if isinstance(role, str):
                     role = ParticipationRoleFactory(
                         course=self.course, identifier=role)
                 else:

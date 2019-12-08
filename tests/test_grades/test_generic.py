@@ -1,5 +1,3 @@
-from __future__ import division
-
 __copyright__ = "Copyright (C) 2017 Zesheng Wang, Andreas Kloeckner, Zhuang Dong"
 
 __license__ = """
@@ -22,7 +20,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-import six
 from django.urls import reverse, NoReverseMatch
 from django.test import TestCase
 from unittest import skipIf, skipUnless
@@ -419,7 +416,6 @@ class GradePermissionsTests(SingleCoursePageTestMixin, TestCase):
         self.view_grades_permission(self.instructor_participation.user,
                                     status_codes)
 
-    @skipIf(six.PY2, "PY2 doesn't support subTest")
     def test_view_grades_ta(self):
         status_codes = {"default_status_code": 200,
                         "relate-edit_grading_opportunity": 403,

@@ -38,7 +38,6 @@ import django.views.decorators.http as http_dec
 from django import http
 from django.utils.safestring import mark_safe
 from django.db import transaction
-from django.utils import six
 from django.utils.translation import (
         ugettext_lazy as _,
         ugettext,
@@ -50,7 +49,7 @@ from django.contrib.auth.decorators import login_required
 
 from django_select2.forms import Select2Widget
 
-mark_safe_lazy = lazy(mark_safe, six.text_type)
+mark_safe_lazy = lazy(mark_safe, str)
 
 from django.views.decorators.cache import cache_control
 
@@ -1338,15 +1337,15 @@ def generate_ssh_keypair(request):
     key_class = RSAKey
     prv = key_class.generate(bits=2048)
 
-    import six
-    prv_bio = six.StringIO()
+    import io
+    prv_bio = io.StringIO()
     prv.write_private_key(prv_bio)
 
-    prv_bio_read = six.StringIO(prv_bio.getvalue())
+    prv_bio_read = io.StringIO(prv_bio.getvalue())
 
     pub = key_class.from_private_key(prv_bio_read)
 
-    pub_bio = six.StringIO()
+    pub_bio = io.StringIO()
     pub_bio.write("%s %s relate-course-key" % (pub.get_name(), pub.get_base64()))
 
     return render(request, "course/keypair.html", {

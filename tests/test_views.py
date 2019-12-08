@@ -22,7 +22,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-import six
 import datetime
 import unittest
 from celery import states, uuid
@@ -704,7 +703,6 @@ class GetRepoFileTestMixin(SingleCourseTestMixin):
             self.get_current_repo_file_url(path, course_identifier))
 
 
-@unittest.skipIf(six.PY2, "PY2 doesn't support subTest")
 class GetRepoFileTest(GetRepoFileTestMixin, TestCase):
     # test views.get_repo_file
     def test_file_not_exist(self):
@@ -773,7 +771,6 @@ class GetRepoFileTest(GetRepoFileTestMixin, TestCase):
                 self.assertEqual(resp["Content-Type"], content_type)
 
 
-@unittest.skipIf(six.PY2, "PY2 doesn't support subTest")
 class GetRepoFileTestMocked(GetRepoFileTestMixin, HackRepoMixin, TestCase):
     """
     Test views.get_repo_file, with get_repo_blob mocked as class level,
@@ -1847,7 +1844,6 @@ class GrantExceptionStage3Test(GrantExceptionTestMixin, TestCase):
             exc_rule = models.FlowRuleException.objects.last().rule
             self.assertEqual(exc_rule["if_has_tag"], another_fs_tag)
 
-    @unittest.skipIf(six.PY2, "PY2 doesn't support subTest")
     def test_access_permissions_created(self):
         # ensure all flow permission is in the form, and will be
         # saved to the FlowRuleException permissions
@@ -1876,7 +1872,6 @@ class GrantExceptionStage3Test(GrantExceptionTestMixin, TestCase):
                 self.assertSetEqual(
                     set(exc_rule["permissions"]), set(permissions))
 
-    @unittest.skipIf(six.PY2, "PY2 doesn't support subTest")
     def test_access_expires_created(self):
         expiration_time = as_local_time(now() + timedelta(days=3))
         resp = self.post_grant_exception_stage_3_view(
@@ -2081,7 +2076,6 @@ class GrantExceptionStage3Test(GrantExceptionTestMixin, TestCase):
         self.assertAddMessageCallCount(1)
         self.assertAddMessageCalledWith("'Grading' exception granted to ")
 
-    @unittest.skipIf(six.PY2, "PY2 doesn't support subTest")
     def test_grading_rule_item_set(self):
         from random import random
         items = ["credit_percent", "bonus_points", "max_points",

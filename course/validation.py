@@ -26,7 +26,6 @@ THE SOFTWARE.
 
 import re
 import datetime
-import six
 import sys
 
 from django.core.exceptions import ObjectDoesNotExist
@@ -193,10 +192,6 @@ def validate_struct(
                     allowed_types = str
                     is_markup = True
 
-                if allowed_types == str:
-                    # Love you, too, Python 2.
-                    allowed_types = six.string_types
-
                 if not isinstance(val, allowed_types):
                     raise ValidationError(
                             string_concat("%(location)s: ",
@@ -219,7 +214,7 @@ def validate_struct(
                 % {'location': location, 'attr': ",".join(present_attrs)})
 
 
-datespec_types = (datetime.date, six.string_types, datetime.datetime)
+datespec_types = (datetime.date, str, datetime.datetime)
 
 # }}}
 
@@ -604,11 +599,11 @@ def validate_session_start_rule(vctx, location, nrule, tags):
                 ("if_has_participation_tags_all", list),
                 ("if_in_facility", str),
                 ("if_has_in_progress_session", bool),
-                ("if_has_session_tagged", (six.string_types, type(None))),
+                ("if_has_session_tagged", (str, type(None))),
                 ("if_has_fewer_sessions_than", int),
                 ("if_has_fewer_tagged_sessions_than", int),
                 ("if_signed_in_with_matching_exam_ticket", bool),
-                ("tag_session", (six.string_types, type(None))),
+                ("tag_session", (str, type(None))),
                 ("may_start_new_session", bool),
                 ("may_list_existing_sessions", bool),
                 ("lock_down_as_exam_session", bool),
@@ -698,7 +693,7 @@ def validate_session_access_rule(vctx, location, arule, tags):
                 ("if_has_participation_tags_any", list),
                 ("if_has_participation_tags_all", list),
                 ("if_in_facility", str),
-                ("if_has_tag", (six.string_types, type(None))),
+                ("if_has_tag", (str, type(None))),
                 ("if_in_progress", bool),
                 ("if_completed_before", datespec_types),
                 ("if_expiration_mode", str),
@@ -794,7 +789,7 @@ def validate_session_grading_rule(
                 ("if_has_role", list),
                 ("if_has_participation_tags_any", list),
                 ("if_has_participation_tags_all", list),
-                ("if_has_tag", (six.string_types, type(None))),
+                ("if_has_tag", (str, type(None))),
                 ("if_started_before", datespec_types),
                 ("if_completed_before", datespec_types),
 
@@ -1149,7 +1144,7 @@ def validate_flow_desc(vctx, location, flow_desc):
 
     if hasattr(flow_desc, "notify_on_submit"):
         for i, item in enumerate(flow_desc.notify_on_submit):
-            if not isinstance(item, six.string_types):
+            if not isinstance(item, str):
                 raise ValidationError(
                         string_concat(
                             "%s, ",
@@ -1241,7 +1236,7 @@ def get_yaml_from_repo_safely(repo, full_name, commit_sha):
                 "%(fullname)s: %(err_type)s: %(err_str)s" % {
                     'fullname': full_name,
                     "err_type": tp.__name__,
-                    "err_str": six.text_type(e)})
+                    "err_str": str(e)})
 
 
 def check_attributes_yml(vctx, repo, path, tree, access_kinds):
@@ -1308,7 +1303,7 @@ def check_attributes_yml(vctx, repo, path, tree, access_kinds):
         for access_kind in access_kinds:
             if hasattr(att_yml, access_kind):
                 for i, l in enumerate(getattr(att_yml, access_kind)):
-                    if not isinstance(l, six.string_types):
+                    if not isinstance(l, str):
                         raise ValidationError(
                             "%s: entry %d in '%s' is not a string"
                             % (loc, i+1, access_kind))
@@ -1607,7 +1602,7 @@ def validate_course_content(repo, course_file, events_file,
 class FileSystemFakeRepo(object):  # pragma: no cover
     def __init__(self, root):
         self.root = root
-        assert isinstance(self.root, six.binary_type)
+        assert isinstance(self.root, bytes)
 
     def controldir(self):
         return self.root
@@ -1635,7 +1630,7 @@ class FileSystemFakeRepoTreeEntry(object):  # pragma: no cover
 class FileSystemFakeRepoTree(object):  # pragma: no cover
     def __init__(self, root):
         self.root = root
-        assert isinstance(self.root, six.binary_type)
+        assert isinstance(self.root, bytes)
 
     def __getitem__(self, name):
         if not name:

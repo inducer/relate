@@ -22,8 +22,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-import six
-from unittest import skipIf, skipUnless
+from unittest import skipUnless
 
 from django.test import TestCase, RequestFactory
 from django.urls import reverse
@@ -74,7 +73,6 @@ class AccountsAdminTest(AdminTestMixin, TestCase):
         self.superuser.refresh_from_db()
         self.rf = RequestFactory()
 
-    @skipIf(six.PY2, "PY2 doesn't support subTest")
     def test_change_view(self):
 
         with self.subTest("superuser admin change/changelist for "
@@ -147,7 +145,6 @@ class AccountsAdminTest(AdminTestMixin, TestCase):
             self.assertEqual(get_user_model().objects.count(), user_count + 1)
             self.assertTrue(new_user.has_usable_password())
 
-    @skipIf(six.PY2, "PY2 doesn't support subTest")
     def test_admin_user_change_fieldsets(self):
         # This test is using request factory
         change_url = reverse('admin:accounts_user_change',

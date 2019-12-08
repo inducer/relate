@@ -15,8 +15,6 @@ markdown>=2.6.3,<3.0
 # For rendering macros in content:
 jinja2
 
-six
-
 # For math/symbolic questions
 pymbolic
 sympy

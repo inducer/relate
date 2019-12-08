@@ -1,5 +1,3 @@
-from __future__ import division
-
 __copyright__ = "Copyright (C) 2017 Dong Zhuang"
 
 __license__ = """
@@ -22,7 +20,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-import six
 import os
 from datetime import datetime
 
@@ -31,7 +28,6 @@ from django.test import SimpleTestCase
 from django.test.utils import override_settings
 from django.utils.translation import ugettext_lazy as _
 from django.conf import settings
-from unittest import skipIf
 
 from relate.checks import register_startup_checks_extra
 
@@ -270,7 +266,6 @@ class CheckRelateUserFullNameFormatMethod(CheckRelateSettingsBase):
 
     msg_id_prefix = "relate_user_full_name_format_method"
 
-    @skipIf(six.PY2, "PY2 doesn't support subTest")
     def test_get_full_name(self):
         def valid_method(first_name, last_name):
             return "%s %s" % (last_name, first_name)
@@ -1098,7 +1093,6 @@ class RelateStartupChecksExtraCheckTest(CheckRelateSettingsBase):
     def test_empty_list(self):
         register_startup_checks_extra()
 
-    @skipIf(six.PY2, "python 2 generate different message for ImportError")
     @override_settings(RELATE_STARTUP_CHECKS_EXTRA=[
         "unknown_package.unknown_module.func"])
     def test_not_importable_check_func(self):

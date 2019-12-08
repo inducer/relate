@@ -56,14 +56,14 @@ CSS_MINIFIED_DEST = os.path.join(DEST_DIR, 'ipynb.style.min.css')
 
 
 def retry_urlopen(request, timeout=REQUEST_TIMEOUT, n_retries=REQUEST_MAX_RETRIES):
-    from six.moves.urllib.request import urlopen
+    from urllib.request import urlopen
     i = 0
     while True:
         try:
             result = urlopen(request, timeout=timeout).read()
             return result
         except Exception as e:
-            from six.moves.urllib.error import URLError
+            from urllib.error import URLError
             from socket import timeout as TimeoutError  # noqa: N812
             if not isinstance(e, (URLError, TimeoutError)):
                 raise e
@@ -81,8 +81,8 @@ def retry_urlopen(request, timeout=REQUEST_TIMEOUT, n_retries=REQUEST_MAX_RETRIE
 def minify_css(css_string):
     url = 'https://cssminifier.com/raw'
     post_fields = {'input': css_string}
-    from six.moves.urllib.parse import urlencode
-    from six.moves.urllib.request import Request
+    from urllib.parse import urlencode
+    from urllib.request import Request
     request = Request(url, urlencode(post_fields).encode())
     return retry_urlopen(request)
 

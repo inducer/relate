@@ -22,8 +22,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-import six
-
 from django.utils.translation import (
         ugettext_lazy as _, pgettext)
 from django.contrib import admin
@@ -192,8 +190,7 @@ class EventAdmin(admin.ModelAdmin):
             " (%s)" % str(self.ordinal) if self.ordinal is not None else "",
             self.course)
 
-    if six.PY3:
-        __str__ = __unicode__
+    __str__ = __unicode__
 
     list_editable = ("ordinal", "time", "end_time", "shown_in_calendar")
 
@@ -298,12 +295,12 @@ class ParticipationAdmin(admin.ModelAdmin):
     form = ParticipationForm
 
     def get_roles(self, obj):
-        return ", ".join(six.text_type(role.name) for role in obj.roles.all())
+        return ", ".join(str(role.name) for role in obj.roles.all())
 
     get_roles.short_description = _("Roles")  # type: ignore
 
     def get_tags(self, obj):
-        return ", ".join(six.text_type(tag.name) for tag in obj.tags.all())
+        return ", ".join(str(tag.name) for tag in obj.tags.all())
 
     get_tags.short_description = _("Tags")  # type: ignore
 
@@ -394,7 +391,7 @@ admin.site.register(Participation, ParticipationAdmin)
 
 class ParticipationPreapprovalAdmin(admin.ModelAdmin):
     def get_roles(self, obj):
-        return ", ".join(six.text_type(role.name) for role in obj.roles.all())
+        return ", ".join(str(role.name) for role in obj.roles.all())
 
     get_roles.short_description = _("Roles")  # type: ignore
 

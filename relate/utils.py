@@ -25,7 +25,6 @@ THE SOFTWARE.
 """
 
 
-import six
 import datetime
 
 import django.forms as forms
@@ -139,10 +138,10 @@ def is_maintenance_mode(request):
         import ipaddress
 
         remote_address = ipaddress.ip_address(
-                six.text_type(request.META['REMOTE_ADDR']))
+                str(request.META['REMOTE_ADDR']))
 
         for exc in exceptions:
-            if remote_address in ipaddress.ip_network(six.text_type(exc)):
+            if remote_address in ipaddress.ip_network(str(exc)):
                 maintenance_mode = False
                 break
 
@@ -255,10 +254,10 @@ def format_datetime_local(datetime, format='DATETIME_FORMAT'):
 class Struct(object):
     def __init__(self, entries):
         # type: (Dict) -> None
-        for name, val in six.iteritems(entries):
+        for name, val in entries.items():
             self.__dict__[name] = val
 
-        self._field_names = list(six.iterkeys(entries))
+        self._field_names = list(entries.keys())
 
     def __repr__(self):
         return repr(self.__dict__)
@@ -269,7 +268,7 @@ def dict_to_struct(data):
     if isinstance(data, list):
         return [dict_to_struct(d) for d in data]
     elif isinstance(data, dict):
-        return Struct({k: dict_to_struct(v) for k, v in six.iteritems(data)})
+        return Struct({k: dict_to_struct(v) for k, v in data.items()})
     else:
         return data
 
@@ -278,7 +277,7 @@ def struct_to_dict(data):
     # type: (Struct) -> Dict
     return dict(
             (name, val)
-            for name, val in six.iteritems(data.__dict__)
+            for name, val in data.__dict__.items()
             if not name.startswith("_"))
 
 # }}}
@@ -346,8 +345,8 @@ def dumpstacks(signal, frame):  # pragma: no cover
 
     id2name = dict([(th.ident, th.name) for th in threading.enumerate()])
     code = []
-    for threadId, stack in sys._current_frames().items():
-        code.append("\n# Thread: %s(%d)" % (id2name.get(threadId, ""), threadId))
+    for thread_id, stack in sys._current_frames().items():
+        code.append("\n# Thread: %s(%d)" % (id2name.get(thread_id, ""), thread_id))
         for filename, lineno, name, line in traceback.extract_stack(stack):
             code.append('File: "%s", line %d, in %s' % (filename, lineno, name))
             if line:

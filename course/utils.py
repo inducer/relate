@@ -26,7 +26,6 @@ THE SOFTWARE.
 
 from typing import cast, Text
 
-import six
 import datetime  # noqa
 import markdown
 
@@ -1042,14 +1041,14 @@ class FacilityFindingMiddleware(object):
         else:
             import ipaddress
             remote_address = ipaddress.ip_address(
-                    six.text_type(request.META['REMOTE_ADDR']))
+                    str(request.META['REMOTE_ADDR']))
 
             facilities = set()
 
-            for name, props in six.iteritems(get_facilities_config(request)):
+            for name, props in get_facilities_config(request).items():
                 ip_ranges = props.get("ip_ranges", [])
                 for ir in ip_ranges:
-                    if remote_address in ipaddress.ip_network(six.text_type(ir)):
+                    if remote_address in ipaddress.ip_network(str(ir)):
                         facilities.add(name)
 
         request.relate_facilities = frozenset(facilities)
@@ -1071,10 +1070,7 @@ def csv_data_importable(file_contents, column_idx_list, header_count):
     spamreader = csv.reader(file_contents)
     n_header_row = 0
     try:
-        if six.PY2:
-            row0 = spamreader.next()
-        else:
-            row0 = spamreader.__next__()
+        row0 = spamreader.__next__()
     except Exception as e:
         err_msg = type(e).__name__
         err_str = str(e)
@@ -1108,7 +1104,7 @@ def csv_data_importable(file_contents, column_idx_list, header_count):
         try:
             for column_idx in column_idx_list:
                 if column_idx is not None:
-                    six.text_type(get_col_contents_or_empty(row, column_idx-1))
+                    str(get_col_contents_or_empty(row, column_idx-1))
         except UnicodeDecodeError:
             return False, (
                     _("Error: Columns to be imported contain "
@@ -1186,7 +1182,7 @@ def get_course_specific_language_choices():
     filtered_options = (
         [get_default_option()]
         + [get_formatted_options(k, v)
-           for k, v in six.iteritems(filtered_options_dict)])
+           for k, v in filtered_options_dict.items()])
 
     # filtered_options[1] is the option for settings.LANGUAGE_CODE
     # it's already displayed when settings.USE_I18N is False

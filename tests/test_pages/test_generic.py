@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import division
-
 __copyright__ = "Copyright (C) 2014 Andreas Kloeckner, Zesheng Wang, Dong Zhuang"
 
 __license__ = """
@@ -24,7 +22,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-import six
 from base64 import b64encode
 
 import unittest
@@ -72,7 +69,7 @@ class SingleCourseQuizPageTest(SingleCourseQuizPageTestMixin,
         self.assertEqual(int(params["page_ordinal"]), page_count - 1)
 
     # {{{ auto graded questions
-    @unittest.skipIf(six.PY2, "PY2 doesn't support subTest")
+
     def test_quiz_no_answer(self):
         self.assertEqual(self.end_flow().status_code, 200)
         self.assertSessionScoreEqual(0)
