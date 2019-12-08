@@ -22,7 +22,7 @@ THE SOFTWARE.
 
 from django.urls import reverse, NoReverseMatch
 from django.test import TestCase
-from unittest import skipIf, skipUnless
+from unittest import skipUnless
 
 from course.models import (
     Participation, GradingOpportunity, FlowSession,
