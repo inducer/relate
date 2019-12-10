@@ -22,7 +22,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-import six
 import itertools
 
 import unittest
@@ -3422,7 +3421,6 @@ class GetAndCheckFlowSessionTest(SingleCourseTestMixin, TestCase):
             student_session)
 
 
-@unittest.skipIf(six.PY2, "PY2 doesn't support subTest")
 class WillReceiveFeedbackTest(unittest.TestCase):
     # test flow.will_receive_feedback
     def test_false(self):
@@ -3457,7 +3455,6 @@ class WillReceiveFeedbackTest(unittest.TestCase):
                     will_receive)
 
 
-@unittest.skipIf(six.PY2, "PY2 doesn't support subTest")
 class MaySendEmailAboutFlowPageTest(unittest.TestCase):
     # test flow.may_send_email_about_flow_page
     @classmethod
@@ -3515,7 +3512,6 @@ class MaySendEmailAboutFlowPageTest(unittest.TestCase):
                     may_send)
 
 
-@unittest.skipIf(six.PY2, "PY2 doesn't support subTest")
 class GetPageBehaviorTest(unittest.TestCase):
     # test flow.get_page_behavior
     def setUp(self):
@@ -4029,7 +4025,6 @@ class AddButtonsToFormTest(unittest.TestCase):
         self.assertIn("submit", names)
         self.assertIn("Submit answer for feedback", values)
 
-    @unittest.skipIf(six.PY2, "PY2 doesn't support subTest")
     def test_not_add_submit_answer_for_feedback_button(self):
 
         self.mock_will_receive_feedback.return_value = True
@@ -4047,7 +4042,6 @@ class AddButtonsToFormTest(unittest.TestCase):
             names, values = self.get_form_submit_inputs(form)
             self.assertNotIn("Submit answer for feedback", values)
 
-    @unittest.skipIf(six.PY2, "PY2 doesn't support subTest")
     def test_add_save_and_next(self):
 
         self.mock_will_receive_feedback.return_value = False
@@ -4071,7 +4065,6 @@ class AddButtonsToFormTest(unittest.TestCase):
             self.assertNotIn("submit", names)
             self.assertNotIn("save_and_finish", names)
 
-    @unittest.skipIf(six.PY2, "PY2 doesn't support subTest")
     def test_add_save_and_finish(self):
 
         self.mock_will_receive_feedback.return_value = False
@@ -4376,7 +4369,6 @@ class ViewFlowPageTest(SingleCourseQuizPageTestMixin, HackRepoMixin, TestCase):
         self.assertResponseContextEqual(resp, "is_optional_page", True)
 
 
-@unittest.skipIf(six.PY2, "PY2 doesn't support subTest")
 class GetPressedButtonTest(unittest.TestCase):
     def test_success(self):
         buttons = ["save", "save_and_next", "save_and_finish", "submit"]
@@ -4999,7 +4991,6 @@ class RegradeFlowsViewTest(SingleCourseQuizPageTestMixin, TestCase):
             self.assertEqual(self.mock_regrade_task.call_count, 0)
             self.assertEqual(self.mock_redirect.call_count, 0)
 
-    @unittest.skipIf(six.PY2, "PY2 doesn't support subTest")
     def test_success(self):
         # get success
         resp = self.c.get(self.get_regrade_flows_view_url())
@@ -5014,7 +5005,7 @@ class RegradeFlowsViewTest(SingleCourseQuizPageTestMixin, TestCase):
             "no": False,
         }
         for regraded_session_in_progress, inprog_value in (
-                six.iteritems(inprog_value_map)):
+                inprog_value_map.items()):
             with self.subTest(
                     regraded_session_in_progress=regraded_session_in_progress):
                 self.mock_regrade_task.return_value = mock.MagicMock()

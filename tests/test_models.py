@@ -1,5 +1,3 @@
-from __future__ import division
-
 __doc__ = """
 This is testing uncovering part of course.models by other tests
 """
@@ -27,7 +25,6 @@ THE SOFTWARE.
 """
 
 from datetime import datetime, timedelta
-import six
 import unittest
 import pytz
 
@@ -329,7 +326,7 @@ class ParticipationTest(RelateModelTestMixin, unittest.TestCase):
         participation2 = factories.ParticipationFactory(course=course2,
                                                         user=user)
 
-        self.assertIsInstance(participation1.get_role_desc(), six.text_type)
+        self.assertIsInstance(participation1.get_role_desc(), str)
         self.assertEqual(
             participation1.get_role_desc(), participation2.get_role_desc())
 

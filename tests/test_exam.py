@@ -24,7 +24,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-import six
 import datetime
 import pytz
 
@@ -698,7 +697,6 @@ class ExamFacilityMiddlewareTest(SingleCoursePageTestMixin,
             resp, self.get_view_start_flow_url(self.flow_id),
             fetch_redirect_response=False)
 
-    @unittest.skipIf(six.PY2, "PY2 doesn't support subTest")
     def test_ok_views(self):
         # we only test ta participation
         from course.auth import make_sign_in_key
@@ -780,7 +778,6 @@ class ExamFacilityMiddlewareTest(SingleCoursePageTestMixin,
             resp = self.select2_get_request(field_id=field_id, term=term)
             self.assertEqual(resp.status_code, 200)
 
-    @unittest.skipIf(six.PY2, "PY2 doesn't support subTest")
     def test_ok_issue_exam_ticket_view_with_pperm(self):
         tup = (
             (self.student_participation.user, 302),
@@ -861,7 +858,6 @@ class ExamLockdownMiddlewareTest(SingleCoursePageTestMixin,
             "Error while processing exam lockdown: "
             "flow session not found.")
 
-    @unittest.skipIf(six.PY2, "PY2 doesn't support subTest")
     def test_ok_views(self):
         # we only test student participation user
 
@@ -941,7 +937,6 @@ class ExamLockdownMiddlewareTest(SingleCoursePageTestMixin,
             resp = self.select2_get_request(field_id=field_id, term=term)
             self.assertEqual(resp.status_code, 200)
 
-    @unittest.skipIf(six.PY2, "PY2 doesn't support subTest")
     def test_flow_page_related_view_ok(self):
         for url, args, kwargs, code_or_redirect in [
             ("relate-view_resume_flow", [],
@@ -975,7 +970,6 @@ class ExamLockdownMiddlewareTest(SingleCoursePageTestMixin,
                         resp, code_or_redirect,
                         fetch_redirect_response=False)
 
-    @unittest.skipIf(six.PY2, "PY2 doesn't support subTest")
     def test_flow_page_related_view_not_ok(self):
         another_flow_id = "jinja-yaml"
         self.start_flow(flow_id=another_flow_id)
@@ -1020,7 +1014,6 @@ class ExamLockdownMiddlewareTest(SingleCoursePageTestMixin,
                     "RELATE is not currently allowed. "
                     "To exit this exam, log out.")
 
-    @unittest.skipIf(six.PY2, "PY2 doesn't support subTest")
     def test_start_flow_ok(self):
         for url, args, kwargs, code_or_redirect in [
             ("relate-view_start_flow", [],
@@ -1040,7 +1033,6 @@ class ExamLockdownMiddlewareTest(SingleCoursePageTestMixin,
 
                 self.assertAddMessageCallCount(0, reset=True)
 
-    @unittest.skipIf(six.PY2, "PY2 doesn't support subTest")
     def test_start_flow_not_ok(self):
         another_flow_id = "jinja-yaml"
 

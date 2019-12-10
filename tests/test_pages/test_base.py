@@ -1,5 +1,3 @@
-from __future__ import division
-
 __copyright__ = "Copyright (C) 2018 Dong Zhuang"
 
 __license__ = """
@@ -22,7 +20,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-import six
 from django.test import TestCase
 import unittest
 
@@ -138,7 +135,6 @@ choices:
 """
 
 
-@unittest.skipIf(six.PY2, "PY2 doesn't support subTest")
 class CreateDefaultPointScaleTest(unittest.TestCase):
     # test create_default_point_scale
     def test_create_default_point_scale(self):
@@ -150,7 +146,7 @@ class CreateDefaultPointScaleTest(unittest.TestCase):
             15: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
             70: [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70],
         }
-        for k, v in six.iteritems(test_dict):
+        for k, v in test_dict.items():
             with self.subTest(total_points=k):
                 returned_value = create_default_point_scale(k)
                 self.assertIsNotNone(returned_value)
@@ -245,7 +241,6 @@ class PageBasePageDescBackwardCompatibilityTest(unittest.TestCase):
                 self.fail("'%s' is not warned as expected" % expected_warn_msg)
 
 
-@unittest.skipIf(six.PY2, "PY2 doesn't support subTest")
 class PageBaseGetModifiedPermissionsForPageTest(unittest.TestCase):
     # test page_base.get_modified_permissions_for_page
     def test_get_modified_permissions_for_page(self):

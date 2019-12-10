@@ -122,3 +122,11 @@ jobs:
             set -e
             curl -L -O -k https://gitlab.tiker.net/inducer/ci-support/raw/master/prepare-and-run-flake8.sh
             . ./prepare-and-run-flake8.sh relate course accounts tests bin
+
+schedules:
+-
+    cron: "0 0 * * 0"
+    displayName: Weekly build
+    branches:
+        include:
+        - master

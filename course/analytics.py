@@ -25,7 +25,6 @@ THE SOFTWARE.
 """
 
 
-import six
 from django.utils.translation import ugettext as _, pgettext
 from django.shortcuts import (  # noqa
         render, get_object_or_404, redirect)
@@ -97,7 +96,7 @@ class Histogram(object):
         self.num_bin_title_formatter = num_bin_title_formatter
 
     def add_data_point(self, value, weight=1):
-        if isinstance(value, six.string_types):
+        if isinstance(value, str):
             self.string_weights[value] = \
                     self.string_weights.get(value, 0) + weight
         elif value is None:
@@ -130,7 +129,7 @@ class Histogram(object):
     def total_weight(self):
         return (
                 sum(weight for val, weight in self.num_values)
-                + sum(six.itervalues(self.string_weights)))
+                + sum(self.string_weights.values()))
 
     def get_bin_info_list(self):
         min_value = self.num_min_value
@@ -202,7 +201,7 @@ class Histogram(object):
                     title=key,
                     raw_weight=temp_string_weights[key],
                     percentage=100*temp_string_weights[key]/total_weight)
-                for key in sorted(six.iterkeys(temp_string_weights))]
+                for key in sorted(temp_string_weights)]
 
         return num_bin_info + str_bin_info
 
@@ -568,7 +567,7 @@ def page_analytics(pctx, flow_id, group_id, page_id):
 
     answer_stats = []
     for (normalized_answer, correctness), count in \
-            six.iteritems(normalized_answer_and_correctness_to_count):
+            normalized_answer_and_correctness_to_count.items():
         answer_stats.append(
                 AnswerStats(
                     normalized_answer=normalized_answer,

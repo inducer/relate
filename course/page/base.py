@@ -24,8 +24,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-import six
-
 import django.forms as forms
 
 from course.validation import validate_struct, ValidationError
@@ -54,7 +52,7 @@ if False:
 # }}}
 
 
-mark_safe_lazy = lazy(mark_safe, six.text_type)
+mark_safe_lazy = lazy(mark_safe, str)
 
 
 class PageContext(object):
@@ -190,28 +188,28 @@ def get_auto_feedback(correctness):
     correctness = validate_point_count(correctness)
 
     if correctness is None:
-        return six.text_type(
+        return str(
             ugettext_noop("No information on correctness of answer."))
 
     if correctness == 0:
-        return six.text_type(ugettext_noop("Your answer is not correct."))
+        return str(ugettext_noop("Your answer is not correct."))
     elif correctness == 1:
-        return six.text_type(ugettext_noop("Your answer is correct."))
+        return str(ugettext_noop("Your answer is correct."))
     elif correctness > 1:
-        return six.text_type(
+        return str(
                 string_concat(
                     ugettext_noop(
                         "Your answer is correct and earned bonus points."),
                     " (%.1f %%)")
                 % (100*correctness))
     elif correctness > 0.5:
-        return six.text_type(
+        return str(
                 string_concat(
                     ugettext_noop("Your answer is mostly correct."),
                     " (%.1f %%)")
                 % (100*correctness))
     else:
-        return six.text_type(
+        return str(
                 string_concat(
                     ugettext_noop("Your answer is somewhat correct. "),
                     "(%.1f%%)")

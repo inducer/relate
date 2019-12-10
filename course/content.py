@@ -32,7 +32,6 @@ from django.utils.translation import ugettext as _
 import os
 import re
 import datetime
-import six
 import sys
 
 from django.utils.timezone import now
@@ -42,7 +41,7 @@ from django.urls import NoReverseMatch
 from markdown.extensions import Extension
 from markdown.treeprocessors import Treeprocessor
 
-from six.moves import html_parser
+import html.parser as html_parser
 
 from jinja2 import (
         BaseLoader as BaseTemplateLoader, TemplateNotFound, FileSystemLoader)
@@ -284,8 +283,8 @@ def get_repo_blob_data_cached(repo, full_name, commit_sha):
     :arg commit_sha: A byte string containing the commit hash
     """
 
-    if isinstance(commit_sha, six.binary_type):
-        from six.moves.urllib.parse import quote_plus
+    if isinstance(commit_sha, bytes):
+        from urllib.parse import quote_plus
         cache_key = "%s%R%1".join((
             CACHE_KEY_ROOT,
             quote_plus(repo.controldir()),
@@ -305,7 +304,7 @@ def get_repo_blob_data_cached(repo, full_name, commit_sha):
     if cache_key is None:
         result = get_repo_blob(repo, full_name, commit_sha,
                 allow_tree=False).data
-        assert isinstance(result, six.binary_type)
+        assert isinstance(result, bytes)
         return result
 
     # Byte string is wrapped in a tuple to force pickling because memcache's
@@ -320,7 +319,7 @@ def get_repo_blob_data_cached(repo, full_name, commit_sha):
 
         if cached_result is not None:
             (result,) = cached_result
-            assert isinstance(result, six.binary_type), cache_key
+            assert isinstance(result, bytes), cache_key
             return result
 
     result = get_repo_blob(repo, full_name, commit_sha,
@@ -330,7 +329,7 @@ def get_repo_blob_data_cached(repo, full_name, commit_sha):
     if len(result) <= getattr(settings, "RELATE_CACHE_MAX_BYTES", 0):
         def_cache.add(cache_key, (result,), None)
 
-    assert isinstance(result, six.binary_type)
+    assert isinstance(result, bytes)
 
     return result
 
@@ -368,7 +367,7 @@ def is_repo_file_accessible_as(access_kinds, repo, commit_sha, path):
     from fnmatch import fnmatch
     if isinstance(access_patterns, list):
         for pattern in access_patterns:
-            if isinstance(pattern, six.string_types):
+            if isinstance(pattern, str):
                 if fnmatch(path_basename, pattern):
                     return True
 
@@ -517,7 +516,7 @@ class YamlBlockEscapingFileSystemLoader(FileSystemLoader):
 def expand_yaml_macros(repo, commit_sha, yaml_str):
     # type: (Repo_ish, bytes, Text) -> Text
 
-    if isinstance(yaml_str, six.binary_type):
+    if isinstance(yaml_str, bytes):
         yaml_str = yaml_str.decode("utf-8")
 
     from jinja2 import Environment, StrictUndefined
@@ -559,7 +558,7 @@ def get_raw_yaml_from_repo(repo, full_name, commit_sha):
     :arg commit_sha: A byte string containing the commit hash
     """
 
-    from six.moves.urllib.parse import quote_plus
+    from urllib.parse import quote_plus
     cache_key = "%RAW%%2".join((
         CACHE_KEY_ROOT,
         quote_plus(repo.controldir()), quote_plus(full_name), commit_sha.decode(),
@@ -606,7 +605,7 @@ def get_yaml_from_repo(repo, full_name, commit_sha, cached=True):
         except ImproperlyConfigured:
             cached = False
         else:
-            from six.moves.urllib.parse import quote_plus
+            from urllib.parse import quote_plus
             cache_key = "%%%2".join(
                     (CACHE_KEY_ROOT,
                         quote_plus(repo.controldir()), quote_plus(full_name),
@@ -666,7 +665,7 @@ class TagProcessingHTMLParser(html_parser.HTMLParser):
         attrs.update(self.process_tag_func(tag, attrs))
 
         self.out_file.write("<%s %s>" % (tag, " ".join(
-            _attr_to_string(k, v) for k, v in six.iteritems(attrs))))
+            _attr_to_string(k, v) for k, v in attrs.items())))
 
     def handle_endtag(self, tag):
         self.out_file.write("</%s>" % tag)
@@ -676,7 +675,7 @@ class TagProcessingHTMLParser(html_parser.HTMLParser):
         attrs.update(self.process_tag_func(tag, attrs))
 
         self.out_file.write("<%s %s/>" % (tag, " ".join(
-            _attr_to_string(k, v) for k, v in six.iteritems(attrs))))
+            _attr_to_string(k, v) for k, v in attrs.items())))
 
     def handle_data(self, data):
         self.out_file.write(data)
@@ -830,7 +829,7 @@ class LinkFixerTreeprocessor(Treeprocessor):
     def process_etree_element(self, element):
         changed_attrs = self.process_tag(element.tag, element.attrib)
 
-        for key, val in six.iteritems(changed_attrs):
+        for key, val in changed_attrs.items():
             element.set(key, val)
 
     def walk_and_process_tree(self, root):
@@ -843,10 +842,10 @@ class LinkFixerTreeprocessor(Treeprocessor):
         self.walk_and_process_tree(root)
 
         # root through and process Markdown's HTML stash (gross!)
-        from six.moves import cStringIO
+        from io import StringIO
 
         for i, (html, safe) in enumerate(self.md.htmlStash.rawHtmlBlocks):
-            outf = cStringIO()
+            outf = StringIO()
             parser = TagProcessingHTMLParser(outf, self.process_tag)
             parser.feed(html)
 
@@ -889,8 +888,8 @@ def expand_markup(
         ):
     # type: (...) -> Text
 
-    if not isinstance(text, six.text_type):
-        text = six.text_type(text)
+    if not isinstance(text, str):
+        text = str(text)
 
     # {{{ process through Jinja
 
@@ -948,7 +947,7 @@ def markup_to_html(
             def_cache = cache.caches["default"]
             result = def_cache.get(cache_key)
             if result is not None:
-                assert isinstance(result, six.text_type)
+                assert isinstance(result, str)
                 return result
 
         if text.lstrip().startswith(JINJA_PREFIX):
@@ -991,7 +990,7 @@ def markup_to_html(
         extensions=extensions,
         output_format="html5")
 
-    assert isinstance(result, six.text_type)
+    assert isinstance(result, str)
     if cache_key is not None:
         def_cache.add(cache_key, result, None)
 

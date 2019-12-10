@@ -1,4 +1,4 @@
-django>=2.1.11
+django>=2.1.11,<3
 
 # Automatically renders Django forms in a pretty, Bootstrap-compatible way.
 django-crispy-forms>=1.5.1
@@ -15,8 +15,6 @@ markdown>=2.6.3,<3.0
 # For rendering macros in content:
 jinja2
 
-six
-
 # For math/symbolic questions
 pymbolic
 sympy
@@ -30,7 +28,9 @@ pyyaml
 # dulwich
 dulwich>=0.19
 ecdsa
-paramiko
+
+# FIXME: 2.7.1 gives bogus 'incorrect padding' error on PEM parsing
+paramiko<2.7
 
 # A date picker widget
 # https://github.com/tutorcruncher/django-bootstrap3-datetimepicker

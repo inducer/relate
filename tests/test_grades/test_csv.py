@@ -22,10 +22,9 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-import six
 import csv
 import os
-from six import StringIO
+from io import StringIO
 from django.test import TestCase
 import unittest
 
@@ -424,9 +423,6 @@ class ImportGradesTest(GradesTestMixin, TestCase):
             self.assertFormError(resp, "form", "file", expected_file_error_msg)
             self.assertEqual(models.GradeChange.objects.count(), 0)
 
-    @unittest.skipIf(
-        six.PY2, "csv for py2 seems won't raise expected error when "
-                 "import an excel file.")
     def test_import_csv_reader_next_error(self):
         error_msg = "This is a faked error"
         expected_file_error_msg = (

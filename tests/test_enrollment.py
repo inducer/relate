@@ -22,7 +22,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-import six
 import unittest
 from django.test import TestCase, RequestFactory
 from django.conf import settings
@@ -275,7 +274,6 @@ class EnrollViewTest(EnrollmentTestMixin, TestCase):
         self.assertParticiaptionStatusCallCount([0, 0, 0, 0])
         self.assertEqual(len(mail.outbox), 0)
 
-    @unittest.skipIf(six.PY2, "PY2 doesn't support subTest")
     def test_user_not_active(self):
         for status in dict(constants.USER_STATUS_CHOICES).keys():
             if status != u_status.active:
@@ -341,7 +339,6 @@ class EnrollViewTest(EnrollmentTestMixin, TestCase):
         self.assertParticiaptionStatusCallCount([1, 0, 0, 0])
         self.assertEqual(len(mail.outbox), 1)
 
-    @unittest.skipIf(six.PY2, "PY2 doesn't support subTest")
     def test_coures_not_require_inst_id_verified(self):
         self.update_require_approval_course(
             preapproval_require_verified_inst_id=False)

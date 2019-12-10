@@ -22,7 +22,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-import six
 import sys
 from django.test import TestCase
 from django import forms
@@ -210,15 +209,9 @@ class MatcherTest(unittest.TestCase):
     def test_regex_matcher(self):
         # test RegexMatcher
         failed_pattern = "[\n"
-        if six.PY2:
-            expected_error_msg = (
-                "regex '[\n' did not compile: error: "
-                "unexpected end of regular expression"
-            )
-        else:
-            expected_error_msg = (
-                "regex '[\n' did not compile: error: "
-                "unterminated character set at position 0 (line 1, column 1)")
+        expected_error_msg = (
+            "regex '[\n' did not compile: error: "
+            "unterminated character set at position 0 (line 1, column 1)")
         with self.assertRaises(ValidationError) as cm:
             RegexMatcher(None, "", failed_pattern)
         self.assertIn(expected_error_msg, str(cm.exception))
@@ -233,15 +226,9 @@ class MatcherTest(unittest.TestCase):
     def test_case_sensitive_regex_matcher(self):
         # test CaseSensitiveRegexMatcher
         failed_pattern = "[\n"
-        if six.PY2:
-            expected_error_msg = (
-                "regex '[\n' did not compile: error: "
-                "unexpected end of regular expression"
-            )
-        else:
-            expected_error_msg = (
-                "regex '[\n' did not compile: error: "
-                "unterminated character set at position 0 (line 1, column 1)")
+        expected_error_msg = (
+            "regex '[\n' did not compile: error: "
+            "unterminated character set at position 0 (line 1, column 1)")
         with self.assertRaises(ValidationError) as cm:
             CaseSensitiveRegexMatcher(None, "", failed_pattern)
         self.assertIn(expected_error_msg, str(cm.exception))
@@ -310,10 +297,7 @@ class FloatOrSympyEvalfTest(unittest.TestCase):
     def test_float_or_sympy_evalf(self):
 
         # long int
-        if six.PY2:
-            long_int = sys.maxint + 1
-        else:
-            long_int = sys.maxsize + 1
+        long_int = sys.maxsize + 1
         self.assertEqual(float_or_sympy_evalf(long_int), long_int)
 
         self.assertEqual(float_or_sympy_evalf(1), 1)

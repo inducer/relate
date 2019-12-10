@@ -23,7 +23,6 @@ THE SOFTWARE.
 """
 
 import pytz
-import six
 import os
 import json
 import unittest
@@ -371,8 +370,7 @@ class NbconvertRenderTest(NbconvertRenderTestMixin, TestCase):
         self.assertNotContains(resp, CODE_CELL_PRINT_STR2)
 
         # code highlight functions (in terms of rendered ipynb notebook cells only)
-        if six.PY3:
-            self.assertRegex(resp.context["body"], r'class="\w*\s*highlight[^\w]')
+        self.assertRegex(resp.context["body"], r'class="\w*\s*highlight[^\w]')
         self.assertContains(resp, " highlight hl-ipython3")
         self.assertContains(resp,
                             '<span class="nb">print</span>'
@@ -776,7 +774,6 @@ content: |
 class TagProcessingHTMLParserAndLinkFixerTreeprocessorTest(
         SingleCoursePageSandboxTestBaseMixin, TestCase):
 
-    @unittest.skipIf(six.PY2, "PY2 doesn't support subTest")
     def test_embedded_raw_block1(self):
         another_course = factories.CourseFactory(identifier="another-course")
         markdown = MARKDOWN_WITH_LINK_FRAGMENT

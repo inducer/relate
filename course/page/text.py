@@ -25,7 +25,6 @@ THE SOFTWARE.
 """
 
 
-import six
 from django.utils.translation import (
         ugettext_lazy as _, ugettext)
 from course.validation import validate_struct, ValidationError
@@ -314,11 +313,6 @@ class CaseSensitiveRegexMatcher(RegexMatcher):
 
 
 def parse_sympy(s):
-    if six.PY2:
-        if isinstance(s, unicode):  # noqa -- has Py2/3 guard
-            # Sympy is not spectacularly happy with unicode function names
-            s = s.encode()
-
     from pymbolic import parse
     from pymbolic.interop.sympy import PymbolicToSympyMapper
 
@@ -391,10 +385,10 @@ class SymbolicExpressionMatcher(TextAnswerMatcher):
 
 
 def float_or_sympy_evalf(s):
-    if isinstance(s, six.integer_types + (float,)):
+    if isinstance(s, (int, float,)):
         return s
 
-    if not isinstance(s, six.string_types):
+    if not isinstance(s, str):
         raise TypeError("expected string, int or float for floating point "
                 "literal")
 
@@ -426,11 +420,11 @@ class FloatMatcher(TextAnswerMatcher):
                 matcher_desc,
                 required_attrs=(
                     ("type", str),
-                    ("value", six.integer_types + (float, str)),
+                    ("value", (int, float, str)),
                     ),
                 allowed_attrs=(
-                    ("rtol", six.integer_types + (float, str)),
-                    ("atol", six.integer_types + (float, str)),
+                    ("rtol", (int, float, str)),
+                    ("atol", (int, float, str)),
                     ),
                 )
 
@@ -599,7 +593,7 @@ def parse_matcher_string(vctx, location, matcher_desc):
 
 
 def parse_matcher(vctx, location, matcher_desc):
-    if isinstance(matcher_desc, six.string_types):
+    if isinstance(matcher_desc, str):
         return parse_matcher_string(vctx, location, matcher_desc)
     else:
         if not isinstance(matcher_desc, Struct):

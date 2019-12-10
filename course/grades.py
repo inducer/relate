@@ -25,7 +25,6 @@ THE SOFTWARE.
 """
 
 import re
-import six
 from decimal import Decimal
 from typing import cast
 
@@ -308,13 +307,10 @@ def export_gradebook_csv(pctx):
 
     participations, grading_opps, grade_table = get_grade_table(pctx.course)
 
-    from six import StringIO
+    from io import StringIO
     csvfile = StringIO()
 
-    if six.PY2:
-        import unicodecsv as csv
-    else:
-        import csv
+    import csv
 
     fieldnames = ['user_name', 'last_name', 'first_name'] + [
             gopp.identifier for gopp in grading_opps]
@@ -1140,8 +1136,9 @@ class ImportGradesForm(StyledForm):
 
             from course.utils import csv_data_importable
 
+            import io
             importable, err_msg = csv_data_importable(
-                    six.StringIO(
+                    io.StringIO(
                         file_contents.read().decode("utf-8", errors="replace")),
                     column_idx_list,
                     header_count)
@@ -1352,6 +1349,7 @@ def import_grades(pctx):
 
     log_lines = []
 
+    import io
     request = pctx.request
     if request.method == "POST":
         form = ImportGradesForm(
@@ -1368,7 +1366,7 @@ def import_grades(pctx):
                         course=pctx.course,
                         grading_opportunity=form.cleaned_data["grading_opportunity"],
                         attempt_id=form.cleaned_data["attempt_id"],
-                        file_contents=six.StringIO(data),
+                        file_contents=io.StringIO(data),
                         attr_type=form.cleaned_data["attr_type"],
                         attr_column=form.cleaned_data["attr_column"],
                         points_column=form.cleaned_data["points_column"],
@@ -1579,12 +1577,12 @@ def download_all_submissions(pctx, flow_id):
                     submissions[key] = (
                             bytes_answer, list(visit.grades.all()))
 
-            from six import BytesIO
+            from io import BytesIO
             from zipfile import ZipFile
             bio = BytesIO()
             with ZipFile(bio, "w") as subm_zip:
                 for key, ((extension, bytes_answer), visit_grades) in \
-                        six.iteritems(submissions):
+                        submissions.items():
                     basename = "-".join(key)
                     subm_zip.writestr(
                             basename + extension,

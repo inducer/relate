@@ -24,8 +24,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-import six
-
 from django.contrib.auth import get_user_model
 import django.forms as forms
 from django.utils.translation import (
@@ -606,7 +604,7 @@ def check_in_for_exam(request):
 
 def is_from_exams_only_facility(request):
     from course.utils import get_facilities_config
-    for name, props in six.iteritems(get_facilities_config(request)):
+    for name, props in get_facilities_config(request).items():
         if not props.get("exams_only", False):
             continue
 

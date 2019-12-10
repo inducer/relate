@@ -24,7 +24,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-import six
+import io
 import datetime
 from django.test import TestCase
 from django.urls import reverse
@@ -228,7 +228,6 @@ class ViewParticipantGradesTest(GradesTestMixin, TestCase):
             resp = self.get_view_participant_grades(self.student_participation.pk)
             self.assertEqual(resp.status_code, 200)
 
-    @unittest.skipIf(six.PY2, "PY2 doesn't support subTest")
     def test_view(self):
 
         # {{{ gopps. Notice: there is another gopp created in setUp
@@ -738,7 +737,6 @@ class ViewGradesByOpportunityTest(GradesTestMixin, TestCase):
                 another_course_gopp.id))
             self.assertEqual(resp.status_code, 400)
 
-    @unittest.skipIf(six.PY2, "PY2 doesn't support subTest")
     def test_batch_op_no_permission(self):
         with self.temporarily_switch_to_user(self.ta_participation.user):
             for op in ["expire", "end", "regrade", "recalculate"]:
@@ -761,7 +759,6 @@ class ViewGradesByOpportunityTest(GradesTestMixin, TestCase):
                     self.assertEqual(
                         self.mock_recalculate_ended_sessions.call_count, 0)
 
-    @unittest.skipIf(six.PY2, "PY2 doesn't support subTest")
     def test_batch_op_no_permission2(self):
         # with partitial permission
         permission_ops = [
@@ -805,7 +802,6 @@ class ViewGradesByOpportunityTest(GradesTestMixin, TestCase):
         self.assertEqual(
             self.mock_recalculate_ended_sessions.call_count, 0)
 
-    @unittest.skipIf(six.PY2, "PY2 doesn't support subTest")
     def test_batch_op(self):
         for op in ["expire", "end", "regrade", "recalculate"]:
             for rule_tag in [fake_access_rules_tag, grades.RULE_TAG_NONE_STRING]:
@@ -1496,7 +1492,6 @@ class ViewSingleGradeTest(GradesTestMixin, TestCase):
                 force_login_instructor=False)
             self.assertEqual(resp.status_code, 403)
 
-    @unittest.skipIf(six.PY2, "PY2 doesn't support subTest")
     def test_post_no_pperm(self):
         another_participation = factories.ParticipationFactory(
             course=self.course)
@@ -1524,7 +1519,6 @@ class ViewSingleGradeTest(GradesTestMixin, TestCase):
             data={"blablabal": ''})
         self.assertEqual(resp.status_code, 400)
 
-    @unittest.skipIf(six.PY2, "PY2 doesn't support subTest")
     def test_post(self):
         fs = factories.FlowSessionFactory(
             participation=self.student_participation, flow_id=self.flow_id)
@@ -1556,7 +1550,6 @@ class ViewSingleGradeTest(GradesTestMixin, TestCase):
             data={"blablabal_%d" % fs.pk: ''})
         self.assertEqual(resp.status_code, 400)
 
-    @unittest.skipIf(six.PY2, "PY2 doesn't support subTest")
     def test_post_keyboard_interrupt(self):
         fs = factories.FlowSessionFactory(
             participation=self.student_participation, flow_id=self.flow_id)
@@ -1839,7 +1832,7 @@ class DownloadAllSubmissionsTest(SingleCourseQuizPageTestMixin,
         return "%s/%s" % (group_id, self.page_id)
 
     def get_zip_file_buf_from_response(self, resp):
-        return six.BytesIO(resp.content)
+        return io.BytesIO(resp.content)
 
     def assertDownloadedFileZippedExtensionCount(self, resp, extensions, counts):  # noqa
 
@@ -1849,7 +1842,7 @@ class DownloadAllSubmissionsTest(SingleCourseQuizPageTestMixin,
         prefix, zip_file = resp["Content-Disposition"].split('=')
         self.assertEqual(prefix, "attachment; filename")
         self.assertEqual(resp.get('Content-Type'), "application/zip")
-        buf = six.BytesIO(resp.content)
+        buf = io.BytesIO(resp.content)
         import zipfile
         with zipfile.ZipFile(buf, 'r') as zf:
             self.assertIsNone(zf.testzip())
@@ -1894,9 +1887,6 @@ class DownloadAllSubmissionsTest(SingleCourseQuizPageTestMixin,
             self.assertDownloadedFileZippedExtensionCount(
                 resp, [".txt"], [2])
 
-    # Fixme
-    @unittest.skipIf(six.PY2, "'utf8' codec can't decode byte 0x99 in "
-                              "position 10: invalid start byte")
     def test_download_include_feedback(self):
         with self.temporarily_switch_to_user(self.instructor_participation.user):
             resp = self.post_download_all_submissions_by_group_page_id(

@@ -1,5 +1,3 @@
-from __future__ import division
-
 __copyright__ = "Copyright (C) 2017 Dong Zhuang, Andreas Kloeckner, Zesheng Wang"
 
 __license__ = """
@@ -23,7 +21,6 @@ THE SOFTWARE.
 """
 
 import sys
-import six
 import re
 import tempfile
 import os
@@ -252,7 +249,7 @@ class ResponseContextMixin(object):
             self, resp,  # noqa
             context_name, expected_value_regex):
         value = self.get_response_context_value_by_name(resp, context_name)
-        six.assertRegex(self, value, expected_value_regex)
+        self.assertRegex(value, expected_value_regex)
 
     def get_response_context_answer_feedback(self, response):
         return self.get_response_context_value_by_name(response, "feedback")
@@ -361,7 +358,7 @@ class ResponseContextMixin(object):
         select2_url = reverse(select2_urlname)
         params = {"field_id": field_id}
         if term is not None:
-            assert isinstance(term, six.string_types)
+            assert isinstance(term, str)
             term = term.strip()
             if term:
                 params["term"] = term
@@ -504,7 +501,7 @@ class SuperuserCreateMixin(ResponseContextMixin):
             url += ("?%s"
                     % "&".join(
                         ["%s=%s" % (k, v)
-                         for (k, v) in six.iteritems(querystring)]))
+                         for (k, v) in querystring.items()]))
         return url
 
     def get_reset_password_stage2(self, user_id, sign_in_key, **kwargs):
@@ -774,7 +771,7 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
                            "\n".join(["%s:%s" % (type(e).__name__, str(e))
                                       for e in errs]))
                         for field, errs
-                        in six.iteritems(form_context.errors.as_data())]
+                        in form_context.errors.as_data().items()]
                 non_field_errors = form_context.non_field_errors()
                 if non_field_errors:
                     error_list.append(repr(non_field_errors))
@@ -1845,8 +1842,7 @@ class SingleCourseTestMixin(CoursesTestMixinBase):
         kwargs = Course.objects.first().__dict__
         kwargs.update(attrs_dict)
 
-        import six
-        for k, v in six.iteritems(kwargs):
+        for k, v in kwargs.items():
             if v is None:
                 kwargs[k] = ""
         return kwargs
@@ -1887,7 +1883,7 @@ class SingleCourseTestMixin(CoursesTestMixinBase):
         if commit_sha is None:
             commit_sha = cls.course.active_git_commit_sha
 
-        if isinstance(commit_sha, six.text_type):
+        if isinstance(commit_sha, str):
             commit_sha = commit_sha.encode()
 
         from course.content import get_flow_desc
@@ -2076,8 +2072,10 @@ class SingleCourseQuizPageTestMixin(SingleCoursePageTestMixin):
             prefix, zip_file = resp["Content-Disposition"].split('=')
             assert prefix == "attachment; filename"
             assert resp.get('Content-Type') == "application/zip"
+
+            import io
             if dl_file_extension:
-                buf = six.BytesIO(resp.content)
+                buf = io.BytesIO(resp.content)
                 import zipfile
                 with zipfile.ZipFile(buf, 'r') as zf:
                     assert zf.testzip() is None
@@ -2510,12 +2508,9 @@ class SubprocessRunpyContainerMixin(object):
 
 def improperly_configured_cache_patch():
     # can be used as context manager or decorator
-    if six.PY3:
-        built_in_import_path = "builtins.__import__"
-        import builtins  # noqa
-    else:
-        built_in_import_path = "__builtin__.__import__"
-        import __builtin__ as builtins  # noqa
+    built_in_import_path = "builtins.__import__"
+    import builtins  # noqa
+
     built_in_import = builtins.__import__
 
     def my_disable_cache_import(name, globals=None, locals=None, fromlist=(),
@@ -2687,7 +2682,7 @@ class HackRepoMixin(object):
             import json
             error_msg = ("\n%s" % json.dumps(OrderedDict(
                 sorted(
-                    [(k, v) for (k, v) in six.iteritems(grade_info.__dict__)])),
+                    [(k, v) for (k, v) in grade_info.__dict__.items()])),
                 indent=4))
             error_msg = error_msg.replace("null", "None")
             self.fail(error_msg)

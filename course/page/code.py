@@ -24,8 +24,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-import six
-
 from course.validation import ValidationError
 import django.forms as forms
 from django.core.exceptions import ObjectDoesNotExist
@@ -93,7 +91,7 @@ class InvalidPingResponse(RuntimeError):
 
 def request_run(run_req, run_timeout, image=None):
     import json
-    from six.moves import http_client
+    import http.client as http_client
     import docker
     import socket
     import errno
@@ -671,7 +669,7 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
             for key, val in sorted(response_dict.items()):
                 if (key not in ["result", "figures"]
                         and val
-                        and isinstance(val, six.string_types)):
+                        and isinstance(val, str)):
                     error_msg_parts.append("-------------------------------------")
                     error_msg_parts.append(key)
                     error_msg_parts.append("-------------------------------------")
@@ -721,7 +719,7 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
                     except Exception:
                         from traceback import format_exc
                         feedback_bits.append(
-                            six.text_type(string_concat(
+                            str(string_concat(
                                 "<p>",
                                 _(
                                     "Both the grading code and the attempt to "
@@ -923,7 +921,7 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
                     else:
                         return False
 
-                if not isinstance(s, six.text_type):
+                if not isinstance(s, str):
                     return _("(Non-string in 'HTML' output filtered out)")
 
                 return bleach.clean(s,

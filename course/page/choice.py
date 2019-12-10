@@ -24,8 +24,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-import six
-from six.moves import range
 import django.forms as forms
 from django.utils.safestring import mark_safe
 from django.utils.translation import (
@@ -107,7 +105,7 @@ class ChoiceInfo(object):
         item_mode = [None]
 
         def find_tag_by_mode(mode):
-            for k, v in six.iteritems(tag_mode_dict):  # pragma: no branch
+            for k, v in tag_mode_dict.items():  # pragma: no branch
                 if v == mode:
                     return k
 

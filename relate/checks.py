@@ -25,7 +25,6 @@ THE SOFTWARE.
 """
 
 import os
-import six
 from django.conf import settings
 from django.core.checks import Critical, Warning, register
 from django.core.exceptions import ImproperlyConfigured
@@ -72,7 +71,7 @@ class DeprecatedException(Exception):
 
 def get_ip_network(ip_range):
     import ipaddress
-    return ipaddress.ip_network(six.text_type(ip_range))
+    return ipaddress.ip_network(str(ip_range))
 
 
 def check_relate_settings(app_configs, **kwargs):
@@ -122,7 +121,7 @@ def check_relate_settings(app_configs, **kwargs):
                 id="email_connections.E001"
             ))
         else:
-            for label, c in six.iteritems(email_connections):
+            for label, c in email_connections.items():
                 if not isinstance(c, dict):
                     errors.append(RelateCriticalCheckMessage(
                         msg=(
@@ -178,7 +177,7 @@ def check_relate_settings(app_configs, **kwargs):
                     id="relate_facilities.E002")
                 )
             else:
-                for facility, conf in six.iteritems(facilities):
+                for facility, conf in facilities.items():
                     if not isinstance(conf, dict):
                         errors.append(RelateCriticalCheckMessage(
                             msg=(
@@ -383,7 +382,7 @@ def check_relate_settings(app_configs, **kwargs):
 
     from django.utils.itercompat import is_iterable
 
-    if (isinstance(languages, six.string_types)
+    if (isinstance(languages, str)
             or not is_iterable(languages)):
         errors.append(RelateCriticalCheckMessage(
             msg=(INSTANCE_ERROR_PATTERN
@@ -392,7 +391,7 @@ def check_relate_settings(app_configs, **kwargs):
             id="relate_languages.E001")
         )
     else:
-        if any(isinstance(choice, six.string_types)
+        if any(isinstance(choice, str)
                        or not is_iterable(choice) or len(choice) != 2
                for choice in languages):
             errors.append(RelateCriticalCheckMessage(
@@ -431,7 +430,7 @@ def check_relate_settings(app_configs, **kwargs):
                     id="relate_site_name.E002")
             )
         else:
-            if not isinstance(site_name, six.string_types):
+            if not isinstance(site_name, str):
                 errors.append(RelateCriticalCheckMessage(
                     msg=(INSTANCE_ERROR_PATTERN
                          % {"location": "%s/%s" % (RELATE_SITE_NAME,
@@ -457,7 +456,7 @@ def check_relate_settings(app_configs, **kwargs):
     relate_override_templates_dirs = getattr(settings,
                                              RELATE_OVERRIDE_TEMPLATES_DIRS, None)
     if relate_override_templates_dirs is not None:
-        if (isinstance(relate_override_templates_dirs, six.string_types)
+        if (isinstance(relate_override_templates_dirs, str)
                 or not is_iterable(relate_override_templates_dirs)):
             errors.append(RelateCriticalCheckMessage(
                 msg=(INSTANCE_ERROR_PATTERN
@@ -465,7 +464,7 @@ def check_relate_settings(app_configs, **kwargs):
                         "types": "an iterable (e.g., a list or tuple)."}),
                 id="relate_override_templates_dirs.E001"))
         else:
-            if any(not isinstance(directory, six.string_types)
+            if any(not isinstance(directory, str)
                    for directory in relate_override_templates_dirs):
                 errors.append(RelateCriticalCheckMessage(
                     msg=("'%s' must contain only string of paths."

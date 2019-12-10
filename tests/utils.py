@@ -1,5 +1,3 @@
-from __future__ import division
-
 import sys
 try:
     from importlib import reload
@@ -7,8 +5,7 @@ except ImportError:
     pass  # PY2
 import os
 from importlib import import_module
-import six
-from six import StringIO
+from io import StringIO
 from functools import wraps
 
 from django.urls import clear_url_caches
@@ -185,9 +182,6 @@ SKIP_NON_PSQL_REASON = "PostgreSQL specific SQL used"
 
 
 def may_run_expensive_tests():
-    if six.PY2:
-        return False
-
     # Allow run expensive tests locally, i.e., CI not detected.
     if not any([os.getenv(ci)
                 for ci in ["RL_CI_TEST", "GITLAB_CI", "APPVEYOR"]]):

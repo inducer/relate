@@ -24,7 +24,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from six.moves import intern
+from sys import intern
 
 from django.utils.translation import (
         ugettext_lazy as _,
@@ -383,7 +383,7 @@ def send_enrollment_decision(participation, approved, request=None):
         else:
             # This will happen when this method is triggered by
             # a model signal which doesn't contain a request object.
-            from six.moves.urllib.parse import urljoin
+            from urllib.parse import urljoin
             course_uri = urljoin(getattr(settings, "RELATE_BASE_URL"),
                                  course.get_absolute_url())
 

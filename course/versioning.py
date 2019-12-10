@@ -28,7 +28,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-import six
 import re
 
 from django.shortcuts import (  # noqa
@@ -105,7 +104,7 @@ def transfer_remote_refs(repo, remote_refs):
     valid_refs = []
 
     if remote_refs is not None:
-        for ref, sha in six.iteritems(remote_refs):
+        for ref, sha in remote_refs.items():
             if (ref.startswith(b"refs/heads/")
                     and not ref.startswith(b"refs/heads/origin/")):
                 new_ref = b"refs/remotes/origin/"+_remove_prefix(b"refs/heads/", ref)
@@ -121,7 +120,7 @@ def get_dulwich_client_and_remote_path_from_course(course):
     # type: (Course) -> Tuple[Union[dulwich.client.GitClient, dulwich.client.SSHGitClient], bytes]  # noqa
     ssh_kwargs = {}
     if course.ssh_private_key:
-        from six import StringIO
+        from io import StringIO
         key_file = StringIO(course.ssh_private_key)
         ssh_kwargs["pkey"] = paramiko.RSAKey.from_private_key(key_file)
 
@@ -486,12 +485,9 @@ class GitUpdateForm(StyledForm):
 
 
 def _get_commit_message_as_html(repo, commit_sha):
-    if six.PY2:
-        from cgi import escape
-    else:
-        from html import escape
+    from html import escape
 
-    if isinstance(commit_sha, six.text_type):
+    if isinstance(commit_sha, str):
         commit_sha = commit_sha.encode()
 
     try:

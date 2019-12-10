@@ -1,5 +1,3 @@
-from __future__ import division
-
 __copyright__ = "Copyright (C) 2018 Dong Zhuang"
 
 __license__ = """
@@ -22,9 +20,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-import six
+import io
 import unittest
-from unittest import skipIf
 from django.test import TestCase, override_settings, RequestFactory
 
 from docker.errors import APIError as DockerAPIError
@@ -526,14 +523,14 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
                 answer_data={"answer": ['c = 1 + 2\r']})
 
             if expected_msgs is not None:
-                if isinstance(expected_msgs, six.text_type):
+                if isinstance(expected_msgs, str):
                     expected_msgs = [expected_msgs]
                 for msg in expected_msgs:
                     self.assertResponseContextAnswerFeedbackContainsFeedback(
                         resp, msg, html=in_html)
 
             if not_expected_msgs is not None:
-                if isinstance(not_expected_msgs, six.text_type):
+                if isinstance(not_expected_msgs, str):
                     not_expected_msgs = [not_expected_msgs]
                 for msg in not_expected_msgs:
                     self.assertResponseContextAnswerFeedbackNotContainsFeedback(
@@ -1034,7 +1031,6 @@ class RequestPythonRunWithRetriesTest(unittest.TestCase):
                 self.assertEqual(mock_create_ctn.call_count, 1)
                 self.assertIn(my_image, mock_create_ctn.call_args[0])
 
-    @skipIf(six.PY2, "PY2 doesn't support subTest")
     def test_docker_container_ping_failure(self):
         with (
                 mock.patch("docker.client.Client.create_container")) as mock_create_ctn, (  # noqa
@@ -1042,7 +1038,7 @@ class RequestPythonRunWithRetriesTest(unittest.TestCase):
                 mock.patch("docker.client.Client.logs")) as mock_ctn_logs, (
                 mock.patch("docker.client.Client.remove_container")) as mock_remove_ctn, (  # noqa
                 mock.patch("docker.client.Client.inspect_container")) as mock_inpect_ctn, (  # noqa
-                mock.patch("six.moves.http_client.HTTPConnection.request")) as mock_ctn_request:  # noqa
+                mock.patch("http.client.HTTPConnection.request")) as mock_ctn_request:  # noqa
 
             mock_create_ctn.return_value = {"Id": "someid"}
             mock_ctn_start.side_effect = lambda x: None
@@ -1059,7 +1055,7 @@ class RequestPythonRunWithRetriesTest(unittest.TestCase):
                 }}
 
             with self.subTest(case="Docker ping timeout with BadStatusLine Error"):
-                from six.moves.http_client import BadStatusLine
+                from http.client import BadStatusLine
                 fake_bad_statusline_msg = "my custom bad status"
                 mock_ctn_request.side_effect = BadStatusLine(fake_bad_statusline_msg)
 
@@ -1181,7 +1177,6 @@ class RequestPythonRunWithRetriesTest(unittest.TestCase):
                     self.assertNotIn(DockerAPIError.__name__, res["traceback"])
                     self.assertNotIn(fake_response_content, res["traceback"])
 
-    @skipIf(six.PY2, "PY2 doesn't support subTest")
     def test_docker_container_ping_return_not_ok(self):
         with (
                 mock.patch("docker.client.Client.create_container")) as mock_create_ctn, (  # noqa
@@ -1189,8 +1184,8 @@ class RequestPythonRunWithRetriesTest(unittest.TestCase):
                 mock.patch("docker.client.Client.logs")) as mock_ctn_logs, (
                 mock.patch("docker.client.Client.remove_container")) as mock_remove_ctn, (  # noqa
                 mock.patch("docker.client.Client.inspect_container")) as mock_inpect_ctn, (  # noqa
-                mock.patch("six.moves.http_client.HTTPConnection.request")) as mock_ctn_request, (  # noqa
-                mock.patch("six.moves.http_client.HTTPConnection.getresponse")) as mock_ctn_get_response:  # noqa
+                mock.patch("http.client.HTTPConnection.request")) as mock_ctn_request, (  # noqa
+                mock.patch("http.client.HTTPConnection.getresponse")) as mock_ctn_get_response:  # noqa
 
             mock_create_ctn.return_value = {"Id": "someid"}
             mock_ctn_start.side_effect = lambda x: None
@@ -1211,7 +1206,7 @@ class RequestPythonRunWithRetriesTest(unittest.TestCase):
                 with self.subTest(
                         case="Docker ping response not OK"):
                     mock_ctn_request.side_effect = lambda x, y: None
-                    mock_ctn_get_response.return_value = six.BytesIO(b"NOT OK")
+                    mock_ctn_get_response.return_value = io.BytesIO(b"NOT OK")
 
                     res = request_run_with_retries(
                         run_req={}, run_timeout=0.1, retry_count=0)
@@ -1221,7 +1216,6 @@ class RequestPythonRunWithRetriesTest(unittest.TestCase):
                     self.assertEqual(res["exec_host"], fake_host_ip)
                     self.assertIn(InvalidPingResponse.__name__, res["traceback"])
 
-    @skipIf(six.PY2, "PY2 doesn't support subTest")
     def test_docker_container_runpy_timeout(self):
         with (
                 mock.patch("docker.client.Client.create_container")) as mock_create_ctn, (  # noqa
@@ -1229,8 +1223,8 @@ class RequestPythonRunWithRetriesTest(unittest.TestCase):
                 mock.patch("docker.client.Client.logs")) as mock_ctn_logs, (
                 mock.patch("docker.client.Client.remove_container")) as mock_remove_ctn, (  # noqa
                 mock.patch("docker.client.Client.inspect_container")) as mock_inpect_ctn, (  # noqa
-                mock.patch("six.moves.http_client.HTTPConnection.request")) as mock_ctn_request, (  # noqa
-                mock.patch("six.moves.http_client.HTTPConnection.getresponse")) as mock_ctn_get_response:  # noqa
+                mock.patch("http.client.HTTPConnection.request")) as mock_ctn_request, (  # noqa
+                mock.patch("http.client.HTTPConnection.getresponse")) as mock_ctn_get_response:  # noqa
 
             mock_create_ctn.return_value = {"Id": "someid"}
             mock_ctn_start.side_effect = lambda x: None
@@ -1251,14 +1245,13 @@ class RequestPythonRunWithRetriesTest(unittest.TestCase):
 
                 # first request is ping, second request raise socket.timeout
                 mock_ctn_request.side_effect = [None, sock_timeout]
-                mock_ctn_get_response.return_value = six.BytesIO(b"OK")
+                mock_ctn_get_response.return_value = io.BytesIO(b"OK")
 
                 res = request_run_with_retries(
                     run_req={}, run_timeout=0.1, retry_count=0)
                 self.assertEqual(res["result"], "timeout")
                 self.assertEqual(res["exec_host"], fake_host_ip)
 
-    @skipIf(six.PY2, "PY2 doesn't support subTest")
     def test_docker_container_runpy_retries_count(self):
         with (
                 mock.patch("course.page.code.request_run")) as mock_req_run, (  # noqa

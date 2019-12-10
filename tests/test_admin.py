@@ -22,8 +22,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-import six
-from unittest import skipIf, skipUnless
+from unittest import skipUnless
 
 from django.test import TestCase, RequestFactory
 from django.contrib.admin import site
@@ -123,12 +122,10 @@ class CourseAdminTestMixin(AdminTestMixin):
 @skipUnless(may_run_expensive_tests(), SKIP_EXPENSIVE_TESTS_REASON)
 class CourseAdminGenericTest(CourseAdminTestMixin, TestCase):
 
-    @skipIf(six.PY2, "PY2 doesn't support subTest")
     def test_course(self):
         # todo: make assertion
         self.navigate_admin_view_by_model(models.Course)
 
-    @skipIf(six.PY2, "PY2 doesn't support subTest")
     def test_event_filter_result(self):
         factories.EventFactory.create(
             course=self.course1, kind="course1_kind")
@@ -147,7 +144,6 @@ class CourseAdminGenericTest(CourseAdminTestMixin, TestCase):
                 "course2": course2_event_count
             })
 
-    @skipIf(six.PY2, "PY2 doesn't support subTest")
     def test_participation_filter_result(self):
         self.navigate_admin_view_by_model(models.Participation)
         self.list_filter_result(
@@ -160,33 +156,27 @@ class CourseAdminGenericTest(CourseAdminTestMixin, TestCase):
                     models.Participation.objects.filter(course=self.course2).count(),
             })
 
-    @skipIf(six.PY2, "PY2 doesn't support subTest")
     def test_participation_tag(self):
         self.navigate_admin_view_by_model(
             models.ParticipationTag)
 
-    @skipIf(six.PY2, "PY2 doesn't support subTest")
     def test_participation_role(self):
         self.navigate_admin_view_by_model(
             models.ParticipationRole)
 
-    @skipIf(six.PY2, "PY2 doesn't support subTest")
     def test_flow_rule_exception(self):
         factories.FlowRuleExceptionFactory(
             participation=self.course2_student_participation)
         self.navigate_admin_view_by_model(models.FlowRuleException)
 
-    @skipIf(six.PY2, "PY2 doesn't support subTest")
     def test_instant_message(self):
         factories.InstantMessageFactory(
             participation=self.course1_student_participation)
         self.navigate_admin_view_by_model(models.InstantMessage)
 
-    @skipIf(six.PY2, "PY2 doesn't support subTest")
     def test_instant_flow_request(self):
         self.navigate_admin_view_by_model(models.InstantFlowRequest)
 
-    @skipIf(six.PY2, "PY2 doesn't support subTest")
     def test_exam(self):
         factories.ExamFactory(course=self.course1)
         self.navigate_admin_view_by_model(models.Exam)
@@ -241,7 +231,6 @@ class CourseAdminSessionRelatedMixin(CourseAdminTestMixin):
 
 @skipUnless(may_run_expensive_tests(), SKIP_EXPENSIVE_TESTS_REASON)
 class CourseAdminSessionRelatedTest(CourseAdminSessionRelatedMixin, TestCase):
-    @skipIf(six.PY2, "PY2 doesn't support subTest")
     def test_flowsession_filter_result(self):
         self.navigate_admin_view_by_model(models.FlowSession)
         self.list_filter_result(
@@ -252,11 +241,9 @@ class CourseAdminSessionRelatedTest(CourseAdminSessionRelatedMixin, TestCase):
                 "course2": self.course2_session_count
             })
 
-    @skipIf(six.PY2, "PY2 doesn't support subTest")
     def test_grading_opportunity(self):
         self.navigate_admin_view_by_model(models.GradingOpportunity)
 
-    @skipIf(six.PY2, "PY2 doesn't support subTest")
     def test_flowpagevisit_filter_result(self):
         self.navigate_admin_view_by_model(models.FlowPageVisit)
         self.list_filter_result(
@@ -267,7 +254,6 @@ class CourseAdminSessionRelatedTest(CourseAdminSessionRelatedMixin, TestCase):
                 "course2": self.course2_visits_count
             })
 
-    @skipIf(six.PY2, "PY2 doesn't support subTest")
     def test_flowpagevisit_flow_id_filter_result(self):
         modeladmin = admin.FlowPageVisitAdmin(models.FlowPageVisit, site)
 
@@ -475,7 +461,6 @@ class ParticipationFormTest(CourseAdminTestMixin, TestCase):
 
 @skipUnless(may_run_expensive_tests(), SKIP_EXPENSIVE_TESTS_REASON)
 class ParticipationPreapprovalAdminTest(CourseAdminTestMixin, TestCase):
-    @skipIf(six.PY2, "PY2 doesn't support subTest")
     def test_participation_preapproval(self):
         factories.ParticipationPreapprovalFactory(course=self.course1)
         self.navigate_admin_view_by_model(models.ParticipationPreapproval)
@@ -495,7 +480,6 @@ class ParticipationPreapprovalAdminTest(CourseAdminTestMixin, TestCase):
 
 @skipUnless(may_run_expensive_tests(), SKIP_EXPENSIVE_TESTS_REASON)
 class GradeChangeAdminTest(CourseAdminSessionRelatedMixin, TestCase):
-    @skipIf(six.PY2, "PY2 doesn't support subTest")
     def test_grade_change(self):
         gopp = factories.GradingOpportunityFactory(course=self.course2)
 
@@ -534,7 +518,6 @@ class ExamTicketAdminTest(CourseAdminTestMixin, TestCase):
     def setUp(self):
         self.exam = factories.ExamFactory(course=self.course1)
 
-    @skipIf(six.PY2, "PY2 doesn't support subTest")
     def test_navigate(self):
         factories.ExamTicketFactory(
             exam=self.exam,

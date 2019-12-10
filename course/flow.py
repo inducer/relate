@@ -24,7 +24,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from django.utils import six
 from django.utils.translation import (
         ugettext, ugettext_lazy as _)
 from django.contrib.auth.decorators import login_required
@@ -38,7 +37,7 @@ from django.core.exceptions import (
 from django.db import transaction
 from django.db.models import query  # noqa
 from django.utils.safestring import mark_safe
-mark_safe_lazy = lazy(mark_safe, six.text_type)
+mark_safe_lazy = lazy(mark_safe, str)
 from django import forms
 from django import http
 from django.conf import settings
@@ -2338,7 +2337,7 @@ def send_email_about_flow_page(pctx, flow_session_id, page_ordinal):
                 }
     )
 
-    from six.moves.urllib.parse import urljoin
+    from urllib.parse import urljoin
 
     review_uri = urljoin(getattr(settings, "RELATE_BASE_URL"),
                          review_url)

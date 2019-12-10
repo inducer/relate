@@ -24,7 +24,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-import six
 import re
 import unittest
 import datetime
@@ -311,8 +310,7 @@ class GetCurrentLanguageJsLangNameTest(TestCase):
         msg = ("'get_current_js_lang_name' requires 'as variable' "
                "(got [u'get_current_js_lang_name'])")
 
-        if six.PY3:
-            msg = msg.replace("u'", "'")
+        msg = msg.replace("u'", "'")
 
         with self.assertRaisesMessage(TemplateSyntaxError, expected_message=msg):
             self.engines["django"].from_string(
@@ -321,8 +319,7 @@ class GetCurrentLanguageJsLangNameTest(TestCase):
         msg = ("'get_current_js_lang_name' requires 'as variable' "
                "(got [u'get_current_js_lang_name', u'AS', u'LANG'])")
 
-        if six.PY3:
-            msg = msg.replace("u'", "'")
+        msg = msg.replace("u'", "'")
 
         with self.assertRaisesMessage(TemplateSyntaxError, expected_message=msg):
             self.engines["django"].from_string(

@@ -16,7 +16,6 @@ function pywhichpkg()
 }
 
 pyzzer.pyz course relate -r \
-  $(pywhichmod six) \
   $(pywhichpkg markdown) \
   $(pywhichpkg django) \
   $(pywhichpkg yaml) \

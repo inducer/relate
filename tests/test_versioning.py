@@ -22,7 +22,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-import six
 from copy import deepcopy
 import unittest
 from django.test import TestCase, RequestFactory
@@ -324,11 +323,7 @@ class ParamikoSSHVendorTest(unittest.TestCase):
 
         self.assertIn(expected_error_msg, str(cm.exception))
 
-        if six.PY2:
-            exception = IOError
-        else:
-            exception = FileNotFoundError
-        with self.assertRaises(exception) as cm:
+        with self.assertRaises(FileNotFoundError) as cm:
             self.ssh_vendor.run_command(
                 host="github.com",
                 command="git-upload-pack '/bar/baz'",
@@ -716,7 +711,6 @@ class RunCourseUpdateCommandTest(MockAddMessageMixing, unittest.TestCase):
         for course in Course.objects.all():
             course.delete()
 
-    @unittest.skipIf(six.PY2, "PY2 doesn't support subTest")
     def test_is_ancestor_commit_checked(self):
         may_update = True
         prevent_discarding_revisions = True
@@ -769,7 +763,6 @@ class RunCourseUpdateCommandTest(MockAddMessageMixing, unittest.TestCase):
                         "'is_ancestor_commit' is not expected for command '%s' to "
                         "be called while called" % command)
 
-    @unittest.skipIf(six.PY2, "PY2 doesn't support subTest")
     def test_is_content_validated(self):
         may_update = True
 
@@ -888,7 +881,6 @@ class RunCourseUpdateCommandTest(MockAddMessageMixing, unittest.TestCase):
         )
         self.assertIsNone(self.participation.preview_git_commit_sha)
 
-    @unittest.skipIf(six.PY2, "PY2 doesn't support subTest")
     def test_fetch_not_prevent_discarding_revisions(self):
         self.mock_client.fetch.return_value = {
             b"HEAD": self.default_lastest_sha.encode()}
@@ -1034,7 +1026,6 @@ class RunCourseUpdateCommandTest(MockAddMessageMixing, unittest.TestCase):
             self.participation.preview_git_commit_sha, self.default_preview_sha)
         self.assertEqual(self.course.active_git_commit_sha, self.default_old_sha)
 
-    @unittest.skipIf(six.PY2, "PY2 doesn't support subTest")
     def test_fetch_not_may_update(self):
         self.mock_client.fetch.return_value = {
             b"HEAD": self.default_lastest_sha.encode()}
