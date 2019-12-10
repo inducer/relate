@@ -28,7 +28,9 @@ pyyaml
 # dulwich
 dulwich>=0.19
 ecdsa
-paramiko
+
+# FIXME: 2.7.1 gives bogus 'incorrect padding' error on PEM parsing
+paramiko<2.7
 
 # A date picker widget
 # https://github.com/tutorcruncher/django-bootstrap3-datetimepicker
