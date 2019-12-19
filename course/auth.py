@@ -786,8 +786,8 @@ def sign_in_by_email(request):
 
             if created:
                 user.set_unusable_password()
+                user.status = user_status.unconfirmed
 
-            user.status = user_status.unconfirmed,
             user.sign_in_key = make_sign_in_key(user)
             user.save()
 
