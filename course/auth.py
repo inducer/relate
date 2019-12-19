@@ -786,8 +786,8 @@ def sign_in_by_email(request):
 
             if created:
                 user.set_unusable_password()
+                user.status = user_status.unconfirmed
 
-            user.status = user_status.unconfirmed,
             user.sign_in_key = make_sign_in_key(user)
             user.save()
 
@@ -807,7 +807,7 @@ def sign_in_by_email(request):
                     message,
                     getattr(settings, "NO_REPLY_EMAIL_FROM",
                             settings.ROBOT_EMAIL_FROM),
-                    [email])
+                    [user.email])
 
             from relate.utils import get_outbound_mail_connection
             msg.connection = (
