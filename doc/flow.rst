@@ -302,7 +302,8 @@ Rules for starting new sessions
 
     .. attribute:: if_has_role
 
-        (Optional) A list of a subset of ``[unenrolled, ta, student, instructor]``.
+        (Optional) A list of a subset of the roles defined in the course, by
+        default ``unenrolled``, ``ta``, ``student``, ``instructor``.
 
     .. attribute:: if_has_participation_tags_any
 
