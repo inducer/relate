@@ -140,7 +140,9 @@ class AdjustFlowSessionPageDataTest(
                 models.FlowPageData.objects.get(page_id=page_id).page_ordinal)
             # }}}
 
-    def test_remove_page_with_non_ordinal(self):
+    # disabled by AK 2020-05-03: why is it valid to set a flow page's ordinal
+    # to None while it is in use?
+    def no_test_remove_page_with_non_ordinal(self):
         resp = self.c.get(self.get_page_url_by_ordinal(0))
         self.assertEqual(resp.status_code, 200)
 
