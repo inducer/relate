@@ -598,22 +598,28 @@ def get_interaction_kind(
         ):
     # type: (...) -> Text
 
-    ikind = flow_session_interaction_kind.noninteractive
+    has_interactive = False
+    has_gradable = False
 
     for i, page_data in enumerate(all_page_data):
         assert i == page_data.page_ordinal
 
         page = instantiate_flow_page_with_ctx(fctx, page_data)
         if page.expects_answer():
+            has_interactive = True
             if page.is_answer_gradable():
-                if flow_generates_grade:
-                    return flow_session_interaction_kind.permanent_grade
-                else:
-                    return flow_session_interaction_kind.practice_grade
-            else:
-                return flow_session_interaction_kind.ungraded
+                has_gradable = True
 
-    return ikind
+    if has_interactive:
+        if has_gradable:
+            if flow_generates_grade:
+                return flow_session_interaction_kind.permanent_grade
+            else:
+                return flow_session_interaction_kind.practice_grade
+        else:
+            return flow_session_interaction_kind.ungraded
+    else:
+        return flow_session_interaction_kind.noninteractive
 
 
 def get_session_answered_page_data(
