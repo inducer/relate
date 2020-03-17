@@ -69,7 +69,7 @@ jobs:
                 PY_EXE=python3 RL_CI_TEST=test bash ./run-tests-for-ci.sh
 
     pytest_expensive:
-        name: Pytest on Py${{ matrix.python-version }}
+        name: Pytest Expensive on Py${{ matrix.python-version }}
         runs-on: ubuntu-latest
         strategy:
             matrix:
