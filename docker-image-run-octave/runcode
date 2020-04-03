@@ -88,7 +88,7 @@ class RunRequestHandler(BaseHTTPRequestHandler):
             clength = int(self.headers['content-length'])
             recv_data = self.rfile.read(clength)
 
-            print("RUNPY RECEIVED %d bytes" % len(recv_data),
+            print("RUNOCTAVE RECEIVED %d bytes" % len(recv_data),
                     file=prev_stderr)
             run_req = Struct(json.loads(recv_data.decode("utf-8")))
             print("REQUEST: %r" % run_req, file=prev_stderr)

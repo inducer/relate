@@ -108,8 +108,8 @@ def request_run(run_req, run_timeout, image=None):
     command_path = '/opt/runcode/runcode'
     user = 'runcode'
 
-    # The following is necessary because tests don't arise from a CodeQuestion
-    # object, so we provide a fallback.
+    # The following is necessary because some tests don't arise from a
+    # CodeQuestion object, so we provide a fallback.
     debug_print('Image is %s.' % repr(image))
     if image is None:
         image = settings.RELATE_DOCKER_RUNPY_IMAGE
@@ -228,7 +228,7 @@ def request_run(run_req, run_timeout, image=None):
             start_time = time()
 
             debug_print("BEFPOST")
-            connection.request('POST', '/run-python', json_run_req, headers)
+            connection.request('POST', '/run-code', json_run_req, headers)
             debug_print("AFTPOST")
 
             http_response = connection.getresponse()
@@ -581,6 +581,8 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
         return {"answer": form.cleaned_data["answer"].strip()}
 
     def get_test_code(self):
+        # Note to developers:  this function should be replaced in daughter
+        # classes as it defaults to Python.  It is required by grade() though.
         test_code = getattr(self.page_desc, "test_code", None)
         if test_code is None:
             return test_code
@@ -589,7 +591,7 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
         if correct_code is None:
             correct_code = ""
 
-        from .code_run_backend import substitute_correct_code_into_test_code
+        from .code_run_backend_python import substitute_correct_code_into_test_code
         return substitute_correct_code_into_test_code(test_code, correct_code)
 
     def grade(self, page_context, page_data, answer_data, grade_data):
@@ -1171,6 +1173,18 @@ class PythonCodeQuestion(CodeQuestion):
         super(PythonCodeQuestion, self).__init__(vctx, location, page_desc,
         language_mode)
 
+    def get_test_code(self):
+        test_code = getattr(self.page_desc, "test_code", None)
+        if test_code is None:
+            return test_code
+
+        correct_code = getattr(self.page_desc, "correct_code", None)
+        if correct_code is None:
+            correct_code = ""
+
+        from .code_run_backend_python import substitute_correct_code_into_test_code
+        return substitute_correct_code_into_test_code(test_code, correct_code)
+
 # }}}
 
 
@@ -1373,6 +1387,216 @@ class PythonCodeQuestionWithHumanTextFeedback(
                 correctness=correctness,
                 feedback=feedback,
                 bulk_feedback=code_feedback.bulk_feedback)
+
+# }}}
+
+
+# {{{ octave code question
+
+class OctaveCodeQuestion(CodeQuestion):
+    """
+    An auto-graded question allowing an answer consisting of Octave code.
+    All user code as well as all code specified as part of the problem
+    is in Octave 4.2+.
+
+    If you are not including the
+    :attr:`course.constants.flow_permission.change_answer`
+    permission for your entire flow, you likely want to
+    include this snippet in your question definition:
+
+    .. code-block:: yaml
+
+        access_rules:
+            add_permissions:
+                - change_answer
+
+    This will allow participants multiple attempts at getting
+    the right answer.
+
+    .. attribute:: id
+
+        |id-page-attr|
+
+    .. attribute:: type
+
+        ``OctaveCodeQuestion``
+
+    .. attribute:: is_optional_page
+
+        |is-optional-page-attr|
+
+    .. attribute:: access_rules
+
+        |access-rules-page-attr|
+
+    .. attribute:: title
+
+        |title-page-attr|
+
+    .. attribute:: value
+
+        |value-page-attr|
+
+    .. attribute:: prompt
+
+        The page's prompt, written in :ref:`markup`.
+
+    .. attribute:: timeout
+
+        A number, giving the number of seconds for which setup code,
+        the given answer code, and the test code (combined) will be
+        allowed to run.
+
+    .. attribute:: setup_code
+
+        Optional.
+        Octave code to prepare the environment for the participants
+        answer.
+
+    .. attribute:: show_setup_code
+
+        Optional. ``True`` or ``False``. If true, the :attr:`setup_code`
+        will be shown to the participant.
+
+    .. attribute:: names_for_user
+
+        Optional.
+        Symbols defined at the end of the :attr:`setup_code` that will be
+        made available to the participant's code.
+
+        A deep copy (using the standard library function :func:`copy.deepcopy`)
+        of these values is made, to prevent the user from modifying trusted
+        state of the grading code.
+
+    .. attribute:: names_from_user
+
+        Optional.
+        Symbols that the participant's code is expected to define.
+        These will be made available to the :attr:`test_code`.
+        Some remapping of types will be made between Octave and Python classes.
+
+    .. attribute:: test_code
+
+        Optional.
+        Code that will be run to determine the correctness of a
+        student-provided solution. Will have access to variables in
+        :attr:`names_from_user` (which will be *None*) if not provided. Should
+        never raise an exception.
+
+        This may contain the marker "###CORRECT_CODE###", which will
+        be replaced with the contents of :attr:`correct_code`, with
+        each line indented to the same depth as where the marker
+        is found. The line with this marker is only allowed to have
+        white space and the marker on it.
+
+    .. attribute:: show_test_code
+
+        Optional. ``True`` or ``False``. If true, the :attr:`test_code`
+        will be shown to the participant.
+
+    .. attribute:: correct_code_explanation
+
+        Optional.
+        Code that is revealed when answers are visible
+        (see :ref:`flow-permissions`). This is shown before
+        :attr:`correct_code` as an explanation.
+
+    .. attribute:: correct_code
+
+        Optional.
+        Code that is revealed when answers are visible
+        (see :ref:`flow-permissions`).
+
+    .. attribute:: initial_code
+
+        Optional.
+        Code present in the code input field when the participant first starts
+        working on their solution.
+
+    .. attribute:: data_files
+
+        Optional.
+        A list of file names in the :ref:`git-repo` whose contents will be made
+        available to :attr:`setup_code` and :attr:`test_code` through the
+        ``data_files`` dictionary. (see below)
+
+    .. attribute:: single_submission
+
+        Optional, a Boolean. If the question does not allow multiple submissions
+        based on its :attr:`access_rules` (not the ones of the flow), a warning
+        is shown. Setting this attribute to True will silence the warning.
+
+    The following symbols are available in :attr:`setup_code` and :attr:`test_code`:
+
+    * ``GradingComplete``: An exception class that can be raised to indicated
+      that the grading code has concluded.
+
+    * ``feedback``: A class instance with the following interface::
+
+          feedback.set_points(0.5) # 0<=points<=1 (usually)
+          feedback.add_feedback("This was wrong")
+
+          # combines the above two and raises GradingComplete
+          feedback.finish(0, "This was wrong")
+
+          feedback.check_numpy_array_sanity(name, num_axes, data)
+
+          feedback.check_numpy_array_features(name, ref, data, report_failure=True)
+
+          feedback.check_numpy_array_allclose(name, ref, data,
+                  accuracy_critical=True, rtol=1e-5, atol=1e-8,
+                  report_success=True, report_failure=True)
+              # If report_failure is True, this function will only return
+              # if *data* passes the tests. It will return *True* in this
+              # case.
+              #
+              # If report_failure is False, this function will always return,
+              # and the return value will indicate whether *data* passed the
+              # accuracy/shape/kind checks.
+
+          feedback.check_list(name, ref, data, entry_type=None)
+
+          feedback.check_scalar(name, ref, data, accuracy_critical=True,
+              rtol=1e-5, atol=1e-8, report_success=True, report_failure=True)
+          # returns True if accurate
+
+          feedback.call_user(f, *args, **kwargs)
+          # Calls a user-supplied function and prints an appropriate
+          # feedback message in case of failure.
+
+    * ``data_files``: A dictionary mapping file names from :attr:`data_files`
+      to :class:`bytes` instances with that file's contents.
+
+    * ``user_code``: The user code being tested, as a string.
+    """
+
+    @property
+    def language_mode(self):
+        return 'octave'
+
+    @property
+    def container_image(self):
+        return settings.RELATE_DOCKER_RUNOCTAVE_IMAGE
+
+    @property
+    def suffix(self):
+        return '.m'
+
+    def __init__(self, vctx, location, page_desc, language_mode='octave'):
+        super(OctaveCodeQuestion, self).__init__(vctx, location,
+                                                 page_desc, language_mode)
+
+    def get_test_code(self):
+        test_code = getattr(self.page_desc, "test_code", None)
+        if test_code is None:
+            return test_code
+
+        correct_code = getattr(self.page_desc, "correct_code", None)
+        if correct_code is None:
+            correct_code = ""
+
+        from .code_run_backend_octave import substitute_correct_code_into_test_code
+        return substitute_correct_code_into_test_code(test_code, correct_code)
 
 # }}}
 

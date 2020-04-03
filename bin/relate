@@ -52,7 +52,8 @@ def expand_yaml(yml_file, repo_root):
 def test_code_question(page_desc, repo_root):
     if page_desc.type not in [
             "PythonCodeQuestion",
-            "PythonCodeQuestionWithHumanTextFeedback"]:
+            "PythonCodeQuestionWithHumanTextFeedback",
+            "OctaveCodeQuestion"]:
         return
 
     print(75*"-")
@@ -64,11 +65,24 @@ def test_code_question(page_desc, repo_root):
 
         correct_code = getattr(page_desc, "correct_code", "")
 
-        from course.page.code_run_backend import \
-                substitute_correct_code_into_test_code
+        if page_desc.type in [
+                "PythonCodeQuestion",
+                "PythonCodeQuestionWithHumanTextFeedback" ]:
+            from course.page.code_run_backend_python import \
+                    substitute_correct_code_into_test_code
+        elif page_desc.type in [ 
+                "OctaveCodeQuestion" ]:
+            from course.page.code_run_backend_octave import \
+                    substitute_correct_code_into_test_code
         test_code = substitute_correct_code_into_test_code(test_code, correct_code)
 
-    from course.page.code_run_backend import run_code, package_exception
+    if page_desc.type in [
+            "PythonCodeQuestion",
+            "PythonCodeQuestionWithHumanTextFeedback" ]:
+        from course.page.code_run_backend_python import run_code, package_exception
+    elif page_desc.type in [
+            "OctaveCodeQuestion" ]:
+        from course.page.code_run_backend_octave import run_code, package_exception
 
     data_files = {}
 

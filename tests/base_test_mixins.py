@@ -2506,6 +2506,65 @@ class SubprocessRunpyContainerMixin(object):
             cls.faked_container_process.kill()
 
 
+class SubprocessRunOctaveContainerMixin(object):
+    """
+    This mixin is used to fake a runoctave container, only needed when
+    the TestCase include test(s) for code questions
+    """
+    @classmethod
+    def setUpClass(cls):  # noqa
+        if not may_run_expensive_tests():
+            from unittest import SkipTest
+            raise SkipTest(SKIP_EXPENSIVE_TESTS_REASON)
+
+        super(SubprocessRunOctaveContainerMixin, cls).setUpClass()
+
+        octave_executable = os.getenv("OCTAVE_EXECUTABLE")
+
+        if not octave_executable:
+            import subprocess
+            ps = subprocess.run(["which", "octave-cli"], capture_output=True)
+            octave_executable = ps.stdout.strip()
+
+        import subprocess
+        args = [octave_executable,
+                os.path.abspath(
+                    os.path.join(
+                        os.path.dirname(__file__), os.pardir,
+                        "docker-image-run-octave", "runcode")),
+                ]
+        cls.faked_container_process = subprocess.Popen(
+            args,
+            stdout=subprocess.DEVNULL,
+
+            # because runpy prints to stderr
+            stderr=subprocess.DEVNULL
+        )
+
+    def setUp(self):
+        super(SubprocessRunOctaveContainerMixin, self).setUp()
+        self.faked_container_patch = mock.patch(
+            "course.page.code.SPAWN_CONTAINERS", False)
+        self.faked_container_patch.start()
+        self.addCleanup(self.faked_container_patch.stop)
+
+    @classmethod
+    def tearDownClass(cls):  # noqa
+        super(SubprocessRunOctaveContainerMixin, cls).tearDownClass()
+
+        from course.page.code import SPAWN_CONTAINERS
+        # Make sure SPAWN_CONTAINERS is reset to True
+        assert SPAWN_CONTAINERS
+        if sys.platform.startswith("win"):
+            # Without these lines, tests on Appveyor hanged when all tests
+            # finished.
+            # However, On nix platforms, these lines resulted in test
+            # failure when there were more than one TestCases which were using
+            # this mixin. So we don't kill the subprocess, and it won't bring
+            # bad side effects to remainder tests.
+            cls.faked_container_process.kill()
+
+
 def improperly_configured_cache_patch():
     # can be used as context manager or decorator
     built_in_import_path = "builtins.__import__"
