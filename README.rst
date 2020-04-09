@@ -6,9 +6,9 @@ Relate is an Environment for Learning And TEaching
 .. image:: https://gitlab.tiker.net/inducer/relate/badges/master/pipeline.svg
     :alt: Gitlab Build Status
     :target: https://gitlab.tiker.net/inducer/relate/commits/master
-.. image:: https://github.com/inducer/relate/workflows/CI/badge.svg?branch=master
+.. image:: https://github.com/inducer/relate/workflows/CI/badge.svg?branch=master&event=push
     :alt: Github Build Status
-    :target: https://github.com/inducer/relate/actions?query=branch%3Amaster+workflow%3ACI
+    :target: https://github.com/inducer/relate/actions?query=branch%3Amaster+workflow%3ACI+event%3Apush
 .. image:: https://codecov.io/gh/inducer/relate/branch/master/graph/badge.svg
     :alt: Codecov Coverage Status
     :target: https://codecov.io/gh/inducer/relate/commits
