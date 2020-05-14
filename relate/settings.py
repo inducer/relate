@@ -265,7 +265,8 @@ CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TRACK_STARTED = True
 
 if "CELERY_RESULT_BACKEND" not in globals():
-    if ("CACHES" in globals()
+    if (
+            "CACHES" in globals()
             and "LocMem" not in CACHES["default"]["BACKEND"]  # type:ignore # noqa
             and "Dummy" not in CACHES["default"]["BACKEND"]  # type:ignore # noqa
             ):

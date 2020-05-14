@@ -143,14 +143,14 @@ def substitute_correct_code_into_test_code(test_code, correct_code):
     CORRECT_CODE_TAG = re.compile(r"^(\s*)###CORRECT_CODE###\s*$")  # noqa
 
     new_test_code_lines = []
-    for l in test_code.split("\n"):
-        match = CORRECT_CODE_TAG.match(l)
+    for line in test_code.split("\n"):
+        match = CORRECT_CODE_TAG.match(line)
         if match is not None:
             prefix = match.group(1)
             for cc_l in correct_code.split("\n"):
                 new_test_code_lines.append(prefix+cc_l)
         else:
-            new_test_code_lines.append(l)
+            new_test_code_lines.append(line)
 
     return "\n".join(new_test_code_lines)
 

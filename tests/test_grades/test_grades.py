@@ -605,7 +605,7 @@ class GetGradeTableTest(GradesTestMixin, TestCase):
         from random import shuffle
 
         while True:
-            gchange_kwargs_lists = [l for l in gchange_kwargs_lists if len(l)]
+            gchange_kwargs_lists = [lst for lst in gchange_kwargs_lists if len(lst)]
             if not gchange_kwargs_lists:
                 break
 
