@@ -284,7 +284,7 @@ def grade_flow_page(pctx, flow_session_id, page_ordinal):
                 from course.utils import LanguageOverride
                 with LanguageOverride(pctx.course):
                     feedback = fpctx.page.grade(
-                            fpctx.page_context, fpctx.page_data,
+                            fpctx.page_context, fpctx.page_data.data,
                             answer_data, grade_data)
 
                 if feedback is not None:
