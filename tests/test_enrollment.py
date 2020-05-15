@@ -104,8 +104,8 @@ VALIDATION_ERROR_USER_NOT_CONFIRMED = (
 # }}}
 
 
-def get_not_empty_count_from_list(l):
-    return len([data for data in l if data.strip()])
+def get_not_empty_count_from_list(lst):
+    return len([data for data in lst if data.strip()])
 
 
 class EnrollmentTestMixin(MockAddMessageMixing, CoursesTestMixinBase):

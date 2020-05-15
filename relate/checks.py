@@ -367,11 +367,10 @@ def check_relate_settings(app_configs, **kwargs):
                     msg="%(location)s is set to False "
                         "(with 'markdown.extensions.codehilite' enabled'), "
                         "noticing that some pages with code fence markdown "
-                        "might get crashed"
+                        "might crash"
                         % {"location":
                                RELATE_DISABLE_CODEHILITE_MARKDOWN_EXTENSION,
-                           "value":
-                               repr(relate_disable_codehilite_markdown_extension)},
+                           },
                     id="relate_disable_codehilite_markdown_extension.W002"))
 
     # }}}
