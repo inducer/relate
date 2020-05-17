@@ -111,6 +111,8 @@ typing>=3.6.1
 
 # For rendering ipython notebook
 nbconvert>=5.2.1
+traitlets
+nbformat
 IPython
 
 # vim: foldmethod=marker

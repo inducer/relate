@@ -134,6 +134,23 @@ def markup_to_html(
             reverse_func=reverse_func)
 
 
+def get_ordinal_from_page_context(page_context):
+    # type: (PageContext) -> Optional[int]
+    if page_context.in_sandbox:
+        return None
+
+    if not page_context.page_uri:
+        return None
+
+    from urllib.parse import urlparse
+    from django.urls import resolve
+
+    relative_url = urlparse(page_context.page_uri).path
+    func, args, kwargs = resolve(relative_url)
+    assert kwargs["page_ordinal"]
+    return int(kwargs["page_ordinal"])
+
+
 # {{{ answer feedback type
 
 
