@@ -51,6 +51,7 @@ from tests.base_test_mixins import (
     CoursesTestMixinBase,
     SingleCoursePageTestMixin, SubprocessRunpyContainerMixin,
     SingleCourseTestMixin,  MockAddMessageMixing,
+    SingleCourseQuizPageTestMixin,
 )
 from tests.utils import mock
 from tests import factories
@@ -1980,5 +1981,29 @@ class GetFacilitiesConfigTest(unittest.TestCase):
 
         with override_settings(RELATE_FACILITIES=None):
             self.assertIsNone(utils.get_facilities_config())
+
+
+class FlowPageContextTest(SingleCourseQuizPageTestMixin, TestCase):
+
+    flow_id = QUIZ_FLOW_ID
+
+    def test_flow_page_context_uri_without_requests(self):
+        with self.temporarily_switch_to_user(self.student_participation.user):
+            self.start_flow(self.flow_id)
+            from course.models import FlowSession
+            flow_session = FlowSession.objects.first()
+
+            from course.utils import FlowPageContext
+            with self.get_course_page_context(
+                    self.student_participation.user) as pctx:
+                fpctx = FlowPageContext(
+                    repo=pctx.repo,
+                    course=self.course,
+                    flow_id=self.flow_id,
+                    page_ordinal=1,
+                    participation=self.student_participation,
+                    flow_session=flow_session
+                )
+        self.assertIsNone(fpctx.page_context.page_uri)
 
 # vim: foldmethod=marker
