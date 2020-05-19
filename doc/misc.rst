@@ -1,7 +1,7 @@
 Installation
 ============
 
-RELATE requires Python 3.
+RELATE requires Python 3.6+.
 
 Install [Node.js](https://nodejs.org) and NPM, or [Yarn](https://yarnpkg.com)
 (alternative package manager) at your option.
