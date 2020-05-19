@@ -22,6 +22,7 @@ def get_upload_file_path(file_name, fixture_path=FIXTURE_PATH):
 
 TEST_TEXT_FILE_PATH = get_upload_file_path("test_file.txt")
 TEST_PDF_FILE_PATH = get_upload_file_path("test_file.pdf")
+TEST_JUPYTER_NOTEBOOK_FILE_PATH = get_upload_file_path("test_notebook.ipynb")
 
 TEST_HGTEXT_MARKDOWN_ANSWER = u"""
 type: ChoiceQuestion
@@ -129,6 +130,9 @@ TEST_PAGE_TUPLE = (
     PageTuple("proof", "quiz_tail", True, False, False,
               {"uploaded_file": TEST_PDF_FILE_PATH},
               {"grade_percent": "100", "released": "on"}, 5, ".pdf"),
+    PageTuple("jupyter_upload", "quiz_tail", True, False, False,
+              {"uploaded_file": TEST_JUPYTER_NOTEBOOK_FILE_PATH},
+              {"grade_percent": "100", "released": "on"}, 5, ".ipynb"),
     PageTuple("eigvec", "quiz_tail", False, True, False, {"answer": 'matrix'}, {},
               2, ".txt"),
     PageTuple("lsq", "quiz_tail", False, True, False, {"choice": ['2']}, {}, 1,

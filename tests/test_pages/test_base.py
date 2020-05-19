@@ -20,23 +20,25 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from django.test import TestCase
+from django.test import TestCase, RequestFactory
 import unittest
 
 from relate.utils import dict_to_struct
 
 from course.page.base import (
     create_default_point_scale, HumanTextFeedbackForm, get_editor_interaction_mode,
-    PageBehavior, PageBase
+    PageBehavior, PageBase, PageContext, get_ordinal_from_page_context
 )
 
-from tests.base_test_mixins import SingleCourseQuizPageTestMixin
+from tests.base_test_mixins import (
+    SingleCourseQuizPageTestMixin, SingleCoursePageTestMixin)
 from tests.test_sandbox import (
     SingleCoursePageSandboxTestBaseMixin
 )
-from tests.constants import PAGE_ERRORS
+from tests.constants import PAGE_ERRORS, QUIZ_FLOW_ID
 from tests.test_grading import SingleCourseQuizPageGradeInterfaceTestMixin
 from tests.utils import mock
+from tests import factories
 
 SANDBOX_TITLE_PATTERN = "<title>[SB] %s - RELATE </title>"
 
@@ -909,5 +911,68 @@ class PageBehaviorTest(unittest.TestCase):
                 "PageBehavior object expected to be False "
                 "when may_change_answer is True for backward "
                 "compatibility")
+
+
+class GetOrdinalFromPageContextTest(SingleCoursePageTestMixin, TestCase):
+    # Testing course.page.base.get_ordinal_from_page_context
+
+    flow_id = QUIZ_FLOW_ID
+
+    def setUp(self):
+        super(GetOrdinalFromPageContextTest, self).setUp()
+        self.flow_session = factories.FlowSessionFactory(
+            course=self.course,
+            participation=self.student_participation,
+            page_count=10)
+
+        rf = RequestFactory()
+        request = rf.get(self.get_course_page_url())
+        request.user = self.student_participation.user
+
+        from course.utils import CoursePageContext
+        pctx = CoursePageContext(request, self.course.identifier)
+        self.repo = pctx.repo
+
+    def test_in_sandbox(self):
+        page_context = PageContext(
+            course=self.course,
+            repo=self.repo,
+            commit_sha=b"what_ever",
+            flow_session=self.flow_session,
+            in_sandbox=True,
+        )
+        self.assertIsNone(get_ordinal_from_page_context(page_context))
+
+    def test_null_page_uri(self):
+        page_context = PageContext(
+            course=self.course,
+            repo=self.repo,
+            commit_sha=b"what_ever",
+            flow_session=self.flow_session,
+            in_sandbox=False,
+            page_uri=None
+        )
+        self.assertIsNone(get_ordinal_from_page_context(page_context))
+
+    def test_get_ordinal_from_page_context(self):
+        expected_page_ordinal = 1
+
+        from django.urls import reverse
+        page_uri = reverse(
+            "relate-view_flow_page",
+            args=(
+                self.course.identifier,
+                self.flow_session.id, expected_page_ordinal))
+
+        page_context = PageContext(
+            course=self.course,
+            repo=self.repo,
+            commit_sha=b"what_ever",
+            flow_session=self.flow_session,
+            in_sandbox=False,
+            page_uri=page_uri
+        )
+        self.assertEqual(get_ordinal_from_page_context(page_context),
+                         expected_page_ordinal)
 
 # vim: fdm=marker
