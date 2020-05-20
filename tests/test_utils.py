@@ -46,7 +46,8 @@ from course import constants  # noqa
 from course.constants import flow_permission as fperm
 
 from tests.constants import (
-    QUIZ_FLOW_ID, COMMIT_SHA_SUPPORT_CUSTOM_PAGES)
+    QUIZ_FLOW_ID, COMMIT_SHA_SUPPORT_CUSTOM_PAGES,
+    TEST_JUPYTER_NOTEBOOK_FILE_PATH)
 from tests.base_test_mixins import (
     CoursesTestMixinBase,
     SingleCoursePageTestMixin, SubprocessRunpyContainerMixin,
@@ -1980,5 +1981,40 @@ class GetFacilitiesConfigTest(unittest.TestCase):
 
         with override_settings(RELATE_FACILITIES=None):
             self.assertIsNone(utils.get_facilities_config())
+
+
+class RenderNotebookFromSourceTest(unittest.TestCase):
+    # Testing course.utils.render_notebook_from_source
+    # (for cases not covered by other tests)
+    def test_config_not_supplied(self):
+        with mock.patch(
+                "nbconvert.HTMLExporter"
+        ) as mocked_html_exporter, mock.patch(
+            "course.utils.get_default_ipynb_render_config"
+        ) as mock_get_dft_config:
+            mock_exporter_instance = mock.MagicMock()
+            mocked_html_exporter.return_value = mock_exporter_instance
+            mock_exporter_instance.from_notebook_node.return_value = ("foo", "bar")
+            mock_get_dft_config.return_value = mock.MagicMock()
+            with open(TEST_JUPYTER_NOTEBOOK_FILE_PATH, "r", encoding="utf-8") as f:
+                ipynb_source = f.read()
+            utils.render_notebook_from_source(ipynb_source)
+            self.assertEqual(mock_get_dft_config.call_count, 1)
+
+    def test_config_supplied(self):
+        supplied_config = mock.MagicMock()
+        with mock.patch(
+                "nbconvert.HTMLExporter"
+        ) as mocked_html_exporter, mock.patch(
+            "course.utils.get_default_ipynb_render_config"
+        ) as mock_get_dft_config:
+            mock_exporter_instance = mock.MagicMock()
+            mocked_html_exporter.return_value = mock_exporter_instance
+            mock_exporter_instance.from_notebook_node.return_value = ("foo", "bar")
+            mock_get_dft_config.return_value = mock.MagicMock()
+            with open(TEST_JUPYTER_NOTEBOOK_FILE_PATH, "r", encoding="utf-8") as f:
+                ipynb_source = f.read()
+            utils.render_notebook_from_source(ipynb_source, config=supplied_config)
+            self.assertEqual(mock_get_dft_config.call_count, 0)
 
 # vim: foldmethod=marker
