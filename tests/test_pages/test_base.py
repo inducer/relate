@@ -566,10 +566,10 @@ def grading_form_to_html_side_effect_super(
 
 
 def human_feedback_point_value_side_effect_super(self, page_context, page_data):
-    from course.page.upload import FileUploadQuestion
+    from course.page.text import HumanGradedTextQuestion
     return (
         super(
-            FileUploadQuestion, self
+            HumanGradedTextQuestion, self
         ).human_feedback_point_value(page_context, page_data))
 
 
@@ -578,7 +578,7 @@ class PageBaseWithHumanTextFeedbackTest(SingleCourseQuizPageGradeInterfaceTestMi
     @classmethod
     def setUpTestData(cls):  # noqa
         super(PageBaseWithHumanTextFeedbackTest, cls).setUpTestData()
-        cls.page_id = "anyup"
+        cls.page_id = "hgtext"
         cls.submit_page_answer_by_page_id_and_test(page_id=cls.page_id)
         cls.end_flow()
 
@@ -601,7 +601,7 @@ class PageBaseWithHumanTextFeedbackTest(SingleCourseQuizPageGradeInterfaceTestMi
     def test_human_feedback_point_value_subclass(self):
         # make sure subclass PageBase.human_feedback_point_value works
         with mock.patch(
-                "course.page.upload.FileUploadQuestion"
+                "course.page.text.HumanGradedTextQuestion"
                 ".human_feedback_point_value", autospec=True
         ) as mock_human_feedback_point_value:
             mock_human_feedback_point_value.side_effect = (
