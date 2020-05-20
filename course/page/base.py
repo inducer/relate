@@ -31,7 +31,7 @@ from course.constants import MAX_EXTRA_CREDIT_FACTOR
 from relate.utils import StyledForm, Struct, string_concat
 from django.forms import ValidationError as FormValidationError
 from django.utils.safestring import mark_safe
-from django.utils.functional import lazy
+from django.utils.functional import lazy, cached_property
 from django.utils.translation import (
         ugettext_lazy as _,
         ugettext_noop,
@@ -88,6 +88,23 @@ class PageContext(object):
         self.in_sandbox = in_sandbox
         self.page_uri = page_uri
 
+    @cached_property
+    def page_ordinal(self):
+        # type: () -> Optional[int]
+        if self.in_sandbox:
+            return None
+
+        if not self.page_uri:
+            return None
+
+        from urllib.parse import urlparse
+        from django.urls import resolve
+
+        relative_url = urlparse(self.page_uri).path
+        func, args, kwargs = resolve(relative_url)
+        assert kwargs["page_ordinal"]
+        return int(kwargs["page_ordinal"])
+
 
 class PageBehavior(object):
     """
@@ -132,23 +149,6 @@ def markup_to_html(
             text,
             use_jinja=use_jinja,
             reverse_func=reverse_func)
-
-
-def get_ordinal_from_page_context(page_context):
-    # type: (PageContext) -> Optional[int]
-    if page_context.in_sandbox:
-        return None
-
-    if not page_context.page_uri:
-        return None
-
-    from urllib.parse import urlparse
-    from django.urls import resolve
-
-    relative_url = urlparse(page_context.page_uri).path
-    func, args, kwargs = resolve(relative_url)
-    assert kwargs["page_ordinal"]
-    return int(kwargs["page_ordinal"])
 
 
 # {{{ answer feedback type

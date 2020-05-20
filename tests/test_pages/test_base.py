@@ -27,7 +27,7 @@ from relate.utils import dict_to_struct
 
 from course.page.base import (
     create_default_point_scale, HumanTextFeedbackForm, get_editor_interaction_mode,
-    PageBehavior, PageBase, PageContext, get_ordinal_from_page_context
+    PageBehavior, PageBase, PageContext
 )
 
 from tests.base_test_mixins import (
@@ -913,13 +913,13 @@ class PageBehaviorTest(unittest.TestCase):
                 "compatibility")
 
 
-class GetOrdinalFromPageContextTest(SingleCoursePageTestMixin, TestCase):
-    # Testing course.page.base.get_ordinal_from_page_context
+class PageContextTest(SingleCoursePageTestMixin, TestCase):
+    # Testing course.page.base.PageContext
 
     flow_id = QUIZ_FLOW_ID
 
     def setUp(self):
-        super(GetOrdinalFromPageContextTest, self).setUp()
+        super(PageContextTest, self).setUp()
         self.flow_session = factories.FlowSessionFactory(
             course=self.course,
             participation=self.student_participation,
@@ -941,7 +941,7 @@ class GetOrdinalFromPageContextTest(SingleCoursePageTestMixin, TestCase):
             flow_session=self.flow_session,
             in_sandbox=True,
         )
-        self.assertIsNone(get_ordinal_from_page_context(page_context))
+        self.assertIsNone(page_context.page_ordinal)
 
     def test_null_page_uri(self):
         page_context = PageContext(
@@ -952,7 +952,7 @@ class GetOrdinalFromPageContextTest(SingleCoursePageTestMixin, TestCase):
             in_sandbox=False,
             page_uri=None
         )
-        self.assertIsNone(get_ordinal_from_page_context(page_context))
+        self.assertIsNone(page_context.page_ordinal)
 
     def test_get_ordinal_from_page_context(self):
         expected_page_ordinal = 1
@@ -972,7 +972,6 @@ class GetOrdinalFromPageContextTest(SingleCoursePageTestMixin, TestCase):
             in_sandbox=False,
             page_uri=page_uri
         )
-        self.assertEqual(get_ordinal_from_page_context(page_context),
-                         expected_page_ordinal)
+        self.assertEqual(page_context.page_ordinal, expected_page_ordinal)
 
 # vim: fdm=marker

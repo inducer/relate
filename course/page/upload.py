@@ -31,7 +31,7 @@ from django.utils.translation import ugettext as _, ugettext_lazy
 from course.page.base import (
         PageBaseWithTitle, PageBaseWithValue, PageBaseWithHumanTextFeedback,
         PageBaseWithCorrectAnswer,
-        markup_to_html, get_ordinal_from_page_context)
+        markup_to_html)
 from course.validation import ValidationError
 
 from relate.utils import StyledForm, string_concat
@@ -371,9 +371,7 @@ class JupyterNotebookUploadQuestion(FileUploadQuestionBase):
             ctx["preview_base64_data"] = answer_data["preview_base64_data"]
 
             # Enable auto preview in sandbox and grading page
-            page_ordinal = get_ordinal_from_page_context(page_context)
-
-            if not page_ordinal:
+            if not page_context.page_ordinal:
                 assert page_context.in_sandbox
                 ctx["auto_preview"] = True
             else:
@@ -383,7 +381,7 @@ class JupyterNotebookUploadQuestion(FileUploadQuestionBase):
                     args=(
                         page_context.course.identifier,
                         page_context.flow_session.id,
-                        page_ordinal)
+                        page_context.page_ordinal)
                 )
 
                 ctx["auto_preview"] = grading_page_uri == request.path
