@@ -358,4 +358,9 @@ div.rendered_html div.highlight > pre {
     background-color: transparent;
 }
 
+/* ipython notebook background color as white for version 5.4 */
+.relate-notebook-container {
+  background-color: #ffffff !important;
+}
+
 /* vim: set foldmethod=marker: */
