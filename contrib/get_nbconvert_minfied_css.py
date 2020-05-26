@@ -9,7 +9,7 @@ import os
 
 REPLACE_HIGHLIGHT_WITH_CODEHILITE = False
 
-NOTEBOOK_CSS_VERSION = '4.3.0'
+NOTEBOOK_CSS_VERSION = '5.4.0'
 CSS_URL = ("https://cdn.jupyter.org/notebook/%s/style/style.min.css"
            % NOTEBOOK_CSS_VERSION)
 

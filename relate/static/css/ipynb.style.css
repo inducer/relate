@@ -4,9 +4,124 @@
 * IPython notebook
 *
 */
-/* CSS font colors for translated ANSI colors. */
+/* CSS font colors for translated ANSI escape sequences */
+/* The color values are a mix of
+   http://www.xcolors.net/dl/baskerville-ivorylight and
+   http://www.xcolors.net/dl/euphrasia */
+.relate-notebook-container .ansi-black-fg {
+  color: #3E424D;
+}
+.relate-notebook-container .ansi-black-bg {
+  background-color: #3E424D;
+}
+.relate-notebook-container .ansi-black-intense-fg {
+  color: #282C36;
+}
+.relate-notebook-container .ansi-black-intense-bg {
+  background-color: #282C36;
+}
+.relate-notebook-container .ansi-red-fg {
+  color: #E75C58;
+}
+.relate-notebook-container .ansi-red-bg {
+  background-color: #E75C58;
+}
+.relate-notebook-container .ansi-red-intense-fg {
+  color: #B22B31;
+}
+.relate-notebook-container .ansi-red-intense-bg {
+  background-color: #B22B31;
+}
+.relate-notebook-container .ansi-green-fg {
+  color: #00A250;
+}
+.relate-notebook-container .ansi-green-bg {
+  background-color: #00A250;
+}
+.relate-notebook-container .ansi-green-intense-fg {
+  color: #007427;
+}
+.relate-notebook-container .ansi-green-intense-bg {
+  background-color: #007427;
+}
+.relate-notebook-container .ansi-yellow-fg {
+  color: #DDB62B;
+}
+.relate-notebook-container .ansi-yellow-bg {
+  background-color: #DDB62B;
+}
+.relate-notebook-container .ansi-yellow-intense-fg {
+  color: #B27D12;
+}
+.relate-notebook-container .ansi-yellow-intense-bg {
+  background-color: #B27D12;
+}
+.relate-notebook-container .ansi-blue-fg {
+  color: #208FFB;
+}
+.relate-notebook-container .ansi-blue-bg {
+  background-color: #208FFB;
+}
+.relate-notebook-container .ansi-blue-intense-fg {
+  color: #0065CA;
+}
+.relate-notebook-container .ansi-blue-intense-bg {
+  background-color: #0065CA;
+}
+.relate-notebook-container .ansi-magenta-fg {
+  color: #D160C4;
+}
+.relate-notebook-container .ansi-magenta-bg {
+  background-color: #D160C4;
+}
+.relate-notebook-container .ansi-magenta-intense-fg {
+  color: #A03196;
+}
+.relate-notebook-container .ansi-magenta-intense-bg {
+  background-color: #A03196;
+}
+.relate-notebook-container .ansi-cyan-fg {
+  color: #60C6C8;
+}
+.relate-notebook-container .ansi-cyan-bg {
+  background-color: #60C6C8;
+}
+.relate-notebook-container .ansi-cyan-intense-fg {
+  color: #258F8F;
+}
+.relate-notebook-container .ansi-cyan-intense-bg {
+  background-color: #258F8F;
+}
+.relate-notebook-container .ansi-white-fg {
+  color: #C5C1B4;
+}
+.relate-notebook-container .ansi-white-bg {
+  background-color: #C5C1B4;
+}
+.relate-notebook-container .ansi-white-intense-fg {
+  color: #A1A6B2;
+}
+.relate-notebook-container .ansi-white-intense-bg {
+  background-color: #A1A6B2;
+}
+.relate-notebook-container .ansi-default-inverse-fg {
+  color: #FFFFFF;
+}
+.relate-notebook-container .ansi-default-inverse-bg {
+  background-color: #000000;
+}
+.relate-notebook-container .ansi-bold {
+  font-weight: bold;
+}
+.relate-notebook-container .ansi-underline {
+  text-decoration: underline;
+}
+/* The following styles are deprecated an will be removed in a future version */
 .relate-notebook-container .ansibold {
   font-weight: bold;
+}
+.relate-notebook-container .ansi-inverse {
+  outline: 0.5px dotted;
 }
 /* use dark versions for foreground, to improve visibility */
 .relate-notebook-container .ansiblack {
@@ -85,12 +200,20 @@
   /* This acts as a spacer between cells, that is outside the border */
   margin: 0px;
   outline: none;
-  border-left-width: 1px;
-  padding-left: 5px;
-  background: linear-gradient(to right, transparent -40px, transparent 1px, transparent 1px, transparent 100%);
+  position: relative;
+  overflow: visible;
+}
+.relate-notebook-container div.cell:before {
+  position: absolute;
+  display: block;
+  top: -1px;
+  left: -1px;
+  width: 5px;
+  height: calc(100% +  2px);
+  content: "";
+  background: transparent;
 }
 .relate-notebook-container div.cell.jupyter-soft-selected {
-  border-left-color: #90CAF9;
   border-left-color: #E3F2FD;
   border-left-width: 1px;
   padding-left: 5px;
@@ -103,27 +226,39 @@
     border-color: transparent;
   }
 }
-.relate-notebook-container div.cell.selected {
+.relate-notebook-container div.cell.selected,
+div.cell.selected.jupyter-soft-selected {
   border-color: #ababab;
-  border-left-width: 0px;
-  padding-left: 6px;
-  background: linear-gradient(to right, #42A5F5 -40px, #42A5F5 5px, transparent 5px, transparent 100%);
+}
+.relate-notebook-container div.cell.selected:before,
+div.cell.selected.jupyter-soft-selected:before {
+  position: absolute;
+  display: block;
+  top: -1px;
+  left: -1px;
+  width: 5px;
+  height: calc(100% +  2px);
+  content: "";
+  background: #42A5F5;
 }
 @media print {
-  div.cell.selected {
+  div.cell.selected,
+  div.cell.selected.jupyter-soft-selected {
     border-color: transparent;
   }
 }
-.relate-notebook-container div.cell.selected.jupyter-soft-selected {
-  border-left-width: 0;
-  padding-left: 6px;
-  background: linear-gradient(to right, #42A5F5 -40px, #42A5F5 7px, #E3F2FD 7px, #E3F2FD 100%);
-}
 .relate-notebook-container .edit_mode div.cell.selected {
   border-color: #66BB6A;
-  border-left-width: 0px;
-  padding-left: 6px;
-  background: linear-gradient(to right, #66BB6A -40px, #66BB6A 5px, transparent 5px, transparent 100%);
+}
+.relate-notebook-container .edit_mode div.cell.selected:before {
+  position: absolute;
+  display: block;
+  top: -1px;
+  left: -1px;
+  width: 5px;
+  height: calc(100% +  2px);
+  content: "";
+  background: #66BB6A;
 }
 @media print {
   .edit_mode div.cell.selected {
@@ -319,7 +454,9 @@
 .relate-notebook-container .CodeMirror-lines {
   /* In CM2, this used to be 0.4em, but in CM3 it went to 4px. We need the em value because */
   /* we have set a different line-height and want this to scale with that. */
-  padding: 0.4em;
+  /* Note that this should set vertical padding only, since CodeMirror assumes
+       that horizontal padding will be set on CodeMirror pre */
+  padding: 0.4em 0;
 }
 .relate-notebook-container .CodeMirror-linenumber {
   padding: 0 8px 0 4px;
@@ -329,11 +466,24 @@
   border-top-left-radius: 2px;
 }
 .relate-notebook-container .CodeMirror pre {
-  /* In CM3 this went to 4px from 0 in CM2. We need the 0 value because of how we size */
-  /* .CodeMirror-lines */
-  padding: 0;
+  /* In CM3 this went to 4px from 0 in CM2. This sets horizontal padding only,
+    use .CodeMirror-lines for vertical */
+  padding: 0 0.4em;
   border: 0;
   border-radius: 0;
+}
+.relate-notebook-container .CodeMirror-cursor {
+  border-left: 1.4px solid black;
+}
+@media screen and (min-width: 2138px) and (max-width: 4319px) {
+  .CodeMirror-cursor {
+    border-left: 2px solid black;
+  }
+}
+@media screen and (min-width: 4320px) {
+  .CodeMirror-cursor {
+    border-left: 4px solid black;
+  }
 }
 /*
 
@@ -587,6 +737,9 @@ div.output_area svg {
 div.output_area svg.unconfined {
   max-width: none;
 }
+.relate-notebook-container div.output_area .mglyph > img {
+  max-width: none;
+}
 /* This is needed to protect the pre formating from global settings such
    as that of bootstrap */
 .relate-notebook-container .output {
@@ -625,7 +778,7 @@ div.output_area svg.unconfined {
 }
 .relate-notebook-container div.output_area pre {
   margin: 0;
-  padding: 0;
+  padding: 1px 0 1px 0;
   border: 0;
   vertical-align: baseline;
   color: black;
@@ -785,39 +938,35 @@ div.output_area svg.unconfined {
 .relate-notebook-container .rendered_html h6:first-child {
   margin-top: 1em;
 }
+.relate-notebook-container .rendered_html ul:not(.list-inline),
+.rendered_html ol:not(.list-inline) {
+  padding-left: 2em;
+}
 .relate-notebook-container .rendered_html ul {
   list-style: disc;
-  margin: 0em 2em;
-  padding-left: 0px;
 }
 .relate-notebook-container .rendered_html ul ul {
   list-style: square;
-  margin: 0em 2em;
+  margin-top: 0;
 }
 .relate-notebook-container .rendered_html ul ul ul {
   list-style: circle;
-  margin: 0em 2em;
 }
 .relate-notebook-container .rendered_html ol {
   list-style: decimal;
-  margin: 0em 2em;
-  padding-left: 0px;
 }
 .relate-notebook-container .rendered_html ol ol {
   list-style: upper-alpha;
-  margin: 0em 2em;
+  margin-top: 0;
 }
 .relate-notebook-container .rendered_html ol ol ol {
   list-style: lower-alpha;
-  margin: 0em 2em;
 }
 .relate-notebook-container .rendered_html ol ol ol ol {
   list-style: lower-roman;
-  margin: 0em 2em;
 }
 .relate-notebook-container .rendered_html ol ol ol ol ol {
   list-style: decimal;
-  margin: 0em 2em;
 }
 .relate-notebook-container .rendered_html * + ul {
   margin-top: 1em;
@@ -831,14 +980,23 @@ div.output_area svg.unconfined {
 }
 .relate-notebook-container .rendered_html pre {
   margin: 1em 2em;
+  padding: 0px;
+  background-color: #fff;
+}
+.relate-notebook-container .rendered_html code {
+  background-color: #eff0f1;
+}
+.relate-notebook-container .rendered_html p code {
+  padding: 1px 5px;
+}
+.relate-notebook-container .rendered_html pre code {
+  background-color: #fff;
 }
 .relate-notebook-container .rendered_html pre,
 .rendered_html code {
   border: 0;
-  background-color: #fff;
   color: #000;
   font-size: 100%;
-  padding: 0px;
 }
 .relate-notebook-container .rendered_html blockquote {
   margin: 1em 2em;
@@ -846,24 +1004,36 @@ div.output_area svg.unconfined {
 .relate-notebook-container .rendered_html table {
   margin-left: auto;
   margin-right: auto;
-  border: 1px solid black;
+  border: none;
   border-collapse: collapse;
+  border-spacing: 0;
+  color: black;
+  font-size: 12px;
+  table-layout: fixed;
+}
+.relate-notebook-container .rendered_html thead {
+  border-bottom: 1px solid black;
+  vertical-align: bottom;
 }
 .relate-notebook-container .rendered_html tr,
 .rendered_html th,
 .rendered_html td {
-  border: 1px solid black;
-  border-collapse: collapse;
-  margin: 1em 2em;
-}
-.relate-notebook-container .rendered_html td,
-.rendered_html th {
-  text-align: left;
+  text-align: right;
   vertical-align: middle;
-  padding: 4px;
+  padding: 0.5em 0.5em;
+  line-height: normal;
+  white-space: normal;
+  max-width: none;
+  border: none;
 }
 .relate-notebook-container .rendered_html th {
   font-weight: bold;
+}
+.relate-notebook-container .rendered_html tbody tr:nth-child(odd) {
+  background: #f5f5f5;
+}
+.relate-notebook-container .rendered_html tbody tr:hover {
+  background: rgba(66, 165, 245, 0.2);
 }
 .relate-notebook-container .rendered_html * + table {
   margin-top: 1em;
@@ -890,6 +1060,15 @@ div.output_area svg.unconfined {
 .relate-notebook-container .rendered_html img.unconfined,
 .rendered_html svg.unconfined {
   max-width: none;
+}
+.relate-notebook-container .rendered_html .alert {
+  margin-bottom: initial;
+}
+.relate-notebook-container .rendered_html * + .alert {
+  margin-top: 1em;
+}
+.relate-notebook-container [dir="rtl"] .rendered_html p {
+  text-align: right;
 }
 .relate-notebook-container div.text_cell {
   /* Old browsers */
@@ -944,8 +1123,17 @@ h6:hover .anchor-link {
   overflow-x: auto;
   overflow-y: hidden;
 }
+.relate-notebook-container .text_cell.rendered .rendered_html tr,
+.text_cell.rendered .rendered_html th,
+.text_cell.rendered .rendered_html td {
+  max-width: none;
+}
 .relate-notebook-container .text_cell.unrendered .text_cell_render {
   display: none;
+}
+.relate-notebook-container .text_cell .dropzone .input_area {
+  border: 2px dashed #bababa;
+  margin: -1px;
 }
 .relate-notebook-container .cm-header-1,
 .cm-header-2,
@@ -1082,6 +1270,28 @@ samp {
   padding-top: 1px;
   padding-bottom: 1px;
 }
+.relate-notebook-container .jupyter-keybindings {
+  padding: 1px;
+  line-height: 24px;
+  border-bottom: 1px solid gray;
+}
+.relate-notebook-container .jupyter-keybindings input {
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+.relate-notebook-container .jupyter-keybindings i {
+  padding: 6px;
+}
+.relate-notebook-container .well code {
+  background-color: #ffffff;
+  border-color: #ababab;
+  border-width: 1px;
+  border-style: solid;
+  padding: 2px;
+  padding-top: 1px;
+  padding-bottom: 1px;
+}
 /* CSS for the cell toolbar */
 .relate-notebook-container .celltoolbar {
   border: thin solid #CFCFCF;
@@ -1214,6 +1424,152 @@ select[multiple].celltoolbar select {
   margin-left: 5px;
   margin-right: 5px;
 }
+.relate-notebook-container .tags_button_container {
+  width: 100%;
+  display: flex;
+}
+.relate-notebook-container .tag-container {
+  display: flex;
+  flex-direction: row;
+  flex-grow: 1;
+  overflow: hidden;
+  position: relative;
+}
+.relate-notebook-container .tag-container > * {
+  margin: 0 4px;
+}
+.relate-notebook-container .remove-tag-btn {
+  margin-left: 4px;
+}
+.relate-notebook-container .tags-input {
+  display: flex;
+}
+.relate-notebook-container .cell-tag:last-child:after {
+  content: "";
+  position: absolute;
+  right: 0;
+  width: 40px;
+  height: 100%;
+  /* Fade to background color of cell toolbar */
+  background: linear-gradient(to right, rgba(0, 0, 0, 0), #EEE);
+}
+.relate-notebook-container .tags-input > * {
+  margin-left: 4px;
+}
+.relate-notebook-container .cell-tag,
+.tags-input input,
+.tags-input button {
+  display: block;
+  width: 100%;
+  height: 32px;
+  padding: 6px 12px;
+  font-size: 13px;
+  line-height: 1.42857143;
+  color: #555555;
+  background-color: #fff;
+  background-image: none;
+  border: 1px solid #ccc;
+  border-radius: 2px;
+  -webkit-box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075);
+  box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075);
+  -webkit-transition: border-color ease-in-out .15s, box-shadow ease-in-out .15s;
+  -o-transition: border-color ease-in-out .15s, box-shadow ease-in-out .15s;
+  transition: border-color ease-in-out .15s, box-shadow ease-in-out .15s;
+  height: 30px;
+  padding: 5px 10px;
+  font-size: 12px;
+  line-height: 1.5;
+  border-radius: 1px;
+  box-shadow: none;
+  width: inherit;
+  font-size: inherit;
+  height: 22px;
+  line-height: 22px;
+  padding: 0px 4px;
+  display: inline-block;
+}
+.relate-notebook-container .cell-tag:focus,
+.tags-input input:focus,
+.tags-input button:focus {
+  border-color: #66afe9;
+  outline: 0;
+  -webkit-box-shadow: inset 0 1px 1px rgba(0,0,0,.075), 0 0 8px rgba(102, 175, 233, 0.6);
+  box-shadow: inset 0 1px 1px rgba(0,0,0,.075), 0 0 8px rgba(102, 175, 233, 0.6);
+}
+.relate-notebook-container .cell-tag::-moz-placeholder,
+.tags-input input::-moz-placeholder,
+.tags-input button::-moz-placeholder {
+  color: #999;
+  opacity: 1;
+}
+.relate-notebook-container .cell-tag:-ms-input-placeholder,
+.tags-input input:-ms-input-placeholder,
+.tags-input button:-ms-input-placeholder {
+  color: #999;
+}
+.relate-notebook-container .cell-tag::-webkit-input-placeholder,
+.tags-input input::-webkit-input-placeholder,
+.tags-input button::-webkit-input-placeholder {
+  color: #999;
+}
+.relate-notebook-container .cell-tag::-ms-expand,
+.tags-input input::-ms-expand,
+.tags-input button::-ms-expand {
+  border: 0;
+  background-color: transparent;
+}
+.relate-notebook-container .cell-tag[disabled],
+.tags-input input[disabled],
+.tags-input button[disabled],
+.cell-tag[readonly],
+.tags-input input[readonly],
+.tags-input button[readonly],
+fieldset[disabled] .cell-tag,
+fieldset[disabled] .tags-input input,
+fieldset[disabled] .tags-input button {
+  background-color: #eeeeee;
+  opacity: 1;
+}
+.relate-notebook-container .cell-tag[disabled],
+.tags-input input[disabled],
+.tags-input button[disabled],
+fieldset[disabled] .cell-tag,
+fieldset[disabled] .tags-input input,
+fieldset[disabled] .tags-input button {
+  cursor: not-allowed;
+}
+.relate-notebook-container textarea.cell-tag,
+textarea.tags-input input,
+textarea.tags-input button {
+  height: auto;
+}
+.relate-notebook-container select.cell-tag,
+select.tags-input input,
+select.tags-input button {
+  height: 30px;
+  line-height: 30px;
+}
+.relate-notebook-container textarea.cell-tag,
+textarea.tags-input input,
+textarea.tags-input button,
+select[multiple].cell-tag,
+select[multiple].tags-input input,
+select[multiple].tags-input button {
+  height: auto;
+}
+.relate-notebook-container .cell-tag,
+.tags-input button {
+  padding: 0px 4px;
+}
+.relate-notebook-container .cell-tag {
+  background-color: #fff;
+  white-space: nowrap;
+}
+.relate-notebook-container .tags-input input[type=text]:focus {
+  outline: none;
+  box-shadow: none;
+  border-color: #ccc;
+}
 .relate-notebook-container .completions {
   position: absolute;
   z-index: 110;
@@ -1239,16 +1595,28 @@ select[multiple].celltoolbar select {
 .relate-notebook-container .completions select option.context {
   color: #286090;
 }
-.relate-notebook-container #kernel_logo_widget {
-  float: right !important;
-  float: right;
-}
 .relate-notebook-container #kernel_logo_widget .current_kernel_logo {
   display: none;
   margin-top: -1px;
   margin-bottom: -1px;
   width: 32px;
   height: 32px;
+}
+.relate-notebook-container [dir="rtl"] #kernel_logo_widget {
+  float: left !important;
+  float: left;
+}
+.relate-notebook-container .modal .modal-body .move-path {
+  display: flex;
+  flex-direction: row;
+  justify-content: space;
+  align-items: center;
+}
+.relate-notebook-container .modal .modal-body .move-path .server-root {
+  padding-right: 20px;
+}
+.relate-notebook-container .modal .modal-body .move-path .path-input {
+  flex: 1;
 }
 .relate-notebook-container #menubar {
   box-sizing: border-box;
@@ -1270,11 +1638,41 @@ select[multiple].celltoolbar select {
 .relate-notebook-container #menubar .navbar-collapse {
   clear: left;
 }
+.relate-notebook-container [dir="rtl"] #menubar .navbar-toggle {
+  float: right;
+}
+.relate-notebook-container [dir="rtl"] #menubar .navbar-collapse {
+  clear: right;
+}
+.relate-notebook-container [dir="rtl"] #menubar .navbar-nav {
+  float: right;
+}
+.relate-notebook-container [dir="rtl"] #menubar .nav {
+  padding-right: 0px;
+}
+.relate-notebook-container [dir="rtl"] #menubar .navbar-nav > li {
+  float: right;
+}
+.relate-notebook-container [dir="rtl"] #menubar .navbar-right {
+  float: left !important;
+}
+.relate-notebook-container [dir="rtl"] ul.dropdown-menu {
+  text-align: right;
+  left: auto;
+}
+.relate-notebook-container [dir="rtl"] ul#new-menu.dropdown-menu {
+  right: auto;
+  left: 0;
+}
 .relate-notebook-container .nav-wrapper {
   border-bottom: 1px solid #e7e7e7;
 }
 .relate-notebook-container i.menu-icon {
   padding-top: 4px;
+}
+.relate-notebook-container [dir="rtl"] i.menu-icon.pull-right {
+  float: left !important;
+  float: left;
 }
 .relate-notebook-container ul#help_menu li a {
   overflow: hidden;
@@ -1282,6 +1680,17 @@ select[multiple].celltoolbar select {
 }
 .relate-notebook-container ul#help_menu li a i {
   margin-right: -1.2em;
+}
+.relate-notebook-container [dir="rtl"] ul#help_menu li a {
+  padding-left: 2.2em;
+}
+.relate-notebook-container [dir="rtl"] ul#help_menu li a i {
+  margin-right: 0;
+  margin-left: -1.2em;
+}
+.relate-notebook-container [dir="rtl"] ul#help_menu li a i.pull-right {
+  float: left !important;
+  float: left;
 }
 .relate-notebook-container .dropdown-submenu {
   position: relative;
@@ -1291,6 +1700,10 @@ select[multiple].celltoolbar select {
   left: 100%;
   margin-top: -6px;
   margin-left: -1px;
+}
+.relate-notebook-container [dir="rtl"] .dropdown-submenu > .dropdown-menu {
+  right: 100%;
+  margin-right: -1px;
 }
 .relate-notebook-container .dropdown-submenu:hover > .dropdown-menu {
   display: block;
@@ -1309,11 +1722,23 @@ select[multiple].celltoolbar select {
   margin-top: 2px;
   margin-right: -10px;
 }
+.relate-notebook-container .dropdown-submenu > a:after.fa-pull-left {
+  margin-right: .3em;
+}
+.relate-notebook-container .dropdown-submenu > a:after.fa-pull-right {
+  margin-left: .3em;
+}
 .relate-notebook-container .dropdown-submenu > a:after.pull-left {
   margin-right: .3em;
 }
 .relate-notebook-container .dropdown-submenu > a:after.pull-right {
   margin-left: .3em;
+}
+.relate-notebook-container [dir="rtl"] .dropdown-submenu > a:after {
+  float: left;
+  content: "";
+  margin-right: 0;
+  margin-left: -10px;
 }
 .relate-notebook-container .dropdown-submenu:hover > a:after {
   color: #262626;
@@ -1330,6 +1755,10 @@ select[multiple].celltoolbar select {
   float: right;
   z-index: 10;
 }
+.relate-notebook-container [dir="rtl"] #notification_area {
+  float: left !important;
+  float: left;
+}
 .relate-notebook-container .indicator_area {
   float: right !important;
   float: right;
@@ -1340,6 +1769,10 @@ select[multiple].celltoolbar select {
   z-index: 10;
   text-align: center;
   width: auto;
+}
+.relate-notebook-container [dir="rtl"] .indicator_area {
+  float: left !important;
+  float: left;
 }
 .relate-notebook-container #kernel_indicator {
   float: right !important;
@@ -1357,6 +1790,12 @@ select[multiple].celltoolbar select {
   padding-left: 5px;
   padding-right: 5px;
 }
+.relate-notebook-container [dir="rtl"] #kernel_indicator {
+  float: left !important;
+  float: left;
+  border-left: 0;
+  border-right: 1px solid;
+}
 .relate-notebook-container #modal_indicator {
   float: right !important;
   float: right;
@@ -1367,6 +1806,10 @@ select[multiple].celltoolbar select {
   z-index: 10;
   text-align: center;
   width: auto;
+}
+.relate-notebook-container [dir="rtl"] #modal_indicator {
+  float: left !important;
+  float: left;
 }
 .relate-notebook-container #readonly-indicator {
   float: right !important;
@@ -1397,6 +1840,12 @@ select[multiple].celltoolbar select {
   -moz-osx-font-smoothing: grayscale;
   content: "";
 }
+.relate-notebook-container .edit_mode .modal_indicator:before.fa-pull-left {
+  margin-right: .3em;
+}
+.relate-notebook-container .edit_mode .modal_indicator:before.fa-pull-right {
+  margin-left: .3em;
+}
 .relate-notebook-container .edit_mode .modal_indicator:before.pull-left {
   margin-right: .3em;
 }
@@ -1411,6 +1860,12 @@ select[multiple].celltoolbar select {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   content: " ";
+}
+.relate-notebook-container .command_mode .modal_indicator:before.fa-pull-left {
+  margin-right: .3em;
+}
+.relate-notebook-container .command_mode .modal_indicator:before.fa-pull-right {
+  margin-left: .3em;
 }
 .relate-notebook-container .command_mode .modal_indicator:before.pull-left {
   margin-right: .3em;
@@ -1427,6 +1882,12 @@ select[multiple].celltoolbar select {
   -moz-osx-font-smoothing: grayscale;
   content: "";
 }
+.relate-notebook-container .kernel_idle_icon:before.fa-pull-left {
+  margin-right: .3em;
+}
+.relate-notebook-container .kernel_idle_icon:before.fa-pull-right {
+  margin-left: .3em;
+}
 .relate-notebook-container .kernel_idle_icon:before.pull-left {
   margin-right: .3em;
 }
@@ -1441,6 +1902,12 @@ select[multiple].celltoolbar select {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   content: "";
+}
+.relate-notebook-container .kernel_busy_icon:before.fa-pull-left {
+  margin-right: .3em;
+}
+.relate-notebook-container .kernel_busy_icon:before.fa-pull-right {
+  margin-left: .3em;
 }
 .relate-notebook-container .kernel_busy_icon:before.pull-left {
   margin-right: .3em;
@@ -1457,6 +1924,12 @@ select[multiple].celltoolbar select {
   -moz-osx-font-smoothing: grayscale;
   content: "";
 }
+.relate-notebook-container .kernel_dead_icon:before.fa-pull-left {
+  margin-right: .3em;
+}
+.relate-notebook-container .kernel_dead_icon:before.fa-pull-right {
+  margin-left: .3em;
+}
 .relate-notebook-container .kernel_dead_icon:before.pull-left {
   margin-right: .3em;
 }
@@ -1471,6 +1944,12 @@ select[multiple].celltoolbar select {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   content: "";
+}
+.relate-notebook-container .kernel_disconnected_icon:before.fa-pull-left {
+  margin-right: .3em;
+}
+.relate-notebook-container .kernel_disconnected_icon:before.fa-pull-right {
+  margin-left: .3em;
 }
 .relate-notebook-container .kernel_disconnected_icon:before.pull-left {
   margin-right: .3em;
@@ -1861,27 +2340,46 @@ fieldset[disabled] .notification_widget.danger.focus {
   flex: 1;
 }
 .relate-notebook-container span.save_widget {
-  margin-top: 6px;
+  height: 30px;
+  margin-top: 4px;
+  display: flex;
+  justify-content: flex-start;
+  align-items: baseline;
+  width: 50%;
+  flex: 1;
 }
 .relate-notebook-container span.save_widget span.filename {
-  height: 1em;
+  height: 100%;
   line-height: 1em;
-  padding: 3px;
   margin-left: 16px;
   border: none;
   font-size: 146.5%;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
   border-radius: 2px;
 }
 .relate-notebook-container span.save_widget span.filename:hover {
   background-color: #e6e6e6;
 }
+.relate-notebook-container [dir="rtl"] span.save_widget.pull-left {
+  float: right !important;
+  float: right;
+}
+.relate-notebook-container [dir="rtl"] span.save_widget span.filename {
+  margin-left: 0;
+  margin-right: 16px;
+}
 .relate-notebook-container span.checkpoint_status,
 span.autosave_status {
   font-size: small;
+  white-space: nowrap;
+  padding: 0 5px;
 }
 @media (max-width: 767px) {
   span.save_widget {
     font-size: small;
+    padding: 0 0 0 5px;
   }
   span.checkpoint_status,
   span.autosave_status {
@@ -1925,6 +2423,9 @@ span.autosave_status {
   margin-top: 0px;
   margin-left: 5px;
 }
+.relate-notebook-container .toolbar-btn-label {
+  margin-left: 6px;
+}
 .relate-notebook-container #maintoolbar {
   margin-bottom: -3px;
   margin-top: -8px;
@@ -1944,6 +2445,10 @@ span.autosave_status {
 }
 .relate-notebook-container .select-xs {
   height: 24px;
+}
+.relate-notebook-container [dir="rtl"] .btn-group > .btn,
+.btn-group-vertical > .btn {
+  float: right;
 }
 .relate-notebook-container .pulse,
 .dropdown-menu > li > a.pulse,
@@ -2094,6 +2599,10 @@ li.pulse.open > a.dropdown-toggle {
   margin-left: -10px;
   width: 18px;
 }
+.relate-notebook-container [dir="rtl"] ul.typeahead-list i {
+  margin-left: 0;
+  margin-right: -10px;
+}
 .relate-notebook-container ul.typeahead-list {
   max-height: 80vh;
   overflow: auto;
@@ -2102,6 +2611,13 @@ li.pulse.open > a.dropdown-toggle {
   /** Firefox bug **/
   /* see https://github.com/jupyter/notebook/issues/559 */
   white-space: normal;
+}
+.relate-notebook-container ul.typeahead-list  > li > a.pull-right {
+  float: left !important;
+  float: left;
+}
+.relate-notebook-container [dir="rtl"] .typeahead-list {
+  text-align: right;
 }
 .relate-notebook-container .cmd-palette .modal-body {
   padding: 7px;
@@ -2113,10 +2629,19 @@ li.pulse.open > a.dropdown-toggle {
   outline: none;
 }
 .relate-notebook-container .no-shortcut {
-  display: none;
+  min-width: 20px;
+  color: transparent;
+}
+.relate-notebook-container [dir="rtl"] .no-shortcut.pull-right {
+  float: left !important;
+  float: left;
+}
+.relate-notebook-container [dir="rtl"] .command-shortcut.pull-right {
+  float: left !important;
+  float: left;
 }
 .relate-notebook-container .command-shortcut:before {
-  content: "(command)";
+  content: "(command mode)";
   padding-right: 3px;
   color: #777777;
 }
@@ -2125,6 +2650,10 @@ li.pulse.open > a.dropdown-toggle {
   padding-right: 3px;
   color: #777777;
 }
+.relate-notebook-container [dir="rtl"] .edit-shortcut.pull-right {
+  float: left !important;
+  float: left;
+}
 .relate-notebook-container #find-and-replace #replace-preview .match,
 #find-and-replace #replace-preview .insert {
   background-color: #BBDEFB;
@@ -2132,6 +2661,12 @@ li.pulse.open > a.dropdown-toggle {
   border-style: solid;
   border-width: 1px;
   border-radius: 0px;
+}
+.relate-notebook-container [dir="ltr"] #find-and-replace .input-group-btn + .form-control {
+  border-left: none;
+}
+.relate-notebook-container [dir="rtl"] #find-and-replace .input-group-btn + .form-control {
+  border-right: none;
 }
 .relate-notebook-container #find-and-replace #replace-preview .replace .match {
   background-color: #FFCDD2;
