@@ -23,7 +23,10 @@ THE SOFTWARE.
 """
 
 from django.test import TestCase
+from django.core.files.uploadedfile import SimpleUploadedFile, InMemoryUploadedFile
 from unittest import skipUnless
+
+from course.page.upload import FileUploadForm, JupyterNotebookUploadForm
 
 from tests.base_test_mixins import SingleCourseQuizPageTestMixin, HackRepoMixin
 from tests.test_sandbox import SingleCoursePageSandboxTestBaseMixin
@@ -125,6 +128,20 @@ rubric: |
 
 """
 
+UPLOAD_JUPYTER_NOTEBOOK = """
+type: JupyterNotebookUploadQuestion
+id: jupyter_sandbox
+access_rules:
+    add_permissions:
+        - change_answer
+value: 5
+maximum_megabytes: 0.5
+prompt: |
+    # Upload your favorite JupterNotebook file
+rubric: |
+    Have they uploaded an .ipynb file?
+"""
+
 
 class FileUploadQuestionSandBoxTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
     def test_size_validation(self):
@@ -175,6 +192,17 @@ class FileUploadQuestionSandBoxTest(SingleCoursePageSandboxTestBaseMixin, TestCa
             self.assertFormErrorLoose(resp, "Please keep file size under")
             self.assertFormErrorLoose(resp, "Current filesize is")
 
+    def test_upload_jupyter_notebook(self):
+        # This makes sure upload jupyter notebook works in sandbox
+        markdown = UPLOAD_JUPYTER_NOTEBOOK
+        from tests.constants import TEST_JUPYTER_NOTEBOOK_FILE_PATH
+        with open(TEST_JUPYTER_NOTEBOOK_FILE_PATH, 'rb') as fp:
+            answer_data = {"uploaded_file": fp}
+            resp = self.get_page_sandbox_submit_answer_response(
+                markdown,
+                answer_data=answer_data)
+            self.assertFormErrorLoose(resp, None)
+
 
 @skipUnless(may_run_expensive_tests(), SKIP_EXPENSIVE_TESTS_REASON)
 class UploadQuestionNormalizeTest(SingleCourseQuizPageTestMixin,
@@ -189,5 +217,51 @@ class UploadQuestionNormalizeTest(SingleCourseQuizPageTestMixin,
         self.submit_page_answer_by_page_id_and_test(
             page_id="proof", do_grading=True, do_human_grade=True,
             ensure_download_after_grading=True, dl_file_extension=".dat")
+
+
+class FileUploadFormTest(TestCase):
+    def test_form_valid(self):
+
+        upload_form = FileUploadForm(
+            maximum_megabytes=0.1,
+            mime_types=["text/plain"],
+            data={},
+            files={'uploaded_file': SimpleUploadedFile('name', b'some content')})
+        self.assertTrue(upload_form.is_valid(), upload_form.errors)
+
+    def test_form_invalid(self):
+        upload_form = FileUploadForm(
+            maximum_megabytes=0.1,
+            mime_types=["application/pdf"],
+            data={},
+            files={'uploaded_file': SimpleUploadedFile('name', b'some content')})
+        self.assertFalse(upload_form.is_valid())
+
+
+class JupyterNotebookUploadFormTest(TestCase):
+    def test_form_valid(self):
+        from tests.constants import TEST_JUPYTER_NOTEBOOK_FILE_PATH
+        from io import BytesIO
+        with open(TEST_JUPYTER_NOTEBOOK_FILE_PATH, 'rb') as fp:
+            buf = fp.read()
+        nbfile = InMemoryUploadedFile(
+            BytesIO(buf),
+            field_name="uploaded_file",
+            name="my_file", content_type="application/x-ipynb+json",
+            size=0.5, charset=None)
+        upload_form = JupyterNotebookUploadForm(
+            maximum_megabytes=0.1,
+            mime_types=["application/x-ipynb+json"],
+            data={},
+            files={'uploaded_file': nbfile})
+        self.assertTrue(upload_form.is_valid(), upload_form.errors)
+
+    def test_form_invalid(self):
+        upload_form = JupyterNotebookUploadForm(
+            maximum_megabytes=0.1,
+            mime_types=["application/x-ipynb+json"],
+            data={},
+            files={'uploaded_file': SimpleUploadedFile('name', b'some content')})
+        self.assertFalse(upload_form.is_valid())
 
 # vim: fdm=marker

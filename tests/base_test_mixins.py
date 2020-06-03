@@ -70,7 +70,7 @@ SINGLE_COURSE_SETUP_LIST = [
             "hidden": False,
             "listed": True,
             "accepts_enrollment": True,
-            "git_source": "git://github.com/inducer/relate-sample",
+            "git_source": "git://github.com/dzhuang/relate-sample",
             "course_file": "course.yml",
             "events_file": "events.yml",
             "enrollment_approval_required": False,
@@ -2189,7 +2189,7 @@ class SingleCourseQuizPageTestMixin(SingleCoursePageTestMixin):
                     if answer_data is None:
                         answer_data = page_tuple.correct_answer
 
-                    if page_id in ["anyup", "proof"]:
+                    if page_id in ["anyup", "proof", "jupyter_upload"]:
                         file_path = answer_data["uploaded_file"]
                         if not file_path:
                             # submitting an empty answer

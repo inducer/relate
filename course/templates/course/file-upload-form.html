@@ -5,24 +5,32 @@
   <div id="file_upload_viewer_div">
   </div>
   <div class="col-lg-offset-2" style="margin-bottom:2ex">
-    <a href="{{ data_url }}" id="file_upload_download_link">{% trans "Review uploaded file" %}</a>
+    <a href="{{ data_url }}" id="file_upload_download_link"
+        {% if default_download_name %}
+          download={{ default_download_name }}
+       {% endif %}
+    >{% trans "Review uploaded file" %}</a>
     &middot;
-    <a href="javascript:file_upload_embed_viewer()">{% trans "Embed viewer" %}</a>
+    <a href="javascript:file_upload_embed_viewer()">{% trans "Preview" %}</a>
   </div>
 
+  {% block file_upload_embed_viewer_js %}
+    <script type="text/javascript">
+        function file_upload_embed_viewer()
+        {
+          var data_url = $("#file_upload_download_link").attr("href");
+
+          $("#file_upload_viewer_div").html(
+            "<object data='" + data_url + "' type='{{ mime_type }}' width='100%' height='800px' align='middle'>"
+            + '<p>('
+            + "{% blocktrans %} Your browser reported itself unable to render <tt>{{ mime_type }}</tt> inline. {% endblocktrans %}"
+            + ')</p>'
+            + '</object><hr>');
+        }
+    </script>
+  {% endblock %}
+
   <script type="text/javascript">
-    function file_upload_embed_viewer()
-    {
-      var data_url = $("#file_upload_download_link").attr("href");
-
-      $("#file_upload_viewer_div").html(
-        "<object data='" + data_url + "' type='{{ mime_type }}' width='100%' height='800px' align='middle'>"
-        + '<p>('
-        + "{% blocktrans %} Your browser reported itself unable to render <tt>{{ mime_type }}</tt> inline. {% endblocktrans %}"
-        + ')</p>'
-        + '</object><hr>');
-    }
-
     function file_upload_data_url_to_object_url() {
       // https://code.google.com/p/chromium/issues/detail?id=69227#37
       var is_webkit = /WebKit/.test(navigator.userAgent);
@@ -44,7 +52,7 @@
             view[i] = binStr.charCodeAt(i);
 
         var blob = new Blob([view], {'type': parts[1]});
-        var obj_url = webkitURL.createObjectURL(blob)
+        var obj_url = webkitURL.createObjectURL(blob);
 
         $("#file_upload_download_link").attr("href", obj_url);
       }

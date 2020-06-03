@@ -37,6 +37,7 @@ from course.page.base import (
 from tests.constants import (
     MESSAGE_ANSWER_SAVED_TEXT,
     MESSAGE_ANSWER_FAILED_SAVE_TEXT, TEST_TEXT_FILE_PATH, TEST_PDF_FILE_PATH,
+    TEST_JUPYTER_NOTEBOOK_FILE_PATH,
     TEST_HGTEXT_MARKDOWN_ANSWER_WRONG, TEST_HGTEXT_MARKDOWN_ANSWER_TYPE_WRONG)
 
 from tests.base_test_mixins import (
@@ -326,6 +327,38 @@ class SingleCourseQuizPageTest(SingleCourseQuizPageTestMixin,
         self.assertAddMessageCalledWith(MESSAGE_ANSWER_SAVED_TEXT)
 
         with open(TEST_PDF_FILE_PATH, 'rb') as fp:
+            expected_result = b64encode(fp.read()).decode()
+
+        last_answer_visit = self.get_last_answer_visit()
+        self.assertEqual(last_answer_visit.answer["base64_data"], expected_result)
+
+    def test_fileupload_jupyter_notebook_wrong_mime_type(self):
+        page_id = "jupyter_upload"
+
+        # wrong MIME type, a text file
+        submit_answer_response, post_grade_response = (
+            self.default_submit_page_answer_by_page_id_and_test(
+                page_id, answer_data={"uploaded_file": TEST_TEXT_FILE_PATH},
+                do_grading=False))
+        self.assertAddMessageCalledWith(MESSAGE_ANSWER_FAILED_SAVE_TEXT)
+
+        # https://github.com/inducer/relate/issues/351
+        self.assertEqual(submit_answer_response.status_code, 200)
+
+        ordinal = self.get_page_ordinal_via_page_id(page_id)
+        self.assertSubmitHistoryItemsCount(page_ordinal=ordinal,
+                                           expected_count=0)
+        self.end_flow()
+        self.assertSessionScoreEqual(0)
+
+    def test_fileupload_jupyter_notebook(self):
+        page_id = "jupyter_upload"
+
+        submit_answer_response, post_grade_response = (
+            self.default_submit_page_answer_by_page_id_and_test(page_id))
+        self.assertAddMessageCalledWith(MESSAGE_ANSWER_SAVED_TEXT)
+
+        with open(TEST_JUPYTER_NOTEBOOK_FILE_PATH, 'rb') as fp:
             expected_result = b64encode(fp.read()).decode()
 
         last_answer_visit = self.get_last_answer_visit()
