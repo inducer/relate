@@ -23,7 +23,10 @@ THE SOFTWARE.
 """
 
 from django.test import TestCase
+from django.core.files.uploadedfile import SimpleUploadedFile, InMemoryUploadedFile
 from unittest import skipUnless
+
+from course.page.upload import FileUploadForm, JupyterNotebookUploadForm
 
 from tests.base_test_mixins import SingleCourseQuizPageTestMixin, HackRepoMixin
 from tests.test_sandbox import SingleCoursePageSandboxTestBaseMixin
@@ -217,9 +220,8 @@ class UploadQuestionNormalizeTest(SingleCourseQuizPageTestMixin,
 
 
 class FileUploadFormTest(TestCase):
-    def test_clean_uploaded_file_callback_not_supplied(self):
-        from django.core.files.uploadedfile import SimpleUploadedFile
-        from course.page.upload import FileUploadForm
+    def test_form_valid(self):
+
         upload_form = FileUploadForm(
             maximum_megabytes=0.1,
             mime_types=["text/plain"],
@@ -227,5 +229,39 @@ class FileUploadFormTest(TestCase):
             files={'uploaded_file': SimpleUploadedFile('name', b'some content')})
         self.assertTrue(upload_form.is_valid(), upload_form.errors)
 
+    def test_form_invalid(self):
+        upload_form = FileUploadForm(
+            maximum_megabytes=0.1,
+            mime_types=["application/pdf"],
+            data={},
+            files={'uploaded_file': SimpleUploadedFile('name', b'some content')})
+        self.assertFalse(upload_form.is_valid())
+
+
+class JupyterNotebookUploadFormTest(TestCase):
+    def test_form_valid(self):
+        from tests.constants import TEST_JUPYTER_NOTEBOOK_FILE_PATH
+        from io import BytesIO
+        with open(TEST_JUPYTER_NOTEBOOK_FILE_PATH, 'rb') as fp:
+            buf = fp.read()
+        nbfile = InMemoryUploadedFile(
+            BytesIO(buf),
+            field_name="uploaded_file",
+            name="my_file", content_type="application/x-ipynb+json",
+            size=0.5, charset=None)
+        upload_form = JupyterNotebookUploadForm(
+            maximum_megabytes=0.1,
+            mime_types=["application/x-ipynb+json"],
+            data={},
+            files={'uploaded_file': nbfile})
+        self.assertTrue(upload_form.is_valid(), upload_form.errors)
+
+    def test_form_invalid(self):
+        upload_form = JupyterNotebookUploadForm(
+            maximum_megabytes=0.1,
+            mime_types=["application/x-ipynb+json"],
+            data={},
+            files={'uploaded_file': SimpleUploadedFile('name', b'some content')})
+        self.assertFalse(upload_form.is_valid())
 
 # vim: fdm=marker

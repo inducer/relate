@@ -51,34 +51,28 @@ if False:
 
 # {{{ upload question
 
-class FileUploadForm(StyledForm):
+class FileUploadFormBase(StyledForm):
     show_save_button = False
     uploaded_file = forms.FileField(required=True,
             label=ugettext_lazy('Uploaded file'))
 
-    def __init__(self, maximum_megabytes, mime_types,
-                 clean_uploaded_file_callback=None,
-                 *args, **kwargs):
-        super(FileUploadForm, self).__init__(*args, **kwargs)
+    def __init__(self, maximum_megabytes, mime_types, *args, **kwargs):
+        super(FileUploadFormBase, self).__init__(*args, **kwargs)
 
         self.max_file_size = maximum_megabytes * 1024**2
         self.mime_types = mime_types
-        self.clean_uploaded_file_callback = clean_uploaded_file_callback
-        if self.clean_uploaded_file_callback is not None:
-            assert callable(self.clean_uploaded_file_callback)
-
-        # 'accept=' doesn't work right for at least application/octet-stream.
-        # We'll start with a whitelist.
-        allow_accept = False
-        if mime_types == ["application/pdf"]:
-            allow_accept = True
 
         field_kwargs = {}
-        if allow_accept:
-            field_kwargs["accept"] = ",".join(mime_types)
+        accepting_mime_types = self.get_accepting_types(mime_types)
+        if accepting_mime_types:
+            field_kwargs["accept"] = ",".join(accepting_mime_types)
 
         self.helper.layout = Layout(
                 Field("uploaded_file", **field_kwargs))
+
+    @classmethod
+    def get_accepting_types(cls, mime_types):
+        return []
 
     def clean_uploaded_file(self):
         uploaded_file = self.cleaned_data['uploaded_file']
@@ -91,12 +85,27 @@ class FileUploadForm(StyledForm):
                     % {'allowedsize': filesizeformat(self.max_file_size),
                         'uploadedsize': filesizeformat(uploaded_file.size)})
 
-        if self.clean_uploaded_file_callback:
-            uploaded_file = self.clean_uploaded_file_callback(uploaded_file)
+        return uploaded_file
 
-            # Ensure the callback returns the uploaded file.
-            assert uploaded_file is not None, \
-                "The callback should return the uploaded_file"
+
+class FileUploadForm(FileUploadFormBase):
+    @classmethod
+    def get_accepting_types(cls, mime_types):
+        # 'accept=' doesn't work right for at least application/octet-stream.
+        # We'll start with a whitelist.
+        allow_accept = False
+        if mime_types == ["application/pdf"]:
+            allow_accept = True
+
+        if allow_accept:
+            return mime_types
+
+    def clean_uploaded_file(self):
+        uploaded_file = super(FileUploadForm, self).clean_uploaded_file()
+
+        if self.mime_types is not None and self.mime_types == ["application/pdf"]:
+            if uploaded_file.read()[:4] != b"%PDF":
+                raise forms.ValidationError(_("Uploaded file is not a PDF."))
 
         return uploaded_file
 
@@ -111,6 +120,10 @@ class FileUploadQuestionBase(PageBaseWithTitle, PageBaseWithValue,
     @property
     def file_extension(self):
         return None
+
+    @property
+    def form_class(self):
+        raise NotImplementedError
 
     form_template = "course/file-upload-form.html"
     default_download_name = None  # type: Optional[Text]
@@ -175,22 +188,16 @@ class FileUploadQuestionBase(PageBaseWithTitle, PageBaseWithValue,
 
     def make_form(self, page_context, page_data,
             answer_data, page_behavior):
-        form = FileUploadForm(
+        form = self.form_class(
                 self.page_desc.maximum_megabytes, self.mime_types)
         return form
 
     def process_form_post(self, page_context, page_data, post_data, files_data,
             page_behavior):
-        form = FileUploadForm(
+        form = self.form_class(
                 self.page_desc.maximum_megabytes, self.mime_types,
-                self.form_clean_uploaded_file_callback,
                 post_data, files_data)
         return form
-
-    def form_clean_uploaded_file_callback(self, uploaded_file):
-        """ This is used to handle uploaded_file field clean.
-        """
-        return uploaded_file
 
     def get_form_to_html_context(self, request, page_context, form, answer_data):
         ctx = {"form": form}
@@ -312,6 +319,8 @@ class FileUploadQuestion(FileUploadQuestionBase):
             "application/octet-stream",
             ]
 
+    form_class = FileUploadForm
+
     def __init__(self, vctx, location, page_desc):
         super(FileUploadQuestion, self).__init__(vctx, location, page_desc)
 
@@ -330,17 +339,30 @@ class FileUploadQuestion(FileUploadQuestionBase):
         return super(FileUploadQuestion, self).required_attrs() + (
                 ("mime_types", list),)
 
-    def form_clean_uploaded_file_callback(self, uploaded_file):
-        uploaded_file = super(
-            FileUploadQuestion, self
-        ).form_clean_uploaded_file_callback(uploaded_file)
-        if self.mime_types is not None and self.mime_types == ["application/pdf"]:
-            if uploaded_file.read()[:4] != b"%PDF":
-                raise forms.ValidationError(_("Uploaded file is not a PDF."))
-        return uploaded_file
-
-
 # }}}
+
+# {{{ Jupyter notebook upload question
+
+
+class JupyterNotebookUploadForm(FileUploadFormBase):
+    def clean_uploaded_file(self):
+        uploaded_file = super(
+            JupyterNotebookUploadForm, self).clean_uploaded_file()
+        import sys
+        try:
+            if sys.version_info < (3, 6):
+                # nbformat.reader.read is assuming Python 3.6+
+                import json
+                json.loads(uploaded_file.read().decode('utf-8'))
+            else:
+                from nbformat.reader import read
+                read(uploaded_file)
+        except Exception:
+            tp, e, _ = sys.exc_info()
+            raise forms.ValidationError(
+                "%(err_type)s: %(err_str)s"
+                % {"err_type": tp.__name__, "err_str": str(e)})
+        return uploaded_file
 
 
 class JupyterNotebookUploadQuestion(FileUploadQuestionBase):
@@ -408,6 +430,7 @@ class JupyterNotebookUploadQuestion(FileUploadQuestionBase):
     file_extension = ".ipynb"
     form_template = "course/file-upload-form-with-ipynb-preview.html"
     default_download_name = "my_notebook.ipynb"
+    form_class = JupyterNotebookUploadForm
 
     def files_data_to_answer_data(self, files_data):
         buf = self._get_uploaded_file_buf(files_data)
@@ -432,25 +455,6 @@ class JupyterNotebookUploadQuestion(FileUploadQuestionBase):
 
         return ctx
 
-    def form_clean_uploaded_file_callback(self, uploaded_file):
-        uploaded_file = super(
-            JupyterNotebookUploadQuestion, self
-        ).form_clean_uploaded_file_callback(uploaded_file)
-        import sys
-        from nbformat.reader import read
-        try:
-            if sys.version_info < (3, 6):
-                # nbformat.reader.read is assuming Python 3.6+
-                import json
-                json.loads(uploaded_file.read().decode('utf-8'))
-            else:
-                read(uploaded_file)
-        except Exception as e:
-            tp, e, _ = sys.exc_info()
-            raise forms.ValidationError(
-                "%(err_type)s: %(err_str)s"
-                % {"err_type": tp.__name__, "err_str": str(e)})
-        return uploaded_file
-
+# }}}
 
 # vim: foldmethod=marker
