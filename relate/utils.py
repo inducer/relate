@@ -34,8 +34,8 @@ import dulwich.repo
 
 from typing import Union
 
-if False:
-    from typing import Text, List, Dict, Tuple, Optional, Any  # noqa
+from typing import Text, List, Dict, Tuple, Optional, Any, TYPE_CHECKING  # noqa
+if TYPE_CHECKING:
     from django.http import HttpRequest  # noqa
 
 

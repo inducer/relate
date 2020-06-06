@@ -88,8 +88,8 @@ from relate.utils import retry_transaction_decorator
 
 # {{{ mypy
 
-if False:
-    from typing import Any, Optional, Iterable, Sequence, Tuple, Text, List, FrozenSet  # noqa
+from typing import Any, Optional, Iterable, Sequence, Tuple, Text, List, FrozenSet, TYPE_CHECKING  # noqa
+if TYPE_CHECKING:
     import datetime  # noqa
     from course.models import Course  # noqa
     from accounts.models import User  # noqa

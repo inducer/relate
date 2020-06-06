@@ -57,9 +57,10 @@ from course.page.base import (  # noqa
 
 # {{{ mypy
 
-if False:
-    from typing import (  # noqa
-        Tuple, List, Iterable, Any, Optional, Union, Dict, FrozenSet, Text)
+from typing import (  # noqa
+    Tuple, List, Iterable, Any, Optional, Union, Dict, FrozenSet, Text,
+    TYPE_CHECKING)
+if TYPE_CHECKING:
     from relate.utils import Repo_ish  # noqa
     from course.models import (  # noqa
             Course,

@@ -44,8 +44,7 @@ from course.content import FlowPageDesc
 
 # {{{ for mypy
 
-if False:
-    from typing import Text, Optional, Any, Iterable, Dict  # noqa
+from typing import Text, Optional, Any, Iterable, Dict  # noqa
 
 # }}}
 

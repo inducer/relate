@@ -80,8 +80,8 @@ from typing import cast
 
 # {{{ for mypy
 
-if False:
-    from typing import Tuple, List, Text, Any, Dict, Union, Optional  # noqa
+from typing import Tuple, List, Text, Any, Dict, Union, Optional, TYPE_CHECKING  # noqa
+if TYPE_CHECKING:
     from dulwich.client import GitClient  # noqa
     from dulwich.objects import Commit  # noqa
     import dulwich.web # noqa

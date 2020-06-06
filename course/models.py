@@ -56,8 +56,8 @@ from course.constants import (  # noqa
 
 # {{{ mypy
 
-if False:
-    from typing import List, Dict, Any, Optional, Text, Iterable, Tuple, FrozenSet  # noqa
+from typing import List, Dict, Any, Optional, Text, Iterable, Tuple, FrozenSet, TYPE_CHECKING  # noqa
+if TYPE_CHECKING:
     from course.content import FlowDesc  # noqa
     import datetime # noqa
     from course.page.base import AnswerFeedback  # noqa: F401

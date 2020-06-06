@@ -59,9 +59,9 @@ from relate.utils import StyledForm, string_concat
 
 # {{{ mypy
 
-if False:
+from typing import Optional, Text, Tuple, FrozenSet, TYPE_CHECKING  # noqa
+if TYPE_CHECKING:
     import datetime  # noqa
-    from typing import Optional, Text, Tuple, FrozenSet  # noqa
 
 # }}}
 

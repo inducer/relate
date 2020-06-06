@@ -85,9 +85,8 @@ from course.utils import (  # noqa
 
 # {{{ for mypy
 
-if False:
-    from typing import Tuple, Text, Any, Iterable, Dict, Optional  # noqa
-
+from typing import Tuple, Text, Any, Iterable, Dict, Optional, TYPE_CHECKING  # noqa
+if TYPE_CHECKING:
     from course.content import (  # noqa
         FlowDesc,
         )

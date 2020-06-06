@@ -42,8 +42,7 @@ import re
 
 # {{{ for mypy
 
-if False:
-    from typing import Tuple, Text, Optional, Any, Iterable, List  # noqa
+from typing import Tuple, Text, Optional, Any, Iterable, List  # noqa
 
 # }}}
 

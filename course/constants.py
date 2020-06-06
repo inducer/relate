@@ -24,8 +24,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-if False:
-    import typing  # noqa
+import typing  # noqa
 
 from django.utils.translation import pgettext_lazy, ugettext
 # Allow 10x extra credit at the very most.

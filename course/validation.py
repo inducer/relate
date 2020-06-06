@@ -42,8 +42,8 @@ from relate.utils import Struct, string_concat
 
 # {{{ mypy
 
-if False:
-    from typing import Any, Tuple, Optional, Text, List  # noqa
+from typing import Any, Tuple, Optional, Text, List, TYPE_CHECKING  # noqa
+if TYPE_CHECKING:
     from relate.utils import Repo_ish  # noqa
     from course.models import Course  # noqa
 
