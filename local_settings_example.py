@@ -87,7 +87,7 @@ CELERY_BROKER_URL = 'amqp://'
 # directory of where you put the Relate source tree.
 
 #GIT_ROOT = "/some/where"
-GIT_ROOT = "git-roots"
+GIT_ROOT = ".."
 
 # }}}
 
