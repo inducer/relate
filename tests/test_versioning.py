@@ -314,7 +314,9 @@ class ParamikoSSHVendorTest(unittest.TestCase):
         self.assertTrue(any(
             msg in str(cm.exception) for msg in expected_error_msgs))
 
-        expected_error_msg = "No existing session"
+        # Hi Andreas, before you start changing these: run the tests
+        # with your Yubikey unplugged.
+        expected_error_msg = "Bad authentication type"
 
         with self.assertRaises(SSHException) as cm:
             self.ssh_vendor.run_command(
