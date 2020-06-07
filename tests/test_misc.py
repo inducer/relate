@@ -450,11 +450,14 @@ class RelateSiteNameTest(SingleCourseTestMixin, LocmemBackendTestsMixin, TestCas
         # email
         with override_settings(RELATE_REGISTRATION_ENABLED=True, USE_I18N=True):
             # render() is mocked so as to count string translated in email rendering
-            with mock.patch(REAL_TRANSLATION_FUNCTION_TO_MOCK) as mock_gettext,\
-                    mock.patch("course.auth._") as mock_gettext,\
-                    mock.patch('course.auth.messages'),\
+            with \
+                    mock.patch(REAL_TRANSLATION_FUNCTION_TO_MOCK) \
+                    as mock_gettext_global, \
+                    mock.patch("course.auth._") as mock_gettext_auth, \
+                    mock.patch('course.auth.messages'), \
                     mock.patch('course.auth.render'):
-                mock_gettext.return_value = "foo"
+                mock_gettext_global.return_value = "foo"
+                mock_gettext_auth.return_value = "foo"
                 with self.temporarily_switch_to_user(None):
                     resp = self.post_sign_up(
                         data={"username": "Jack", "email": "jack@example.com"},
@@ -465,11 +468,13 @@ class RelateSiteNameTest(SingleCourseTestMixin, LocmemBackendTestsMixin, TestCas
 
                     # In the view, tranlating RELATE for email title.
                     self.assertEqual(
-                        self.get_translation_count(mock_gettext, my_site_name), 1)
+                        self.get_translation_count(
+                            mock_gettext_auth, my_site_name), 1)
 
                     # Three RELATE in the email template
                     self.assertEqual(
-                        self.get_translation_count(mock_gettext, my_site_name), 3)
+                        self.get_translation_count(
+                            mock_gettext_global, my_site_name), 3)
 
     @override_settings()
     def test_default_configure(self):
