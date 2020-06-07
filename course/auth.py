@@ -1035,6 +1035,8 @@ def user_profile(request):
 def saml2_update_user_hook(sender, instance, attributes, user_modified, **kwargs):
     attr_mapping = getattr(settings, "SAML_ATTRIBUTE_MAPPING", {})
 
+    mod = False
+
     mapped_attributes = {
             mapped_key: val
             for key, val in attributes.items()
