@@ -1,4 +1,4 @@
-django>=2.2.10,<3
+django>=2.2.13,<3
 
 # Automatically renders Django forms in a pretty, Bootstrap-compatible way.
 django-crispy-forms>=1.5.1
