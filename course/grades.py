@@ -1169,8 +1169,8 @@ def find_participant_from_user_attr(course, attr_type, attr_str):
     matches_count = matches.count()
     if not matches_count or matches_count > 1:
         from django.contrib.auth import get_user_model
-        from django.utils.encoding import force_text
-        attr_verbose_name = force_text(
+        from django.utils.encoding import force_str
+        attr_verbose_name = force_str(
             get_user_model()._meta.get_field(attr_type).verbose_name)
 
         map_dict = {"user_attr": attr_verbose_name, "user_attr_str": attr_str}
