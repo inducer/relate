@@ -353,7 +353,7 @@ class AccountsAdminTest(AdminTestMixin, TestCase):
                              staff_count + 1)
             row = LogEntry.objects.latest('id')
             self.assertIn("Changed", row.get_change_message())
-            self.assertIn("is_staff", row.get_change_message())
+            self.assertIn("Staff status", row.get_change_message())
 
             data = self.get_user_data(user)
             data["is_superuser"] = True
@@ -362,7 +362,7 @@ class AccountsAdminTest(AdminTestMixin, TestCase):
                              superuser_count + 1)
             row = LogEntry.objects.latest('id')
             self.assertIn("Changed", row.get_change_message())
-            self.assertIn("is_superuser", row.get_change_message())
+            self.assertIn("Staff status", row.get_change_message())
 
     def test_set_superuser_and_staff_by_staff(self):
         user = self.course1_student_participation2.user
@@ -388,7 +388,7 @@ class AccountsAdminTest(AdminTestMixin, TestCase):
             self.assertEqual(User.objects.filter(is_superuser=True).count(),
                              superuser_count)
             row = LogEntry.objects.latest('id')
-            self.assertNotIn("is_superuser", row.get_change_message())
+            self.assertNotIn("Staff status", row.get_change_message())
 
     def test_add_permissions_by_superuser(self):
         user = self.course1_student_participation2.user
@@ -401,7 +401,7 @@ class AccountsAdminTest(AdminTestMixin, TestCase):
 
             row = LogEntry.objects.latest('id')
             self.assertIn("Changed", row.get_change_message())
-            self.assertIn("user_permissions",  row.get_change_message())
+            self.assertIn("User permissions",  row.get_change_message())
 
     def test_add_permissions_by_staff(self):
         user = self.course1_student_participation2.user
@@ -416,6 +416,6 @@ class AccountsAdminTest(AdminTestMixin, TestCase):
             self.assertIn("Changed", row.get_change_message())
 
             # no change was made to user_permissions
-            self.assertNotIn("user_permissions", row.get_change_message())
+            self.assertNotIn("User permissions", row.get_change_message())
 
 # vim: foldmethod=marker

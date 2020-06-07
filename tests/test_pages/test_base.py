@@ -675,7 +675,6 @@ class PageBaseWithTitleTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
                 as mock_markup_body_for_title,\
                 mock.patch("warnings.warn") as mock_warn:
             mock_markup_body_for_title.side_effect = NotImplementedError
-            mock_warn.side_effect = [None, None, None]
 
             markdown = (
                     PAGE_WITH_TITLE_MARKDOWN_PATTERN
@@ -689,7 +688,7 @@ class PageBaseWithTitleTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
                 resp, PAGE_ERRORS,
                 "no title found in body or title attribute")
 
-            # There are other warnings besides this expected warning
+            # There may be other warnings besides this expected warning
             self.assertTrue(mock_warn.call_count >= 1)
             warned_with_expected_msg = False
             expected_warn_msg = ("PageBaseWithTitle subclass 'Page' does not "
