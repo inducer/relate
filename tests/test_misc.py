@@ -31,7 +31,7 @@ from django.test import TestCase, RequestFactory
 from django.test.utils import override_settings
 from django.utils.formats import date_format, get_format
 from django.utils.dateformat import format
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from django.core.management import CommandError
 
 from course.models import Course
@@ -451,7 +451,7 @@ class RelateSiteNameTest(SingleCourseTestMixin, LocmemBackendTestsMixin, TestCas
         with override_settings(RELATE_REGISTRATION_ENABLED=True, USE_I18N=True):
             # render() is mocked so as to count string translated in email rendering
             with mock.patch(REAL_TRANSLATION_FUNCTION_TO_MOCK) as mock_gettext,\
-                    mock.patch("course.auth._") as mock_ugettext,\
+                    mock.patch("course.auth._") as mock_gettext,\
                     mock.patch('course.auth.messages'),\
                     mock.patch('course.auth.render'):
                 mock_gettext.return_value = "foo"
@@ -465,7 +465,7 @@ class RelateSiteNameTest(SingleCourseTestMixin, LocmemBackendTestsMixin, TestCas
 
                     # In the view, tranlating RELATE for email title.
                     self.assertEqual(
-                        self.get_translation_count(mock_ugettext, my_site_name), 1)
+                        self.get_translation_count(mock_gettext, my_site_name), 1)
 
                     # Three RELATE in the email template
                     self.assertEqual(

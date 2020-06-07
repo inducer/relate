@@ -28,7 +28,7 @@ from course.validation import ValidationError
 import django.forms as forms
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.html import escape
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from django.conf import settings
 
 from relate.utils import StyledForm, string_concat

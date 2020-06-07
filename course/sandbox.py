@@ -30,7 +30,7 @@ import django.forms as forms
 from django.utils.safestring import mark_safe
 from django.contrib import messages  # noqa
 from django.core.exceptions import PermissionDenied
-from django.utils.translation import ugettext, ugettext_lazy as _
+from django.utils.translation import gettext, gettext_lazy as _
 from django import http  # noqa
 
 from crispy_forms.layout import Submit
@@ -84,7 +84,7 @@ class SandboxForm(forms.Form):
                 help_text=mark_safe(
                     help_text
                     + " "
-                    + ugettext("Press Alt/Cmd+(Shift+)P to preview.")
+                    + gettext("Press Alt/Cmd+(Shift+)P to preview.")
                     + " "
                     + cm_help_text),
                 label=_("Content"))
@@ -114,7 +114,7 @@ def view_markup_sandbox(pctx):
     preview_text = ""
 
     def make_form(data=None):
-        help_text = (ugettext("Enter <a href=\"http://documen.tician.de/"
+        help_text = (gettext("Enter <a href=\"http://documen.tician.de/"
                 "relate/content.html#relate-markup\">"
                 "RELATE markup</a>."))
         return SandboxForm(
@@ -136,7 +136,7 @@ def view_markup_sandbox(pctx):
                 tp, e, _ = sys.exc_info()
 
                 messages.add_message(pctx.request, messages.ERROR,
-                        ugettext("Markup failed to render")
+                        gettext("Markup failed to render")
                         + ": "
                         + "%(err_type)s: %(err_str)s" % {
                             "err_type": tp.__name__, "err_str": e})
@@ -234,7 +234,7 @@ def view_page_sandbox(pctx):
         # type: (Optional[Text]) -> PageSandboxForm
         return PageSandboxForm(
                 page_source, "yaml", request.user.editor_mode,
-                ugettext("Enter YAML markup for a flow page."),
+                gettext("Enter YAML markup for a flow page."),
                 data)
 
     if is_preview_post:
@@ -273,7 +273,7 @@ def view_page_sandbox(pctx):
                 tp, e, _ = sys.exc_info()
 
                 page_errors = (
-                        ugettext("Page failed to load/validate")
+                        gettext("Page failed to load/validate")
                         + ": "
                         + "%(err_type)s: %(err_str)s" % {
                             "err_type": tp.__name__, "err_str": e})  # type: ignore
@@ -320,7 +320,7 @@ def view_page_sandbox(pctx):
             tp, e, _ = sys.exc_info()
 
             page_errors = (
-                    ugettext("Page failed to load/validate")
+                    gettext("Page failed to load/validate")
                     + ": "
                     + "%(err_type)s: %(err_str)s" % {
                         "err_type": tp.__name__, "err_str": e})  # type: ignore
@@ -394,7 +394,7 @@ def view_page_sandbox(pctx):
                     tp, e, _ = sys.exc_info()
 
                     page_errors = (
-                            ugettext("Page failed to load/validate "
+                            gettext("Page failed to load/validate "
                                 "(change page ID to clear faults)")
                             + ": "
                             + "%(err_type)s: %(err_str)s" % {
@@ -405,7 +405,7 @@ def view_page_sandbox(pctx):
             if page_form is not None:
                 page_form.helper.add_input(
                         Submit("submit",
-                            ugettext("Submit answer"),
+                            gettext("Submit answer"),
                             accesskey="g"))
                 page_form_html = page.form_to_html(
                         pctx.request, page_context, page_form, answer_data)

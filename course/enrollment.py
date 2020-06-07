@@ -27,7 +27,7 @@ THE SOFTWARE.
 from sys import intern
 
 from django.utils.translation import (
-        ugettext_lazy as _,
+        gettext_lazy as _,
         pgettext)
 from django.shortcuts import (  # noqa
         render, get_object_or_404, redirect)

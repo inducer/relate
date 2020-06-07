@@ -26,7 +26,7 @@ THE SOFTWARE.
 
 import typing  # noqa
 
-from django.utils.translation import pgettext_lazy, ugettext
+from django.utils.translation import pgettext_lazy, gettext
 # Allow 10x extra credit at the very most.
 MAX_EXTRA_CREDIT_FACTOR = 10
 DEFAULT_EMAIL_APPELLATION_PRIORITY_LIST = [
@@ -307,7 +307,7 @@ def is_expiration_mode_allowed(expmode, permissions):
     elif expmode == flow_session_expiration_mode.end:
         return True
     else:
-        raise ValueError(ugettext("unknown expiration mode"))
+        raise ValueError(gettext("unknown expiration mode"))
 
     return False
 

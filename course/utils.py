@@ -35,7 +35,7 @@ from django import http
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils import translation
 from django.utils.translation import (
-        ugettext as _, pgettext_lazy)
+        gettext as _, pgettext_lazy)
 from contextlib import ContextDecorator
 
 from relate.utils import string_concat

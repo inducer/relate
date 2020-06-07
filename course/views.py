@@ -39,8 +39,8 @@ from django import http
 from django.utils.safestring import mark_safe
 from django.db import transaction
 from django.utils.translation import (
-        ugettext_lazy as _,
-        ugettext,
+        gettext_lazy as _,
+        gettext,
         pgettext,
         pgettext_lazy,
         )
@@ -1213,9 +1213,9 @@ def grant_exception_stage_3(pctx, participation_id, flow_id, session_id):
                 if form.cleaned_data["due_same_as_access_expiration"]:
                     due = form.cleaned_data["access_expires"]
 
-                descr = ugettext("Granted exception")
+                descr = gettext("Granted exception")
                 if form.cleaned_data["credit_percent"] is not None:
-                    descr += string_concat(" (%.1f%% ", ugettext('credit'), ")") \
+                    descr += string_concat(" (%.1f%% ", gettext('credit'), ")") \
                             % form.cleaned_data["credit_percent"]
 
                 due_local_naive = due

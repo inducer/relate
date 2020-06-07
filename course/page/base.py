@@ -33,8 +33,8 @@ from django.forms import ValidationError as FormValidationError
 from django.utils.safestring import mark_safe
 from django.utils.functional import lazy
 from django.utils.translation import (
-        ugettext_lazy as _,
-        ugettext_noop,
+        gettext_lazy as _,
+        gettext_noop,
         )
 from django.conf import settings
 
@@ -189,29 +189,29 @@ def get_auto_feedback(correctness):
 
     if correctness is None:
         return str(
-            ugettext_noop("No information on correctness of answer."))
+            gettext_noop("No information on correctness of answer."))
 
     if correctness == 0:
-        return str(ugettext_noop("Your answer is not correct."))
+        return str(gettext_noop("Your answer is not correct."))
     elif correctness == 1:
-        return str(ugettext_noop("Your answer is correct."))
+        return str(gettext_noop("Your answer is correct."))
     elif correctness > 1:
         return str(
                 string_concat(
-                    ugettext_noop(
+                    gettext_noop(
                         "Your answer is correct and earned bonus points."),
                     " (%.1f %%)")
                 % (100*correctness))
     elif correctness > 0.5:
         return str(
                 string_concat(
-                    ugettext_noop("Your answer is mostly correct."),
+                    gettext_noop("Your answer is mostly correct."),
                     " (%.1f %%)")
                 % (100*correctness))
     else:
         return str(
                 string_concat(
-                    ugettext_noop("Your answer is somewhat correct. "),
+                    gettext_noop("Your answer is somewhat correct. "),
                     "(%.1f%%)")
                 % (100*correctness))
 
@@ -1167,7 +1167,7 @@ class PageBaseWithHumanTextFeedback(PageBase):
 
         if answer_data is None:
             return AnswerFeedback(correctness=0,
-                    feedback=ugettext_noop("No answer provided."))
+                    feedback=gettext_noop("No answer provided."))
 
         if grade_data is None:
             return None

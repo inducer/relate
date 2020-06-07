@@ -27,7 +27,7 @@ THE SOFTWARE.
 from django.contrib.auth import get_user_model
 import django.forms as forms
 from django.utils.translation import (
-        ugettext, ugettext_lazy as _, pgettext)
+        gettext, gettext_lazy as _, pgettext)
 from django.shortcuts import (  # noqa
         render, get_object_or_404, redirect)
 from django.core.exceptions import (  # noqa
@@ -280,7 +280,7 @@ class BatchIssueTicketsForm(StyledForm):
                 dependencies=("xml",),
                 interaction_mode=editor_mode)
 
-        help_text = (ugettext("Enter <a href=\"http://documen.tician.de/"
+        help_text = (gettext("Enter <a href=\"http://documen.tician.de/"
                 "relate/content.html#relate-markup\">"
                 "RELATE markup</a> containing Django template statements to render "
                 "your exam tickets. <tt>tickets</tt> contains a list of "
@@ -420,7 +420,7 @@ def batch_issue_exam_tickets(pctx):
     return render_course_page(pctx, "course/batch-exam-tickets-form.html", {
         "form": form,
         "form_text": form_text,
-        "form_description": ugettext("Batch-Issue Exam Tickets")
+        "form_description": gettext("Batch-Issue Exam Tickets")
         })
 
 # }}}

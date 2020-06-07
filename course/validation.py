@@ -31,7 +31,7 @@ import sys
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.html import escape
 from django.utils.translation import (
-        ugettext_lazy as _, ugettext)
+        gettext_lazy as _, gettext)
 from course.constants import (
         FLOW_SESSION_EXPIRATION_MODE_CHOICES,
         ATTRIBUTES_FILENAME, DEFAULT_ACCESS_KINDS,
@@ -462,7 +462,7 @@ def validate_flow_page(vctx, location, page_desc):
         raise ValidationError(
                 string_concat(
                     "%s: ",
-                    ugettext("flow page has no ID"))
+                    gettext("flow page has no ID"))
                 % location)
 
     validate_identifier(vctx, location, page_desc.id)

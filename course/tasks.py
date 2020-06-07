@@ -26,7 +26,7 @@ THE SOFTWARE.
 
 from celery import shared_task
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from django.db import transaction
 
 from course.models import (Course, FlowSession, FlowPageVisit)

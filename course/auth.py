@@ -26,7 +26,7 @@ THE SOFTWARE.
 
 import re
 from typing import cast
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from django.shortcuts import (  # noqa
         render, get_object_or_404, redirect, resolve_url)
 from django.contrib import messages

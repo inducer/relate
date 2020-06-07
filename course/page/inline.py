@@ -26,7 +26,7 @@ THE SOFTWARE.
 
 from typing import cast
 from django.utils.translation import (
-        ugettext_lazy as _, ugettext)
+        gettext_lazy as _, gettext)
 from django.utils.safestring import mark_safe
 from course.validation import validate_struct, validate_markup, ValidationError
 from course.content import remove_prefix
@@ -893,7 +893,7 @@ class InlineMultiQuestion(TextQuestionBase, PageBaseWithValue):
     def grade(self, page_context, page_data, answer_data, grade_data):
         if answer_data is None:
             return AnswerFeedback(correctness=0,
-                    feedback=ugettext("No answer provided."))
+                    feedback=gettext("No answer provided."))
 
         answer_dict = answer_data["answer"]
 
