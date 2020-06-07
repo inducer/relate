@@ -52,10 +52,11 @@ from course.page import InvalidPageData
 from course.constants import (
         participation_permission as pperm,
         )
+
 # {{{ for mypy
 
-if False:
-    from typing import Text, Any, Optional, Dict, List  # noqa
+from typing import Text, Any, Optional, Dict, List, TYPE_CHECKING  # noqa
+if TYPE_CHECKING:
     from course.models import (  # noqa
             GradingOpportunity)
     from course.utils import (  # noqa

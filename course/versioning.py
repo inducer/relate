@@ -80,8 +80,8 @@ from typing import cast
 
 # {{{ for mypy
 
-if False:
-    from typing import Tuple, List, Text, Any, Dict, Union, Optional  # noqa
+from typing import Tuple, List, Text, Any, Dict, Union, Optional, TYPE_CHECKING  # noqa
+if TYPE_CHECKING:
     from dulwich.client import GitClient  # noqa
     from dulwich.objects import Commit  # noqa
     import dulwich.web # noqa
@@ -624,8 +624,8 @@ def call_wsgi_app(
     environ['SCRIPT_NAME'] += prefix
     environ['PATH_INFO'] = environ['PATH_INFO'][len(prefix):]
 
-    headers_set = []   # type: List[Text]
-    headers_sent = []  # type: List[bool]
+    headers_set: List[Tuple[Text, Text]] = []
+    headers_sent: List[bool] = []
 
     def write(data):
         # type: (Text) -> None

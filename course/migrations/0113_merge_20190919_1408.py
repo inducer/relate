@@ -2,8 +2,7 @@
 
 from django.db import migrations
 
-if False:
-    from typing import List, Any  # noqa
+from typing import List, Any  # noqa
 
 class Migration(migrations.Migration):
 

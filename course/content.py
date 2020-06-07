@@ -59,10 +59,10 @@ else:
 
 # {{{ mypy
 
-if False:
+from typing import (  # noqa
+    Any, List, Tuple, Optional, Callable, Text, Dict, FrozenSet, TYPE_CHECKING)
+if TYPE_CHECKING:
     # for mypy
-    from typing import (  # noqa
-        Any, List, Tuple, Optional, Callable, Text, Dict, FrozenSet)
     from course.models import Course, Participation  # noqa
     import dulwich  # noqa
     from course.validation import ValidationContext  # noqa

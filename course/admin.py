@@ -47,8 +47,7 @@ from course.constants import (
         exam_ticket_states
         )
 
-if False:
-    from typing import Any, Text, Tuple  # noqa
+from typing import Any, Text, Tuple  # noqa
 
 
 # {{{ permission helpers
