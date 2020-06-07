@@ -1943,16 +1943,7 @@ class TestSaml2AttributeMapping(TestCase):
             'sn': ('last_name',),
         }
 
-        # 'mock.patch' is upset if the attribute does not already exist
-        from django.conf import settings
-        try:
-            settings.SAML_ATTRIBUTE_MAPPING
-        except AttributeError:
-            settings.SAML_ATTRIBUTE_MAPPING = {}
-
-        with mock.patch("django.conf.settings.SAML_ATTRIBUTE_MAPPING",
-                saml_attribute_mapping):
-
+        with override_settings(SAML_ATTRIBUTE_MAPPING=saml_attribute_mapping):
             user_attribute = {
                 'PrincipalName': (user.username,),
             }
