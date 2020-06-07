@@ -4,9 +4,7 @@ from __future__ import absolute_import
 Django settings for RELATE.
 """
 
-if False:
-    # for mypy
-    from typing import Callable, Any, Union, Dict  # noqa
+from typing import Callable, Any, Union, Dict  # noqa
 
 # Do not change this file. All these settings can be overridden in
 # local_settings.py.

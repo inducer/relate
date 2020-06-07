@@ -60,8 +60,8 @@ from course.constants import (
 
 # {{{ for mypy
 
-if False:
-    from typing import Tuple, Text, Optional, Any, Iterable, List, Union  # noqa
+from typing import Tuple, Text, Optional, Any, Iterable, List, Union, TYPE_CHECKING  # noqa
+if TYPE_CHECKING:
     from course.utils import CoursePageContext  # noqa
     from course.content import FlowDesc  # noqa
     from course.models import Course, FlowPageVisitGrade  # noqa

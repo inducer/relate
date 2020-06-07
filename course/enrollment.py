@@ -70,8 +70,8 @@ from pytools.lex import RE as REBase  # noqa
 
 # {{{ for mypy
 
-if False:
-    from typing import Any, Tuple, Text, Optional, List, FrozenSet  # noqa
+from typing import Any, Tuple, Text, Optional, List, FrozenSet, TYPE_CHECKING  # noqa
+if TYPE_CHECKING:
     from course.utils import CoursePageContext  # noqa
     import accounts.models  # noqa
 

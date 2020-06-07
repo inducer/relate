@@ -40,8 +40,8 @@ from django.conf import settings
 
 # {{{ mypy
 
-if False:
-    from typing import Text, Optional, Any, Tuple, Dict, Callable, FrozenSet, Union  # noqa
+from typing import Text, Optional, Any, Tuple, Dict, Callable, FrozenSet, Union, TYPE_CHECKING  # noqa
+if TYPE_CHECKING:
     from django import http  # noqa
     from course.models import (  # noqa
             Course,

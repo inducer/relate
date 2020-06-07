@@ -67,8 +67,8 @@ from course.utils import render_course_page, course_view
 from relate.utils import StyledForm, StyledModelForm, string_concat, get_site_name
 from django_select2.forms import ModelSelect2Widget
 
-if False:
-    from typing import Any, Text, Optional, Dict, Union, Tuple  # noqa
+from typing import Any, Text, Optional, Dict, Union, Tuple, TYPE_CHECKING  # noqa
+if TYPE_CHECKING:
     from django.db.models import query  # noqa
     import datetime # noqa
 
