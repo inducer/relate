@@ -1033,10 +1033,9 @@ def user_profile(request):
 
 @receiver(saml2_pre_user_save)
 def saml2_update_user_hook(sender, instance, attributes, user_modified, **kwargs):
-    if not user_modified:
-        return False
-
     attr_mapping = getattr(settings, "SAML_ATTRIBUTE_MAPPING", {})
+
+    mod = False
 
     mapped_attributes = {
             mapped_key: val
