@@ -353,7 +353,7 @@ class ResponseContextMixin(object):
         return m.group(1)
 
     def select2_get_request(self, field_id, term=None,
-                            select2_urlname='django_select2-json'):
+                            select2_urlname="django_select2:auto-json"):
 
         select2_url = reverse(select2_urlname)
         params = {"field_id": field_id}

@@ -285,15 +285,16 @@ class ParamikoSSHVendorTest(unittest.TestCase):
         return data
 
     def test_invalid(self):
-        from paramiko.ssh_exception import AuthenticationException
+        from paramiko.ssh_exception import SSHException
 
         expected_error_msgs = [
                 "Authentication failed",
+                "key cannot be used for signing",
 
                 # Raised when run in a user account that has
                 # an (encrypted) key file in $HOME/.ssh.
                 "Private key file is encrypted"]
-        with self.assertRaises(AuthenticationException) as cm:
+        with self.assertRaises(SSHException) as cm:
             # This is also used to ensure paramiko.client.MissingHostKeyPolicy
             # is added to the client
             self.ssh_vendor.run_command(
@@ -304,7 +305,7 @@ class ParamikoSSHVendorTest(unittest.TestCase):
         self.assertTrue(any(
             msg in str(cm.exception) for msg in expected_error_msgs))
 
-        with self.assertRaises(AuthenticationException) as cm:
+        with self.assertRaises(SSHException) as cm:
             self.ssh_vendor.run_command(
                 host="github.com",
                 command="git-upload-pack '/bar/baz'",
@@ -313,9 +314,9 @@ class ParamikoSSHVendorTest(unittest.TestCase):
         self.assertTrue(any(
             msg in str(cm.exception) for msg in expected_error_msgs))
 
-        expected_error_msg = "Bad authentication type"
+        expected_error_msg = "No existing session"
 
-        with self.assertRaises(AuthenticationException) as cm:
+        with self.assertRaises(SSHException) as cm:
             self.ssh_vendor.run_command(
                 host="github.com",
                 command="git-upload-pack '/bar/baz'",

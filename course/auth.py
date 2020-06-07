@@ -50,10 +50,11 @@ from django.views.decorators.debug import sensitive_post_parameters
 from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_protect
 from django import http  # noqa
+from django.dispatch import receiver
+
+from djangosaml2.signals import pre_user_save as saml2_pre_user_save
 
 from bootstrap3_datetime.widgets import DateTimePicker
-
-from djangosaml2.backends import Saml2Backend as Saml2BackendBase
 
 from course.constants import (
         user_status,
@@ -1030,27 +1031,35 @@ def user_profile(request):
 # This ticks the 'verified' boxes once we've receive attribute assertions
 # through SAML2.
 
-class Saml2Backend(Saml2BackendBase):
-    def _set_attribute(self, obj, attr, value):
-        mod = super(Saml2Backend, self)._set_attribute(obj, attr, value)
+@receiver(saml2_pre_user_save)
+def saml2_update_user_hook(sender, instance, attributes, user_modified, **kwargs):
+    if not user_modified:
+        return False
 
-        if attr == "institutional_id":
-            if not obj.institutional_id_verified:
-                obj.institutional_id_verified = True
-                mod = True
+    attr_mapping = getattr(settings, "SAML_ATTRIBUTE_MAPPING", {})
 
-        if attr in ["first_name", "last_name"]:
-            if not obj.name_verified:
-                obj.name_verified = True
-                mod = True
+    mapped_attributes = {
+            mapped_key: val
+            for key, val in attributes.items()
+            for mapped_key in attr_mapping.get(key, ())}
 
-        if attr == "email":
-            from course.constants import user_status
-            if obj.status != user_status.active:
-                obj.status = user_status.active
-                mod = True
+    if "institutional_id" in mapped_attributes:
+        if not instance.institutional_id_verified:
+            instance.institutional_id_verified = True
+            mod = True
 
-        return mod
+    if "first_name" in mapped_attributes and "last_name" in mapped_attributes:
+        if not instance.name_verified:
+            instance.name_verified = True
+            mod = True
+
+    if "email" in mapped_attributes:
+        from course.constants import user_status
+        if instance.status != user_status.active:
+            instance.status = user_status.active
+            mod = True
+
+    return mod
 
 # }}}
 

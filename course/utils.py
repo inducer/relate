@@ -36,7 +36,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.utils import translation
 from django.utils.translation import (
         ugettext as _, pgettext_lazy)
-from django.utils.decorators import ContextDecorator
+from contextlib import ContextDecorator
 
 from relate.utils import string_concat
 from course.content import (
