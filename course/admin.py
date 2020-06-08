@@ -23,7 +23,7 @@ THE SOFTWARE.
 """
 
 from django.utils.translation import (
-        ugettext_lazy as _, pgettext)
+        gettext_lazy as _, pgettext)
 from django.contrib import admin
 
 from course.models import (

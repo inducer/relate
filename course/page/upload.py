@@ -26,7 +26,7 @@ THE SOFTWARE.
 
 
 import django.forms as forms
-from django.utils.translation import ugettext as _, ugettext_lazy
+from django.utils.translation import gettext as _, gettext_lazy
 
 from course.page.base import (
         PageBaseWithTitle, PageBaseWithValue, PageBaseWithHumanTextFeedback,
@@ -44,7 +44,7 @@ from crispy_forms.layout import Layout, Field
 class FileUploadForm(StyledForm):
     show_save_button = False
     uploaded_file = forms.FileField(required=True,
-            label=ugettext_lazy('Uploaded file'))
+            label=gettext_lazy('Uploaded file'))
 
     def __init__(self, maximum_megabytes, mime_types, *args, **kwargs):
         super(FileUploadForm, self).__init__(*args, **kwargs)

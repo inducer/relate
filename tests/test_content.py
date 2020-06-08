@@ -261,8 +261,8 @@ def strip_nbsp(s):
     """
     Returns the given HTML with '&nbsp;' (introduced by nbconvert) stripped
     """
-    from django.utils.encoding import force_text
-    return force_text(s).replace('&nbsp;', '').replace(u'\xa0', '')
+    from django.utils.encoding import force_str
+    return force_str(s).replace('&nbsp;', '').replace(u'\xa0', '')
 
 
 def get_nb_html_from_response(response):

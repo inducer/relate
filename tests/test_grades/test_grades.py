@@ -148,8 +148,8 @@ class GradesTestMixin(SingleCoursePageTestMixin, MockAddMessageMixing):
         # targeting stringify_state
         state_string = self.get_gc_stringify_state()
 
-        from django.utils.encoding import force_text
-        self.assertEqual(force_text(state_string), expected_state_string)
+        from django.utils.encoding import force_str
+        self.assertEqual(force_str(state_string), expected_state_string)
 
     def assertGradeChangeMachineReadableStateEqual(self, expected_state_string=None):  # noqa
         # targeting stringify_machine_readable_state

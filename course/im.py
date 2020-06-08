@@ -25,7 +25,7 @@ THE SOFTWARE.
 """
 
 from django.utils.translation import (
-        ugettext as _, pgettext_lazy)
+        gettext as _, pgettext_lazy)
 from django.shortcuts import (  # noqa
         render, get_object_or_404, redirect)
 from django.contrib import messages  # noqa

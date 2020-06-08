@@ -27,7 +27,7 @@ THE SOFTWARE.
 import django.forms as forms
 from django.utils.safestring import mark_safe
 from django.utils.translation import (
-        ugettext_lazy as _, ugettext)
+        gettext_lazy as _, gettext)
 
 from relate.utils import StyledForm, string_concat
 from course.page.base import (
@@ -213,7 +213,7 @@ class ChoiceQuestionBase(PageBaseWithTitle, PageBaseWithValue):
                 or (set(page_data["permutation"])
                     != set(range(len(self.choices))))):
             from course.page import InvalidPageData
-            raise InvalidPageData(ugettext(
+            raise InvalidPageData(gettext(
                 "existing choice permutation not "
                 "suitable for number of choices in question"))
 
@@ -361,7 +361,7 @@ class ChoiceQuestion(ChoiceQuestionBase):
     def grade(self, page_context, page_data, answer_data, grade_data):
         if answer_data is None:
             return AnswerFeedback(correctness=0,
-                    feedback=ugettext("No answer provided."))
+                    feedback=gettext("No answer provided."))
 
         permutation = page_data["permutation"]
         choice = answer_data["choice"]
@@ -588,7 +588,7 @@ class MultipleChoiceQuestion(ChoiceQuestionBase):
     def grade(self, page_context, page_data, answer_data, grade_data):
         if answer_data is None:
             return AnswerFeedback(correctness=0,
-                    feedback=ugettext("No answer provided."))
+                    feedback=gettext("No answer provided."))
 
         permutation = page_data["permutation"]
         choice = answer_data["choice"]

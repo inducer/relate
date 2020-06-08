@@ -25,7 +25,7 @@ THE SOFTWARE.
 """
 
 
-from django.utils.translation import ugettext as _, pgettext
+from django.utils.translation import gettext as _, pgettext
 from django.shortcuts import (  # noqa
         render, get_object_or_404, redirect)
 from django.contrib.auth.decorators import login_required

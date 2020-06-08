@@ -29,7 +29,7 @@ from django.utils.timezone import now, timedelta
 import factory
 from factory import fuzzy
 from django.contrib.auth import get_user_model
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from course import models
 from course import constants

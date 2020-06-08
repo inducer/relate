@@ -31,7 +31,7 @@ from django.utils.timezone import now
 from django.urls import reverse
 from django.core.exceptions import ValidationError, ObjectDoesNotExist
 from django.utils.translation import (
-        ugettext_lazy as _, pgettext_lazy)
+        gettext_lazy as _, pgettext_lazy)
 from django.core.validators import RegexValidator
 from django.db.models.signals import post_save
 from django.dispatch import receiver

@@ -25,7 +25,7 @@ THE SOFTWARE.
 """
 
 from django.utils.translation import (
-        ugettext_lazy as _, pgettext_lazy)
+        gettext_lazy as _, pgettext_lazy)
 from django.contrib.auth.decorators import login_required
 from course.utils import course_view, render_course_page
 from django.core.exceptions import (

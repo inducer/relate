@@ -37,8 +37,8 @@ import django.forms as forms
 from django.contrib.auth.decorators import login_required, permission_required
 from django.core.exceptions import (PermissionDenied, SuspiciousOperation)
 from django.utils.translation import (
-        ugettext_lazy as _,
-        ugettext,
+        gettext_lazy as _,
+        gettext,
         pgettext,
         pgettext_lazy,
         )
@@ -266,7 +266,7 @@ def set_up_new_course(request):
                         force_remove_path(repo_path)
                     except OSError:
                         messages.add_message(request, messages.WARNING,
-                                ugettext("Failed to delete unused "
+                                gettext("Failed to delete unused "
                                 "repository directory '%s'.")
                                 % repo_path)
 
@@ -591,7 +591,7 @@ def update_course(pctx):
     return render_course_page(pctx, "course/generic-course-form.html", {
         "form": form,
         "form_text": form_text,
-        "form_description": ugettext("Update Course Revision"),
+        "form_description": gettext("Update Course Revision"),
     })
 
 # }}}

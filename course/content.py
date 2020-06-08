@@ -27,7 +27,7 @@ THE SOFTWARE.
 from typing import cast, Union, Text
 
 from django.conf import settings
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 import os
 import re

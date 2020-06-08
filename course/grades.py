@@ -29,7 +29,7 @@ from decimal import Decimal
 from typing import cast
 
 from django.utils.translation import (
-        ugettext_lazy as _, pgettext_lazy, ugettext)
+        gettext_lazy as _, pgettext_lazy, gettext)
 from django.shortcuts import (  # noqa
         render, redirect, get_object_or_404)
 from django.contrib import messages  # noqa
@@ -748,7 +748,7 @@ def view_reopen_session(pctx, flow_session_id, opportunity_id):
             now_datetime = local_now()
 
             session.append_comment(
-                    ugettext("Session reopened at %(now)s by %(user)s, "
+                    gettext("Session reopened at %(now)s by %(user)s, "
                         "previous completion time was '%(completion_time)s': "
                         "%(comment)s.") % {
                             "now": format_datetime_local(now_datetime),
@@ -1169,8 +1169,8 @@ def find_participant_from_user_attr(course, attr_type, attr_str):
     matches_count = matches.count()
     if not matches_count or matches_count > 1:
         from django.contrib.auth import get_user_model
-        from django.utils.encoding import force_text
-        attr_verbose_name = force_text(
+        from django.utils.encoding import force_str
+        attr_verbose_name = force_str(
             get_user_model()._meta.get_field(attr_type).verbose_name)
 
         map_dict = {"user_attr": attr_verbose_name, "user_attr_str": attr_str}
@@ -1312,11 +1312,11 @@ def csv_to_grade_changes(
             if last_grade.state == grade_state_change_types.graded:
                 updated = []
                 if not points_equal(last_grade.points, gchange.points):
-                    updated.append(ugettext("points"))
+                    updated.append(gettext("points"))
                 if not points_equal(last_grade.max_points, gchange.max_points):
-                    updated.append(ugettext("max_points"))
+                    updated.append(gettext("max_points"))
                 if last_grade.comment != gchange.comment:
-                    updated.append(ugettext("comment"))
+                    updated.append(gettext("comment"))
 
                 if updated:
                     log_lines.append(

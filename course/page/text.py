@@ -26,7 +26,7 @@ THE SOFTWARE.
 
 
 from django.utils.translation import (
-        ugettext_lazy as _, ugettext)
+        gettext_lazy as _, gettext)
 from course.validation import validate_struct, ValidationError
 import django.forms as forms
 
@@ -156,7 +156,7 @@ class RELATEPageValidator(object):
             validate_flow_page(vctx, "submitted page", page_desc)
 
             if page_desc.type != self.validator_desc.page_type:
-                raise ValidationError(ugettext("page must be of type '%s'")
+                raise ValidationError(gettext("page must be of type '%s'")
                         % self.validator_desc.page_type)
 
         except Exception:
@@ -934,7 +934,7 @@ class TextQuestion(TextQuestionBase, PageBaseWithValue):
     def grade(self, page_context, page_data, answer_data, grade_data):
         if answer_data is None:
             return AnswerFeedback(correctness=0,
-                    feedback=ugettext("No answer provided."))
+                    feedback=gettext("No answer provided."))
 
         answer = answer_data["answer"]
 

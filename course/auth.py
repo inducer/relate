@@ -26,7 +26,7 @@ THE SOFTWARE.
 
 import re
 from typing import cast
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from django.shortcuts import (  # noqa
         render, get_object_or_404, redirect, resolve_url)
 from django.contrib import messages
@@ -43,7 +43,7 @@ from django.contrib.auth.forms import \
 from django.contrib.auth.decorators import user_passes_test, login_required
 from django.urls import reverse
 from django.contrib.auth.validators import ASCIIUsernameValidator
-from django.utils.http import is_safe_url
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.http import HttpResponseRedirect
 from django.template.response import TemplateResponse
 from django.views.decorators.debug import sensitive_post_parameters
@@ -407,7 +407,7 @@ def sign_in_by_user_pw(request, redirect_field_name=REDIRECT_FIELD_NAME):
         if form.is_valid():
 
             # Ensure the user-originating redirection url is safe.
-            if not is_safe_url(
+            if not url_has_allowed_host_and_scheme(
                     url=redirect_to,
                     allowed_hosts=set([request.get_host()]),
                     require_https=request.is_secure()):

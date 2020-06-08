@@ -33,7 +33,7 @@ from django.utils.timezone import now, timedelta
 from django.test.utils import override_settings
 from django import VERSION as DJANGO_VERSION
 from django.utils import translation
-from django.utils.translation import ugettext_noop
+from django.utils.translation import gettext_noop
 from django.conf import settings
 
 from relate.utils import (
@@ -130,22 +130,22 @@ class GetCourseSpecificLanguageChoicesTest(SimpleTestCase):
         self.assertTrue(choices[0][1].startswith("Default: disabled"))
 
     def lang_descr_get_translated(self, choice_count):
-        with mock.patch("course.utils._") as mock_ugettext, \
-                mock.patch("django.utils.translation.ugettext_lazy") \
-                as mock_ugettext_lazy:
-            mock_ugettext.side_effect = lambda x: x
-            mock_ugettext_lazy.side_effect = lambda x: x
+        with mock.patch("course.utils._") as mock_gettext, \
+                mock.patch("django.utils.translation.gettext_lazy") \
+                as mock_gettext_lazy:
+            mock_gettext.side_effect = lambda x: x
+            mock_gettext_lazy.side_effect = lambda x: x
             choices = utils.get_course_specific_language_choices()
             self.assertEqual(len(choices), choice_count)
 
             # "English", "Default", "my Simplified Chinese" and "German" are
-            # called by django.utils.translation.ugettext, for at least once.
+            # called by django.utils.translation.gettext, for at least once.
             # Another language description literals (especially "Simplified Chinese")
             # are not called by it.
-            self.assertTrue(mock_ugettext.call_count >= 4)
+            self.assertTrue(mock_gettext.call_count >= 4)
             simplified_chinese_as_arg_count = 0
             my_simplified_chinese_as_arg_count = 0
-            for call in mock_ugettext.call_args_list:
+            for call in mock_gettext.call_args_list:
                 arg, kwargs = call
                 if "my Simplified Chinese" in arg:
                     my_simplified_chinese_as_arg_count += 1
@@ -208,10 +208,10 @@ class LanguageOverrideTest(SingleCoursePageTestMixin,
             self.course.save()
         with utils.LanguageOverride(course=self.course):
             self.assertEqual(translation.get_language(), "de")
-            self.assertEqual(translation.ugettext("user"), u"Benutzer")
+            self.assertEqual(translation.gettext("user"), u"Benutzer")
 
         self.assertEqual(translation.get_language(), "ko")
-        self.assertEqual(translation.ugettext("user"), u"사용자")
+        self.assertEqual(translation.gettext("user"), u"사용자")
 
     @override_settings(RELATE_ADMIN_EMAIL_LOCALE="de", LANGUAGE_CODE="ko")
     def test_language_override_course_has_force_lang(self):
@@ -231,7 +231,7 @@ class LanguageOverrideTest(SingleCoursePageTestMixin,
 
         with utils.LanguageOverride(course=self.course):
             self.assertEqual(translation.get_language(), None)
-            self.assertEqual(translation.ugettext("whatever"), "whatever")
+            self.assertEqual(translation.gettext("whatever"), "whatever")
 
         self.assertEqual(translation.get_language(), "en-us")
 
@@ -244,10 +244,10 @@ class LanguageOverrideTest(SingleCoursePageTestMixin,
         translation.deactivate_all()
         with utils.LanguageOverride(course=self.course):
             self.assertEqual(translation.get_language(), "de")
-            self.assertEqual(translation.ugettext("user"), u"Benutzer")
+            self.assertEqual(translation.gettext("user"), u"Benutzer")
 
         self.assertEqual(translation.get_language(), None)
-        self.assertEqual(translation.ugettext("whatever"), "whatever")
+        self.assertEqual(translation.gettext("whatever"), "whatever")
 
     @override_settings(RELATE_ADMIN_EMAIL_LOCALE="de")
     def test_language_override_deactivate(self):
@@ -256,38 +256,38 @@ class LanguageOverrideTest(SingleCoursePageTestMixin,
 
         with utils.LanguageOverride(course=self.course, deactivate=True):
             self.assertEqual(translation.get_language(), "zh-hans")
-            self.assertEqual(translation.ugettext("user"), u"用户")
+            self.assertEqual(translation.gettext("user"), u"用户")
 
         self.assertEqual(translation.get_language(), "en-us")
 
     page_id_literal_dict = {
-        "half": {"literals": [ugettext_noop("No answer provided.")]},
-        "krylov": {"literals": [ugettext_noop("No answer provided."), ]},
+        "half": {"literals": [gettext_noop("No answer provided.")]},
+        "krylov": {"literals": [gettext_noop("No answer provided."), ]},
         "ice_cream_toppings": {
-            "literals": [ugettext_noop("No answer provided."), ]},
+            "literals": [gettext_noop("No answer provided."), ]},
         "inlinemulti": {
             "literals":
-                [ugettext_noop("No answer provided."), ]},
+                [gettext_noop("No answer provided."), ]},
         "hgtext": {
-            "literals": [ugettext_noop("No answer provided.")]},
+            "literals": [gettext_noop("No answer provided.")]},
         "quarter": {
-            "literals": [ugettext_noop("No answer provided."), ]},
+            "literals": [gettext_noop("No answer provided."), ]},
         "pymult": {
             "answer": {"answer": "c = ..."},
             "literals": [
-                ugettext_noop("Autograder feedback"),
-                ugettext_noop("Your answer is not correct.")
+                gettext_noop("Autograder feedback"),
+                gettext_noop("Your answer is not correct.")
             ]},
         "addition": {
             "answer": {"answer": "c = a + b"},
             "literals": [
-                ugettext_noop("Your answer is correct."),
-                ugettext_noop("It looks like you submitted code that is "
+                gettext_noop("Your answer is correct."),
+                gettext_noop("It looks like you submitted code that is "
                               "identical to the reference solution. "
                               "This is not allowed."),
-                ugettext_noop("Here is some feedback on your code"),
+                gettext_noop("Here is some feedback on your code"),
             ]},
-        "anyup": {"literals": [ugettext_noop("No answer provided.")]},
+        "anyup": {"literals": [gettext_noop("No answer provided.")]},
     }
 
     def feedback_test(self, course_force_lang):
@@ -309,7 +309,7 @@ class LanguageOverrideTest(SingleCoursePageTestMixin,
                         self.assertContains(resp, literal)
                     else:
                         with translation.override(course_force_lang):
-                            translated_literal = translation.ugettext(literal)
+                            translated_literal = translation.gettext(literal)
                         self.assertContains(resp, translated_literal)
 
     @override_settings(RELATE_ADMIN_EMAIL_LOCALE="en-us")

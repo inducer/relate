@@ -25,7 +25,7 @@ THE SOFTWARE.
 """
 
 from django.utils.translation import (
-        ugettext, ugettext_lazy as _)
+        gettext, gettext_lazy as _)
 from django.contrib.auth.decorators import login_required
 from django.utils.functional import lazy
 from django.shortcuts import (  # noqa
@@ -1941,7 +1941,7 @@ def view_flow_page(pctx, flow_session_id, page_ordinal):
                         answer_data, page_behavior)
             except InvalidPageData as e:
                 messages.add_message(request, messages.ERROR,
-                        ugettext(
+                        gettext(
                             "The page data stored in the database was found "
                             "to be invalid for the page as given in the "
                             "course content. Likely the course content was "
