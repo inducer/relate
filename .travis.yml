@@ -1,25 +1,109 @@
 language: python
+python:
+  - "3.7"
+  - "3.8"
 dist: xenial
 cache: pip
-install: true
 
 addons:
   postgresql: "10"
 
-matrix:
-  include:
-  - python: "3.7"
-    env: RL_TRAVIS_TEST=test PY_EXE=python3.7
-  - python: "3.7"
-    env: RL_TRAVIS_TEST=test_expensive PY_EXE=python3.7
-  - python: "3.7"
-    env: RL_TRAVIS_TEST=test_postgres PY_EXE=python3.7
+before_install:
+  - pip install poetry
+install:
+  - poetry install
 
-  - python: "3.7"
-    env: RL_TRAVIS_TEST=cmdline PY_EXE=python3.7
-  - python: "3.7"
-    env: RL_TRAVIS_TEST=flake8 PY_EXE=python3.7
-  - python: "3.7"
-    env: RL_TRAVIS_TEST=mypy PY_EXE=python3.7
-script:
-  - bash ./run-travis-ci.sh
+jobs:
+  include:
+    - stage: Quality
+      name: flake8
+      script: poetry run flake8 relate course accounts tests
+    - name: mypy
+      script: poetry run mypy relate course
+    - stage: Test
+      name: unit tests
+      script:
+        - cp local_settings_example.py local_settings.py
+        - poetry run manage.py makemessages --no-location --ignore=req.txt > output.txt
+        - |
+          if [[ -n $(grep "msgid" output.txt) ]]; then
+              echo "Command 'python manage.py makemessages' failed with the following info:\n"
+              grep --color -E '^|warning: ' output.txt
+              exit 1;
+          fi
+        - poetry run manage.py compilemessages
+        - poetry run coverage run manage.py test tests
+        - poetry run coverage report -makemessages
+        - poetry run codecov
+    - name: expensive tests
+      script:
+        - cp local_settings_example.py local_settings.py
+        - poetry run manage.py makemessages --no-location --ignore=req.txt > output.txt
+        - |
+          if [[ -n $(grep "msgid" output.txt) ]]; then
+              echo "Command 'python manage.py makemessages' failed with the following info:\n"
+              grep --color -E '^|warning: ' output.txt
+              exit 1;
+          fi
+        - poetry run manage.py compilemessages
+        - |
+          poetry run coverage run manage.py test tests.test_tasks \
+                                                 tests.test_admin \
+                                                 tests.test_pages.test_code \
+                                                 tests.test_pages.test_generic \
+                                                 tests.test_pages.test_inline.InlineMultiPageUpdateTest \
+                                                 tests.test_pages.test_upload.UploadQuestionNormalizeTest \
+                                                 tests.test_grades.test_generic \
+                                                 tests.test_grades.test_grades.GetGradeTableTest \
+                                                 tests.test_grading.SingleCourseQuizPageGradeInterfaceTest \
+                                                 tests.test_utils.LanguageOverrideTest \
+                                                 tests.test_accounts.test_admin.AccountsAdminTest \
+                                                 tests.test_flow.test_flow.AssemblePageGradesTest \
+                                                 tests.test_flow.test_flow.FinishFlowSessionViewTest \
+                                                 tests.test_content.SubDirRepoTest \
+                                                 tests.test_auth.SignInByPasswordTest \
+                                                 tests.test_analytics.FlowAnalyticsTest \
+                                                 tests.test_analytics.PageAnalyticsTest \
+                                                 tests.test_analytics.FlowListTest \
+                                                 tests.test_analytics.IsFlowMultipleSubmitTest \
+                                                 tests.test_analytics.IsPageMultipleSubmitTest \
+                                                 tests.test_versioning.ParamikoSSHVendorTest \
+                                                 tests.test_receivers.UpdateCouresOrUserSignalTest
+        - poetry run coverage report -makemessages
+        - poetry run codecov
+    - name: postgres tests
+      script:
+        - cp local_settings_example.py local_settings.py
+        - poetry run pip install psycopg2-binary
+        - psql -c 'create database relate;' -U postgres
+        - echo "import psycopg2.extensions" >> local_settings.py
+        - |
+          echo "DATABASES = {
+            'default': {
+                'ENGINE': 'django.db.backends.postgresql_psycopg2',
+                'USER': 'postgres',
+                'NAME': 'test_relate',
+                'OPTIONS': {
+                    'isolation_level': psycopg2.extensions.ISOLATION_LEVEL_SERIALIZABLE,
+                },
+            },
+          }" >> local_settings.py
+        - poetry run manage.py makemessages --no-location --ignore=req.txt > output.txt
+        - |
+          if [[ -n $(grep "msgid" output.txt) ]]; then
+              echo "Command 'python manage.py makemessages' failed with the following info:\n"
+              grep --color -E '^|warning: ' output.txt
+              exit 1;
+          fi
+        - poetry run manage.py compilemessages
+        - poetry run coverage run manage.py test tests.test_postgres
+        - poetry run coverage report -makemessages
+        - poetry run codecov
+    - name: CLI tests
+      script:
+        - git clone https://github.com/inducer/relate-sample
+        - cd relate-sample
+        - poetry run relate validate .
+        - poetry run relate test-code questions/autograded-python-example.yml
+        - poetry run relate expand-yaml flows/quiz-test.yml > /dev/null
+
