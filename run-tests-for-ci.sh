@@ -51,9 +51,9 @@ git submodule update --init --recursive
 # export PATH=`pwd`/.env/local/bin:$PATH
 
 # PIP="${PY_EXE} $(which pip)"
-${PY_EXE} -m ensurepip
-${PY_EXE} -m pip install poetry
-poetry install
+# ${PY_EXE} -m ensurepip
+# ${PY_EXE} -m pip install poetry
+# poetry install
 
 
 
