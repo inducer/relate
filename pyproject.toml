@@ -93,6 +93,8 @@ colorama = "*"
 [tool.poetry.dev-dependencies]
 codecov = "^2.1.4"
 factory_boy = "^2.12.0"
+flake8 = "^3.8.3"
+pep8-naming = "^0.10.0"
 
 [tool.poetry.scripts]
 relate = "bin.relate:main"

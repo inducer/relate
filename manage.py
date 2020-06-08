@@ -48,7 +48,7 @@ def get_local_test_settings_file(argv):
 if __name__ == "__main__":
     os.environ.setdefault("DJANGO_SETTINGS_MODULE", "relate.settings")
 
-    from django.core.management import execute_from_command_line, CommandError
+    from django.core.management import execute_from_command_line
 
     if sys.argv[1] == "test":
         local_settings_file = get_local_test_settings_file(sys.argv)

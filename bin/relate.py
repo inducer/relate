@@ -194,7 +194,7 @@ def test_code_yml(yml_file, repo_root):
             return
 
         for page in pages:
-                test_code_question(page, repo_root)
+            test_code_question(page, repo_root)
 
 
 def test_code(args):
