@@ -104,15 +104,14 @@ jobs:
             matrix:
                 python-version: [3.6, 3.7, 3.8]
         steps:
-        -   uses: actions/checkout@v2
-        -
-            uses: actions/setup-python@v1
-            with:
-                python-version: ${{ matrix.python-version }}
-        -   name: "Main Script"
-            run: |
-                sudo apt-get install gettext
-                PY_EXE=python3 RL_CI_TEST=test bash ./run-tests-for-ci.sh
+        - uses: actions/checkout@v2
+        - uses: actions/setup-python@v1
+          with:
+              python-version: ${{ matrix.python-version }}
+        - name: "Main Script"
+          run: |
+              sudo apt-get install -y -qq gettext
+              PY_EXE=$(poetry run which python) RL_CI_TEST=test bash ./run-tests-for-ci.sh
 
     pytest_expensive:
         name: Pytest Expensive on Py${{ matrix.python-version }}
@@ -122,14 +121,13 @@ jobs:
                 python-version: [3.6, 3.7, 3.8]
         steps:
         -   uses: actions/checkout@v2
-        -
-            uses: actions/setup-python@v1
+        -   uses: actions/setup-python@v1
             with:
                 python-version: ${{ matrix.python-version }}
         -   name: "Main Script"
             run: |
-                sudo apt-get install gettext
-                PY_EXE=python3 RL_CI_TEST=test_expensive bash ./run-tests-for-ci.sh
+                sudo apt-get install -y -qq gettext
+                PY_EXE=$(poetry run which python) RL_CI_TEST=test_expensive bash ./run-tests-for-ci.sh
 
 # vim: sw=4
 

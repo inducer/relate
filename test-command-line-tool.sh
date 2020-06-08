@@ -43,7 +43,7 @@ poetry install
 git clone https://github.com/inducer/relate-sample
 cd relate-sample
 
-relate validate .
-relate test-code questions/autograded-python-example.yml
-relate expand-yaml flows/quiz-test.yml > /dev/null
+poetry run relate validate .
+poetry run relate test-code questions/autograded-python-example.yml
+poetry run relate expand-yaml flows/quiz-test.yml > /dev/null
 
