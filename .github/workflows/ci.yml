@@ -19,7 +19,9 @@ jobs:
               with:
                   python-version: '3.x' 
             - name: Install Poetry
-              uses: dschep/install-poetry-action@v1.2
+              uses: dschep/install-poetry-action@v1.3
+              with:
+                  create_virtualenvs: true
             - uses: actions/cache@v1
               id: cache
               with:
@@ -35,7 +37,7 @@ jobs:
               run: poetry install
               if: steps.cache.outputs.cache-hit != 'true'
             - name: "Flake8"
-              run: poetry run flake8 relate course accounts tests bin
+              run: poetry run flake8 relate course accounts tests
 
     mypy:
         name: Mypy
@@ -46,7 +48,9 @@ jobs:
               with:
                   python-version: '3.x' 
             - name: Install Poetry
-              uses: dschep/install-poetry-action@v1.2
+              uses: dschep/install-poetry-action@v1.3
+              with:
+                  create_virtualenvs: true
             - uses: actions/cache@v1
               id: cache
               with:
@@ -73,7 +77,9 @@ jobs:
               with:
                   python-version: '3.x' 
             - name: Install Poetry
-              uses: dschep/install-poetry-action@v1.2
+              uses: dschep/install-poetry-action@v1.3
+              with:
+                  create_virtualenvs: true
             - uses: actions/cache@v1
               id: cache
               with:
