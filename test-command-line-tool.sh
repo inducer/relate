@@ -33,14 +33,12 @@ fi
 
 # {{{ virtualenv
 
-${PY_EXE} -m venv .env
-. .env/bin/activate
-
 ${PY_EXE} -m ensurepip
+${PY_EXE} -m pip install poetry
 
 # }}}
 
-$PY_EXE -m pip install .
+poetry install
 
 git clone https://github.com/inducer/relate-sample
 cd relate-sample
