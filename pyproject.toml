@@ -15,8 +15,11 @@ packages = [
     { include = "course" },
     { include = "accounts" },
     { include = "relate" },
-    { include = "bin" },
+    # { include = "bin" },
 ]
+
+[tool.poetry.scripts]
+relate = "relate.bin.relate:main"
 
 [tool.poetry.dependencies]
 python = "^3.7"
@@ -95,6 +98,5 @@ codecov = "^2.1.4"
 factory_boy = "^2.12.0"
 flake8 = "^3.8.3"
 pep8-naming = "^0.10.0"
-
-[tool.poetry.scripts]
-relate = "bin.relate:main"
+mypy = "*"
+django-stubs = "^1.5.0"
