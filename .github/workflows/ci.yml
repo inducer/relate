@@ -14,42 +14,58 @@ jobs:
         name: Flake8
         runs-on: ubuntu-latest
         steps:
-        -   uses: actions/checkout@v2
-        -
-            uses: actions/setup-python@v1
-            with:
-                python-version: '3.x' 
-        -   name: "Main Script"
-            run: |
-                curl -L -O -k https://gitlab.tiker.net/inducer/ci-support/raw/master/prepare-and-run-flake8.sh
-                . ./prepare-and-run-flake8.sh relate course accounts tests bin
+            - uses: actions/checkout@v2
+            - uses: actions/setup-python@v1
+              with:
+                  python-version: '3.x' 
+            - name: "Install poetry"
+              run: pip install poetry
+            - uses: actions/cache@v1
+              with:
+                  path: ~/.cache/pypoetry/virtualenvs
+                  key: ${{ runner.os }}-poetry-${{ hashFiles('poetry.lock') }}
+                  restore-keys: |
+                      ${{ runner.os }}-poetry-
+            - name: "Flake8"
+              run: poetry run flake8 relate course accounts tests bin
 
     mypy:
         name: Mypy
         runs-on: ubuntu-latest
         steps:
-        -   uses: actions/checkout@v2
-        -
-            uses: actions/setup-python@v1
-            with:
-                python-version: '3.x' 
-        -   name: "Main Script"
-            run: |
-                curl -L -O -k https://gitlab.tiker.net/inducer/ci-support/raw/master/prepare-and-run-mypy.sh
-                . ./prepare-and-run-mypy.sh python3 mypy
+            - uses: actions/checkout@v2
+            - uses: actions/setup-python@v1
+              with:
+                  python-version: '3.x' 
+            - name: "Install poetry"
+              run: pip install poetry
+            - uses: actions/cache@v1
+              with:
+                  path: ~/.cache/pypoetry/virtualenvs
+                  key: ${{ runner.os }}-poetry-${{ hashFiles('poetry.lock') }}
+                  restore-keys: |
+                      ${{ runner.os }}-poetry-
+            - name: "Mypy"
+              run: poetry run mypy relate course
 
     cmdline:
         name: Command Line
         runs-on: ubuntu-latest
         steps:
-        -   uses: actions/checkout@v2
-        -
-            uses: actions/setup-python@v1
-            with:
-                python-version: '3.x' 
-        -   name: "Main Script"
-            run: |
-                PY_EXE=python3 bash ./test-command-line-tool.sh python3
+            - uses: actions/checkout@v2
+            - uses: actions/setup-python@v1
+              with:
+                  python-version: '3.x' 
+            - name: "Install poetry"
+              run: pip install poetry
+            - uses: actions/cache@v1
+              with:
+                  path: ~/.cache/pypoetry/virtualenvs
+                  key: ${{ runner.os }}-poetry-${{ hashFiles('poetry.lock') }}
+                  restore-keys: |
+                      ${{ runner.os }}-poetry-
+            - name: "Main Script"
+              run: ./test-command-line-tool.sh python3
 
     pytest:
         name: Pytest on Py${{ matrix.python-version }}
