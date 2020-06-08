@@ -48,6 +48,7 @@ RELATE_MAINTENANCE_MODE_EXCEPTIONS = "RELATE_MAINTENANCE_MODE_EXCEPTIONS"
 RELATE_SESSION_RESTART_COOLDOWN_SECONDS = "RELATE_SESSION_RESTART_COOLDOWN_SECONDS"
 RELATE_TICKET_MINUTES_VALID_AFTER_USE = "RELATE_TICKET_MINUTES_VALID_AFTER_USE"
 GIT_ROOT = "GIT_ROOT"
+RELATE_SUBMISSION_STORAGE = "RELATE_SUBMISSION_STORAGE"
 RELATE_STARTUP_CHECKS = "RELATE_STARTUP_CHECKS"
 RELATE_STARTUP_CHECKS_EXTRA = "RELATE_STARTUP_CHECKS_EXTRA"
 
@@ -344,6 +345,25 @@ def check_relate_settings(app_configs, **kwargs):
                          % {"path": git_root, "location": GIT_ROOT}),
                     id="git_root.E005"
                 ))
+
+    # }}}
+
+    # {{{ check RELATE_SUBMISSION_STORAGE
+
+    submission_storage = getattr(settings, RELATE_SUBMISSION_STORAGE, None)
+    from django.core.files.storage import Storage
+    if submission_storage is None:
+        errors.append(RelateCriticalCheckMessage(
+            msg=REQUIRED_CONF_ERROR_PATTERN % {
+                "location": RELATE_SUBMISSION_STORAGE},
+            id="submission_storage.E001"
+        ))
+    elif not isinstance(submission_storage, Storage):
+        errors.append(RelateCriticalCheckMessage(
+            msg=INSTANCE_ERROR_PATTERN % {
+                "location": RELATE_SUBMISSION_STORAGE, "types": "Storage"},
+            id="submission_storage.E002"
+        ))
 
     # }}}
 
