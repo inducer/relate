@@ -22,8 +22,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from base64 import b64encode
-
 import unittest
 from django.test import TestCase
 from django.urls import resolve
