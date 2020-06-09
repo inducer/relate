@@ -56,7 +56,7 @@ git submodule update --init --recursive
 # poetry install
 
 
-
+echo "Local Settings"
 cp local_settings_example.py local_settings.py
 
 if [[ "$RL_CI_TEST" = "test_postgres" ]]; then
@@ -75,6 +75,7 @@ if [[ "$RL_CI_TEST" = "test_postgres" ]]; then
         }" >> local_settings_example.py
 fi
 
+echo "i18n"
 # Make sure i18n literals marked correctly
 poetry run manage.py makemessages --no-location --ignore=req.txt > output.txt
 
@@ -87,9 +88,12 @@ fi
 
 poetry run manage.py compilemessages
 
+echo "Coverage packages"
 poetry run pip install codecov factory_boy
 
+
 if [[ "$RL_CI_TEST" = "test_expensive" ]]; then
+    echo "Expensive tests"
     poetry run coverage run manage.py test tests.test_tasks \
                                 tests.test_admin \
                                 tests.test_pages.test_code \
@@ -114,11 +118,13 @@ if [[ "$RL_CI_TEST" = "test_expensive" ]]; then
                                 tests.test_receivers.UpdateCouresOrUserSignalTest
 
 elif [[ "$RL_CI_TEST" = "test_postgres" ]]; then
+    echo "Database tests"
     poetry run coverage run manage.py test tests.test_postgres
-
 else
+    echo "Base tests"
     poetry run coverage run manage.py test tests
 fi
 
+echo "Upload coverage"
 poetry run coverage report -m
 poetry run codecov

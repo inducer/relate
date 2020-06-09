@@ -212,7 +212,7 @@ def expand_yaml_ui(args):
     print(expand_yaml(args.YAML_FILE, args.repo_root))
 
 
-def main():
+def main() -> None:
     pass
     import os
     import argparse

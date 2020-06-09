@@ -22,7 +22,7 @@ packages = [
 relate = "relate.bin.relate:main"
 
 [tool.poetry.dependencies]
-python = "^3.7"
+python = "^3.6"
 django = "^3.0.7"
 # Automatically renders Django forms in a pretty, Bootstrap-compatible way.
 django-crispy-forms = ">=1.5.1"
