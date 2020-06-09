@@ -129,18 +129,21 @@ jobs:
               fail_ci_if_error: true
 
     pytest-pg:
-        name: Pytest-postgres on Py${{ matrix.python-version }}
+        name: Pytest Postgres on Py${{ matrix.python-version }}
         runs-on: ubuntu-latest
         services:
             postgres:
                 image: postgres
                 env:
                     POSTGRES_PASSWORD: relatepgpass
+                    POSTGRES_DB: test_relate
                 options: >-
                     --health-cmd pg_isready
                     --health-interval 10s
                     --health-timeout 5s
                     --health-retries 5
+                ports:
+                    - 5432:5432
         strategy:
             matrix:
                 python-version: [3.6, 3.7, 3.8]
