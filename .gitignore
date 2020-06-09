@@ -29,3 +29,5 @@ git-roots
 
 /.idea
 /.env
+/.coverage
+/coverage.xml
