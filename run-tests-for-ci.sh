@@ -77,7 +77,7 @@ fi
 
 echo "i18n"
 # Make sure i18n literals marked correctly
-poetry run manage.py makemessages --no-location --ignore=req.txt > output.txt
+poetry run ./manage.py makemessages --no-location --ignore=req.txt > output.txt
 
 if [[ -n $(grep "msgid" output.txt) ]]; then
     echo "Command 'python manage.py makemessages' failed with the following info:"
@@ -86,7 +86,7 @@ if [[ -n $(grep "msgid" output.txt) ]]; then
     exit 1;
 fi
 
-poetry run manage.py compilemessages
+poetry run ./manage.py compilemessages
 
 echo "Coverage packages"
 poetry run pip install codecov factory_boy
@@ -94,7 +94,7 @@ poetry run pip install codecov factory_boy
 
 if [[ "$RL_CI_TEST" = "test_expensive" ]]; then
     echo "Expensive tests"
-    poetry run coverage run manage.py test tests.test_tasks \
+    poetry run coverage run ./manage.py test tests.test_tasks \
                                 tests.test_admin \
                                 tests.test_pages.test_code \
                                 tests.test_pages.test_generic \
@@ -119,10 +119,10 @@ if [[ "$RL_CI_TEST" = "test_expensive" ]]; then
 
 elif [[ "$RL_CI_TEST" = "test_postgres" ]]; then
     echo "Database tests"
-    poetry run coverage run manage.py test tests.test_postgres
+    poetry run coverage run ./manage.py test tests.test_postgres
 else
     echo "Base tests"
-    poetry run coverage run manage.py test tests
+    poetry run coverage run ./manage.py test tests
 fi
 
 echo "Upload coverage"

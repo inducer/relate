@@ -471,8 +471,7 @@ if RELATE_SIGN_IN_BY_SAML2_ENABLED:
     SAML_DJANGO_USER_MAIN_ATTRIBUTE = 'username'
     SAML_DJANGO_USER_MAIN_ATTRIBUTE_LOOKUP = '__iexact'
 
-    # The list of IdPs we talk to are defined
-    SAML_IDP = {
+    saml_idp = {
         # Find the entity ID of your IdP and make this the key here:
         'urn:mace:incommon:uiuc.edu': {
             'single_sign_on_service': {
@@ -533,7 +532,7 @@ if RELATE_SIGN_IN_BY_SAML2_ENABLED:
                 # attributes that may be useful to have but not required
                 'optional_attributes': ['eduPersonAffiliation'],
 
-                'idp': SAML_IDP,
+                'idp': saml_idp,
                 },
             },
 
