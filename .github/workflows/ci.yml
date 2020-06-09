@@ -128,6 +128,51 @@ jobs:
           with:
               fail_ci_if_error: true
 
+    pytest-pg:
+        name: Pytest-postgres on Py${{ matrix.python-version }}
+        runs-on: ubuntu-latest
+        services:
+            postgres:
+                image: postgres
+                env:
+                    POSTGRES_PASSWORD: relatepgpass
+                options: >-
+                    --health-cmd pg_isready
+                    --health-interval 10s
+                    --health-timeout 5s
+                    --health-retries 5
+        strategy:
+            matrix:
+                python-version: [3.6, 3.7, 3.8]
+        steps:
+        - uses: actions/checkout@v2
+        - uses: actions/setup-python@v1
+          with:
+              python-version: ${{ matrix.python-version }}
+        - name: Install Poetry
+          uses: dschep/install-poetry-action@v1.3
+          with:
+              create_virtualenvs: true
+        - uses: actions/cache@v1
+          id: cache
+          with:
+              path: ~/.cache/pypoetry/virtualenvs
+              key: pypoetry-${{ hashFiles('**/poetry.lock') }}-${{ matrix.python-version }}
+              restore-keys: |
+                  pypoetry-${{ hashFiles('**/poetry.lock') }}-${{ matrix.python-version }}
+        - name: Install Dependencies
+          run: poetry install
+          if: steps.cache.outputs.cache-hit != 'true'
+        - name: "Main Script"
+          run: |
+              sudo DEBIAN_FRONTEND=noninteractive apt-get install -qq gettext
+              PY_EXE=$(poetry run which python) RL_CI_TEST=test_postgres bash ./run-tests-for-ci.sh
+        - name: Upload coverage to Codecov
+          uses: codecov/codecov-action@v1
+          with:
+              fail_ci_if_error: true
+
+
     pytest_expensive:
         name: Pytest Expensive on Py${{ matrix.python-version }}
         runs-on: ubuntu-latest

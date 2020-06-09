@@ -60,12 +60,15 @@ echo "Local Settings"
 
 if [[ "$RL_CI_TEST" = "test_postgres" ]]; then
     poetry run pip install psycopg2-binary
-    psql -c 'create database relate;' -U postgres
+    export PGPASSWORD=relatepgpass
+    psql -c 'create database relate;' -h postgres -U postgres 
     echo "import psycopg2.extensions" >> local_settings_example.py
     echo "DATABASES = {
             'default': {
                 'ENGINE': 'django.db.backends.postgresql_psycopg2',
+                'HOST': 'postgres',
                 'USER': 'postgres',
+                'PASSWORD': '${PGPASSWORD}',
                 'NAME': 'test_relate',
                 'OPTIONS': {
                     'isolation_level': psycopg2.extensions.ISOLATION_LEVEL_SERIALIZABLE,

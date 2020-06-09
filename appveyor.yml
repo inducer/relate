@@ -57,7 +57,8 @@ install:
   # Update pip/setuptools/wheel to avoid an issue like
   # https://github.com/HearthSim/decrunch/issues/3
   # e.g. https://ci.appveyor.com/project/inducer/relate/build/1.0.936
-  - "%CMD_IN_ENV% python -m pip install --upgrade pip setuptools wheel poetry"
+  # - "%CMD_IN_ENV% python -m pip install --upgrade pip setuptools wheel poetry"
+  - "%CMD_IN_ENV% python -m pip install poetry"
 
   # Install requirements
   - "%CMD_IN_ENV% poetry install"
@@ -65,13 +66,13 @@ install:
   # - "%CMD_IN_ENV% pip install -r requirements.txt"
 
 
-before_test:
-  - "%CMD_IN_ENV% poetry run pip install coverage factory_boy"
+# before_test:
+#   - "%CMD_IN_ENV% poetry run pip install coverage factory_boy"
 
 test_script:
   # Run the project tests
   - "%CMD_IN_ENV% poetry run coverage run manage.py test tests/"
 
 after_test:
-  - "%CMD_IN_ENV% poetry run pip install codecov"
+  # - "%CMD_IN_ENV% poetry run pip install codecov"
   - "%CMD_IN_ENV% poetry run codecov -X gcov"
