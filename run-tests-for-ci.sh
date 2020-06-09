@@ -9,9 +9,9 @@ echo "-----------------------------------------------"
 
 # {{{ clean up
 
-rm -Rf .env
-rm -Rf build
-find . -name '*.pyc' -delete
+# rm -Rf .env
+# rm -Rf build
+# find . -name '*.pyc' -delete
 
 # }}}
 
@@ -57,7 +57,6 @@ git submodule update --init --recursive
 
 
 echo "Local Settings"
-cp local_settings_example.py local_settings.py
 
 if [[ "$RL_CI_TEST" = "test_postgres" ]]; then
     poetry run pip install psycopg2-binary
@@ -75,9 +74,11 @@ if [[ "$RL_CI_TEST" = "test_postgres" ]]; then
         }" >> local_settings_example.py
 fi
 
+cp local_settings_example.py local_settings.py
+
 echo "i18n"
 # Make sure i18n literals marked correctly
-poetry run ./manage.py makemessages --no-location --ignore=req.txt > output.txt
+poetry run python manage.py makemessages --no-location --ignore=req.txt > output.txt
 
 if [[ -n $(grep "msgid" output.txt) ]]; then
     echo "Command 'python manage.py makemessages' failed with the following info:"
@@ -86,7 +87,7 @@ if [[ -n $(grep "msgid" output.txt) ]]; then
     exit 1;
 fi
 
-poetry run ./manage.py compilemessages
+poetry run python manage.py compilemessages
 
 echo "Coverage packages"
 poetry run pip install codecov factory_boy
