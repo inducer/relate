@@ -11,7 +11,7 @@ ALLOWED_HOSTS = [
 # Configure the following as url as above.
 RELATE_BASE_URL = "http://YOUR/RELATE/SITE/DOMAIN"
 
-from django.conf.global_settings import gettext_noop  # noqa
+from django.utils.translation import gettext_noop  # noqa
 
 # Uncomment this to configure the site name of your relate instance.
 # If not configured, "RELATE" will be used as default value.
