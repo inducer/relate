@@ -89,10 +89,7 @@ fi
 
 poetry run python manage.py compilemessages
 
-echo "Coverage packages"
-poetry run pip install codecov factory_boy
-
-
+echo "Starts testing"
 if [[ "$RL_CI_TEST" = "test_expensive" ]]; then
     echo "Expensive tests"
     poetry run coverage run ./manage.py test tests.test_tasks \

@@ -13,11 +13,14 @@ jobs:
     flake8:
         name: Flake8
         runs-on: ubuntu-latest
+        strategy:
+            matrix:
+                python-version: [3.7]
         steps:
             - uses: actions/checkout@v2
             - uses: actions/setup-python@v1
               with:
-                  python-version: '3.x' 
+                  python-version: ${{ matrix.python-version }}
             - name: Install Poetry
               uses: dschep/install-poetry-action@v1.3
               with:
@@ -26,9 +29,9 @@ jobs:
               id: cache
               with:
                   path: ~/.virtualenvs
-                  key: poetry-${{ hashFiles('**/poetry.lock') }}
+                  key: poetry-${{ hashFiles('**/poetry.lock') }}-${{ matrix.python-version }}
                   restore-keys: |
-                      poetry-${{ hashFiles('**/poetry.lock') }}
+                      poetry-${{ hashFiles('**/poetry.lock') }}-${{ matrix.python-version }}
             - name: Set Poetry config
               run: |
                   poetry config virtualenvs.in-project false
@@ -42,11 +45,14 @@ jobs:
     mypy:
         name: Mypy
         runs-on: ubuntu-latest
+        strategy:
+            matrix:
+                python-version: [3.7]
         steps:
             - uses: actions/checkout@v2
             - uses: actions/setup-python@v1
               with:
-                  python-version: '3.x' 
+                  python-version: ${{ matrix.python-version }}
             - name: Install Poetry
               uses: dschep/install-poetry-action@v1.3
               with:
@@ -55,9 +61,9 @@ jobs:
               id: cache
               with:
                   path: ~/.virtualenvs
-                  key: poetry-${{ hashFiles('**/poetry.lock') }}
+                  key: poetry-${{ hashFiles('**/poetry.lock') }}-${{ matrix.python-version }}
                   restore-keys: |
-                      poetry-${{ hashFiles('**/poetry.lock') }}
+                      poetry-${{ hashFiles('**/poetry.lock') }}-${{ matrix.python-version }}
             - name: Set Poetry config
               run: |
                   poetry config virtualenvs.in-project false
@@ -71,11 +77,14 @@ jobs:
     cmdline:
         name: Command Line
         runs-on: ubuntu-latest
+        strategy:
+            matrix:
+                python-version: [3.7]
         steps:
             - uses: actions/checkout@v2
             - uses: actions/setup-python@v1
               with:
-                  python-version: '3.x' 
+                  python-version: ${{ matrix.python-version }}
             - name: Install Poetry
               uses: dschep/install-poetry-action@v1.3
               with:
@@ -84,9 +93,9 @@ jobs:
               id: cache
               with:
                   path: ~/.virtualenvs
-                  key: poetry-${{ hashFiles('**/poetry.lock') }}
+                  key: poetry-${{ hashFiles('**/poetry.lock') }}-${{ matrix.python-version }}
                   restore-keys: |
-                      poetry-${{ hashFiles('**/poetry.lock') }}
+                      poetry-${{ hashFiles('**/poetry.lock') }}-${{ matrix.python-version }}
             - name: Set Poetry config
               run: |
                   poetry config virtualenvs.in-project false
@@ -110,8 +119,22 @@ jobs:
               python-version: ${{ matrix.python-version }}
         - name: Install Poetry
           uses: dschep/install-poetry-action@v1.3
+          with:
+              create_virtualenvs: true
+        - uses: actions/cache@v1
+          id: cache
+          with:
+              path: ~/.virtualenvs
+              key: poetry-${{ hashFiles('**/poetry.lock') }}-${{ matrix.python-version }}
+              restore-keys: |
+                  poetry-${{ hashFiles('**/poetry.lock') }}-${{ matrix.python-version }}
+        - name: Set Poetry config
+          run: |
+              poetry config virtualenvs.in-project false
+              poetry config virtualenvs.path ~/.virtualenvs
         - name: Install Dependencies
           run: poetry install
+          if: steps.cache.outputs.cache-hit != 'true'
         - name: "Main Script"
           run: |
               sudo apt-get install -y -qq gettext
@@ -130,8 +153,22 @@ jobs:
               python-version: ${{ matrix.python-version }}
         - name: Install Poetry
           uses: dschep/install-poetry-action@v1.3
+          with:
+              create_virtualenvs: true
+        - uses: actions/cache@v1
+          id: cache
+          with:
+              path: ~/.virtualenvs
+              key: poetry-${{ hashFiles('**/poetry.lock') }}-${{ matrix.python-version }}
+              restore-keys: |
+                  poetry-${{ hashFiles('**/poetry.lock') }}-${{ matrix.python-version }}
+        - name: Set Poetry config
+          run: |
+              poetry config virtualenvs.in-project false
+              poetry config virtualenvs.path ~/.virtualenvs
         - name: Install Dependencies
           run: poetry install
+          if: steps.cache.outputs.cache-hit != 'true'
         - name: "Main Script"
           run: |
               sudo apt-get install -y -qq gettext
