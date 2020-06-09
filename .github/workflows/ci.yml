@@ -28,14 +28,10 @@ jobs:
             - uses: actions/cache@v1
               id: cache
               with:
-                  path: ~/.virtualenvs
-                  key: poetry-${{ hashFiles('**/poetry.lock') }}-${{ matrix.python-version }}
+                  path: ~/.cache/pypoetry/virtualenvs
+                  key: pypoetry-${{ hashFiles('**/poetry.lock') }}-${{ matrix.python-version }}
                   restore-keys: |
-                      poetry-${{ hashFiles('**/poetry.lock') }}-${{ matrix.python-version }}
-            - name: Set Poetry config
-              run: |
-                  poetry config virtualenvs.in-project false
-                  poetry config virtualenvs.path ~/.virtualenvs
+                      pypoetry-${{ hashFiles('**/poetry.lock') }}-${{ matrix.python-version }}
             - name: Install Dependencies
               run: poetry install
               if: steps.cache.outputs.cache-hit != 'true'
@@ -60,14 +56,10 @@ jobs:
             - uses: actions/cache@v1
               id: cache
               with:
-                  path: ~/.virtualenvs
-                  key: poetry-${{ hashFiles('**/poetry.lock') }}-${{ matrix.python-version }}
+                  path: ~/.cache/pypoetry/virtualenvs
+                  key: pypoetry-${{ hashFiles('**/poetry.lock') }}-${{ matrix.python-version }}
                   restore-keys: |
-                      poetry-${{ hashFiles('**/poetry.lock') }}-${{ matrix.python-version }}
-            - name: Set Poetry config
-              run: |
-                  poetry config virtualenvs.in-project false
-                  poetry config virtualenvs.path ~/.virtualenvs
+                      pypoetry-${{ hashFiles('**/poetry.lock') }}-${{ matrix.python-version }}
             - name: Install Dependencies
               run: poetry install
               if: steps.cache.outputs.cache-hit != 'true'
@@ -92,14 +84,10 @@ jobs:
             - uses: actions/cache@v1
               id: cache
               with:
-                  path: ~/.virtualenvs
-                  key: poetry-${{ hashFiles('**/poetry.lock') }}-${{ matrix.python-version }}
+                  path: ~/.cache/pypoetry/virtualenvs
+                  key: pypoetry-${{ hashFiles('**/poetry.lock') }}-${{ matrix.python-version }}
                   restore-keys: |
-                      poetry-${{ hashFiles('**/poetry.lock') }}-${{ matrix.python-version }}
-            - name: Set Poetry config
-              run: |
-                  poetry config virtualenvs.in-project false
-                  poetry config virtualenvs.path ~/.virtualenvs
+                      pypoetry-${{ hashFiles('**/poetry.lock') }}-${{ matrix.python-version }}
             - name: Install Dependencies
               run: poetry install
               if: steps.cache.outputs.cache-hit != 'true'
@@ -124,23 +112,21 @@ jobs:
         - uses: actions/cache@v1
           id: cache
           with:
-              path: ~/.virtualenvs
-              key: poetry-${{ hashFiles('**/poetry.lock') }}-${{ matrix.python-version }}
+              path: ~/.cache/pypoetry/virtualenvs
+              key: pypoetry-${{ hashFiles('**/poetry.lock') }}-${{ matrix.python-version }}
               restore-keys: |
-                  poetry-${{ hashFiles('**/poetry.lock') }}-${{ matrix.python-version }}
-        - name: Set Poetry config
-          run: |
-              poetry config virtualenvs.in-project false
-              poetry config virtualenvs.path ~/.virtualenvs
+                  pypoetry-${{ hashFiles('**/poetry.lock') }}-${{ matrix.python-version }}
         - name: Install Dependencies
           run: poetry install
           if: steps.cache.outputs.cache-hit != 'true'
         - name: "Main Script"
           run: |
-              sudo apt-get -qq install -y gettext
+              sudo DEBIAN_FRONTEND=noninteractive apt-get install -qq gettext
               PY_EXE=$(poetry run which python) RL_CI_TEST=test bash ./run-tests-for-ci.sh
         - name: Upload coverage to Codecov
           uses: codecov/codecov-action@v1
+          with:
+              fail_ci_if_error: true
 
     pytest_expensive:
         name: Pytest Expensive on Py${{ matrix.python-version }}
@@ -160,23 +146,21 @@ jobs:
         - uses: actions/cache@v1
           id: cache
           with:
-              path: ~/.virtualenvs
-              key: poetry-${{ hashFiles('**/poetry.lock') }}-${{ matrix.python-version }}
+              path: ~/.cache/pypoetry/virtualenvs
+              key: pypoetry-${{ hashFiles('**/poetry.lock') }}-${{ matrix.python-version }}
               restore-keys: |
-                  poetry-${{ hashFiles('**/poetry.lock') }}-${{ matrix.python-version }}
-        - name: Set Poetry config
-          run: |
-              poetry config virtualenvs.in-project false
-              poetry config virtualenvs.path ~/.virtualenvs
+                  pypoetry-${{ hashFiles('**/poetry.lock') }}-${{ matrix.python-version }}
         - name: Install Dependencies
           run: poetry install
           if: steps.cache.outputs.cache-hit != 'true'
         - name: "Main Script"
           run: |
-              sudo apt-get -qq install -y gettext
+              sudo DEBIAN_FRONTEND=noninteractive apt-get install -qq gettext
               PY_EXE=$(poetry run which python) RL_CI_TEST=test_expensive bash ./run-tests-for-ci.sh
         - name: Upload coverage to Codecov
           uses: codecov/codecov-action@v1
+          with:
+              fail_ci_if_error: true
 
 # vim: sw=4
 

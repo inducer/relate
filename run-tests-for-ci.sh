@@ -123,7 +123,7 @@ else
     poetry run coverage run ./manage.py test tests
 fi
 
-echo "Upload coverage"
+echo "Generate coverage report"
 poetry run coverage xml
-poetry run coverage report -m
+# poetry run coverage report -m
 # poetry run codecov
