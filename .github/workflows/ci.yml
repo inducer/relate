@@ -139,6 +139,8 @@ jobs:
           run: |
               sudo apt-get install -y -qq gettext
               PY_EXE=$(poetry run which python) RL_CI_TEST=test bash ./run-tests-for-ci.sh
+        - name: Upload coverage to Codecov
+          uses: codecov/codecov-action@v1
 
     pytest_expensive:
         name: Pytest Expensive on Py${{ matrix.python-version }}
@@ -173,6 +175,8 @@ jobs:
           run: |
               sudo apt-get install -y -qq gettext
               PY_EXE=$(poetry run which python) RL_CI_TEST=test_expensive bash ./run-tests-for-ci.sh
+        - name: Upload coverage to Codecov
+          uses: codecov/codecov-action@v1
 
 # vim: sw=4
 

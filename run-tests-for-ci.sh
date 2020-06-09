@@ -125,4 +125,4 @@ fi
 
 echo "Upload coverage"
 poetry run coverage report -m
-poetry run codecov
+# poetry run codecov
