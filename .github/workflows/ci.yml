@@ -1,214 +1,83 @@
 name: CI
 on:
-    push:
-        branches:
-        - master
-    pull_request:
-        paths-ignore:
-        - 'doc/*.rst'
-    schedule:
-        - cron:  '17 3 * * 0'
+  push:
+    branches:
+      - master
+  pull_request:
+    paths-ignore:
+      - "doc/*.rst"
+  schedule:
+    - cron: "17 3 * * 0"
 
 jobs:
-    flake8:
-        name: Flake8
-        runs-on: ubuntu-latest
-        strategy:
-            matrix:
-                python-version: [3.7]
-        steps:
-            - uses: actions/checkout@v2
-            - uses: actions/setup-python@v1
-              with:
-                  python-version: ${{ matrix.python-version }}
-            - name: Install Poetry
-              uses: dschep/install-poetry-action@v1.3
-              with:
-                  create_virtualenvs: true
-            - uses: actions/cache@v1
-              id: cache
-              with:
-                  path: ~/.cache/pypoetry/virtualenvs
-                  key: pypoetry-${{ hashFiles('**/poetry.lock') }}-${{ matrix.python-version }}
-                  restore-keys: |
-                      pypoetry-${{ hashFiles('**/poetry.lock') }}-${{ matrix.python-version }}
-            - name: Install Dependencies
-              run: poetry install
-              if: steps.cache.outputs.cache-hit != 'true'
-            - name: "Flake8"
-              run: poetry run flake8 relate course accounts tests
-
-    mypy:
-        name: Mypy
-        runs-on: ubuntu-latest
-        strategy:
-            matrix:
-                python-version: [3.7]
-        steps:
-            - uses: actions/checkout@v2
-            - uses: actions/setup-python@v1
-              with:
-                  python-version: ${{ matrix.python-version }}
-            - name: Install Poetry
-              uses: dschep/install-poetry-action@v1.3
-              with:
-                  create_virtualenvs: true
-            - uses: actions/cache@v1
-              id: cache
-              with:
-                  path: ~/.cache/pypoetry/virtualenvs
-                  key: pypoetry-${{ hashFiles('**/poetry.lock') }}-${{ matrix.python-version }}
-                  restore-keys: |
-                      pypoetry-${{ hashFiles('**/poetry.lock') }}-${{ matrix.python-version }}
-            - name: Install Dependencies
-              run: poetry install
-              if: steps.cache.outputs.cache-hit != 'true'
-            - name: "Mypy"
-              run: poetry run mypy relate course
-
-    cmdline:
-        name: Command Line
-        runs-on: ubuntu-latest
-        strategy:
-            matrix:
-                python-version: [3.7]
-        steps:
-            - uses: actions/checkout@v2
-            - uses: actions/setup-python@v1
-              with:
-                  python-version: ${{ matrix.python-version }}
-            - name: Install Poetry
-              uses: dschep/install-poetry-action@v1.3
-              with:
-                  create_virtualenvs: true
-            - uses: actions/cache@v1
-              id: cache
-              with:
-                  path: ~/.cache/pypoetry/virtualenvs
-                  key: pypoetry-${{ hashFiles('**/poetry.lock') }}-${{ matrix.python-version }}
-                  restore-keys: |
-                      pypoetry-${{ hashFiles('**/poetry.lock') }}-${{ matrix.python-version }}
-            - name: Install Dependencies
-              run: poetry install
-              if: steps.cache.outputs.cache-hit != 'true'
-            - name: "Main Script"
-              run: PY_EXE=$(poetry run which python) bash ./test-command-line-tool.sh $(poetry run which python)
-
-    pytest:
-        name: Pytest on Py${{ matrix.python-version }}
-        runs-on: ubuntu-latest
-        strategy:
-            matrix:
-                python-version: [3.6, 3.7, 3.8]
-        steps:
-        - uses: actions/checkout@v2
-        - uses: actions/setup-python@v1
-          with:
-              python-version: ${{ matrix.python-version }}
-        - name: Install Poetry
-          uses: dschep/install-poetry-action@v1.3
-          with:
-              create_virtualenvs: true
-        - uses: actions/cache@v1
-          id: cache
-          with:
-              path: ~/.cache/pypoetry/virtualenvs
-              key: pypoetry-${{ hashFiles('**/poetry.lock') }}-${{ matrix.python-version }}
-              restore-keys: |
-                  pypoetry-${{ hashFiles('**/poetry.lock') }}-${{ matrix.python-version }}
-        - name: Install Dependencies
-          run: poetry install
-          if: steps.cache.outputs.cache-hit != 'true'
-        - name: "Main Script"
-          run: |
-              sudo DEBIAN_FRONTEND=noninteractive apt-get install -qq gettext
-              PY_EXE=$(poetry run which python) RL_CI_TEST=test bash ./run-tests-for-ci.sh
-        - name: Upload coverage to Codecov
-          uses: codecov/codecov-action@v1
-          with:
-              fail_ci_if_error: true
-
-    pytest-pg:
-        name: Pytest Postgres on Py${{ matrix.python-version }}
-        runs-on: ubuntu-latest
-        services:
-            postgres:
-                image: postgres
-                env:
-                    POSTGRES_PASSWORD: relatepgpass
-                    POSTGRES_DB: test_relate
-                options: >-
-                    --health-cmd pg_isready
-                    --health-interval 10s
-                    --health-timeout 5s
-                    --health-retries 5
-                ports:
-                    - 5432:5432
-        strategy:
-            matrix:
-                python-version: [3.6, 3.7, 3.8]
-        steps:
-        - uses: actions/checkout@v2
-        - uses: actions/setup-python@v1
-          with:
-              python-version: ${{ matrix.python-version }}
-        - name: Install Poetry
-          uses: dschep/install-poetry-action@v1.3
-          with:
-              create_virtualenvs: true
-        - uses: actions/cache@v1
-          id: cache
-          with:
-              path: ~/.cache/pypoetry/virtualenvs
-              key: pypoetry-${{ hashFiles('**/poetry.lock') }}-${{ matrix.python-version }}
-              restore-keys: |
-                  pypoetry-${{ hashFiles('**/poetry.lock') }}-${{ matrix.python-version }}
-        - name: Install Dependencies
-          run: poetry install
-          if: steps.cache.outputs.cache-hit != 'true'
-        - name: "Main Script"
-          run: |
-              sudo DEBIAN_FRONTEND=noninteractive apt-get install -qq gettext
-              PY_EXE=$(poetry run which python) RL_CI_TEST=test_postgres bash ./run-tests-for-ci.sh
-        - name: Upload coverage to Codecov
-          uses: codecov/codecov-action@v1
-          with:
-              fail_ci_if_error: true
+  lint:
+    name: Lint and typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v1
+        with:
+          python-version: 3.7
+      - name: Install Poetry
+        uses: dschep/install-poetry-action@v1.3
+      - name: Install Dependencies
+        run: poetry install
+      - name: "Flake8"
+        run: poetry run flake8 relate course accounts tests
+      - name: "Mypy"
+        run: poetry run mypy relate course
 
 
-    pytest_expensive:
-        name: Pytest Expensive on Py${{ matrix.python-version }}
-        runs-on: ubuntu-latest
-        strategy:
-            matrix:
-                python-version: [3.6, 3.7, 3.8]
-        steps:
-        - uses: actions/checkout@v2
-        - uses: actions/setup-python@v1
-          with:
-              python-version: ${{ matrix.python-version }}
-        - name: Install Poetry
-          uses: dschep/install-poetry-action@v1.3
-          with:
-              create_virtualenvs: true
-        - uses: actions/cache@v1
-          id: cache
-          with:
-              path: ~/.cache/pypoetry/virtualenvs
-              key: pypoetry-${{ hashFiles('**/poetry.lock') }}-${{ matrix.python-version }}
-              restore-keys: |
-                  pypoetry-${{ hashFiles('**/poetry.lock') }}-${{ matrix.python-version }}
-        - name: Install Dependencies
-          run: poetry install
-          if: steps.cache.outputs.cache-hit != 'true'
-        - name: "Main Script"
-          run: |
-              sudo DEBIAN_FRONTEND=noninteractive apt-get install -qq gettext
-              PY_EXE=$(poetry run which python) RL_CI_TEST=test_expensive bash ./run-tests-for-ci.sh
-        - name: Upload coverage to Codecov
-          uses: codecov/codecov-action@v1
-          with:
-              fail_ci_if_error: true
+  pytest:
+    name: Pytest-${{ matrix.suite }} on Py${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.6, 3.7, 3.8]
+        suite: ['base', 'postgres', 'expensive']
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v1
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install Poetry
+        uses: dschep/install-poetry-action@v1.3
+        with:
+          create_virtualenvs: true
+      - name: Cache python dependencies
+        uses: actions/cache@v1
+        id: cache
+        with:
+          path: ~/.cache/pypoetry/virtualenvs
+          key: pypoetry-${{ hashFiles('**/poetry.lock') }}-${{ matrix.python-version }}
+          restore-keys: |
+            pypoetry-${{ hashFiles('**/poetry.lock') }}-${{ matrix.python-version }}
+      - name: Install Dependencies
+        run: poetry install
+        if: steps.cache.outputs.cache-hit != 'true'
+      - name: Install OS dependencies
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run: |
+          apt-get install gettext
+      - name: Run test suite
+        env:
+          RL_CI_TEST: ${{ matrix.suite }}
+        run: |
+          bash ./.ci/run-tests-for-ci.sh
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v1
+        with:
+          fail_ci_if_error: true
+      - name: Test command line tool
+        if: matrix.suite == "base"
+        run: |
+          git clone https://github.com/inducer/relate-sample
+          poetry shell
+          cd relate-sample
 
-# vim: sw=4
+          relate validate .
+          relate test-code questions/autograded-python-example.yml
+          relate expand-yaml flows/quiz-test.yml > /dev/null
 
+# vim: sw=2

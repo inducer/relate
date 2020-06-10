@@ -39,6 +39,7 @@ ${PY_EXE} -m pip install poetry
 # }}}
 
 poetry install
+poetry shell
 
 git clone https://github.com/inducer/relate-sample
 cd relate-sample

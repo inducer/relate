@@ -16,7 +16,7 @@ environment:
     # SDK v7.0 MSVC Express 2008's SetEnv.cmd script will fail if the
     # /E:ON and /V:ON options are not enabled in the batch script intepreter
     # See: http://stackoverflow.com/a/13751649/163740
-    CMD_IN_ENV: "cmd /E:ON /V:ON /C .\\appveyor\\run_with_env.cmd"
+    CMD_IN_ENV: "cmd /E:ON /V:ON /C .\\.ci\\run_with_env.cmd"
 
   matrix:
     # Pre-installed Python versions, which Appveyor may upgrade to
@@ -57,22 +57,17 @@ install:
   # Update pip/setuptools/wheel to avoid an issue like
   # https://github.com/HearthSim/decrunch/issues/3
   # e.g. https://ci.appveyor.com/project/inducer/relate/build/1.0.936
-  # - "%CMD_IN_ENV% python -m pip install --upgrade pip setuptools wheel poetry"
+  - "%CMD_IN_ENV% python -m pip install --upgrade pip setuptools wheel"
+
+  # Install poetry for packaging
   - "%CMD_IN_ENV% python -m pip install poetry"
 
   # Install requirements
   - "%CMD_IN_ENV% poetry install"
-
-  # - "%CMD_IN_ENV% pip install -r requirements.txt"
-
-
-# before_test:
-#   - "%CMD_IN_ENV% poetry run pip install coverage factory_boy"
 
 test_script:
   # Run the project tests
   - "%CMD_IN_ENV% poetry run coverage run manage.py test tests/"
 
 after_test:
-  # - "%CMD_IN_ENV% poetry run pip install codecov"
   - "%CMD_IN_ENV% poetry run codecov -X gcov"
