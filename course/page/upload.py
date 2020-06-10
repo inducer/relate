@@ -225,6 +225,7 @@ class FileUploadQuestion(PageBaseWithTitle, PageBaseWithValue,
                 flow_id = page_context.flow_session.flow_id
 
         return (f"{page_context.course.identifier}/"
+                "upload/"
                 f"{flow_id}/"
                 f"{self.page_desc.id}/"
                 f"{username}"
