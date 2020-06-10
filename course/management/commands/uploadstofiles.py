@@ -68,7 +68,7 @@ class Command(BaseCommand):
                             "flow_session__participation__course",
                             "flow_session__participation__user",
                             "page_data")
-                        [:50]):
+                        [:200]):
 
                     if convert_flow_page_visit(fpv):
                         count += 1
