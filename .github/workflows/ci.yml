@@ -29,7 +29,7 @@ jobs:
 
 
   pytest:
-    name: Pytest-${{ matrix.suite }} on Py${{ matrix.python-version }}
+    name: Python ${{ matrix.python-version }} - ${{ matrix.suite }}
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -59,7 +59,7 @@ jobs:
         env:
           DEBIAN_FRONTEND: noninteractive
         run: |
-          apt-get install gettext
+          sudo apt-get install gettext
       - name: Run test suite
         env:
           RL_CI_TEST: ${{ matrix.suite }}
