@@ -70,7 +70,7 @@ jobs:
         with:
           fail_ci_if_error: true
       - name: Test command line tool
-        if: matrix.suite == "base"
+        if: matrix.suite == 'base'
         run: |
           git clone https://github.com/inducer/relate-sample
           poetry shell
