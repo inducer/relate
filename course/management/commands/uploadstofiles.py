@@ -1,9 +1,10 @@
 from django.core.management.base import BaseCommand, CommandError  # noqa
 from course.models import FlowPageVisit
 from django.db import transaction
+from django.core.exceptions import ObjectDoesNotExist
 
 
-def convert_flow_page_visit(fpv):
+def convert_flow_page_visit(stderr, fpv):
     course = fpv.flow_session.participation.course
 
     from course.content import (
@@ -12,11 +13,23 @@ def convert_flow_page_visit(fpv):
     repo = get_course_repo(course)
     flow_id = fpv.flow_session.flow_id
     commit_sha = course.active_git_commit_sha.encode()
-    flow_desc = get_flow_desc(repo, course,
-            flow_id, commit_sha)
-    page_desc = get_flow_page_desc(
-            fpv.flow_session.flow_id, flow_desc,
-            fpv.page_data.group_id, fpv.page_data.page_id)
+    try:
+        flow_desc = get_flow_desc(repo, course,
+                flow_id, commit_sha)
+    except ObjectDoesNotExist:
+        stderr.write("warning: no flow yaml file found for '%s' in '%s'"
+                % (flow_id, course.identifier))
+        return
+
+    try:
+        page_desc = get_flow_page_desc(
+                fpv.flow_session.flow_id, flow_desc,
+                fpv.page_data.group_id, fpv.page_data.page_id)
+    except ObjectDoesNotExist:
+        stderr.write("warning: no page yaml desc found for '%s' in '%s'"
+                % (flow_id, course.identifier))
+        return
+
     page = instantiate_flow_page(
             location="flow '%s', group, '%s', page '%s'"
             % (flow_id,
@@ -68,12 +81,12 @@ class Command(BaseCommand):
                             "flow_session__participation__course",
                             "flow_session__participation__user",
                             "page_data")
-                        [:50]):
+                        [:200]):
 
-                    if convert_flow_page_visit(fpv):
+                    if convert_flow_page_visit(self.stderr, fpv):
                         count += 1
 
                 total_count += count
-                self.stderr.write("converted %d page visits..." % total_count)
+                self.stdout.write("converted %d page visits..." % total_count)
 
-        self.stderr.write("done!")
+        self.stdout.write("done!")
