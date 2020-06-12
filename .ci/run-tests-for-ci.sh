@@ -11,7 +11,7 @@ echo "-----------------------------------------------"
 
 echo "Copy local settings"
 
-cp local_settings_example.py local_settings.py
+# cp local_settings_example.py local_settings.py
 
 echo "i18n"
 # Make sure i18n literals marked correctly
@@ -58,7 +58,7 @@ elif [[ "$RL_CI_TEST" = "postgres" ]]; then
     export PGPASSWORD=relatepgpass
 
     echo "Preparing database"
-    echo "import psycopg2.extensions" >> local_settings.py
+    echo "import psycopg2.extensions" >> local_settings_example.py
     echo "DATABASES = {
             'default': {
                 'ENGINE': 'django.db.backends.postgresql_psycopg2',
@@ -70,7 +70,7 @@ elif [[ "$RL_CI_TEST" = "postgres" ]]; then
                     'isolation_level': psycopg2.extensions.ISOLATION_LEVEL_SERIALIZABLE,
                 },
             },
-        }" >> local_settings.py
+        }" >> local_settings_example.py
 
     poetry run pip install psycopg2-binary
     # psql -c 'create database relate;' -U postgres 
