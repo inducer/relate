@@ -11,9 +11,12 @@ echo "-----------------------------------------------"
 
 echo "Copy local settings"
 
-# cp local_settings_example.py local_settings.py
 
 echo "i18n"
+# Testing i18n needs a local_settings file even though the rest of the tests
+#   don't use it
+cp local_settings_example.py local_settings.py
+
 # Make sure i18n literals marked correctly
 poetry run python manage.py makemessages --no-location --ignore=req.txt > output.txt
 
