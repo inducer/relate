@@ -9,31 +9,11 @@ echo "Current directory: $(pwd)"
 echo "Python executable: ${PY_EXE}"
 echo "-----------------------------------------------"
 
-echo "\nLocal Settings"
-
-if [[ "$RL_CI_TEST" = "postgres" ]]; then
-    echo "Preparing database"
-    poetry run pip install psycopg2-binary
-    export PGPASSWORD=relatepgpass
-    # psql -c 'create database relate;' -U postgres 
-    echo "import psycopg2.extensions" >> local_settings_example.py
-    echo "DATABASES = {
-            'default': {
-                'ENGINE': 'django.db.backends.postgresql_psycopg2',
-                'HOST': 'localhost',
-                'USER': 'postgres',
-                'PASSWORD': '${PGPASSWORD}',
-                'NAME': 'test_relate',
-                'OPTIONS': {
-                    'isolation_level': psycopg2.extensions.ISOLATION_LEVEL_SERIALIZABLE,
-                },
-            },
-        }" >> local_settings_example.py
-fi
+echo "Copy local settings"
 
 cp local_settings_example.py local_settings.py
 
-echo "\ni18n"
+echo "i18n"
 # Make sure i18n literals marked correctly
 poetry run python manage.py makemessages --no-location --ignore=req.txt > output.txt
 
@@ -46,9 +26,11 @@ fi
 
 poetry run python manage.py compilemessages
 
-echo "\nStarts testing"
+echo "Starts testing"
+
 if [[ "$RL_CI_TEST" = "expensive" ]]; then
     echo "Expensive tests"
+    export RL_CI_TEST="test_expensive"
     poetry run coverage run ./manage.py test tests.test_tasks \
                                 tests.test_admin \
                                 tests.test_pages.test_code \
@@ -73,6 +55,26 @@ if [[ "$RL_CI_TEST" = "expensive" ]]; then
                                 tests.test_receivers.UpdateCouresOrUserSignalTest
 
 elif [[ "$RL_CI_TEST" = "postgres" ]]; then
+    export PGPASSWORD=relatepgpass
+
+    echo "Preparing database"
+    echo "import psycopg2.extensions" >> local_settings.py
+    echo "DATABASES = {
+            'default': {
+                'ENGINE': 'django.db.backends.postgresql_psycopg2',
+                'HOST': 'localhost',
+                'USER': 'postgres',
+                'PASSWORD': '${PGPASSWORD}',
+                'NAME': 'test_relate',
+                'OPTIONS': {
+                    'isolation_level': psycopg2.extensions.ISOLATION_LEVEL_SERIALIZABLE,
+                },
+            },
+        }" >> local_settings.py
+
+    poetry run pip install psycopg2-binary
+    # psql -c 'create database relate;' -U postgres 
+
     echo "Database tests"
     poetry run coverage run ./manage.py test tests.test_postgres
 else
@@ -80,5 +82,5 @@ else
     poetry run coverage run ./manage.py test tests
 fi
 
-echo "\nGenerate coverage report"
+echo "Generate coverage report"
 poetry run coverage xml
