@@ -11,7 +11,7 @@ echo "-----------------------------------------------"
 
 echo "\nLocal Settings"
 
-if [[ "$RL_CI_TEST" = "test_postgres" ]]; then
+if [[ "$RL_CI_TEST" = "postgres" ]]; then
     echo "Preparing database"
     poetry run pip install psycopg2-binary
     export PGPASSWORD=relatepgpass
