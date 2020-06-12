@@ -35,6 +35,19 @@ jobs:
       matrix:
         python-version: [3.6, 3.7, 3.8]
         suite: ['base', 'postgres', 'expensive']
+    services:
+        postgres:
+          image: postgres
+          env:
+              POSTGRES_PASSWORD: relatepgpass
+              POSTGRES_DB: test_relate
+          options: >-
+              --health-cmd pg_isready
+              --health-interval 10s
+              --health-timeout 5s
+              --health-retries 5
+          ports:
+              - 5432:5432
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-python@v1
