@@ -66,14 +66,11 @@ ipaddress
 
 # {{{ For interoperation with SAML2/Shibboleth
 
-# 4.6.1 suffers from https://github.com/IdentityPython/pysaml2/pull/543
-# 4.6.5 causes a 403 on /saml2/acs upon sign in with djangosaml2
 # upper bounds just out of caution
 pysaml2>=5.0.0,<6
-djangosaml2>=0.19.0,<0.20
-# Explicit dependency decls to work around broken dep declaration in pysaml2 4.6.0
-pyOpenSSL
-future
+
+# 0.19.0 + https://github.com/knaperek/djangosaml2/pull/197
+git+https://github.com/knaperek/djangosaml2.git@d9359816c76dad9092f6580cf88845fcc39a711f#egg=djangosaml2
 
 # Try to avoid https://github.com/Julian/jsonschema/issues/449
 attrs>=19
