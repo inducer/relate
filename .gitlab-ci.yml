@@ -17,7 +17,7 @@ stages:
     - export PATH="/var/lib/gitlab-runner/.local/bin:$PATH"
     - pip3 install poetry
     - poetry --version
-    - poetry config settings.virtualenvs.in-project true
+    - poetry config virtualenvs.in-project true
     - poetry install -vv
 
 .quality-template: &quality
@@ -78,6 +78,7 @@ Documentation:
     RELATE_LOCAL_TEST_SETTINGS: './local_settings_example.py'
   script:
     - curl -L -O -k https://gitlab.tiker.net/inducer/ci-support/raw/master/build-docs.sh
+    - export PY_EXE="$(poetry run which python)"
     - poetry run ./build-docs.sh
   tags:
     - python3
