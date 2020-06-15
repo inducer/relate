@@ -11,7 +11,7 @@ ALLOWED_HOSTS = [
 # Configure the following as url as above.
 RELATE_BASE_URL = "http://YOUR/RELATE/SITE/DOMAIN"
 
-from django.conf.global_settings import gettext_noop  # noqa
+from django.utils.translation import gettext_noop  # noqa
 
 # Uncomment this to configure the site name of your relate instance.
 # If not configured, "RELATE" will be used as default value.
@@ -333,8 +333,10 @@ RELATE_SHOW_EDITOR_FORM = True
 #
 
 # import os.path
-# RELATE_OVERRIDE_TEMPLATES_DIRS = [os.path.join(os.path.dirname(__file__), "my_templates"),
-#                      os.path.join(os.path.dirname(__file__), "my_other_templates")]
+# RELATE_OVERRIDE_TEMPLATES_DIRS = [
+#       os.path.join(os.path.dirname(__file__), "my_templates"),
+#       os.path.join(os.path.dirname(__file__), "my_other_templates")
+# ]
 
 # }}}
 
@@ -469,6 +471,24 @@ if RELATE_SIGN_IN_BY_SAML2_ENABLED:
     SAML_DJANGO_USER_MAIN_ATTRIBUTE = 'username'
     SAML_DJANGO_USER_MAIN_ATTRIBUTE_LOOKUP = '__iexact'
 
+    saml_idp = {
+        # Find the entity ID of your IdP and make this the key here:
+        'urn:mace:incommon:uiuc.edu': {
+            'single_sign_on_service': {
+                # Add the POST and REDIRECT bindings for the sign on service here:
+                saml2.BINDING_HTTP_POST:
+                    'https://shibboleth.illinois.edu/idp/profile/SAML2/POST/SSO',
+                saml2.BINDING_HTTP_REDIRECT:
+                    'https://shibboleth.illinois.edu/idp/profile/SAML2/Redirect/SSO',
+                },
+            'single_logout_service': {
+                # And the REDIRECT binding for the logout service here:
+                saml2.BINDING_HTTP_REDIRECT:
+                'https://shibboleth.illinois.edu/idp/logout.jsp',  # noqa
+                },
+            },
+        }
+
     SAML_CONFIG = {
         # full path to the xmlsec1 binary programm
         'xmlsec_binary': '/usr/bin/xmlsec1',
@@ -512,24 +532,7 @@ if RELATE_SIGN_IN_BY_SAML2_ENABLED:
                 # attributes that may be useful to have but not required
                 'optional_attributes': ['eduPersonAffiliation'],
 
-                # in this section the list of IdPs we talk to are defined
-                'idp': {
-                    # Find the entity ID of your IdP and make this the key here:
-                    'urn:mace:incommon:uiuc.edu': {
-                        'single_sign_on_service': {
-                            # Add the POST and REDIRECT bindings for the sign on service here:
-                            saml2.BINDING_HTTP_POST:
-                                'https://shibboleth.illinois.edu/idp/profile/SAML2/POST/SSO',
-                            saml2.BINDING_HTTP_REDIRECT:
-                                'https://shibboleth.illinois.edu/idp/profile/SAML2/Redirect/SSO',
-                            },
-                        'single_logout_service': {
-                            # And the REDIRECT binding for the logout service here:
-                            saml2.BINDING_HTTP_REDIRECT:
-                            'https://shibboleth.illinois.edu/idp/logout.jsp',  # noqa
-                            },
-                        },
-                    },
+                'idp': saml_idp,
                 },
             },
 

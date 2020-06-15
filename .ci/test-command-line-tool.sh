@@ -33,19 +33,18 @@ fi
 
 # {{{ virtualenv
 
-${PY_EXE} -m venv .env
-. .env/bin/activate
-
 ${PY_EXE} -m ensurepip
+${PY_EXE} -m pip install poetry
 
 # }}}
 
-$PY_EXE -m pip install .
+poetry install
+poetry shell
 
 git clone https://github.com/inducer/relate-sample
 cd relate-sample
 
-relate validate .
-relate test-code questions/autograded-python-example.yml
-relate expand-yaml flows/quiz-test.yml > /dev/null
+poetry run relate validate .
+poetry run relate test-code questions/autograded-python-example.yml
+poetry run relate expand-yaml flows/quiz-test.yml > /dev/null
 

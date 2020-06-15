@@ -6,10 +6,10 @@ RELATE requires Python 3.
 Install [Node.js](https://nodejs.org) and NPM, or [Yarn](https://yarnpkg.com)
 (alternative package manager) at your option.
 
-(Optional) Make a virtualenv to install to::
+Install [poetry](https://python-poetry.org) to manage dependencies and virtual
+environments::
 
-    virtualenv my-relate-env
-    source my-relate-env/bin/activate
+    pip install poetry
 
 To install, clone the repository::
 
@@ -19,14 +19,18 @@ Enter the relate directory::
 
     cd relate
 
-Install the dependencies::
+Install the dependencies. This should not be done in an existing virtual environment::
 
-    pip install -r requirements.txt
+    poetry install
+
+Activate the virtual environment::
+
+    poetry shell
 
 Copy (and, optionally, edit) the example configuration::
 
     cp local_settings_example.py local_settings.py
-    vi local_settings.py
+    $EDITOR local_settings.py
 
 Initialize the database::
 
