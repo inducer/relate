@@ -22,7 +22,7 @@ stages:
 .quality-template: &quality
   <<: *install-deps
   image: python:3.7
-  stage: quality
+  stage: lint
   tags:
     - python3
   except:
@@ -72,6 +72,7 @@ Python 3 CLI Tool:
 
 Documentation:
   <<: *install-deps
+  stage: docs
   variables:
     RELATE_LOCAL_TEST_SETTINGS: './local_settings_example.py'
   script:
