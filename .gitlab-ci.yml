@@ -14,7 +14,8 @@ stages:
 
 .install-deps-template: &install-deps
   before_script:
-    - pip install poetry
+    - export PATH="/var/lib/gitlab-runner/.local/bin:$PATH"
+    - pip3 install poetry
     - poetry --version
     - poetry config settings.virtualenvs.in-project true
     - poetry install -vv
