@@ -67,7 +67,7 @@ install:
 
 test_script:
   # Run the project tests
-  - "%CMD_IN_ENV% poetry run coverage run manage.py test tests/"
+  - "%CMD_IN_ENV% poetry run pytest --cov-config=setup.cfg --cov=."
 
 after_test:
   - "%CMD_IN_ENV% poetry run codecov -X gcov"

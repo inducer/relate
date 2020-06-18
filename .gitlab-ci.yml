@@ -31,6 +31,7 @@ stages:
 
 .test-template: &test
   <<: *install-deps
+  image: python:3.7
   script:
     - "bash ./.ci/run-tests-for-ci.sh"
   stage: tests
@@ -53,11 +54,9 @@ mypy:
 
 Python 3:
   <<: *test
-  image: python:3.6
 
 Python 3 Expensive:
   <<: *test
-  image: python:3.6
   variables:
     RL_CI_TEST: expensive
 
