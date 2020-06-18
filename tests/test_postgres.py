@@ -23,6 +23,7 @@ THE SOFTWARE.
 """
 
 import unittest
+import pytest
 
 from django.test import TestCase
 from django.db.backends.signals import connection_created
@@ -35,6 +36,7 @@ from tests import factories
 from tests.utils import mock, is_connection_psql, SKIP_NON_PSQL_REASON  # noqa
 
 
+@pytest.mark.django_db
 class PostgreSQLTestMixin(object):
     @classmethod
     def setUpTestData(cls):  # noqa
@@ -50,6 +52,8 @@ class PostgreSQLTestMixin(object):
         super(PostgreSQLTestMixin, cls).tearDownClass()
 
 
+@pytest.mark.postgres
+@pytest.mark.django_db
 class PostgreSQLAnalyticsTest(PostgreSQLTestMixin, SingleCourseQuizPageTestMixin,
                               HackRepoMixin, TestCase):
 
@@ -105,6 +109,8 @@ class PostgreSQLAnalyticsTest(PostgreSQLTestMixin, SingleCourseQuizPageTestMixin
             self.assertEqual(resp.status_code, 200)
 
 
+@pytest.mark.postgres
+@pytest.mark.django_db
 class RetryTransactionTest(PostgreSQLTestMixin, TestCase):
     # test relate.utils.retry_transaction
     def test_max_tries(self):

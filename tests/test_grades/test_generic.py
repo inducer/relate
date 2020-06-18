@@ -20,9 +20,9 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
+import pytest
 from django.urls import reverse, NoReverseMatch
 from django.test import TestCase
-from unittest import skipUnless
 
 from course.models import (
     Participation, GradingOpportunity, FlowSession,
@@ -30,7 +30,6 @@ from course.models import (
 )
 
 from tests.base_test_mixins import SingleCoursePageTestMixin
-from tests.utils import may_run_expensive_tests, SKIP_EXPENSIVE_TESTS_REASON
 
 
 class GradeGenericTestMixin(SingleCoursePageTestMixin):
@@ -302,7 +301,7 @@ class GradeGenericTestMixin(SingleCoursePageTestMixin):
         return params
 
 
-@skipUnless(may_run_expensive_tests(), SKIP_EXPENSIVE_TESTS_REASON)
+@pytest.mark.slow
 class GradeTwoQuizTakerTest(GradeGenericTestMixin, TestCase):
 
     force_login_student_for_each_test = False
@@ -318,7 +317,7 @@ class GradeTwoQuizTakerTest(GradeGenericTestMixin, TestCase):
         cls.c.force_login(cls.instructor_participation.user)
 
 
-@skipUnless(may_run_expensive_tests(), SKIP_EXPENSIVE_TESTS_REASON)
+@pytest.mark.slow
 class GradeThreeQuizTakerTest(GradeGenericTestMixin, TestCase):
 
     force_login_student_for_each_test = False
@@ -334,7 +333,7 @@ class GradeThreeQuizTakerTest(GradeGenericTestMixin, TestCase):
         cls.c.force_login(cls.instructor_participation.user)
 
 
-@skipUnless(may_run_expensive_tests(), SKIP_EXPENSIVE_TESTS_REASON)
+@pytest.mark.slow
 class GradePermissionsTests(SingleCoursePageTestMixin, TestCase):
     @classmethod
     def setUpTestData(cls):  # noqa

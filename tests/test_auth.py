@@ -20,6 +20,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
+import pytest
 from urllib.parse import ParseResult, quote, urlparse
 from djangosaml2.urls import urlpatterns as djsaml2_urlpatterns
 from django.test import TestCase, override_settings, RequestFactory
@@ -42,8 +43,7 @@ from tests.base_test_mixins import (
     CoursesTestMixinBase, SingleCoursePageTestMixin, MockAddMessageMixing)
 
 from tests.utils import (
-    LocmemBackendTestsMixin, load_url_pattern_names, reload_urlconf, mock,
-    may_run_expensive_tests, SKIP_EXPENSIVE_TESTS_REASON)
+    LocmemBackendTestsMixin, load_url_pattern_names, reload_urlconf, mock)
 from tests import factories
 
 # settings names
@@ -706,7 +706,7 @@ class AuthViewNamedURLTests(AuthTestMixin, TestCase):
                                      fetch_redirect_response=False)
 
 
-@unittest.skipUnless(may_run_expensive_tests(), SKIP_EXPENSIVE_TESTS_REASON)
+@pytest.mark.slow
 class SignInByPasswordTest(CoursesTestMixinBase,
                            AuthTestMixin, MockAddMessageMixing, TestCase):
     @override_settings(RELATE_SIGN_IN_BY_USERNAME_ENABLED=True)
@@ -1911,6 +1911,7 @@ class EmailedTokenBackendTest(CoursesTestMixinBase, TestCase):
         self.assertIsNone(backend.get_user(10000))
 
 
+@pytest.mark.django_db
 class LogoutConfirmationRequiredDecoratorTest(unittest.TestCase):
     def setUp(self):
         self.user = factories.UserFactory()

@@ -23,6 +23,7 @@ THE SOFTWARE.
 """
 
 import unittest
+import pytest
 from django.test import TestCase, RequestFactory
 from django.conf import settings
 from django.test.utils import override_settings  # noqa
@@ -1504,6 +1505,7 @@ class EnrollmentDecisionEmailConnectionsTest(
     # }}}
 
 
+@pytest.mark.django_db
 class ParticipationQueryFormTest(unittest.TestCase):
     #test enrollment.ParticipationQueryForm
     def setUp(self):
