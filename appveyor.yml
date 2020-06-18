@@ -17,6 +17,7 @@ environment:
     # /E:ON and /V:ON options are not enabled in the batch script intepreter
     # See: http://stackoverflow.com/a/13751649/163740
     CMD_IN_ENV: "cmd /E:ON /V:ON /C .\\.ci\\run_with_env.cmd"
+    RELATE_LOCAL_TEST_SETTINGS: "local_settings_example.py"
 
   matrix:
     # Pre-installed Python versions, which Appveyor may upgrade to
@@ -67,7 +68,7 @@ install:
 
 test_script:
   # Run the project tests
-  - "%CMD_IN_ENV% poetry run coverage run -m pytest"
+  - "%CMD_IN_ENV% poetry run pytest --cov-config=setup.cfg --cov-report=xml -cov=."
 
 after_test:
   - "%CMD_IN_ENV% poetry run codecov -X gcov"

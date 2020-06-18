@@ -9,9 +9,6 @@ echo "Current directory: $(pwd)"
 echo "Python executable: ${PY_EXE}"
 echo "-----------------------------------------------"
 
-echo "Copy local settings"
-
-
 echo "i18n"
 # Testing i18n needs a local_settings file even though the rest of the tests
 #   don't use it
