@@ -10,9 +10,91 @@ on:
     - cron: "17 3 * * 0"
 
 jobs:
-  lint:
-    name: Lint and typecheck
-    runs-on: ubuntu-latest
+  # lint:
+  #   name: Lint and typecheck
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v2
+  #     - uses: actions/setup-python@v1
+  #       with:
+  #         python-version: 3.7
+  #     - name: Install Poetry
+  #       uses: dschep/install-poetry-action@v1.3
+  #     - name: Install Dependencies
+  #       run: poetry install
+  #     - name: "Flake8"
+  #       run: poetry run flake8 relate course accounts tests
+  #     - name: "Mypy"
+  #       run: poetry run mypy relate course
+
+
+  # pytest:
+  #   name: Python ${{ matrix.python-version }} - ${{ matrix.suite }}
+  #   runs-on: ubuntu-latest
+  #   strategy:
+  #     matrix:
+  #       python-version: [3.6, 3.7, 3.8]
+  #       suite: ['base', 'postgres', 'expensive']
+  #   services:
+  #       postgres:
+  #         image: postgres
+  #         env:
+  #             POSTGRES_PASSWORD: relatepgpass
+  #             POSTGRES_DB: test_relate
+  #         options: >-
+  #             --health-cmd pg_isready
+  #             --health-interval 10s
+  #             --health-timeout 5s
+  #             --health-retries 5
+  #         ports:
+  #             - 5432:5432
+  #   steps:
+  #     - uses: actions/checkout@v2
+  #     - uses: actions/setup-python@v1
+  #       with:
+  #         python-version: ${{ matrix.python-version }}
+  #     - name: Install Poetry
+  #       uses: dschep/install-poetry-action@v1.3
+  #       with:
+  #         create_virtualenvs: true
+  #     - name: Cache python dependencies
+  #       uses: actions/cache@v1
+  #       id: cache
+  #       with:
+  #         path: ~/.cache/pypoetry/virtualenvs
+  #         key: pypoetry-${{ hashFiles('**/poetry.lock') }}-${{ matrix.python-version }}
+  #         restore-keys: |
+  #           pypoetry-${{ hashFiles('**/poetry.lock') }}-${{ matrix.python-version }}
+  #     - name: Install Dependencies
+  #       run: poetry install
+  #       if: steps.cache.outputs.cache-hit != 'true'
+  #     - name: Install OS dependencies
+  #       env:
+  #         DEBIAN_FRONTEND: noninteractive
+  #       run: |
+  #         sudo apt-get install gettext
+  #     - name: Run test suite
+  #       env:
+  #         RL_CI_TEST: ${{ matrix.suite }}
+  #       run: |
+  #         bash ./.ci/run-tests-for-ci.sh
+  #     - name: Upload coverage to Codecov
+  #       uses: codecov/codecov-action@v1
+  #       with:
+  #         fail_ci_if_error: true
+  #     - name: Test command line tool
+  #       if: matrix.suite == 'base'
+  #       run: |
+  #         git clone https://github.com/inducer/relate-sample
+  #         cd relate-sample
+
+  #         poetry run relate validate .
+  #         poetry run relate test-code questions/autograded-python-example.yml
+  #         poetry run relate expand-yaml flows/quiz-test.yml > /dev/null
+  
+  pytest-windows:
+    name: Python - Windows
+    runs-on: windows-latest
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-python@v1
@@ -20,76 +102,31 @@ jobs:
           python-version: 3.7
       - name: Install Poetry
         uses: dschep/install-poetry-action@v1.3
-      - name: Install Dependencies
-        run: poetry install
-      - name: "Flake8"
-        run: poetry run flake8 relate course accounts tests
-      - name: "Mypy"
-        run: poetry run mypy relate course
-
-
-  pytest:
-    name: Python ${{ matrix.python-version }} - ${{ matrix.suite }}
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: [3.6, 3.7, 3.8]
-        suite: ['base', 'postgres', 'expensive']
-    services:
-        postgres:
-          image: postgres
-          env:
-              POSTGRES_PASSWORD: relatepgpass
-              POSTGRES_DB: test_relate
-          options: >-
-              --health-cmd pg_isready
-              --health-interval 10s
-              --health-timeout 5s
-              --health-retries 5
-          ports:
-              - 5432:5432
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-python@v1
-        with:
-          python-version: ${{ matrix.python-version }}
-      - name: Install Poetry
-        uses: dschep/install-poetry-action@v1.3
         with:
           create_virtualenvs: true
+      - name: Confiure Poetry
+        run: |
+          poetry config virtualenvs.in-project true
       - name: Cache python dependencies
         uses: actions/cache@v1
         id: cache
         with:
-          path: ~/.cache/pypoetry/virtualenvs
-          key: pypoetry-${{ hashFiles('**/poetry.lock') }}-${{ matrix.python-version }}
+          path: .venv
+          key: pypoetry-${{ hashFiles('**/poetry.lock') }}-windows
           restore-keys: |
-            pypoetry-${{ hashFiles('**/poetry.lock') }}-${{ matrix.python-version }}
+            pypoetry-${{ hashFiles('**/poetry.lock') }}-windows
       - name: Install Dependencies
         run: poetry install
         if: steps.cache.outputs.cache-hit != 'true'
-      - name: Install OS dependencies
-        env:
-          DEBIAN_FRONTEND: noninteractive
-        run: |
-          sudo apt-get install gettext
       - name: Run test suite
         env:
-          RL_CI_TEST: ${{ matrix.suite }}
+          RELATE_LOCAL_TEST_SETTINGS: "local_settings_example.py"
         run: |
-          bash ./.ci/run-tests-for-ci.sh
+          poetry run pytest --cov-config=setup.cfg --cov-report=xml --cov=.
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v1
         with:
           fail_ci_if_error: true
-      - name: Test command line tool
-        if: matrix.suite == 'base'
-        run: |
-          git clone https://github.com/inducer/relate-sample
-          cd relate-sample
-
-          poetry run relate validate .
-          poetry run relate test-code questions/autograded-python-example.yml
-          poetry run relate expand-yaml flows/quiz-test.yml > /dev/null
+      
 
 # vim: sw=2
