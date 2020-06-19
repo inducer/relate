@@ -36,12 +36,11 @@ from tests import factories
 from tests.utils import mock, is_connection_psql, SKIP_NON_PSQL_REASON  # noqa
 
 
+@pytest.mark.postgres
 @pytest.mark.django_db
 class PostgreSQLTestMixin(object):
     @classmethod
     def setUpTestData(cls):  # noqa
-        if not is_connection_psql:
-            raise unittest.SkipTest(SKIP_NON_PSQL_REASON)
         super(PostgreSQLTestMixin, cls).setUpTestData()
 
     @classmethod
@@ -110,7 +109,7 @@ class PostgreSQLAnalyticsTest(PostgreSQLTestMixin, SingleCourseQuizPageTestMixin
 
 
 @pytest.mark.postgres
-@pytest.mark.django_db
+@pytest.mark.django_db(transaction=True)
 class RetryTransactionTest(PostgreSQLTestMixin, TestCase):
     # test relate.utils.retry_transaction
     def test_max_tries(self):

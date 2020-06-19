@@ -49,7 +49,7 @@ elif [[ "$RL_CI_TEST" = "postgres" ]]; then
             },
         }" >> local_settings_example.py
 
-    poetry install -E pgsql
+    poetry run pip install psycopg2
     echo "Database tests"
     poetry run pytest --cov-config=setup.cfg --cov-report=xml --cov=.
 else

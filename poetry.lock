@@ -107,7 +107,6 @@ six = "*"
 reference = "8ab3aaba3a77b4875262377787bdab20330379a1"
 type = "git"
 url = "https://github.com/inducer/bleach"
-
 [[package]]
 category = "main"
 description = "Distributed Task Queue."
@@ -346,7 +345,6 @@ six = ">=1.4.1"
 reference = "c92d0373d12a02d1e52fb09b44010f156111d7ea"
 type = "git"
 url = "https://github.com/bakatrouble/django-yamlfield.git"
-
 [[package]]
 category = "main"
 description = "pysaml2 integration for Django"
@@ -364,7 +362,6 @@ pysaml2 = ">=5.0.0"
 reference = "dcabea21c3ebf0f7b31db361d960acded16e20b8"
 type = "git"
 url = "https://github.com/knaperek/djangosaml2.git"
-
 [[package]]
 category = "main"
 description = "DNS toolkit"
@@ -1373,11 +1370,8 @@ version = "3.1.0"
 docs = ["sphinx", "jaraco.packaging (>=3.2)", "rst.linker (>=1.9)"]
 testing = ["jaraco.itertools", "func-timeout"]
 
-[extras]
-pgsql = []
-
 [metadata]
-content-hash = "c26b4794b4ab1fb41a5c0fc1dec7bd4f197455a0a1d5a7d1d785fa32c199e915"
+content-hash = "570af61983bfb72d0b9802bb4582782aeb3da5fefd90d855e5f3adfb5fae9efb"
 python-versions = "^3.6"
 
 [metadata.files]
