@@ -27,6 +27,7 @@ fi
 poetry run python manage.py compilemessages
 
 echo "Starts testing"
+export RELATE_LOCAL_TEST_SETTINGS="local_settings_example.py"
 
 if [[ "$RL_CI_TEST" = "expensive" ]]; then
     echo "Expensive tests"
