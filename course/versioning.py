@@ -99,7 +99,7 @@ def _remove_prefix(prefix, s):
 
 
 def transfer_remote_refs(repo, fetch_pack_result):
-    # type: (Repo, Dict[bytes, Text]) -> None
+    # type: (Repo, dulwich.client.FetchPackResult) -> None
 
     valid_refs = []
 
@@ -346,8 +346,7 @@ def run_course_update_command(
 
         fetch_pack_result = client.fetch(remote_path, repo)
 
-        from dulwich.client import FetchPackResult
-        assert isinstance(fetch_pack_result, FetchPackResult)
+        assert isinstance(fetch_pack_result, dulwich.client.FetchPackResult)
 
         transfer_remote_refs(repo, fetch_pack_result)
         remote_head = fetch_pack_result.refs[b"HEAD"]
