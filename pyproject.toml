@@ -42,7 +42,7 @@ pytz = "^2020.1"
 # Course content is stored in YAML.
 pyyaml = "*"
 # Dulwich git integration
-dulwich = "^0.19"
+dulwich = "^0.20.3"
 ecdsa = "^0.15"
 # FIXME: 2.7.1 gives bogus 'incorrect padding' error on PEM parsing
 paramiko = "<2.7"
