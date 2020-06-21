@@ -103,16 +103,12 @@ def transfer_remote_refs(repo, fetch_pack_result):
 
     valid_refs = []
 
-    from dulwich.client import FetchPackResult
-    assert isinstance(fetch_pack_result, FetchPackResult)
-
-    if fetch_pack_result is not None:
-        for ref, sha in fetch_pack_result.refs.items():
-            if (ref.startswith(b"refs/heads/")
-                    and not ref.startswith(b"refs/heads/origin/")):
-                new_ref = b"refs/remotes/origin/"+_remove_prefix(b"refs/heads/", ref)
-                valid_refs.append(new_ref)
-                repo[new_ref] = sha
+    for ref, sha in fetch_pack_result.refs.items():
+        if (ref.startswith(b"refs/heads/")
+                and not ref.startswith(b"refs/heads/origin/")):
+            new_ref = b"refs/remotes/origin/"+_remove_prefix(b"refs/heads/", ref)
+            valid_refs.append(new_ref)
+            repo[new_ref] = sha
 
     for ref in repo.get_refs().keys():
         if ref.startswith(b"refs/remotes/origin/") and ref not in valid_refs:
@@ -349,6 +345,10 @@ def run_course_update_command(
             get_dulwich_client_and_remote_path_from_course(pctx.course)
 
         fetch_pack_result = client.fetch(remote_path, repo)
+
+        from dulwich.client import FetchPackResult
+        assert isinstance(fetch_pack_result, FetchPackResult)
+
         transfer_remote_refs(repo, fetch_pack_result)
         remote_head = fetch_pack_result.refs[b"HEAD"]
         if prevent_discarding_revisions:
