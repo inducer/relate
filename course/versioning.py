@@ -98,18 +98,17 @@ def _remove_prefix(prefix, s):
     return s[len(prefix):]
 
 
-def transfer_remote_refs(repo, remote_refs):
-    # type: (Repo, Dict[bytes, Text]) -> None
+def transfer_remote_refs(repo, fetch_pack_result):
+    # type: (Repo, dulwich.client.FetchPackResult) -> None
 
     valid_refs = []
 
-    if remote_refs is not None:
-        for ref, sha in remote_refs.items():
-            if (ref.startswith(b"refs/heads/")
-                    and not ref.startswith(b"refs/heads/origin/")):
-                new_ref = b"refs/remotes/origin/"+_remove_prefix(b"refs/heads/", ref)
-                valid_refs.append(new_ref)
-                repo[new_ref] = sha
+    for ref, sha in fetch_pack_result.refs.items():
+        if (ref.startswith(b"refs/heads/")
+                and not ref.startswith(b"refs/heads/origin/")):
+            new_ref = b"refs/remotes/origin/"+_remove_prefix(b"refs/heads/", ref)
+            valid_refs.append(new_ref)
+            repo[new_ref] = sha
 
     for ref in repo.get_refs().keys():
         if ref.startswith(b"refs/remotes/origin/") and ref not in valid_refs:
@@ -205,16 +204,16 @@ def set_up_new_course(request):
                             get_dulwich_client_and_remote_path_from_course(
                                     new_course)
 
-                        remote_refs = client.fetch(remote_path, repo)
-                        if remote_refs is None:
+                        fetch_pack_result = client.fetch(remote_path, repo)
+                        if not fetch_pack_result.refs:
                             raise RuntimeError(_("No refs found in remote repository"
                                     " (i.e. no master branch, no HEAD). "
                                     "This looks very much like a blank repository. "
                                     "Please create course.yml in the remote "
                                     "repository before creating your course."))
 
-                        transfer_remote_refs(repo, remote_refs)
-                        new_sha = repo[b"HEAD"] = remote_refs[b"HEAD"]
+                        transfer_remote_refs(repo, fetch_pack_result)
+                        new_sha = repo[b"HEAD"] = fetch_pack_result.refs[b"HEAD"]
 
                         vrepo = repo
                         if new_course.course_root_path:
@@ -345,9 +344,12 @@ def run_course_update_command(
         client, remote_path = \
             get_dulwich_client_and_remote_path_from_course(pctx.course)
 
-        remote_refs = client.fetch(remote_path, repo)
-        transfer_remote_refs(repo, remote_refs)
-        remote_head = remote_refs[b"HEAD"]
+        fetch_pack_result = client.fetch(remote_path, repo)
+
+        assert isinstance(fetch_pack_result, dulwich.client.FetchPackResult)
+
+        transfer_remote_refs(repo, fetch_pack_result)
+        remote_head = fetch_pack_result.refs[b"HEAD"]
         if prevent_discarding_revisions:
             # Guard against bad scenario:
             # Local is not ancestor of remote, i.e. the branches have diverged.

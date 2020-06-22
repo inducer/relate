@@ -27,6 +27,7 @@ from copy import deepcopy
 import unittest
 from django.test import TestCase, RequestFactory
 from dulwich.contrib.paramiko_vendor import ParamikoSSHVendor
+from dulwich.client import FetchPackResult
 
 from relate.utils import force_remove_path
 
@@ -145,7 +146,10 @@ class CourseCreationTest(VersioningTestMixin, TestCase):
             self.assertTrue(resp.status_code, 200)
 
             with mock.patch("dulwich.client.GitClient.fetch",
-                            return_value={b"HEAD": b"some_commit_sha"}), \
+                            return_value=FetchPackResult(
+                                refs={b"HEAD": b"some_commit_sha"},
+                                symrefs={},
+                                agent="Git")), \
                   mock.patch("course.versioning.transfer_remote_refs",
                             return_value=None), \
                       mock.patch("course.validation.validate_course_content",
@@ -233,7 +237,10 @@ class CourseCreationTest(VersioningTestMixin, TestCase):
         request = self.rf.post(self.get_set_up_new_course_url(), data=data)
         request.user = self.instructor
         with mock.patch("dulwich.client.GitClient.fetch",
-                        return_value=None), \
+                        return_value=FetchPackResult(
+                            refs={},
+                            symrefs={},
+                            agent="Git")), \
                 mock.patch("course.models.Course.save") as mock_save, \
                 mock.patch("course.versioning.render"):
             resp = versioning.set_up_new_course(request)
@@ -249,7 +256,10 @@ class CourseCreationTest(VersioningTestMixin, TestCase):
         request = self.rf.post(self.get_set_up_new_course_url(), data=data)
         request.user = self.instructor
         with mock.patch("dulwich.client.GitClient.fetch",
-                        return_value={b"HEAD": b"some_commit_sha"}), \
+                        return_value=FetchPackResult(
+                            refs={b"HEAD": b"some_commit_sha"},
+                            symrefs={},
+                            agent="Git")), \
              mock.patch('course.versioning.messages'), \
              mock.patch("course.validation.validate_course_content",
                         return_value=None) as mock_validate, \
@@ -381,24 +391,6 @@ class ParamikoSSHVendorTest(TestCase):
             self.assertIn(
                 "git-upload-pack '/bar/baz'",
                 mock_channel.exec_command.call_args[0])
-
-
-class TransferRemoteRefsTest(unittest.TestCase):
-    # test versioning.transfer_remote_refs
-
-    # Fixme: need better tests
-    def test_remote_ref_none(self):
-        repo_dict = {}
-        repo_dict[b"refs/remotes/origin/1"] = b"some_bytes"
-        repo_dict[b'HEAD'] = b"some_head"
-
-        repo = mock.MagicMock()
-        repo.__getitem__.side_effect = repo_dict.__getitem__
-
-        repo.get_refs.return_value = {
-            b"refs/remotes/origin/1": "some_text1",
-            b"refs/remotes/other/1": "some_text2"}
-        versioning.transfer_remote_refs(repo, None)
 
 
 class FakeCommit(object):
@@ -690,8 +682,10 @@ class RunCourseUpdateCommandTest(MockAddMessageMixing, unittest.TestCase):
         self.mock_get_dulwich_client_and_remote_path_from_course.return_value = (
             self.mock_client, remote_path
         )
-        self.mock_client.fetch.return_value = {
-            b"HEAD": self.default_switch_to_sha.encode()}
+        self.mock_client.fetch.return_value = FetchPackResult(
+                refs={b"HEAD": self.default_switch_to_sha.encode()},
+                symrefs={},
+                agent="Git")
 
         self.addCleanup(fake_get_dulwich_client_and_remote_path_from_course.stop)
 
@@ -886,8 +880,10 @@ class RunCourseUpdateCommandTest(MockAddMessageMixing, unittest.TestCase):
         self.assertIsNone(self.participation.preview_git_commit_sha)
 
     def test_fetch_not_prevent_discarding_revisions(self):
-        self.mock_client.fetch.return_value = {
-            b"HEAD": self.default_lastest_sha.encode()}
+        self.mock_client.fetch.return_value = FetchPackResult(
+                refs={b"HEAD": self.default_lastest_sha.encode()},
+                symrefs={},
+                agent="Git")
 
         command_tup = (
             ("fetch", 1, [FETCHED_LITERAL], [UPDATE_APPLIED_LITERAL],
@@ -939,8 +935,10 @@ class RunCourseUpdateCommandTest(MockAddMessageMixing, unittest.TestCase):
         self.assertAddMessageCallCount(0)
 
     def test_fetch_update_success_with_warnings(self):
-        self.mock_client.fetch.return_value = {
-            b"HEAD": self.default_lastest_sha.encode()}
+        self.mock_client.fetch.return_value = FetchPackResult(
+                refs={b"HEAD": self.default_lastest_sha.encode()},
+                symrefs={},
+                agent="Git")
         self.mock_validate_course_content.return_value = (
             ValidationWarning(LOCATION1, WARNING1),
             ValidationWarning(LOCATION2, WARNING2),
@@ -959,8 +957,11 @@ class RunCourseUpdateCommandTest(MockAddMessageMixing, unittest.TestCase):
             self.course.active_git_commit_sha, self.default_lastest_sha)
 
     def test_fetch_update_success_with_warnings_previewing(self):
-        self.mock_client.fetch.return_value = {
-            b"HEAD": self.default_lastest_sha.encode()}
+        self.mock_client.fetch.return_value = FetchPackResult(
+                refs={b"HEAD": self.default_lastest_sha.encode()},
+                symrefs={},
+                agent="Git")
+
         self.mock_validate_course_content.return_value = (
             ValidationWarning(LOCATION1, WARNING1),
             ValidationWarning(LOCATION2, WARNING2),
@@ -1031,8 +1032,10 @@ class RunCourseUpdateCommandTest(MockAddMessageMixing, unittest.TestCase):
         self.assertEqual(self.course.active_git_commit_sha, self.default_old_sha)
 
     def test_fetch_not_may_update(self):
-        self.mock_client.fetch.return_value = {
-            b"HEAD": self.default_lastest_sha.encode()}
+        self.mock_client.fetch.return_value = FetchPackResult(
+                refs={b"HEAD": self.default_lastest_sha.encode()},
+                symrefs={},
+                agent="Git")
 
         command_tup = (
             ("fetch", 1, [FETCHED_LITERAL], [UPDATE_APPLIED_LITERAL],
