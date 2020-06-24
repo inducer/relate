@@ -2,7 +2,7 @@
 
 set -e
 
-$PY_EXE -m pip install docutils sphinx
+python -m pip install docutils sphinx
 
 cd doc
 
