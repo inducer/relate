@@ -76,9 +76,7 @@ Documentation:
   variables:
     RELATE_LOCAL_TEST_SETTINGS: './local_settings_example.py'
   script:
-    - curl -L -O -k https://gitlab.tiker.net/inducer/ci-support/raw/master/build-docs.sh
-    - export PY_EXE="$(poetry run which python)"
-    - poetry run ./build-docs.sh
+    - poetry run bash ./doc/build-docs.sh
   tags:
     - python3
   only:
