@@ -790,6 +790,162 @@ Life cycle
 
 .. autoclass:: flow_session_expiration_mode
 
+
+Templated Flows and Forms
+-------------------------
+
+Forms provide a web interface for creating flows from a templated flow.
+A templated flow is a flow with an extension `.jinja` that has one or more
+undefined jinja variables used in it. These undefined jinja variables
+are filled using a form submitted by an admin user. When an admin user fills
+the fields in the web form, values from the fields are substituted into the
+undefined jinja variables in the templated flow and a new flow is created.
+This is useful for creating flows without access to the git repository and
+also provides a way to create a flow in the during a lecture.
+
+For example, an instructor wants to create a multiple choice question in the
+middle of the lecture and have students submit an answer within 10 minutes of
+the announcement similar to an i-clicker. Then, a templated flow looks like
+the following::
+
+    title: "{{ title }}"
+
+    description: |
+        # RELATE Instant Flow
+
+    rules:
+        start:
+        -
+            if_before: end_of_class
+            if_has_role: [student, ta, instructor]
+            if_has_fewer_sessions_than: 1
+            may_start_new_session: True
+            may_list_existing_sessions: True
+
+        -
+            may_start_new_session: False
+            may_list_existing_sessions: True
+
+        access:
+        -
+            permissions: [view, submit_answer, end_session, see_correctness, see_answer_after_submission]
+
+        grade_identifier: instant_quiz_{{ id }}
+        grade_aggregation_strategy: use_latest
+
+        grading:
+        -
+          if_completed_before: "{{ created_time }} + {{ duration }} minutes"
+          credit_percent: 100
+
+        -
+          credit_percent: 0
+
+    pages:
+      -
+        type: ChoiceQuestion
+        id: instant_{{ id }}
+        title: {{ title }}
+        shuffle: True
+        prompt: |
+
+          {{ description }}
+
+        choices:
+          - ~CORRECT~ {{ choice1 }}
+          - {{ choice2 }}
+          - {{ choice3 }}
+
+
+The jinja variables `title, description, choice1, choice2, choice3, duration,
+created_time, id` are undefined and needs to be created by the form.
+REALTE will fill in `created_time` and `id` and the others need to be fields
+in the form. A form must have the fields `template_in`, `template_out`
+which correspond to the name of the templted flow and actual flow respectively.
+`template_out` will get the timestamp appended to make the file name unique.
+A special field `announce` will create an Instant Flow request which will make
+the flow visible to all visitors to the course page.
+
+A form description file will create a form in the web interface for an admin
+user and upon submitting a new flow will be created.
+The form in the web interface can have several types of field.
+Field types are one of `Text, Integer, Float, Choice, Hidden`. Hidden
+fields are not shown to the admin user, but their default values are
+substituted in the templated flow. An example form description is as follows::
+
+    title: "Create an instant flow with one multiple choice question"
+
+    description: |
+      Instructions on filling out this form
+    type: flow
+
+    access_roles: [ta, instructor]
+
+    fields:
+      - id: title
+        type: Text
+        value: "InClass quiz"
+        label: "Title"
+
+      - id: description
+        type: Text
+        value: ""
+        label: "Question"
+
+      - id: duration
+        type: Integer
+        value: 20
+        label: "Duration in minutes for the flow"
+
+      - id: choice1
+        type: Text
+        value: "(a)"
+        label: "Correct choice"
+
+      - id: choice2
+        type: Text
+        value: "(b)"
+        label: "An Incorrect choice"
+
+      - id: choice3
+        type: Text
+        value: "(c)"
+        label: "Another incorrect choice"
+
+      - id: template_in
+        type: Hidden
+        value: "flows/instant_flow.jinja"
+
+      - id: template_out
+        type: Hidden
+        value: "flows/instant_flow.yml"
+
+      - id: announce
+        type: Choice
+        choices:
+         - ~DEFAULT~ True
+         - False
+        label: "Announce to the class"
+
+
+When the admin user submits the form, a flow will be created using the
+values the admin user filled in the web form like the following::
+
+    {% with id="20190930_022148_311577",
+            title="InClass quiz",
+            description="What's 1 + 1?",
+            duration="20",
+            choice1="~CORRECT~ 2",
+            choice2="1",
+            choice3="3",
+            template_in="flows/instant_flow.jinja",
+            template_out="flows/instant_flow.yml",
+            announce="True",
+            created_time="2019-09-30 @ 02:21" %}
+    {% include "flows/instant_flow.jinja" %}
+    {% endwith %}
+
+
 Sample Rule Sets
 ----------------
 

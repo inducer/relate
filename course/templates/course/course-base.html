@@ -119,6 +119,7 @@
       {% if pperm.use_markup_sandbox %}
         <li><a href="{% url "relate-view_markup_sandbox" course.identifier %}">{% trans "Markup sandbox" %}</a></li>
       {% endif %}
+      <li><a href="{% url "relate-view_all_forms" course.identifier %}">{% trans "Forms" %}</a></li>
 
       {% if pperm.test_flow %}
         <li role="presentation" class="divider"></li>

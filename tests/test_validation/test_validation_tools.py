@@ -2902,6 +2902,151 @@ class ValidateFlowIdTest(ValidationTestMixin, unittest.TestCase):
         self.assertIn(expected_error_msg, str(cm.exception))
 
 
+class ValidateFormIdTest(ValidationTestMixin, unittest.TestCase):
+    # test validation.validate_form_id
+
+    def test_success(self):
+        flow_id = "abc-def"
+        validation.validate_form_id(vctx, location, flow_id)
+        flow_id = "abc_def1"
+        validation.validate_form_id(vctx, location, flow_id)
+
+    def test_fail(self):
+        expected_error_msg = (
+            "invalid form name. Form names may only contain (roman) "
+            "letters, numbers, dashes and underscores.")
+
+        flow_id = "abc def"
+        with self.assertRaises(ValidationError) as cm:
+            validation.validate_form_id(vctx, location, flow_id)
+        self.assertIn(expected_error_msg, str(cm.exception))
+
+        flow_id = "abc/def"
+        with self.assertRaises(ValidationError) as cm:
+            validation.validate_form_id(vctx, location, flow_id)
+        self.assertIn(expected_error_msg, str(cm.exception))
+
+
+class ValidateFormFieldTest(ValidationTestMixin, unittest.TestCase):
+    # test validation.validate_form_field
+
+    def get_updated_form_field(self, **kwargs):
+        field_desc = {"id": "my_page_id",
+                      "type": "Text",
+                      "value": "foo"}
+        field_desc.update(kwargs)
+        return dict_to_struct(field_desc)
+
+    def test_success(self):
+        validation.validate_form_field(vctx, location,
+            self.get_updated_form_field(id="abc"))
+
+    def test_invalid_form_field_id(self):
+        expected_error_msg = (
+            "invalid form field id. Form field id may only contain (roman) "
+            "letters, numbers, dashes and underscores.")
+        with self.assertRaises(ValidationError) as cm:
+            validation.validate_form_field(vctx, location,
+                self.get_updated_form_field(id="abc def"))
+        self.assertIn(expected_error_msg, str(cm.exception))
+
+    def test_invalid_form_field_type(self):
+        expected_error_msg = (
+            "some_where: form field type 'qwe' not recognized")
+        with self.assertRaises(ValidationError) as cm:
+            validation.validate_form_field(vctx, location,
+                self.get_updated_form_field(type="qwe"))
+        self.assertIn(expected_error_msg, str(cm.exception))
+
+    def test_invalid_form_field_choice(self):
+        field_desc = {"id": "my_page_id",
+                      "type": "Choice",
+                      "choices": ["foo"]}
+        field_desc = dict_to_struct(field_desc)
+        expected_error_msg = (
+            "form field 'my_page_id' of type 'Choice' requires"
+            " a default value.")
+        with self.assertRaises(ValidationError) as cm:
+            validation.validate_form_field(vctx, location, field_desc)
+        self.assertIn(expected_error_msg, str(cm.exception))
+
+        field_desc.choices = ["~DEFAULT~ a", "~DEFAULT~ b", "c"]
+        expected_error_msg = (
+            "form field 'my_page_id' of type 'Choice' requires"
+            " only one default value.")
+        with self.assertRaises(ValidationError) as cm:
+            validation.validate_form_field(vctx, location, field_desc)
+        self.assertIn(expected_error_msg, str(cm.exception))
+
+        field_desc.choices = ["~DEFAULT~ a", "b"]
+        validation.validate_form_field(vctx, location, field_desc)
+
+
+class ValidateFormTest(ValidationTestMixin, unittest.TestCase):
+    # test validation.validate_form_desc
+
+    def setUp(self):
+        super(ValidateFormTest, self).setUp()
+        patch = mock.patch("course.validation.validate_role")
+        self.mock_validate_role = patch.start()
+        self.addCleanup(patch.stop)
+
+        patch = mock.patch("course.validation.validate_form_field")
+        self.mock_validate_form_field = patch.start()
+        self.addCleanup(patch.stop)
+
+    def get_updated_form_desc(self, **kwargs):
+        form_desc = {
+            "title": "title",
+            "description": "description",
+            "type": "flow",
+            "access_roles": ["ta", "ta2"],
+            "fields": [
+                dict_to_struct({"id": "template_in", "type": "Text"}),
+                dict_to_struct({"id": "template_out", "type": "Text"}),
+            ],
+        }
+        form_desc.update(kwargs)
+        return dict_to_struct(form_desc)
+
+    def test_validate_role_called(self):
+        validation.validate_form_desc(vctx, location,
+            self.get_updated_form_desc(access_roles=[]))
+        self.assertEqual(self.mock_validate_role.call_count, 0)
+        self.assertEqual(self.mock_validate_form_field.call_count, 2)
+
+        validation.validate_form_desc(vctx, location,
+            self.get_updated_form_desc())
+        self.assertEqual(self.mock_validate_role.call_count, 2)
+
+    def test_field_id_unique(self):
+        expected_error_msg = ("some_where: form field id 'template_in' not unique")
+        fields = [
+                dict_to_struct({"id": "template_in", "type": "Text"}),
+                dict_to_struct({"id": "template_in", "type": "Text"}),
+                dict_to_struct({"id": "template_out", "type": "Text"}),
+        ]
+        with self.assertRaises(ValidationError) as cm:
+            validation.validate_form_desc(vctx, location,
+                self.get_updated_form_desc(fields=fields))
+        self.assertIn(expected_error_msg, str(cm.exception))
+
+    def test_field_required(self):
+        fields = [
+            dict_to_struct({"id": "template_in", "type": "Text"}),
+            dict_to_struct({"id": "template_out", "type": "Text"}),
+        ]
+
+        for field_name in ["template_in", "template_out"]:
+            expected_error_msg = (
+                "some_where: required form field id '%s' not found" % field_name)
+            test_fields = [field for field in fields if field.id != field_name]
+            with self.assertRaises(ValidationError) as cm:
+                validation.validate_form_desc(vctx, location,
+                    self.get_updated_form_desc(fields=test_fields))
+            self.assertIn(expected_error_msg, str(cm.exception))
+
+
 class ValidateStaticPageNameTest(ValidationTestMixin, unittest.TestCase):
     # test validation.validate_static_page_name
 

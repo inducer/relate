@@ -1160,6 +1160,150 @@ def validate_flow_desc(vctx, location, flow_desc):
 
 # }}}
 
+# {{{ form validation
+
+
+def validate_form_desc(vctx, location, form_desc):
+    validate_struct(
+            vctx,
+            location,
+            form_desc,
+            required_attrs=[
+                ("title", str),
+                ("description", "markup"),
+                ("type", str),
+                ("fields", list),
+                ("access_roles", list),
+                ],
+            allowed_attrs=[],
+            )
+
+    for j, role in enumerate(form_desc.access_roles):
+        validate_role(
+                vctx,
+                "%s, role %d" % (location, j+1),
+                role)
+
+    for j, field in enumerate(form_desc.fields):
+        validate_form_field(
+                vctx,
+                "%s, field %d" % (location, j+1),
+                field)
+
+    # {{{ check field id uniqueness
+
+    field_ids = set()
+
+    for field in form_desc.fields:
+        if field.id in field_ids:
+            raise ValidationError(
+                    string_concat("%(location)s: ",
+                        _("form field id '%(field_id)s' not unique"))
+                    % {'location': location, 'field_id': field.id})
+
+        field_ids.add(field.id)
+
+    # }}}
+
+    # Check required fields
+
+    for req_field in ["template_in", "template_out"]:
+        if req_field not in field_ids:
+            raise ValidationError(
+                    string_concat("%(location)s: ",
+                        _("required form field id '%(field_id)s' not found"))
+                    % {'location': location, 'field_id': req_field})
+
+
+def validate_form_field(vctx, location, field_desc):
+    validate_struct(
+            vctx,
+            location,
+            field_desc,
+            required_attrs=[
+                ("id", str),
+                ("type", str),
+                ],
+            allowed_attrs=[
+                ("choices", list),
+                ("value", (str, int, float, bool)),
+                ("label", str),
+                ],
+            )
+
+    if field_desc.type not in ["Text", "Integer", "Float", "Choice", "Hidden"]:
+        raise ValidationError(
+                string_concat("%(location)s: ",
+                    _("form field type '%(field_type)s' not recognized"))
+                % {'location': location, 'field_type': field_desc.type})
+
+    from course.constants import FORM_FIELD_ID_REGEX
+
+    match = re.match("^" + FORM_FIELD_ID_REGEX + "$", field_desc.id)
+    if match is None:
+        raise ValidationError(
+            string_concat("%s: ",
+                          _("invalid form field id. "
+                            "Form field id may only contain (roman) "
+                            "letters, numbers, "
+                            "dashes and underscores."))
+            % location)
+
+    if field_desc.type != "Choice":
+        required_types = {
+            "Integer": int,
+            "Float": float,
+        }
+        value_types = required_types.get(field_desc.type,
+                        (str, int, float, bool))
+        validate_struct(
+            vctx,
+            location,
+            field_desc,
+            required_attrs=[
+                ("id", str),
+                ("type", str),
+                ("value", value_types),
+                ],
+            allowed_attrs=[
+                ("label", str),
+                ],
+        )
+    else:
+        validate_struct(
+            vctx,
+            location,
+            field_desc,
+            required_attrs=[
+                ("id", str),
+                ("type", str),
+                ("choices", list),
+                ],
+            allowed_attrs=[
+                ("label", str),
+                ],
+        )
+        found_default = 0
+        for choice in field_desc.choices:
+            if str(choice).startswith("~DEFAULT~"):
+                found_default += 1
+        if found_default == 0:
+            raise ValidationError(
+                string_concat("%(location)s: ",
+                    _("form field '%(id)s' of type '%(field_type)s' requires"
+                      " a default value."))
+                % {'location': location, 'field_type': field_desc.type,
+                   'id': field_desc.id})
+        if found_default > 1:
+            raise ValidationError(
+                string_concat("%(location)s: ",
+                    _("form field '%(id)s' of type '%(field_type)s' requires"
+                      " only one default value."))
+                % {'location': location, 'field_type': field_desc.type,
+                   'id': field_desc.id})
+
+# }}}
+
 
 # {{{ calendar validation
 
@@ -1427,6 +1571,21 @@ def validate_flow_id(vctx, location, flow_id):
             % location)
 
 
+def validate_form_id(vctx, location, form_id):
+    # type: (ValidationContext, Text, Text) -> None
+
+    from course.constants import FORM_ID_REGEX
+    match = re.match("^" + FORM_ID_REGEX + "$", form_id)
+    if match is None:
+        raise ValidationError(
+            string_concat("%s: ",
+                          _("invalid form name. "
+                            "Form names may only contain (roman) "
+                            "letters, numbers, "
+                            "dashes and underscores."))
+            % location)
+
+
 def validate_static_page_name(vctx, location, page_name):
     # type: (ValidationContext, Text, Text) -> None
 
@@ -1591,6 +1750,31 @@ def validate_course_content(repo, course_file, events_file,
                     commit_sha=validate_sha)
 
             validate_staticpage_desc(vctx, location, page_desc)
+
+    # }}}
+
+    # {{{ forms
+
+    try:
+        forms_tree = get_repo_blob(repo, "forms", validate_sha)
+    except ObjectDoesNotExist:
+        # That's OK--no forms yet.
+        pass
+    else:
+        for entry in forms_tree.items():
+            entry_path = entry.path.decode("utf-8")
+            if not entry_path.endswith(".yml"):
+                continue
+
+            tmpl_id = entry_path[:-4]
+            location = entry_path
+            validate_form_id(vctx, location, tmpl_id)
+
+            location = "forms/%s" % entry_path
+            form_desc = get_yaml_from_repo_safely(repo, location,
+                    commit_sha=validate_sha)
+
+            validate_form_desc(vctx, location, form_desc)
 
     # }}}
 

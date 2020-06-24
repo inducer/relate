@@ -1,0 +1,19 @@
+{% extends "course/course-base.html" %}
+{% load i18n %}
+
+{% load crispy_forms_tags %}
+{% load static %}
+
+{%block header_extra %}
+  <script src="{% static "codemirror/keymap/vim.js" %}"></script>
+{% endblock %}
+
+{% block content %}
+  <h1>{% trans "Forms" %}</h1>
+  <ul>
+      {% for form in forms %}
+      <li><a href="{% url "relate-view_form" course.identifier form.name %}">{{ form.title }}</a></li>
+      {% endfor %}
+  </ul>
+{% endblock %}
+

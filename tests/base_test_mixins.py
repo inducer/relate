@@ -820,10 +820,10 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
         assert Course.objects.count() == existing_course_count + 1
 
     @classmethod
-    def get_course_view_url(cls, view_name, course_identifier=None):
+    def get_course_view_url(cls, view_name, course_identifier=None, *args):
         course_identifier = (
             course_identifier or cls.get_default_course_identifier())
-        return reverse(view_name, args=[course_identifier])
+        return reverse(view_name, args=[course_identifier] + list(args))
 
     @classmethod
     def get_course_calender_url(cls, course_identifier=None):
@@ -843,6 +843,19 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
         course_identifier = (
             course_identifier or cls.get_default_course_identifier())
         return cls.get_course_view_url("relate-edit_course", course_identifier)
+
+    @classmethod
+    def get_view_all_forms_url(cls, course_identifier=None):
+        course_identifier = (
+            course_identifier or cls.get_default_course_identifier())
+        return cls.get_course_view_url("relate-view_all_forms", course_identifier)
+
+    @classmethod
+    def get_view_form_url(cls, form_id, course_identifier=None):
+        course_identifier = (
+            course_identifier or cls.get_default_course_identifier())
+        return cls.get_course_view_url("relate-view_form", course_identifier,
+                    form_id)
 
     @classmethod
     def post_edit_course(cls, data, course=None):
