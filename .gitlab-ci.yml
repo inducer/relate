@@ -5,10 +5,13 @@ cache:
   key:
     files:
       - poetry.lock
+    prefix: relate
   paths:
-    - .venv
+    - ~/.cache/pypoetry
+    - ~/.cache/pip
 
 stages:
+  - setup
   - lint
   - tests
   - docs
@@ -16,9 +19,7 @@ stages:
 .install-deps-template: &install-deps
   before_script:
     - export PATH="/var/lib/gitlab-runner/.local/bin:$PATH"
-    - pip3 install poetry
-    - poetry --version
-    - poetry config virtualenvs.in-project true
+    - pip3 install --upgrade poetry
     - poetry install -vv
 
 .quality-template: &quality
@@ -43,6 +44,11 @@ stages:
   coverage: "/TOTAL.+ ([0-9]{1,3}%)/"
   variables:
     CODECOV_TOKEN: "895e3bf2-cfd0-45f8-9a14-4b7bd148f76d"
+
+setup:
+  <<: *install-deps
+  image: python:3.7
+  stage: setup
 
 flake8:
   <<: *quality
