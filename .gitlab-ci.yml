@@ -1,3 +1,6 @@
+variables:
+    PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+
 cache:
   key:
     files:
@@ -5,8 +8,8 @@ cache:
       - poetry.lock
     prefix: relate
   paths:
-    - /var/lib/gitlab-runner/.cache/pypoetry
-    - /var/lib/gitlab-runner/.cache/pip
+    - "$CI_PROJECT_DIR/.cache/pypoetry"
+    - "$CI_PROJECT_DIR/.cache/pip"
 
 stages:
   - setup
@@ -19,8 +22,9 @@ stages:
   before_script:
     - export PATH="/var/lib/gitlab-runner/.local/bin:$PATH"
     - pip3 install --upgrade poetry
+    - poetry config cache-dir "$CI_PROJECT_DIR/.cache/pypoetry"
     - poetry config virtualenvs.in-project false
-    - poetry install -vv
+    - poetry install
 
 .quality-template: &quality
   <<: *install-deps
