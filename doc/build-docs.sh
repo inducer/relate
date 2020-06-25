@@ -2,7 +2,7 @@
 
 set -e
 
-python -m pip install docutils sphinx
+poetry run pip install docutils sphinx
 
 cd doc
 
@@ -15,7 +15,7 @@ Host doc-upload
    StrictHostKeyChecking false
 END
 
-make html
+poetry run make html
 
 if test -n "${DOC_UPLOAD_KEY}"; then
   echo "${DOC_UPLOAD_KEY}" > doc_upload_key
