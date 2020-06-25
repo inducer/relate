@@ -1,14 +1,12 @@
-variables:
-  PIP_CACHE_DIR: "${CI_PROJECT_DIR}/.cache/pip"
-
 cache:
   key:
     files:
+      - .gitlab-ci.yml
       - poetry.lock
     prefix: relate
   paths:
-    - ~/.cache/pypoetry
-    - ~/.cache/pip
+    - /var/lib/gitlab-runner/.cache/pypoetry
+    - /var/lib/gitlab-runner/.cache/pip
 
 stages:
   - setup
@@ -17,14 +15,15 @@ stages:
   - docs
 
 .install-deps-template: &install-deps
+  image: python:3.7
   before_script:
     - export PATH="/var/lib/gitlab-runner/.local/bin:$PATH"
     - pip3 install --upgrade poetry
+    - poetry config virtualenvs.in-project false
     - poetry install -vv
 
 .quality-template: &quality
   <<: *install-deps
-  image: python:3.7
   stage: lint
   tags:
     - python3
@@ -47,7 +46,6 @@ stages:
 
 setup:
   <<: *install-deps
-  image: python:3.7
   stage: setup
   script: poetry config --list
 
@@ -61,11 +59,9 @@ mypy:
 
 Python 3:
   <<: *test
-  image: python:3.6
 
 Python 3 Expensive:
   <<: *test
-  image: python:3.6
   variables:
     RL_CI_TEST: expensive
 
