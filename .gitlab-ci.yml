@@ -22,6 +22,8 @@ stages:
 
 .install-deps-template: &install-deps
   image: python:3.7
+  tags:
+    - docker-runner
   before_script:
     - export PATH="/var/lib/gitlab-runner/.local/bin:$PATH"
     - pip3 install --upgrade poetry
@@ -30,8 +32,6 @@ stages:
 .quality-template: &quality
   <<: *install-deps
   stage: lint
-  tags:
-    - python3
   except:
     - tags
 
