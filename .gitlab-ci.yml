@@ -45,7 +45,7 @@ stages:
   variables:
     CODECOV_TOKEN: "895e3bf2-cfd0-45f8-9a14-4b7bd148f76d"
 
-setup:
+setup-pkgs:
   <<: *install-deps
   image: python:3.7
   stage: setup
