@@ -2,7 +2,10 @@
 
 set -e
 
-poetry run pip install docutils sphinx
+# This whole script is being run inside of poetry, so no need to wrap move of
+# it in poetry calls.
+
+python -m pip install docutils sphinx
 
 cd doc
 
@@ -15,7 +18,7 @@ Host doc-upload
    StrictHostKeyChecking false
 END
 
-poetry run make html
+make html
 
 if test -n "${DOC_UPLOAD_KEY}"; then
   echo "${DOC_UPLOAD_KEY}" > doc_upload_key
