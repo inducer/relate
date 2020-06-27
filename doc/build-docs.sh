@@ -7,6 +7,8 @@ set -e
 
 python -m pip install docutils sphinx
 
+cp local_settings_example.py doc
+
 cd doc
 
 cat > doc_upload_ssh_config <<END
