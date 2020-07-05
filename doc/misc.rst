@@ -61,15 +61,15 @@ those long-running tasks. Start a worker by running::
 
 .. note::
 
-    For Windows, you need first install `eventlet` by::
+    For Windows, you need first install `gevent` by::
 
-        pip install eventlet
+        pip install gevent
 
     and then run::
 
-        celery worker -A relate -P eventlet
+        celery worker -A relate -P gevent
 
-    See the `related issue <https://github.com/celery/celery/issues/4178>`_ for more information.
+    See the `related issue <https://stackoverflow.com/a/47331438/3437454>`_ for more information.
 
 To make this work, you also need a message broker running. This uses the
 setting ``CELERY_BROKER_URL`` in ``local_settings.py`` and defaults to
