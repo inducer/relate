@@ -1876,7 +1876,7 @@ class ExpireFlowSessionTest(SingleCourseTestMixin, TestCase):
         )
 
         expected_error_msg = ("invalid expiration mode 'unknown' "
-                              "on flow session ID 1")
+                              "on flow session ID %i" % flow_session.pk)
         with self.assertRaises(ValueError) as cm:
             flow.expire_flow_session(
                 self.fctx, flow_session, grading_rule, self.now_datatime)
@@ -4226,12 +4226,11 @@ class ViewFlowPageTest(SingleCourseQuizPageTestMixin, HackRepoMixin, TestCase):
         resp = self.post_answer_by_page_id(
             "half", answer_data={"answer": "ok"})
 
-        self.assertResponseContextEqual(resp, "prev_visit_id", 1)
-
         fpvs = models.FlowPageVisit.objects.all()
         self.assertEqual(fpvs.count(), 1)
-
         fpv = fpvs[0]
+
+        self.assertResponseContextEqual(resp, "prev_visit_id", fpv.id)
 
         resp = self.post_answer_by_page_id(
             "half", answer_data={"answer": "1/2"})
