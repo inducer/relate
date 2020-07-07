@@ -40,6 +40,10 @@ jobs:
         run: poetry run flake8 relate course accounts tests
       - name: "Mypy"
         run: poetry run mypy relate course
+      - name: "Safety"
+        env:
+          safety_ignores: "-i 37910 -i 38076 -i 38107 -i 35792"
+        run: poetry run safety check ${safety_ignores} --full-report
 
 
   pytest:
