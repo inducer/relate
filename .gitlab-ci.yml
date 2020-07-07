@@ -1,31 +1,37 @@
 variables:
-  PIP_CACHE_DIR: "${CI_PROJECT_DIR}/.cache/pip"
+    PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+    POETRY_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pypoetry"
+    POETRY_VIRTUALENVS_IN_PROJECT: "true"
 
 cache:
-  key: "${CI_JOB_NAME}"
+  key:
+    files:
+      - .gitlab-ci.yml
+      - poetry.lock
+    prefix: relate
   paths:
-    - .cache/pip
-    - .venv
+    - ".cache/pypoetry"
+    - ".cache/pip"
+    - ".venv"
 
 stages:
+  - setup
   - lint
   - tests
   - docs
 
 .install-deps-template: &install-deps
+  image: python:3.7
+  tags:
+    - docker-runner
   before_script:
     - export PATH="/var/lib/gitlab-runner/.local/bin:$PATH"
-    - pip3 install poetry
-    - poetry --version
-    - poetry config virtualenvs.in-project true
-    - poetry install -vv
+    - pip3 install --upgrade poetry
+    - poetry install
 
 .quality-template: &quality
   <<: *install-deps
-  image: python:3.7
   stage: lint
-  tags:
-    - python3
   except:
     - tags
 
@@ -43,6 +49,11 @@ stages:
   coverage: "/TOTAL.+ ([0-9]{1,3}%)/"
   variables:
     CODECOV_TOKEN: "895e3bf2-cfd0-45f8-9a14-4b7bd148f76d"
+
+setup:
+  <<: *install-deps
+  stage: setup
+  script: poetry config --list
 
 flake8:
   <<: *quality
@@ -75,9 +86,7 @@ Documentation:
   variables:
     RELATE_LOCAL_TEST_SETTINGS: './local_settings_example.py'
   script:
-    - curl -L -O -k https://gitlab.tiker.net/inducer/ci-support/raw/master/build-docs.sh
-    - export PY_EXE="$(poetry run which python)"
-    - poetry run ./build-docs.sh
+    - poetry run bash ./doc/build-docs.sh
   tags:
     - python3
   only:
