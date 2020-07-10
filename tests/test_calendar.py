@@ -629,10 +629,10 @@ class ViewCalendarTest(SingleCourseTestMixin, HackRepoMixin, TestCase):
             resp, "default_date", self.default_faked_now.date().isoformat())
 
     def test_no_event_file(self):
-        factories.EventFactory(
+        evt1 = factories.EventFactory(
             kind=self.default_event_kind, course=self.course,
             time=self.default_event_time)
-        factories.EventFactory(
+        evt2 = factories.EventFactory(
             kind=self.default_event_kind, course=self.course,
             time=self.default_event_time + timedelta(hours=1))
 
@@ -643,12 +643,12 @@ class ViewCalendarTest(SingleCourseTestMixin, HackRepoMixin, TestCase):
         self.assertEqual(len(events_json), 2)
         self.assertDictEqual(
             events_json[0],
-            {'id': 1, 'start': self.default_event_time.isoformat(),
+            {'id': evt1.pk, 'start': self.default_event_time.isoformat(),
              'allDay': False,
              'title': 'lecture 0'})
         self.assertDictEqual(
             events_json[1],
-            {'id': 2,
+            {'id': evt2.pk,
              'start': (self.default_event_time + timedelta(hours=1)).isoformat(),
              'allDay': False,
              'title': 'lecture 1'})
@@ -656,7 +656,7 @@ class ViewCalendarTest(SingleCourseTestMixin, HackRepoMixin, TestCase):
         self.assertResponseContextEqual(resp, "event_info_list", [])
 
     def test_hidden_event_not_shown(self):
-        factories.EventFactory(
+        evt1 = factories.EventFactory(
             kind=self.default_event_kind, course=self.course,
             time=self.default_event_time)
         factories.EventFactory(
@@ -671,13 +671,13 @@ class ViewCalendarTest(SingleCourseTestMixin, HackRepoMixin, TestCase):
         self.assertEqual(len(events_json), 1)
         self.assertDictEqual(
             events_json[0],
-            {'id': 1, 'start': self.default_event_time.isoformat(),
+            {'id': evt1.pk, 'start': self.default_event_time.isoformat(),
              'allDay': False,
              'title': 'lecture 0'})
         self.assertResponseContextEqual(resp, "event_info_list", [])
 
     def test_event_has_end_time(self):
-        factories.EventFactory(
+        evt = factories.EventFactory(
             kind=self.default_event_kind, course=self.course,
             time=self.default_event_time,
             end_time=self.default_event_time + timedelta(hours=1))
@@ -689,7 +689,7 @@ class ViewCalendarTest(SingleCourseTestMixin, HackRepoMixin, TestCase):
         event_json = events_json[0]
         self.assertDictEqual(
             event_json,
-            {'id': 1, 'start': self.default_event_time.isoformat(),
+            {'id': evt.pk, 'start': self.default_event_time.isoformat(),
              'allDay': False,
              'title': 'lecture 0',
              'end': (self.default_event_time + timedelta(hours=1)).isoformat(),
@@ -739,12 +739,12 @@ class ViewCalendarTest(SingleCourseTestMixin, HackRepoMixin, TestCase):
 
         # lecture 1
         lecture1_start_time = self.default_event_time - timedelta(weeks=1)
-        factories.EventFactory(
+        evt1 = factories.EventFactory(
             kind=self.default_event_kind, course=self.course,
             time=lecture1_start_time, ordinal=1)
 
         # lecture 2
-        factories.EventFactory(
+        evt2 = factories.EventFactory(
             kind=self.default_event_kind, course=self.course,
             time=self.default_event_time, ordinal=2)
 
@@ -754,18 +754,18 @@ class ViewCalendarTest(SingleCourseTestMixin, HackRepoMixin, TestCase):
         self.assertEqual(len(events_json), 2)
         self.assertDictEqual(
             events_json[0],
-            {'id': 2, 'start': self.default_event_time.isoformat(),
+            {'id': evt2.pk, 'start': self.default_event_time.isoformat(),
              'allDay': False,
              'title': 'Lecture 2'})
 
         self.assertDictEqual(
             events_json[1],
-            {'id': 1,
+            {'id': evt1.pk,
              'color': "red",
              'start': lecture1_start_time.isoformat(),
              'allDay': False,
              'title': 'Alternative title for lecture 1',
-             'url': '#event-1'
+             'url': '#event-%i' % evt1.pk
              })
 
         event_info_list = resp.context["event_info_list"]
@@ -779,7 +779,7 @@ class ViewCalendarTest(SingleCourseTestMixin, HackRepoMixin, TestCase):
 
         self.assertDictEqual(
             evt_info_dict,
-            {"id": 1, "human_title": "Alternative title for lecture 1",
+            {"id": evt1.pk, "human_title": "Alternative title for lecture 1",
              "start_time": lecture1_start_time,
              "end_time": None})
 
@@ -795,19 +795,19 @@ class ViewCalendarTest(SingleCourseTestMixin, HackRepoMixin, TestCase):
                 self.default_event_time + timedelta(minutes=5))
 
         # lecture 2
-        factories.EventFactory(
+        evt_lecture2 = factories.EventFactory(
             kind=self.default_event_kind, course=self.course,
             time=self.default_event_time, ordinal=2)
 
         # lecture 3
         lecture3_start_time = self.default_event_time + timedelta(weeks=1)
-        factories.EventFactory(
+        evt_lecture3 = factories.EventFactory(
             kind=self.default_event_kind, course=self.course,
             time=lecture3_start_time, ordinal=3)
 
         # test event
         test_start_time = self.default_event_time + timedelta(minutes=1)
-        factories.EventFactory(
+        evt_all_day = factories.EventFactory(
             kind="test", course=self.course, all_day=True,
             time=test_start_time,
             ordinal=None)
@@ -819,20 +819,20 @@ class ViewCalendarTest(SingleCourseTestMixin, HackRepoMixin, TestCase):
 
         self.assertDictEqual(
             events_json[0],
-            {'id': 2, 'start': (lecture3_start_time).isoformat(),
+            {'id': evt_lecture3.pk, 'start': (lecture3_start_time).isoformat(),
              'allDay': False,
              'title': 'Lecture 3'})
 
         self.assertDictEqual(
             events_json[1],
-            {'id': 1, 'start': self.default_event_time.isoformat(),
+            {'id': evt_lecture2.pk, 'start': self.default_event_time.isoformat(),
              'allDay': False,
              'title': 'Lecture 2',
-             'url': '#event-1'})
+             'url': '#event-%i' % evt_lecture2.pk})
 
         self.assertDictEqual(
             events_json[2],
-            {'id': 3, 'start': test_start_time.isoformat(),
+            {'id': evt_all_day.pk, 'start': test_start_time.isoformat(),
              'allDay': True,
              'title': 'test'})
 
@@ -847,7 +847,7 @@ class ViewCalendarTest(SingleCourseTestMixin, HackRepoMixin, TestCase):
 
         self.assertDictEqual(
             evt_info_dict,
-            {"id": 1, "human_title": "Lecture 2",
+            {"id": evt_lecture2.pk, "human_title": "Lecture 2",
              "start_time": self.default_event_time,
              "end_time": None})
 
@@ -867,7 +867,7 @@ class ViewCalendarTest(SingleCourseTestMixin, HackRepoMixin, TestCase):
         self.switch_to_fake_commit_sha()
 
         exam_end_time = self.default_event_time + timedelta(hours=2)
-        factories.EventFactory(
+        evt = factories.EventFactory(
             kind="exam", course=self.course,
             ordinal=None,
             time=self.default_event_time,
@@ -880,7 +880,7 @@ class ViewCalendarTest(SingleCourseTestMixin, HackRepoMixin, TestCase):
 
         self.assertDictEqual(
             events_json[0],
-            {'id': 1,
+            {'id': evt.pk,
              'start': self.default_event_time.isoformat(),
              'allDay': False,
              'title': 'Exam',
@@ -916,10 +916,10 @@ class ViewCalendarTest(SingleCourseTestMixin, HackRepoMixin, TestCase):
 
         self.assertDictEqual(
             events_json[1],
-            {'id': 1, 'start': lecture2_start_time.isoformat(),
+            {'id': lecture2_evt.pk, 'start': lecture2_start_time.isoformat(),
              'allDay': True,
              'title': 'Lecture 2',
-             'url': '#event-1'})
+             'url': '#event-%i' % lecture2_evt.pk})
 
         # now we add end_time of lecture 2 evt to a time which is not midnight
         lecture2_end_time = lecture2_start_time + timedelta(hours=18)
@@ -933,10 +933,10 @@ class ViewCalendarTest(SingleCourseTestMixin, HackRepoMixin, TestCase):
 
         self.assertDictEqual(
             events_json[1],
-            {'id': 1, 'start': lecture2_start_time.isoformat(),
+            {'id': lecture2_evt.pk, 'start': lecture2_start_time.isoformat(),
              'allDay': True,
              'title': 'Lecture 2',
-             'url': '#event-1',
+             'url': '#event-%i' % lecture2_evt.pk,
              'end': lecture2_end_time.isoformat()
              })
 
@@ -958,10 +958,10 @@ class ViewCalendarTest(SingleCourseTestMixin, HackRepoMixin, TestCase):
 
         self.assertDictEqual(
             events_json[1],
-            {'id': 1, 'start': lecture2_start_time.isoformat(),
+            {'id': lecture2_evt.pk, 'start': lecture2_start_time.isoformat(),
              'allDay': True,
              'title': 'Lecture 2',
-             'url': '#event-1',
+             'url': '#event-%i' % lecture2_evt.pk,
              'end': lecture2_end_time.isoformat()
              })
 

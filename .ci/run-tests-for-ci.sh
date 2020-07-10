@@ -9,9 +9,6 @@ echo "Current directory: $(pwd)"
 echo "Python executable: ${PY_EXE}"
 echo "-----------------------------------------------"
 
-echo "Copy local settings"
-
-
 echo "i18n"
 # Testing i18n needs a local_settings file even though the rest of the tests
 #   don't use it
@@ -30,33 +27,11 @@ fi
 poetry run python manage.py compilemessages
 
 echo "Starts testing"
+export RELATE_LOCAL_TEST_SETTINGS="local_settings_example.py"
 
 if [[ "$RL_CI_TEST" = "expensive" ]]; then
     echo "Expensive tests"
-    export RL_CI_TEST="test_expensive"
-    poetry run coverage run ./manage.py test tests.test_tasks \
-                                tests.test_admin \
-                                tests.test_pages.test_code \
-                                tests.test_pages.test_generic \
-                                tests.test_pages.test_inline.InlineMultiPageUpdateTest \
-                                tests.test_pages.test_upload.UploadQuestionNormalizeTest \
-                                tests.test_grades.test_generic \
-                                tests.test_grades.test_grades.GetGradeTableTest \
-                                tests.test_grading.SingleCourseQuizPageGradeInterfaceTest \
-                                tests.test_utils.LanguageOverrideTest \
-                                tests.test_accounts.test_admin.AccountsAdminTest \
-                                tests.test_flow.test_flow.AssemblePageGradesTest \
-                                tests.test_flow.test_flow.FinishFlowSessionViewTest \
-                                tests.test_content.SubDirRepoTest \
-                                tests.test_auth.SignInByPasswordTest \
-                                tests.test_analytics.FlowAnalyticsTest \
-                                tests.test_analytics.PageAnalyticsTest \
-                                tests.test_analytics.FlowListTest \
-                                tests.test_analytics.IsFlowMultipleSubmitTest \
-                                tests.test_analytics.IsPageMultipleSubmitTest \
-                                tests.test_versioning.ParamikoSSHVendorTest \
-                                tests.test_receivers.UpdateCouresOrUserSignalTest
-
+    poetry run pytest --slow --cov-config=setup.cfg --cov-report=xml --cov=.
 elif [[ "$RL_CI_TEST" = "postgres" ]]; then
     export PGPASSWORD=relatepgpass
 
@@ -64,7 +39,7 @@ elif [[ "$RL_CI_TEST" = "postgres" ]]; then
     echo "import psycopg2.extensions" >> local_settings_example.py
     echo "DATABASES = {
             'default': {
-                'ENGINE': 'django.db.backends.postgresql_psycopg2',
+                'ENGINE': 'django.db.backends.postgresql',
                 'HOST': 'localhost',
                 'USER': 'postgres',
                 'PASSWORD': '${PGPASSWORD}',
@@ -75,15 +50,10 @@ elif [[ "$RL_CI_TEST" = "postgres" ]]; then
             },
         }" >> local_settings_example.py
 
-    poetry run pip install psycopg2-binary
-    # psql -c 'create database relate;' -U postgres 
-
+    poetry run pip install psycopg2
     echo "Database tests"
-    poetry run coverage run ./manage.py test tests.test_postgres
+    poetry run pytest --cov-config=setup.cfg --cov-report=xml --cov=.
 else
     echo "Base tests"
-    poetry run coverage run ./manage.py test tests
+    poetry run pytest --cov-config=setup.cfg --cov-report=xml --cov=.
 fi
-
-echo "Generate coverage report"
-poetry run coverage xml

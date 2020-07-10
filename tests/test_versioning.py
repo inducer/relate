@@ -22,6 +22,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
+import pytest
 from copy import deepcopy
 import unittest
 from django.test import TestCase, RequestFactory
@@ -38,12 +39,10 @@ from course.constants import participation_permission as pperm
 from tests.base_test_mixins import (
     SingleCourseTestMixin, MockAddMessageMixing,
     CoursesTestMixinBase, SINGLE_COURSE_SETUP_LIST)
-from tests.utils import (
-    suppress_stdout_decorator, mock, may_run_expensive_tests,
-    SKIP_EXPENSIVE_TESTS_REASON)
+from tests.utils import suppress_stdout_decorator, mock
 from tests import factories
 
-TEST_PUBLIC_KEY = """
+TEST_PRIVATE_KEY = """
 -----BEGIN RSA PRIVATE KEY-----
 MIIEowIBAAKCAQEA7A1rTpbRpCek4tZZKa8QH14/pYzraN7hDnx3BKrqRxghP/0Q
 uc98qeQkA5T3EYjHsConAAArLzbo6PMGwM9353dFixGUHegZe3jUmszX7G2veZx5
@@ -273,13 +272,14 @@ class CourseCreationTest(VersioningTestMixin, TestCase):
             self.assertTrue(resp.status_code, 200)
 
 
-@unittest.skipUnless(may_run_expensive_tests(), SKIP_EXPENSIVE_TESTS_REASON)
-class ParamikoSSHVendorTest(unittest.TestCase):
+@pytest.mark.slow
+@pytest.mark.django_db
+class ParamikoSSHVendorTest(TestCase):
     # A simple integration tests, making sure ParamikoSSHVendor is used
     # for ssh protocol.
 
     @classmethod
-    def setUpClass(cls):  # noqa
+    def setUpTestData(cls):  # noqa
         course = factories.CourseFactory.create(**cls.prepare_data())
         cls.git_client, _ = (
             versioning.get_dulwich_client_and_remote_path_from_course(course))
@@ -291,7 +291,7 @@ class ParamikoSSHVendorTest(unittest.TestCase):
         data = deepcopy(SINGLE_COURSE_SETUP_LIST[0]["course"])
         data["identifier"] = "my-private-course"
         data["git_source"] = "git+ssh://foo.com:1234/bar/baz"
-        data["ssh_private_key"] = TEST_PUBLIC_KEY
+        data["ssh_private_key"] = TEST_PRIVATE_KEY
         return data
 
     def test_invalid(self):
@@ -636,6 +636,7 @@ WARNING1 = "some waring1"
 WARNING2 = "some waring2"
 
 
+@pytest.mark.django_db
 class RunCourseUpdateCommandTest(MockAddMessageMixing, unittest.TestCase):
     # test versioning.run_course_update_command
 

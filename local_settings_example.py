@@ -24,7 +24,7 @@ from django.utils.translation import gettext_noop  # noqa
 #
 # DATABASES = {
 #     'default': {
-#         'ENGINE': 'django.db.backends.postgresql_psycopg2',
+#         'ENGINE': 'django.db.backends.postgresql',
 #         'NAME': 'relate',
 #         'USER': 'relate',
 #         'PASSWORD': '<PASSWORD>',

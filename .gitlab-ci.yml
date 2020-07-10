@@ -37,6 +37,7 @@ stages:
 
 .test-template: &test
   <<: *install-deps
+  image: python:3.7
   script:
     - "bash ./.ci/run-tests-for-ci.sh"
   stage: tests

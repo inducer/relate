@@ -31,3 +31,4 @@ git-roots
 /.env
 /.coverage
 /coverage.xml
+/.vscode/
