@@ -37,8 +37,8 @@ from course.models import FlowSession
 
 # {{{ mypy
 
-if 0:
-    from typing import Text, Any  # noqa
+from typing import Text, Any, TYPE_CHECKING  # noqa
+if TYPE_CHECKING:
     from course.auth import APIContext  # noqa
 
 # }}}
@@ -171,7 +171,8 @@ def get_flow_session_content(api_ctx, course_identifier):
                         norm_answer = json.loads(norm_bytes_answer)
                     else:
                         from base64 import b64encode
-                        norm_answer = [answer_file_ext, b64encode(norm_bytes_answer)]
+                        norm_answer = [answer_file_ext,
+                                       b64encode(norm_bytes_answer).decode("utf-8")]
 
                 answer_json = dict(
                     visit_time=visit.visit_time.isoformat(),
@@ -187,7 +188,8 @@ def get_flow_session_content(api_ctx, course_identifier):
                 grade = visit.get_most_recent_grade()
                 if grade is not None:
                     grade_json = dict(
-                        grader=grade.grader,
+                        grader=(grade.grader.username
+                                if grade.grader is not None else None),
                         grade_time=grade.grade_time.isoformat(),
                         graded_at_git_commit_sha=grade.graded_at_git_commit_sha,
                         max_points=grade.max_points,
