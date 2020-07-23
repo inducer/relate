@@ -2647,6 +2647,23 @@ class APITestMixin(SingleCoursePageTestMixin):
             url += "?flow_id=%s" % flow_id
         return url
 
+    def get_get_flow_session_content_url(
+            self, course_identifier=None, flow_session_id=None,
+            auto_add_default_flow_session_id=True):
+        course_identifier = (
+            course_identifier or self.get_default_course_identifier())
+        if auto_add_default_flow_session_id:
+            flow_session_id = (
+                flow_session_id
+                or self.get_default_flow_session_id(course_identifier))
+        kwargs = {"course_identifier": course_identifier}
+
+        url = reverse("relate-course_get_flow_session_content", kwargs=kwargs)
+
+        if flow_session_id:
+            url += "?flow_session_id=%s" % flow_session_id
+        return url
+
     def create_token(self, token_hash_str=None, participation=None, **kwargs):
         token_hash_str = token_hash_str or self.default_token_hash_str
         participation = participation or self.instructor_participation
