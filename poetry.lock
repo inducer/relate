@@ -366,6 +366,17 @@ url = "https://github.com/bakatrouble/django-yamlfield.git"
 
 [[package]]
 category = "main"
+description = "Web APIs for Django, made easy."
+name = "djangorestframework"
+optional = false
+python-versions = ">=3.5"
+version = "3.11.0"
+
+[package.dependencies]
+django = ">=1.11"
+
+[[package]]
+category = "main"
 description = "pysaml2 integration for Django"
 name = "djangosaml2"
 optional = false
@@ -1430,7 +1441,7 @@ docs = ["sphinx", "jaraco.packaging (>=3.2)", "rst.linker (>=1.9)"]
 testing = ["jaraco.itertools", "func-timeout"]
 
 [metadata]
-content-hash = "13c7b736cf3b2cc4d145cddb73c2eef021f01f5c94235facdb41d6713970554d"
+content-hash = "8716d87dd56b325c3e56a8233f640a5f8a405e2cfd370247dfeb0e866cac3d29"
 python-versions = "^3.6"
 
 [metadata.files]
@@ -1637,6 +1648,10 @@ django-select2 = [
     {file = "django_select2-7.4.2-py2.py3-none-any.whl", hash = "sha256:06531d563ce33c3133682ae2bb9e6d762103a863d0054ffef51bae8b4cfcca6c"},
 ]
 django-yamlfield = []
+djangorestframework = [
+    {file = "djangorestframework-3.11.0-py3-none-any.whl", hash = "sha256:05809fc66e1c997fd9a32ea5730d9f4ba28b109b9da71fccfa5ff241201fd0a4"},
+    {file = "djangorestframework-3.11.0.tar.gz", hash = "sha256:e782087823c47a26826ee5b6fa0c542968219263fb3976ec3c31edab23a4001f"},
+]
 djangosaml2 = [
     {file = "djangosaml2-0.19.1-py2.py3-none-any.whl", hash = "sha256:2881813f00ea78dac4f38c14838ae90662d0781b911925c6373b900145a0e392"},
     {file = "djangosaml2-0.19.1.tar.gz", hash = "sha256:7c6b3cceeb2022d15c3205e3a0f3f96c969b3a447a1fcfdb6c78c048994a186d"},

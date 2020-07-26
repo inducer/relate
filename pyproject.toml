@@ -92,6 +92,7 @@ nbconvert = "^5.2.1"
 IPython = "^7.15.0"
 # For relate script
 colorama = "*"
+djangorestframework = "^3.11.0"
 
 [tool.poetry.dev-dependencies]
 codecov = "^2.1.4"

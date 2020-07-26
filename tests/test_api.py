@@ -20,10 +20,18 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
+import pytz
+from datetime import datetime
+
 from django.test import TestCase
 
+from course.serializers import (
+    FlowSessionSerializer, FlowPageDateSerializer, FlowPageVisitSerializer,
+    FlowPageVisitGradeSerializer
+)
+
 from tests.base_test_mixins import (
-    SingleCourseQuizPageTestMixin, APITestMixin
+    SingleCourseQuizPageTestMixin, APITestMixin, SingleCourseTestMixin
 )
 from tests import factories
 
@@ -138,5 +146,46 @@ class GetFlowSessionContentTest(
                 token.id, self.default_token_hash_str))
         self.assertEqual(resp.status_code, 403)
 
+
+class FlowSessionSerializerTest(SingleCourseTestMixin, TestCase):
+    def test_serializer(self):
+        fs = factories.FlowSessionFactory(points=20, max_points=40)
+        fpdata = factories.FlowPageDataFactory(flow_session=fs)
+        serializer = FlowSessionSerializer(fs)
+        self.assertIsNone(serializer.data["last_activity"])
+
+        factories.FlowPageVisitFactory(
+            page_data=fpdata, answer={"answer": "hi"},
+            visit_time=datetime(2018, 12, 31, tzinfo=pytz.UTC)
+        )
+
+        factories.FlowPageVisitFactory(
+            page_data=fpdata, answer={"answer": "hi2"},
+            visit_time=datetime(2019, 1, 1, tzinfo=pytz.UTC)
+        )
+
+        serializer = FlowSessionSerializer(fs)
+        self.assertEqual(serializer.data["last_activity"].year, 2019)
+
+
+class FlowPageDateSerializerTest(SingleCourseTestMixin, TestCase):
+    def test_serializer(self):
+        fpd = factories.FlowPageDataFactory()
+        serializer = FlowPageDateSerializer(fpd)
+        self.assertIsNotNone(serializer.data)
+
+
+class FlowPageVisitSerializerTest(SingleCourseTestMixin, TestCase):
+    def test_serializer(self):
+        fpv = factories.FlowPageVisitFactory()
+        serializer = FlowPageVisitSerializer(fpv)
+        self.assertIsNotNone(serializer.data)
+
+
+class FlowPageVisitGradeSerializerTest(SingleCourseTestMixin, TestCase):
+    def test_serializer(self):
+        fpvg = factories.FlowPageVisitGradeFactory()
+        serializer = FlowPageVisitGradeSerializer(fpvg)
+        self.assertIsNotNone(serializer.data)
 
 # vim: foldmethod=marker
