@@ -22,8 +22,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from unittest import skipUnless
-
+import pytest
 from django.test import TestCase, RequestFactory
 from django.urls import reverse
 from django.utils.timezone import now
@@ -36,10 +35,9 @@ from accounts.admin import UserAdmin
 from accounts.models import User
 
 from tests.base_test_mixins import AdminTestMixin
-from tests.utils import may_run_expensive_tests, SKIP_EXPENSIVE_TESTS_REASON
 
 
-@skipUnless(may_run_expensive_tests(), SKIP_EXPENSIVE_TESTS_REASON)
+@pytest.mark.slow
 class AccountsAdminTest(AdminTestMixin, TestCase):
 
     @classmethod

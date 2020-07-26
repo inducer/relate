@@ -13,19 +13,37 @@ jobs:
   lint:
     name: Lint and typecheck
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.6, 3.7, 3.8]
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-python@v1
         with:
-          python-version: 3.7
+          python-version: ${{ matrix.python-version }}
       - name: Install Poetry
         uses: dschep/install-poetry-action@v1.3
+        with:
+          create_virtualenvs: true
+      - name: Cache python dependencies
+        uses: actions/cache@v2
+        id: cache
+        with:
+          path: ~/.cache/pypoetry
+          key: poetry-${{ hashFiles('**/poetry.lock') }}-${{ matrix.python-version }}
+          restore-keys: |
+            poetry-${{ hashFiles('**/poetry.lock') }}-${{ matrix.python-version }}
       - name: Install Dependencies
         run: poetry install
+        if: steps.cache.outputs.cache-hit != 'true'
       - name: "Flake8"
         run: poetry run flake8 relate course accounts tests
       - name: "Mypy"
         run: poetry run mypy relate course
+      - name: "Safety"
+        env:
+          safety_ignores: "-i 37910 -i 38076 -i 38107 -i 35792"
+        run: poetry run safety check ${safety_ignores} --full-report
 
 
   pytest:
@@ -58,13 +76,13 @@ jobs:
         with:
           create_virtualenvs: true
       - name: Cache python dependencies
-        uses: actions/cache@v1
+        uses: actions/cache@v2
         id: cache
         with:
-          path: ~/.cache/pypoetry/virtualenvs
-          key: pypoetry-${{ hashFiles('**/poetry.lock') }}-${{ matrix.python-version }}
+          path: ~/.cache/pypoetry
+          key: poetry-${{ hashFiles('**/poetry.lock') }}-${{ matrix.python-version }}
           restore-keys: |
-            pypoetry-${{ hashFiles('**/poetry.lock') }}-${{ matrix.python-version }}
+            poetry-${{ hashFiles('**/poetry.lock') }}-${{ matrix.python-version }}
       - name: Install Dependencies
         run: poetry install
         if: steps.cache.outputs.cache-hit != 'true'
@@ -91,5 +109,40 @@ jobs:
           poetry run relate validate .
           poetry run relate test-code questions/autograded-python-example.yml
           poetry run relate expand-yaml flows/quiz-test.yml > /dev/null
+  
+  # pytest-windows:
+  #   name: Python - Windows
+  #   runs-on: windows-latest
+  #   steps:
+  #     - uses: actions/checkout@v2
+  #     - uses: actions/setup-python@v1
+  #       with:
+  #         python-version: 3.7
+  #     - name: Install Poetry
+  #       uses: dschep/install-poetry-action@v1.3
+  #     - name: Confiure Poetry
+  #       run: |
+  #         poetry config virtualenvs.in-project true
+  #     - name: Cache python dependencies
+  #       uses: actions/cache@v2
+  #       id: cache
+  #       with:
+  #         path: .venv
+  #         key: pypoetry-${{ hashFiles('**/poetry.lock') }}-windows
+  #         restore-keys: |
+  #           pypoetry-${{ hashFiles('**/poetry.lock') }}-windows
+  #     - name: Install Dependencies
+  #       run: poetry install
+  #       if: steps.cache.outputs.cache-hit != 'true'
+  #     - name: Run test suite
+  #       env:
+  #         RELATE_LOCAL_TEST_SETTINGS: "local_settings_example.py"
+  #       run: |
+  #         poetry run pytest --cov-config=setup.cfg --cov-report=xml --cov=.
+  #     - name: Upload coverage to Codecov
+  #       uses: codecov/codecov-action@v1
+  #       with:
+  #         fail_ci_if_error: true
+      
 
 # vim: sw=2

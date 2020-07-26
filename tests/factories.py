@@ -30,9 +30,12 @@ import factory
 from factory import fuzzy
 from django.contrib.auth import get_user_model
 from django.utils.translation import gettext_lazy as _
+from django.contrib.auth.hashers import make_password
 
 from course import models
 from course import constants
+from course.constants import participation_permission as pperm
+from course.auth import make_sign_in_key
 
 from tests.base_test_mixins import SINGLE_COURSE_SETUP_LIST
 from tests.constants import QUIZ_FLOW_ID
@@ -281,16 +284,26 @@ class AuthenticationTokenFactory(factory.django.DjangoModelFactory):
     description = factory.Sequence(
         lambda n: "test description %03d" % n)
 
-    token_hash = fuzzy.FuzzyText()
-
     @factory.post_generation
     def restrict_to_participation_role(self, create, extracted, **kwargs):
         if not create:
             # Simple build, do nothing.
             return
         else:
-            role = ParticipationRoleFactory(course=self.participation.course)
+            prole_kwargs = {"course": self.participation.course}
+            if self.participation.has_permission(
+                    pperm.access_files_for, "instructor"):
+                prole_kwargs["identifier"] = "instructor"
+            role = ParticipationRoleFactory(**prole_kwargs)
             self.restrict_to_participation_role = role
+
+    @factory.post_generation
+    def token_hash(self, create, extracted, **kwargs):
+        if not create:
+            return
+        else:
+            token = make_sign_in_key(self.user)
+            self.token_hash = make_password(token)
 
 
 class InstantFlowRequestFactory(factory.django.DjangoModelFactory):

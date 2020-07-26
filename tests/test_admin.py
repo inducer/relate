@@ -22,18 +22,16 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from unittest import skipUnless
-
 from django.test import TestCase, RequestFactory
 from django.contrib.admin import site
 from django.utils.timezone import now
+import pytest
 
 from course import models, admin, constants
 
 from tests.base_test_mixins import AdminTestMixin
 from tests import factories
 from tests.constants import QUIZ_FLOW_ID
-from tests.utils import may_run_expensive_tests, SKIP_EXPENSIVE_TESTS_REASON
 
 
 class CourseAdminTestMixin(AdminTestMixin):
@@ -119,7 +117,7 @@ class CourseAdminTestMixin(AdminTestMixin):
                                      expected_counts_dict["course2"])
 
 
-@skipUnless(may_run_expensive_tests(), SKIP_EXPENSIVE_TESTS_REASON)
+@pytest.mark.slow
 class CourseAdminGenericTest(CourseAdminTestMixin, TestCase):
 
     def test_course(self):
@@ -229,7 +227,7 @@ class CourseAdminSessionRelatedMixin(CourseAdminTestMixin):
             answer__isnull=False).count()
 
 
-@skipUnless(may_run_expensive_tests(), SKIP_EXPENSIVE_TESTS_REASON)
+@pytest.mark.slow
 class CourseAdminSessionRelatedTest(CourseAdminSessionRelatedMixin, TestCase):
     def test_flowsession_filter_result(self):
         self.navigate_admin_view_by_model(models.FlowSession)
@@ -322,7 +320,7 @@ class CourseAdminSessionRelatedTest(CourseAdminSessionRelatedMixin, TestCase):
         self.assertEqual(queryset.count(), self.course2_visits_has_answer_count)
 
 
-@skipUnless(may_run_expensive_tests(), SKIP_EXPENSIVE_TESTS_REASON)
+@pytest.mark.slow
 class ParticipationAdminTest(CourseAdminTestMixin, TestCase):
     def test_approve_enrollment(self):
         active = factories.ParticipationFactory(
@@ -381,7 +379,7 @@ class ParticipationAdminTest(CourseAdminTestMixin, TestCase):
         self.assertEqual(requested2.status, constants.participation_status.denied)
 
 
-@skipUnless(may_run_expensive_tests(), SKIP_EXPENSIVE_TESTS_REASON)
+@pytest.mark.slow
 class ParticipationFormTest(CourseAdminTestMixin, TestCase):
     def setUp(self):
         super(ParticipationFormTest, self).setUp()
@@ -459,7 +457,7 @@ class ParticipationFormTest(CourseAdminTestMixin, TestCase):
         self.assertIn(expected_error_msg, str(form.errors))
 
 
-@skipUnless(may_run_expensive_tests(), SKIP_EXPENSIVE_TESTS_REASON)
+@pytest.mark.slow
 class ParticipationPreapprovalAdminTest(CourseAdminTestMixin, TestCase):
     def test_participation_preapproval(self):
         factories.ParticipationPreapprovalFactory(course=self.course1)
@@ -478,7 +476,7 @@ class ParticipationPreapprovalAdminTest(CourseAdminTestMixin, TestCase):
             all_objs.last().creator, self.course1_instructor_participation.user)
 
 
-@skipUnless(may_run_expensive_tests(), SKIP_EXPENSIVE_TESTS_REASON)
+@pytest.mark.slow
 class GradeChangeAdminTest(CourseAdminSessionRelatedMixin, TestCase):
     def test_grade_change(self):
         gopp = factories.GradingOpportunityFactory(course=self.course2)
@@ -513,7 +511,7 @@ class GradeChangeAdminTest(CourseAdminSessionRelatedMixin, TestCase):
             all_objs.last().creator, self.course2_instructor_participation.user)
 
 
-@skipUnless(may_run_expensive_tests(), SKIP_EXPENSIVE_TESTS_REASON)
+@pytest.mark.slow
 class ExamTicketAdminTest(CourseAdminTestMixin, TestCase):
     def setUp(self):
         self.exam = factories.ExamFactory(course=self.course1)

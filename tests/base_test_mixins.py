@@ -48,8 +48,7 @@ from course.content import get_course_repo_path, get_repo_blob
 
 from tests.constants import (
     QUIZ_FLOW_ID, TEST_PAGE_TUPLE, FAKED_YAML_PATH, COMMIT_SHA_MAP)
-from tests.utils import (
-    mock, may_run_expensive_tests, SKIP_EXPENSIVE_TESTS_REASON)
+from tests.utils import mock
 
 CORRECTNESS_ATOL = 1e-05
 
@@ -1775,6 +1774,11 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
                     flow_id, course_identifier=course_identifier,
                     restrict_to_first_attempt=restrict_to_first_attempt))
 
+    def get_manage_authentication_token_url(self, course_identifier=None):
+        course_identifier = course_identifier or self.get_default_course_identifier()
+        return reverse("relate-manage_authentication_tokens",
+                       args=(course_identifier,))
+
 
 class SingleCourseTestMixin(CoursesTestMixinBase):
     courses_setup_list = SINGLE_COURSE_SETUP_LIST
@@ -2456,10 +2460,6 @@ class SubprocessRunpyContainerMixin(object):
     """
     @classmethod
     def setUpClass(cls):  # noqa
-        if not may_run_expensive_tests():
-            from unittest import SkipTest
-            raise SkipTest(SKIP_EXPENSIVE_TESTS_REASON)
-
         super(SubprocessRunpyContainerMixin, cls).setUpClass()
 
         python_executable = os.getenv("PY_EXE")
@@ -2620,6 +2620,75 @@ class AdminTestMixin(TwoCourseTestMixin):
             filterspec_list.append(choices)
 
         return filterspec_list
+
+# }}}
+
+
+# {{{ api
+
+class APITestMixin(SingleCoursePageTestMixin):
+    # test manage_authentication_tokens
+    flow_id = QUIZ_FLOW_ID
+    force_login_student_for_each_test = False
+    default_token_hash_str = "my0token0string"
+
+    def get_get_flow_session_api_url(
+            self, course_identifier=None, flow_id=None,
+            auto_add_default_flow_id=True):
+        course_identifier = (
+            course_identifier or self.get_default_course_identifier())
+        if auto_add_default_flow_id:
+            flow_id = flow_id or self.flow_id
+        kwargs = {"course_identifier": course_identifier}
+
+        url = reverse("relate-course_get_flow_session", kwargs=kwargs)
+
+        if flow_id:
+            url += "?flow_id=%s" % flow_id
+        return url
+
+    def get_get_flow_session_content_url(
+            self, course_identifier=None, flow_session_id=None,
+            auto_add_default_flow_session_id=True):
+        course_identifier = (
+            course_identifier or self.get_default_course_identifier())
+        if auto_add_default_flow_session_id:
+            flow_session_id = (
+                flow_session_id
+                or self.get_default_flow_session_id(course_identifier))
+        kwargs = {"course_identifier": course_identifier}
+
+        url = reverse("relate-course_get_flow_session_content", kwargs=kwargs)
+
+        if flow_session_id:
+            url += "?flow_session_id=%s" % flow_session_id
+        return url
+
+    def create_token(self, token_hash_str=None, participation=None, **kwargs):
+        token_hash_str = token_hash_str or self.default_token_hash_str
+        participation = participation or self.instructor_participation
+
+        from tests.factories import AuthenticationTokenFactory
+        with mock.patch("tests.factories.make_sign_in_key") as mock_mk_sign_in_key:
+            mock_mk_sign_in_key.return_value = token_hash_str
+            token = AuthenticationTokenFactory(
+                user=participation.user,
+                participation=participation,
+                **kwargs
+            )
+            return token
+
+    def create_basic_auth(self, token=None, participation=None, user=None):
+        participation = participation or self.instructor_participation
+        user = user or participation.user
+        token = token or self.create_token(participation=participation)
+        basic_auth_str = "%s:%s_%s" % (
+            user.username,
+            token.id, self.default_token_hash_str)
+
+        from base64 import b64encode
+        return b64encode(basic_auth_str.encode("utf-8")).decode()
+
 
 # }}}
 
