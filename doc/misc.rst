@@ -3,13 +3,37 @@ Installation
 
 RELATE requires Python 3.
 
-Install [Node.js](https://nodejs.org) and NPM, or [Yarn](https://yarnpkg.com)
-(alternative package manager) at your option.
+Minimal Install for Validating Course Content
+---------------------------------------------
 
-Install [poetry](https://python-poetry.org) to manage dependencies and virtual
+Make a virtualenv, install poetry and relate::
+
+    python3 -m venv my-relate-venv
+    source my-relate-venv/bin/activate
+    pip install poetry
+    git clone https://github.com/inducer/relate.git
+    cd relate
+    poetry install
+
+After this, you can delete the ``relate`` git checkout created. In order to
+use the ``relate`` comand, you need to activate the virtualenv that was created::
+
+    source my-relate-venv/bin/activate
+
+Installation for Relate Development
+-----------------------------------
+
+Install `Node.js <https://nodejs.org>`__ and NPM, or `Yarn <https://yarnpkg.com>`__
+(version 1, an alternative package manager) at your option.
+
+Install `poetry <https://python-poetry.org>`__ to manage dependencies and virtual
 environments::
 
-    pip install poetry
+    curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python3
+
+Note that this will put poetry in ``$HOME/.poetry/bin`` and modify your
+``$HOME/.profile``. If you don't like that, see the
+`poetry docs <https://python-poetry.org/docs/>`__ for alternate installation options.
 
 To install, clone the repository::
 
@@ -19,7 +43,8 @@ Enter the relate directory::
 
     cd relate
 
-Install the dependencies. This should not be done in an existing virtual environment::
+Install the dependencies. Poetry will automatically create a virtualenv
+(somewhere under ``$HOME/.poetry``) for this:
 
     poetry install
 
