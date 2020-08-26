@@ -89,5 +89,3 @@ Documentation:
     - poetry run bash ./doc/build-docs.sh
   tags:
     - python3
-  only:
-    - master
