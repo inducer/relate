@@ -42,6 +42,8 @@ jobs:
         run: poetry run mypy relate course
       - name: "Safety"
         run: poetry run safety check ${safety_ignores} --full-report
+      - name: "Sphinx"
+        run: poetry run make html SPHINXOPTS="-W --keep-going -n"
 
 
   pytest:
@@ -107,7 +109,7 @@ jobs:
           poetry run relate validate .
           poetry run relate test-code questions/autograded-python-example.yml
           poetry run relate expand-yaml flows/quiz-test.yml > /dev/null
-  
+
   # pytest-windows:
   #   name: Python - Windows
   #   runs-on: windows-latest
@@ -141,6 +143,6 @@ jobs:
   #       uses: codecov/codecov-action@v1
   #       with:
   #         fail_ci_if_error: true
-      
+
 
 # vim: sw=2
