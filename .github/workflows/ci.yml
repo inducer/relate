@@ -40,7 +40,7 @@ jobs:
       - name: "Safety"
         run: poetry run safety check ${safety_ignores} --full-report
       - name: "Sphinx"
-        run: poetry run make html SPHINXOPTS="-W --keep-going -n"
+        run: (cd doc; poetry run make html SPHINXOPTS="-W --keep-going -n")
 
 
   pytest:
