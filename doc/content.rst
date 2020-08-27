@@ -113,7 +113,7 @@ literals::
 :ref:`markup` does its own Jinja expansion though, so such block literals
 *can* use Jinja.
 
-.. comment::
+.. ::
 
     (Let's keep this undocumented for now.)
 
@@ -338,7 +338,7 @@ RELATE provides the functionality of rendering `Ipython Notebooks
 .. function:: render_notebook_cells(ipynb_path, indices=None, clear_output=False,
                                   clear_markdown=False)
 
-    :param ipynb_path: :class:`string`, the path of the ipython notebook in
+    :param ipynb_path: :class:`str`, the path of the ipython notebook in
         the repo.
     :param indices: :class:`list`, the indices of cells which are expected to
         be rendered. For example, ``[1, 2, 3, 6]`` or ``range(3, -1)``. If not
@@ -347,7 +347,7 @@ RELATE provides the functionality of rendering `Ipython Notebooks
         output of code cells should be removed. Default: `False`.
     :param clear_markdown: :class:`bool`, indicating whether all text cells
         will be removed. Default: `False`.
-    :rtype: :class:`string`, rendered markdown which will be consequently
+    :rtype: :class:`str`, rendered markdown which will be consequently
      converted to HTML.
 
 For example, the following snippet shows the HTML version of ``test.ipynb`` in repo

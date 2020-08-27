@@ -35,8 +35,18 @@ django.setup()
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-    'sphinx.ext.autodoc',
+    "sphinx.ext.autodoc",
+    "sphinx.ext.intersphinx",
 ]
+
+intersphinx_mapping = {
+        "http://docs.python.org/dev": None,
+        "http://docs.scipy.org/doc/numpy/": None,
+        "django": ("http://docs.djangoproject.com/en/dev/",
+            "http://docs.djangoproject.com/en/dev/_objects/"),
+        "https://docs.sympy.org/latest": None,
+        "https://www.dulwich.io/docs/": None,
+        }
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']

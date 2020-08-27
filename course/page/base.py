@@ -25,6 +25,7 @@ THE SOFTWARE.
 """
 
 import django.forms as forms
+from django import http
 
 from course.validation import validate_struct, ValidationError
 from course.constants import MAX_EXTRA_CREDIT_FACTOR
@@ -38,19 +39,34 @@ from django.utils.translation import (
         )
 from django.conf import settings
 
+from course.models import (  # noqa
+        Course,
+        FlowSession
+        )
+from relate.utils import Repo_ish
+
 # {{{ mypy
 
-from typing import Text, Optional, Any, Tuple, Dict, Callable, FrozenSet, Union, TYPE_CHECKING  # noqa
-if TYPE_CHECKING:
-    from django import http  # noqa
-    from course.models import (  # noqa
-            Course,
-            FlowSession
-            )
-    from course.content import Repo_ish  # noqa
+from typing import Text, Optional, Any, Tuple, Dict, Callable, FrozenSet, Union
 
 # }}}
 
+
+__doc__ = """
+.. autoclass:: PageContext
+.. autoclass:: PageBehavior
+
+.. autoclass:: AnswerFeedback
+
+.. exception:: InvalidPageData
+
+.. autoclass:: PageBase
+
+Stub Docs of Internals
+======================
+
+.. class:: Repo_ish
+"""
 
 mark_safe_lazy = lazy(mark_safe, str)
 
@@ -72,12 +88,12 @@ class PageContext(object):
 
     def __init__(
             self,
-            course,  # type: Course
-            repo,  # type: Repo_ish
-            commit_sha,  # type: bytes
-            flow_session,  # type: FlowSession
-            in_sandbox=False,  # type: bool
-            page_uri=None,  # type: Optional[str]
+            course: Course,
+            repo: Repo_ish,
+            commit_sha: bytes,
+            flow_session: FlowSession,
+            in_sandbox: bool = False,
+            page_uri: Optional[str] = None,
             ):
         # type: (...) -> None
 
@@ -508,12 +524,11 @@ class PageBase(object):
 
     def answer_data(
             self,
-            page_context,  # type:  PageContext
-            page_data,  # type: Any
-            form,  # type: forms.Form
-            files_data,  # type: Any
-            ):
-        # type: (...) -> Any
+            page_context: PageContext,
+            page_data: Any,
+            form: forms.Form,
+            files_data: Any,
+            ) -> Any:
         """Return a JSON-persistable object reflecting the user's answer on the
         form. This will be passed to methods below as *answer_data*.
         """
@@ -540,12 +555,11 @@ class PageBase(object):
 
     def post_form(
             self,
-            page_context,  # type: PageContext
-            page_data,  # type: Any
-            post_data,  # type: Any
-            files_data  # type: Any
-            ):
-        # type: (...) -> forms.Form
+            page_context: PageContext,
+            page_data: Any,
+            post_data: Any,
+            files_data: Any,
+            ) -> forms.Form:
         raise NotImplementedError()
 
     def process_form_post(
@@ -555,8 +569,7 @@ class PageBase(object):
             post_data,  # type: Any
             files_data,  # type: Any
             page_behavior,  # type: PageBehavior
-            ):
-        # type: (...) -> forms.Form
+            ) -> forms.Form:
         """Return a form with the POST response from *post_data* and *files_data*
         filled in.
 
@@ -596,11 +609,10 @@ class PageBase(object):
 
     def make_grading_form(
             self,
-            page_context,  # type: PageContext
-            page_data,  # type: Any
-            grade_data  # type: Any
-            ):
-        # type: (...) -> forms.Form
+            page_context: PageContext,
+            page_data: Any,
+            grade_data: Any,
+            ) -> forms.Form:
         """
         :arg grade_data: value returned by
             :meth:`update_grade_data_from_grading_form_v2`.  May be *None*.
@@ -611,13 +623,12 @@ class PageBase(object):
 
     def post_grading_form(
             self,
-            page_context,  # type: PageContext
-            page_data,  # type: Any
-            grade_data,  # type: Any
-            post_data,  # type: Any
-            files_data  # type: Any
-            ):
-        # type: (...) -> forms.Form
+            page_context: PageContext,
+            page_data: Any,
+            grade_data: Any,  # type: Any
+            post_data: Any,  # type: Any
+            files_data: Any,
+            ) -> forms.Form:
         """Return a form with the POST response from *post_data* and *files_data*
         filled in.
 

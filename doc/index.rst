@@ -62,11 +62,12 @@ Table of Contents
 .. toctree::
     :maxdepth: 3
 
-    content.rst
-    flow.rst
-    api.rst
-    faq.rst
-    misc.rst
+    content
+    flow
+    page
+    api
+    faq
+    misc
 
 * :ref:`genindex`
 

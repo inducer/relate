@@ -50,6 +50,19 @@ if TYPE_CHECKING:
 # }}}
 
 
+__doc__ = """
+.. autoclass:: ValidationContext
+
+.. autofunction:: validate_struct
+
+Stub Docs
+=========
+
+.. class:: Course
+.. class:: Repo_ish
+"""
+
+
 # {{{ validation tools
 
 class ValidationError(RuntimeError):
