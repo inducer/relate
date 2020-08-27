@@ -13,14 +13,11 @@ jobs:
   lint:
     name: Lint and typecheck
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: [3.6, 3.7, 3.8]
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-python@v1
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: '3.x'
       - name: Install Poetry
         uses: dschep/install-poetry-action@v1.3
         with:
