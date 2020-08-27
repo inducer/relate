@@ -625,8 +625,8 @@ class PageBase(object):
             self,
             page_context: PageContext,
             page_data: Any,
-            grade_data: Any,  # type: Any
-            post_data: Any,  # type: Any
+            grade_data: Any,
+            post_data: Any,
             files_data: Any,
             ) -> forms.Form:
         """Return a form with the POST response from *post_data* and *files_data*
