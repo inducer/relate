@@ -20,7 +20,7 @@ Host doc-upload
    StrictHostKeyChecking false
 END
 
-make html
+make html SPHINXOPTS="-W --keep-going -n"
 
 if test -n "${DOC_UPLOAD_KEY}"; then
   echo "${DOC_UPLOAD_KEY}" > doc_upload_key
