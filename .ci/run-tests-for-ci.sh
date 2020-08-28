@@ -15,7 +15,7 @@ echo "i18n"
 cp local_settings_example.py local_settings.py
 
 # Make sure i18n literals marked correctly
-poetry run python manage.py makemessages --no-location --ignore=req.txt > output.txt
+poetry run python manage.py makemessages -a --no-location --ignore=req.txt > output.txt
 
 if [[ -n $(grep "msgid" output.txt) ]]; then
     echo "Command 'python manage.py makemessages' failed with the following info:"
