@@ -39,20 +39,42 @@ from django.utils.translation import (
         )
 from django.conf import settings
 
-from course.models import (  # noqa
-        Course,
-        FlowSession
-        )
-from relate.utils import Repo_ish
-
 # {{{ mypy
 
-from typing import Text, Optional, Any, Tuple, Dict, Callable, FrozenSet, Union
+from typing import (Text, Optional, Any, Tuple, Dict, Callable, FrozenSet, Union,
+        TYPE_CHECKING)
+
+if TYPE_CHECKING:
+    # FIXME There seem to be some cyclic imports that prevent importing these
+    # outright.
+    from course.models import (  # noqa
+            Course,
+            FlowSession
+            )
+    from relate.utils import Repo_ish
 
 # }}}
 
 
 __doc__ = """
+Stub Docs of Internals
+======================
+
+.. class:: Repo_ish
+
+    See ``relate.utils.Repo_ish``.
+
+.. class:: Course
+
+    See ``course.models.Course``.
+
+.. class:: FlowSession
+
+    See ``course.models.FlowSession``.
+
+Page Interface
+==============
+
 .. autoclass:: PageContext
 .. autoclass:: PageBehavior
 
@@ -61,11 +83,6 @@ __doc__ = """
 .. exception:: InvalidPageData
 
 .. autoclass:: PageBase
-
-Stub Docs of Internals
-======================
-
-.. class:: Repo_ish
 """
 
 mark_safe_lazy = lazy(mark_safe, str)
@@ -88,10 +105,10 @@ class PageContext(object):
 
     def __init__(
             self,
-            course: Course,
-            repo: Repo_ish,
+            course: "Course",
+            repo: "Repo_ish",
             commit_sha: bytes,
-            flow_session: FlowSession,
+            flow_session: "FlowSession",
             in_sandbox: bool = False,
             page_uri: Optional[str] = None,
             ):
