@@ -21,7 +21,7 @@ stages:
   - docs
 
 .install-deps-template: &install-deps
-  image: inducer/ci-support
+  image: inducer/ci-base-image
   tags:
     - docker-runner
   before_script:
