@@ -21,12 +21,10 @@ stages:
   - docs
 
 .install-deps-template: &install-deps
-  image: python:3.7
+  image: inducer/ci-support
   tags:
     - docker-runner
   before_script:
-    - sudo apt update
-    - sudo apt install gettext
     - export PATH="/var/lib/gitlab-runner/.local/bin:$PATH"
     - pip3 install --upgrade poetry
     - poetry install
@@ -39,7 +37,6 @@ stages:
 
 .test-template: &test
   <<: *install-deps
-  image: python:3.7
   script:
     - "bash ./.ci/run-tests-for-ci.sh"
   stage: tests
