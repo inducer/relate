@@ -243,7 +243,7 @@ description = "cryptography is a package which provides cryptographic recipes an
 name = "cryptography"
 optional = false
 python-versions = ">=2.7,!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,!=3.4.*"
-version = "3.0"
+version = "3.1"
 
 [package.dependencies]
 cffi = ">=1.8,<1.11.3 || >1.11.3"
@@ -252,7 +252,6 @@ six = ">=1.4.1"
 [package.extras]
 docs = ["sphinx (>=1.6.5,<1.8.0 || >1.8.0,<3.1.0 || >3.1.0,<3.1.1 || >3.1.1)", "sphinx-rtd-theme"]
 docstest = ["doc8", "pyenchant (>=1.6.11)", "twine (>=1.12.0)", "sphinxcontrib-spelling (>=4.0.1)"]
-idna = ["idna (>=2.1)"]
 pep8test = ["black", "flake8", "flake8-import-order", "pep8-naming"]
 ssh = ["bcrypt (>=3.1.5)"]
 test = ["pytest (>=3.6.0,<3.9.0 || >3.9.0,<3.9.1 || >3.9.1,<3.9.2 || >3.9.2)", "pretend", "iso8601", "pytz", "hypothesis (>=1.11.4,<3.79.2 || >3.79.2)"]
@@ -279,10 +278,10 @@ description = "A high-level Python Web framework that encourages rapid developme
 name = "django"
 optional = false
 python-versions = ">=3.6"
-version = "3.1"
+version = "3.0.9"
 
 [package.dependencies]
-asgiref = ">=3.2.10,<3.3.0"
+asgiref = ">=3.2,<4.0"
 pytz = "*"
 sqlparse = ">=0.2.2"
 
@@ -458,7 +457,7 @@ description = "Python Git Library"
 name = "dulwich"
 optional = false
 python-versions = ">=3.5"
-version = "0.20.5"
+version = "0.20.6"
 
 [package.dependencies]
 certifi = "*"
@@ -468,6 +467,7 @@ urllib3 = ">=1.24.1"
 fastimport = ["fastimport"]
 https = ["urllib3 (>=1.24.1)"]
 pgp = ["gpg"]
+watch = ["pyinotify"]
 
 [[package]]
 category = "main"
@@ -800,7 +800,7 @@ description = "More routines for operating on iterables, beyond itertools"
 name = "more-itertools"
 optional = false
 python-versions = ">=3.5"
-version = "8.4.0"
+version = "8.5.0"
 
 [[package]]
 category = "main"
@@ -1563,7 +1563,7 @@ docs = ["sphinx", "jaraco.packaging (>=3.2)", "rst.linker (>=1.9)"]
 testing = ["jaraco.itertools", "func-timeout"]
 
 [metadata]
-content-hash = "28d48c04ebc39fb7cec74e84defebe24b46aed2695fe64c582f0f1f69daa1c1b"
+content-hash = "f31f32ed4443504b88e2db7395935112c9a07bd144f8ab0da82cc06853e5e0bc"
 python-versions = "^3.6"
 
 [metadata.files]
@@ -1712,25 +1712,28 @@ coverage = [
     {file = "coverage-5.2.1.tar.gz", hash = "sha256:a34cb28e0747ea15e82d13e14de606747e9e484fb28d63c999483f5d5188e89b"},
 ]
 cryptography = [
-    {file = "cryptography-3.0-cp27-cp27m-macosx_10_10_x86_64.whl", hash = "sha256:ab49edd5bea8d8b39a44b3db618e4783ef84c19c8b47286bf05dfdb3efb01c83"},
-    {file = "cryptography-3.0-cp27-cp27m-manylinux1_x86_64.whl", hash = "sha256:124af7255ffc8e964d9ff26971b3a6153e1a8a220b9a685dc407976ecb27a06a"},
-    {file = "cryptography-3.0-cp27-cp27m-manylinux2010_x86_64.whl", hash = "sha256:51e40123083d2f946794f9fe4adeeee2922b581fa3602128ce85ff813d85b81f"},
-    {file = "cryptography-3.0-cp27-cp27m-win32.whl", hash = "sha256:dea0ba7fe6f9461d244679efa968d215ea1f989b9c1957d7f10c21e5c7c09ad6"},
-    {file = "cryptography-3.0-cp27-cp27m-win_amd64.whl", hash = "sha256:8ecf9400d0893836ff41b6f977a33972145a855b6efeb605b49ee273c5e6469f"},
-    {file = "cryptography-3.0-cp27-cp27mu-manylinux1_x86_64.whl", hash = "sha256:0c608ff4d4adad9e39b5057de43657515c7da1ccb1807c3a27d4cf31fc923b4b"},
-    {file = "cryptography-3.0-cp27-cp27mu-manylinux2010_x86_64.whl", hash = "sha256:bec7568c6970b865f2bcebbe84d547c52bb2abadf74cefce396ba07571109c67"},
-    {file = "cryptography-3.0-cp35-abi3-macosx_10_10_x86_64.whl", hash = "sha256:0cbfed8ea74631fe4de00630f4bb592dad564d57f73150d6f6796a24e76c76cd"},
-    {file = "cryptography-3.0-cp35-abi3-manylinux1_x86_64.whl", hash = "sha256:a09fd9c1cca9a46b6ad4bea0a1f86ab1de3c0c932364dbcf9a6c2a5eeb44fa77"},
-    {file = "cryptography-3.0-cp35-abi3-manylinux2010_x86_64.whl", hash = "sha256:ce82cc06588e5cbc2a7df3c8a9c778f2cb722f56835a23a68b5a7264726bb00c"},
-    {file = "cryptography-3.0-cp35-cp35m-win32.whl", hash = "sha256:9367d00e14dee8d02134c6c9524bb4bd39d4c162456343d07191e2a0b5ec8b3b"},
-    {file = "cryptography-3.0-cp35-cp35m-win_amd64.whl", hash = "sha256:384d7c681b1ab904fff3400a6909261cae1d0939cc483a68bdedab282fb89a07"},
-    {file = "cryptography-3.0-cp36-cp36m-win32.whl", hash = "sha256:4d355f2aee4a29063c10164b032d9fa8a82e2c30768737a2fd56d256146ad559"},
-    {file = "cryptography-3.0-cp36-cp36m-win_amd64.whl", hash = "sha256:45741f5499150593178fc98d2c1a9c6722df88b99c821ad6ae298eff0ba1ae71"},
-    {file = "cryptography-3.0-cp37-cp37m-win32.whl", hash = "sha256:8ecef21ac982aa78309bb6f092d1677812927e8b5ef204a10c326fc29f1367e2"},
-    {file = "cryptography-3.0-cp37-cp37m-win_amd64.whl", hash = "sha256:4b9303507254ccb1181d1803a2080a798910ba89b1a3c9f53639885c90f7a756"},
-    {file = "cryptography-3.0-cp38-cp38-win32.whl", hash = "sha256:8713ddb888119b0d2a1462357d5946b8911be01ddbf31451e1d07eaa5077a261"},
-    {file = "cryptography-3.0-cp38-cp38-win_amd64.whl", hash = "sha256:bea0b0468f89cdea625bb3f692cd7a4222d80a6bdafd6fb923963f2b9da0e15f"},
-    {file = "cryptography-3.0.tar.gz", hash = "sha256:8e924dbc025206e97756e8903039662aa58aa9ba357d8e1d8fc29e3092322053"},
+    {file = "cryptography-3.1-cp27-cp27m-macosx_10_10_x86_64.whl", hash = "sha256:969ae512a250f869c1738ca63be843488ff5cc031987d302c1f59c7dbe1b225f"},
+    {file = "cryptography-3.1-cp27-cp27m-manylinux1_x86_64.whl", hash = "sha256:b45ab1c6ece7c471f01c56f5d19818ca797c34541f0b2351635a5c9fe09ac2e0"},
+    {file = "cryptography-3.1-cp27-cp27m-manylinux2010_x86_64.whl", hash = "sha256:247df238bc05c7d2e934a761243bfdc67db03f339948b1e2e80c75d41fc7cc36"},
+    {file = "cryptography-3.1-cp27-cp27m-win32.whl", hash = "sha256:10c9775a3f31610cf6b694d1fe598f2183441de81cedcf1814451ae53d71b13a"},
+    {file = "cryptography-3.1-cp27-cp27m-win_amd64.whl", hash = "sha256:9f734423eb9c2ea85000aa2476e0d7a58e021bc34f0a373ac52a5454cd52f791"},
+    {file = "cryptography-3.1-cp27-cp27mu-manylinux1_x86_64.whl", hash = "sha256:e7563eb7bc5c7e75a213281715155248cceba88b11cb4b22957ad45b85903761"},
+    {file = "cryptography-3.1-cp27-cp27mu-manylinux2010_x86_64.whl", hash = "sha256:94191501e4b4009642be21dde2a78bd3c2701a81ee57d3d3d02f1d99f8b64a9e"},
+    {file = "cryptography-3.1-cp35-abi3-macosx_10_10_x86_64.whl", hash = "sha256:dc3f437ca6353979aace181f1b790f0fc79e446235b14306241633ab7d61b8f8"},
+    {file = "cryptography-3.1-cp35-abi3-manylinux1_x86_64.whl", hash = "sha256:725875681afe50b41aee7fdd629cedbc4720bab350142b12c55c0a4d17c7416c"},
+    {file = "cryptography-3.1-cp35-abi3-manylinux2010_x86_64.whl", hash = "sha256:321761d55fb7cb256b771ee4ed78e69486a7336be9143b90c52be59d7657f50f"},
+    {file = "cryptography-3.1-cp35-abi3-manylinux2014_aarch64.whl", hash = "sha256:2a27615c965173c4c88f2961cf18115c08fedfb8bdc121347f26e8458dc6d237"},
+    {file = "cryptography-3.1-cp35-cp35m-win32.whl", hash = "sha256:e7dad66a9e5684a40f270bd4aee1906878193ae50a4831922e454a2a457f1716"},
+    {file = "cryptography-3.1-cp35-cp35m-win_amd64.whl", hash = "sha256:4005b38cd86fc51c955db40b0f0e52ff65340874495af72efabb1bb8ca881695"},
+    {file = "cryptography-3.1-cp36-abi3-win32.whl", hash = "sha256:cc6096c86ec0de26e2263c228fb25ee01c3ff1346d3cfc219d67d49f303585af"},
+    {file = "cryptography-3.1-cp36-abi3-win_amd64.whl", hash = "sha256:2e26223ac636ca216e855748e7d435a1bf846809ed12ed898179587d0cf74618"},
+    {file = "cryptography-3.1-cp36-cp36m-win32.whl", hash = "sha256:7a63e97355f3cd77c94bd98c59cb85fe0efd76ea7ef904c9b0316b5bbfde6ed1"},
+    {file = "cryptography-3.1-cp36-cp36m-win_amd64.whl", hash = "sha256:4b9e96543d0784acebb70991ebc2dbd99aa287f6217546bb993df22dd361d41c"},
+    {file = "cryptography-3.1-cp37-cp37m-win32.whl", hash = "sha256:eb80a288e3cfc08f679f95da72d2ef90cb74f6d8a8ba69d2f215c5e110b2ca32"},
+    {file = "cryptography-3.1-cp37-cp37m-win_amd64.whl", hash = "sha256:180c9f855a8ea280e72a5d61cf05681b230c2dce804c48e9b2983f491ecc44ed"},
+    {file = "cryptography-3.1-cp38-cp38-win32.whl", hash = "sha256:fa7fbcc40e2210aca26c7ac8a39467eae444d90a2c346cbcffd9133a166bcc67"},
+    {file = "cryptography-3.1-cp38-cp38-win_amd64.whl", hash = "sha256:548b0818e88792318dc137d8b1ec82a0ab0af96c7f0603a00bb94f896fbf5e10"},
+    {file = "cryptography-3.1.tar.gz", hash = "sha256:26409a473cc6278e4c90f782cd5968ebad04d3911ed1c402fc86908c17633e08"},
 ]
 decorator = [
     {file = "decorator-4.4.2-py2.py3-none-any.whl", hash = "sha256:41fa54c2a0cc4ba648be4fd43cff00aedf5b9465c9bf18d64325bc225f08f760"},
@@ -1741,8 +1744,8 @@ defusedxml = [
     {file = "defusedxml-0.6.0.tar.gz", hash = "sha256:f684034d135af4c6cbb949b8a4d2ed61634515257a67299e5f940fbaa34377f5"},
 ]
 django = [
-    {file = "Django-3.1-py3-none-any.whl", hash = "sha256:1a63f5bb6ff4d7c42f62a519edc2adbb37f9b78068a5a862beff858b68e3dc8b"},
-    {file = "Django-3.1.tar.gz", hash = "sha256:2d390268a13c655c97e0e2ede9d117007996db692c1bb93eabebd4fb7ea7012b"},
+    {file = "Django-3.0.9-py3-none-any.whl", hash = "sha256:96fbe04e8ba0df289171e7f6970e0ff8b472bf4f909ed9e0e5beccbac7e1dbbe"},
+    {file = "Django-3.0.9.tar.gz", hash = "sha256:c22b4cd8e388f8219dc121f091e53a8701f9f5bca9aa132b5254263cab516215"},
 ]
 django-appconf = [
     {file = "django-appconf-1.0.4.tar.gz", hash = "sha256:be58deb54a43d77d2e1621fe59f787681376d3cd0b8bd8e4758ef6c3a6453380"},
@@ -1795,20 +1798,19 @@ dparse = [
     {file = "dparse-0.5.1.tar.gz", hash = "sha256:a1b5f169102e1c894f9a7d5ccf6f9402a836a5d24be80a986c7ce9eaed78f367"},
 ]
 dulwich = [
-    {file = "dulwich-0.20.5-cp35-cp35m-macosx_10_14_x86_64.whl", hash = "sha256:31a528b7b4274d4610aed5b6a3403b8250d4dbdf02aaef51cbb795c6d1ce6dda"},
-    {file = "dulwich-0.20.5-cp36-cp36m-macosx_10_14_x86_64.whl", hash = "sha256:30355d696d93a58602349b546be6d993e9eee8b4e3d18fe4b4b523fc50e249dc"},
-    {file = "dulwich-0.20.5-cp36-cp36m-manylinux1_x86_64.whl", hash = "sha256:036fe7f38a31185033fff6d6ecf13d294d4ed58de6cb8655f933732fa1780cde"},
-    {file = "dulwich-0.20.5-cp36-cp36m-manylinux2010_x86_64.whl", hash = "sha256:372d1fd746b9513629f72e4e6a2a4c95bbd9c8fd904cf8ea83fe836c6e3b82be"},
-    {file = "dulwich-0.20.5-cp36-cp36m-win_amd64.whl", hash = "sha256:b45a6beead9d333a6e96a626b3762d12ddebe900973aeac1f6605c43bb29f723"},
-    {file = "dulwich-0.20.5-cp37-cp37m-macosx_10_14_x86_64.whl", hash = "sha256:3b6418af63e7b89c83e5d3df37643096f3afd35c0e5c988b3e2f8d55ba0cb89d"},
-    {file = "dulwich-0.20.5-cp37-cp37m-manylinux1_x86_64.whl", hash = "sha256:17f03a08725b067ebc270ba4e57eb3df68ee77ece4bf930318a71328a6dd240f"},
-    {file = "dulwich-0.20.5-cp37-cp37m-manylinux2010_x86_64.whl", hash = "sha256:863bfb141a1cde6f9b235cac282d6b4c411d547caee6a414846b75db6e990e79"},
-    {file = "dulwich-0.20.5-cp37-cp37m-win_amd64.whl", hash = "sha256:e4154eb65ecca0d7a7732797aabb63c9fd0f0279b4f8d5a92c7e1b981778138d"},
-    {file = "dulwich-0.20.5-cp38-cp38-macosx_10_14_x86_64.whl", hash = "sha256:ef3f1057422a366443bc1a9621ed199a289b56d2958407716ac770ac0eb60716"},
-    {file = "dulwich-0.20.5-cp38-cp38-manylinux1_x86_64.whl", hash = "sha256:2a025eb8a794c07ec3bc2f9659a50b4f60a25437a4dad7d06f5317f0390d2e8c"},
-    {file = "dulwich-0.20.5-cp38-cp38-manylinux2010_x86_64.whl", hash = "sha256:cc46fea2fc3fc5b3bf473982bb3948d08b2d98a7fa59f28410d58d0c8ecf32e6"},
-    {file = "dulwich-0.20.5-cp38-cp38-win_amd64.whl", hash = "sha256:b332249d29918c0fa70d18d0461e7247ad5526a850ef3a1f166508a3af59c6f6"},
-    {file = "dulwich-0.20.5.tar.gz", hash = "sha256:98484ede022da663c96b54bc8dcdb4407072cb50efd5d20d58ca4e7779931305"},
+    {file = "dulwich-0.20.6-cp36-cp36m-macosx_10_14_x86_64.whl", hash = "sha256:bea6e6caffc6c73bfd1647714c5715ab96ac49deb8beb8b67511529afa25685a"},
+    {file = "dulwich-0.20.6-cp36-cp36m-manylinux1_x86_64.whl", hash = "sha256:e5871b86a079e9e290f52ab14559cea1b694a0b8ed2b9ebb898f6ced7f14a406"},
+    {file = "dulwich-0.20.6-cp36-cp36m-manylinux2010_x86_64.whl", hash = "sha256:1ccd55e38fa9f169290f93e027ab4508202f5bdd6ef534facac4edd3f6903f0d"},
+    {file = "dulwich-0.20.6-cp36-cp36m-win_amd64.whl", hash = "sha256:7e7b5dea5178b6493fdb83adccbe81de9ddff55f79880185ed594c0e3a97209b"},
+    {file = "dulwich-0.20.6-cp37-cp37m-macosx_10_14_x86_64.whl", hash = "sha256:304f52b10c49c3a6ddfbd73e2e93d8e979350225cfba9688e51110e74fa2f718"},
+    {file = "dulwich-0.20.6-cp37-cp37m-manylinux1_x86_64.whl", hash = "sha256:2f4aebc54ed2d37dcee737024421452375570a422eb682232e676aa7ebc9cb4b"},
+    {file = "dulwich-0.20.6-cp37-cp37m-manylinux2010_x86_64.whl", hash = "sha256:4fee359928c59b53af153a582a7ed7595259a5a825df400301a29e17fd78dfd3"},
+    {file = "dulwich-0.20.6-cp37-cp37m-win_amd64.whl", hash = "sha256:8f7a7f973be2beedfb10dd8d3eb6bdf9ec466c72ad555704897cbd6357fe5021"},
+    {file = "dulwich-0.20.6-cp38-cp38-macosx_10_14_x86_64.whl", hash = "sha256:2452a0379cc7bbbd7ab893ec104d18039f1ea98b0d6be6bca5646e5cf29e0ae9"},
+    {file = "dulwich-0.20.6-cp38-cp38-manylinux1_x86_64.whl", hash = "sha256:49e747c72d9099e873bf6196260346d5996c3f28af788294d47a8accdc524de7"},
+    {file = "dulwich-0.20.6-cp38-cp38-manylinux2010_x86_64.whl", hash = "sha256:50ef300a9fa4efd9f85009c2bd8b515266ec1529400f8834f85c04fa9f09b2c0"},
+    {file = "dulwich-0.20.6-cp38-cp38-win_amd64.whl", hash = "sha256:5348310f21b2a23847342ce464461499b6652483fa42de03714d0f6421a99698"},
+    {file = "dulwich-0.20.6.tar.gz", hash = "sha256:e593f514b8ac740b4ceeb047745b4719bfc9f334904245c6edcb3a9d002f577b"},
 ]
 ecdsa = [
     {file = "ecdsa-0.15-py2.py3-none-any.whl", hash = "sha256:867ec9cf6df0b03addc8ef66b56359643cb5d0c1dc329df76ba7ecfe256c8061"},
@@ -1941,8 +1943,8 @@ mistune = [
     {file = "mistune-0.8.4.tar.gz", hash = "sha256:59a3429db53c50b5c6bcc8a07f8848cb00d7dc8bdb431a4ab41920d201d4756e"},
 ]
 more-itertools = [
-    {file = "more-itertools-8.4.0.tar.gz", hash = "sha256:68c70cc7167bdf5c7c9d8f6954a7837089c6a36bf565383919bb595efb8a17e5"},
-    {file = "more_itertools-8.4.0-py3-none-any.whl", hash = "sha256:b78134b2063dd214000685165d81c154522c3ee0a1c0d4d113c80361c234c5a2"},
+    {file = "more-itertools-8.5.0.tar.gz", hash = "sha256:6f83822ae94818eae2612063a5101a7311e68ae8002005b5e05f03fd74a86a20"},
+    {file = "more_itertools-8.5.0-py3-none-any.whl", hash = "sha256:9b30f12df9393f0d28af9210ff8efe48d10c94f73e5daf886f10c4b0b0b4f03c"},
 ]
 mpmath = [
     {file = "mpmath-1.1.0.tar.gz", hash = "sha256:fc17abe05fbab3382b61a123c398508183406fa132e0223874578e20946499f6"},

@@ -23,7 +23,7 @@ relate = "relate.bin.relate:main"
 
 [tool.poetry.dependencies]
 python = "^3.6"
-django = "^3.0.7"
+django = "^3.0.7,<3.1"
 # Automatically renders Django forms in a pretty, Bootstrap-compatible way.
 django-crispy-forms = ">=1.5.1"
 # Page data, answer data, ... all represented in JSON. This makes that editable in the Django admin.
