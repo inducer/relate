@@ -25,6 +25,8 @@ stages:
   tags:
     - docker-runner
   before_script:
+    - sudo apt update
+    - sudo apt install gettext
     - export PATH="/var/lib/gitlab-runner/.local/bin:$PATH"
     - pip3 install --upgrade poetry
     - poetry install
