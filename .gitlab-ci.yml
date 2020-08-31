@@ -41,9 +41,6 @@ stages:
   script:
     - "bash ./.ci/run-tests-for-ci.sh"
   stage: tests
-  tags:
-    - python3
-    - linux
   except:
     - tags
   coverage: "/TOTAL.+ ([0-9]{1,3}%)/"
@@ -87,5 +84,3 @@ Documentation:
     RELATE_LOCAL_TEST_SETTINGS: './local_settings_example.py'
   script:
     - poetry run bash ./doc/build-docs.sh
-  tags:
-    - python3
