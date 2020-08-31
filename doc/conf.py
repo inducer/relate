@@ -39,6 +39,8 @@ extensions = [
     "sphinx.ext.intersphinx",
 ]
 
+autodoc_typehints = "none"
+
 intersphinx_mapping = {
         "http://docs.python.org/dev": None,
         "http://docs.scipy.org/doc/numpy/": None,
