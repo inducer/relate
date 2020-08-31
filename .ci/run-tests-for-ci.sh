@@ -32,7 +32,7 @@ export RELATE_LOCAL_TEST_SETTINGS="local_settings_example.py"
 PYTEST_COMMON_FLAGS="--cov-config=setup.cfg --cov-report=xml --cov=. --tb=native"
 if [[ "$RL_CI_TEST" = "expensive" ]]; then
     echo "Expensive tests"
-    poetry run pytest $PYTEST_COMMON_FLAGS --slow
+    poetry run python -m pytest $PYTEST_COMMON_FLAGS --slow
 elif [[ "$RL_CI_TEST" = "postgres" ]]; then
     export PGPASSWORD=relatepgpass
 
@@ -53,8 +53,8 @@ elif [[ "$RL_CI_TEST" = "postgres" ]]; then
 
     poetry run pip install psycopg2
     echo "Database tests"
-    poetry run pytest $PYTEST_COMMON_FLAGS
+    poetry run python -m pytest $PYTEST_COMMON_FLAGS
 else
     echo "Base tests"
-    poetry run pytest $PYTEST_COMMON_FLAGS
+    poetry run python -m pytest $PYTEST_COMMON_FLAGS
 fi
