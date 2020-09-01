@@ -65,11 +65,13 @@ safety:
 
 Python 3:
   <<: *test
+  needs: [setup]
 
 Python 3 Expensive:
   <<: *test
   variables:
     RL_CI_TEST: expensive
+  needs: [setup]
 
 Python 3 CLI Tool:
   <<: *test
@@ -79,6 +81,7 @@ Python 3 CLI Tool:
     - poetry run relate validate .
     - poetry run relate test-code questions/autograded-python-example.yml
     - poetry run relate expand-yaml flows/quiz-test.yml > /dev/null
+  needs: [setup]
 
 Documentation:
   <<: *install-deps
@@ -87,3 +90,4 @@ Documentation:
     RELATE_LOCAL_TEST_SETTINGS: './local_settings_example.py'
   script:
     - poetry run bash ./doc/build-docs.sh
+  needs: [setup]
