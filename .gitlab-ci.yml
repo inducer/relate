@@ -25,8 +25,8 @@ stages:
   tags:
     - docker-runner
   before_script:
-    - export PATH="/var/lib/gitlab-runner/.local/bin:$PATH"
-    - pip3 install --upgrade poetry
+    - curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python3
+    - export PATH="$HOME/.poetry/bin:$PATH"
     - poetry install
 
 .quality-template: &quality
