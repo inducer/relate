@@ -83,7 +83,7 @@ python-memcached = "^1.59"
 # A task queue, used to execute long-running tasks
 celery = "^4.3.0"
 kombu = "*"
-django-celery-results = "1.0.1"
+django-celery-results = "^1.2.1"
 # For searchable select widgets
 django_select2 = "^7.4.2"
 

@@ -314,10 +314,10 @@ description = "Celery result backends for Django."
 name = "django-celery-results"
 optional = false
 python-versions = "*"
-version = "1.0.1"
+version = "1.2.1"
 
 [package.dependencies]
-celery = ">=4.0,<5.0"
+celery = ">=4.4,<5.0"
 
 [[package]]
 category = "main"
@@ -1563,7 +1563,7 @@ docs = ["sphinx", "jaraco.packaging (>=3.2)", "rst.linker (>=1.9)"]
 testing = ["jaraco.itertools", "func-timeout"]
 
 [metadata]
-content-hash = "f31f32ed4443504b88e2db7395935112c9a07bd144f8ab0da82cc06853e5e0bc"
+content-hash = "60c3f60984e1da96516b845eda808bfe105f76b8ecd8875f1b9e3538d8bfc5bf"
 python-versions = "^3.6"
 
 [metadata.files]
@@ -1755,8 +1755,8 @@ django-bootstrap3-datetimepicker-2 = [
     {file = "django-bootstrap3-datetimepicker-2-2.8.2.tar.gz", hash = "sha256:4cb4436c61d0a91a494e479ec16f53bf6655f5b9497c8765989f0210b60641db"},
 ]
 django-celery-results = [
-    {file = "django_celery_results-1.0.1-py2.py3-none-any.whl", hash = "sha256:dfa240fb535a1a2d01c9e605ad71629909318eae6b893c5009eafd7265fde10b"},
-    {file = "django_celery_results-1.0.1.tar.gz", hash = "sha256:8bca2605eeff4418be7ce428a6958d64bee0f5bdf1f8e563fbc09a9e2f3d990f"},
+    {file = "django_celery_results-1.2.1-py2.py3-none-any.whl", hash = "sha256:a29ab580f0e38c66c39f51cc426bbdbb2a391b8cc0867df9dea748db2c961db2"},
+    {file = "django_celery_results-1.2.1.tar.gz", hash = "sha256:e390f70cc43bbc2cd7c8e4607dc29ab6211a2ab968f93677583f0160921f670c"},
 ]
 django-codemirror-widget = [
     {file = "django-codemirror-widget-0.5.0.tar.gz", hash = "sha256:a2f7facf299f3f51dff7227cc9850905b899e08485698d3f4fad110a7ad628be"},
