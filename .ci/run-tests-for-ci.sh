@@ -32,7 +32,7 @@ if test "$CI_SERVER_NAME" = "GitLab"; then
         # https://gitlab.tiker.net/inducer/relate/-/jobs/159522
         # -AK, 2020-09-01
         echo "Running on Gitlab, sleeping for a while to avoid ephemeral (outbound) port exhaustion in container from install"
-        sleep $((3*60))
+        sleep $((10*60))
 fi
 
 PYTEST_COMMON_FLAGS="--cov-config=setup.cfg --cov-report=xml --cov=. --tb=native"
