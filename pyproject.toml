@@ -23,7 +23,7 @@ relate = "relate.bin.relate:main"
 
 [tool.poetry.dependencies]
 python = "^3.6"
-django = "^3.0.7"
+django = "^3.0.10,<3.1"
 # Automatically renders Django forms in a pretty, Bootstrap-compatible way.
 django-crispy-forms = ">=1.5.1"
 # Page data, answer data, ... all represented in JSON. This makes that editable in the Django admin.
@@ -83,7 +83,7 @@ python-memcached = "^1.59"
 # A task queue, used to execute long-running tasks
 celery = "^4.3.0"
 kombu = "*"
-django-celery-results = "1.0.1"
+django-celery-results = "^1.2.1"
 # For searchable select widgets
 django_select2 = "^7.4.2"
 
@@ -113,5 +113,6 @@ pytest-django = "^3.9.0"
 pytest-factoryboy = "^2.0.3"
 pytest-cov = "^2.10.0"
 safety = "^1.9.0"
+sphinx = "^3.2.1"
 
 # vim: foldmethod=marker

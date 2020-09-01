@@ -143,12 +143,6 @@ class FileUploadQuestion(PageBaseWithTitle, PageBaseWithValue,
         Content that is revealed when answers are visible
         (see :ref:`flow-permissions`). Written in :ref:`markup`.
 
-    .. attribute:: correct_answer
-
-        Optional.
-        Content that is revealed when answers are visible
-        (see :ref:`flow-permissions`). Written in :ref:`markup`.
-
     .. attribute:: rubric
 
         Required.

@@ -13,14 +13,11 @@ jobs:
   lint:
     name: Lint and typecheck
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: [3.6, 3.7, 3.8]
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-python@v1
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: '3.x'
       - name: Install Poetry
         uses: dschep/install-poetry-action@v1.3
         with:
@@ -41,7 +38,11 @@ jobs:
       - name: "Mypy"
         run: poetry run mypy relate course
       - name: "Safety"
-        run: poetry run safety check ${safety_ignores} --full-report
+        run: bash ./.ci/run-safety.sh
+      - name: "Sphinx"
+        run: |
+            cp local_settings_example.py local_settings.py
+            (cd doc; poetry run make html SPHINXOPTS="-W --keep-going -n")
 
 
   pytest:
@@ -107,7 +108,7 @@ jobs:
           poetry run relate validate .
           poetry run relate test-code questions/autograded-python-example.yml
           poetry run relate expand-yaml flows/quiz-test.yml > /dev/null
-  
+
   # pytest-windows:
   #   name: Python - Windows
   #   runs-on: windows-latest
@@ -141,6 +142,6 @@ jobs:
   #       uses: codecov/codecov-action@v1
   #       with:
   #         fail_ci_if_error: true
-      
+
 
 # vim: sw=2
