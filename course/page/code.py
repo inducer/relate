@@ -391,12 +391,8 @@ def is_nuisance_failure(result):
 
         # Prevent occasional test failures on Gitlab CI, e.g.
         # https://gitlab.tiker.net/inducer/relate/-/jobs/159443
-        # Not sure what's going on here... Docker seems to run out
-        # of outbound addresses?
         if "[Errno 99]" in result["traceback"]:
             # EADDRNOTAVAIL
-            import time
-            time.sleep(2)
             return True
 
     return False
