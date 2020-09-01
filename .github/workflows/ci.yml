@@ -38,7 +38,7 @@ jobs:
       - name: "Mypy"
         run: poetry run mypy relate course
       - name: "Safety"
-        run: poetry run safety check ${safety_ignores} --full-report
+        run: bash ./.ci/run-safety.sh
       - name: "Sphinx"
         run: |
             cp local_settings_example.py local_settings.py

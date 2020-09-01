@@ -59,6 +59,10 @@ mypy:
   <<: *quality
   script: poetry run mypy relate course
 
+safety:
+  <<: *quality
+  script: bash ./.ci/run-safety.sh
+
 Python 3:
   <<: *test
 
