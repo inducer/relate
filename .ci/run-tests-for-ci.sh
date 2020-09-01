@@ -21,20 +21,6 @@ poetry run python manage.py compilemessages
 echo "Starts testing"
 export RELATE_LOCAL_TEST_SETTINGS="local_settings_example.py"
 
-if test "$CI_SERVER_NAME" = "GitLab"; then
-        # I don't *really* know what's going on, but I observed EADDRNOTAVAIL
-        # when the tests try to connect to the code grading process.
-        # I suppose the install draws from the same pool of ports,
-        # and it makes a *lot* of connections. Let's see if waiting
-        # a bit makes things better.
-        #
-        # Sample failed job:
-        # https://gitlab.tiker.net/inducer/relate/-/jobs/159522
-        # -AK, 2020-09-01
-        echo "Running on Gitlab, sleeping for a while to avoid ephemeral (outbound) port exhaustion in container from install"
-        sleep $((10*60))
-fi
-
 PYTEST_COMMON_FLAGS="--cov-config=setup.cfg --cov-report=xml --cov=. --tb=native"
 if [[ "$RL_CI_TEST" = "expensive" ]]; then
     echo "Expensive tests"
