@@ -389,6 +389,12 @@ def is_nuisance_failure(result):
         if "[Errno 113] No route to host" in result["traceback"]:
             return True
 
+        # Prevent occasional test failures on Gitlab CI, e.g.
+        # https://gitlab.tiker.net/inducer/relate/-/jobs/159443
+        if "[Errno 99]" in result["traceback"]:
+            # EADDRNOTAVAIL
+            return True
+
     return False
 
 
