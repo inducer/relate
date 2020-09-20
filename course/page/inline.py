@@ -97,11 +97,11 @@ class InlineMultiQuestionForm(StyledInlineForm):
                     if isinstance(self.fields[field_name].widget,
                                   forms.widgets.Select):
                         # This will also disable the option dropdown
-                        self.fields[field_name].widget.attrs['disabled'] \
+                        self.fields[field_name].widget.attrs["disabled"] \
                             = "disabled"
                     else:
                         # Then it should be a TextInput widget
-                        self.fields[field_name].widget.attrs['readonly'] \
+                        self.fields[field_name].widget.attrs["readonly"] \
                             = "readonly"
         self.helper.layout.extend([HTML("<br/><br/>")])
 
@@ -139,8 +139,8 @@ def get_question_class(location, q_type, answers_desc):
                 "%(location)s: ",
                 _("unknown embedded question type '%(type)s'"))
             % {
-                'location': location,
-                'type': q_type})
+                "location": location,
+                "type": q_type})
 
 
 def parse_question(vctx, location, name, answers_desc):
@@ -439,9 +439,9 @@ class ChoicesAnswer(AnswerBase):
                             "%(location)s: '%(answer_name)s' ",
                             _("choice %(idx)d: unable to convert to string")
                             )
-                        % {'location': location,
-                            'answer_name': self.name,
-                            'idx': choice_idx+1})
+                        % {"location": location,
+                            "answer_name": self.name,
+                            "idx": choice_idx+1})
 
             if choice.startswith(self.CORRECT_TAG):
                 correct_choice_count += 1
@@ -458,9 +458,9 @@ class ChoicesAnswer(AnswerBase):
                         " for question '%(question_name)s', "
                         "%(n_correct)d found"))
                     % {
-                        'location': location,
-                        'question_name': self.name,
-                        'n_correct': correct_choice_count})
+                        "location": location,
+                        "question_name": self.name,
+                        "n_correct": correct_choice_count})
 
         self.hint = getattr(self.answers_desc, "hint", "")
         self.width = 0
@@ -695,7 +695,7 @@ class InlineMultiQuestion(TextQuestionBase, PageBaseWithValue):
                         "%(location)s: ",
                         _("InlineMultiQuestion requires at least one "
                         "answer field to be defined."))
-                    % {'location': location})
+                    % {"location": location})
 
         for answers_name in answers_name_list:
             if NAME_VALIDATE_RE.match(answers_name) is None:
@@ -883,7 +883,7 @@ class InlineMultiQuestion(TextQuestionBase, PageBaseWithValue):
 
         # This happens when rendering the form in analytics view.
         if not request:
-            context.update({'csrf_token': "None"})
+            context.update({"csrf_token": "None"})
 
         return loader.render_to_string(
                 "course/custom-crispy-inline-form.html",

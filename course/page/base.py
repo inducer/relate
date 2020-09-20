@@ -1104,8 +1104,8 @@ class PageBaseWithHumanTextFeedback(PageBase):
                 msg = EmailMessage(
                         string_concat("[%(identifier)s:%(flow_id)s] ",
                             _("New notification"))
-                        % {'identifier': page_context.course.identifier,
-                            'flow_id': page_context.flow_session.flow_id},
+                        % {"identifier": page_context.course.identifier,
+                            "flow_id": page_context.flow_session.flow_id},
                         message,
                         getattr(settings, "GRADER_FEEDBACK_EMAIL_FROM",
                                 page_context.course.get_from_email()),
@@ -1152,9 +1152,9 @@ class PageBaseWithHumanTextFeedback(PageBase):
                 msg = EmailMessage(
                         string_concat("[%(identifier)s:%(flow_id)s] ",
                             _("Grading notes from %(ta)s"))
-                        % {'identifier': page_context.course.identifier,
-                           'flow_id': page_context.flow_session.flow_id,
-                           'ta': request.user.get_full_name()
+                        % {"identifier": page_context.course.identifier,
+                           "flow_id": page_context.flow_session.flow_id,
+                           "ta": request.user.get_full_name()
                            },
                         message,
                         getattr(settings, "GRADER_FEEDBACK_EMAIL_FROM",

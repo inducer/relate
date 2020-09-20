@@ -107,7 +107,7 @@ class CourseXMPP(sleekxmpp.ClientXMPP):
         """
         Track how many roster entries have received presence updates.
         """
-        self.received.add(pres['from'].bare)
+        self.received.add(pres["from"].bare)
         if len(self.received) >= len(self.client_roster.keys()):
             self.presences_received.set()
         else:
@@ -196,7 +196,7 @@ def send_instant_message(pctx):
                 xmpp.send_message(
                         mto=course.recipient_xmpp_id,
                         mbody=form.cleaned_data["message"],
-                        mtype='chat')
+                        mtype="chat")
 
             except Exception:
                 from traceback import print_exc

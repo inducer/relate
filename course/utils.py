@@ -982,13 +982,13 @@ def get_codemirror_widget(
 
     if interaction_mode == "vim":
         actual_config["vimMode"] = True
-        actual_addon_js += ('../keymap/vim',)
+        actual_addon_js += ("../keymap/vim",)
     elif interaction_mode == "emacs":
         actual_config["keyMap"] = "emacs"
-        actual_addon_js += ('../keymap/emacs',)
+        actual_addon_js += ("../keymap/emacs",)
     elif interaction_mode == "sublime":
         actual_config["keyMap"] = "sublime"
-        actual_addon_js += ('../keymap/sublime',)
+        actual_addon_js += ("../keymap/sublime",)
     # every other interaction mode goes to default
 
     if config is not None:
@@ -1042,7 +1042,7 @@ class FacilityFindingMiddleware(object):
         else:
             import ipaddress
             remote_address = ipaddress.ip_address(
-                    str(request.META['REMOTE_ADDR']))
+                    str(request.META["REMOTE_ADDR"]))
 
             facilities = set()
 
@@ -1292,7 +1292,7 @@ class IpynbJinjaMacro(RelateJinjaMacroBase):
         if clear_markdown:
             nb_source_dict.update(
                 {"cells": [cell for cell in nb_source_dict["cells"]
-                           if cell['cell_type'] != "markdown"]})
+                           if cell["cell_type"] != "markdown"]})
 
         nb_source_dict.update({"cells": nb_source_dict["cells"]})
 
@@ -1344,7 +1344,7 @@ class NBConvertHTMLPostprocessor(markdown.postprocessors.Postprocessor):
 
 class NBConvertExtension(markdown.Extension):
     def extendMarkdown(self, md, md_globals):  # noqa
-        md.postprocessors['relate_nbconvert'] = NBConvertHTMLPostprocessor(md)
+        md.postprocessors["relate_nbconvert"] = NBConvertHTMLPostprocessor(md)
 
 # }}}
 

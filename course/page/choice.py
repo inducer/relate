@@ -92,7 +92,7 @@ class ChoiceInfo(object):
         except Exception:
             raise ValidationError(
                     _("%(location)s: unable to convert to string")
-                    % {'location': location})
+                    % {"location": location})
 
         tag_mode_dict = {
             cls.CORRECT_TAG: ChoiceModes.CORRECT,
@@ -118,8 +118,8 @@ class ChoiceInfo(object):
                         raise ValidationError(
                                 _("%(location)s: more than one choice modes "
                                   "set: '%(modes)s'")
-                                % {'location': location,
-                                   'modes':
+                                % {"location": location,
+                                   "modes":
                                        "".join([find_tag_by_mode(item_mode[0]),
                                                   prefix])
                                    })
@@ -310,8 +310,8 @@ class ChoiceQuestion(ChoiceQuestionBase):
                         _("one or more correct answer(s) "
                         "expected, %(n_correct)d found"))
                     % {
-                        'location': location,
-                        'n_correct': self.correct_choice_count})
+                        "location": location,
+                        "n_correct": self.correct_choice_count})
 
         if self.disregard_choice_count:
             raise ValidationError(
@@ -319,7 +319,7 @@ class ChoiceQuestion(ChoiceQuestionBase):
                         "%(location)s: ",
                         _("ChoiceQuestion does not allow any choices "
                         "marked 'disregard'"))
-                    % {'location': location})
+                    % {"location": location})
 
         if self.always_correct_choice_count:
             raise ValidationError(
@@ -327,7 +327,7 @@ class ChoiceQuestion(ChoiceQuestionBase):
                         "%(location)s: ",
                         _("ChoiceQuestion does not allow any choices "
                         "marked 'always_correct'"))
-                    % {'location': location})
+                    % {"location": location})
 
     def allowed_attrs(self):
         return super(ChoiceQuestion, self).allowed_attrs() + (
@@ -351,7 +351,7 @@ class ChoiceQuestion(ChoiceQuestionBase):
             *args, **kwargs)
 
         if not page_behavior.may_change_answer:
-            form.fields['choice'].widget.attrs['disabled'] = True
+            form.fields["choice"].widget.attrs["disabled"] = True
 
         return form
 
@@ -510,7 +510,7 @@ class MultipleChoiceQuestion(ChoiceQuestionBase):
                             _("'allow_partial_credit' or "
                             "'allow_partial_credit_subset_only' may not be specified"
                             "at the same time as 'credit_mode'"))
-                        % {'location': location})
+                        % {"location": location})
 
         else:
 
@@ -531,7 +531,7 @@ class MultipleChoiceQuestion(ChoiceQuestionBase):
                             _("'allow_partial_credit' and "
                             "'allow_partial_credit_subset_only' are not allowed to "
                             "coexist when both attribute are 'True'"))
-                        % {'location': location})
+                        % {"location": location})
 
         if credit_mode not in [
                 "exact",
@@ -541,7 +541,7 @@ class MultipleChoiceQuestion(ChoiceQuestionBase):
                     string_concat(
                         "%(location)s: ",
                         _("unrecognized credit_mode '%(credit_mode)s'"))
-                    % {'location': location, "credit_mode": credit_mode})
+                    % {"location": location, "credit_mode": credit_mode})
 
         if vctx is not None and not hasattr(pd, "credit_mode"):
             vctx.add_warning(location,
@@ -578,7 +578,7 @@ class MultipleChoiceQuestion(ChoiceQuestionBase):
             *args, **kwargs)
 
         if not page_behavior.may_change_answer:
-            form.fields['choice'].widget.attrs['disabled'] = True
+            form.fields["choice"].widget.attrs["disabled"] = True
 
         return form
 
@@ -801,7 +801,7 @@ class SurveyChoiceQuestion(PageBaseWithTitle):
             *args, **kwargs)
 
         if not page_behavior.may_change_answer:
-            form.fields['choice'].widget.attrs['disabled'] = True
+            form.fields["choice"].widget.attrs["disabled"] = True
 
         return form
 

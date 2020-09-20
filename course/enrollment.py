@@ -456,7 +456,7 @@ class BulkPreapprovalsForm(StyledForm):
         self.fields["preapproval_data"] = forms.CharField(
                 required=True, widget=forms.Textarea,
                 help_text=_("Enter fully qualified data according to the "
-                            "\"Preapproval type\" you selected, one per line."),
+                            "'Preapproval type' you selected, one per line."),
                 label=_("Preapproval data"))
 
         self.helper.add_input(
@@ -541,9 +541,9 @@ def create_preapprovals(pctx):
                         "%(n_exist)d already existed, "
                         "%(n_requested_approved)d pending requests approved.")
                     % {
-                        'n_created': created_count,
-                        'n_exist': exist_count,
-                        'n_requested_approved': pending_approved_count
+                        "n_created": created_count,
+                        "n_exist": exist_count,
+                        "n_requested_approved": pending_approved_count
                         })
             return redirect("relate-course_page", pctx.course.identifier)
 
@@ -1045,7 +1045,7 @@ def edit_participation(pctx, participation_id):
     if participation.course.id != pctx.course.id:
         raise SuspiciousOperation("may not edit participation in different course")
 
-    if request.method == 'POST':
+    if request.method == "POST":
         form = EditParticipationForm(
                 add_new, pctx, request.POST, instance=participation)
         reset_form = False

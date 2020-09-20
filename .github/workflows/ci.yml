@@ -34,7 +34,9 @@ jobs:
         run: poetry install
         if: steps.cache.outputs.cache-hit != 'true'
       - name: "Flake8"
-        run: poetry run flake8 relate course accounts tests
+        run: |
+          poetry run flake8 relate course accounts
+          poetry run flake8 --extend-ignore Q000 tests
       - name: "Mypy"
         run: poetry run mypy relate course
       - name: "Safety"

@@ -2426,7 +2426,7 @@ class MockAddMessageMixing(object):
         if not_called:
             fail_msg = "%s unexpectedly not added in messages. " % repr(not_called)
             if joined_msgs:
-                fail_msg += "the actual message are \"%s\"" % joined_msgs
+                fail_msg += 'the actual message are "%s"' % joined_msgs
             self.fail(fail_msg)
         if reset:
             self._mock_add_message.reset_mock()
@@ -2444,7 +2444,7 @@ class MockAddMessageMixing(object):
 
         if called:
             fail_msg = "%s unexpectedly added in messages. " % repr(called)
-            fail_msg += "the actual message are \"%s\"" % joined_msgs
+            fail_msg += 'the actual message are \"%s\"' % joined_msgs
             self.fail(fail_msg)
         if reset:
             self._mock_add_message.reset_mock()

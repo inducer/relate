@@ -200,12 +200,12 @@ def request_run(run_req, run_timeout, image=None):
         def debug_print(s):
             pass
 
-    command_path = '/opt/runcode/runcode'
-    user = 'runcode'
+    command_path = "/opt/runcode/runcode"
+    user = "runcode"
 
     # The following is necessary because tests don't arise from a CodeQuestion
     # object, so we provide a fallback.
-    debug_print('Image is %s.' % repr(image))
+    debug_print("Image is %s." % repr(image))
     if image is None:
         image = settings.RELATE_DOCKER_RUNPY_IMAGE
 
@@ -238,7 +238,7 @@ def request_run(run_req, run_timeout, image=None):
     else:
         container_id = None
 
-    connect_host_ip = 'localhost'
+    connect_host_ip = "localhost"
 
     try:
         # FIXME: Prohibit networking
@@ -282,7 +282,7 @@ def request_run(run_req, run_timeout, image=None):
             try:
                 connection = http_client.HTTPConnection(connect_host_ip, port)
 
-                connection.request('GET', '/ping')
+                connection.request("GET", "/ping")
 
                 response = connection.getresponse()
                 response_data = response.read().decode()
@@ -315,7 +315,7 @@ def request_run(run_req, run_timeout, image=None):
             connection = http_client.HTTPConnection(connect_host_ip, port,
                     timeout=1 + run_timeout)
 
-            headers = {'Content-type': 'application/json'}
+            headers = {"Content-type": "application/json"}
 
             json_run_req = json.dumps(run_req).encode("utf-8")
 
@@ -323,7 +323,7 @@ def request_run(run_req, run_timeout, image=None):
             start_time = time()
 
             debug_print("BEFPOST")
-            connection.request('POST', '/run-python', json_run_req, headers)
+            connection.request("POST", "/run-python", json_run_req, headers)
             debug_print("AFTPOST")
 
             http_response = connection.getresponse()
@@ -1199,7 +1199,7 @@ class PythonCodeQuestion(CodeQuestion):
 
     @property
     def language_mode(self):
-        return 'python'
+        return "python"
 
     @property
     def container_image(self):
@@ -1207,9 +1207,9 @@ class PythonCodeQuestion(CodeQuestion):
 
     @property
     def suffix(self):
-        return '.py'
+        return ".py"
 
-    def __init__(self, vctx, location, page_desc, language_mode='python'):
+    def __init__(self, vctx, location, page_desc, language_mode="python"):
         super(PythonCodeQuestion, self).__init__(vctx, location, page_desc,
         language_mode)
 
@@ -1279,7 +1279,7 @@ class PythonCodeQuestionWithHumanTextFeedback(
                         _("'human_feedback_value' and "
                           "'human_feedback_percentage' are not "
                           "allowed to coexist"))
-                    % {'location': location}
+                    % {"location": location}
                 )
             if not (hasattr(self.page_desc, "human_feedback_value")
                     or hasattr(self.page_desc, "human_feedback_percentage")):
@@ -1288,7 +1288,7 @@ class PythonCodeQuestionWithHumanTextFeedback(
                         "%(location)s: ",
                         _("expecting either 'human_feedback_value' "
                           "or 'human_feedback_percentage', found neither."))
-                    % {'location': location}
+                    % {"location": location}
                 )
             if hasattr(self.page_desc, "human_feedback_value"):
                 vctx.add_warning(

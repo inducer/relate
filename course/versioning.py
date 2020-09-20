@@ -401,7 +401,7 @@ def run_course_update_command(
                         "<ul>%s</ul>")
                     % ("".join(
                         "<li><i>%(location)s</i>: %(warningtext)s</li>"
-                        % {'location': w.location, 'warningtext': w.text}
+                        % {"location": w.location, "warningtext": w.text}
                         for w in warnings)))
 
     # }}}
@@ -622,9 +622,9 @@ def call_wsgi_app(
     assert request.environ == request.META
     environ = request.environ.copy()
     #if len(args) > 0:
-    assert environ['PATH_INFO'].startswith(prefix)
-    environ['SCRIPT_NAME'] += prefix
-    environ['PATH_INFO'] = environ['PATH_INFO'][len(prefix):]
+    assert environ["PATH_INFO"].startswith(prefix)
+    environ["SCRIPT_NAME"] += prefix
+    environ["PATH_INFO"] = environ["PATH_INFO"][len(prefix):]
 
     headers_set: List[Tuple[Text, Text]] = []
     headers_sent: List[bool] = []
@@ -648,7 +648,7 @@ def call_wsgi_app(
         if headers_set:
             raise AssertionError("start_response() called again "
                                  "without exc_info")
-        response.status_code = int(status.split(' ', 1)[0])
+        response.status_code = int(status.split(" ", 1)[0])
         headers_set[:] = headers
         # Django provides no way to set the reason phrase (#12747).
         return write
@@ -659,9 +659,9 @@ def call_wsgi_app(
             if data:
                 write(data)
         if not headers_sent:
-            write('')
+            write("")
     finally:
-        if hasattr(result, 'close'):
+        if hasattr(result, "close"):
             result.close()
 
     return response

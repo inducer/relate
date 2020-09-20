@@ -138,7 +138,7 @@ def is_maintenance_mode(request):
         import ipaddress
 
         remote_address = ipaddress.ip_address(
-                str(request.META['REMOTE_ADDR']))
+                str(request.META["REMOTE_ADDR"]))
 
         for exc in exceptions:
             if remote_address in ipaddress.ip_network(str(exc)):
@@ -226,7 +226,7 @@ def local_now():
     return tz.localize(datetime.datetime.now())  # type: ignore
 
 
-def format_datetime_local(datetime, format='DATETIME_FORMAT'):
+def format_datetime_local(datetime, format="DATETIME_FORMAT"):
     # type: (datetime.datetime, str) -> str
     """
     Format a datetime object to a localized string via python.
@@ -371,10 +371,10 @@ def get_outbound_mail_connection(label=None, **kwargs):
     # type: (Optional[Text], **Any) -> Any
     from django.conf import settings
     if label is None:
-        label = getattr(settings, 'EMAIL_CONNECTION_DEFAULT', None)
+        label = getattr(settings, "EMAIL_CONNECTION_DEFAULT", None)
 
     try:
-        connections = getattr(settings, 'EMAIL_CONNECTIONS')
+        connections = getattr(settings, "EMAIL_CONNECTIONS")
         options = connections[label]
     except (KeyError, AttributeError):
         # Neither EMAIL_CONNECTIONS nor
@@ -440,7 +440,7 @@ def force_remove_path(path):
     import shutil
 
     def remove_readonly(func, path, _):  # noqa
-        "Clear the readonly bit and reattempt the removal"
+        """Clear the readonly bit and reattempt the removal"""
         os.chmod(path, stat.S_IWRITE)
         func(path)
 

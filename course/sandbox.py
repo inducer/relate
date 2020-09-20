@@ -114,8 +114,8 @@ def view_markup_sandbox(pctx):
     preview_text = ""
 
     def make_form(data=None):
-        help_text = (gettext("Enter <a href=\"http://documen.tician.de/"
-                "relate/content.html#relate-markup\">"
+        help_text = (gettext('Enter <a href="http://documen.tician.de/'
+                'relate/content.html#relate-markup">'
                 "RELATE markup</a>."))
         return SandboxForm(
                 None, "markdown", request.user.editor_mode,

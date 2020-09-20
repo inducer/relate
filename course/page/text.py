@@ -181,7 +181,7 @@ def get_validator_class(location, validator_type):
                 "%(location)s: ",
                 _("unknown validator type"),
                 "'%(type)s'")
-            % {'location': location, 'type': validator_type})
+            % {"location": location, "type": validator_type})
 
 
 def parse_validator(vctx, location, validator_desc):
@@ -340,7 +340,7 @@ class SymbolicExpressionMatcher(TextAnswerMatcher):
                             _("unable to check symbolic expression"),
                             "(%(err_type)s: %(err_str)s)")
                         % {
-                            'location': location,
+                            "location": location,
                             "err_type": tp.__name__,
                             "err_str": str(e)
                             })
@@ -550,9 +550,9 @@ def get_matcher_class(location, matcher_type, pattern_type):
                         _("%(matcherclassname)s only accepts "
                             "'%(matchertype)s' patterns"))
                         % {
-                            'location': location,
-                            'matcherclassname': matcher_class.__name__,
-                            'matchertype': matcher_class.pattern_type})
+                            "location": location,
+                            "matcherclassname": matcher_class.__name__,
+                            "matchertype": matcher_class.pattern_type})
 
             return matcher_class
 
@@ -561,8 +561,8 @@ def get_matcher_class(location, matcher_type, pattern_type):
                 "%(location)s: ",
                 _("unknown match type '%(matchertype)s'"))
             % {
-                'location': location,
-                'matchertype': matcher_type})
+                "location": location,
+                "matchertype": matcher_type})
 
 
 def parse_matcher_string(vctx, location, matcher_desc):
@@ -665,8 +665,8 @@ class TextQuestionBase(PageBaseWithTitle):
                         _("unrecognized widget type"),
                         "'%(type)s'")
                     % {
-                        'location': location,
-                        'type': getattr(page_desc, "widget")})
+                        "location": location,
+                        "type": getattr(page_desc, "widget")})
 
     def required_attrs(self):
         return super(TextQuestionBase, self).required_attrs() + (
