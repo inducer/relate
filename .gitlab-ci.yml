@@ -1,60 +1,93 @@
-Python 3:
-  script:
-  - "PY_EXE=python3 bash ./run-tests-for-ci.sh"
+variables:
+    PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+    POETRY_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pypoetry"
+    POETRY_VIRTUALENVS_IN_PROJECT: "true"
+
+cache:
+  key:
+    files:
+      - .gitlab-ci.yml
+      - poetry.lock
+    prefix: relate
+  paths:
+    - ".cache/pypoetry"
+    - ".cache/pip"
+    - ".venv"
+
+stages:
+  - setup
+  - lint
+  - tests
+  - docs
+
+.install-deps-template: &install-deps
+  image: inducer/ci-base-image
   tags:
-  - python3
-  - linux
+    - docker-runner
+  before_script:
+    - curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python3
+    - export PATH="$HOME/.poetry/bin:$PATH"
+    - poetry install
+
+.quality-template: &quality
+  <<: *install-deps
+  stage: lint
   except:
-  - tags
-  coverage: '/TOTAL.+ ([0-9]{1,3}%)/'
+    - tags
+
+.test-template: &test
+  <<: *install-deps
+  script:
+    - "bash ./.ci/run-tests-for-ci.sh"
+  stage: tests
+  except:
+    - tags
+  coverage: "/TOTAL.+ ([0-9]{1,3}%)/"
   variables:
     CODECOV_TOKEN: "895e3bf2-cfd0-45f8-9a14-4b7bd148f76d"
+
+setup:
+  <<: *install-deps
+  stage: setup
+  script: poetry config --list
+
+flake8:
+  <<: *quality
+  script: poetry run flake8 relate course accounts tests
+
+mypy:
+  <<: *quality
+  script: poetry run mypy relate course
+
+safety:
+  <<: *quality
+  script: bash ./.ci/run-safety.sh
+
+Python 3:
+  <<: *test
+  needs: [setup]
 
 Python 3 Expensive:
-  script:
-  - "PY_EXE=python3 RL_CI_TEST=test_expensive bash ./run-tests-for-ci.sh"
-  tags:
-  - python3
-  - linux
-  except:
-  - tags
-  coverage: '/TOTAL.+ ([0-9]{1,3}%)/'
+  <<: *test
   variables:
-    CODECOV_TOKEN: "895e3bf2-cfd0-45f8-9a14-4b7bd148f76d"
+    RL_CI_TEST: expensive
+  needs: [setup]
 
 Python 3 CLI Tool:
+  <<: *test
   script:
-  - "PY_EXE=python3 bash ./test-command-line-tool.sh python3"
-  tags:
-  - python3
-  - linux
-  except:
-  - tags
+    - git clone https://github.com/inducer/relate-sample
+    - cd relate-sample
+    - poetry run relate validate .
+    - poetry run relate test-code questions/autograded-python-example.yml
+    - poetry run relate expand-yaml flows/quiz-test.yml > /dev/null
+  needs: [setup]
 
 Documentation:
+  <<: *install-deps
+  stage: docs
+  variables:
+    RELATE_LOCAL_TEST_SETTINGS: './local_settings_example.py'
   script:
-  - curl -L -O -k https://gitlab.tiker.net/inducer/ci-support/raw/master/build-docs.sh
-  - export RELATE_LOCAL_TEST_SETTINGS=`pwd`/local_settings_example.py
-  - ". ./build-docs.sh"
-  tags:
-  - python3
-  only:
-  - master
-
-Mypy:
-  script:
-  - curl -L -O -k https://gitlab.tiker.net/inducer/ci-support/raw/master/prepare-and-run-mypy.sh
-  - ". ./prepare-and-run-mypy.sh python3 mypy"
-  tags:
-  - python3
-  except:
-  - tags
-
-Flake8:
-  script:
-  - curl -L -O -k https://gitlab.tiker.net/inducer/ci-support/raw/master/prepare-and-run-flake8.sh
-  - ". ./prepare-and-run-flake8.sh relate course accounts tests bin"
-  tags:
-  - python3
-  except:
-  - tags
+    - poetry run bash ./doc/build-docs.sh
+  needs: [setup]

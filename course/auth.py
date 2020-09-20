@@ -1346,6 +1346,9 @@ def manage_authentication_tokens(pctx):
     if not request.user.is_authenticated:
         raise PermissionDenied()
 
+    if not pctx.has_permission(pperm.view_analytics):
+        raise PermissionDenied()
+
     from course.views import get_now_or_fake_time
     now_datetime = get_now_or_fake_time(request)
 

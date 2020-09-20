@@ -24,6 +24,7 @@ THE SOFTWARE.
 
 import itertools
 
+import pytest
 import unittest
 from django import http
 from django.urls import reverse
@@ -46,7 +47,7 @@ from tests.base_test_mixins import (
     CoursesTestMixinBase, SingleCourseQuizPageTestMixin, SingleCourseTestMixin,
     HackRepoMixin)
 from tests.constants import QUIZ_FLOW_ID
-from tests.utils import mock, may_run_expensive_tests, SKIP_EXPENSIVE_TESTS_REASON
+from tests.utils import mock
 from tests import factories
 
 
@@ -230,6 +231,7 @@ class GradePageVisitTest(SingleCourseQuizPageTestMixin, TestCase):
                 self.assertIsNone(fpvg.correctness)
 
 
+@pytest.mark.django_db
 class StartFlowTest(CoursesTestMixinBase, unittest.TestCase):
     # test flow.start_flow
     def setUp(self):
@@ -374,7 +376,7 @@ class StartFlowTest(CoursesTestMixinBase, unittest.TestCase):
         self.assertEqual(self.mock_get_flow_grading_opportunity.call_count, 0)
 
 
-@unittest.skipUnless(may_run_expensive_tests(), SKIP_EXPENSIVE_TESTS_REASON)
+@pytest.mark.slow
 class AssemblePageGradesTest(HackRepoMixin,
                              SingleCourseQuizPageTestMixin, TestCase):
     # This is actually test course.flow.assemble_page_grades
@@ -604,6 +606,7 @@ class AssemblePageGradesTest(HackRepoMixin,
             [None, 100, 100])
 
 
+@pytest.mark.django_db
 class AssembleAnswerVisitsTest(unittest.TestCase):
     # test flow.assemble_answer_visits (flowsession.answer_visits())
 
@@ -719,6 +722,7 @@ def instantiate_flow_page_with_ctx_get_interaction_kind_side_effect(fctx,
     return page_data.mock_page_attribute()
 
 
+@pytest.mark.django_db
 class GetInteractionKindTest(unittest.TestCase):
     # test flow.get_interaction_kind
     def setUp(self):
@@ -927,7 +931,7 @@ class GradeInfoTest(unittest.TestCase):
             99 < g_info.unreachable_points_percent() < 100)
 
 
-@unittest.skipUnless(may_run_expensive_tests(), SKIP_EXPENSIVE_TESTS_REASON)
+@pytest.mark.slow
 class FinishFlowSessionViewTest(HackRepoMixin,
                                 SingleCourseQuizPageTestMixin, TestCase):
     # test flow.finish_flow_session_view
@@ -1872,7 +1876,7 @@ class ExpireFlowSessionTest(SingleCourseTestMixin, TestCase):
         )
 
         expected_error_msg = ("invalid expiration mode 'unknown' "
-                              "on flow session ID 1")
+                              "on flow session ID %i" % flow_session.pk)
         with self.assertRaises(ValueError) as cm:
             flow.expire_flow_session(
                 self.fctx, flow_session, grading_rule, self.now_datatime)
@@ -1884,6 +1888,7 @@ class ExpireFlowSessionTest(SingleCourseTestMixin, TestCase):
         self.assertEqual(self.mock_get_session_start_rule.call_count, 0)
 
 
+@pytest.mark.django_db
 class GetFlowSessionAttemptIdTest(unittest.TestCase):
     # test flow.get_flow_session_attempt_id
 
@@ -2391,6 +2396,7 @@ class GradeFlowSessionTest(SingleCourseQuizPageTestMixin,
         self.assertEqual(current_grade_changes.last().comment, None)
 
 
+@pytest.mark.django_db
 class UnsubmitPageTest(unittest.TestCase):
     # test flow.unsubmit_page
 
@@ -2934,6 +2940,7 @@ class RecalculateSessionGradeTest(SingleCourseTestMixin, TestCase):
                 "respect_preview"])
 
 
+@pytest.mark.django_db
 class LockDownIfNeededTest(unittest.TestCase):
     # test flow.lock_down_if_needed
     def setUp(self):
@@ -3457,7 +3464,8 @@ class WillReceiveFeedbackTest(unittest.TestCase):
                     will_receive)
 
 
-class MaySendEmailAboutFlowPageTest(unittest.TestCase):
+@pytest.mark.django_db
+class MaySendEmailAboutFlowPageTest(TestCase):
     # test flow.may_send_email_about_flow_page
     @classmethod
     def setUpClass(cls):
@@ -4218,12 +4226,11 @@ class ViewFlowPageTest(SingleCourseQuizPageTestMixin, HackRepoMixin, TestCase):
         resp = self.post_answer_by_page_id(
             "half", answer_data={"answer": "ok"})
 
-        self.assertResponseContextEqual(resp, "prev_visit_id", 1)
-
         fpvs = models.FlowPageVisit.objects.all()
         self.assertEqual(fpvs.count(), 1)
-
         fpv = fpvs[0]
+
+        self.assertResponseContextEqual(resp, "prev_visit_id", fpv.id)
 
         resp = self.post_answer_by_page_id(
             "half", answer_data={"answer": "1/2"})

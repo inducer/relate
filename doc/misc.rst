@@ -3,13 +3,37 @@ Installation
 
 RELATE requires Python 3.
 
-Install [Node.js](https://nodejs.org) and NPM, or [Yarn](https://yarnpkg.com)
-(alternative package manager) at your option.
+Minimal Install for Validating Course Content
+---------------------------------------------
 
-(Optional) Make a virtualenv to install to::
+Make a virtualenv, install poetry and relate::
 
-    virtualenv my-relate-env
-    source my-relate-env/bin/activate
+    python3 -m venv my-relate-venv
+    source my-relate-venv/bin/activate
+    pip install poetry
+    git clone https://github.com/inducer/relate.git
+    cd relate
+    poetry install
+
+After this, you can delete the ``relate`` git checkout created. In order to
+use the ``relate`` comand, you need to activate the virtualenv that was created::
+
+    source my-relate-venv/bin/activate
+
+Installation for Relate Development
+-----------------------------------
+
+Install `Node.js <https://nodejs.org>`__ and NPM, or `Yarn <https://yarnpkg.com>`__
+(version 1, an alternative package manager) at your option.
+
+Install `poetry <https://python-poetry.org>`__ to manage dependencies and virtual
+environments::
+
+    curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python3
+
+Note that this will put poetry in ``$HOME/.poetry/bin`` and modify your
+``$HOME/.profile``. If you don't like that, see the
+`poetry docs <https://python-poetry.org/docs/>`__ for alternate installation options.
 
 To install, clone the repository::
 
@@ -19,14 +43,19 @@ Enter the relate directory::
 
     cd relate
 
-Install the dependencies::
+Install the dependencies. Poetry will automatically create a virtualenv
+(somewhere under ``$HOME/.poetry``) for this:
 
-    pip install -r requirements.txt
+    poetry install
+
+Activate the virtual environment::
+
+    poetry shell
 
 Copy (and, optionally, edit) the example configuration::
 
     cp local_settings_example.py local_settings.py
-    vi local_settings.py
+    $EDITOR local_settings.py
 
 Initialize the database::
 
@@ -57,15 +86,15 @@ those long-running tasks. Start a worker by running::
 
 .. note::
 
-    For Windows, you need first install `eventlet` by::
+    For Windows, you need first install `gevent` by::
 
-        pip install eventlet
+        pip install gevent
 
     and then run::
 
-        celery worker -A relate -P eventlet
+        celery worker -A relate -P gevent
 
-    See the `related issue <https://github.com/celery/celery/issues/4178>`_ for more information.
+    See the `related issue <https://stackoverflow.com/a/47331438/3437454>`_ for more information.
 
 To make this work, you also need a message broker running. This uses the
 setting ``CELERY_BROKER_URL`` in ``local_settings.py`` and defaults to

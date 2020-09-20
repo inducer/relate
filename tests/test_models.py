@@ -25,6 +25,7 @@ THE SOFTWARE.
 """
 
 from datetime import datetime, timedelta
+import pytest
 import unittest
 import pytz
 
@@ -43,6 +44,7 @@ from tests import factories
 from tests.utils import mock
 
 
+@pytest.mark.django_db
 class CourseTest(CoursesTestMixinBase, unittest.TestCase):
     def setUp(self):
         self.course1 = factories.CourseFactory()
@@ -109,6 +111,7 @@ class CourseTest(CoursesTestMixinBase, unittest.TestCase):
             self.assertEqual(mock_add_default_roles_and_permissions.call_count, 0)
 
 
+@pytest.mark.django_db
 class RelateModelTestMixin(object):
     def setUp(self):
         self.course = factories.CourseFactory()

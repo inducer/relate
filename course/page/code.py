@@ -46,6 +46,101 @@ from course.constants import flow_permission
 SPAWN_CONTAINERS = True
 
 
+# {{{ html sanitization helper
+
+def is_allowed_data_uri(allowed_mimetypes, uri):
+    import re
+    m = re.match(r"^data:([-a-z0-9]+/[-a-z0-9]+);base64,", uri)
+    if not m:
+        return False
+
+    mimetype = m.group(1)
+    return mimetype in allowed_mimetypes
+
+
+def filter_audio_attributes(tag, name, value):
+    if name in ["controls"]:
+        return True
+    else:
+        return False
+
+
+def filter_source_attributes(tag, name, value):
+    if name in ["type"]:
+        return True
+    elif name == "src":
+        if is_allowed_data_uri([
+                "audio/wav",
+                ], value):
+            return True
+        else:
+            return False
+    else:
+        return False
+
+
+def filter_img_attributes(tag, name, value):
+    if name in ["alt", "title"]:
+        return True
+    elif name == "src":
+        return is_allowed_data_uri([
+            "image/png",
+            "image/jpeg",
+            ], value)
+    else:
+        return False
+
+
+def filter_attributes(tag, name, value):
+    from bleach.sanitizer import ALLOWED_ATTRIBUTES
+
+    allowed_attrs = ALLOWED_ATTRIBUTES.get(tag, [])
+    result = name in allowed_attrs
+
+    if tag == "audio":
+        result = result or filter_audio_attributes(tag, name, value)
+    elif tag == "source":
+        result = result or filter_source_attributes(tag, name, value)
+    elif tag == "img":
+        result = result or filter_img_attributes(tag, name, value)
+
+    # {{{ prohibit data URLs anywhere not allowed above
+
+    # Follows approach suggested in
+    # https://github.com/mozilla/bleach/issues/348#issuecomment-359484660
+
+    from html5lib.filters.sanitizer import attr_val_is_uri
+
+    if (None, name) in attr_val_is_uri or (tag, name) in attr_val_is_uri:
+        from urllib.parse import urlparse
+        try:
+            parsed_url = urlparse(value)
+        except ValueError:
+            # could not parse URL: tough beans
+            return False
+
+        if parsed_url.scheme == "data" and not result:
+            return False
+
+    # }}}
+
+    return result
+
+
+def sanitize_from_code_html(s):
+    import bleach
+
+    if not isinstance(s, str):
+        return _("(Non-string in 'HTML' output filtered out)")
+
+    return bleach.clean(s,
+            tags=bleach.ALLOWED_TAGS + ["audio", "video", "source"],
+            protocols=bleach.ALLOWED_PROTOCOLS + ["data"],
+            attributes=filter_attributes)
+
+# }}}
+
+
 # {{{ base code question
 
 class CodeForm(StyledForm):
@@ -879,61 +974,8 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
         # {{{ html output / santization
 
         if hasattr(response, "html") and response.html:
-            def is_allowed_data_uri(allowed_mimetypes, uri):
-                import re
-                m = re.match(r"^data:([-a-z0-9]+/[-a-z0-9]+);base64,", uri)
-                if not m:
-                    return False
-
-                mimetype = m.group(1)
-                return mimetype in allowed_mimetypes
-
-            def sanitize(s):
-                import bleach
-
-                def filter_audio_attributes(tag, name, value):
-                    if name in ["controls"]:
-                        return True
-                    else:
-                        return False
-
-                def filter_source_attributes(tag, name, value):
-                    if name in ["type"]:
-                        return True
-                    elif name == "src":
-                        if is_allowed_data_uri([
-                                "audio/wav",
-                                ], value):
-                            return bleach.sanitizer.VALUE_SAFE
-                        else:
-                            return False
-                    else:
-                        return False
-
-                def filter_img_attributes(tag, name, value):
-                    if name in ["alt", "title"]:
-                        return True
-                    elif name == "src":
-                        return is_allowed_data_uri([
-                            "image/png",
-                            "image/jpeg",
-                            ], value)
-                    else:
-                        return False
-
-                if not isinstance(s, str):
-                    return _("(Non-string in 'HTML' output filtered out)")
-
-                return bleach.clean(s,
-                        tags=bleach.ALLOWED_TAGS + ["audio", "video", "source"],
-                        attributes={
-                            "audio": filter_audio_attributes,
-                            "source": filter_source_attributes,
-                            "img": filter_img_attributes,
-                            })
-
             bulk_feedback_bits.extend(
-                    sanitize(snippet) for snippet in response.html)
+                    sanitize_from_code_html(snippet) for snippet in response.html)
 
         # }}}
 

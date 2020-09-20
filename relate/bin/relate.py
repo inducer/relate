@@ -194,7 +194,7 @@ def test_code_yml(yml_file, repo_root):
             return
 
         for page in pages:
-                test_code_question(page, repo_root)
+            test_code_question(page, repo_root)
 
 
 def test_code(args):
@@ -212,7 +212,7 @@ def expand_yaml_ui(args):
     print(expand_yaml(args.YAML_FILE, args.repo_root))
 
 
-def main():
+def main() -> None:
     pass
     import os
     import argparse

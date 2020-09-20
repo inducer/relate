@@ -133,7 +133,7 @@ class CheckRelateURL(CheckRelateSettingsBase):
 class CheckRelateUserProfileMaskMethod(CheckRelateSettingsBase):
     # This TestCase is not pure for check, but also make sure it returned
     # expected result
-    allow_database_queries = True
+    databases = '__all__'
 
     msg_id_prefix = "relate_user_profile_mask_method"
 
@@ -262,7 +262,7 @@ class CheckRelateUserProfileMaskMethod(CheckRelateSettingsBase):
 class CheckRelateUserFullNameFormatMethod(CheckRelateSettingsBase):
     # This TestCase is not pure for check, but also make sure it returned
     # expected result
-    allow_database_queries = True
+    databases = '__all__'
 
     msg_id_prefix = "relate_user_full_name_format_method"
 

@@ -9,7 +9,8 @@ from typing import Callable, Any, Union, Dict  # noqa
 # Do not change this file. All these settings can be overridden in
 # local_settings.py.
 
-from django.conf.global_settings import STATICFILES_FINDERS, gettext_noop
+from django.conf.global_settings import STATICFILES_FINDERS
+from django.utils.translation import gettext_noop
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 import sys

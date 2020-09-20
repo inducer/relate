@@ -11,13 +11,13 @@ def main():
         }
     count = 0
     while True:
-        print count
+        print(count)
         count += 1
-        res = request_run(req, 5,
-                image="inducer/runpy-i386")
+        res = request_python_run(req, 5, image="inducer/runpy-i386")
         if res["result"] != "success":
-            print res
+            print(res)
             break
+
 
 if __name__ == "__main__":
     main()

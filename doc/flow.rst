@@ -615,14 +615,14 @@ Each group allows the following attributes:
     .. attribute:: shuffle
 
         (Optional) A boolean (True/False) indicating whether the order
-        of pages should be as in the list :attr:`FlowGroup.pages` or
+        of pages should be as in the list :attr:`pages` or
         determined by random shuffling
 
     .. attribute:: max_page_count
 
         (Optional) An integer limiting the page count of this group
         to a certain value. Allows selection of a random subset by combining
-        with :attr:`FlowGroup.shuffle`.
+        with :attr:`shuffle`.
 
 .. _page-permissions:
 
@@ -708,12 +708,13 @@ The following page types are predefined:
 .. |is-optional-page-attr| replace::
 
     Optional. A Boolean value indicating whether the page is an optional page
-    which does not require answer for full completion of the flow.
-    If ``true``, :attr:`value` should not present. Defaults to ``false`` if not present.
-    Note that ``is_optional_page: true`` differs from ``value: 0`` in that finishing flows
-    with unanswered page(s) with the latter will be warned of "unanswered question(s)",
-    while with the former won't. When using not-for-grading page(s) to collect
-    answers from students, it's to better use ``value: 0``.
+    which does not require answer for full completion of the flow.  If
+    ``true``, the attribute *value* should not present. Defaults to ``false``
+    if not present.  Note that ``is_optional_page: true`` differs from ``value:
+    0`` in that finishing flows with unanswered page(s) with the latter will be
+    warned of "unanswered question(s)", while with the former won't. When using
+    not-for-grading page(s) to collect answers from students, it's to better
+    use ``value: 0``.
 
 .. |text-widget-page-attr| replace::
 
