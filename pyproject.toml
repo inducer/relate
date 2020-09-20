@@ -105,6 +105,7 @@ colorama = "*"
 [tool.poetry.dev-dependencies]
 codecov = "^2.1.4"
 factory_boy = "^2.12.0"
+flake8-quotes = "^3.2.0"
 flake8 = "^3.8.3"
 pep8-naming = "^0.10.0"
 mypy = "^0.780"
