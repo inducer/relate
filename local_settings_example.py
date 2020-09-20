@@ -2,7 +2,7 @@
 
 # {{{ database and site
 
-SECRET_KEY = '<CHANGE ME TO SOME RANDOM STRING ONCE IN PRODUCTION>'
+SECRET_KEY = "<CHANGE ME TO SOME RANDOM STRING ONCE IN PRODUCTION>"
 
 ALLOWED_HOSTS = [
         "relate.example.com",
@@ -23,13 +23,13 @@ from django.utils.translation import gettext_noop  # noqa
 # database will be used, which is not recommended for production use.
 #
 # DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.postgresql',
-#         'NAME': 'relate',
-#         'USER': 'relate',
-#         'PASSWORD': '<PASSWORD>',
-#         'HOST': '127.0.0.1',
-#         'PORT': '5432',
+#     "default": {
+#         "ENGINE": "django.db.backends.postgresql",
+#         "NAME": "relate",
+#         "USER": "relate",
+#         "PASSWORD": '<PASSWORD>',
+#         "HOST": '127.0.0.1',
+#         "PORT": '5432',
 #     }
 # }
 
@@ -46,9 +46,9 @@ from django.utils.translation import gettext_noop  # noqa
 # broken in Python 33, as of 2016-08-01.
 #
 # CACHES = {
-#     'default': {
-#         'BACKEND': 'django.core.cache.backends.memcached.PyLibMCCache',
-#         'LOCATION': '127.0.0.1:11211',
+#     "default": {
+#         "BACKEND": "django.core.cache.backends.memcached.PyLibMCCache",
+#         "LOCATION": '127.0.0.1:11211',
 #     }
 # }
 
@@ -67,7 +67,7 @@ TIME_ZONE = "America/Chicago"
 # should be enough to satisfy this requirement.
 #
 # apt-get install rabbitmq-server
-CELERY_BROKER_URL = 'amqp://'
+CELERY_BROKER_URL = "amqp://"
 
 # }}}
 
@@ -80,7 +80,7 @@ CELERY_BROKER_URL = 'amqp://'
 # which makes sense for development, but you probably want to change this
 # in production.
 #
-# The 'course identifiers' you enter will be directory names below this root.
+# The "course identifiers" you enter will be directory names below this root.
 
 # WARNING: The default, "..", is insecure (but convenient for development).
 # It will put course repos alongside the relate git checkout in the parent
@@ -93,9 +93,9 @@ GIT_ROOT = "git-roots"
 
 # {{{ email
 
-EMAIL_HOST = '127.0.0.1'
-EMAIL_HOST_USER = ''
-EMAIL_HOST_PASSWORD = ''
+EMAIL_HOST = "127.0.0.1"
+EMAIL_HOST_USER = ""
+EMAIL_HOST_PASSWORD = ""
 EMAIL_PORT = 25
 EMAIL_USE_TLS = False
 
@@ -126,58 +126,58 @@ if RELATE_ENABLE_MULTIPLE_SMTP:
         # For automatic email sent by site.
         "robot": {
             # You can use your preferred email backend.
-            'backend': 'djcelery_email.backends.CeleryEmailBackend',
-            'host': 'smtp.gmail.com',
-            'username': 'blah@blah.com',
-            'password': 'password',
-            'port': 587,
-            'use_tls': True,
+            "backend": "djcelery_email.backends.CeleryEmailBackend",
+            "host": "smtp.gmail.com",
+            "username": "blah@blah.com",
+            "password": "password",
+            "port": 587,
+            "use_tls": True,
         },
 
         # For emails that expect no reply for recipients, e.g., registration,
         # reset password, etc.
         "no_reply": {
-            'host': 'smtp.gmail.com',
-            'username': 'blah@blah.com',
-            'password': 'password',
-            'port': 587,
-            'use_tls': True,
+            "host": "smtp.gmail.com",
+            "username": "blah@blah.com",
+            "password": "password",
+            "port": 587,
+            "use_tls": True,
         },
 
         # For sending notifications like submission of flow sessions.
         "notification": {
-            'host': 'smtp.gmail.com',
-            'username': 'blah@blah.com',
-            'password': 'password',
-            'port': 587,
-            'use_tls': True,
+            "host": "smtp.gmail.com",
+            "username": "blah@blah.com",
+            "password": "password",
+            "port": 587,
+            "use_tls": True,
         },
 
         # For sending feedback email to students in grading interface.
         "grader_feedback": {
-            'host': 'smtp.gmail.com',
-            'username': 'blah@blah.com',
-            'password': 'password',
-            'port': 587,
-            'use_tls': True,
+            "host": "smtp.gmail.com",
+            "username": "blah@blah.com",
+            "password": "password",
+            "port": 587,
+            "use_tls": True,
         },
 
         # For student to send email to course staff in flow pages
         "student_interact": {
-            'host': 'smtp.gmail.com',
-            'username': 'blah@blah.com',
-            'password': 'password',
-            'port': 587,
-            'use_tls': True,
+            "host": "smtp.gmail.com",
+            "username": "blah@blah.com",
+            "password": "password",
+            "port": 587,
+            "use_tls": True,
         },
 
         # For enrollment request email sent to course instructors
         "enroll": {
-            'host': 'smtp.gmail.com',
-            'username': 'blah@blah.com',
-            'password': 'password',
-            'port': 587,
-            'use_tls': True,
+            "host": "smtp.gmail.com",
+            "username": "blah@blah.com",
+            "password": "password",
+            "port": 587,
+            "use_tls": True,
         },
     }
 
@@ -385,11 +385,11 @@ RELATE_SITE_ANNOUNCEMENT = None
 
 # }}}
 
-# Uncomment this to enable i18n, change 'en-us' to locale name your language.
+# Uncomment this to enable i18n, change "en-us" to locale name your language.
 # Make sure you have generated, translate and compile the message file of your
-# language. If commented, RELATE will use default language 'en-us'.
+# language. If commented, RELATE will use default language "en-us".
 
-#LANGUAGE_CODE = 'en-us'
+#LANGUAGE_CODE = "en-us"
 
 # You can (and it's recommended to) override Django's built-in LANGUAGES settings
 # if you want to filter languages allowed for course-specific languages.
@@ -402,9 +402,9 @@ RELATE_SITE_ANNOUNCEMENT = None
 # the default "en-us". Otherwise translation of that language will not work.
 
 # LANGUAGES = [
-#     ('en', 'English'),
-#     ('zh-hans', 'Simplified Chinese'),
-#     ('de', 'German'),
+#     ("en", "English"),
+#     ("zh-hans", "Simplified Chinese"),
+#     ("de", "German"),
 # ]
 
 # {{{ exams and testing
@@ -455,84 +455,84 @@ if RELATE_SIGN_IN_BY_SAML2_ENABLED:
     import saml2.saml
     _BASEDIR = path.dirname(path.abspath(__file__))
 
-    _BASE_URL = 'https://relate.cs.illinois.edu'
+    _BASE_URL = "https://relate.cs.illinois.edu"
 
     # see saml2-keygen.sh in this directory
-    _SAML_KEY_FILE = path.join(_BASEDIR, 'saml-config', 'sp-key.pem')
-    _SAML_CERT_FILE = path.join(_BASEDIR, 'saml-config', 'sp-cert.pem')
+    _SAML_KEY_FILE = path.join(_BASEDIR, "saml-config", "sp-key.pem")
+    _SAML_CERT_FILE = path.join(_BASEDIR, "saml-config", "sp-cert.pem")
 
     SAML_ATTRIBUTE_MAPPING = {
-        'eduPersonPrincipalName': ('username',),
-        'iTrustUIN': ('institutional_id',),
-        'mail': ('email',),
-        'givenName': ('first_name', ),
-        'sn': ('last_name', ),
+        "eduPersonPrincipalName": ("username",),
+        "iTrustUIN": ("institutional_id",),
+        "mail": ("email",),
+        "givenName": ("first_name", ),
+        "sn": ("last_name", ),
     }
-    SAML_DJANGO_USER_MAIN_ATTRIBUTE = 'username'
-    SAML_DJANGO_USER_MAIN_ATTRIBUTE_LOOKUP = '__iexact'
+    SAML_DJANGO_USER_MAIN_ATTRIBUTE = "username"
+    SAML_DJANGO_USER_MAIN_ATTRIBUTE_LOOKUP = "__iexact"
 
     saml_idp = {
         # Find the entity ID of your IdP and make this the key here:
-        'urn:mace:incommon:uiuc.edu': {
-            'single_sign_on_service': {
+        "urn:mace:incommon:uiuc.edu": {
+            "single_sign_on_service": {
                 # Add the POST and REDIRECT bindings for the sign on service here:
                 saml2.BINDING_HTTP_POST:
-                    'https://shibboleth.illinois.edu/idp/profile/SAML2/POST/SSO',
+                    "https://shibboleth.illinois.edu/idp/profile/SAML2/POST/SSO",
                 saml2.BINDING_HTTP_REDIRECT:
-                    'https://shibboleth.illinois.edu/idp/profile/SAML2/Redirect/SSO',
+                    "https://shibboleth.illinois.edu/idp/profile/SAML2/Redirect/SSO",
                 },
-            'single_logout_service': {
+            "single_logout_service": {
                 # And the REDIRECT binding for the logout service here:
                 saml2.BINDING_HTTP_REDIRECT:
-                'https://shibboleth.illinois.edu/idp/logout.jsp',  # noqa
+                "https://shibboleth.illinois.edu/idp/logout.jsp",  # noqa
                 },
             },
         }
 
     SAML_CONFIG = {
         # full path to the xmlsec1 binary programm
-        'xmlsec_binary': '/usr/bin/xmlsec1',
+        "xmlsec_binary": "/usr/bin/xmlsec1",
 
         # your entity id, usually your subdomain plus the url to the metadata view
         # (usually no need to change)
-        'entityid': _BASE_URL + '/saml2/metadata/',
+        "entityid": _BASE_URL + "/saml2/metadata/",
 
         # directory with attribute mapping
         # (already populated with samples from djangosaml2, usually no need to
         # change)
-        'attribute_map_dir': path.join(_BASEDIR, 'saml-config', 'attribute-maps'),
+        "attribute_map_dir": path.join(_BASEDIR, "saml-config", "attribute-maps"),
 
-        'allow_unknown_attributes': True,
+        "allow_unknown_attributes": True,
 
         # this block states what services we provide
-        'service': {
-            'sp': {
-                'name': 'RELATE SAML2 SP',
-                'name_id_format': saml2.saml.NAMEID_FORMAT_TRANSIENT,
-                'endpoints': {
+        "service": {
+            "sp": {
+                "name": "RELATE SAML2 SP",
+                "name_id_format": saml2.saml.NAMEID_FORMAT_TRANSIENT,
+                "endpoints": {
                     # url and binding to the assertion consumer service view
                     # do not change the binding or service name
-                    'assertion_consumer_service': [
-                        (_BASE_URL + '/saml2/acs/',
+                    "assertion_consumer_service": [
+                        (_BASE_URL + "/saml2/acs/",
                          saml2.BINDING_HTTP_POST),
                         ],
                     # url and binding to the single logout service view
                     # do not change the binding or service name
-                    'single_logout_service': [
-                        (_BASE_URL + '/saml2/ls/',
+                    "single_logout_service": [
+                        (_BASE_URL + "/saml2/ls/",
                          saml2.BINDING_HTTP_REDIRECT),
-                        (_BASE_URL + '/saml2/ls/post',
+                        (_BASE_URL + "/saml2/ls/post",
                          saml2.BINDING_HTTP_POST),
                         ],
                     },
 
                 # attributes that this project needs to identify a user
-                'required_attributes': ['uid'],
+                "required_attributes": ["uid"],
 
                 # attributes that may be useful to have but not required
-                'optional_attributes': ['eduPersonAffiliation'],
+                "optional_attributes": ["eduPersonAffiliation"],
 
-                'idp': saml_idp,
+                "idp": saml_idp,
                 },
             },
 
@@ -543,44 +543,44 @@ if RELATE_SIGN_IN_BY_SAML2_ENABLED:
         # This particular file is public and lives at
         # https://discovery.itrust.illinois.edu/itrust-metadata/itrust-metadata.xml
 
-        'metadata': {
-            'local': [path.join(_BASEDIR, 'saml-config', 'itrust-metadata.xml')],
+        "metadata": {
+            "local": [path.join(_BASEDIR, "saml-config", "itrust-metadata.xml")],
             },
 
         # set to 1 to output debugging information
-        'debug': 1,
+        "debug": 1,
 
         # certificate and key
-        'key_file': _SAML_KEY_FILE,
-        'cert_file': _SAML_CERT_FILE,
+        "key_file": _SAML_KEY_FILE,
+        "cert_file": _SAML_CERT_FILE,
 
-        'encryption_keypairs': [
+        "encryption_keypairs": [
                 {
-                    'key_file': _SAML_KEY_FILE,
-                    'cert_file': _SAML_CERT_FILE,
+                    "key_file": _SAML_KEY_FILE,
+                    "cert_file": _SAML_CERT_FILE,
                     }
                 ],
 
         # own metadata settings
-        'contact_person': [
-            {'given_name': 'Andreas',
-             'sur_name': 'Kloeckner',
-             'company': 'CS - University of Illinois',
-             'email_address': 'andreask@illinois.edu',
-             'contact_type': 'technical'},
-            {'given_name': 'Andreas',
-             'sur_name': 'Kloeckner',
-             'company': 'CS - University of Illinois',
-             'email_address': 'andreask@illinois.edu',
-             'contact_type': 'administrative'},
+        "contact_person": [
+            {"given_name": "Andreas",
+             "sur_name": "Kloeckner",
+             "company": "CS - University of Illinois",
+             "email_address": "andreask@illinois.edu",
+             "contact_type": "technical"},
+            {"given_name": "Andreas",
+             "sur_name": "Kloeckner",
+             "company": "CS - University of Illinois",
+             "email_address": "andreask@illinois.edu",
+             "contact_type": "administrative"},
             ],
         # you can set multilanguage information here
-        'organization': {
-            'name': [('RELATE', 'en')],
-            'display_name': [('RELATE', 'en')],
-            'url': [(_BASE_URL, 'en')],
+        "organization": {
+            "name": [("RELATE", "en")],
+            "display_name": [("RELATE", "en")],
+            "url": [(_BASE_URL, "en")],
             },
-        'valid_for': 24,  # how long is our metadata valid
+        "valid_for": 24,  # how long is our metadata valid
         }
 
 # }}}
