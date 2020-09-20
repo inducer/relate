@@ -52,7 +52,7 @@ class ListTextWidget(forms.TextInput):
         super(ListTextWidget, self).__init__(*args, **kwargs)
         self._name = name
         self._list = data_list
-        self.attrs.update({'list': 'list__%s' % self._name})
+        self.attrs.update({"list": "list__%s" % self._name})
 
     def render(self, name, value, attrs=None, renderer=None):
         text_html = super(ListTextWidget, self).render(
@@ -60,7 +60,7 @@ class ListTextWidget(forms.TextInput):
         data_list = '<datalist id="list__%s">' % self._name
         for item in self._list:
             data_list += '<option value="%s">%s</option>' % (item[0], item[1])
-        data_list += '</datalist>'
+        data_list += "</datalist>"
 
         return (text_html + data_list)
 
@@ -88,7 +88,7 @@ class RecurringEventForm(StyledForm):
     shown_in_calendar = forms.BooleanField(
             required=False,
             initial=True,
-            label=_('Shown in calendar'))
+            label=_("Shown in calendar"))
     interval = forms.ChoiceField(required=True,
             choices=(
                 ("weekly", _("Weekly")),
@@ -110,7 +110,7 @@ class RecurringEventForm(StyledForm):
             Event.objects.filter(
                 course__identifier=course_identifier)
             .values_list("kind", flat=True))]
-        self.fields['kind'].widget = ListTextWidget(data_list=exist_event_choices,
+        self.fields["kind"].widget = ListTextWidget(data_list=exist_event_choices,
                                                     name="event_choices")
 
         self.helper.add_input(
@@ -145,7 +145,7 @@ def _create_recurring_events_backend(course, time, kind, starting_ordinal, inter
         if Event.objects.filter(course=course, kind=kind, ordinal=ordinal).count():
             raise EventAlreadyExists(
                 _("'%(exist_event)s' already exists")
-                % {'exist_event': evt})
+                % {"exist_event": evt})
 
         evt.save()
 
@@ -272,7 +272,7 @@ class RenumberEventsForm(StyledForm):
         renumberable_event_kinds = set(Event.objects.filter(
             course__identifier=self.course_identifier,
             ordinal__isnull=False).values_list("kind", flat=True))
-        self.fields['kind'].choices = tuple(
+        self.fields["kind"].choices = tuple(
             (kind, kind) for kind in renumberable_event_kinds)
 
         self.helper.add_input(

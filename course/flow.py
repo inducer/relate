@@ -1075,8 +1075,8 @@ def expire_flow_session(
         raise ValueError(
                 _("invalid expiration mode '%(mode)s' on flow session ID "
                 "%(session_id)d") % {
-                    'mode': flow_session.expiration_mode,
-                    'session_id': flow_session.id})
+                    "mode": flow_session.expiration_mode,
+                    "session_id": flow_session.id})
 
 
 def get_flow_session_attempt_id(flow_session):
@@ -1111,8 +1111,8 @@ def grade_flow_session(
         comment = (
                 # Translators: grade flow: calculating grade.
                 _("Counted at %(percent).1f%% of %(point).1f points") % {
-                    'percent': grading_rule.credit_percent,
-                    'point': points})
+                    "percent": grading_rule.credit_percent,
+                    "point": points})
         points = points * grading_rule.credit_percent / 100
 
     flow_session.points = points
@@ -1214,8 +1214,8 @@ def reopen_session(
             session.append_comment(
                     _("Session reopened at %(now)s, previous completion time "
                     "was '%(complete_time)s'.") % {
-                        'now': format_datetime_local(now_datetime),
-                        'complete_time': format_datetime_local(
+                        "now": format_datetime_local(now_datetime),
+                        "complete_time": format_datetime_local(
                             as_local_time(session.completion_time))
                         })
 
@@ -1316,7 +1316,7 @@ def regrade_session(
         with transaction.atomic():
             session.append_comment(
                     _("Session regraded at %(time)s.") % {
-                        'time': format_datetime_local(now_datetime)
+                        "time": format_datetime_local(now_datetime)
                         })
             session.save()
 
@@ -1346,7 +1346,7 @@ def recalculate_session_grade(repo, course, session):
         now_datetime = local_now()
         session.append_comment(
                 _("Session grade recomputed at %(time)s.") % {
-                    'time': format_datetime_local(now_datetime)
+                    "time": format_datetime_local(now_datetime)
                     })
         session.save()
 
@@ -1752,7 +1752,7 @@ def create_flow_page_visit(request, flow_session, page_data):
     visit = FlowPageVisit(
         flow_session=flow_session,
         page_data=page_data,
-        remote_address=request.META['REMOTE_ADDR'],
+        remote_address=request.META["REMOTE_ADDR"],
         user=user,
         is_submitted_answer=None)
 
@@ -2079,8 +2079,8 @@ def view_flow_page(pctx, flow_session_id, page_ordinal):
 
         # Wrappers used by JavaScript template (tmpl) so as not to
         # conflict with Django template's tag wrapper
-        "JQ_OPEN": '{%',
-        'JQ_CLOSE': '%}',
+        "JQ_OPEN": "{%",
+        "JQ_CLOSE": "%}",
     }
 
     if fpctx.page.expects_answer() and fpctx.page.is_answer_gradable():
@@ -2199,7 +2199,7 @@ def post_flow_page(
         answer_visit = FlowPageVisit()
         answer_visit.flow_session = flow_session
         answer_visit.page_data = fpctx.page_data
-        answer_visit.remote_address = request.META['REMOTE_ADDR']
+        answer_visit.remote_address = request.META["REMOTE_ADDR"]
 
         answer_data = answer_visit.answer = fpctx.page.answer_data(
                 page_context, fpctx.page_data.data,
@@ -2337,9 +2337,9 @@ def send_email_about_flow_page(pctx, flow_session_id, page_ordinal):
 
     review_url = reverse(
         "relate-view_flow_page",
-        kwargs={'course_identifier': pctx.course.identifier,
-                'flow_session_id': flow_session_id,
-                'page_ordinal': page_ordinal
+        kwargs={"course_identifier": pctx.course.identifier,
+                "flow_session_id": flow_session_id,
+                "page_ordinal": page_ordinal
                 }
     )
 
@@ -2408,10 +2408,10 @@ def send_email_about_flow_page(pctx, flow_session_id, page_ordinal):
                         "[%(identifier)s:%(flow_id)s--%(page_id)s] ",
                         _("Interaction request from %(username)s"))
                     % {
-                            'identifier': pctx.course_identifier,
-                            'flow_id': flow_session_id,
-                            'page_id': page_id,
-                            'username': username
+                            "identifier": pctx.course_identifier,
+                            "flow_id": flow_session_id,
+                            "page_id": page_id,
+                            "username": username
                             },
                     body=message,
                     from_email=from_email,
@@ -2680,9 +2680,9 @@ def finish_flow_session_view(pctx, flow_session_id):
                 msg = EmailMessage(
                         string_concat("[%(identifier)s:%(flow_id)s] ",
                             _("Submission by %(participation_desc)s"))
-                        % {'participation_desc': participation_desc,
-                            'identifier': fctx.course.identifier,
-                            'flow_id': flow_session.flow_id},
+                        % {"participation_desc": participation_desc,
+                            "identifier": fctx.course.identifier,
+                            "flow_id": flow_session.flow_id},
                         message,
                         getattr(settings, "NOTIFICATION_EMAIL_FROM",
                             settings.ROBOT_EMAIL_FROM),
@@ -2882,7 +2882,7 @@ def view_unsubmit_flow_page(pctx, flow_session_id, page_ordinal):
         return redirect("relate-view_flow_page",
                         pctx.course.identifier, flow_session_id, page_ordinal)
 
-    if request.method == 'POST':
+    if request.method == "POST":
         form = UnsubmitFlowPageForm(request.POST)
         if form.is_valid():
             if "submit" in request.POST:
@@ -2940,7 +2940,7 @@ def purge_page_view_data(request):
     purgeable_courses = get_pv_purgeable_courses_for_user_qs(request.user)
     if not purgeable_courses.count():
         raise PermissionDenied()
-    if request.method == 'POST':
+    if request.method == "POST":
         form = PurgePageViewData(request.user, request.POST)
         if form.is_valid():
             if "submit" in request.POST:

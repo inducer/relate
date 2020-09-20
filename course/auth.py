@@ -127,8 +127,8 @@ class ImpersonateMiddleware(object):
         self.get_response = get_response
 
     def __call__(self, request):
-        if 'impersonate_id' in request.session:
-            imp_id = request.session['impersonate_id']
+        if "impersonate_id" in request.session:
+            imp_id = request.session["impersonate_id"]
             impersonee = None
 
             try:
@@ -159,10 +159,10 @@ class ImpersonateMiddleware(object):
 class UserSearchWidget(ModelSelect2Widget):
     model = User
     search_fields = [
-            'username__icontains',
-            'email__icontains',
-            'first_name__icontains',
-            'last_name__icontains',
+            "username__icontains",
+            "email__icontains",
+            "first_name__icontains",
+            "last_name__icontains",
             ]
 
     def label_from_instance(self, u):
@@ -230,13 +230,13 @@ def impersonate(request):
     qset = (User.objects
             .filter(pk__in=impersonable_user_qset.values_list("pk", flat=True))
             .order_by("last_name", "first_name", "username"))
-    if request.method == 'POST':
+    if request.method == "POST":
         form = ImpersonateForm(request.POST, impersonable_qset=qset)
         if form.is_valid():
             impersonee = form.cleaned_data["user"]
 
-            request.session['impersonate_id'] = impersonee.id
-            request.session['relate_impersonation_header'] = form.cleaned_data[
+            request.session["impersonate_id"] = impersonee.id
+            request.session["relate_impersonation_header"] = form.cleaned_data[
                     "add_impersonation_header"]
 
             # Because we'll likely no longer have access to this page.
@@ -285,7 +285,7 @@ def stop_impersonating(request):
                 _("Not currently impersonating anyone."))
         return http.JsonResponse({})
 
-    del request.session['impersonate_id']
+    del request.session["impersonate_id"]
     messages.add_message(request, messages.INFO,
             _("No longer impersonating anyone."))
     return http.JsonResponse({"result": "success"})
@@ -317,7 +317,7 @@ def make_sign_in_key(user):
 
 def logout_confirmation_required(
         func=None, redirect_field_name=REDIRECT_FIELD_NAME,
-        logout_confirmation_url='relate-logout-confirmation'):
+        logout_confirmation_url="relate-logout-confirmation"):
     """
     Decorator for views that checks that no user is logged in.
     If a user is currently logged in, redirect him/her to the logout
@@ -362,7 +362,7 @@ class EmailedTokenBackend(object):
 @logout_confirmation_required
 def sign_in_choice(request, redirect_field_name=REDIRECT_FIELD_NAME):
     redirect_to = request.POST.get(redirect_field_name,
-                                   request.GET.get(redirect_field_name, ''))
+                                   request.GET.get(redirect_field_name, ""))
     next_uri = ""
     if redirect_to:
         next_uri = "?%s=%s" % (redirect_field_name, redirect_to)
@@ -400,7 +400,7 @@ def sign_in_by_user_pw(request, redirect_field_name=REDIRECT_FIELD_NAME):
         return redirect("relate-sign_in_choice")
 
     redirect_to = request.POST.get(redirect_field_name,
-                                   request.GET.get(redirect_field_name, ''))
+                                   request.GET.get(redirect_field_name, ""))
 
     if request.method == "POST":
         form = LoginForm(request, data=request.POST)
@@ -427,9 +427,9 @@ def sign_in_by_user_pw(request, redirect_field_name=REDIRECT_FIELD_NAME):
         next_uri = "?%s=%s" % (redirect_field_name, redirect_to)
 
     context = {
-        'form': form,
+        "form": form,
         redirect_field_name: redirect_to,
-        'next_uri': next_uri,
+        "next_uri": next_uri,
     }
 
     return TemplateResponse(request, "course/login.html", context)
@@ -459,7 +459,7 @@ def sign_up(request):
         raise SuspiciousOperation(
                 _("self-registration is not enabled"))
 
-    if request.method == 'POST':
+    if request.method == "POST":
         form = SignUpForm(request.POST)
         if form.is_valid():
             if get_user_model().objects.filter(
@@ -533,7 +533,7 @@ def sign_up(request):
 
 class ResetPasswordFormByEmail(StyledForm):
     email = forms.EmailField(required=True, label=_("Email"),
-                             max_length=User._meta.get_field('email').max_length)
+                             max_length=User._meta.get_field("email").max_length)
 
     def __init__(self, *args, **kwargs):
         super(ResetPasswordFormByEmail, self).__init__(*args, **kwargs)
@@ -556,7 +556,7 @@ class ResetPasswordFormByInstid(StyledForm):
 
 def masked_email(email):
     # return a masked email address
-    at = email.find('@')
+    at = email.find("@")
     return email[:2] + "*" * (len(email[3:at])-1) + email[at-1:]
 
 
@@ -568,7 +568,7 @@ def reset_password(request, field="email"):
 
     # return form class by string of class name
     ResetPasswordForm = globals()["ResetPasswordFormBy" + field.title()]  # noqa
-    if request.method == 'POST':
+    if request.method == "POST":
         form = ResetPasswordForm(request.POST)
         user = None
         if form.is_valid():
@@ -709,7 +709,7 @@ def reset_password_stage2(request, user_id, sign_in_key):
         messages.add_message(request, messages.ERROR, _("Account does not exist."))
         raise PermissionDenied(_("invalid sign-in token"))
 
-    if request.method == 'POST':
+    if request.method == "POST":
         form = ResetPasswordStage2Form(request.POST)
         if form.is_valid():
             from django.contrib.auth import authenticate, login
@@ -761,7 +761,7 @@ def reset_password_stage2(request, user_id, sign_in_key):
 class SignInByEmailForm(StyledForm):
     email = forms.EmailField(required=True, label=_("Email"),
             # For now, until we upgrade to a custom user model.
-            max_length=User._meta.get_field('email').max_length)
+            max_length=User._meta.get_field("email").max_length)
 
     def __init__(self, *args, **kwargs):
         super(SignInByEmailForm, self).__init__(*args, **kwargs)
@@ -777,7 +777,7 @@ def sign_in_by_email(request):
                 _("Email-based sign-in is not being used"))
         return redirect("relate-sign_in_choice")
 
-    if request.method == 'POST':
+    if request.method == "POST":
         form = SignInByEmailForm(request.POST)
         if form.is_valid():
             email = form.cleaned_data["email"]
@@ -892,7 +892,7 @@ class UserForm(StyledModelForm):
                 "editor_mode")
 
     def __init__(self, *args, **kwargs):
-        self.is_inst_id_locked = kwargs.pop('is_inst_id_locked')
+        self.is_inst_id_locked = kwargs.pop("is_inst_id_locked")
         super(UserForm, self).__init__(*args, **kwargs)
 
         if self.instance.name_verified:
@@ -1072,7 +1072,7 @@ def sign_out_confirmation(request, redirect_field_name=REDIRECT_FIELD_NAME):
         return redirect("relate-home")
 
     redirect_to = request.POST.get(redirect_field_name,
-                                   request.GET.get(redirect_field_name, ''))
+                                   request.GET.get(redirect_field_name, ""))
 
     next_uri = ""
     if redirect_to:
@@ -1090,7 +1090,7 @@ def sign_out(request, redirect_field_name=REDIRECT_FIELD_NAME):
         return redirect("relate-home")
 
     redirect_to = request.POST.get(redirect_field_name,
-                                   request.GET.get(redirect_field_name, ''))
+                                   request.GET.get(redirect_field_name, ""))
     response = None
 
     if settings.RELATE_SIGN_IN_BY_SAML2_ENABLED:
@@ -1266,7 +1266,7 @@ def auth_course_with_token(method, func, request,
             realm = _("Relate direct git access for {}".format(course_identifier))
             response = http.HttpResponse("Forbidden: " + str(e),
                         content_type="text/plain")
-            response['WWW-Authenticate'] = 'Basic realm="%s"' % (realm)
+            response["WWW-Authenticate"] = 'Basic realm="%s"' % (realm)
             response.status_code = 401
             return response
 
@@ -1352,7 +1352,7 @@ def manage_authentication_tokens(pctx):
     from course.views import get_now_or_fake_time
     now_datetime = get_now_or_fake_time(request)
 
-    if request.method == 'POST':
+    if request.method == "POST":
         form = AuthenticationTokenForm(pctx.participation, request.POST)
 
         revoke_prefix = "revoke_"

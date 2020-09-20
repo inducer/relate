@@ -100,18 +100,18 @@ urlpatterns = [
 
     # {{{ troubleshooting
 
-    url(r'^user/impersonate/$',
+    url(r"^user/impersonate/$",
         course.auth.impersonate,
         name="relate-impersonate"),
-    url(r'^user/stop_impersonating/$',
+    url(r"^user/stop_impersonating/$",
         course.auth.stop_impersonating,
         name="relate-stop_impersonating"),
 
-    url(r'^time/set-fake-time/$',
+    url(r"^time/set-fake-time/$",
         course.views.set_fake_time,
         name="relate-set_fake_time"),
 
-    url(r'^time/set-pretend-facilities/$',
+    url(r"^time/set-pretend-facilities/$",
         course.views.set_pretend_facilities,
         name="relate-set_pretend_facilities"),
 
@@ -119,7 +119,7 @@ urlpatterns = [
 
     # {{{ course
 
-    url(r'^$', course.views.home, name='relate-home'),
+    url(r"^$", course.views.home, name="relate-home"),
 
     url(r"^course"
         "/" + COURSE_ID_REGEX
@@ -543,7 +543,7 @@ urlpatterns = [
 
     # {{{ django-select2
 
-    url(r'^select2/', include('django_select2.urls')),
+    url(r"^select2/", include("django_select2.urls")),
 
     #}}}
 
@@ -559,18 +559,18 @@ urlpatterns = [
         course.api.get_flow_session_content,
         name="relate-course_get_flow_session_content"),
 
-    url(r'^admin/', admin.site.urls),
+    url(r"^admin/", admin.site.urls),
 ]
 
 if settings.RELATE_SIGN_IN_BY_SAML2_ENABLED:
     urlpatterns.extend([
-        url(r'^saml2/', include('djangosaml2.urls')),
+        url(r"^saml2/", include("djangosaml2.urls")),
         ])
     if settings.DEBUG:  # pragma: no cover
         import djangosaml2.views
         urlpatterns.extend([
             # Keep commented unless debugging SAML2.
-            url(r'^saml2-test/', djangosaml2.views.echo_attributes),
+            url(r"^saml2-test/", djangosaml2.views.echo_attributes),
             ])
 
 # vim: fdm=marker

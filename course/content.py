@@ -227,7 +227,7 @@ def get_repo_blob(repo, full_name, commit_sha, allow_tree=True):
     names = os.path.normpath(full_name).split(os.sep)
 
     # Allow non-ASCII file name
-    full_name_bytes = full_name.encode('utf-8')
+    full_name_bytes = full_name.encode("utf-8")
 
     try:
         tree_sha = dul_repo[commit_sha].tree
@@ -469,7 +469,7 @@ class GitTemplateLoader(BaseTemplateLoader):
         except ObjectDoesNotExist:
             raise TemplateNotFound(template)
 
-        source = data.decode('utf-8')
+        source = data.decode("utf-8")
 
         def is_up_to_date():
             # There's not much point to caching here, because we create
@@ -647,10 +647,10 @@ def get_yaml_from_repo(repo, full_name, commit_sha, cached=True):
 def _attr_to_string(key, val):
     if val is None:
         return key
-    elif "\"" in val:
+    elif '"' in val:
         return "%s='%s'" % (key, val)
     else:
-        return "%s=\"%s\"" % (key, val)
+        return '%s="%s"' % (key, val)
 
 
 class TagProcessingHTMLParser(html_parser.HTMLParser):
@@ -1417,9 +1417,9 @@ def get_flow_page_desc(flow_id, flow_desc, group_id, page_id):
 
     raise ObjectDoesNotExist(
             _("page '%(group_id)s/%(page_id)s' in flow '%(flow_id)s'") % {
-                'group_id': group_id,
-                'page_id': page_id,
-                'flow_id': flow_id
+                "group_id": group_id,
+                "page_id": page_id,
+                "flow_id": flow_id
                 })
 
 # }}}
@@ -1433,7 +1433,7 @@ class ClassNotFoundError(RuntimeError):
 
 def import_class(name):
     # type: (Text) -> type
-    components = name.split('.')
+    components = name.split(".")
 
     if len(components) < 2:
         # need at least one module plus class name
@@ -1487,7 +1487,7 @@ def get_flow_page_class(repo, typename, commit_sha):
 
         module_dict = {}  # type: Dict
 
-        exec(compile(module_code, module_name, 'exec'), module_dict)
+        exec(compile(module_code, module_name, "exec"), module_dict)
 
         try:
             return module_dict[classname]
