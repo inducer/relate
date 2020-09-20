@@ -96,10 +96,10 @@ AUTHENTICATION_BACKENDS = (
 
 if local_settings.get("RELATE_SIGN_IN_BY_SAML2_ENABLED"):
     AUTHENTICATION_BACKENDS = AUTHENTICATION_BACKENDS + (  # type: ignore
-            'djangosaml2.backends.Saml2Backend',
+            "djangosaml2.backends.Saml2Backend",
             )
 
-AUTH_USER_MODEL = 'accounts.User'
+AUTH_USER_MODEL = "accounts.User"
 
 # }}}
 
@@ -113,11 +113,11 @@ CODEMIRROR_PATH = "codemirror"
 
 # }}}
 
-ROOT_URLCONF = 'relate.urls'
+ROOT_URLCONF = "relate.urls"
 
 CRISPY_FAIL_SILENTLY = False
 
-WSGI_APPLICATION = 'relate.wsgi.application'
+WSGI_APPLICATION = "relate.wsgi.application"
 
 # {{{ context processors
 
@@ -170,9 +170,9 @@ if RELATE_OVERRIDE_TEMPLATES_DIRS:
 
 # default, likely overriden by local_settings.py
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+    "default": {
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": os.path.join(BASE_DIR, "db.sqlite3"),
     }
 }
 
@@ -180,7 +180,7 @@ DATABASES = {
 
 # {{{ internationalization
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = "en-us"
 
 USE_I18N = True
 
@@ -205,18 +205,18 @@ STATICFILES_DIRS = (
         join(BASE_DIR, "relate", "static"),
         )
 
-STATIC_URL = '/static/'
+STATIC_URL = "/static/"
 
 STATIC_ROOT = join(BASE_DIR, "static")
 
-# local select2 'static' resources instead of from CDN
+# local select2 "static" resources instead of from CDN
 # https://goo.gl/dY6xf7
-SELECT2_JS = 'select2/dist/js/select2.min.js'
-SELECT2_CSS = 'select2/dist/css/select2.css'
+SELECT2_JS = "select2/dist/js/select2.min.js"
+SELECT2_CSS = "select2/dist/css/select2.css"
 
 # }}}
 
-SESSION_COOKIE_NAME = 'relate_sessionid'
+SESSION_COOKIE_NAME = "relate_sessionid"
 SESSION_COOKIE_AGE = 12096000  # 20 weeks
 
 # {{{ app defaults
@@ -254,13 +254,13 @@ if "CELERY_BROKER_URL" not in globals():
             "If there is no queue server installed, long-running tasks will "
             "appear to hang.")
 
-    CELERY_BROKER_URL = 'amqp://'
+    CELERY_BROKER_URL = "amqp://"
 
-CELERY_ACCEPT_CONTENT = ['pickle', 'json']
-CELERY_TASK_SERIALIZER = 'pickle'
+CELERY_ACCEPT_CONTENT = ["pickle", "json"]
+CELERY_TASK_SERIALIZER = "pickle"
 # (pickle is buggy in django-celery-results 1.0.1)
 # https://github.com/celery/django-celery-results/issues/50
-CELERY_RESULT_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = "json"
 CELERY_TRACK_STARTED = True
 
 if "CELERY_RESULT_BACKEND" not in globals():
@@ -275,22 +275,22 @@ if "CELERY_RESULT_BACKEND" not in globals():
         # transaction. But if we're using the in-memory cache, using
         # cache as a results backend doesn't make much sense.
 
-        CELERY_RESULT_BACKEND = 'django-cache'
+        CELERY_RESULT_BACKEND = "django-cache"
 
     else:
-        CELERY_RESULT_BACKEND = 'django-db'
+        CELERY_RESULT_BACKEND = "django-db"
 
 # }}}
 
 LOCALE_PATHS = (
-    BASE_DIR + '/locale',
+    BASE_DIR + "/locale",
 )
 
 # {{{ saml2
 
 # This makes SAML2 logins compatible with (and usable at the same time as)
 # email-based logins.
-SAML_DJANGO_USER_MAIN_ATTRIBUTE = 'username'
+SAML_DJANGO_USER_MAIN_ATTRIBUTE = "username"
 
 SAML_CREATE_UNKNOWN_USER = True
 

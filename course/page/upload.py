@@ -44,7 +44,7 @@ from crispy_forms.layout import Layout, Field
 class FileUploadForm(StyledForm):
     show_save_button = False
     uploaded_file = forms.FileField(required=True,
-            label=gettext_lazy('Uploaded file'))
+            label=gettext_lazy("Uploaded file"))
 
     def __init__(self, maximum_megabytes, mime_types, *args, **kwargs):
         super(FileUploadForm, self).__init__(*args, **kwargs)
@@ -66,15 +66,15 @@ class FileUploadForm(StyledForm):
                 Field("uploaded_file", **field_kwargs))
 
     def clean_uploaded_file(self):
-        uploaded_file = self.cleaned_data['uploaded_file']
+        uploaded_file = self.cleaned_data["uploaded_file"]
         from django.template.defaultfilters import filesizeformat
 
         if uploaded_file.size > self.max_file_size:
             raise forms.ValidationError(
                     _("Please keep file size under %(allowedsize)s. "
                     "Current filesize is %(uploadedsize)s.")
-                    % {'allowedsize': filesizeformat(self.max_file_size),
-                        'uploadedsize': filesizeformat(uploaded_file.size)})
+                    % {"allowedsize": filesizeformat(self.max_file_size),
+                        "uploadedsize": filesizeformat(uploaded_file.size)})
 
         if self.mime_types is not None and self.mime_types == ["application/pdf"]:
             if uploaded_file.read()[:4] != b"%PDF":
@@ -165,7 +165,7 @@ class FileUploadQuestion(PageBaseWithTitle, PageBaseWithValue,
                     _("unrecognized mime types"),
                     " '%(presenttype)s'")
                 % {
-                    'presenttype': ", ".join(
+                    "presenttype": ", ".join(
                         set(page_desc.mime_types)
                         - set(self.ALLOWED_MIME_TYPES))})
 
@@ -175,7 +175,7 @@ class FileUploadQuestion(PageBaseWithTitle, PageBaseWithValue,
                     location, ": ",
                     _("'maximum_megabytes' expects a positive value, "
                       "got %(value)s instead")
-                    % {'value': str(page_desc.maximum_megabytes)}))
+                    % {"value": str(page_desc.maximum_megabytes)}))
 
         if vctx is not None:
             if not hasattr(page_desc, "value"):

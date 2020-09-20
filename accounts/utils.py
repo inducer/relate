@@ -248,7 +248,7 @@ class RelateUserMethodSettingsInitializer(object):
                                "method": relate_user_full_name_format_method,
                                "err_type": type(e).__name__,
                                "err_str": str(e),
-                               'format_exc': format_exc()}
+                               "format_exc": format_exc()}
                     ),
                     id="relate_user_full_name_format_method.W003"
                 ))

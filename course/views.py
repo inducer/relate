@@ -368,7 +368,7 @@ class FakeTimeForm(StyledForm):
     time = forms.DateTimeField(
             widget=DateTimePicker(
                 options={"format": "YYYY-MM-DD HH:mm", "sideBySide": True}),
-            label=_('Time'))
+            label=_("Time"))
 
     def __init__(self, *args, **kwargs):
         super(FakeTimeForm, self).__init__(*args, **kwargs)
@@ -854,8 +854,8 @@ def grant_exception_stage_2(pctx, participation_id, flow_id):
                 "'%(flow_id)s'."),
                 "</div>")
             % {
-                'participation': participation,
-                'flow_id': flow_id})
+                "participation": participation,
+                "flow_id": flow_id})
 
     from course.content import get_flow_desc
     try:
@@ -946,11 +946,11 @@ def grant_exception_stage_2(pctx, participation_id, flow_id):
                 _("A new session%(tag)s was created for '%(participation)s' "
                   "for '%(flow_id)s'.")
                 % {
-                    'tag':
+                    "tag":
                         _(" tagged '%s'") % access_rules_tag
                         if access_rules_tag is not None else "",
-                    'participation': participation,
-                    'flow_id': flow_id})
+                    "participation": participation,
+                    "flow_id": flow_id})
 
         elif exception_form.is_valid() and "next" in request.POST:  # type: ignore
             return redirect(
@@ -1215,7 +1215,7 @@ def grant_exception_stage_3(pctx, participation_id, flow_id, session_id):
 
                 descr = gettext("Granted exception")
                 if form.cleaned_data["credit_percent"] is not None:
-                    descr += string_concat(" (%.1f%% ", gettext('credit'), ")") \
+                    descr += string_concat(" (%.1f%% ", gettext("credit"), ")") \
                             % form.cleaned_data["credit_percent"]
 
                 due_local_naive = due
@@ -1265,9 +1265,9 @@ def grant_exception_stage_3(pctx, participation_id, flow_id, session_id):
                                 "'%(exception_type)s' exception granted to "
                                 "'%(participation)s' for '%(flow_id)s'.")
                             % {
-                                'exception_type': exc,
-                                'participation': participation,
-                                'flow_id': flow_id})
+                                "exception_type": exc,
+                                "participation": participation,
+                                "flow_id": flow_id})
             else:
                 if session_access_rules_tag_changed:
                     messages.add_message(
@@ -1277,8 +1277,8 @@ def grant_exception_stage_3(pctx, participation_id, flow_id, session_id):
                             "session of '%(participation)s' "
                             "for '%(flow_id)s'.")
                         % {
-                            'participation': participation,
-                            'flow_id': flow_id})
+                            "participation": participation,
+                            "flow_id": flow_id})
                 else:
                     messages.add_message(pctx.request, messages.WARNING,
                             _(
@@ -1286,8 +1286,8 @@ def grant_exception_stage_3(pctx, participation_id, flow_id, session_id):
                                 "session of '%(participation)s' "
                                 "for '%(flow_id)s'.")
                             % {
-                                'participation': participation,
-                                'flow_id': flow_id})
+                                "participation": participation,
+                                "flow_id": flow_id})
             return redirect(
                     "relate-grant_exception",
                     pctx.course.identifier)
@@ -1317,9 +1317,9 @@ def grant_exception_stage_3(pctx, participation_id, flow_id, session_id):
             "for '%(flow_id)s' (session %(session)s)."),
             "</div>")
         % {
-            'participation': participation,
-            'flow_id': flow_id,
-            'session': strify_session_for_exception(session)},
+            "participation": participation,
+            "flow_id": flow_id,
+            "session": strify_session_for_exception(session)},
     })
 
 # }}}
@@ -1428,7 +1428,7 @@ def edit_course(pctx):
     request = pctx.request
     instance = pctx.course
 
-    if request.method == 'POST':
+    if request.method == "POST":
         form = EditCourseForm(request.POST, instance=pctx.course)
         if form.is_valid():
             if form.has_changed():

@@ -172,7 +172,7 @@ TEST_IPYNB_BYTES = json.dumps({
             ],
             "source": [
                 "def function1():\n",
-                "    print(\"This is function1\")\n",
+                '    print("This is function1")\n',
                 "\n",
                 "function1()"
             ]
@@ -193,7 +193,7 @@ TEST_IPYNB_BYTES = json.dumps({
             "outputs": [],
             "source": [
                 "def function2():\n",
-                "    print(\"This is function2\")"
+                '    print("This is function2")'
             ]
         },
         {
@@ -738,8 +738,8 @@ class AttrToStringTest(unittest.TestCase):
     def test(self):
         self.assertEqual(content._attr_to_string("disabled", None), "disabled")
         self.assertEqual(content._attr_to_string(
-            "id", "\"abc\""), "id='\"abc\"'")
-        self.assertEqual(content._attr_to_string("id", "abc"), "id=\"abc\"")
+            "id", '"abc"'), "id='\"abc\"'")
+        self.assertEqual(content._attr_to_string("id", "abc"), 'id="abc"')
 
 
 MARKDOWN_WITH_LINK_FRAGMENT = """
@@ -755,17 +755,17 @@ content: |
     <table bootstrop></table>
     <!-- This is an invalid link -->
     [A static page](course:test#abcd)
-    
+
     ## link to another course
     [A static page](course:another-course)
-    
+
     ## calendar linkes
     [A static page](calendar:)
-    
+
     ## images
     ![alt text](https://raw.githubusercontent.com/inducer/relate/master/doc/images/screenshot.png "Example")
     <img src="repo:images/cc.png">
-    
+
     ## object data
     <object width="400" height="400" data="helloworld.swf">
     <object data="repo:images/cc.png">

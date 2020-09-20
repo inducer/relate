@@ -280,8 +280,8 @@ class BatchIssueTicketsForm(StyledForm):
                 dependencies=("xml",),
                 interaction_mode=editor_mode)
 
-        help_text = (gettext("Enter <a href=\"http://documen.tician.de/"
-                "relate/content.html#relate-markup\">"
+        help_text = (gettext('Enter <a href="http://documen.tician.de/'
+                'relate/content.html#relate-markup">'
                 "RELATE markup</a> containing Django template statements to render "
                 "your exam tickets. <tt>tickets</tt> contains a list of "
                 "data structures "

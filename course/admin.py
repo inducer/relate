@@ -96,7 +96,7 @@ def _filter_related_only(filter_arg):
 class UnsafePasswordInput(forms.TextInput):
     # This sends passwords back to the user--not ideal, but OK for the XMPP
     # password.
-    input_type = 'password'
+    input_type = "password"
 
 
 class CourseAdminForm(forms.ModelForm):
@@ -553,14 +553,14 @@ class FlowPageVisitGradeInline(admin.TabularInline):
 
 
 class HasAnswerListFilter(admin.SimpleListFilter):
-    title = 'has answer'
+    title = "has answer"
 
-    parameter_name = 'has_answer'
+    parameter_name = "has_answer"
 
     def lookups(self, request, model_admin):
         return (
-            ('y', _('Yes')),
-            ('n', _('No')),
+            ("y", _("Yes")),
+            ("n", _("No")),
         )
 
     def queryset(self, request, queryset):
