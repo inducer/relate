@@ -219,7 +219,8 @@ class FileUploadQuestion(PageBaseWithTitle, PageBaseWithValue,
                 flow_id = page_context.flow_session.flow_id
 
         return (f"{page_context.course.identifier}/"
-                "upload/"
+                "submission/"
+                "file-upload/"
                 f"{flow_id}/"
                 f"{self.page_desc.id}/"
                 f"{username}"
@@ -230,10 +231,10 @@ class FileUploadQuestion(PageBaseWithTitle, PageBaseWithValue,
             mime_type, = self.page_desc.mime_types
 
         from django.conf import settings
-        submission_storage = settings.RELATE_SUBMISSION_STORAGE
+        bulk_storage = settings.RELATE_BULK_STORAGE
 
         uploaded_file.seek(0)
-        saved_name = submission_storage.save(
+        saved_name = bulk_storage.save(
                 self.get_submission_filename_pattern(page_context, mime_type),
                 uploaded_file)
 
@@ -248,8 +249,8 @@ class FileUploadQuestion(PageBaseWithTitle, PageBaseWithValue,
 
         if "storage_filename" in answer_data:
             from django.conf import settings
-            submission_storage = settings.RELATE_SUBMISSION_STORAGE
-            with submission_storage.open(answer_data["storage_filename"]) as inf:
+            bulk_storage = settings.RELATE_BULK_STORAGE
+            with bulk_storage.open(answer_data["storage_filename"]) as inf:
                 return inf.read(), mime_type
 
         elif "base64_data" in answer_data:

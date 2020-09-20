@@ -30,7 +30,7 @@ git-roots
 /.idea
 /.env
 
-submissions
+bulk-storage
 
 /.coverage
 /coverage.xml

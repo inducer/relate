@@ -95,13 +95,13 @@ GIT_ROOT = path.join(_BASEDIR, "git-roots")
 
 # }}}
 
-# {{{ submission storage
+# {{{ bulk storage
 
 from django.core.files.storage import FileSystemStorage
 # This must be a subclass of django.core.storage.Storage.
 # This should *not* be MEDIA_ROOT, and the corresponding directory/storage location
 # should *not* be accessible under a URL.
-RELATE_SUBMISSION_STORAGE = FileSystemStorage(path.join(_BASEDIR, "submissions"))
+RELATE_BULK_STORAGE = FileSystemStorage(path.join(_BASEDIR, "bulk-storage"))
 
 # }}}
 

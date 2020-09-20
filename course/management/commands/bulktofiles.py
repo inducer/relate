@@ -62,8 +62,8 @@ def convert_flow_page_visit(stderr, fpv):
 
 class Command(BaseCommand):
     help = (
-            "Migrates file upload submissions out of the database and into "
-            "the storage given by RELATE_SUBMISSION_STORAGE. This command may "
+            "Migrates bulk data (e.g. file upload submissions) out of the database "
+            "and into the storage given by RELATE_BULK_STORAGE. This command may "
             "safely be interrupted and will pick up where it left off.")
 
     def handle(self, *args, **options):
