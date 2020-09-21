@@ -645,7 +645,7 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
             answer_data, page_behavior):
 
         if answer_data is not None:
-            answer = {"answer": answer_data["answer"]}
+            answer = {"answer": self.get_code_from_answer_data(answer_data)}
             form = CodeForm(
                     not page_behavior.may_change_answer,
                     get_editor_interaction_mode(page_context),
@@ -672,8 +672,42 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
                 self.language_mode,
                 post_data, files_data)
 
+    def get_submission_filename_pattern(self, page_context):
+        username = "anon"
+        flow_id = "unk_flow"
+        if page_context.flow_session is not None:
+            if page_context.flow_session.participation is not None:
+                username = page_context.flow_session.participation.user.username
+            if page_context.flow_session.flow_id:
+                flow_id = page_context.flow_session.flow_id
+
+        return (
+                "submission/"
+                f"{page_context.course.identifier}/"
+                "code/"
+                f"{flow_id}/"
+                f"{self.page_desc.id}/"
+                f"{username}"
+                f"{self.suffix}")
+
+    def code_to_answer_data(self, page_context, code):
+        # Linux sector size is 512. Anything below a half-full
+        # sector is probably inefficient.
+        if len(code) <= 256:
+            return {"answer": code}
+
+        bulk_storage = settings.RELATE_BULK_STORAGE
+
+        from django.core.files.base import ContentFile
+        saved_name = bulk_storage.save(
+                self.get_submission_filename_pattern(page_context),
+                ContentFile(code))
+
+        return {"storage_filename": saved_name}
+
     def answer_data(self, page_context, page_data, form, files_data):
-        return {"answer": form.cleaned_data["answer"].strip()}
+        code = form.cleaned_data["answer"].strip()
+        return self.code_to_answer_data(page_context, code)
 
     def get_test_code(self):
         test_code = getattr(self.page_desc, "test_code", None)
@@ -687,12 +721,25 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
         from .code_run_backend import substitute_correct_code_into_test_code
         return substitute_correct_code_into_test_code(test_code, correct_code)
 
+    @staticmethod
+    def get_code_from_answer_data(answer_data):
+        if "storage_filename" in answer_data:
+            bulk_storage = settings.RELATE_BULK_STORAGE
+            with bulk_storage.open(answer_data["storage_filename"]) as inf:
+                return inf.read().decode("utf-8")
+
+        elif "answer" in answer_data:
+            return answer_data["answer"]
+
+        else:
+            raise ValueError("could not get submitted data from answer_data JSON")
+
     def grade(self, page_context, page_data, answer_data, grade_data):
         if answer_data is None:
             return AnswerFeedback(correctness=0,
                     feedback=_("No answer provided."))
 
-        user_code = answer_data["answer"]
+        user_code = self.get_code_from_answer_data(answer_data)
 
         # {{{ request run
 
@@ -1004,7 +1051,7 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
         if answer_data is None:
             return None
 
-        normalized_answer = answer_data["answer"]
+        normalized_answer = self.get_code_from_answer_data(answer_data)
 
         from django.utils.html import escape
         return "<pre>%s</pre>" % escape(normalized_answer)
@@ -1014,7 +1061,7 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
             return None
 
         suffix = self.suffix
-        return (suffix, answer_data["answer"].encode("utf-8"))
+        return (suffix, self.get_code_from_answer_data(answer_data).encode("utf-8"))
 
 # }}}
 
