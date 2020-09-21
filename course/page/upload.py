@@ -218,8 +218,8 @@ class FileUploadQuestion(PageBaseWithTitle, PageBaseWithValue,
             if page_context.flow_session.flow_id:
                 flow_id = page_context.flow_session.flow_id
 
-        return (f"{page_context.course.identifier}/"
-                "submission/"
+        return ("submission/"
+                f"{page_context.course.identifier}/"
                 "file-upload/"
                 f"{flow_id}/"
                 f"{self.page_desc.id}/"
