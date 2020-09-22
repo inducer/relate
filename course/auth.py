@@ -197,7 +197,10 @@ class ImpersonateForm(StyledForm):
                 queryset=qset,
                 required=True,
                 help_text=_("Select user to impersonate."),
-                widget=UserSearchWidget(queryset=qset),
+                widget=UserSearchWidget(
+                    queryset=qset,
+                    attrs={"data-minimum-input-length": 0},
+                ),
                 label=_("User"))
 
         self.fields["add_impersonation_header"] = forms.BooleanField(
