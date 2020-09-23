@@ -1,7 +1,10 @@
 from django.core.management.base import BaseCommand, CommandError  # noqa
-from course.models import FlowPageVisit
 from django.db import transaction
 from django.core.exceptions import ObjectDoesNotExist
+from django.db.models import Q
+from django.db.models.functions import Length
+
+from course.models import FlowPageVisit, FlowPageBulkFeedback
 
 
 def convert_flow_page_visit(stderr, fpv):
@@ -74,6 +77,80 @@ def convert_flow_page_visit(stderr, fpv):
     assert False
 
 
+def convert_flow_page_visits(stdout, stderr):
+    fpv_qset = (FlowPageVisit
+            .objects
+            .annotate(answer_len=Length("answer"))
+            .filter(
+                Q(answer__contains="base64_data")
+                | (
+                    # code questions with long answer_data
+                    Q(answer__contains="answer")
+                    & Q(answer_len__gte=128))
+                )
+            .select_related(
+                "flow_session",
+                "flow_session__course",
+                "flow_session__participation",
+                "flow_session__participation__user",
+                "page_data"))
+
+    fpv_qset_iterator = iter(fpv_qset)
+
+    quit = False
+    total_count = 0
+    while not quit:
+        with transaction.atomic():
+            for i in range(200):
+                try:
+                    fpv = next(fpv_qset_iterator)
+                except StopIteration:
+                    quit = True
+                    break
+
+                if convert_flow_page_visit(stderr, fpv):
+                    total_count += 1
+
+        stdout.write("converted %d page visits..." % total_count)
+
+    stdout.write("done with visits!")
+
+
+def convert_bulk_feedback(stdout, stderr):
+    from course.models import BULK_FEEDBACK_FILENAME_KEY, update_bulk_feedback
+    fbf_qset = (FlowPageBulkFeedback
+            .objects
+            .annotate(bf_len=Length("bulk_feedback"))
+            .filter(
+                ~Q(bulk_feedback__contains=BULK_FEEDBACK_FILENAME_KEY)
+                & Q(bf_len__gte=256))
+            .select_related(
+                "page_data",
+                "page_data__flow_session",
+                "page_data__flow_session__participation",
+                "page_data__flow_session__participation__user"))
+
+    fbf_qset_iterator = iter(fbf_qset)
+
+    quit = False
+    total_count = 0
+    while not quit:
+        with transaction.atomic():
+            for i in range(200):
+                try:
+                    fbf = next(fbf_qset_iterator)
+                except StopIteration:
+                    quit = True
+                    break
+
+            update_bulk_feedback(fbf.page_data, fbf.grade, fbf.bulk_feedback)
+            total_count += 1
+
+        stdout.write("converted %d bulk feedback objects..." % total_count)
+
+    stdout.write("done with bulk feedback!")
+
+
 class Command(BaseCommand):
     help = (
             "Migrates bulk data (e.g. file upload submissions) out of the database "
@@ -81,42 +158,7 @@ class Command(BaseCommand):
             "safely be interrupted and will pick up where it left off.")
 
     def handle(self, *args, **options):
-        from django.db.models import Q
+        convert_bulk_feedback(self.stdout, self.stderr)
+        convert_flow_page_visits(self.stdout, self.stderr)
 
-        total_count = 0
-        from django.db.models.functions import Length
-        fpv_qset = (FlowPageVisit
-                .objects
-                .annotate(answer_len=Length("answer"))
-                .filter(
-                    Q(answer__contains="base64_data")
-                    | (
-                        # code questions with long answer_data
-                        Q(answer__contains="answer")
-                        & Q(answer_len__gt=128))
-                    )
-                .select_related(
-                    "flow_session",
-                    "flow_session__participation",
-                    "flow_session__participation__course",
-                    "flow_session__participation__user",
-                    "page_data"))
-
-        fpv_qset_iterator = iter(fpv_qset)
-
-        quit = False
-        while not quit:
-            with transaction.atomic():
-                for i in range(200):
-                    try:
-                        fpv = next(fpv_qset_iterator)
-                    except StopIteration:
-                        quit = True
-                        break
-
-                    if convert_flow_page_visit(self.stderr, fpv):
-                        total_count += 1
-
-            self.stdout.write("converted %d page visits..." % total_count)
-
-        self.stdout.write("done!")
+# vim: foldmethod=marker
