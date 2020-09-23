@@ -696,10 +696,8 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
         if len(code) <= 256:
             return {"answer": code}
 
-        bulk_storage = settings.RELATE_BULK_STORAGE
-
         from django.core.files.base import ContentFile
-        saved_name = bulk_storage.save(
+        saved_name = settings.RELATE_BULK_STORAGE.save(
                 self.get_submission_filename_pattern(page_context),
                 ContentFile(code))
 

@@ -231,10 +231,9 @@ class FileUploadQuestion(PageBaseWithTitle, PageBaseWithValue,
             mime_type, = self.page_desc.mime_types
 
         from django.conf import settings
-        bulk_storage = settings.RELATE_BULK_STORAGE
 
         uploaded_file.seek(0)
-        saved_name = bulk_storage.save(
+        saved_name = settings.RELATE_BULK_STORAGE.save(
                 self.get_submission_filename_pattern(page_context, mime_type),
                 uploaded_file)
 
@@ -249,8 +248,8 @@ class FileUploadQuestion(PageBaseWithTitle, PageBaseWithValue,
 
         if "storage_filename" in answer_data:
             from django.conf import settings
-            bulk_storage = settings.RELATE_BULK_STORAGE
-            with bulk_storage.open(answer_data["storage_filename"]) as inf:
+            with settings.RELATE_BULK_STORAGE.open(
+                    answer_data["storage_filename"]) as inf:
                 return inf.read(), mime_type
 
         elif "base64_data" in answer_data:
