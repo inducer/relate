@@ -1282,7 +1282,7 @@ def update_bulk_feedback(page_data, grade, bulk_feedback_json):
                     f"{flow_session.flow_id}/"
                     f"{page_data.page_id}/"
                     f"{username}"
-                    f".json_gz")
+                    f".json_zlib")
 
             from django.core.files.base import ContentFile
             saved_name = settings.RELATE_BULK_STORAGE.save(
