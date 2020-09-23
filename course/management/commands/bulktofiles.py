@@ -118,19 +118,15 @@ def convert_flow_page_visits(stdout, stderr):
 
 def convert_bulk_feedback(stdout, stderr):
     from course.models import BULK_FEEDBACK_FILENAME_KEY, update_bulk_feedback
-    fbf_qset = (FlowPageBulkFeedback
+    fbf_pk_qset = (FlowPageBulkFeedback
             .objects
             .annotate(bf_len=Length("bulk_feedback"))
             .filter(
                 ~Q(bulk_feedback__contains=BULK_FEEDBACK_FILENAME_KEY)
                 & Q(bf_len__gte=256))
-            .select_related(
-                "page_data",
-                "page_data__flow_session",
-                "page_data__flow_session__participation",
-                "page_data__flow_session__participation__user"))
+            .values("pk"))
 
-    fbf_qset_iterator = iter(fbf_qset)
+    fbf_pk_qset_iterator = iter(fbf_pk_qset)
 
     quit = False
     total_count = 0
@@ -138,15 +134,23 @@ def convert_bulk_feedback(stdout, stderr):
         with transaction.atomic():
             for i in range(200):
                 try:
-                    fbf = next(fbf_qset_iterator)
+                    fbf_pk = next(fbf_pk_qset_iterator)
                 except StopIteration:
                     quit = True
                     break
+                fbf = (FlowPageBulkFeedback
+                        .objects
+                        .select_related(
+                            "page_data",
+                            "page_data__flow_session",
+                            "page_data__flow_session__participation",
+                            "page_data__flow_session__participation__user")
+                        .get(pk=fbf_pk["pk"]))
 
-            update_bulk_feedback(fbf.page_data, fbf.grade, fbf.bulk_feedback)
-            total_count += 1
+                update_bulk_feedback(fbf.page_data, fbf.grade, fbf.bulk_feedback)
+                total_count += 1
 
-        stdout.write("converted %d bulk feedback objects..." % total_count)
+        stdout.write("converted %d items of bulk feedback..." % total_count)
 
     stdout.write("done with bulk feedback!")
 
