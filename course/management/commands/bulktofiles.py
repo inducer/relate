@@ -78,7 +78,7 @@ def convert_flow_page_visit(stderr, fpv):
 
 
 def convert_flow_page_visits(stdout, stderr):
-    fpv_qset = (FlowPageVisit
+    fpv_pk_qset = (FlowPageVisit
             .objects
             .annotate(answer_len=Length("answer"))
             .filter(
@@ -88,14 +88,9 @@ def convert_flow_page_visits(stdout, stderr):
                     Q(answer__contains="answer")
                     & Q(answer_len__gte=128))
                 )
-            .select_related(
-                "flow_session",
-                "flow_session__course",
-                "flow_session__participation",
-                "flow_session__participation__user",
-                "page_data"))
+            .values("pk"))
 
-    fpv_qset_iterator = iter(fpv_qset)
+    fpv_pk_qset_iterator = iter(fpv_pk_qset)
 
     quit = False
     total_count = 0
@@ -103,11 +98,19 @@ def convert_flow_page_visits(stdout, stderr):
         with transaction.atomic():
             for i in range(200):
                 try:
-                    fpv = next(fpv_qset_iterator)
+                    fpv_pk = next(fpv_pk_qset_iterator)
                 except StopIteration:
                     quit = True
                     break
-
+                fpv = (FlowPageVisit
+                        .objects
+                        .select_related(
+                            "flow_session",
+                            "flow_session__course",
+                            "flow_session__participation",
+                            "flow_session__participation__user",
+                            "page_data")
+                        .get(pk=fpv_pk["pk"]))
                 if convert_flow_page_visit(stderr, fpv):
                     total_count += 1
 
