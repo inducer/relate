@@ -18,7 +18,7 @@ def convert_flow_page_visit(stderr, fpv):
     commit_sha = course.active_git_commit_sha.encode()
     try:
         flow_desc = get_flow_desc(repo, course,
-                flow_id, commit_sha)
+                flow_id, commit_sha, tolerate_tabs=True)
     except ObjectDoesNotExist:
         stderr.write("warning: no flow yaml file found for '%s' in '%s'"
                 % (flow_id, course.identifier))
