@@ -29,7 +29,8 @@ def convert_flow_page_visit(stderr, fpv):
                 fpv.flow_session.flow_id, flow_desc,
                 fpv.page_data.group_id, fpv.page_data.page_id)
     except ObjectDoesNotExist:
-        stderr.write("warning: no page yaml desc found for "
+        stderr.write(f"warning: flow page visit {fpv.id}: no page yaml desc "
+                "found for "
                 f"'{flow_id}:{fpv.page_data.group_id}/{fpv.page_data.page_id}' "
                 f"in '{course.identifier}'")
         return
