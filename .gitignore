@@ -29,6 +29,9 @@ git-roots
 
 /.idea
 /.env
+
+bulk-storage
+
 /.coverage
 /coverage.xml
 /.vscode/

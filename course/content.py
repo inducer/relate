@@ -589,14 +589,19 @@ def get_raw_yaml_from_repo(repo, full_name, commit_sha):
 LINE_HAS_INDENTING_TABS_RE = re.compile(r"^\s*\t\s*", re.MULTILINE)
 
 
-def get_yaml_from_repo(repo, full_name, commit_sha, cached=True):
-    # type: (Repo_ish, Text, bytes, bool) -> Any
+def get_yaml_from_repo(repo, full_name, commit_sha, cached=True,
+        tolerate_tabs=False):
+    # type: (Repo_ish, Text, bytes, bool, bool) -> Any
 
     """Return decoded, struct-ified YAML data structure from
     the given file in *repo* at *commit_sha*.
 
     See :class:`relate.utils.Struct` for more on
     struct-ification.
+
+    :arg tolerate_tabs: At one point, Relate accepted tabs
+        in indentation, but it no longer does. In places where legacy compatibility
+        matters, you may set *tolerate_tabs* to *True*.
     """
 
     if cached:
@@ -623,7 +628,7 @@ def get_yaml_from_repo(repo, full_name, commit_sha, cached=True):
             repo, full_name, commit_sha, allow_tree=False).data
     yaml_text = yaml_bytestream.decode("utf-8")
 
-    if LINE_HAS_INDENTING_TABS_RE.search(yaml_text):
+    if not tolerate_tabs and LINE_HAS_INDENTING_TABS_RE.search(yaml_text):
         raise ValueError("File uses tabs in indentation. "
                 "This is not allowed.")
 
@@ -1393,11 +1398,17 @@ def normalize_flow_desc(flow_desc):
     return flow_desc
 
 
-def get_flow_desc(repo, course, flow_id, commit_sha):
-    # type: (Repo_ish, Course, Text, bytes) -> FlowDesc
+def get_flow_desc(repo, course, flow_id, commit_sha, tolerate_tabs=False):
+    # type: (Repo_ish, Course, Text, bytes, bool) -> FlowDesc
+    """
+    :arg tolerate_tabs: At one point, Relate accepted tabs
+        in indentation, but it no longer does. In places where legacy
+        compatibility matters, you may set *tolerate_tabs* to *True*.
+    """
 
     # FIXME: extension should be case-insensitive
-    flow_desc = get_yaml_from_repo(repo, "flows/%s.yml" % flow_id, commit_sha)
+    flow_desc = get_yaml_from_repo(repo, "flows/%s.yml" % flow_id, commit_sha,
+            tolerate_tabs=tolerate_tabs)
 
     flow_desc = normalize_flow_desc(flow_desc)
 

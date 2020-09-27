@@ -1219,6 +1219,10 @@ class FlowPageVisitGrade(models.Model):
 
     __str__ = __unicode__
 
+# }}}
+
+
+# {{{ bulk feedback
 
 class FlowPageBulkFeedback(models.Model):
     # We're only storing one of these per page, because
@@ -1234,13 +1238,62 @@ class FlowPageBulkFeedback(models.Model):
             verbose_name=_("Bulk feedback"))
 
 
+BULK_FEEDBACK_FILENAME_KEY = "_rl_stor_fn"
+
+
 def update_bulk_feedback(page_data, grade, bulk_feedback_json):
     # type: (FlowPageData, FlowPageVisitGrade, Any) -> None
-    FlowPageBulkFeedback.objects.update_or_create(
-            page_data=page_data,
-            defaults=dict(
-                grade=grade,
-                bulk_feedback=bulk_feedback_json))
+
+    import json
+    import zlib
+    compressed_bulk_json_str = zlib.compress(
+            json.dumps(bulk_feedback_json).encode("utf-8"))
+
+    from django.db import transaction
+    with transaction.atomic():
+        try:
+            fp_bulk_feedback = FlowPageBulkFeedback.objects.get(page_data=page_data)
+
+            if (isinstance(fp_bulk_feedback.bulk_feedback, dict)
+                    and (BULK_FEEDBACK_FILENAME_KEY
+                        in fp_bulk_feedback.bulk_feedback)):
+                storage_fn_to_delete = fp_bulk_feedback.bulk_feedback[
+                        BULK_FEEDBACK_FILENAME_KEY]
+
+                def delete_bulk_fb_file():
+                    print(f"DELETING {storage_fn_to_delete}!")
+                    settings.RELATE_BULK_STORAGE.delete(storage_fn_to_delete)
+
+                transaction.on_commit(delete_bulk_fb_file)
+
+        except ObjectDoesNotExist:
+            fp_bulk_feedback = FlowPageBulkFeedback(page_data=page_data)
+
+        # Half the sector size on Linux
+        if len(compressed_bulk_json_str) >= 256:
+            username = "anon"
+            flow_session = page_data.flow_session
+            if flow_session.participation is not None:
+                username = flow_session.participation.user.username
+
+            fn_pattern = (
+                    "bulk-feedback/"
+                    f"{flow_session.course.identifier}/"
+                    f"{flow_session.flow_id}/"
+                    f"{page_data.page_id}/"
+                    f"{username}"
+                    f".json_zlib")
+
+            from django.core.files.base import ContentFile
+            saved_name = settings.RELATE_BULK_STORAGE.save(
+                    fn_pattern,
+                    ContentFile(compressed_bulk_json_str))
+
+            bulk_feedback_json = {BULK_FEEDBACK_FILENAME_KEY: saved_name}
+
+        fp_bulk_feedback.grade = grade
+        fp_bulk_feedback.bulk_feedback = bulk_feedback_json
+        fp_bulk_feedback.save()
 
 
 def get_feedback_for_grade(grade):
@@ -1256,13 +1309,27 @@ def get_feedback_for_grade(grade):
     except ObjectDoesNotExist:
         bulk_feedback_json = None
 
+    if (bulk_feedback_json is not None
+            and isinstance(bulk_feedback_json, dict)
+            and (BULK_FEEDBACK_FILENAME_KEY in bulk_feedback_json)):
+        import json
+        import zlib
+        try:
+            with settings.RELATE_BULK_STORAGE.open(
+                    bulk_feedback_json[BULK_FEEDBACK_FILENAME_KEY]
+                    ) as inf:
+                bulk_feedback_json = json.loads(
+                        zlib.decompress(inf.read()).decode("utf-8"))
+        except FileNotFoundError:
+            bulk_feedback_json = None
+
     from course.page.base import AnswerFeedback  # noqa: F811
     return AnswerFeedback.from_json(grade.feedback, bulk_feedback_json)
 
 # }}}
 
 
-# {{{ deprecated exception stuff
+# {{{ deprecated flow rule exception stuff
 
 def validate_stipulations(stip):  # pragma: no cover (deprecated and not tested)
     if stip is None:
@@ -1362,6 +1429,8 @@ class FlowAccessExceptionEntry(models.Model):  # pragma: no cover (deprecated an
 
 # }}}
 
+
+# {{{ flow rule exception
 
 class FlowRuleException(models.Model):
     flow_id = models.CharField(max_length=200, blank=False, null=False,

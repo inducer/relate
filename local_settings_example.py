@@ -1,11 +1,15 @@
 # See https://docs.djangoproject.com/en/dev/howto/deployment/checklist/
 
+import os.path as path
+
+_BASEDIR = path.dirname(path.abspath(__file__))
+
 # {{{ database and site
 
 SECRET_KEY = "<CHANGE ME TO SOME RANDOM STRING ONCE IN PRODUCTION>"
 
 ALLOWED_HOSTS = [
-        "relate.example.com",
+        "relate.example.edu",
         ]
 
 # Configure the following as url as above.
@@ -87,7 +91,17 @@ CELERY_BROKER_URL = "amqp://"
 # directory of where you put the Relate source tree.
 
 #GIT_ROOT = "/some/where"
-GIT_ROOT = "git-roots"
+GIT_ROOT = path.join(_BASEDIR, "git-roots")
+
+# }}}
+
+# {{{ bulk storage
+
+from django.core.files.storage import FileSystemStorage
+# This must be a subclass of django.core.storage.Storage.
+# This should *not* be MEDIA_ROOT, and the corresponding directory/storage location
+# should *not* be accessible under a URL.
+RELATE_BULK_STORAGE = FileSystemStorage(path.join(_BASEDIR, "bulk-storage"))
 
 # }}}
 
@@ -453,8 +467,6 @@ RELATE_TICKET_MINUTES_VALID_AFTER_USE = 12*60
 if RELATE_SIGN_IN_BY_SAML2_ENABLED:
     from os import path
     import saml2.saml
-    _BASEDIR = path.dirname(path.abspath(__file__))
-
     _BASE_URL = "https://relate.cs.illinois.edu"
 
     # see saml2-keygen.sh in this directory
