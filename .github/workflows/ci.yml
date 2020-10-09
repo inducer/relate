@@ -22,17 +22,21 @@ jobs:
         uses: dschep/install-poetry-action@v1.3
         with:
           create_virtualenvs: true
-      - name: Cache python dependencies
-        uses: actions/cache@v2
-        id: cache
-        with:
-          path: ~/.cache/pypoetry
-          key: poetry-${{ hashFiles('**/poetry.lock') }}-${{ matrix.python-version }}
-          restore-keys: |
-            poetry-${{ hashFiles('**/poetry.lock') }}-${{ matrix.python-version }}
+      # FIXME: Probably needs poetry version as additional key
+      # See https://github.com/inducer/relate/pull/736/checks?check_run_id=1229461665
+      # for example of breakage.
+
+      #- name: Cache python dependencies
+      #  uses: actions/cache@v2
+      #  id: cache
+      #  with:
+      #    path: ~/.cache/pypoetry
+      #    key: poetry-${{ hashFiles('**/poetry.lock') }}-${{ matrix.python-version }}
+      #    restore-keys: |
+      #      poetry-${{ hashFiles('**/poetry.lock') }}-${{ matrix.python-version }}
       - name: Install Dependencies
         run: poetry install
-        if: steps.cache.outputs.cache-hit != 'true'
+      #  if: steps.cache.outputs.cache-hit != 'true'
       - name: "Flake8"
         run: |
           poetry run flake8 relate course accounts
@@ -76,17 +80,21 @@ jobs:
         uses: dschep/install-poetry-action@v1.3
         with:
           create_virtualenvs: true
-      - name: Cache python dependencies
-        uses: actions/cache@v2
-        id: cache
-        with:
-          path: ~/.cache/pypoetry
-          key: poetry-${{ hashFiles('**/poetry.lock') }}-${{ matrix.python-version }}
-          restore-keys: |
-            poetry-${{ hashFiles('**/poetry.lock') }}-${{ matrix.python-version }}
+      # FIXME: Probably needs poetry version as additional key
+      # See https://github.com/inducer/relate/pull/736/checks?check_run_id=1229461665
+      # for example of breakage.
+
+      #- name: Cache python dependencies
+      #  uses: actions/cache@v2
+      #  id: cache
+      #  with:
+      #    path: ~/.cache/pypoetry
+      #    key: poetry-${{ hashFiles('**/poetry.lock') }}-${{ matrix.python-version }}
+      #    restore-keys: |
+      #      poetry-${{ hashFiles('**/poetry.lock') }}-${{ matrix.python-version }}
       - name: Install Dependencies
         run: poetry install
-        if: steps.cache.outputs.cache-hit != 'true'
+      #  if: steps.cache.outputs.cache-hit != 'true'
       - name: Install OS dependencies
         env:
           DEBIAN_FRONTEND: noninteractive
