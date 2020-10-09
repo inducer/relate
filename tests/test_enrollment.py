@@ -340,7 +340,7 @@ class EnrollViewTest(EnrollmentTestMixin, TestCase):
         self.assertParticiaptionStatusCallCount([1, 0, 0, 0])
         self.assertEqual(len(mail.outbox), 1)
 
-    def test_coures_not_require_inst_id_verified(self):
+    def test_course_not_require_inst_id_verified(self):
         self.update_require_approval_course(
             preapproval_require_verified_inst_id=False)
 
@@ -359,7 +359,7 @@ class EnrollViewTest(EnrollmentTestMixin, TestCase):
         self.assertParticiaptionStatusCallCount([2, 0, 0, 0])
         self.assertEqual(len(mail.outbox), 2)
 
-    def test_coures_require_inst_id_verified_user_inst_id_verified1(self):
+    def test_course_require_inst_id_verified_user_inst_id_verified1(self):
         # matched
         self.update_require_approval_course(
             preapproval_require_verified_inst_id=True)
@@ -376,7 +376,7 @@ class EnrollViewTest(EnrollmentTestMixin, TestCase):
         self.assertParticiaptionStatusCallCount([1, 0, 0, 0])
         self.assertEqual(len(mail.outbox), 1)
 
-    def test_coures_require_inst_id_verified_user_inst_id_verified2(self):
+    def test_course_require_inst_id_verified_user_inst_id_verified2(self):
         # not matched
         self.update_require_approval_course(
             preapproval_require_verified_inst_id=True)
@@ -393,7 +393,36 @@ class EnrollViewTest(EnrollmentTestMixin, TestCase):
         self.assertEqual(len(mail.outbox), 1)
         self.assertParticiaptionStatusCallCount([0, 0, 0, 1])
 
-    def test_coures_require_inst_id_verified_user_inst_id_not_verified1(self):
+    def test_preapprved_user_updated_inst_id_after_req_enrollment_roles_match(self):
+        # Check assigned roles, testing issue #735
+        self.update_require_approval_course(
+            preapproval_require_verified_inst_id=True)
+
+        user = factories.UserFactory()
+        inst_id = user.institutional_id
+
+        # Temporarily remove his/her inst_id
+        user.institutional_id = None
+        user.save()
+
+        expected_role_identifier = "test_student"
+
+        self.get_test_preapproval(
+            institutional_id=inst_id, roles=[expected_role_identifier])
+
+        with self.temporarily_switch_to_user(user):
+            self.c.post(self.enroll_request_url)
+
+        # Add back the inst_id
+        user.institutional_id = inst_id
+        user.institutional_id_verified = True
+        user.save()
+
+        user_participation = Participation.objects.get(user=user)
+        self.assertIn(expected_role_identifier,
+                      [role.identifier for role in user_participation.roles.all()])
+
+    def test_course_require_inst_id_verified_user_inst_id_not_verified1(self):
         # thought matched
         self.update_require_approval_course(
             preapproval_require_verified_inst_id=True)
@@ -410,7 +439,7 @@ class EnrollViewTest(EnrollmentTestMixin, TestCase):
         self.assertParticiaptionStatusCallCount([0, 0, 0, 1])
         self.assertEqual(len(mail.outbox), 1)
 
-    def test_coures_require_inst_id_verified_user_inst_id_not_verified2(self):
+    def test_course_require_inst_id_verified_user_inst_id_not_verified2(self):
         # not matched
         self.update_require_approval_course(
             preapproval_require_verified_inst_id=True)
@@ -427,7 +456,7 @@ class EnrollViewTest(EnrollmentTestMixin, TestCase):
         self.assertParticiaptionStatusCallCount([0, 0, 0, 1])
         self.assertEqual(len(mail.outbox), 1)
 
-    def test_coures_require_email_suffix_but_need_approval(self):
+    def test_course_require_email_suffix_but_need_approval(self):
         self.update_require_approval_course(
             enrollment_required_email_suffix="@blabla.com")
 
@@ -442,7 +471,7 @@ class EnrollViewTest(EnrollmentTestMixin, TestCase):
         self.assertParticiaptionStatusCallCount([0, 0, 0, 1])
         self.assertEqual(len(mail.outbox), 1)
 
-    def test_coures_require_email_suffix_passed_without_at(self):
+    def test_course_require_email_suffix_passed_without_at(self):
         # without @ in suffix config
         self.update_require_approval_course(
             enrollment_required_email_suffix="blabla.com")
@@ -457,7 +486,7 @@ class EnrollViewTest(EnrollmentTestMixin, TestCase):
         self.assertParticiaptionStatusCallCount([0, 0, 0, 1])
         self.assertEqual(len(mail.outbox), 1)
 
-    def test_coures_require_email_suffix_passed_without_at_pattern2(self):
+    def test_course_require_email_suffix_passed_without_at_pattern2(self):
         # without @ in suffix config
         self.update_require_approval_course(
             enrollment_required_email_suffix="blabla.com")
@@ -472,7 +501,7 @@ class EnrollViewTest(EnrollmentTestMixin, TestCase):
         self.assertParticiaptionStatusCallCount([0, 0, 0, 1])
         self.assertEqual(len(mail.outbox), 1)
 
-    def test_coures_require_email_suffix_failed(self):
+    def test_course_require_email_suffix_failed(self):
         required_suffix = "blabla.com"
         self.update_require_approval_course(
             enrollment_required_email_suffix=required_suffix)
