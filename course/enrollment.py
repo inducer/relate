@@ -330,12 +330,13 @@ def handle_enrollment_request(course, user, status, roles, request=None):
         participation.status = status
         participation.save()
 
-        if roles is not None:
-            participation.roles.set(roles)
     else:
         (participation,) = participations
         participation.status = status
         participation.save()
+
+    if roles is not None:
+        participation.roles.set(roles)
 
     if status == participation_status.active:
         send_enrollment_decision(participation, True, request)
