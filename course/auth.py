@@ -1287,8 +1287,7 @@ def auth_course_with_token(method, func, request,
     return response
 
 
-def with_course_api_auth(method):
-    # type: (Text,) -> Any
+def with_course_api_auth(method: Text) -> Any:
     def wrapper_with_method(func):
         def wrapper(*args, **kwargs):
             return auth_course_with_token(method, func, *args, **kwargs)
