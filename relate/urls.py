@@ -301,6 +301,46 @@ urlpatterns = [
         course.enrollment.edit_participation,
         name="relate-edit_participation"),
 
+    url(r"^course"
+        "/" + COURSE_ID_REGEX
+        + "/participation-tags/$",
+        course.enrollment.view_participation_tag_list,
+        name="relate-view_participation_tags"),
+    url(r"^course"
+        "/" + COURSE_ID_REGEX
+        + "/edit-participation-tag"
+          "/(?P<ptag_id>[-0-9]+)"
+          "/$",
+        course.enrollment.edit_participation_tag,
+        name="relate-edit_participation_tag"),
+    url(r"^course"
+        "/" + COURSE_ID_REGEX
+        + "/delete-participation-tag"
+          "/(?P<ptag_id>[-0-9]+)"
+          "/$",
+        course.enrollment.delete_participation_tag,
+        name="relate-delete_participation_tag"),
+
+    url(r"^course"
+        "/" + COURSE_ID_REGEX
+        + "/participation-roles/$",
+        course.enrollment.view_participation_role_list,
+        name="relate-view_participation_roles"),
+    url(r"^course"
+        "/" + COURSE_ID_REGEX
+        + "/edit-participation-role"
+          "/(?P<prole_id>[-0-9]+)"
+          "/$",
+        course.enrollment.edit_participation_role,
+        name="relate-edit_participation_role"),
+    url(r"^course"
+        "/" + COURSE_ID_REGEX
+        + "/delete-participation-role"
+          "/(?P<prole_id>[-0-9]+)"
+          "/$",
+        course.enrollment.delete_participation_role,
+        name="relate-delete_participation_role"),
+
     # }}}
 
     # {{{ media

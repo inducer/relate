@@ -1,5 +1,5 @@
 # Translation for Django RELATE package (https://github.com/inducer/relate/)
-# Language: zh_hans 
+# Language: zh_hans
 # Copyright (C) 2015 Andreas Kloeckner, Dong Zhuang
 # This file is distributed under the same license as the RELATE package.
 # Dong Zhuang <dzhuang.scut@gmail.com>, 2015.
@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2018-04-20 16:43+0800\n"
+"POT-Creation-Date: 2020-10-23 01:13+0800\n"
 "Last-Translator:  Dong Zhuang <dzhuang.scut@gmail.com>\n"
 "Language-Team: Dong Zhuang <dzhuang.scut@gmail.com>\n"
 "Language: \n"
@@ -236,17 +236,20 @@ msgstr "已经模拟了某个用户. "
 msgid "Impersonate user"
 msgstr "用户模拟"
 
-msgid "Stop impersonating"
-msgstr "停止模拟用户"
+msgid "only AJAX POST is allowed"
+msgstr "只允许AJAX POST操作"
+
+msgid "odd POST parameters"
+msgstr "怪异的POST参数设置"
+
+msgid "may not stop impersonating"
+msgstr "无法停止模拟用户"
 
 msgid "Not currently impersonating anyone."
 msgstr "当前未模拟任何用户. "
 
 msgid "No longer impersonating anyone."
 msgstr "未模拟任何用户. "
-
-msgid "Stop impersonating user"
-msgstr "停止模拟用户"
 
 msgid "Sign in"
 msgstr "登录"
@@ -389,6 +392,9 @@ msgstr "用户信息"
 msgid "You've already signed out."
 msgstr "您已经登出网站. "
 
+msgid "Relate direct git access for {}"
+msgstr "Relate直接git访问{}"
+
 msgid "Create"
 msgstr "创建"
 
@@ -448,33 +454,35 @@ msgid "Count"
 msgstr "次数"
 
 #, python-format
-msgid "'%(event_kind)s %(event_ordinal)d' already exists"
-msgstr "%(event_kind)s %(event_ordinal)d' 已经存在"
-
-msgctxt "Unkown time interval"
-msgid "unknown interval"
-msgstr "未知的时间间隔"
+msgid "'%(exist_event)s' already exists"
+msgstr "%(exist_event)s' 已经存在"
 
 msgid "may not edit events"
 msgstr "不允许编辑event"
 
-msgid "No events created."
-msgstr "未创建event. "
-
 msgid "Events created."
 msgstr "Event创建成功. "
 
+msgid "No events created."
+msgstr "未创建event. "
+
 msgid "Create recurring events"
 msgstr "创建重复进行的event"
+
+msgid "The starting ordinal of this kind of events"
+msgstr ""
+
+msgid "Tick to preserve the order of ordinals of existing events."
+msgstr ""
+
+msgid "Preserve ordinal order"
+msgstr ""
 
 msgid "Renumber"
 msgstr "重新编号"
 
 msgid "Events renumbered."
 msgstr "Event重新编号完成. "
-
-msgid "No events found."
-msgstr "未找到Event. "
 
 msgid "Renumber events"
 msgstr "重新编号"
@@ -657,6 +665,10 @@ msgstr "预览内容. "
 msgctxt "Participation permission"
 msgid "Update content"
 msgstr "更新内容"
+
+msgctxt "Participation permission"
+msgid "Use direct git endpoint"
+msgstr "使用直接git端"
 
 msgctxt "Participation permission"
 msgid "Use markup sandbox"
@@ -848,10 +860,6 @@ msgid "I have no idea what a processing instruction is."
 msgstr "我也不知道处理的指令是什么"
 
 #, python-format
-msgid "invalid period: %s"
-msgstr "无效的周期：%s"
-
-#, python-format
 msgid "unrecognized date/time specification: '%s' (interpreted as 'now')"
 msgstr "无法识别的日期/时间设定: '%s' (被解释为\"现在\")"
 
@@ -900,9 +908,6 @@ msgstr "您的电子邮件地址尚未确定, 请先确定邮件再继续. "
 msgid "Enrollment not allowed. Please use your '%s' email to enroll."
 msgstr "不允许加入, 请使用您的电子邮件\"%s\"申请加入课程. "
 
-msgid "Successfully enrolled."
-msgstr "成功加入课程"
-
 msgid "New enrollment request"
 msgstr "新的加入课程申请"
 
@@ -910,6 +915,9 @@ msgid ""
 "Enrollment request sent. You will receive notifcation by email once your "
 "request has been acted upon."
 msgstr "加入课程的申请已经发送, 如果您的要求被批准, 您将会收到邮件通知. "
+
+msgid "Successfully enrolled."
+msgstr "成功加入课程"
 
 msgid "A participation already exists. Enrollment attempt aborted."
 msgstr "该课程参与已经存在，加入课程申请的请求被放弃."
@@ -933,8 +941,8 @@ msgid "Preapproval type"
 msgstr "预先批准类型"
 
 msgid ""
-"Enter fully qualified data according to the \"Preapproval type\" you "
-"selected, one per line."
+"Enter fully qualified data according to the 'Preapproval type' you selected, "
+"one per line."
 msgstr "输入允许加入课程用户\"预先批准类型\"字段的数据, 每行一个. "
 
 msgid "Preapproval data"
@@ -1033,6 +1041,45 @@ msgstr ""
 msgid "Edit Participation"
 msgstr "编辑课程参与"
 
+msgid "Add"
+msgstr "添加"
+
+msgid "may not edit participation tags"
+msgstr "不允许编辑课程参与标签"
+
+msgid "A participation tag with that name already exists."
+msgstr "同名的课程参与标签已经存在"
+
+msgid "Edit Participation Tag"
+msgstr "编辑课程参与标签"
+
+#, python-format
+msgid ""
+"Error when deleting participation tag '%(tag)s'. %(error_type)s: %(error)s."
+msgstr "在删除'%(tag)s'时出现错误: %(error_type)s: %(error)s."
+
+#, python-format
+msgid "successfully deleted participation tag '%(tag)s'."
+msgstr "成功删除课程参与标签'%(tag)s."
+
+msgid "invalid operation"
+msgstr "无效操作"
+
+msgid "A participation role with that name already exists."
+msgstr "同名的课程参与角色已经存在."
+
+msgid "Edit Participation Role"
+msgstr "编辑课程参与角色"
+
+#, python-format
+msgid ""
+"Error when deleting participation role '%(role)s'. %(error_type)s: %(error)s."
+msgstr "在删除'%(role)s'时出现错误: %(error_type)s: %(error)s."
+
+#, python-format
+msgid "successfully deleted participation role '%(role)s'."
+msgstr "成功删除课程参与角色'%(role)s."
+
 msgid "Select participant for whom ticket is to be issued."
 msgstr "选择发放ticket的的用户. "
 
@@ -1130,11 +1177,11 @@ msgstr ""
 "<tt>{{ tkt.code }}</tt>, <tt>{{ tkt.exam.description }}</tt>, 以及"
 "<tt>{{ checkin_uri }}</tt> 作为占位符. 请参考以上的例子."
 
-msgid "Ticket Format"
-msgstr "ticket格式"
-
 msgid "Revoke prior exam tickets"
 msgstr "撤回之前的测验ticket"
+
+msgid "Ticket Format"
+msgstr "ticket格式"
 
 msgid "Issue tickets"
 msgstr "发布ticket"
@@ -1371,9 +1418,6 @@ msgstr "只能更改正在进行中的session"
 msgid "invalid expiration mode"
 msgstr "无效的过期模式"
 
-msgid "odd POST parameters"
-msgstr "怪异的POST参数设置"
-
 msgid "Cannot end a session that's already ended"
 msgstr "无法结束已经结束的session"
 
@@ -1491,9 +1535,6 @@ msgstr "不允许批量实施截止flow"
 
 msgid "may not batch-recalculate grades"
 msgstr "不允许批量重新计算评分"
-
-msgid "invalid operation"
-msgstr "无效操作"
 
 msgid "Set access rules tag"
 msgstr "设置访问规则tag"
@@ -1983,6 +2024,15 @@ msgstr "事件(event)"
 
 msgid "Events"
 msgstr "事件(event)"
+
+msgid "End time must not be ahead of start time."
+msgstr ""
+
+#, python-brace-format
+msgid ""
+"May not create multiple ordinal-less events of kind '{evt_kind}' in course "
+"'{course}'"
+msgstr ""
 
 #. Translators: name format of ParticipationTag
 msgid "Format is lower-case-with-hyphens. Do not use spaces."
@@ -2836,6 +2886,9 @@ msgstr "其它允许的选项是"
 msgid "choice %(idx)d: unable to convert to string"
 msgstr "选项%(idx)d: 无法转换为字符串"
 
+msgid "(Non-string in 'HTML' output filtered out)"
+msgstr "(非HTML的输出已被过滤)"
+
 #, python-format
 msgid "data file '%(file)s' not found"
 msgstr "data file '%(file)s' 未找到"
@@ -2919,9 +2972,6 @@ msgstr "你的代码得到以下的图"
 
 msgid "Figure"
 msgstr "图"
-
-msgid "(Non-string in 'HTML' output filtered out)"
-msgstr "(非HTML的输出已被过滤)"
 
 msgid "The following code is a valid answer"
 msgstr "以下的代码是一个有效的回答"
@@ -3276,14 +3326,14 @@ msgctxt "menu item"
 msgid "Grading"
 msgstr "成绩管理"
 
+msgid "List of participants"
+msgstr "参与者列表"
+
 msgid "Analytics Overview"
 msgstr "分析总览"
 
 msgid "Grade Book"
 msgstr "成绩册"
-
-msgid "List of Participants"
-msgstr "参与者列表"
 
 msgid "List of Grading Opportunities"
 msgstr "得分机会列表"
@@ -3361,8 +3411,17 @@ msgstr "目前正在进行一项互动活动. "
 msgid "Go to activity"
 msgstr "转到课程活动"
 
+msgid "View activity analytics"
+msgstr "查看活动统计"
+
 msgid "There are some interactive activities going on right now."
 msgstr "目前正在进行一些互动活动. "
+
+msgid "View activity"
+msgstr "查看活动"
+
+msgid "analytics"
+msgstr "分析统计"
 
 msgid "This course is only visible to course staff at the moment."
 msgstr "本课程目前只对课务人员显示. "
@@ -3684,6 +3743,9 @@ msgstr "(当前的)"
 msgid "(submitted)"
 msgstr "(已提交的)"
 
+msgid "not started"
+msgstr "未开始"
+
 msgid "unfinished"
 msgstr "未完成"
 
@@ -3804,6 +3866,12 @@ msgstr "当前预览的git SHA"
 
 msgid "None"
 msgstr "无"
+
+msgid "Direct git endpoint"
+msgstr ""
+
+msgid "Manage access tokens"
+msgstr "管理访问token"
 
 msgid "Grading"
 msgstr "评分"
@@ -4308,8 +4376,35 @@ msgstr "无限制的"
 msgid "(never used)"
 msgstr "(从未使用)"
 
+msgid "Add participation role"
+msgstr "添加课程参与角色"
+
+msgid "Default for new participants"
+msgstr "是否是新参与者的默认角色？"
+
+msgid "Default for unenrolled"
+msgstr "是否是未参与者的默认角色？"
+
+msgid "Delete"
+msgstr "删除"
+
+msgid "Close"
+msgstr "关闭"
+
 msgid "Status"
 msgstr "状态"
+
+msgid "Participant Tags"
+msgstr "课程参与标签"
+
+msgid "Add participation tag"
+msgstr "添加课程参与标签"
+
+msgid "Tag name"
+msgstr "标签名"
+
+msgid "Shown to participant"
+msgstr "向学员显示"
 
 #. Translators: "set-up" stands for set-up code for code question
 msgid "Problem set-up code"
@@ -4539,6 +4634,21 @@ msgid "group '%(group_id)s': max_page_count is not positive"
 msgstr "group \"%(group_id)s\": max_page_count 不是正数"
 
 #, python-format
+msgid "%(location)s, group '%(group_id)s': "
+msgstr "%(location)s, 组'%(group_id)s': "
+
+#, fuzzy
+#| msgid ""
+#| "'credit_mode' will be required on multi-select choice questions in a "
+#| "future version. set 'credit_mode: {}' to match current behavior."
+msgid ""
+"shuffle attribute will be required for groups withmax_page_count in a future "
+"version. set 'shuffle: False' to match current behavior."
+msgstr ""
+"在将来的版本中, 多项选择问题必须设置'credit_mode'. 目前，可用'credit_mode："
+"{}'的方式来对应当前的行为. "
+
+#, python-format
 msgid "page id '%(page_desc_id)s' not unique"
 msgstr "page id \"%(page_desc_id)s\" 应是唯一的"
 
@@ -4744,8 +4854,8 @@ msgstr "课程创建失败"
 msgid "invalid command"
 msgstr "无效的命令"
 
-msgid "fetch would discard commits, refusing"
-msgstr "fetch将会放弃修改, 拒绝fetch"
+msgid "internal git repo has more commits. Fetch, merge and push."
+msgstr ""
 
 msgid "Fetch successful."
 msgstr "fetch成功. "
@@ -4856,6 +4966,9 @@ msgid ""
 "Add a page header to every page rendered while pretending to be in a "
 "facility, as a reminder that this pretending is in progress."
 msgstr "为所有虚拟教学设备的页面添加header，以提示目前正在虚拟过程中."
+
+msgid "may not pretend facilities"
+msgstr "不允许假装在设施中"
 
 msgid "Pretend to be in Facilities"
 msgstr "假装置身于教学设施中"
@@ -5024,8 +5137,10 @@ msgid "credit"
 msgstr "应得分"
 
 #, python-format
-msgid "Exception granted to '%(participation)s' for '%(flow_id)s'."
-msgstr "已对%(participation)s的%(flow_id)s给予破例. "
+msgid ""
+"'%(exception_type)s' exception granted to '%(participation)s' for "
+"'%(flow_id)s'."
+msgstr "已对%(participation)s的%(flow_id)s给予'%(exception_type)s'破例. "
 
 #, python-format
 msgid ""
@@ -5151,6 +5266,9 @@ msgstr "假装置身于教学设施中"
 msgid "Now impersonating"
 msgstr "正在模拟"
 
+msgid "Stop impersonating"
+msgstr "停止模拟用户"
+
 msgid ""
 "This website may not be compatible with your outdated Internet Explorer "
 "version. If you want use Internet Explorer, please install one with version "
@@ -5252,3 +5370,20 @@ msgstr ""
 
 msgid "whatever"
 msgstr ""
+
+#~ msgid "Stop impersonating user"
+#~ msgstr "停止模拟用户"
+
+#~ msgctxt "Unkown time interval"
+#~ msgid "unknown interval"
+#~ msgstr "未知的时间间隔"
+
+#~ msgid "No events found."
+#~ msgstr "未找到Event. "
+
+#, python-format
+#~ msgid "invalid period: %s"
+#~ msgstr "无效的周期：%s"
+
+#~ msgid "fetch would discard commits, refusing"
+#~ msgstr "fetch将会放弃修改, 拒绝fetch"

@@ -1,0 +1,110 @@
+{% load i18n %}
+
+<table class="table table-striped participant-roles">
+  <thead>
+    <th class="datacol">{% trans "Role identifier" %}</th>
+    <th class="datacol">{% trans "Role name" %}</th>
+    <th class="datacol no-sort">{% trans "Default for new participants" %}</th>
+    <th class="datacol no-sort">{% trans "Default for unenrolled" %}</th>
+    {% if pperm.edit_participation %}
+      <th class="datacol no-sort">{% trans "Actions" %}</th>
+    {% endif %}
+  </thead>
+  <tbody>
+    {% for role in participation_roles %}
+    <tr>
+      <td class="headcol"><span class="sensitive">{{ role.identifier }}</span></td>
+      <td class="headcol"><span class="sensitive">{{ role.name }}</span></td>
+      <td class="datacol">
+        {% if role.is_default_for_new_participants %}
+          <i class="fa fa-check-square-o"></i>
+        {% else %}
+          <i class="fa fa-square-o"></i>
+        {% endif %}
+      </td>
+      <td class="datacol">
+        {% if role.is_default_for_unenrolled %}
+          <i class="fa fa-check-square-o"></i>
+        {% else %}
+          <i class="fa fa-square-o"></i>
+        {% endif %}
+      </td>
+      {% if pperm.edit_participation %}
+        <td class="datacol">
+          <a href="{% url "relate-edit_participation_role" course.identifier role.id %}" class="btn btn-default btn-xs">{% trans "Edit" %}</a>
+          <button data-action="{%  url "relate-delete_participation_role" course.identifier role.id %}" class="btn btn-danger btn-xs delete-prole-action">{% trans "Delete" %}</button>
+        </td>
+      {% endif %}
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+
+{% block participation_role_table_bottom_js %}
+  {% load static %}
+  {% get_current_js_lang_name as LANG %}
+    <script type="text/javascript">
+      var tbl = $("table.participant-roles").dataTable({
+        "scrollCollapse": true,
+        "paging": false,
+        "ordering": true,
+        "columnDefs": [
+          { type: 'name', targets: 1 },
+          { targets: 'no-sort', orderable: false,}],
+        "language": {url: '{% static "datatables-i18n/i18n/" %}{{LANG}}.json'},
+      });
+    </script>
+
+    <script type="text/x-tmpl" id="django-message-template">
+      <div class="alert alert-{{ JQ_OPEN }}=o.tags{{ JQ_CLOSE }} fade in" data-alert="{{ JQ_OPEN }}=o.tags{{ JQ_CLOSE }}">
+        <button class="close" title="{% trans 'Close' %}" data-dismiss="alert">&times;</button>
+        <i class="fa fa-{{ JQ_OPEN }}=o.icon_class{{ JQ_CLOSE }}"></i>
+        {{ JQ_OPEN }}=o.message{{ JQ_CLOSE }}
+      </div>
+    </script>
+
+    <script>
+    $('.delete-prole-action').click(function(){
+      var row = $(this);
+      $.ajax({
+        type: "POST",
+        url: row.data('action'),
+        data: {
+          'csrfmiddlewaretoken': '{{ csrf_token }}',
+          'delete': true
+        },
+        success: function(jqXHR, textStatus) {
+          row.closest("tr").remove();
+          djangoMessage(jqXHR.message, textStatus)
+        },
+        error: function(jqXHR, textStatus, error) {
+          if (jqXHR.status === 404) {
+            row.closest("tr").remove()}
+          else {
+            djangoMessage(jqXHR.responseJSON.error || error, textStatus);
+          }
+        }
+      });
+    });
+
+    function djangoMessage(msg, level) {
+      var levels = {warning: 'warning',
+          error: 'danger',
+          success: 'success',
+          info: 'info'},
+        fontAwesomeClass = {warning: 'warning',
+          error: 'ban',
+          success: 'check',
+          info: 'info-circle'
+        },
+        html = tmpl("django-message-template", {
+          "message": msg, "tags": levels[level],
+          "icon_class": fontAwesomeClass[level]
+        });
+      $("#content-wrapper").prepend(html);
+    }
+
+    </script>
+
+{% endblock %}

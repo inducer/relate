@@ -1114,4 +1114,251 @@ def edit_participation(pctx, participation_id):
 
 # }}}
 
+
+# {{{ edit_participation_tag
+
+class EditParticipationTagForm(StyledModelForm):
+    def __init__(self, add_new, *args, **kwargs):
+        # type: (bool, *Any, **Any) -> None
+        super(EditParticipationTagForm, self).__init__(*args, **kwargs)
+
+        if add_new:
+            self.helper.add_input(
+                    Submit("submit", _("Add")))
+        else:
+            self.helper.add_input(
+                    Submit("submit", _("Update")))
+
+    class Meta:
+        model = ParticipationTag
+        exclude = ("course",)
+
+
+@course_view
+def view_participation_tag_list(pctx):
+    if not pctx.has_permission(pperm.view_gradebook):
+        raise PermissionDenied(_("may not edit participation tags"))
+
+    participation_tags = list(ParticipationTag.objects.filter(course=pctx.course))
+
+    return render_course_page(pctx, "course/participation-tag-list.html", {
+        "participation_tags": participation_tags,
+
+        # Wrappers used by JavaScript template (tmpl) so as not to
+        # conflict with Django template's tag wrapper
+        "JQ_OPEN": "{%",
+        "JQ_CLOSE": "%}",
+        })
+
+
+@course_view
+def edit_participation_tag(pctx, ptag_id):
+    # type: (CoursePageContext, int) -> http.HttpResponse
+    if not pctx.has_permission(pperm.edit_participation):
+        raise PermissionDenied()
+
+    request = pctx.request
+
+    num_ptag_id = int(ptag_id)
+
+    if num_ptag_id == -1:
+        ptag = ParticipationTag(course=pctx.course)
+        add_new = True
+    else:
+        ptag = get_object_or_404(ParticipationTag, id=num_ptag_id)
+        add_new = False
+
+    if ptag.course.id != pctx.course.id:
+        raise SuspiciousOperation(
+            "may not edit participation tag in different course")
+
+    if request.method == "POST":
+        form = EditParticipationTagForm(add_new, request.POST, instance=ptag)
+        try:
+            if form.is_valid():
+                form.save()
+                messages.add_message(request, messages.SUCCESS, _("Changes saved."))
+                return redirect(
+                    "relate-view_participation_tags", pctx.course.identifier)
+        except IntegrityError:
+            messages.add_message(
+                request, messages.ERROR,
+                _("A participation tag with that name already exists."))
+
+    else:
+        form = EditParticipationTagForm(add_new, instance=ptag)
+
+    return render_course_page(pctx, "course/generic-course-form.html", {
+        "form_description": _("Edit Participation Tag"),
+        "form": form,
+        })
+
+
+@course_view
+def delete_participation_tag(pctx, ptag_id):
+    # type: (CoursePageContext, int) -> http.HttpResponse
+
+    if not pctx.has_permission(pperm.edit_participation):
+        raise PermissionDenied()
+
+    request = pctx.request
+
+    if not request.is_ajax() or request.method != "POST":
+        raise PermissionDenied(_("only AJAX POST is allowed"))
+
+    num_ptag_id = int(ptag_id)
+
+    ptag = get_object_or_404(ParticipationTag, id=num_ptag_id)
+
+    if ptag.course.id != pctx.course.id:
+        raise SuspiciousOperation(
+            "may not delete participation tag in different course")
+
+    if "delete" in request.POST:
+        try:
+            ptag.delete()
+        except Exception as e:
+            return http.JsonResponse(
+                {"error": _(
+                    "Error when deleting participation tag '%(tag)s'."
+                    " %(error_type)s: %(error)s.") % {
+                    "tag": ptag.name,
+                    "error_type": type(e).__name__,
+                    "error": str(e)}},
+                status=400)
+        else:
+            return http.JsonResponse(
+                {"message": _("successfully deleted participation tag '%(tag)s'.")
+                    % {"tag": ptag.name},
+                 "message_level": messages.DEFAULT_TAGS[messages.SUCCESS]})
+
+    else:
+        raise SuspiciousOperation(_("invalid operation"))
+
+# }}}
+
+
+# {{{ edit_participation_role
+
+class EditParticipationRoleForm(StyledModelForm):
+    def __init__(self, add_new, *args, **kwargs):
+        # type: (bool, *Any, **Any) -> None
+        super(EditParticipationRoleForm, self).__init__(*args, **kwargs)
+
+        if add_new:
+            self.helper.add_input(
+                    Submit("submit", _("Add")))
+        else:
+            self.helper.add_input(
+                    Submit("submit", _("Update")))
+
+    class Meta:
+        model = ParticipationRole
+        exclude = ("course",)
+
+
+@course_view
+def view_participation_role_list(pctx):
+    if not pctx.has_permission(pperm.view_gradebook):
+        raise PermissionDenied(_("may not edit participation tags"))
+
+    participation_roles = list(ParticipationRole.objects.filter(course=pctx.course))
+
+    return render_course_page(pctx, "course/participation-role-list.html", {
+        "participation_roles": participation_roles,
+
+        # Wrappers used by JavaScript template (tmpl) so as not to
+        # conflict with Django template's tag wrapper
+        "JQ_OPEN": "{%",
+        "JQ_CLOSE": "%}",
+        })
+
+
+@course_view
+def edit_participation_role(pctx, prole_id):
+    # type: (CoursePageContext, int) -> http.HttpResponse
+    if not pctx.has_permission(pperm.edit_participation):
+        raise PermissionDenied()
+
+    request = pctx.request
+
+    num_prole_id = int(prole_id)
+
+    if num_prole_id == -1:
+        prole = ParticipationRole(course=pctx.course)
+        add_new = True
+    else:
+        prole = get_object_or_404(ParticipationRole, id=num_prole_id)
+        add_new = False
+
+    if prole.course.id != pctx.course.id:
+        raise SuspiciousOperation(
+            "may not edit participation role in different course")
+
+    if request.method == "POST":
+        form = EditParticipationRoleForm(add_new, request.POST, instance=prole)
+        try:
+            if form.is_valid():
+                form.save()
+                messages.add_message(request, messages.SUCCESS, _("Changes saved."))
+                return redirect(
+                    "relate-view_participation_roles", pctx.course.identifier)
+        except IntegrityError:
+            messages.add_message(
+                request, messages.ERROR,
+                _("A participation role with that name already exists."))
+
+    else:
+        form = EditParticipationRoleForm(add_new, instance=prole)
+
+    return render_course_page(pctx, "course/generic-course-form.html", {
+        "form_description": _("Edit Participation Role"),
+        "form": form,
+        })
+
+
+@course_view
+def delete_participation_role(pctx, prole_id):
+    # type: (CoursePageContext, int) -> http.HttpResponse
+
+    if not pctx.has_permission(pperm.edit_participation):
+        raise PermissionDenied()
+
+    request = pctx.request
+
+    if not request.is_ajax() or request.method != "POST":
+        raise PermissionDenied(_("only AJAX POST is allowed"))
+
+    num_prole_id = int(prole_id)
+
+    prole = get_object_or_404(ParticipationRole, id=num_prole_id)
+
+    if prole.course.id != pctx.course.id:
+        raise SuspiciousOperation(
+            "may not delete participation role in different course")
+
+    if "delete" in request.POST:
+        try:
+            prole.delete()
+        except Exception as e:
+            return http.JsonResponse(
+                {"error": _(
+                    "Error when deleting participation role '%(role)s'."
+                    " %(error_type)s: %(error)s.") % {
+                    "role": prole.identifier,
+                    "error_type": type(e).__name__,
+                    "error": str(e)}},
+                status=400)
+        else:
+            return http.JsonResponse(
+                {"message": _("successfully deleted participation role '%(role)s'.")
+                    % {"role": prole.identifier},
+                 "message_level": messages.DEFAULT_TAGS[messages.SUCCESS]})
+
+    else:
+        raise SuspiciousOperation(_("invalid operation"))
+
+# }}}
+
+
 # vim: foldmethod=marker

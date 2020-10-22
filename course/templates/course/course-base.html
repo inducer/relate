@@ -48,18 +48,23 @@
     </li>
   {% endif %}
 
-  {% if pperm.view_gradebook %}
+  {% if pperm.view_gradebook or pperm.edit_participation %}
   <li class="dropdown">
     <a href="#" class="dropdown-toggle" data-toggle="dropdown">{% trans "Grading" context "menu item" %}<b class="caret"></b></a>
     <ul class="dropdown-menu">
+        <li role="presentation" class="dropdown-header">{% trans "Participations" %}</li>
+        <li><a href="{% url "relate-view_participant_list" course.identifier %}">{% trans "List of participants" %}</a></li>
+        {% if pperm.edit_participation %}
+            <li><a href="{% url "relate-view_participation_roles" course.identifier %}">{% trans "Participation roles" %}</a></li>
+            <li><a href="{% url "relate-view_participation_tags" course.identifier %}">{% trans "Participation tags" %}</a></li>
+        <li role="presentation" class="divider"></li>
+        {% endif %}
       {% if pperm.view_analytics %}
         <li><a href="{% url "relate-flow_list" course.identifier %}">{% trans "Analytics Overview" %}</a></li>
       {% endif %}
-
       {% if pperm.view_gradebook %}
         <li role="presentation" class="divider"></li>
         <li role="presentation" class="dropdown-header">{% trans "Grade Book" %}</li>
-        <li><a href="{% url "relate-view_participant_list" course.identifier %}">{% trans "List of Participants" %}</a></li>
         <li><a href="{% url "relate-view_grading_opportunity_list" course.identifier %}">{% trans "List of Grading Opportunities" %}</a></li>
         <li><a href="{% url "relate-view_gradebook" course.identifier %}">{% trans "Grade book" %}</a></li>
         {% if pperm.batch_export_grade %}
