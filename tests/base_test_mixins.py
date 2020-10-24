@@ -225,6 +225,10 @@ class ResponseContextMixin(object):
         except Exception:
             self.assertEqual(value, expected_value)
 
+    def assertResponseContextLengthEqual(self, resp, context_name, expected_length):  # noqa
+        value = self.get_response_context_value_by_name(resp, context_name)
+        self.assertEqual(len(value), expected_length)
+
     def assertResponseContextContains(self, resp,  # noqa
                                       context_name, expected_value, html=False,
                                       in_bulk=False):

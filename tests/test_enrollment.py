@@ -24,6 +24,7 @@ THE SOFTWARE.
 
 import unittest
 import pytest
+from random import randint
 from django.test import TestCase, RequestFactory
 from django.conf import settings
 from django.test.utils import override_settings  # noqa
@@ -36,7 +37,7 @@ from relate.utils import string_concat
 from course import constants
 from course import enrollment
 from course.models import (
-    Participation, ParticipationRole, ParticipationPreapproval)
+    Participation, ParticipationRole, ParticipationPreapproval, ParticipationTag)
 from course.constants import (
     participation_status as p_status, user_status as u_status)
 
@@ -132,6 +133,36 @@ class EnrollmentTestMixin(MockAddMessageMixing, CoursesTestMixinBase):
     def get_participation_edit_url(cls, participation_id):
         return reverse("relate-edit_participation",
                        args=[cls.course.identifier, participation_id])
+
+    @ classmethod
+    def get_participation_tag_list_url(cls):
+        return reverse("relate-view_participation_tags",
+                       args=[cls.course.identifier])
+
+    @classmethod
+    def get_participation_tag_edit_url(cls, ptag_id):
+        return reverse("relate-edit_participation_tag",
+                       args=[cls.course.identifier, ptag_id])
+
+    @classmethod
+    def get_participation_tag_delete_url(cls, ptag_id):
+        return reverse("relate-delete_participation_tag",
+                       args=[cls.course.identifier, ptag_id])
+
+    @ classmethod
+    def get_participation_role_list_url(cls):
+        return reverse("relate-view_participation_roles",
+                       args=[cls.course.identifier])
+
+    @classmethod
+    def get_participation_role_edit_url(cls, prole_id):
+        return reverse("relate-edit_participation_role",
+                       args=[cls.course.identifier, prole_id])
+
+    @classmethod
+    def get_participation_role_delete_url(cls, prole_id):
+        return reverse("relate-delete_participation_role",
+                       args=[cls.course.identifier, prole_id])
 
     def get_participation_count_by_status(self, status):
         return Participation.objects.filter(
@@ -1902,6 +1933,557 @@ class QueryParticipationsParseQueryTest(QueryParticipationsTestMixin, TestCase):
         self.assertEqual(p2.status, p_status.dropped)
 
     # }}}
+
+
+class ParticipationTagCRUDTest(
+        SingleCourseTestMixin, EnrollmentTestMixin, TestCase):
+    def setUp(self):
+        super(ParticipationTagCRUDTest, self).setUp()
+        self.c.force_login(self.instructor_participation.user)
+
+    def get_default_edit_ptag_post_data(self, **kwargs):
+        data = {"name": "a_tag"}
+        data.update(kwargs)
+        return data
+
+    def get_default_delete_ptag_post_data(self, **kwargs):
+        data = {}
+        if not kwargs.pop("no_delete_in_post", None):
+            data = {"delete": True}
+        data.update(kwargs)
+        return data
+
+    @property
+    def ptag_list_url(self):
+        return self.get_participation_tag_list_url()
+
+    def test_view_ptag_list_permission_denied(self):
+        with self.temporarily_switch_to_user(self.student_participation.user):
+            resp = self.c.get(self.ptag_list_url)
+            self.assertEqual(resp.status_code, 403)
+
+    def test_view_ptag_list_success(self):
+        n_tags = randint(2, 10)
+        factories.ParticipationTagFactory.create_batch(
+            size=n_tags, course=self.course)
+
+        resp = self.c.get(self.ptag_list_url)
+        self.assertEqual(resp.status_code, 200)
+
+        self.assertResponseContextLengthEqual(
+                resp, "participation_tags", n_tags)
+
+    def test_edit_ptag_permission_denied(self):
+        self.c.force_login(self.student_participation.user)
+
+        # GET requests
+        resp = self.c.get(self.get_participation_tag_edit_url(0))
+        self.assertEqual(resp.status_code, 403)
+
+        n_tags = randint(2, 10)
+        ptags = factories.ParticipationTagFactory.create_batch(
+            size=n_tags, course=self.course)
+
+        resp = self.c.get(self.get_participation_tag_edit_url(ptags[0].id))
+        self.assertEqual(resp.status_code, 403)
+
+        resp = self.c.get(self.get_participation_tag_edit_url(-1))
+        self.assertEqual(resp.status_code, 403)
+
+        # POST requests
+        resp = self.c.post(self.get_participation_tag_edit_url(-1),
+                           data=self.get_default_edit_ptag_post_data())
+        self.assertEqual(resp.status_code, 403)
+
+        resp = self.c.post(self.get_participation_tag_edit_url(0),
+                           data=self.get_default_edit_ptag_post_data())
+        self.assertEqual(resp.status_code, 403)
+
+    def test_edit_ptag_get_success(self):
+        resp = self.c.get(self.get_participation_tag_edit_url(0))
+        self.assertEqual(resp.status_code, 404)
+
+        n_tags = randint(2, 10)
+        ptags = factories.ParticipationTagFactory.create_batch(
+            size=n_tags, course=self.course)
+
+        resp = self.c.get(self.get_participation_tag_edit_url(ptags[-1].id))
+        self.assertEqual(resp.status_code, 200)
+
+        resp = self.c.get(self.get_participation_tag_edit_url(-1))
+        self.assertEqual(resp.status_code, 200)
+
+    def test_edit_ptag_post_update(self):
+        n_tags = randint(2, 10)
+        ptags = factories.ParticipationTagFactory.create_batch(
+            size=n_tags, course=self.course)
+
+        expected_ptag_name = "some_tag_name"
+
+        # Get a ptag with has different name with expected_ptag_name
+        ptag = None
+        for ptag in ptags:
+            if ptag.name != expected_ptag_name:
+                break
+
+        resp = self.c.post(
+            self.get_participation_tag_edit_url(ptag.id),
+            data=self.get_default_edit_ptag_post_data(name=expected_ptag_name),
+        )
+        self.assertEqual(ParticipationTag.objects.count(), n_tags)
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(ParticipationTag.objects.get(pk=ptag.id).name,
+                         expected_ptag_name)
+        self.assertAddMessageCallCount(1)
+        self.assertAddMessageCalledWith("Changes saved.")
+
+    def test_edit_ptag_from_another_course(self):
+        ptag = factories.ParticipationTagFactory(
+            course=factories.CourseFactory(identifier="another-course"))
+
+        resp = self.c.get(self.get_participation_tag_edit_url(ptag.id))
+        self.assertEqual(resp.status_code, 400)
+
+    def test_edit_ptag_post_update_integrity_error(self):
+        n_tags = randint(2, 10)
+        ptags = factories.ParticipationTagFactory.create_batch(
+            size=n_tags, course=self.course)
+
+        exist_ptag_name = None
+
+        ptag = None
+        for ptag in ptags:
+            if exist_ptag_name is None:
+                exist_ptag_name = ptag.name
+                continue
+            if ptag.name != exist_ptag_name:
+                break
+
+        ptag_name = ptag.name
+
+        resp = self.c.post(
+            self.get_participation_tag_edit_url(ptag.id),
+            data=self.get_default_edit_ptag_post_data(name=exist_ptag_name),
+        )
+
+        self.assertEqual(ParticipationTag.objects.count(), n_tags)
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(ParticipationTag.objects.get(pk=ptag.id).name,
+                         ptag_name)
+        self.assertAddMessageCallCount(1)
+        self.assertAddMessageCalledWith(
+            "A participation tag with that name already exists.")
+
+    def test_edit_ptag_post_create_new_success(self):
+        n_tags = randint(2, 10)
+        factories.ParticipationTagFactory.create_batch(
+            size=n_tags, course=self.course)
+
+        resp = self.c.post(
+            self.get_participation_tag_edit_url(-1),
+            data=self.get_default_edit_ptag_post_data(),
+        )
+
+        self.assertEqual(ParticipationTag.objects.count(), n_tags+1)
+        self.assertEqual(resp.status_code, 302)
+        self.assertAddMessageCallCount(1)
+        self.assertAddMessageCalledWith("New participation tag saved.")
+
+    def test_edit_ptag_post_create_new_integrity_error(self):
+        n_tags = randint(2, 10)
+        ptags = factories.ParticipationTagFactory.create_batch(
+            size=n_tags, course=self.course)
+
+        resp = self.c.post(
+            self.get_participation_tag_edit_url(-1),
+            data=self.get_default_edit_ptag_post_data(name=ptags[0].name),
+        )
+
+        self.assertEqual(ParticipationTag.objects.count(), n_tags)
+        self.assertEqual(resp.status_code, 200)
+        self.assertAddMessageCallCount(1)
+        self.assertAddMessageCalledWith(
+            "A participation tag with that name already exists.")
+
+    def test_edit_ptag_post_form_invalid(self):
+        n_tags = randint(2, 10)
+        factories.ParticipationTagFactory.create_batch(
+            size=n_tags, course=self.course)
+
+        # Spaces are not allowed in ptag
+        resp = self.c.post(
+            self.get_participation_tag_edit_url(-1),
+            data=self.get_default_edit_ptag_post_data(name="a tag"),
+        )
+
+        self.assertEqual(ParticipationTag.objects.count(), n_tags)
+        self.assertEqual(resp.status_code, 200)
+        self.assertAddMessageCallCount(0)
+        self.assertFormErrorLoose(resp, "invalid characters.")
+
+    def test_delete_ptag_permission_denied(self):
+        n_tags = randint(2, 10)
+        ptags = factories.ParticipationTagFactory.create_batch(
+            size=n_tags, course=self.course)
+
+        with self.temporarily_switch_to_user(self.student_participation.user):
+            resp = self.c.get(self.get_participation_tag_delete_url(ptags[0].id))
+            self.assertEqual(resp.status_code, 403)
+
+            resp = self.c.post(
+                self.get_participation_tag_delete_url(ptags[0].id),
+                data=self.get_default_delete_ptag_post_data(),
+                HTTP_X_REQUESTED_WITH='XMLHttpRequest'
+            )
+            self.assertEqual(resp.status_code, 403)
+            self.assertEqual(ParticipationTag.objects.count(), n_tags)
+
+    def test_delete_ptag_get_or_non_ajax_post_not_allowed(self):
+        n_tags = randint(2, 10)
+        ptags = factories.ParticipationTagFactory.create_batch(
+            size=n_tags, course=self.course)
+
+        resp = self.c.get(self.get_participation_tag_delete_url(ptags[0].id))
+        self.assertEqual(resp.status_code, 403)
+
+        resp = self.c.post(
+            self.get_participation_tag_delete_url(ptags[0].id),
+            data=self.get_default_delete_ptag_post_data(),
+        )
+        self.assertEqual(resp.status_code, 403)
+        self.assertEqual(ParticipationTag.objects.count(), n_tags)
+
+    def test_delete_ptag_success(self):
+        n_tags = randint(2, 10)
+        ptags = factories.ParticipationTagFactory.create_batch(
+            size=n_tags, course=self.course)
+
+        resp = self.c.post(
+            self.get_participation_tag_delete_url(ptags[0].id),
+            data=self.get_default_delete_ptag_post_data(),
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest'
+        )
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(ParticipationTag.objects.count(), n_tags-1)
+
+    def test_delete_ptag_suspicious(self):
+        n_tags = randint(2, 10)
+        ptags = factories.ParticipationTagFactory.create_batch(
+            size=n_tags, course=self.course)
+
+        resp = self.c.post(
+            self.get_participation_tag_delete_url(ptags[0].id),
+            data=self.get_default_delete_ptag_post_data(
+                no_delete_in_post=True, some_action=True),
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest'
+        )
+        self.assertEqual(resp.status_code, 400)
+        self.assertEqual(ParticipationTag.objects.count(), n_tags)
+
+    def test_delete_ptag_from_another_course(self):
+        ptag = factories.ParticipationTagFactory(
+            course=factories.CourseFactory(identifier="another-course"))
+
+        resp = self.c.post(
+            self.get_participation_tag_delete_url(ptag.id),
+            data=self.get_default_delete_ptag_post_data(),
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest'
+        )
+
+        self.assertEqual(resp.status_code, 400)
+        self.assertEqual(ParticipationTag.objects.count(), 1)
+
+    def test_delete_ptag_exception_raised(self):
+        n_tags = randint(2, 10)
+        ptags = factories.ParticipationTagFactory.create_batch(
+            size=n_tags, course=self.course)
+
+        with mock.patch("course.models.ParticipationTag.delete") as mock_ptag_del:
+            mock_ptag_del.side_effect = (
+                RuntimeError("some error"))
+
+            resp = self.c.post(
+                self.get_participation_tag_delete_url(ptags[0].id),
+                data=self.get_default_delete_ptag_post_data(),
+                HTTP_X_REQUESTED_WITH='XMLHttpRequest'
+            )
+            self.assertEqual(resp.status_code, 400)
+
+            import json
+            self.assertIn(
+                "Error when deleting participation tag",
+                json.loads(resp.content.decode())["error"]
+            )
+
+
+class ParticipationRoleCRUDTest(
+        SingleCourseTestMixin, EnrollmentTestMixin, TestCase):
+    def setUp(self):
+        super(ParticipationRoleCRUDTest, self).setUp()
+        self.c.force_login(self.instructor_participation.user)
+        self.default_number_of_roles = ParticipationRole.objects.count()
+
+    def get_default_edit_role_post_data(self, **kwargs):
+        data = {"identifier": "a_role", "name": "the name"}
+        data.update(kwargs)
+        return data
+
+    def get_default_delete_role_post_data(self, **kwargs):
+        data = {}
+        if not kwargs.pop("no_delete_in_post", None):
+            data = {"delete": True}
+        data.update(kwargs)
+        return data
+
+    @property
+    def prole_list_url(self):
+        return self.get_participation_role_list_url()
+
+    def test_view_prole_list_permission_denied(self):
+        with self.temporarily_switch_to_user(self.student_participation.user):
+            resp = self.c.get(self.prole_list_url)
+            self.assertEqual(resp.status_code, 403)
+
+    def test_view_prole_list_success(self):
+        factories.ParticipationRoleFactory(
+            course=self.course, identifier="some_role")
+
+        resp = self.c.get(self.prole_list_url)
+        self.assertEqual(resp.status_code, 200)
+
+        self.assertResponseContextLengthEqual(
+            resp, "participation_roles", self.default_number_of_roles + 1)
+
+    def test_edit_prole_permission_denied(self):
+        self.c.force_login(self.student_participation.user)
+
+        # GET requests
+        resp = self.c.get(self.get_participation_role_edit_url(0))
+        self.assertEqual(resp.status_code, 403)
+
+        prole = factories.ParticipationRoleFactory(
+            identifier="some_role", course=self.course)
+
+        resp = self.c.get(self.get_participation_role_edit_url(prole.id))
+        self.assertEqual(resp.status_code, 403)
+
+        resp = self.c.get(self.get_participation_role_edit_url(-1))
+        self.assertEqual(resp.status_code, 403)
+
+        # POST requests
+        resp = self.c.post(self.get_participation_role_edit_url(-1),
+                           data=self.get_default_edit_role_post_data())
+        self.assertEqual(resp.status_code, 403)
+
+        resp = self.c.post(self.get_participation_role_edit_url(0),
+                           data=self.get_default_edit_role_post_data())
+        self.assertEqual(resp.status_code, 403)
+
+    def test_edit_prole_get_success(self):
+        resp = self.c.get(self.get_participation_role_edit_url(0))
+        self.assertEqual(resp.status_code, 404)
+
+        prole = factories.ParticipationRoleFactory(
+            identifier="some_role", course=self.course)
+
+        resp = self.c.get(self.get_participation_role_edit_url(prole.id))
+        self.assertEqual(resp.status_code, 200)
+
+        resp = self.c.get(self.get_participation_role_edit_url(-1))
+        self.assertEqual(resp.status_code, 200)
+
+    def test_edit_prole_post_update(self):
+        expected_prole_identifier = "some_role_identifier"
+
+        # Get a prole with has different identifier with expected_prole_identifier
+        prole = None
+        for prole in ParticipationRole.objects.all():
+            if prole.identifier != expected_prole_identifier:
+                break
+
+        resp = self.c.post(
+            self.get_participation_role_edit_url(prole.id),
+            data=self.get_default_edit_role_post_data(
+                identifier=expected_prole_identifier),
+        )
+        self.assertEqual(ParticipationRole.objects.count(),
+                         self.default_number_of_roles)
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(ParticipationRole.objects.get(pk=prole.id).identifier,
+                         expected_prole_identifier)
+        self.assertAddMessageCallCount(1)
+        self.assertAddMessageCalledWith("Changes saved.")
+
+    def test_edit_prole_from_another_course(self):
+        prole = factories.ParticipationRoleFactory(
+            course=factories.CourseFactory(identifier="another-course"))
+
+        resp = self.c.get(self.get_participation_role_edit_url(prole.id))
+        self.assertEqual(resp.status_code, 400)
+
+    def test_edit_prole_post_update_integrity_error(self):
+        new_prole = factories.ParticipationRoleFactory(
+            identifier="some_role", course=self.course)
+
+        new_prole_identifier = new_prole.identifier
+
+        prole = None
+        for prole in ParticipationRole.objects.all():
+            if prole.identifier != new_prole_identifier:
+                break
+
+        prole_identifier = prole.identifier
+
+        resp = self.c.post(
+            self.get_participation_role_edit_url(prole.id),
+            data=self.get_default_edit_role_post_data(
+                identifier=new_prole_identifier),
+        )
+
+        self.assertEqual(ParticipationRole.objects.count(),
+                         self.default_number_of_roles + 1)
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(ParticipationRole.objects.get(pk=prole.id).identifier,
+                         prole_identifier)
+        self.assertAddMessageCallCount(1)
+        self.assertAddMessageCalledWith(
+            "A participation role with that identifier already exists.")
+
+    def test_edit_prole_post_create_new_success(self):
+        resp = self.c.post(
+            self.get_participation_role_edit_url(-1),
+            data=self.get_default_edit_role_post_data(),
+        )
+
+        self.assertEqual(ParticipationRole.objects.count(),
+                         self.default_number_of_roles + 1)
+        self.assertEqual(resp.status_code, 302)
+        self.assertAddMessageCallCount(1)
+        self.assertAddMessageCalledWith("New participation role saved.")
+
+    def test_edit_prole_post_create_new_integrity_error(self):
+        prole = factories.ParticipationRoleFactory(
+            identifier="some_role", course=self.course)
+
+        resp = self.c.post(
+            self.get_participation_role_edit_url(-1),
+            data=self.get_default_edit_role_post_data(identifier=prole.identifier),
+        )
+
+        self.assertEqual(ParticipationRole.objects.count(),
+                         self.default_number_of_roles + 1)
+        self.assertEqual(resp.status_code, 200)
+        self.assertAddMessageCallCount(1)
+        self.assertAddMessageCalledWith(
+            "A participation role with that identifier already exists.")
+
+    def test_edit_prole_post_form_invalid(self):
+        # Spaces are not allowed in prole
+        resp = self.c.post(
+            self.get_participation_role_edit_url(-1),
+            data=self.get_default_edit_role_post_data(identifier="a role"),
+        )
+
+        self.assertEqual(ParticipationRole.objects.count(),
+                         self.default_number_of_roles)
+        self.assertEqual(resp.status_code, 200)
+        self.assertAddMessageCallCount(0)
+        self.assertFormErrorLoose(resp, "invalid characters.")
+
+    def test_delete_prole_permission_denied(self):
+        prole = factories.ParticipationRoleFactory(
+            identifier="some_role", course=self.course)
+
+        with self.temporarily_switch_to_user(self.student_participation.user):
+            resp = self.c.get(self.get_participation_role_delete_url(prole.id))
+            self.assertEqual(resp.status_code, 403)
+
+            resp = self.c.post(
+                self.get_participation_role_delete_url(prole.id),
+                data=self.get_default_delete_role_post_data(),
+                HTTP_X_REQUESTED_WITH='XMLHttpRequest'
+            )
+            self.assertEqual(resp.status_code, 403)
+            self.assertEqual(ParticipationRole.objects.count(),
+                             self.default_number_of_roles + 1)
+
+    def test_delete_prole_get_or_non_ajax_post_not_allowed(self):
+        prole = factories.ParticipationRoleFactory(
+            identifier="some_role", course=self.course)
+
+        resp = self.c.get(self.get_participation_role_delete_url(prole.id))
+        self.assertEqual(resp.status_code, 403)
+
+        resp = self.c.post(
+            self.get_participation_role_delete_url(prole.id),
+            data=self.get_default_delete_role_post_data(),
+        )
+        self.assertEqual(resp.status_code, 403)
+        self.assertEqual(ParticipationRole.objects.count(),
+                         self.default_number_of_roles + 1)
+
+    def test_delete_prole_success(self):
+        prole = factories.ParticipationRoleFactory(
+            identifier="some_role", course=self.course)
+
+        resp = self.c.post(
+            self.get_participation_role_delete_url(prole.id),
+            data=self.get_default_delete_role_post_data(),
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest'
+        )
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(ParticipationRole.objects.count(),
+                         self.default_number_of_roles)
+
+    def test_delete_prole_suspicious(self):
+        prole = factories.ParticipationRoleFactory(
+            identifier="some_role", course=self.course)
+
+        resp = self.c.post(
+            self.get_participation_role_delete_url(prole.id),
+            data=self.get_default_delete_role_post_data(
+                no_delete_in_post=True, some_action=True),
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest'
+        )
+        self.assertEqual(resp.status_code, 400)
+        self.assertEqual(ParticipationRole.objects.count(),
+                         self.default_number_of_roles + 1)
+
+    def test_delete_prole_from_another_course(self):
+        prole = factories.ParticipationRoleFactory(
+            course=factories.CourseFactory(identifier="another-course"))
+
+        prole_counts = ParticipationRole.objects.count()
+
+        resp = self.c.post(
+            self.get_participation_role_delete_url(prole.id),
+            data=self.get_default_delete_role_post_data(),
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest'
+        )
+
+        self.assertEqual(resp.status_code, 400)
+        self.assertEqual(ParticipationRole.objects.count(), prole_counts)
+
+    def test_delete_prole_exception_raised(self):
+        prole = factories.ParticipationRoleFactory(
+            identifier="some_role", course=self.course)
+
+        with mock.patch("course.models.ParticipationRole.delete") as mock_prole_del:
+            mock_prole_del.side_effect = (
+                RuntimeError("some error"))
+
+            resp = self.c.post(
+                self.get_participation_role_delete_url(prole.id),
+                data=self.get_default_delete_role_post_data(),
+                HTTP_X_REQUESTED_WITH='XMLHttpRequest'
+            )
+            self.assertEqual(resp.status_code, 400)
+
+            import json
+            self.assertIn(
+                "Error when deleting participation role",
+                json.loads(resp.content.decode())["error"]
+            )
 
 
 # vim: foldmethod=marker

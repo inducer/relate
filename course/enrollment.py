@@ -1176,8 +1176,14 @@ def edit_participation_tag(pctx, ptag_id):
         form = EditParticipationTagForm(add_new, request.POST, instance=ptag)
         try:
             if form.is_valid():
-                form.save()
-                messages.add_message(request, messages.SUCCESS, _("Changes saved."))
+                # Ref: https://stackoverflow.com/q/21458387/3437454
+                with transaction.atomic():
+                    form.save()
+                if add_new:
+                    msg = _("New participation tag saved.")
+                else:
+                    msg = _("Changes saved.")
+                messages.add_message(request, messages.SUCCESS, msg)
                 return redirect(
                     "relate-view_participation_tags", pctx.course.identifier)
         except IntegrityError:
@@ -1299,14 +1305,21 @@ def edit_participation_role(pctx, prole_id):
         form = EditParticipationRoleForm(add_new, request.POST, instance=prole)
         try:
             if form.is_valid():
-                form.save()
-                messages.add_message(request, messages.SUCCESS, _("Changes saved."))
+                # Ref: https://stackoverflow.com/q/21458387/3437454
+                with transaction.atomic():
+                    form.save()
+
+                if add_new:
+                    msg = _("New participation role saved.")
+                else:
+                    msg = _("Changes saved.")
+                messages.add_message(request, messages.SUCCESS, msg)
                 return redirect(
                     "relate-view_participation_roles", pctx.course.identifier)
         except IntegrityError:
             messages.add_message(
                 request, messages.ERROR,
-                _("A participation role with that name already exists."))
+                _("A participation role with that identifier already exists."))
 
     else:
         form = EditParticipationRoleForm(add_new, instance=prole)
