@@ -98,7 +98,7 @@ class Course(models.Model):
                     "^"+COURSE_ID_REGEX+"$",
                     message=_(
                         "Identifier may only contain letters, "
-                        "numbers, and hypens ('-').")),
+                        "numbers, and hyphens ('-').")),
                     ]
             )
     name = models.CharField(
@@ -366,19 +366,15 @@ class ParticipationTag(models.Model):
             verbose_name=_("Course"), on_delete=models.CASCADE)
     name = models.CharField(max_length=100,
             # Translators: name format of ParticipationTag
-            help_text=_("Format is lower-case-with-hyphens. "
-            "Do not use spaces."),
+            help_text=_("Should be a valid identifier."),
             verbose_name=_("Name of participation tag"))
     shown_to_participant = models.BooleanField(default=False,
-            verbose_name=_("Shown to pariticpant"))
+            verbose_name=_("Shown to participant"))
 
     def clean(self):
         super(ParticipationTag, self).clean()
 
-        import re
-        name_valid_re = re.compile(NAME_VALID_REGEX)
-
-        if name_valid_re.match(self.name) is None:
+        if not self.name.isidentifier():
             field_name = "name"
             raise ValidationError(
                 {field_name:
@@ -402,7 +398,7 @@ class ParticipationRole(models.Model):
     identifier = models.CharField(
             max_length=100, blank=False, null=False,
             help_text=_("A symbolic name for this role, used in course code. "
-            "lower_case_with_underscores, no spaces. May be any string. The "
+            "Should be a valid identifier. The "
             "name 'unenrolled' is special and refers to anyone not enrolled "
             "in the course."),
             verbose_name=_("Role identifier"))
@@ -418,10 +414,7 @@ class ParticipationRole(models.Model):
     def clean(self):
         super(ParticipationRole, self).clean()
 
-        import re
-        identifier_valid_re = re.compile(NAME_VALID_REGEX)
-
-        if identifier_valid_re.match(self.identifier) is None:
+        if not self.identifier.isidentifier():
             field_name = "identifier"
             raise ValidationError(
                 {field_name:
@@ -1555,7 +1548,7 @@ class GradingOpportunity(models.Model):
                     "^"+GRADING_OPP_ID_REGEX+"$",
                     message=_(
                         "Identifier may only contain letters, "
-                        "numbers, and hypens ('-').")),
+                        "numbers, and hyphens ('-').")),
                     ])
     name = models.CharField(max_length=200, blank=False, null=False,
             # Translators: name for GradingOpportunity
