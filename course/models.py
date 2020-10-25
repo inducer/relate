@@ -365,6 +365,7 @@ class ParticipationTag(models.Model):
     course = models.ForeignKey(Course,
             verbose_name=_("Course"), on_delete=models.CASCADE)
     name = models.CharField(max_length=100,
+            blank=False, null=False,
             # Translators: name format of ParticipationTag
             help_text=_("Should be a valid identifier."),
             verbose_name=_("Name of participation tag"))
