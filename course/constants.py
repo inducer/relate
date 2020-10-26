@@ -33,7 +33,6 @@ DEFAULT_EMAIL_APPELLATION_PRIORITY_LIST = [
     "first_name", "email", "username", "full_name"]
 
 
-NAME_VALID_REGEX = r"^\w+$"
 COURSE_ID_REGEX = "(?P<course_identifier>[-a-zA-Z0-9]+)"
 EVENT_KIND_REGEX = "(?P<event_kind>[_a-z0-9]+)"
 FLOW_ID_REGEX = "(?P<flow_id>[-_a-zA-Z0-9]+)"

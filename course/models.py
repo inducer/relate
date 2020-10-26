@@ -50,7 +50,7 @@ from course.constants import (  # noqa
         exam_ticket_states, EXAM_TICKET_STATE_CHOICES,
         participation_permission, PARTICIPATION_PERMISSION_CHOICES,
 
-        COURSE_ID_REGEX, GRADING_OPP_ID_REGEX, NAME_VALID_REGEX, EVENT_KIND_REGEX
+        COURSE_ID_REGEX, GRADING_OPP_ID_REGEX, EVENT_KIND_REGEX
         )
 
 
@@ -367,7 +367,7 @@ class ParticipationTag(models.Model):
     name = models.CharField(max_length=100,
             blank=False, null=False,
             # Translators: name format of ParticipationTag
-            help_text=_("Should be a valid identifier."),
+            help_text=_("Should be a valid identifier (as defined by Python)."),
             verbose_name=_("Name of participation tag"))
     shown_to_participant = models.BooleanField(default=False,
             verbose_name=_("Shown to participant"))
@@ -399,7 +399,7 @@ class ParticipationRole(models.Model):
     identifier = models.CharField(
             max_length=100, blank=False, null=False,
             help_text=_("A symbolic name for this role, used in course code. "
-            "Should be a valid identifier. The "
+            "Should be a valid identifier (as defined by Python). The "
             "name 'unenrolled' is special and refers to anyone not enrolled "
             "in the course."),
             verbose_name=_("Role identifier"))
