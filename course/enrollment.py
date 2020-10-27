@@ -1124,10 +1124,12 @@ class EditParticipationTagForm(StyledModelForm):
 
         if add_new:
             self.helper.add_input(
-                    Submit("submit", _("Add")))
+                    Submit("submit", _("Add"), css_class="btn-success"))
         else:
             self.helper.add_input(
-                    Submit("submit", _("Update")))
+                    Submit("submit", _("Update"), css_class="btn-success"))
+            self.helper.add_input(
+                    Submit("delete", _("Delete"), css_class="btn-danger"))
 
     class Meta:
         model = ParticipationTag
@@ -1143,18 +1145,13 @@ def view_participation_tag_list(pctx):
 
     return render_course_page(pctx, "course/participation-tag-list.html", {
         "participation_tags": participation_tags,
-
-        # Wrappers used by JavaScript template (tmpl) so as not to
-        # conflict with Django template's tag wrapper
-        "JQ_OPEN": "{%",
-        "JQ_CLOSE": "%}",
         })
 
 
 @course_view
 def edit_participation_tag(pctx, ptag_id):
     # type: (CoursePageContext, int) -> http.HttpResponse
-    if not pctx.has_permission(pperm.edit_participation):
+    if not pctx.has_permission(pperm.edit_participation_tag):
         raise PermissionDenied()
 
     request = pctx.request
@@ -1176,13 +1173,23 @@ def edit_participation_tag(pctx, ptag_id):
         form = EditParticipationTagForm(add_new, request.POST, instance=ptag)
         try:
             if form.is_valid():
-                # Ref: https://stackoverflow.com/q/21458387/3437454
-                with transaction.atomic():
-                    form.save()
-                if add_new:
-                    msg = _("New participation tag saved.")
+                if "submit" in request.POST or "update" in request.POST:
+                    # Ref: https://stackoverflow.com/q/21458387/3437454
+                    with transaction.atomic():
+                        form.save()
+
+                    if "submit" in request.POST:
+                        assert add_new
+                        msg = _("New participation tag saved.")
+                    else:
+                        msg = _("Changes saved.")
+                elif "delete" in request.POST:
+                    ptag.delete()
+                    msg = (_("successfully deleted participation tag '%(tag)s'.")
+                           % {"tag": ptag.name})
                 else:
-                    msg = _("Changes saved.")
+                    raise SuspiciousOperation(_("invalid operation"))
+
                 messages.add_message(request, messages.SUCCESS, msg)
                 return redirect(
                     "relate-view_participation_tags", pctx.course.identifier)
@@ -1199,48 +1206,6 @@ def edit_participation_tag(pctx, ptag_id):
         "form": form,
         })
 
-
-@course_view
-def delete_participation_tag(pctx, ptag_id):
-    # type: (CoursePageContext, int) -> http.HttpResponse
-
-    if not pctx.has_permission(pperm.edit_participation):
-        raise PermissionDenied()
-
-    request = pctx.request
-
-    if not request.is_ajax() or request.method != "POST":
-        raise PermissionDenied(_("only AJAX POST is allowed"))
-
-    num_ptag_id = int(ptag_id)
-
-    ptag = get_object_or_404(ParticipationTag, id=num_ptag_id)
-
-    if ptag.course.id != pctx.course.id:
-        raise SuspiciousOperation(
-            "may not delete participation tag in different course")
-
-    if "delete" in request.POST:
-        try:
-            ptag.delete()
-        except Exception as e:
-            return http.JsonResponse(
-                {"error": _(
-                    "Error when deleting participation tag '%(tag)s'."
-                    " %(error_type)s: %(error)s.") % {
-                    "tag": ptag.name,
-                    "error_type": type(e).__name__,
-                    "error": str(e)}},
-                status=400)
-        else:
-            return http.JsonResponse(
-                {"message": _("successfully deleted participation tag '%(tag)s'.")
-                    % {"tag": ptag.name},
-                 "message_level": messages.DEFAULT_TAGS[messages.SUCCESS]})
-
-    else:
-        raise SuspiciousOperation(_("invalid operation"))
-
 # }}}
 
 
@@ -1253,10 +1218,12 @@ class EditParticipationRoleForm(StyledModelForm):
 
         if add_new:
             self.helper.add_input(
-                    Submit("submit", _("Add")))
+                    Submit("submit", _("Add"), css_class="btn-success"))
         else:
             self.helper.add_input(
-                    Submit("submit", _("Update")))
+                    Submit("submit", _("Update"), css_class="btn-success"))
+            self.helper.add_input(
+                    Submit("delete", _("Delete"), css_class="btn-danger"))
 
     class Meta:
         model = ParticipationRole
@@ -1272,18 +1239,13 @@ def view_participation_role_list(pctx):
 
     return render_course_page(pctx, "course/participation-role-list.html", {
         "participation_roles": participation_roles,
-
-        # Wrappers used by JavaScript template (tmpl) so as not to
-        # conflict with Django template's tag wrapper
-        "JQ_OPEN": "{%",
-        "JQ_CLOSE": "%}",
         })
 
 
 @course_view
 def edit_participation_role(pctx, prole_id):
     # type: (CoursePageContext, int) -> http.HttpResponse
-    if not pctx.has_permission(pperm.edit_participation):
+    if not pctx.has_permission(pperm.edit_participation_role):
         raise PermissionDenied()
 
     request = pctx.request
@@ -1305,14 +1267,24 @@ def edit_participation_role(pctx, prole_id):
         form = EditParticipationRoleForm(add_new, request.POST, instance=prole)
         try:
             if form.is_valid():
-                # Ref: https://stackoverflow.com/q/21458387/3437454
-                with transaction.atomic():
-                    form.save()
+                if "submit" in request.POST or "update" in request.POST:
+                    # Ref: https://stackoverflow.com/q/21458387/3437454
+                    with transaction.atomic():
+                        form.save()
 
-                if add_new:
-                    msg = _("New participation role saved.")
+                    if "submit" in request.POST:
+                        assert add_new
+                        msg = _("New participation role saved.")
+                    else:
+                        msg = _("Changes saved.")
+                elif "delete" in request.POST:
+                    prole.delete()
+                    msg = (
+                        _("successfully deleted participation role '%(role)s'.")
+                        % {"role": prole.identifier})
                 else:
-                    msg = _("Changes saved.")
+                    raise SuspiciousOperation(_("invalid operation"))
+
                 messages.add_message(request, messages.SUCCESS, msg)
                 return redirect(
                     "relate-view_participation_roles", pctx.course.identifier)
@@ -1328,48 +1300,6 @@ def edit_participation_role(pctx, prole_id):
         "form_description": _("Edit Participation Role"),
         "form": form,
         })
-
-
-@course_view
-def delete_participation_role(pctx, prole_id):
-    # type: (CoursePageContext, int) -> http.HttpResponse
-
-    if not pctx.has_permission(pperm.edit_participation):
-        raise PermissionDenied()
-
-    request = pctx.request
-
-    if not request.is_ajax() or request.method != "POST":
-        raise PermissionDenied(_("only AJAX POST is allowed"))
-
-    num_prole_id = int(prole_id)
-
-    prole = get_object_or_404(ParticipationRole, id=num_prole_id)
-
-    if prole.course.id != pctx.course.id:
-        raise SuspiciousOperation(
-            "may not delete participation role in different course")
-
-    if "delete" in request.POST:
-        try:
-            prole.delete()
-        except Exception as e:
-            return http.JsonResponse(
-                {"error": _(
-                    "Error when deleting participation role '%(role)s'."
-                    " %(error_type)s: %(error)s.") % {
-                    "role": prole.identifier,
-                    "error_type": type(e).__name__,
-                    "error": str(e)}},
-                status=400)
-        else:
-            return http.JsonResponse(
-                {"message": _("successfully deleted participation role '%(role)s'.")
-                    % {"role": prole.identifier},
-                 "message_level": messages.DEFAULT_TAGS[messages.SUCCESS]})
-
-    else:
-        raise SuspiciousOperation(_("invalid operation"))
 
 # }}}
 

@@ -313,13 +313,6 @@ urlpatterns = [
           "/$",
         course.enrollment.edit_participation_tag,
         name="relate-edit_participation_tag"),
-    url(r"^course"
-        "/" + COURSE_ID_REGEX
-        + "/delete-participation-tag"
-          "/(?P<ptag_id>[-0-9]+)"
-          "/$",
-        course.enrollment.delete_participation_tag,
-        name="relate-delete_participation_tag"),
 
     url(r"^course"
         "/" + COURSE_ID_REGEX
@@ -333,13 +326,6 @@ urlpatterns = [
           "/$",
         course.enrollment.edit_participation_role,
         name="relate-edit_participation_role"),
-    url(r"^course"
-        "/" + COURSE_ID_REGEX
-        + "/delete-participation-role"
-          "/(?P<prole_id>[-0-9]+)"
-          "/$",
-        course.enrollment.delete_participation_role,
-        name="relate-delete_participation_role"),
 
     # }}}
 

@@ -736,6 +736,8 @@ def add_default_roles_and_permissions(course,
         rpm(role=role, permission=pp.edit_events).save()
         rpm(role=role, permission=pp.manage_instant_flow_requests).save()
         rpm(role=role, permission=pp.preapprove_participation).save()
+        rpm(role=role, permission=pp.edit_participation_tag).save()
+        rpm(role=role, permission=pp.edit_participation_role).save()
 
         add_teaching_assistant_permissions(role)
 

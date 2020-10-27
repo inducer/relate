@@ -134,6 +134,8 @@ class participation_permission:  # noqa
     query_participation = "query_participation"
     edit_participation = "edit_participation"
     preapprove_participation = "preapprove_participation"
+    edit_participation_role = "edit_participation_role"
+    edit_participation_tag = "edit_participation_tag"
 
     manage_instant_flow_requests = "manage_instant_flow_requests"
 
@@ -249,6 +251,12 @@ PARTICIPATION_PERMISSION_CHOICES = (
             pgettext_lazy("Participation permission", "Edit participation")),
         (participation_permission.preapprove_participation,
             pgettext_lazy("Participation permission", "Preapprove participation")),
+        (participation_permission.edit_participation_role,
+            pgettext_lazy(
+                "Participation permission", "Edit participation role")),
+        (participation_permission.edit_participation_tag,
+            pgettext_lazy(
+                "Participation permission", "Edit participation tag")),
 
         (participation_permission.manage_instant_flow_requests,
             pgettext_lazy("Participation permission",
