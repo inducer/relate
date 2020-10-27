@@ -249,11 +249,15 @@ class CourseCreationTest(VersioningTestMixin, TestCase):
             self.assertAddMessageCalledWith(
                 "No refs found in remote repository")
 
-    @pytest.mark.slow
     @suppress_stdout_decorator(suppress_stderr=True)
     def test_set_up_new_course_subdir(self):
+
         # Todo: "Windows fatal exception: stack overflow" were raised for this test
         # on Windows (Github actions). Is it a bug?
+        import sys
+        if sys.platform == "win32":
+            pytest.xfail("https://github.com/inducer/relate/issues/749")
+
         data = self.get_set_up_new_course_form_data()
         data["course_root_path"] = "some_dir"
         request = self.rf.post(self.get_set_up_new_course_url(), data=data)

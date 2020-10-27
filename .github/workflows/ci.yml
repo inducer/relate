@@ -126,7 +126,7 @@ jobs:
       - uses: actions/checkout@v2
       - uses: actions/setup-python@v1
         with:
-          python-version: 3.7
+          python-version: 3.8
       - name: Install Poetry
         uses: dschep/install-poetry-action@v1.3
         with:
