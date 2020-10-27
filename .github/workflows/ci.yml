@@ -119,39 +119,32 @@ jobs:
           poetry run relate test-code questions/autograded-python-example.yml
           poetry run relate expand-yaml flows/quiz-test.yml > /dev/null
 
-  # pytest-windows:
-  #   name: Python - Windows
-  #   runs-on: windows-latest
-  #   steps:
-  #     - uses: actions/checkout@v2
-  #     - uses: actions/setup-python@v1
-  #       with:
-  #         python-version: 3.7
-  #     - name: Install Poetry
-  #       uses: dschep/install-poetry-action@v1.3
-  #     - name: Confiure Poetry
-  #       run: |
-  #         poetry config virtualenvs.in-project true
-  #     - name: Cache python dependencies
-  #       uses: actions/cache@v2
-  #       id: cache
-  #       with:
-  #         path: .venv
-  #         key: pypoetry-${{ hashFiles('**/poetry.lock') }}-windows
-  #         restore-keys: |
-  #           pypoetry-${{ hashFiles('**/poetry.lock') }}-windows
-  #     - name: Install Dependencies
-  #       run: poetry install
-  #       if: steps.cache.outputs.cache-hit != 'true'
-  #     - name: Run test suite
-  #       env:
-  #         RELATE_LOCAL_TEST_SETTINGS: "local_settings_example.py"
-  #       run: |
-  #         poetry run pytest --cov-config=setup.cfg --cov-report=xml --cov=.
-  #     - name: Upload coverage to Codecov
-  #       uses: codecov/codecov-action@v1
-  #       with:
-  #         fail_ci_if_error: true
+  pytest-windows:
+    name: Python - Windows
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v1
+        with:
+          python-version: 3.8
+      - name: Install Poetry
+        uses: dschep/install-poetry-action@v1.3
+        with:
+          create_virtualenvs: true
+      - name: Configure Poetry
+        run: |
+          poetry config virtualenvs.in-project true
+      - name: Install Dependencies
+        run: poetry install
+      - name: Run test suite
+        env:
+          RELATE_LOCAL_TEST_SETTINGS: "local_settings_example.py"
+        run: |
+          poetry run pytest -v --cov-config=setup.cfg --cov-report=xml --cov=.
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v1
+        with:
+          fail_ci_if_error: true
 
 
 # vim: sw=2
