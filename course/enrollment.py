@@ -259,15 +259,17 @@ def enroll_view(request, course_identifier):
     roles = ParticipationRole.objects.filter(
             course=course,
             is_default_for_new_participants=True)
+    tags = None
 
     if preapproval is not None:
         roles = list(preapproval.roles.all())
+        tags = list(preapproval.tags.all())
 
     try:
         if course.enrollment_approval_required and preapproval is None:
             participation = handle_enrollment_request(
                     course, user, participation_status.requested,
-                    roles, request)
+                    roles, tags, request)
 
             assert participation is not None
 
@@ -305,7 +307,7 @@ def enroll_view(request, course_identifier):
                     "by email once your request has been acted upon."))
         else:
             handle_enrollment_request(course, user, participation_status.active,
-                                      roles, request)
+                                      roles, tags, request)
 
             messages.add_message(request, messages.SUCCESS,
                     _("Successfully enrolled."))
@@ -318,8 +320,8 @@ def enroll_view(request, course_identifier):
 
 
 @transaction.atomic
-def handle_enrollment_request(course, user, status, roles, request=None):
-    # type: (Course, Any, Text, Optional[List[ParticipationRole]], Optional[http.HttpRequest]) -> Participation  # noqa
+def handle_enrollment_request(course, user, status, roles, tags, request=None):
+    # type: (Course, Any, Text, Optional[List[ParticipationRole]], Optional[List[ParticipationTag]], Optional[http.HttpRequest]) -> Participation  # noqa
     participations = Participation.objects.filter(course=course, user=user)
 
     assert participations.count() <= 1
@@ -337,6 +339,9 @@ def handle_enrollment_request(course, user, status, roles, request=None):
 
     if roles is not None:
         participation.roles.set(roles)
+
+    if tags is not None:
+        participation.tags.set(tags)
 
     if status == participation_status.active:
         send_enrollment_decision(participation, True, request)
@@ -447,6 +452,12 @@ class BulkPreapprovalsForm(StyledForm):
                     .filter(course=course)
                     ),
                 label=_("Roles"))
+        self.fields["tags"] = forms.ModelMultipleChoiceField(
+                queryset=(
+                    ParticipationTag.objects
+                    .filter(course=course)
+                    ),
+                label=_("Tags"), required=False)
         self.fields["preapproval_type"] = forms.ChoiceField(
                 choices=(
                     ("email", _("Email")),

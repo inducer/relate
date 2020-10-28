@@ -422,6 +422,34 @@ class EnrollViewTest(EnrollmentTestMixin, TestCase):
         self.assertIn(expected_role_identifier,
                       [role.identifier for role in user_participation.roles.all()])
 
+    def test_preapprved_user_updated_inst_id_after_req_enrollment_tags_match(self):
+        self.update_require_approval_course(
+            preapproval_require_verified_inst_id=True)
+
+        user = factories.UserFactory()
+        inst_id = user.institutional_id
+
+        # Temporarily remove his/her inst_id
+        user.institutional_id = None
+        user.save()
+
+        expected_tag_name = "test_student_tag"
+
+        self.get_test_preapproval(
+            institutional_id=inst_id, tags=[expected_tag_name])
+
+        with self.temporarily_switch_to_user(user):
+            self.c.post(self.enroll_request_url)
+
+        # Add back the inst_id
+        user.institutional_id = inst_id
+        user.institutional_id_verified = True
+        user.save()
+
+        user_participation = Participation.objects.get(user=user)
+        self.assertIn(expected_tag_name,
+                      [tag.name for tag in user_participation.tags.all()])
+
     def test_course_require_inst_id_verified_user_inst_id_not_verified1(self):
         # thought matched
         self.update_require_approval_course(
@@ -553,7 +581,7 @@ class HandleEnrollmentRequestTest(SingleCourseTestMixin,
         request = mock.MagicMock()
 
         participation = enrollment.handle_enrollment_request(
-            self.course, user, status, roles, request=request)
+            self.course, user, status, roles, None, request=request)
 
         self.assertEqual(participation.user, user)
         self.assertEqual(participation.status, status)
@@ -570,7 +598,7 @@ class HandleEnrollmentRequestTest(SingleCourseTestMixin,
         request = mock.MagicMock()
 
         participation = enrollment.handle_enrollment_request(
-            self.course, user, status, roles, request=request)
+            self.course, user, status, roles, None, request=request)
 
         self.assertEqual(participation.user, user)
         self.assertEqual(participation.status, status)
@@ -589,7 +617,7 @@ class HandleEnrollmentRequestTest(SingleCourseTestMixin,
         request = mock.MagicMock()
 
         participation = enrollment.handle_enrollment_request(
-            self.course, user, status, roles, request=request)
+            self.course, user, status, roles, None, request=request)
 
         self.assertEqual(participation.user, user)
         self.assertEqual(participation.status, status)
@@ -611,7 +639,7 @@ class HandleEnrollmentRequestTest(SingleCourseTestMixin,
         request = mock.MagicMock()
 
         participation = enrollment.handle_enrollment_request(
-            self.course, user, status, roles, request=request)
+            self.course, user, status, roles, None, request=request)
 
         self.assertEqual(participation.user, user)
         self.assertEqual(participation.status, status)
@@ -634,7 +662,7 @@ class HandleEnrollmentRequestTest(SingleCourseTestMixin,
         request = mock.MagicMock()
 
         participation = enrollment.handle_enrollment_request(
-            self.course, user, status, roles, request=request)
+            self.course, user, status, roles, None, request=request)
 
         self.assertEqual(participation.user, user)
         self.assertEqual(participation.status, status)
@@ -1000,75 +1028,6 @@ class EnrollmentDecisionTest(EnrollmentDecisionTestMixin, TestCase):
                 "this user already exists? (my_error)")
             self.assertAddMessageCalledWith([expected_error_msg])
             self.assertEqual(len(mail.outbox), 0)
-
-
-class EnrollmentPreapprovalTestMixin(LocmemBackendTestsMixin,
-                                     EnrollmentTestBaseMixin):
-
-    @classmethod
-    def setUpTestData(cls):  # noqa
-        super(EnrollmentPreapprovalTestMixin, cls).setUpTestData()
-        cls.non_ptcp_active_user1.institutional_id_verified = True
-        cls.non_ptcp_active_user1.save()
-        cls.non_ptcp_active_user2.institutional_id_verified = False
-        cls.non_ptcp_active_user2.save()
-
-    @property
-    def preapprove_data_emails(self):
-        preapproved_user = [self.non_ptcp_active_user1,
-                            self.non_ptcp_active_user2]
-        preapproved_data = [u.email for u in preapproved_user]
-        preapproved_data.insert(1, "  ")  # empty line
-        preapproved_data.insert(0, "  ")  # empty line
-        return preapproved_data
-
-    @property
-    def preapprove_data_institutional_ids(self):
-        preapproved_user = [self.non_ptcp_active_user1,
-                            self.non_ptcp_active_user2,
-                            self.non_ptcp_unconfirmed_user1]
-        preapproved_data = [u.institutional_id for u in preapproved_user]
-        preapproved_data.insert(1, "  ")  # empty line
-        preapproved_data.insert(0, "  ")  # empty line
-        return preapproved_data
-
-    @property
-    def preapproval_url(self):
-        return reverse("relate-create_preapprovals",
-                            args=[self.course.identifier])
-
-    @property
-    def default_preapprove_role(self):
-        role, _ = (ParticipationRole.objects.get_or_create(
-            course=self.course, identifier="student"))
-        return [str(role.pk)]
-
-    def post_preapproval(self, preapproval_type, preapproval_data=None,
-                         force_login_instructor=True):
-        if preapproval_data is None:
-            if preapproval_type == "email":
-                preapproval_data = self.preapprove_data_emails
-            elif preapproval_type == "institutional_id":
-                preapproval_data = self.preapprove_data_institutional_ids
-
-        assert preapproval_data is not None
-        assert isinstance(preapproval_data, list)
-
-        data = {
-            "preapproval_type": [preapproval_type],
-            "preapproval_data": ["\n".join(preapproval_data)],
-            "roles": self.student_role_post_data,
-            "submit": [""]
-        }
-        if not force_login_instructor:
-            approver = self.get_logged_in_user()
-        else:
-            approver = self.instructor_participation.user
-        with self.temporarily_switch_to_user(approver):
-            return self.c.post(self.preapproval_url, data, follow=True)
-
-    def get_preapproval_count(self):
-        return ParticipationPreapproval.objects.all().count()
 
 
 class CreatePreapprovalsTest(EnrollmentTestMixin,
