@@ -57,7 +57,6 @@ from course.models import (
 from course.constants import (
         PARTICIPATION_PERMISSION_CHOICES,
         participation_permission as pperm,
-        NAME_VALID_REGEX,
         )
 
 from course.auth import UserSearchWidget
@@ -833,10 +832,7 @@ class ParticipationQueryForm(StyledForm):
         tag = self.cleaned_data.get("tag")
 
         if tag:
-            import re
-            name_valid_re = re.compile(NAME_VALID_REGEX)
-
-            if name_valid_re.match(tag) is None:
+            if not tag.isidentifier():
                 self.add_error(
                     "tag",
                     _("Name contains invalid characters."))
