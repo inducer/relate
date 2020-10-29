@@ -31,7 +31,7 @@ def add_edit_prole_and_ptag_permission(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('course', '0113_merge_20190919_1408'),
+        ('course', '0114_alter_helptext_for_ptag_and_prole_fix_typo'),
     ]
 
     operations = [
