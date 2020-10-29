@@ -35,7 +35,6 @@ from django.test import override_settings
 Debug = False
 
 GITLAB_CI = "GITLAB_CI"
-APPVEYOR_CI = "APPVEYOR"
 
 # Controller in CI scripts
 ENABLE_DOCKER_TEST = "ENABLE_DOCKER_TEST"
@@ -45,7 +44,7 @@ def _skip_real_docker_test():
     import os
 
     # Skipping CI
-    for skipped_ci in [GITLAB_CI, APPVEYOR_CI]:
+    for skipped_ci in [GITLAB_CI]:
         if os.environ.get(skipped_ci):
             print("Running on %s" % skipped_ci)
             return True

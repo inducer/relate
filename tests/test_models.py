@@ -201,12 +201,25 @@ class ParticipationTagTest(RelateModelTestMixin, unittest.TestCase):
         tag = models.ParticipationTag(course=self.course, name="abcd")
         tag.clean()
 
+        tag = models.ParticipationTag(course=self.course, name="tag_1")
+        tag.clean()
+
+        tag = models.ParticipationTag(course=self.course, name="标签")
+        tag.clean()
+
     def test_clean_failure(self):
         tag = models.ParticipationTag(course=self.course, name="~abcd")
+        expected_error_msg = "'name' contains invalid characters."
+
         with self.assertRaises(ValidationError) as cm:
             tag.clean()
 
-        expected_error_msg = "'name' contains invalid characters."
+        self.assertIn(expected_error_msg, cm.exception.message_dict["name"])
+
+        tag = models.ParticipationTag(course=self.course, name="ab-cd")
+        with self.assertRaises(ValidationError) as cm:
+            tag.clean()
+
         self.assertIn(expected_error_msg, cm.exception.message_dict["name"])
 
 
@@ -223,13 +236,29 @@ class ParticipationRoleTest(RelateModelTestMixin, unittest.TestCase):
             course=self.course, name="role 1", identifier="role1")
         role.clean()
 
+        role = models.ParticipationRole(
+            course=self.course, name="role 1", identifier="role_1")
+        role.clean()
+
+        role = models.ParticipationRole(
+            course=self.course, name="role 1", identifier="指导老师")
+        role.clean()
+
     def test_clean_failure(self):
         role = models.ParticipationRole(
             course=self.course, name="role 1", identifier="role 1")
+        expected_error_msg = "'identifier' contains invalid characters."
+
         with self.assertRaises(ValidationError) as cm:
             role.clean()
 
-        expected_error_msg = "'identifier' contains invalid characters."
+        self.assertIn(expected_error_msg, cm.exception.message_dict["identifier"])
+
+        role = models.ParticipationRole(
+            course=self.course, name="role 1", identifier="role-1")
+        with self.assertRaises(ValidationError) as cm:
+            role.clean()
+
         self.assertIn(expected_error_msg, cm.exception.message_dict["identifier"])
 
     def test_has_permission(self):
