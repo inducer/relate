@@ -9,6 +9,11 @@ on:
   schedule:
     - cron: "17 3 * * 0"
 
+defaults:
+  run:
+    # required by https://github.com/snok/install-poetry#windows
+    shell: bash
+
 jobs:
   lint:
     name: Lint and typecheck
@@ -19,12 +24,10 @@ jobs:
         with:
           python-version: '3.x'
       - name: Install Poetry
-        uses: dschep/install-poetry-action@v1.3
+        uses: snok/install-poetry-action@v1.1.1
         with:
-          create_virtualenvs: true
-      # FIXME: Probably needs poetry version as additional key
-      # See https://github.com/inducer/relate/pull/736/checks?check_run_id=1229461665
-      # for example of breakage.
+          version: "1.1.0"
+          virtualenvs-create: true
 
       #- name: Cache python dependencies
       #  uses: actions/cache@v2
@@ -77,12 +80,10 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install Poetry
-        uses: dschep/install-poetry-action@v1.3
+        uses: snok/install-poetry-action@v1.1.1
         with:
-          create_virtualenvs: true
-      # FIXME: Probably needs poetry version as additional key
-      # See https://github.com/inducer/relate/pull/736/checks?check_run_id=1229461665
-      # for example of breakage.
+          version: "1.1.0"
+          virtualenvs-create: true
 
       #- name: Cache python dependencies
       #  uses: actions/cache@v2
@@ -128,9 +129,10 @@ jobs:
         with:
           python-version: 3.8
       - name: Install Poetry
-        uses: dschep/install-poetry-action@v1.3
+        uses: snok/install-poetry-action@v1.1.1
         with:
-          create_virtualenvs: true
+          version: "1.1.0"
+          virtualenvs-create: true
       - name: Configure Poetry
         run: |
           poetry config virtualenvs.in-project true
