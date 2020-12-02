@@ -68,6 +68,9 @@ Table of Contents
     api
     faq
     misc
+    🚀 Github <https://github.com/inducer/relate>
+
+.. 💾 Download Releases <https://pypi.org/project/relate-courseware>
 
 * :ref:`genindex`
 

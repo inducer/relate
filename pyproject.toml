@@ -119,5 +119,7 @@ pytest-factoryboy = "^2.0.3"
 pytest-cov = "^2.10.0"
 safety = "^1.9.0"
 sphinx = "^3.2.1"
+furo = "^2020.11.27b19"
+sphinx-copybutton = "^0.3.1"
 
 # vim: foldmethod=marker
