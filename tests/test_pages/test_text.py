@@ -1,5 +1,3 @@
-from __future__ import division
-
 __copyright__ = "Copyright (C) 2018 Dong Zhuang"
 
 __license__ = """
@@ -267,7 +265,7 @@ class SymbolicExpressionMatcherTest(unittest.TestCase):
     def test_symbolic_expression_matcher_validate(self):
         pattern = "1/A"
         matcher = SymbolicExpressionMatcher(None, "", pattern)
-        matcher.validate("A^(-1)")
+        matcher.validate("A**(-1)")
         with self.assertRaises(forms.ValidationError) as cm:
             matcher.validate("A^^(-1)")
         self.assertIn("ParseError: terminal expected, bitwisexor found "
