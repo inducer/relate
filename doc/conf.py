@@ -38,6 +38,7 @@ django.setup()
 extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.intersphinx",
+    "sphinx_copybutton",
 ]
 
 autodoc_typehints = "none"
@@ -120,28 +121,10 @@ pygments_style = "sphinx"
 # -- Options for HTML output ----------------------------------------------
 
 
-html_theme = "alabaster"
+html_theme = "furo"
 
 html_theme_options = {
-    "extra_nav_links": {
-        "🚀 Github": "https://github.com/inducer/relate",
-        # "💾 Download Releases": "https://pypi.python.org/pypi/modepy",
-    }
-}
-
-html_sidebars = {
-    "**": [
-        "about.html",
-        "navigation.html",
-        "relations.html",
-        "searchbox.html",
-    ]
-}
-
-# Theme options are theme-specific and customize the look and feel of a theme
-# further.  For a list of options available for each theme, see the
-# documentation.
-# html_theme_options = {}
+        }
 
 # Add any paths that contain custom themes here, relative to this directory.
 # html_theme_path = []
