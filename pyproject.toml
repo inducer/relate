@@ -1,5 +1,12 @@
 [build-system]
-requires = ["poetry>=0.12"]
+
+# Works around a setuptools 50 issue
+# AK, 2020-12-11
+# taken from https://github.com/AnalogJ/lexicon/pull/629/files
+requires = [
+    "setuptools!=50",
+    "poetry>=0.12",
+]
 build-backend = "poetry.masonry.api"
 
 [tool.poetry]
