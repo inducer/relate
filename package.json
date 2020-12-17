@@ -4,7 +4,7 @@
     "bootstrap": "^3.4.1",
     "codemirror": "^5.35.0",
     "datatables-i18n": "git+https://github.com/dzhuang/datatables-i18n.git",
-    "datatables.net": "^1.10.16",
+    "datatables.net": "^1.10.22",
     "datatables.net-bs": "^1.10.16",
     "datatables.net-fixedcolumns": "^3.2.4",
     "datatables.net-fixedcolumns-bs": "^3.2.4",
