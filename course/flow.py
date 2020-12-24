@@ -695,7 +695,8 @@ class GradeInfo(object):
 
     # Rounding to larger than 100% will break the percent bars on the
     # flow results page.
-    FULL_PERCENT = 99.99
+    # FULL_PERCENT = 99.99
+    FULL_PERCENT = 100.00
 
     # {{{ point percentages
 
