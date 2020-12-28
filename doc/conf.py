@@ -44,11 +44,11 @@ extensions = [
 autodoc_typehints = "none"
 
 intersphinx_mapping = {
-    "http://docs.python.org/dev": None,
-    "http://docs.scipy.org/doc/numpy/": None,
+    "https://docs.python.org/3/": None,
+    "https://numpy.org/doc/stable/": None,
     "django": (
-        "http://docs.djangoproject.com/en/dev/",
-        "http://docs.djangoproject.com/en/dev/_objects/",
+        "https://docs.djangoproject.com/en/dev/",
+        "https://docs.djangoproject.com/en/dev/_objects/",
     ),
     "https://docs.sympy.org/latest": None,
     "https://www.dulwich.io/docs/": None,
