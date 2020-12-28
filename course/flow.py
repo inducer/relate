@@ -662,6 +662,16 @@ class GradeInfo(object):
 
         The final grade, in points. May be *None* if the grade is not yet
         final.
+
+    .. attribute:: provisional_points
+
+        The number of points still attainable for this flow if all points
+        were awarded for as yet ungraded (e.g. human-graded) pages.
+
+    .. attribute:: max_reachable_points
+
+        The maximum number of actually attainable points on the flow, subject
+        to :attr:`FlowSessionGradingRule.max_points_enforced_cap`.
     """
 
     def __init__(

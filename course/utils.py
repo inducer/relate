@@ -48,7 +48,9 @@ from course.constants import (
 from course.content import (  # noqa
         FlowDesc,
         FlowPageDesc,
-        FlowSessionAccessRuleDesc
+        FlowSessionStartRuleDesc,
+        FlowSessionAccessRuleDesc,
+        FlowSessionGradingRuleDesc,
         )
 from course.page.base import (  # noqa
         PageBase,
@@ -300,7 +302,8 @@ def get_session_start_rule(
         facilities = frozenset()
 
     from relate.utils import dict_to_struct
-    rules = get_flow_rules(flow_desc, flow_rule_kind.start,
+    rules: List[FlowSessionStartRuleDesc] = get_flow_rules(
+            flow_desc, flow_rule_kind.start,
             participation, flow_id, now_datetime,
             default_rules_desc=[
                 dict_to_struct(dict(
@@ -391,12 +394,13 @@ def get_session_access_rule(
         facilities = frozenset()
 
     from relate.utils import dict_to_struct
-    rules = get_flow_rules(flow_desc, flow_rule_kind.access,
+    rules: List[FlowSessionAccessRuleDesc] = get_flow_rules(
+            flow_desc, flow_rule_kind.access,
             session.participation, session.flow_id, now_datetime,
             default_rules_desc=[
                 dict_to_struct(dict(
                     permissions=[flow_permission.view],
-                    ))])  # type: List[FlowSessionAccessRuleDesc]
+                    ))])
 
     for rule in rules:
         if not _eval_generic_conditions(
@@ -476,7 +480,8 @@ def get_session_grading_rule(
     flow_desc_rules = getattr(flow_desc, "rules", None)
 
     from relate.utils import dict_to_struct
-    rules = get_flow_rules(flow_desc, flow_rule_kind.grading,
+    rules: List[FlowSessionGradingRuleDesc] = get_flow_rules(
+            flow_desc, flow_rule_kind.grading,
             session.participation, session.flow_id, now_datetime,
             default_rules_desc=[
                 dict_to_struct(dict(
