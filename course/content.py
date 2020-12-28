@@ -69,8 +69,8 @@ if TYPE_CHECKING:
     from course.page.base import PageBase  # noqa
     from relate.utils import Repo_ish  # noqa
 
-    Date_ish = Union[datetime.datetime, datetime.date]
-    Datespec = Union[datetime.datetime, datetime.date, Text]
+Date_ish = Union[datetime.datetime, datetime.date]
+Datespec = Union[datetime.datetime, datetime.date, Text]
 
 
 class ChunkRulesDesc(Struct):
