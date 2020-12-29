@@ -80,15 +80,7 @@ CELERY_BROKER_URL = "amqp://"
 # Your course git repositories will be stored under this directory.
 # Make sure it's writable by your web user.
 #
-# The default below makes them sit side-by-side with your relate checkout,
-# which makes sense for development, but you probably want to change this
-# in production.
-#
 # The "course identifiers" you enter will be directory names below this root.
-
-# WARNING: The default, "..", is insecure (but convenient for development).
-# It will put course repos alongside the relate git checkout in the parent
-# directory of where you put the Relate source tree.
 
 #GIT_ROOT = "/some/where"
 GIT_ROOT = path.join(_BASEDIR, "git-roots")
