@@ -925,7 +925,6 @@ class GradeInfoTest(unittest.TestCase):
             incorrect_count=0,
             unknown_count=0
         )
-        print(g_info.unreachable_points_percent)  # added
 
         # for visualization purposes
         self.assertTrue(
