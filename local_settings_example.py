@@ -36,7 +36,16 @@ from django.utils.translation import gettext_noop  # noqa
 #         "PORT": '5432',
 #     }
 # }
-
+DATABASES = {
+    "default": {
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": "relate",
+        "USER": "sahilkamboj",
+        "PASSWORD": 'lovebread3',
+        "HOST": '127.0.0.1',
+        "PORT": '5432',
+    }
+}
 # Recommended, because dulwich is kind of slow in retrieving stuff.
 #
 # Also, progress bars for long-running operations will only work

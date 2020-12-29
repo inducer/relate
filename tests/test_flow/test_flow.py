@@ -823,7 +823,7 @@ class GradeInfoTest(unittest.TestCase):
         )
 
         # for visualization purposes
-        self.assertTrue(99 < g_info.points_percent() < 100)
+        self.assertTrue(99 < g_info.points_percent() <= 100)
 
     def test_points_percent_max_points_none(self):
         g_info = flow.GradeInfo(
@@ -925,10 +925,11 @@ class GradeInfoTest(unittest.TestCase):
             incorrect_count=0,
             unknown_count=0
         )
+        print(g_info.unreachable_points_percent)  # added
 
         # for visualization purposes
         self.assertTrue(
-            99 < g_info.unreachable_points_percent() < 100)
+            99 < g_info.unreachable_points_percent() <= 100)
 
 
 @pytest.mark.slow

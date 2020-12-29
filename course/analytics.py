@@ -287,12 +287,7 @@ class PageAnswerStats(object):
         self.group_id = group_id
         self.page_id = page_id
         self.title = title
-        """
-        self.average_correctness_percent = 99.99*average_correctness
-        self.average_emptiness_percent = 99.99*average_emptiness
-        self.average_wrongness_percent = 99.99*(
-                1-average_correctness-average_emptiness)
-        """
+
         self.pct = 100.0
         self.average_correctness_percent = self.pct*average_correctness
         self.average_emptiness_percent = self.pct*average_emptiness
