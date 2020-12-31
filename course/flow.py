@@ -772,19 +772,23 @@ class GradeInfo(object):
 
     def fully_correct_percent(self):
         """Only to be used for visualization purposes."""
-        return self.check_pct(self.FULL_PERCENT*self.fully_correct_count/self.total_count())
+        return self.check_pct(self.FULL_PERCENT*self.fully_correct_count
+                              /self.total_count())
 
     def partially_correct_percent(self):
         """Only to be used for visualization purposes."""
-        return self.check_pct(self.FULL_PERCENT*self.partially_correct_count/self.total_count())
+        return self.check_pct(self.FULL_PERCENT*self.partially_correct_count
+                              /self.total_count())
 
     def incorrect_percent(self):
         """Only to be used for visualization purposes."""
-        return self.check_pct(self.FULL_PERCENT*self.incorrect_count/self.total_count())
+        return self.check_pct(self.FULL_PERCENT*self.incorrect_count
+                              /self.total_count())
 
     def unknown_percent(self):
         """Only to be used for visualization purposes."""
-        return self.check_pct(self.FULL_PERCENT*self.unknown_count/self.total_count())
+        return self.check_pct(self.FULL_PERCENT*self.unknown_count
+                              /self.total_count())
 
     def optional_total_count(self):
         return self.check_pct(
@@ -797,29 +801,29 @@ class GradeInfo(object):
     def optional_fully_correct_percent(self):
         """Only to be used for visualization purposes."""
         return self.check_pct(
-            self.FULL_PERCENT * self.optional_fully_correct_count\
-            / self.optional_total_count()
+            self.FULL_PERCENT * self.optional_fully_correct_count\ 
+            / self.optional_total_count() # noqa
         )
 
     def optional_partially_correct_percent(self):
         """Only to be used for visualization purposes."""
         return self.check_pct(
             self.FULL_PERCENT * self.optional_partially_correct_count\
-            / self.optional_total_count()
+            / self.optional_total_count() # noqa
         )
 
     def optional_incorrect_percent(self):
         """Only to be used for visualization purposes."""
         return self.check_pct(
             self.FULL_PERCENT * self.optional_incorrect_count\
-            / self.optional_total_count()
+            / self.optional_total_count() # noqa
         )
 
     def optional_unknown_percent(self):
         """Only to be used for visualization purposes."""
         return self.check_pct(
             self.FULL_PERCENT * self.optional_unknown_count\
-            / self.optional_total_count()
+            / self.optional_total_count() # noqa
         )
 
     # }}}
