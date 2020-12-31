@@ -51,6 +51,8 @@
                           {# percent bar for unreachable_points_percent #}
                           <div class="progress-bar progress-bar-info"
                                style="width: {{ 100|sub:points_percent|sub:missed_points_percent|stringformat:".0f" }}%"></div>
+                          {% endwith %}
+                          {% endwith %}
                       </div>
                   {% endif %}
                   <p>
@@ -79,6 +81,9 @@
                       {# percent bar for unknown_percent #}
                       <div class="progress-bar progress-bar-info"
                            style="width: {{ 100|sub:fully_correct_percent|sub:partially_correct_percent|sub:incorrect_percent|stringformat:".0f" }}%"></div>
+                      {% endwith %}
+                      {% endwith %}
+                      {% endwith %}
                   </div>
               {% endif %}
               {% if grade_info.optional_total_count %}
@@ -108,6 +113,9 @@
                       {# percent bar for optional_unknown_percent #}
                       <div class="progress-bar progress-bar-info"
                            style="width: {{ 100|sub:optional_fully_correct_percent|sub:optional_partially_correct_percent|sub:optional_incorrect_percent|stringformat:".0f" }}%"></div>
+                      {% endwith %}
+                      {% endwith %}
+                      {% endwith %}
                   </div>
               {% endif %}
           </div>
