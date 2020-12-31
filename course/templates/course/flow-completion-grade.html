@@ -1,5 +1,5 @@
 {% extends "course/course-base.html" %}
-
+{% load mathfilters %}
 {% load i18n %}
 
 {% block title %}
@@ -42,12 +42,15 @@
                   {% if grade_info.total_points_percent < 100.001 %}
                       {# otherwise we'll have trouble drawing the bar #}
                       <div class="progress">
+                          {% with points_percent=grade_info.points_percent|floatformat:"0" %}
+                          {% with missed_points_percent=grade_info.missed_points_percent|floatformat:"0" %}
                           <div class="progress-bar progress-bar-success"
-                               style="width: {{ grade_info.points_percent|stringformat:".8f" }}%"></div>
+                               style="width: {{ points_percent|stringformat:".0f" }}%"></div>
                           <div class="progress-bar progress-bar-danger"
-                               style="width: {{ grade_info.missed_points_percent|stringformat:".8f" }}%"></div>
+                               style="width: {{ missed_points_percent|stringformat:".0f" }}%"></div>
+                          {# percent bar for unreachable_points_percent #}
                           <div class="progress-bar progress-bar-info"
-                               style="width: {{ grade_info.unreachable_points_percent|stringformat:".8f" }}%"></div>
+                               style="width: {{ 100|sub:points_percent|sub:missed_points_percent|stringformat:".0f" }}%"></div>
                       </div>
                   {% endif %}
                   <p>
@@ -64,14 +67,18 @@
                       {% endif %}
                   </p>
                   <div class="progress">
+                      {% with fully_correct_percent=grade_info.fully_correct_percent|floatformat:"0" %}
+                      {% with partially_correct_percent=grade_info.partially_correct_percent|floatformat:"0" %}
+                      {% with incorrect_percent=grade_info.incorrect_percent|floatformat:"0" %}
                       <div class="progress-bar progress-bar-success"
-                           style="width: {{ grade_info.fully_correct_percent|stringformat:".8f" }}%"></div>
+                           style="width: {{ fully_correct_percent|stringformat:".0f" }}%"></div>
                       <div class="progress-bar progress-bar-warning"
-                           style="width: {{ grade_info.partially_correct_percent|stringformat:".8f" }}%"></div>
+                           style="width: {{ partially_correct_percent|stringformat:".0f" }}%"></div>
                       <div class="progress-bar progress-bar-danger"
-                           style="width: {{ grade_info.incorrect_percent|stringformat:".8f" }}%"></div>
+                           style="width: {{ incorrect_percent|stringformat:".0f" }}%"></div>
+                      {# percent bar for unknown_percent #}
                       <div class="progress-bar progress-bar-info"
-                           style="width: {{ grade_info.unknown_percent|stringformat:".8f" }}%"></div>
+                           style="width: {{ 100|sub:fully_correct_percent|sub:partially_correct_percent|sub:incorrect_percent|stringformat:".0f" }}%"></div>
                   </div>
               {% endif %}
               {% if grade_info.optional_total_count %}
@@ -89,14 +96,18 @@
                       {% endif %}
                   </p>
                   <div class="progress">
+                      {% with optional_fully_correct_percent=grade_info.optional_fully_correct_percent|floatformat:"0" %}
+                      {% with optional_partially_correct_percent=grade_info.optional_partially_correct_percent|floatformat:"0" %}
+                      {% with optional_incorrect_percent=grade_info.optional_incorrect_percent|floatformat:"0" %}
                       <div class="progress-bar progress-bar-success"
-                           style="width: {{ grade_info.optional_fully_correct_percent|stringformat:".8f" }}%"></div>
+                           style="width: {{ optional_fully_correct_percent|stringformat:".0f" }}%"></div>
                       <div class="progress-bar progress-bar-warning"
-                           style="width: {{ grade_info.optional_partially_correct_percent|stringformat:".8f" }}%"></div>
+                           style="width: {{ optional_partially_correct_percent|stringformat:".0f" }}%"></div>
                       <div class="progress-bar progress-bar-danger"
-                           style="width: {{ grade_info.optional_incorrect_percent|stringformat:".8f" }}%"></div>
+                           style="width: {{ optional_incorrect_percent|stringformat:".0f" }}%"></div>
+                      {# percent bar for optional_unknown_percent #}
                       <div class="progress-bar progress-bar-info"
-                           style="width: {{ grade_info.optional_unknown_percent|stringformat:".8f" }}%"></div>
+                           style="width: {{ 100|sub:optional_fully_correct_percent|sub:optional_partially_correct_percent|sub:optional_incorrect_percent|stringformat:".0f" }}%"></div>
                   </div>
               {% endif %}
           </div>
