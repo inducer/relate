@@ -775,27 +775,27 @@ class GradeInfo(object):
 
     def optional_fully_correct_percent(self):
         """Only to be used for visualization purposes."""
-        return (self.FULL_PERCENT *
-                self.optional_fully_correct_count /
-                self.optional_total_count())
+        return (self.FULL_PERCENT
+                * self.optional_fully_correct_count
+                / self.optional_total_count())
 
     def optional_partially_correct_percent(self):
         """Only to be used for visualization purposes."""
-        return (self.FULL_PERCENT *
-                self.optional_partially_correct_count /
-                self.optional_total_count())
+        return (self.FULL_PERCENT
+                * self.optional_partially_correct_count
+                / self.optional_total_count())
 
     def optional_incorrect_percent(self):
         """Only to be used for visualization purposes."""
-        return (self.FULL_PERCENT *
-                self.optional_incorrect_count /
-                self.optional_total_count())
+        return (self.FULL_PERCENT
+                * self.optional_incorrect_count
+                / self.optional_total_count())
 
     def optional_unknown_percent(self):
         """Only to be used for visualization purposes."""
-        return (self.FULL_PERCENT *
-                self.optional_unknown_count /
-                self.optional_total_count())
+        return (self.FULL_PERCENT
+                * self.optional_unknown_count
+                / self.optional_total_count())
 
     # }}}
 
