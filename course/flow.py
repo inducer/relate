@@ -703,18 +703,9 @@ class GradeInfo(object):
         self.optional_incorrect_count = optional_incorrect_count
         self.optional_unknown_count = optional_unknown_count
 
-    # Rounding to larger than 100% will break the percent bars on the
-    # flow results page.
     FULL_PERCENT = 100.0
 
-    # To make sure percent bars don't break by
-    # getting percents that are over 100
-    def check_pct(self, pct):
-        if pct > 100:
-            return 100
-        if pct < 0:
-            return 0
-        return pct
+    # {{{ point percentages
 
     def points_percent(self):
         """Only to be used for visualization purposes."""
@@ -725,18 +716,14 @@ class GradeInfo(object):
             else:
                 return 0
         else:
-            return self.check_pct(
-                self.FULL_PERCENT*self.provisional_points/self.max_points
-            )
+            return self.FULL_PERCENT*self.provisional_points/self.max_points
 
     def missed_points_percent(self):
         """Only to be used for visualization purposes."""
 
-        return self.check_pct(
-            self.FULL_PERCENT
-            - self.points_percent()
-            - self.unreachable_points_percent()
-        )
+        return (self.FULL_PERCENT
+                - self.points_percent()
+                - self.unreachable_points_percent())
 
     def unreachable_points_percent(self):
         """Only to be used for visualization purposes."""
@@ -746,85 +733,69 @@ class GradeInfo(object):
                 or self.max_points == 0):
             return 0
         else:
-            return self.check_pct(
-                self.FULL_PERCENT*(
-                    self.max_points - self.max_reachable_points)/self.max_points
-            )
+            return self.FULL_PERCENT*(
+                   self.max_points - self.max_reachable_points)/self.max_points
 
     def total_points_percent(self):
-        return self.check_pct(
-            self.points_percent()
-            + self.missed_points_percent()
-            + self.unreachable_points_percent()
-        )
+        return (self.points_percent()
+                + self.missed_points_percent()
+                + self.unreachable_points_percent())
 
     # }}}
 
     # {{{ page counts
 
     def total_count(self):
-        return self.check_pct(
-            self.fully_correct_count
-            + self.partially_correct_count
-            + self.incorrect_count
-            + self.unknown_count
-        )
+        return (self.fully_correct_count
+                + self.partially_correct_count
+                + self.incorrect_count
+                + self.unknown_count)
 
     def fully_correct_percent(self):
         """Only to be used for visualization purposes."""
-        return self.check_pct(self.FULL_PERCENT*self.fully_correct_count
-                              / self.total_count())
+        return self.FULL_PERCENT*self.fully_correct_count/self.total_count()
 
     def partially_correct_percent(self):
         """Only to be used for visualization purposes."""
-        return self.check_pct(self.FULL_PERCENT*self.partially_correct_count
-                              / self.total_count())
+        return self.FULL_PERCENT*self.partially_correct_count/self.total_count()
 
     def incorrect_percent(self):
         """Only to be used for visualization purposes."""
-        return self.check_pct(self.FULL_PERCENT*self.incorrect_count
-                              / self.total_count())
+        return self.FULL_PERCENT*self.incorrect_count/self.total_count()
 
     def unknown_percent(self):
         """Only to be used for visualization purposes."""
-        return self.check_pct(self.FULL_PERCENT*self.unknown_count
-                              / self.total_count())
+        return self.FULL_PERCENT*self.unknown_count/self.total_count()
 
     def optional_total_count(self):
-        return self.check_pct(
-            self.optional_fully_correct_count
-            + self.optional_partially_correct_count
-            + self.optional_incorrect_count
-            + self.optional_unknown_count
-        )
+        return (self.optional_fully_correct_count
+                + self.optional_partially_correct_count
+                + self.optional_incorrect_count
+                + self.optional_unknown_count)
 
     def optional_fully_correct_percent(self):
         """Only to be used for visualization purposes."""
-        return self.check_pct(
-            self.FULL_PERCENT * self.optional_fully_correct_count\
-            / self.optional_total_count() # noqa
-        )
+        return (self.FULL_PERCENT *
+                self.optional_fully_correct_count /
+                self.optional_total_count())
 
     def optional_partially_correct_percent(self):
         """Only to be used for visualization purposes."""
-        return self.check_pct(
-            self.FULL_PERCENT * self.optional_partially_correct_count\
-            / self.optional_total_count() # noqa
-        )
+        return (self.FULL_PERCENT *
+                self.optional_partially_correct_count /
+                self.optional_total_count())
 
     def optional_incorrect_percent(self):
         """Only to be used for visualization purposes."""
-        return self.check_pct(
-            self.FULL_PERCENT * self.optional_incorrect_count\
-            / self.optional_total_count() # noqa
-        )
+        return (self.FULL_PERCENT *
+                self.optional_incorrect_count /
+                self.optional_total_count())
 
     def optional_unknown_percent(self):
         """Only to be used for visualization purposes."""
-        return self.check_pct(
-            self.FULL_PERCENT * self.optional_unknown_count\
-            / self.optional_total_count() # noqa
-        )
+        return (self.FULL_PERCENT *
+                self.optional_unknown_count /
+                self.optional_total_count())
 
     # }}}
 

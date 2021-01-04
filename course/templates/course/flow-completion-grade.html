@@ -42,15 +42,16 @@
                   {% if grade_info.total_points_percent < 100.001 %}
                       {# otherwise we'll have trouble drawing the bar #}
                       <div class="progress">
-                          {% with points_percent=grade_info.points_percent|floatformat:"0" %}
-                          {% with missed_points_percent=grade_info.missed_points_percent|floatformat:"0" %}
+                          {% with points_percent=grade_info.points_percent|mul:0.9999 %}
+                          {% with missed_points_percent=grade_info.missed_points_percent|mul:0.9999 %}
+                          {% with unreachable_points_percent=grade_info.unreachable_points_percent|mul:0.9999 %}
                           <div class="progress-bar progress-bar-success"
-                               style="width: {{ points_percent|stringformat:".0f" }}%"></div>
+                               style="width: {{ points_percent|stringformat:".6f" }}%"></div>
                           <div class="progress-bar progress-bar-danger"
-                               style="width: {{ missed_points_percent|stringformat:".0f" }}%"></div>
-                          {# percent bar for unreachable_points_percent #}
+                               style="width: {{ missed_points_percent|stringformat:".6f" }}%"></div>
                           <div class="progress-bar progress-bar-info"
-                               style="width: {{ 100|sub:points_percent|sub:missed_points_percent|stringformat:".0f" }}%"></div>
+                               style="width: {{ unreachable_points_percent|stringformat:".6f" }}%"></div>
+                          {% endwith %}
                           {% endwith %}
                           {% endwith %}
                       </div>
@@ -69,18 +70,19 @@
                       {% endif %}
                   </p>
                   <div class="progress">
-                      {% with fully_correct_percent=grade_info.fully_correct_percent|floatformat:"0" %}
-                      {% with partially_correct_percent=grade_info.partially_correct_percent|floatformat:"0" %}
-                      {% with incorrect_percent=grade_info.incorrect_percent|floatformat:"0" %}
+                      {% with fully_correct_percent=grade_info.fully_correct_percent|mul:0.9999 %}
+                      {% with partially_correct_percent=grade_info.partially_correct_percent|mul:0.9999 %}
+                      {% with incorrect_percent=grade_info.incorrect_percent|mul:0.9999 %}
+                      {% with unknown_percent=grade_info.unknown_percent|mul:0.9999 %}
                       <div class="progress-bar progress-bar-success"
-                           style="width: {{ fully_correct_percent|stringformat:".0f" }}%"></div>
+                           style="width: {{ fully_correct_percent|stringformat:".6f" }}%"></div>
                       <div class="progress-bar progress-bar-warning"
-                           style="width: {{ partially_correct_percent|stringformat:".0f" }}%"></div>
+                           style="width: {{ partially_correct_percent|stringformat:".6f" }}%"></div>
                       <div class="progress-bar progress-bar-danger"
-                           style="width: {{ incorrect_percent|stringformat:".0f" }}%"></div>
-                      {# percent bar for unknown_percent #}
+                           style="width: {{ incorrect_percent|stringformat:".6f" }}%"></div>
                       <div class="progress-bar progress-bar-info"
-                           style="width: {{ 100|sub:fully_correct_percent|sub:partially_correct_percent|sub:incorrect_percent|stringformat:".0f" }}%"></div>
+                           style="width: {{ unknown_percent|stringformat:".6f" }}%"></div>
+                      {% endwith %}
                       {% endwith %}
                       {% endwith %}
                       {% endwith %}
@@ -101,18 +103,19 @@
                       {% endif %}
                   </p>
                   <div class="progress">
-                      {% with optional_fully_correct_percent=grade_info.optional_fully_correct_percent|floatformat:"0" %}
-                      {% with optional_partially_correct_percent=grade_info.optional_partially_correct_percent|floatformat:"0" %}
-                      {% with optional_incorrect_percent=grade_info.optional_incorrect_percent|floatformat:"0" %}
+                      {% with optional_fully_correct_percent=grade_info.optional_fully_correct_percent|mul:0.9999 %}
+                      {% with optional_partially_correct_percent=grade_info.optional_partially_correct_percent|mul:0.9999 %}
+                      {% with optional_incorrect_percent=grade_info.optional_incorrect_percent|mul:0.9999 %}
+                      {% with optional_unknown_percent=grade_info.optional_unknown_percent|mul:0.9999 %}
                       <div class="progress-bar progress-bar-success"
-                           style="width: {{ optional_fully_correct_percent|stringformat:".0f" }}%"></div>
+                           style="width: {{ optional_fully_correct_percent|stringformat:".6f" }}%"></div>
                       <div class="progress-bar progress-bar-warning"
-                           style="width: {{ optional_partially_correct_percent|stringformat:".0f" }}%"></div>
+                           style="width: {{ optional_partially_correct_percent|stringformat:".6f" }}%"></div>
                       <div class="progress-bar progress-bar-danger"
-                           style="width: {{ optional_incorrect_percent|stringformat:".0f" }}%"></div>
-                      {# percent bar for optional_unknown_percent #}
+                           style="width: {{ optional_incorrect_percent|stringformat:".6f" }}%"></div>
                       <div class="progress-bar progress-bar-info"
-                           style="width: {{ 100|sub:optional_fully_correct_percent|sub:optional_partially_correct_percent|sub:optional_incorrect_percent|stringformat:".0f" }}%"></div>
+                           style="width: {{ optional_unknown_percent|stringformat:".6f" }}%"></div>
+                      {% endwith %}
                       {% endwith %}
                       {% endwith %}
                       {% endwith %}
