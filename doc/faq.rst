@@ -8,7 +8,7 @@ We assume that the Relate server is already installed and that you have
 a user account there. Your account will need to have sufficient
 privileges to create a course. (You can tell whether that's the case by
 checking that there is a 'Set up new course' button at the bottom of the main
-Relate page.)
+Relate page. If you don't yet have sufficient privileges, ask your site admin.)
 
 Getting everything set up
 ^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -27,7 +27,7 @@ Getting everything set up
     it in its entirety and just make modifications.
 
 -   Now you are ready to click that 'Set up new course' button.
-    Fill out the form that pops up. For the 'Git source' field,
+    Fill in the form that pops up. For the 'Git source' field,
     use the SSH clone URL provided by your Git host. It shoud look
     like this::
 
@@ -53,15 +53,15 @@ Getting everything set up
     and whether the site is restricted to staff. Nearly all of these settings can be
     changed later, under "Content/Edit Course", so if you make a mistake,
     it's note the end of the world. The only things that have to be correct
-    at this point are the SSH settings, the the course identifier, course root,
-    and the settings for 'course root' and 'course file' (but, in all
-    likelihood, the defaults will be just fine).
+    at this point are the SSH settings, the course identifier,
+    and the settings for 'course root' and 'course file'
+    (for these last two, in all likelihood, the defaults will be just fine).
 
     .. note::
 
         When choosing the 'course identifier', note that this will appear as
         part of the URL when students browse your course, so it is best to
-        choose something that is easy to type and doesn't look out of place
+        choose something that is easy to type and does not look out of place
         there, such as by preferring lower to upper case. It also has to be
         unique across the entire Relate site that you are using, so if the
         course you are teaching is expected to run multiple times, the
@@ -71,17 +71,17 @@ Getting everything set up
         A common pattern is, e.g., ``cs450-f21`` for a course named `CS 450`
         running in the fall semester of 2021.
 
--   Once you hit 'Validate and create', Relate will try to download your
+-   Once you hit 'Validate and create', Relate will download your
     course content via Git and check it for validity. This may take a second.
     Next, you should be greeted by your new course web page.
 
     If something went wrong, Relate will show an error message that
-    explains what happened. If you can't figure out what it is trying to say,
+    explains what happened. If you are unable to figure out what it is trying to say,
     contact the site admin for your installation of Relate.
 
 What to do next
 ^^^^^^^^^^^^^^^
-At this point, you're off to the races! Here are some ideas for things you may
+At this point, you are off to the races! Here are some ideas for things you may
 want to take care of next:
 
 -   To update the course content, commit your changes, push them to your Git
@@ -103,22 +103,24 @@ want to take care of next:
     "enrollment preapprovals" for the students in your course, for example
     based on a class roster you have received. You can preapprove students
     either by institutional ID/student ID or by their email address.
+    You can create those preapprovals under the "Instructor / Preapprove enrollments"
+    menu item.
 
 -   Key dates in your course will be different every time your teach it, so Relate
-    provides a notion of 'events' as symbolic names for specific points in time.
+    provides a notion of 'events' as symbolic names for specific points/periods in time.
     (E.g. ``lecture 5``, ``quiz 3``, ``exam 2``). In addition to (optionally) being
     shown on the class calendar, you can refer to them from your course content,
     so that you don't have to manually change these dates every time you teach
-    the course. If your  course content used events, you will likely have
+    the course. If your course content uses events, you will likely have
     seen some warnings fly by about these being missing. (You can revisit those
     warnings by going to "Content / Retrieve/preview new course revisions" and
     clicking "Update" to rerun the validation.) Now might be a good time
-    to add those events.
+    to add those events. (using "Content / Edit events")
 
     Note that events may be numbered, as in the example above. If you need to create
     many events, note that there is a function "Content / Create recurring events"
     which lets you do so efficiently. If you have events that occur (e.g.) multiple
-    times a week, create both series separately. At this point, however, the
+    times a week, create all (e.g. weekly) series separately. At this point, however, the
     numbering will be off, with the second series numbered after the first.
     You can fix that by using the "Content / Renumber events" function, which
     adjusts the numbering so that it is in chronological order.
