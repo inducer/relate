@@ -38,15 +38,14 @@ Getting everything set up
         ssh://git@hostingsite.com/yourusername/yourreponame.git
 
 -   To make sure Relate can access your course content, you will need
-    an SSH keypair. Below the 'SSH private key', there is a link
-    to a tool (built into Relate) to help you create one. Open that
-    link in a new browser tab. Copy the 'private key' bit into the
-    'SSH private key' box on the course creation form. Next, find
-    the "Deployment key" section in the settings of your Git hosting
-    site, and add the public key there. On Github, this is under
-    "Setting/Deploy keys". On Gitlab, it is under "Settings/Repository/Deploy
-    keys". For the title of the key, you may choose any description
-    you like.
+    an SSH keypair. Below the 'SSH private key' box in the course creation
+    form, there is a link to a tool (built into Relate) to help you create one.
+    Open that link in a new browser tab. Copy the 'private key' bit into the
+    'SSH private key' box on the course creation form. Next, find the
+    "Deployment key" section in the settings of your Git hosting site, and add
+    the public key there. On Github, this is under "Setting/Deploy keys". On
+    Gitlab, it is under "Settings/Repository/Deploy keys". For the title of the
+    key, you may choose any description you like.
 
 -   Fill out the rest of the form. You will want to pay special attention
     to whether you want your course listed on the main page, whether
