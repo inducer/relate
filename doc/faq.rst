@@ -1,8 +1,8 @@
 Frequently Asked Questions
 ==========================
 
-How do I get started with in Relate?
-------------------------------------
+How do I get started with Relate?
+---------------------------------
 At the start of a course, there are a few steps required to get going.
 We assume that the Relate server is already installed and that you have
 a user account there. Your account will need to have sufficient
