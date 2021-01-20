@@ -50,9 +50,15 @@ INSTALLED_APPS = (
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "django.contrib.sites",
+
     "crispy_forms",
     "jsonfield",
     "django_select2",
+
+    "allauth",
+    "allauth.account",
+    "allauth.socialaccount",
 
     # message queue
     "django_celery_results",
@@ -91,6 +97,7 @@ AUTHENTICATION_BACKENDS = (
     "course.auth.EmailedTokenBackend",
     "course.auth.APIBearerTokenBackend",
     "course.exam.ExamTicketBackend",
+    "allauth.account.auth_backends.AuthenticationBackend",
     "django.contrib.auth.backends.ModelBackend",
     )
 

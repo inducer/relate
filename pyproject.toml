@@ -113,6 +113,8 @@ colorama = "*"
 # version constraint is here because of CVE-2020-25659
 cryptography = "^3.2.1"
 
+django-allauth = "^0.44.0"
+
 [tool.poetry.dev-dependencies]
 codecov = "^2.1.4"
 factory_boy = "^2.12.0"
