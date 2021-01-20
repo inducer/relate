@@ -1,6 +1,132 @@
 Frequently Asked Questions
 ==========================
 
+How do I get started with in Relate?
+------------------------------------
+At the start of a course, there are a few steps required to get going.
+We assume that the Relate server is already installed and that you have
+a user account there. Your account will need to have sufficient
+privileges to create a course. (You can tell whether that's the case by
+checking that there is a 'Set up new course' button at the bottom of the main
+Relate page.)
+
+Getting everything set up
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+-   Start by creating a Git repository on a hosting site (Github, Gitlab,
+    Bitbucket, or similar) for your course.  Likely you will want this to be a
+    private repository, to prevent students from seeing solutions to your
+    assignments.
+
+-   If you have a course repository from a prior semester, you can start by
+    pushing its content to your new repository.
+
+    If you're starting from scratch, you can use the
+    `sample course <https://github.com/inducer/relate-sample>`__.
+    You can either create your own and use it as a guide, or use
+    it in its entirety and just make modifications.
+
+-   Now you are ready to click that 'Set up new course' button.
+    Fill out the form that pops up. For the 'Git source' field,
+    use the SSH clone URL provided by your Git host. It shoud look
+    like this::
+
+        git@hostingsite.com:yourusername/yourreponame.git
+
+    or like this::
+
+        ssh://git@hostingsite.com/yourusername/yourreponame.git
+
+-   To make sure Relate can access your course content, you will need
+    an SSH keypair. Below the 'SSH private key', there is a link
+    to a tool (built into Relate) to help you create one. Open that
+    link in a new browser tab. Copy the 'private key' bit into the
+    'SSH private key' box on the course creation form. Next, find
+    the "Deployment key" section in the settings of your Git hosting
+    site, and add the public key there. On Github, this is under
+    "Setting/Deploy keys". On Gitlab, it is under "Settings/Repository/Deploy
+    keys". For the title of the key, you may choose any description
+    you like.
+
+-   Fill out the rest of the form. You will want to pay special attention
+    to whether you want your course listed on the main page, whether
+    you would like it open for enrollment right away, who is allowed to enroll,
+    and whether the site is restricted to staff. Nearly all of these settings can be
+    changed later, under "Content/Edit Course", so if you make a mistake,
+    it's note the end of the world. The only things that have to be correct
+    at this point are the SSH settings, the the course identifier, course root,
+    and the settings for 'course root' and 'course file' (but, in all
+    likelihood, the defaults will be just fine).
+
+    .. note::
+
+        When choosing the 'course identifier', note that this will appear as
+        part of the URL when students browse your course, so it is best to
+        choose something that is easy to type and doesn't look out of place
+        there, such as by preferring lower to upper case. It also has to be
+        unique across the entire Relate site that you are using, so if the
+        course you are teaching is expected to run multiple times, the
+        identifier should likely include extra bits like the semester, and
+        maybe even the name of the section.
+
+        A common pattern is, e.g., ``cs450-f21`` for a course named `CS 450`
+        running in the fall semester of 2021.
+
+-   Once you hit 'Validate and create', Relate will try to download your
+    course content via Git and check it for validity. This may take a second.
+    Next, you should be greeted by your new course web page.
+
+    If something went wrong, Relate will show an error message that
+    explains what happened. If you can't figure out what it is trying to say,
+    contact the site admin for your installation of Relate.
+
+What to do next
+^^^^^^^^^^^^^^^
+At this point, you're off to the races! Here are some ideas for things you may
+want to take care of next:
+
+-   To update the course content, commit your changes, push them to your Git
+    hosting site, select "Content / Retrieve/preview new course revisions" and
+    click "Fetch and update" or "Fetch and preview".
+
+-   You may also want to add your course staff so that they can help you
+    get things set up. You can add them under "Grading / List of Participants",
+    making sure to choose an appropriate role for them. Try to avoid giving
+    one-off permissions. Instead, adjust the permissions of the role on
+    the admin site.
+
+-   If your course has controlled enrollment, you will likely want to
+    recheck the enrollment settings under "Content/Edit course".
+
+-   If you check "Enrollment approval required", you will receive an email
+    (at the "Notify email" you provided) whenever a student tries to register.
+    Approving these requests can be cumbersome. So you may want to create
+    "enrollment preapprovals" for the students in your course, for example
+    based on a class roster you have received. You can preapprove students
+    either by institutional ID/student ID or by their email address.
+
+-   Key dates in your course will be different every time your teach it, so Relate
+    provides a notion of 'events' as symbolic names for specific points in time.
+    (E.g. ``lecture 5``, ``quiz 3``, ``exam 2``). In addition to (optionally) being
+    shown on the class calendar, you can refer to them from your course content,
+    so that you don't have to manually change these dates every time you teach
+    the course. If your  course content used events, you will likely have
+    seen some warnings fly by about these being missing. (You can revisit those
+    warnings by going to "Content / Retrieve/preview new course revisions" and
+    clicking "Update" to rerun the validation.) Now might be a good time
+    to add those events.
+
+    Note that events may be numbered, as in the example above. If you need to create
+    many events, note that there is a function "Content / Create recurring events"
+    which lets you do so efficiently. If you have events that occur (e.g.) multiple
+    times a week, create both series separately. At this point, however, the
+    numbering will be off, with the second series numbered after the first.
+    You can fix that by using the "Content / Renumber events" function, which
+    adjusts the numbering so that it is in chronological order.
+
+We hope you have a productive and fun course with Relate! If you have
+ideas, comments, or suggestions, don't hesitate to `get in touch
+<https://github.com/inducer/relate/issues/new>`__.
 
 What does 'starting a session' mean?
 ------------------------------------
