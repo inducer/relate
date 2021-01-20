@@ -59,7 +59,10 @@ Getting everything set up
 
     .. note::
 
-        When choosing the 'course identifier', note that this will appear as
+        The course identifier is final and cannot be changed once the course
+        is created.
+        
+        When choosing the course identifier, note that this will appear as
         part of the URL when students browse your course, so it is best to
         choose something that is easy to type and does not look out of place
         there, such as by preferring lower to upper case. It also has to be
