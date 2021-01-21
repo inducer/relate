@@ -68,13 +68,15 @@ from course.utils import render_course_page, course_view
 from relate.utils import StyledForm, StyledModelForm, string_concat, get_site_name
 from django_select2.forms import ModelSelect2Widget
 
+from allauth.socialaccount.adapter import DefaultSocialAccountAdapter
+
 from typing import Any, Text, Optional, Dict, Union, Tuple, TYPE_CHECKING  # noqa
 if TYPE_CHECKING:
     from django.db.models import query  # noqa
     import datetime # noqa
 
-# {{{ impersonation
 
+# {{{ impersonation
 
 def get_pre_impersonation_user(request):
     is_impersonating = hasattr(
@@ -370,7 +372,11 @@ def sign_in_choice(request, redirect_field_name=REDIRECT_FIELD_NAME):
     if redirect_to:
         next_uri = "?%s=%s" % (redirect_field_name, redirect_to)
 
-    return render(request, "sign-in-choice.html", {"next_uri": next_uri})
+    return render(request, "sign-in-choice.html", {
+        "next_uri": next_uri,
+        "redirect_to": redirect_to,
+        "relate_socialaccount_providers": settings.RELATE_SOCIALACCOUNT_PROVIDERS,
+        })
 
 # }}}
 
@@ -1062,6 +1068,28 @@ def saml2_update_user_hook(sender, instance, attributes, user_modified, **kwargs
             mod = True
 
     return mod
+
+# }}}
+
+
+# {{{ allauth social login
+
+class SocialAccountAdapter(DefaultSocialAccountAdapter):
+    def populate_user(self, request, sociallogin, data):
+        user = super().populate_user(request, sociallogin, data)
+        print(user.id)
+        print(type(user))
+        print(sociallogin)
+        print(data)
+
+        # Social login TODO: Provider logos?
+        # Social login TODO: Provider human readable names?
+        # Social login TODO: Set account as confirmed
+        # Social login TODO: Account attribute transfer
+        # Social login TODO: Generate username based on email?
+        # Social login TODO: Show email in profile view?
+        # Social login TODO: Handle duplicate email
+        return user
 
 # }}}
 

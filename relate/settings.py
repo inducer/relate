@@ -65,7 +65,8 @@ INSTALLED_APPS = (
 
     "accounts",
     "course",
-)
+) + tuple(f"allauth.socialaccount.providers.{provider}"
+        for provider in local_settings.get("RELATE_SOCIALACCOUNT_PROVIDERS", ()))
 
 if local_settings.get("RELATE_SIGN_IN_BY_SAML2_ENABLED"):
     INSTALLED_APPS = INSTALLED_APPS + ("djangosaml2",)  # type: ignore
@@ -107,6 +108,9 @@ if local_settings.get("RELATE_SIGN_IN_BY_SAML2_ENABLED"):
             )
 
 AUTH_USER_MODEL = "accounts.User"
+
+SOCIALACCOUNT_QUERY_EMAIL = True
+SOCIALACCOUNT_ADAPTER = "course.auth.SocialAccountAdapter"
 
 # }}}
 

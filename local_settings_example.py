@@ -6,6 +6,9 @@ _BASEDIR = path.dirname(path.abspath(__file__))
 
 # {{{ database and site
 
+# Create a corresponding site in the admin section of the sites framework
+SITE_ID = 1
+
 SECRET_KEY = "<CHANGE ME TO SOME RANDOM STRING ONCE IN PRODUCTION>"
 
 ALLOWED_HOSTS = [
@@ -215,6 +218,12 @@ RELATE_SIGN_IN_BY_EXAM_TICKETS_ENABLED = True
 # If you enable this, you must also have saml_config.py in this directory.
 # See saml_config.py.example for help.
 RELATE_SIGN_IN_BY_SAML2_ENABLED = False
+
+RELATE_SOCIALACCOUNT_PROVIDERS = []
+# See here for a list:
+# https://django-allauth.readthedocs.io/en/latest/installation.html
+# Just provide the part *after* 'allauth.socialaccount.providers.'
+# RELATE_SOCIALACCOUNT_PROVIDERS = ["google"]
 
 # }}}
 

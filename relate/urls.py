@@ -560,7 +560,12 @@ urlpatterns = [
         name="relate-course_get_flow_session_content"),
 
     url(r"^admin/", admin.site.urls),
+] + [
+        url("^accounts/",
+            include(f"allauth.socialaccount.providers.{provider}.urls"))
+        for provider in settings.RELATE_SOCIALACCOUNT_PROVIDERS
 ]
+
 
 if settings.RELATE_SIGN_IN_BY_SAML2_ENABLED:
     urlpatterns.extend([
