@@ -42,6 +42,8 @@
                   {% if grade_info.total_points_percent < 100.001 %}
                       {# otherwise we'll have trouble drawing the bar #}
                       <div class="progress">
+                          {# Multiplying by 0.9999 to avoid rounding to larger than 100% #}
+                          {# to avoid breaking percent bar. #}
                           {% with points_percent=grade_info.points_percent|mul:0.9999 %}
                           {% with missed_points_percent=grade_info.missed_points_percent|mul:0.9999 %}
                           {% with unreachable_points_percent=grade_info.unreachable_points_percent|mul:0.9999 %}
@@ -70,6 +72,8 @@
                       {% endif %}
                   </p>
                   <div class="progress">
+                      {# Multiplying by 0.9999 to avoid rounding to larger than 100% #}
+                      {# to avoid breaking percent bar. #}
                       {% with fully_correct_percent=grade_info.fully_correct_percent|mul:0.9999 %}
                       {% with partially_correct_percent=grade_info.partially_correct_percent|mul:0.9999 %}
                       {% with incorrect_percent=grade_info.incorrect_percent|mul:0.9999 %}
@@ -103,6 +107,8 @@
                       {% endif %}
                   </p>
                   <div class="progress">
+                      {# Multiplying by 0.9999 to avoid rounding to larger than 100% #}
+                      {# to avoid breaking percent bar. #}
                       {% with optional_fully_correct_percent=grade_info.optional_fully_correct_percent|mul:0.9999 %}
                       {% with optional_partially_correct_percent=grade_info.optional_partially_correct_percent|mul:0.9999 %}
                       {% with optional_incorrect_percent=grade_info.optional_incorrect_percent|mul:0.9999 %}
