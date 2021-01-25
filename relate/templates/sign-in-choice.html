@@ -50,5 +50,14 @@
         {% blocktrans %}Sign in with a {{ relate_site_name }}-specific user name and password{% endblocktrans %} &raquo;</a>
     </li>
     {% endif %}
+    {% for backend in backends.backends %}
+    <li>
+      <a
+        class="btn btn-primary"
+        href="{% url "social:begin" backend %}{{next_uri}}"
+        role="button"><i class="fa fa-{{ social_provider_to_logo|get_item_or_key:backend }}"></i>
+        {% blocktrans with bkend=social_provider_to_human_name|get_item_or_key:backend %}Sign in with {{ bkend }}{% endblocktrans %} &raquo;</a>
+    </li>
+    {% endfor %}
   </ul>
 {% endblock %}

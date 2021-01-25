@@ -370,7 +370,15 @@ def sign_in_choice(request, redirect_field_name=REDIRECT_FIELD_NAME):
     if redirect_to:
         next_uri = "?%s=%s" % (redirect_field_name, redirect_to)
 
-    return render(request, "sign-in-choice.html", {"next_uri": next_uri})
+    return render(request, "sign-in-choice.html", {
+        "next_uri": next_uri,
+        "social_provider_to_logo": {
+            "google-oauth2": "google",
+            },
+        "social_provider_to_human_name": {
+            "google-oauth2": "Google",
+            },
+        })
 
 # }}}
 
@@ -1068,6 +1076,33 @@ def saml2_update_user_hook(sender, instance, attributes, user_modified, **kwargs
             mod = True
 
     return mod
+
+# }}}
+
+
+# {{{ social auth
+
+def social_set_user_email_verified(backend, details, user=None, *args, **kwargs):
+    email = details.get("email")
+
+    modified = False
+    print(details)
+
+    if email:
+        if email != user.email:
+            user.email = email
+            modified = True
+
+        from course.constants import user_status
+        if user.status != user_status.active:
+            user.status = user_status.active
+            modified = True
+
+    if modified:
+        user.save()
+
+    # continue the social auth pipeline
+    return None
 
 # }}}
 

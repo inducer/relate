@@ -216,6 +216,25 @@ RELATE_SIGN_IN_BY_EXAM_TICKETS_ENABLED = True
 # See saml_config.py.example for help.
 RELATE_SIGN_IN_BY_SAML2_ENABLED = False
 
+RELATE_SOCIAL_AUTH_BACKENDS = (
+        # See https://python-social-auth.readthedocs.io/en/latest/
+        # for full list:
+        # "social_core.backends.google.GoogleOAuth2",
+
+        # CAUTION: Relate uses emails returned by the backend to match
+        # users. Only use backends that return verified emails.
+        )
+
+# Your Google "Client ID"
+# SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = ''
+# Your Google "Client Secret"
+# SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = ''
+SOCIAL_AUTH_GOOGLE_OAUTH2_USE_UNIQUE_USER_ID = True
+
+# When registering your OAuth2 app (and consent screen) with Google,
+# specify the following authorized redirect URI:
+# https://sitename.edu/social-auth/complete/google-oauth2/
+
 # }}}
 
 # {{{ editable institutional id before verification?
