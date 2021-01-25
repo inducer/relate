@@ -952,6 +952,7 @@ class UserForm(StyledModelForm):
                        onclick=(
                            "window.location.href='%s'"
                            % reverse("relate-logout"))))
+
         # }}}
 
     def clean_institutional_id_confirm(self):
@@ -964,6 +965,8 @@ class UserForm(StyledModelForm):
             if any([inst_id, inst_id_confirmed]) and inst_id != inst_id_confirmed:
                 raise forms.ValidationError(_("Inputs do not match."))
         return inst_id_confirmed
+
+# }}}
 
 
 @login_required
