@@ -51,14 +51,31 @@
         {% blocktrans %}Sign in with a {{ relate_site_name }}-specific user name and password{% endblocktrans %} &raquo;</a>
     </li>
     {% endif %}
-    {% for provider in relate_socialaccount_providers %}
-    <li>
-      <a
-        class="btn btn-primary"
-        href="{% provider_login_url provider next=redirect_to %}"
-        role="button"><i class="fa fa-key"></i>
-        {% blocktrans %}Sign in with {{ provider }}{% endblocktrans %} &raquo;</a>
-    </li>
+
+    {# adapted from django-allauth: allauth/templates/socialaccount/snippets/provider_list.html #}
+    {% get_providers as socialaccount_providers %}
+
+    {% for provider in socialaccount_providers %}
+        {% if provider.id == "openid" %}
+        {% for brand in provider.get_brands %}
+            <li>
+                <a
+                    class="btn btn-primary socialaccount_provider {{provider.id}} {{brand.id}}"
+                    href="{% provider_login_url provider.id openid=brand.openid_url process=process %}"
+                    ><i class="fa fa-key"></i>
+                    {% blocktrans with bname=brand.name %}Sign in with {{bname}}{% endblocktrans %} &raquo;
+                    </a>
+            </li>
+        {% endfor %}
+        {% endif %}
+        <li>
+            <a
+                class="btn btn-primary socialaccount_provider {{provider.id}}"
+                href="{% provider_login_url provider.id process=process scope=scope auth_params=auth_params %}"
+                role="button"><i class="fa fa-{{provider.id}}"></i>
+                {% blocktrans with pname=provider.name %}Sign in with {{pname}}{% endblocktrans %} &raquo;</a>
+        </li>
     {% endfor %}
+
   </ul>
 {% endblock %}
