@@ -141,3 +141,13 @@ def may_set_pretend_facility(user):
 def commit_message_as_html(commit_sha, repo):
     from course.versioning import _get_commit_message_as_html
     return _get_commit_message_as_html(repo, commit_sha)
+
+
+@register.filter(name="get_item")
+def get_item(dictionary, key):
+    return dictionary.get(key, None)
+
+
+@register.filter(name="get_item_or_key")
+def get_item_or_key(dictionary, key):
+    return dictionary.get(key, key)
