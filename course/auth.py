@@ -891,7 +891,7 @@ class UserForm(StyledModelForm):
 
     class Meta:
         model = get_user_model()
-        fields = ("first_name", "last_name", "institutional_id",
+        fields = ("first_name", "last_name", "email", "institutional_id",
                 "editor_mode")
 
     def __init__(self, *args, **kwargs):
@@ -901,6 +901,8 @@ class UserForm(StyledModelForm):
         if self.instance.name_verified:
             self.fields["first_name"].disabled = True
             self.fields["last_name"].disabled = True
+
+        self.fields["email"].disabled = True
 
         if self.is_inst_id_locked:
             self.fields["institutional_id"].disabled = True
@@ -919,8 +921,9 @@ class UserForm(StyledModelForm):
                    is_inst_id_editable_before_validation()
                    and _("verified") or _("submitted")})
 
-        # {{ build layout
-        name_fields_layout = ["last_name", "first_name"]
+        # {{{ build layout
+
+        name_fields_layout = ["last_name", "first_name", "email"]
         fields_layout = [Div(*name_fields_layout, css_class="well")]
 
         if getattr(settings, "RELATE_SHOW_INST_ID_FORM", True):
