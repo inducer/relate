@@ -174,6 +174,24 @@ Setting up SAML2
 - Edit :file:`saml_config.py` using :file:`saml_config.py.example`
   as a guide.
 
+Setting up Social Authentication (Google as an example)
+-------------------------------------------------------
+
+- Go to the `Google Developer Console <https://console.developers.google.com>`_.
+- Create a project.
+- Create an OAuth consent screen. You'll only need the ``.../auth/userinfo.email``
+  and ``.../auth/userinfo.profile`` scopes.
+- Under "Credentials", create an OAuth 2.0 Client ID. Enter your equivalent of
+  ``http://relate.cs.illinois.edu/social-auth/complete/google-oauth2/`` as
+  an authorized redirect URI. For testing, you can also add
+  ``http://localhost:8000/social-auth/complete/google-oauth2/``.
+  You do not need anyy authorized JavaScript origins.
+- Add ``"social_core.backends.google.GoogleOAuth2"`` to
+  ``RELATE_SOCIAL_AUTH_BACKENDS``.
+- Copy the Client ID into ``SOCIAL_AUTH_GOOGLE_OAUTH2_KEY``, and the
+  client secret into ``SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET``.
+- Restart your server: you should be good to go.
+
 Deployment
 ----------
 
