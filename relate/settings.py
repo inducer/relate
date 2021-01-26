@@ -50,6 +50,7 @@ INSTALLED_APPS = (
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "social_django",
     "crispy_forms",
     "jsonfield",
     "django_select2",
@@ -63,6 +64,11 @@ INSTALLED_APPS = (
 
 if local_settings.get("RELATE_SIGN_IN_BY_SAML2_ENABLED"):
     INSTALLED_APPS = INSTALLED_APPS + ("djangosaml2",)  # type: ignore
+
+SOCIAL_AUTH_POSTGRES_JSONFIELD = (
+        "DATABASES" in local_settings
+        and local_settings["DATABASES"]["default"]["ENGINE"]
+        == "django.db.backends.postgresql")
 
 # }}}
 
@@ -81,11 +87,14 @@ MIDDLEWARE = (
     "course.exam.ExamFacilityMiddleware",
     "course.exam.ExamLockdownMiddleware",
     "relate.utils.MaintenanceMiddleware",
+    "social_django.middleware.SocialAuthExceptionMiddleware",
 )
 
 # }}}
 
 # {{{ django: auth
+
+AUTH_USER_MODEL = "accounts.User"
 
 AUTHENTICATION_BACKENDS = (
     "course.auth.EmailedTokenBackend",
@@ -99,7 +108,34 @@ if local_settings.get("RELATE_SIGN_IN_BY_SAML2_ENABLED"):
             "djangosaml2.backends.Saml2Backend",
             )
 
-AUTH_USER_MODEL = "accounts.User"
+if local_settings.get("RELATE_SOCIAL_AUTH_BACKENDS"):
+    AUTHENTICATION_BACKENDS = (
+            AUTHENTICATION_BACKENDS
+            + local_settings["RELATE_SOCIAL_AUTH_BACKENDS"])
+
+SOCIAL_AUTH_PIPELINE = (
+    "social_core.pipeline.social_auth.social_details",
+    "social_core.pipeline.social_auth.social_uid",
+    "social_core.pipeline.social_auth.social_user",
+    "social_core.pipeline.user.get_username",
+
+    "course.auth.social_auth_check_domain_against_blacklist",
+
+    # /!\ Assumes that providers only provide verified emails
+    "social_core.pipeline.social_auth.associate_by_email",
+
+    "social_core.pipeline.user.create_user",
+    "social_core.pipeline.social_auth.associate_user",
+    "social_core.pipeline.social_auth.load_extra_data",
+    "social_core.pipeline.user.user_details",
+
+    "course.auth.social_set_user_email_verified",
+)
+
+SOCIAL_AUTH_ADMIN_USER_SEARCH_FIELDS = [
+        "username", "first_name", "last_name", "email"]
+
+LOGIN_ERROR_URL = "/"
 
 # }}}
 
@@ -127,6 +163,9 @@ RELATE_EXTRA_CONTEXT_PROCESSORS = (
             "course.views.fake_time_context_processor",
             "course.views.pretend_facilities_context_processor",
             "course.exam.exam_lockdown_context_processor",
+
+            "social_django.context_processors.backends",
+            "social_django.context_processors.login_redirect",
             )
 
 # }}}

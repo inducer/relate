@@ -560,6 +560,8 @@ urlpatterns = [
         name="relate-course_get_flow_session_content"),
 
     url(r"^admin/", admin.site.urls),
+
+    url("^social-auth/", include("social_django.urls", namespace="social")),
 ]
 
 if settings.RELATE_SIGN_IN_BY_SAML2_ENABLED:
