@@ -151,3 +151,8 @@ def get_item(dictionary, key):
 @register.filter(name="get_item_or_key")
 def get_item_or_key(dictionary, key):
     return dictionary.get(key, key)
+
+
+@register.filter(name="startswith")
+def startswith(s, arg):
+    return s.startswith(arg)
