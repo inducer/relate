@@ -218,7 +218,7 @@ RELATE_SIGN_IN_BY_SAML2_ENABLED = False
 
 RELATE_SOCIAL_AUTH_BACKENDS = (
         # See https://python-social-auth.readthedocs.io/en/latest/
-        # for full list:
+        # for full list.
         # "social_core.backends.google.GoogleOAuth2",
 
         # CAUTION: Relate uses emails returned by the backend to match
@@ -236,7 +236,7 @@ SOCIAL_AUTH_GOOGLE_OAUTH2_USE_UNIQUE_USER_ID = True
 # https://sitename.edu/social-auth/complete/google-oauth2/
 
 # Blacklist these domains for social auth. This may be useful if there
-# is a canonical way for (e.g. SAML2) for members of that domain to
+# is a canonical way (e.g. SAML2) for members of that domain to
 # sign in.
 # RELATE_SOCIAL_AUTH_BLACKLIST_EMAIL_DOMAINS = {
 #   "illinois.edu": "Must use SAML2 to sign in."
