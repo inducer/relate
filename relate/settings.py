@@ -87,6 +87,7 @@ MIDDLEWARE = (
     "course.exam.ExamFacilityMiddleware",
     "course.exam.ExamLockdownMiddleware",
     "relate.utils.MaintenanceMiddleware",
+    "social_django.middleware.SocialAuthExceptionMiddleware",
 )
 
 # }}}
@@ -118,6 +119,8 @@ SOCIAL_AUTH_PIPELINE = (
     "social_core.pipeline.social_auth.social_user",
     "social_core.pipeline.user.get_username",
 
+    "course.auth.social_auth_check_domain_against_blacklist",
+
     # /!\ Assumes that providers only provide verified emails
     "social_core.pipeline.social_auth.associate_by_email",
 
@@ -131,6 +134,8 @@ SOCIAL_AUTH_PIPELINE = (
 
 SOCIAL_AUTH_ADMIN_USER_SEARCH_FIELDS = [
         "username", "first_name", "last_name", "email"]
+
+LOGIN_ERROR_URL = "/"
 
 # }}}
 

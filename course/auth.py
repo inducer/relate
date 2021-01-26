@@ -1103,6 +1103,21 @@ def social_set_user_email_verified(backend, details, user=None, *args, **kwargs)
     # continue the social auth pipeline
     return None
 
+
+def social_auth_check_domain_against_blacklist(backend, details, *args, **kwargs):
+    email = details.get("email")
+
+    domain_blacklist = getattr(
+            settings, "RELATE_SOCIAL_AUTH_BLACKLIST_EMAIL_DOMAINS", {})
+    if domain_blacklist and email:
+        domain = email.split("@", 1)[1]
+        if domain in domain_blacklist:
+            from social_core.exceptions import SocialAuthBaseException
+            raise SocialAuthBaseException(domain_blacklist[domain])
+
+    # continue the social auth pipeline
+    return None
+
 # }}}
 
 

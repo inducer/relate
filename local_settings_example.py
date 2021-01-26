@@ -235,6 +235,13 @@ SOCIAL_AUTH_GOOGLE_OAUTH2_USE_UNIQUE_USER_ID = True
 # specify the following authorized redirect URI:
 # https://sitename.edu/social-auth/complete/google-oauth2/
 
+# Blacklist these domains for social auth. This may be useful if there
+# is a canonical way for (e.g. SAML2) for members of that domain to
+# sign in.
+# RELATE_SOCIAL_AUTH_BLACKLIST_EMAIL_DOMAINS = {
+#   "illinois.edu": "Must use SAML2 to sign in."
+#   }
+
 # }}}
 
 # {{{ editable institutional id before verification?
