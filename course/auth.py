@@ -1086,7 +1086,6 @@ def social_set_user_email_verified(backend, details, user=None, *args, **kwargs)
     email = details.get("email")
 
     modified = False
-    print(details)
 
     if email:
         if email != user.email:
