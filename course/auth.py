@@ -370,7 +370,15 @@ def sign_in_choice(request, redirect_field_name=REDIRECT_FIELD_NAME):
     if redirect_to:
         next_uri = "?%s=%s" % (redirect_field_name, redirect_to)
 
-    return render(request, "sign-in-choice.html", {"next_uri": next_uri})
+    return render(request, "sign-in-choice.html", {
+        "next_uri": next_uri,
+        "social_provider_to_logo": {
+            "google-oauth2": "google",
+            },
+        "social_provider_to_human_name": {
+            "google-oauth2": "Google",
+            },
+        })
 
 # }}}
 
@@ -891,7 +899,7 @@ class UserForm(StyledModelForm):
 
     class Meta:
         model = get_user_model()
-        fields = ("first_name", "last_name", "institutional_id",
+        fields = ("first_name", "last_name", "email", "institutional_id",
                 "editor_mode")
 
     def __init__(self, *args, **kwargs):
@@ -901,6 +909,8 @@ class UserForm(StyledModelForm):
         if self.instance.name_verified:
             self.fields["first_name"].disabled = True
             self.fields["last_name"].disabled = True
+
+        self.fields["email"].disabled = True
 
         if self.is_inst_id_locked:
             self.fields["institutional_id"].disabled = True
@@ -919,8 +929,9 @@ class UserForm(StyledModelForm):
                    is_inst_id_editable_before_validation()
                    and _("verified") or _("submitted")})
 
-        # {{ build layout
-        name_fields_layout = ["last_name", "first_name"]
+        # {{{ build layout
+
+        name_fields_layout = ["last_name", "first_name", "email"]
         fields_layout = [Div(*name_fields_layout, css_class="well")]
 
         if getattr(settings, "RELATE_SHOW_INST_ID_FORM", True):
@@ -949,6 +960,7 @@ class UserForm(StyledModelForm):
                        onclick=(
                            "window.location.href='%s'"
                            % reverse("relate-logout"))))
+
         # }}}
 
     def clean_institutional_id_confirm(self):
@@ -961,6 +973,8 @@ class UserForm(StyledModelForm):
             if any([inst_id, inst_id_confirmed]) and inst_id != inst_id_confirmed:
                 raise forms.ValidationError(_("Inputs do not match."))
         return inst_id_confirmed
+
+# }}}
 
 
 @login_required
@@ -1062,6 +1076,47 @@ def saml2_update_user_hook(sender, instance, attributes, user_modified, **kwargs
             mod = True
 
     return mod
+
+# }}}
+
+
+# {{{ social auth
+
+def social_set_user_email_verified(backend, details, user=None, *args, **kwargs):
+    email = details.get("email")
+
+    modified = False
+
+    if email:
+        if email != user.email:
+            user.email = email
+            modified = True
+
+        from course.constants import user_status
+        if user.status != user_status.active:
+            user.status = user_status.active
+            modified = True
+
+    if modified:
+        user.save()
+
+    # continue the social auth pipeline
+    return None
+
+
+def social_auth_check_domain_against_blacklist(backend, details, *args, **kwargs):
+    email = details.get("email")
+
+    domain_blacklist = getattr(
+            settings, "RELATE_SOCIAL_AUTH_BLACKLIST_EMAIL_DOMAINS", {})
+    if domain_blacklist and email:
+        domain = email.split("@", 1)[1]
+        if domain in domain_blacklist:
+            from social_core.exceptions import SocialAuthBaseException
+            raise SocialAuthBaseException(domain_blacklist[domain])
+
+    # continue the social auth pipeline
+    return None
 
 # }}}
 

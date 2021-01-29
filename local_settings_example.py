@@ -80,15 +80,7 @@ CELERY_BROKER_URL = "amqp://"
 # Your course git repositories will be stored under this directory.
 # Make sure it's writable by your web user.
 #
-# The default below makes them sit side-by-side with your relate checkout,
-# which makes sense for development, but you probably want to change this
-# in production.
-#
 # The "course identifiers" you enter will be directory names below this root.
-
-# WARNING: The default, "..", is insecure (but convenient for development).
-# It will put course repos alongside the relate git checkout in the parent
-# directory of where you put the Relate source tree.
 
 #GIT_ROOT = "/some/where"
 GIT_ROOT = path.join(_BASEDIR, "git-roots")
@@ -223,6 +215,32 @@ RELATE_SIGN_IN_BY_EXAM_TICKETS_ENABLED = True
 # If you enable this, you must also have saml_config.py in this directory.
 # See saml_config.py.example for help.
 RELATE_SIGN_IN_BY_SAML2_ENABLED = False
+
+RELATE_SOCIAL_AUTH_BACKENDS = (
+        # See https://python-social-auth.readthedocs.io/en/latest/
+        # for full list.
+        # "social_core.backends.google.GoogleOAuth2",
+
+        # CAUTION: Relate uses emails returned by the backend to match
+        # users. Only use backends that return verified emails.
+        )
+
+# Your Google "Client ID"
+# SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = ''
+# Your Google "Client Secret"
+# SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = ''
+SOCIAL_AUTH_GOOGLE_OAUTH2_USE_UNIQUE_USER_ID = True
+
+# When registering your OAuth2 app (and consent screen) with Google,
+# specify the following authorized redirect URI:
+# https://sitename.edu/social-auth/complete/google-oauth2/
+
+# Blacklist these domains for social auth. This may be useful if there
+# is a canonical way (e.g. SAML2) for members of that domain to
+# sign in.
+# RELATE_SOCIAL_AUTH_BLACKLIST_EMAIL_DOMAINS = {
+#   "illinois.edu": "Must use SAML2 to sign in."
+#   }
 
 # }}}
 

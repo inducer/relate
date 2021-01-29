@@ -10,6 +10,8 @@
   <div class="alert
     {% if message.tags == "error" %}
       alert-danger
+    {% elif message.tags|startswith:"social-auth" %}
+      alert-danger
     {% else %}
       alert-{{ message.tags }}
     {% endif %}
