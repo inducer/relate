@@ -35,3 +35,6 @@ bulk-storage
 /.coverage
 /coverage.xml
 /.vscode/
+
+__pycache__  
+local_settings.py

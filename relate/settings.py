@@ -54,6 +54,7 @@ INSTALLED_APPS = (
     "crispy_forms",
     "jsonfield",
     "django_select2",
+    "mathfilters",
 
     # message queue
     "django_celery_results",

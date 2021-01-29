@@ -112,6 +112,7 @@ colorama = "*"
 # not a direct dependency
 # version constraint is here because of CVE-2020-25659
 cryptography = "^3.2.1"
+django-mathfilters = "^1.0.0"
 
 social-auth-app-django = "^4.0.0"
 

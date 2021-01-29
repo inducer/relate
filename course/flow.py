@@ -703,9 +703,7 @@ class GradeInfo(object):
         self.optional_incorrect_count = optional_incorrect_count
         self.optional_unknown_count = optional_unknown_count
 
-    # Rounding to larger than 100% will break the percent bars on the
-    # flow results page.
-    FULL_PERCENT = 99.99
+    FULL_PERCENT = 100.0
 
     # {{{ point percentages
 
@@ -736,11 +734,10 @@ class GradeInfo(object):
             return 0
         else:
             return self.FULL_PERCENT*(
-                    self.max_points - self.max_reachable_points)/self.max_points
+                   self.max_points - self.max_reachable_points)/self.max_points
 
     def total_points_percent(self):
-        return (
-                self.points_percent()
+        return (self.points_percent()
                 + self.missed_points_percent()
                 + self.unreachable_points_percent())
 
@@ -778,23 +775,27 @@ class GradeInfo(object):
 
     def optional_fully_correct_percent(self):
         """Only to be used for visualization purposes."""
-        return self.FULL_PERCENT * self.optional_fully_correct_count\
-               / self.optional_total_count()
+        return (self.FULL_PERCENT
+                * self.optional_fully_correct_count
+                / self.optional_total_count())
 
     def optional_partially_correct_percent(self):
         """Only to be used for visualization purposes."""
-        return self.FULL_PERCENT * self.optional_partially_correct_count\
-               / self.optional_total_count()
+        return (self.FULL_PERCENT
+                * self.optional_partially_correct_count
+                / self.optional_total_count())
 
     def optional_incorrect_percent(self):
         """Only to be used for visualization purposes."""
-        return self.FULL_PERCENT * self.optional_incorrect_count\
-               / self.optional_total_count()
+        return (self.FULL_PERCENT
+                * self.optional_incorrect_count
+                / self.optional_total_count())
 
     def optional_unknown_percent(self):
         """Only to be used for visualization purposes."""
-        return self.FULL_PERCENT * self.optional_unknown_count\
-               / self.optional_total_count()
+        return (self.FULL_PERCENT
+                * self.optional_unknown_count
+                / self.optional_total_count())
 
     # }}}
 
