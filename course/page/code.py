@@ -589,6 +589,8 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
                     "While you're at it, consider adding "
                     "access_rules/add_permssions/see_correctness."))
 
+        self.identical_okay = getattr(page_desc, "identical_okay", False)
+
     def required_attrs(self):
         return super().required_attrs() + (
                 ("prompt", "markup"),
@@ -609,6 +611,7 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
                 ("docker_image", str),
                 ("data_files", list),
                 ("single_submission", bool),
+                ("identical_okay", bool),
                 )
 
     def _initial_code(self):
@@ -886,7 +889,8 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
                         .replace("\t", ""))
 
             if (normalize_code(user_code)
-                    == normalize_code(self.page_desc.correct_code)):
+                    == normalize_code(self.page_desc.correct_code)
+                        and not self.identical_okay):
                 feedback_bits.append(
                         "<p><b>%s</b></p>"
                         % _("It looks like you submitted code that is identical to "
