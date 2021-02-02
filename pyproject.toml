@@ -73,13 +73,8 @@ ipaddress = "^1.0.23"
 
 # {{{ For interoperation with SAML2/Shibboleth
 
-# 4.6.1 suffers from https://github.com/IdentityPython/pysaml2/pull/543
-# 4.6.5 causes a 403 on /saml2/acs upon sign in with djangosaml2
-# upper bounds just out of caution
-pysaml2 = "^5.0.0"
+pysaml2 = "^6.5.0"
 djangosaml2 = "^v0.19.1"
-# Explicit dependency decls to work around broken dep declaration in pysaml2 4.6.0
-pyOpenSSL = "^19.1.0"
 
 # }}}
 
