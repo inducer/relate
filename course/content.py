@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import division
+from __future__ import annotations
 
 __copyright__ = "Copyright (C) 2014 Andreas Kloeckner"
 
