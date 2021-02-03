@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import annotations
-
 __copyright__ = "Copyright (C) 2014 Andreas Kloeckner"
 
 __license__ = """
@@ -639,7 +637,7 @@ def get_course_repo(course):
         return repo
 
 
-def look_up_git_object(repo: dulwich.Repo, root_tree: dulwich.objects.Tree,
+def look_up_git_object(repo: "dulwich.Repo", root_tree: "dulwich.objects.Tree",
         full_name: str, _max_symlink_depth: Optional[int] = None):
     """Traverse git directory tree from *root_tree*, respecting symlinks."""
 
@@ -692,8 +690,8 @@ def look_up_git_object(repo: dulwich.Repo, root_tree: dulwich.objects.Tree,
     return cur_lookup
 
 
-def get_repo_blob(repo: Repo_ish, full_name: Text, commit_sha: bytes,
-        allow_tree: bool = True) -> dulwich.Blob:
+def get_repo_blob(repo: "Repo_ish", full_name: Text, commit_sha: bytes,
+        allow_tree: bool = True) -> "dulwich.Blob":
     """
     :arg full_name: A Unicode string indicating the file name.
     :arg commit_sha: A byte string containing the commit hash
