@@ -660,7 +660,9 @@ def look_up_git_object(repo: "dulwich.Repo", root_tree: "dulwich.objects.Tree",
     from stat import S_ISLNK
     while name_parts:
         if not isinstance(cur_lookup, Tree):
-            raise ObjectDoesNotExist(_("resource '%s' not found") % full_name)
+            raise ObjectDoesNotExist(
+                    _("'%s' is not a directory, cannot lookup nested names")
+                    % os.sep.join(processed_name_parts))
 
         name_part = name_parts.pop(0)
 
