@@ -639,6 +639,58 @@ def get_course_repo(course):
         return repo
 
 
+def look_up_git_object(repo, root_tree, full_name, _max_symlink_depth=None):
+    """Traverse git directory tree from *root_tree*, respecting symlinks."""
+
+    if _max_symlink_depth is None:
+        _max_symlink_depth = 20
+    if _max_symlink_depth == 0:
+        raise ObjectDoesNotExist(_("symlink nesting depth exceeded "
+            "while locating '%s'") % full_name)
+
+    # https://github.com/inducer/relate/pull/556
+    # FIXME: https://github.com/inducer/relate/issues/767
+    name_parts = os.path.normpath(full_name).split(os.sep)
+
+    processed_name_parts = []
+
+    from dulwich.objects import Tree
+
+    cur_lookup = root_tree
+
+    from stat import S_ISLNK
+    while name_parts:
+        if not isinstance(cur_lookup, Tree):
+            raise ObjectDoesNotExist(_("resource '%s' not found") % full_name)
+
+        name_part = name_parts.pop(0)
+
+        if not name_part:
+            # tolerate empty path components (begrudgingly)
+            continue
+        elif name_part == ".":
+            return cur_lookup
+
+        encoded_name_part = name_part.encode()
+        try:
+            mode_sha = cur_lookup[encoded_name_part]
+        except KeyError:
+            raise ObjectDoesNotExist(_("resource '%s' not found") % full_name)
+
+        mode, cur_lookup_sha = mode_sha
+
+        if S_ISLNK(mode):
+            link_target = os.sep.join(processed_name_parts + [
+                repo[cur_lookup_sha].data.decode()])
+            cur_lookup = look_up_git_object(repo, root_tree, link_target,
+                    _max_symlink_depth=_max_symlink_depth-1)
+        else:
+            processed_name_parts.append(name_part)
+            cur_lookup = repo[cur_lookup_sha]
+
+    return cur_lookup
+
+
 def get_repo_blob(repo, full_name, commit_sha, allow_tree=True):
     # type: (Repo_ish, Text, bytes, bool) -> dulwich.Blob
 
@@ -650,58 +702,26 @@ def get_repo_blob(repo, full_name, commit_sha, allow_tree=True):
 
     dul_repo, full_name = get_true_repo_and_path(repo, full_name)
 
-    # https://github.com/inducer/relate/pull/556
-    names = os.path.normpath(full_name).split(os.sep)
-
-    # Allow non-ASCII file name
-    full_name_bytes = full_name.encode("utf-8")
-
     try:
         tree_sha = dul_repo[commit_sha].tree
     except KeyError:
         raise ObjectDoesNotExist(
                 _("commit sha '%s' not found") % commit_sha.decode())
 
-    tree = dul_repo[tree_sha]
-
-    def access_directory_content(maybe_tree, name):
-        # type: (Any, Text) -> Any
-        try:
-            mode_and_blob_sha = maybe_tree[name.encode()]
-        except TypeError:
-            raise ObjectDoesNotExist(_("resource '%s' is a file, "
-                "not a directory") % full_name)
-
-        mode, blob_sha = mode_and_blob_sha
-        return mode_and_blob_sha
-
-    if not full_name_bytes:
+    git_obj = look_up_git_object(
+            dul_repo, root_tree=dul_repo[tree_sha], full_name=full_name)
+    from dulwich.objects import Tree, Blob
+    if isinstance(git_obj, Tree):
         if allow_tree:
-            return tree
+            return git_obj
         else:
-            raise ObjectDoesNotExist(
-                    _("repo root is a directory, not a file"))
-
-    try:
-        for name in names[:-1]:
-            if not name:
-                # tolerate empty path components (begrudgingly)
-                continue
-
-            mode, blob_sha = access_directory_content(tree, name)
-            tree = dul_repo[blob_sha]
-
-        mode, blob_sha = access_directory_content(tree, names[-1])
-
-        result = dul_repo[blob_sha]
-        if not allow_tree and not hasattr(result, "data"):
             raise ObjectDoesNotExist(
                     _("resource '%s' is a directory, not a file") % full_name)
 
-        return result
-
-    except KeyError:
-        raise ObjectDoesNotExist(_("resource '%s' not found") % full_name)
+    if isinstance(git_obj, Blob):
+        return git_obj
+    else:
+        raise ObjectDoesNotExist(_("resource '%s' is not a file") % full_name)
 
 
 def get_repo_blob_data_cached(repo, full_name, commit_sha):
