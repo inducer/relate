@@ -639,7 +639,8 @@ def get_course_repo(course):
         return repo
 
 
-def look_up_git_object(repo, root_tree, full_name, _max_symlink_depth=None):
+def look_up_git_object(repo: dulwich.Repo, root_tree: dulwich.objects.Tree,
+        full_name: str, _max_symlink_depth: Optional[int] = None):
     """Traverse git directory tree from *root_tree*, respecting symlinks."""
 
     if _max_symlink_depth is None:
@@ -652,7 +653,7 @@ def look_up_git_object(repo, root_tree, full_name, _max_symlink_depth=None):
     # FIXME: https://github.com/inducer/relate/issues/767
     name_parts = os.path.normpath(full_name).split(os.sep)
 
-    processed_name_parts = []
+    processed_name_parts: List[str] = []
 
     from dulwich.objects import Tree
 
@@ -691,9 +692,8 @@ def look_up_git_object(repo, root_tree, full_name, _max_symlink_depth=None):
     return cur_lookup
 
 
-def get_repo_blob(repo, full_name, commit_sha, allow_tree=True):
-    # type: (Repo_ish, Text, bytes, bool) -> dulwich.Blob
-
+def get_repo_blob(repo: Repo_ish, full_name: Text, commit_sha: bytes,
+        allow_tree: bool = True) -> dulwich.Blob:
     """
     :arg full_name: A Unicode string indicating the file name.
     :arg commit_sha: A byte string containing the commit hash
