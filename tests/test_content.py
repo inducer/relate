@@ -637,7 +637,8 @@ class GetRepoBlobTest(SingleCourseTestMixin, TestCase):
             self.assertIn(expected_error_msg, str(cm.exception))
 
     def test_access_directory_content_type_error(self):
-        full_name = os.path.join("course.yml", "cc.png")
+        path_parts = "course.yml", "cc.png"
+        full_name = os.path.join(*path_parts)
         with self.pctx.repo as repo:
             with self.assertRaises(ObjectDoesNotExist) as cm:
                 content.get_repo_blob(
@@ -645,7 +646,7 @@ class GetRepoBlobTest(SingleCourseTestMixin, TestCase):
                     allow_tree=True)
             expected_error_msg = (
                     "'%s' is not a directory, cannot lookup nested names"
-                    % full_name)
+                    % path_parts[0])
             self.assertIn(expected_error_msg, str(cm.exception))
 
     def test_resource_is_a_directory_error(self):
