@@ -544,6 +544,11 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
         example of a local build.  The Docker image should already be loaded
         on the system (RELATE does not pull the image automatically).
 
+    .. attribute:: exact_correct_code_okay
+        Optional. A Boolean that controls whether identical submissions to the
+        correct_code are allowed for code questions. If set to False, an error
+        is shown. Setting this to True will silence the error.
+
     * ``data_files``: A dictionary mapping file names from :attr:`data_files`
       to :class:`bytes` instances with that file's contents.
 
@@ -589,7 +594,8 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
                     "While you're at it, consider adding "
                     "access_rules/add_permssions/see_correctness."))
 
-        self.identical_okay = getattr(page_desc, "identical_okay", False)
+        self.exact_correct_code_okay = getattr(page_desc,
+                                                    "exact_correct_code_okay", False)
 
     def required_attrs(self):
         return super().required_attrs() + (
@@ -611,7 +617,7 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
                 ("docker_image", str),
                 ("data_files", list),
                 ("single_submission", bool),
-                ("identical_okay", bool),
+                ("exact_correct_code_okay", bool),
                 )
 
     def _initial_code(self):
@@ -890,7 +896,7 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
 
             if (normalize_code(user_code)
                     == normalize_code(self.page_desc.correct_code)
-                        and not self.identical_okay):
+                        and not self.exact_correct_code_okay):
                 feedback_bits.append(
                         "<p><b>%s</b></p>"
                         % _("It looks like you submitted code that is identical to "
@@ -1237,6 +1243,11 @@ class PythonCodeQuestion(CodeQuestion):
         Optional, a Boolean. If the question does not allow multiple submissions
         based on its :attr:`access_rules` (not the ones of the flow), a warning
         is shown. Setting this attribute to True will silence the warning.
+
+    .. attribute:: exact_correct_code_okay
+        Optional. A Boolean that controls whether identical submissions to the
+        correct_code are allowed for code questions. If set to False, an error
+        is shown. Setting this to True will silence the error.
 
     The following symbols are available in :attr:`setup_code` and :attr:`test_code`:
 
