@@ -63,7 +63,7 @@ if TYPE_CHECKING:
     # for mypy
     from course.models import Course, Participation  # noqa
     import dulwich  # noqa
-    from course.validation import ValidationContext  # noqa
+    from course.validation import ValidationContext, FileSystemFakeRepoTree  # noqa
     from course.page.base import PageBase  # noqa
     from relate.utils import Repo_ish  # noqa
 
@@ -637,7 +637,8 @@ def get_course_repo(course):
         return repo
 
 
-def look_up_git_object(repo: "dulwich.Repo", root_tree: "dulwich.objects.Tree",
+def look_up_git_object(repo: "dulwich.Repo",
+        root_tree: "Union[dulwich.objects.Tree, FileSystemFakeRepoTree]",
         full_name: str, _max_symlink_depth: Optional[int] = None):
     """Traverse git directory tree from *root_tree*, respecting symlinks."""
 
@@ -654,12 +655,13 @@ def look_up_git_object(repo: "dulwich.Repo", root_tree: "dulwich.objects.Tree",
     processed_name_parts: List[str] = []
 
     from dulwich.objects import Tree
+    from course.validation import FileSystemFakeRepoTree
 
     cur_lookup = root_tree
 
     from stat import S_ISLNK
     while name_parts:
-        if not isinstance(cur_lookup, Tree):
+        if not isinstance(cur_lookup, (Tree, FileSystemFakeRepoTree)):
             raise ObjectDoesNotExist(
                     _("'%s' is not a directory, cannot lookup nested names")
                     % os.sep.join(processed_name_parts))
@@ -710,15 +712,18 @@ def get_repo_blob(repo: "Repo_ish", full_name: Text, commit_sha: bytes,
 
     git_obj = look_up_git_object(
             dul_repo, root_tree=dul_repo[tree_sha], full_name=full_name)
+
+    from course.validation import FileSystemFakeRepoTree, FileSystemFakeRepoFile
     from dulwich.objects import Tree, Blob
-    if isinstance(git_obj, Tree):
+
+    if isinstance(git_obj, (Tree, FileSystemFakeRepoTree)):
         if allow_tree:
             return git_obj
         else:
             raise ObjectDoesNotExist(
                     _("resource '%s' is a directory, not a file") % full_name)
 
-    if isinstance(git_obj, Blob):
+    if isinstance(git_obj, (Blob, FileSystemFakeRepoFile)):
         return git_obj
     else:
         raise ObjectDoesNotExist(_("resource '%s' is not a file") % full_name)

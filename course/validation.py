@@ -1649,17 +1649,20 @@ class FileSystemFakeRepoTree(object):  # pragma: no cover
         if not name:
             raise KeyError("<empty filename>")
 
-        from os.path import join, isdir, exists
+        from os.path import join, exists
         name = join(self.root, name)
 
         if not exists(name):
             raise KeyError(name)
 
+        from os import stat
+        from stat import S_ISDIR
+        stat_result = stat(name)
         # returns mode, "sha"
-        if isdir(name):
-            return None, FileSystemFakeRepoTree(name)
+        if S_ISDIR(stat_result.st_mode):
+            return stat_result.st_mode, FileSystemFakeRepoTree(name)
         else:
-            return None, FileSystemFakeRepoFile(name)
+            return stat_result.st_mode, FileSystemFakeRepoFile(name)
 
     def items(self):
         import os
