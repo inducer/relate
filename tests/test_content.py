@@ -633,7 +633,7 @@ class GetRepoBlobTest(SingleCourseTestMixin, TestCase):
                 content.get_repo_blob(
                     repo, "", self.course.active_git_commit_sha.encode(),
                     allow_tree=False)
-            expected_error_msg = "repo root is a directory, not a file"
+            expected_error_msg = "resource '(repo root)' is a directory, not a file"
             self.assertIn(expected_error_msg, str(cm.exception))
 
     def test_access_directory_content_type_error(self):
@@ -644,7 +644,8 @@ class GetRepoBlobTest(SingleCourseTestMixin, TestCase):
                     repo, full_name, self.course.active_git_commit_sha.encode(),
                     allow_tree=True)
             expected_error_msg = (
-                    "resource '%s' is a file, not a directory" % full_name)
+                    "'%s' is not a directory, cannot lookup nested names"
+                    % full_name)
             self.assertIn(expected_error_msg, str(cm.exception))
 
     def test_resource_is_a_directory_error(self):
