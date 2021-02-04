@@ -716,17 +716,19 @@ def get_repo_blob(repo: "Repo_ish", full_name: Text, commit_sha: bytes,
     from course.validation import FileSystemFakeRepoTree, FileSystemFakeRepoFile
     from dulwich.objects import Tree, Blob
 
+    msg_full_name = full_name if full_name else _("(repo root)")
+
     if isinstance(git_obj, (Tree, FileSystemFakeRepoTree)):
         if allow_tree:
             return git_obj
         else:
             raise ObjectDoesNotExist(
-                    _("resource '%s' is a directory, not a file") % full_name)
+                    _("resource '%s' is a directory, not a file") % msg_full_name)
 
     if isinstance(git_obj, (Blob, FileSystemFakeRepoFile)):
         return git_obj
     else:
-        raise ObjectDoesNotExist(_("resource '%s' is not a file") % full_name)
+        raise ObjectDoesNotExist(_("resource '%s' is not a file") % msg_full_name)
 
 
 def get_repo_blob_data_cached(repo, full_name, commit_sha):
