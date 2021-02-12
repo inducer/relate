@@ -303,8 +303,8 @@ Use a variant of this as :file:`/etc/systemd/system/relate-celery.service`::
     ExecStartPre=/bin/mkdir -p /var/run/celery
     ExecStartPre=/bin/chown -R www-data:www-data /var/run/celery/
 
-    ExecStart=/home/andreas/my-relate-env/bin/celery multi start worker \
-        -A relate --pidfile=/var/run/celery/celery.pid \
+    ExecStart=/home/andreas/my-relate-env/bin/celery -A relate multi start worker \
+        --pidfile=/var/run/celery/celery.pid \
         --logfile=/var/log/celery/celery.log --loglevel="INFO"
     ExecStop=/home/andreas/my-relate-env/bin/celery multi stopwait worker \
         --pidfile=/var/run/celery/celery.pid
