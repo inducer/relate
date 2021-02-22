@@ -1679,8 +1679,9 @@ def parse_date_spec(
         if vctx is not None:
             vctx.add_warning(
                     location,
-                    _("unrecognized date/time specification: '%s' "
-                    "(interpreted as 'now')")
+                    _("Unrecognized date/time specification: '%s' "
+                    "(interpreted as 'now'). "
+                    "You should add an event with this name.")
                     % orig_datespec)
         return now()
 

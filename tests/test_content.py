@@ -967,8 +967,9 @@ class ParseDateSpecTest(SingleCourseTestMixin, TestCase):
         self.assertEqual(
             content.parse_date_spec(self.course, datespec, vctx=self.vctx),
             self.mock_now_value)
-        expected_warning_msg = ("unrecognized date/time specification: '%s' "
-                                "(interpreted as 'now')" % datespec)
+        expected_warning_msg = ("Unrecognized date/time specification: '%s' "
+                                "(interpreted as 'now'). "
+                                "You should add an event with this name." % datespec)
 
         self.assertEqual(self.mock_add_warning.call_count, 1)
         self.assertIn(expected_warning_msg, self.mock_add_warning.call_args[0])
