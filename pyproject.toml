@@ -73,7 +73,7 @@ ipaddress = "^1.0.23"
 
 # {{{ For interoperation with SAML2/Shibboleth
 
-pysaml2 = "^6.5.0"
+pysaml2 = "^6.5.1"
 djangosaml2 = "^v0.19.1"
 
 # }}}
