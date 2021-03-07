@@ -50,9 +50,8 @@ from django.views.decorators.debug import sensitive_post_parameters
 from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_protect
 from django import http  # noqa
-from django.dispatch import receiver
 
-from djangosaml2.signals import pre_user_save as saml2_pre_user_save
+from djangosaml2.backends import Saml2Backend
 
 from bootstrap3_datetime.widgets import DateTimePicker
 
@@ -1048,34 +1047,46 @@ def user_profile(request):
 # This ticks the 'verified' boxes once we've receive attribute assertions
 # through SAML2.
 
-@receiver(saml2_pre_user_save)
-def saml2_update_user_hook(sender, instance, attributes, user_modified, **kwargs):
-    attr_mapping = getattr(settings, "SAML_ATTRIBUTE_MAPPING", {})
+class RelateSaml2Backend(Saml2Backend):
+    def get_or_create_user(self,
+            user_lookup_key: str, user_lookup_value: Any, create_unknown_user: bool,
+            idp_entityid: str, attributes: dict, attribute_mapping: dict, request):
+        user, created = super().get_or_create_user(
+                user_lookup_key, user_lookup_value, create_unknown_user,
+                idp_entityid, attributes, attribute_mapping, request)
 
-    mod = False
+        user = self._rl_update_user(user, attributes, attribute_mapping)
 
-    mapped_attributes = {
-            mapped_key: val
-            for key, val in attributes.items()
-            for mapped_key in attr_mapping.get(key, ())}
+        return user, created
 
-    if "institutional_id" in mapped_attributes:
-        if not instance.institutional_id_verified:
-            instance.institutional_id_verified = True
-            mod = True
+    def _rl_update_user(self, user, attributes, attribute_mapping):
+        mod = False
 
-    if "first_name" in mapped_attributes and "last_name" in mapped_attributes:
-        if not instance.name_verified:
-            instance.name_verified = True
-            mod = True
+        mapped_attributes = {
+                mapped_key: val
+                for key, val in attributes.items()
+                for mapped_key in attribute_mapping.get(key, ())}
 
-    if "email" in mapped_attributes:
-        from course.constants import user_status
-        if instance.status != user_status.active:
-            instance.status = user_status.active
-            mod = True
+        if "institutional_id" in mapped_attributes:
+            if not user.institutional_id_verified:
+                user.institutional_id_verified = True
+                mod = True
 
-    return mod
+        if "first_name" in mapped_attributes and "last_name" in mapped_attributes:
+            if not user.name_verified:
+                user.name_verified = True
+                mod = True
+
+        if "email" in mapped_attributes:
+            from course.constants import user_status
+            if user.status != user_status.active:
+                user.status = user_status.active
+                mod = True
+
+        if mod:
+            user.save()
+
+        return user
 
 # }}}
 

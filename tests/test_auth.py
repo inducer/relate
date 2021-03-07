@@ -1957,8 +1957,8 @@ class TestSaml2AttributeMapping(TestCase):
                                      name_verified=False,
                                      status=constants.user_status.unconfirmed)
 
-        from djangosaml2.backends import Saml2Backend
-        backend = Saml2Backend()
+        from course.auth import RelateSaml2Backend
+        backend = RelateSaml2Backend()
 
         saml_attribute_mapping = {
             'PrincipalName': ('username',),
@@ -1975,12 +1975,13 @@ class TestSaml2AttributeMapping(TestCase):
 
             with mock.patch("accounts.models.User.save") as mock_save:
                 # no changes
-                user = backend.update_user(user, user_attribute,
+                user = backend._rl_update_user(user, user_attribute,
                         saml_attribute_mapping)
                 self.assertEqual(mock_save.call_count, 0)
 
-            self.assertEqual(user.first_name, "")
-            self.assertEqual(user.last_name, "")
+            # not set as part of _rl_update_user
+            # self.assertEqual(user.first_name, "")
+            # self.assertEqual(user.last_name, "")
             self.assertFalse(user.name_verified)
             self.assertEqual(user.status, constants.user_status.unconfirmed)
             self.assertFalse(user.institutional_id_verified)
@@ -1998,13 +1999,15 @@ class TestSaml2AttributeMapping(TestCase):
             }
 
             with mock.patch("accounts.models.User.save") as mock_save:
-                user = backend.update_user(user, user_attribute,
+                user = backend._rl_update_user(user, user_attribute,
                         saml_attribute_mapping)
                 self.assertEqual(mock_save.call_count, 1)
 
-            user = backend.update_user(user, user_attribute, saml_attribute_mapping)
-            self.assertEqual(user.first_name, expected_first)
-            self.assertEqual(user.last_name, expected_last)
+            user = backend._rl_update_user(
+                    user, user_attribute, saml_attribute_mapping)
+            # not set as part of _rl_update_user
+            # self.assertEqual(user.first_name, expected_first)
+            # self.assertEqual(user.last_name, expected_last)
             self.assertTrue(user.name_verified)
             self.assertEqual(user.status, constants.user_status.unconfirmed)
             self.assertTrue(user.institutional_id_verified)
@@ -2016,16 +2019,18 @@ class TestSaml2AttributeMapping(TestCase):
                 'givenName': (expected_first,),
                 'sn': (expected_last,),
             }
-            user = backend.update_user(user, user_attribute, saml_attribute_mapping)
-            self.assertEqual(user.first_name, expected_first)
-            self.assertEqual(user.last_name, expected_last)
+            user = backend._rl_update_user(
+                    user, user_attribute, saml_attribute_mapping)
+            # not set as part of _rl_update_user
+            # self.assertEqual(user.first_name, expected_first)
+            # self.assertEqual(user.last_name, expected_last)
             self.assertTrue(user.name_verified)
             self.assertEqual(user.status, constants.user_status.active)
             self.assertTrue(user.institutional_id_verified)
 
             with mock.patch("accounts.models.User.save") as mock_save:
                 # no changes
-                backend.update_user(user, user_attribute, saml_attribute_mapping)
+                backend._rl_update_user(user, user_attribute, saml_attribute_mapping)
                 self.assertEqual(mock_save.call_count, 0)
 
 
