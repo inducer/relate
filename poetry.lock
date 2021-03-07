@@ -446,7 +446,7 @@ resolved_reference = "c92d0373d12a02d1e52fb09b44010f156111d7ea"
 
 [[package]]
 name = "djangosaml2"
-version = "0.19.1"
+version = "1.0.5"
 description = "pysaml2 integration for Django"
 category = "main"
 optional = false
@@ -454,8 +454,8 @@ python-versions = "*"
 
 [package.dependencies]
 defusedxml = ">=0.4.1"
-Django = ">=2.2"
-pysaml2 = ">=5.0.0"
+Django = ">=2.2,<5"
+pysaml2 = ">=6.5.1"
 
 [[package]]
 name = "dnspython"
@@ -689,7 +689,7 @@ python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
 
 [[package]]
 name = "importlib-metadata"
-version = "3.7.0"
+version = "3.7.1"
 description = "Read metadata from Python packages"
 category = "main"
 optional = false
@@ -1798,7 +1798,7 @@ testing = ["pytest (>=4.6)", "pytest-checkdocs (>=1.2.3)", "pytest-flake8", "pyt
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.6"
-content-hash = "d36e7070c2182319b5e2614d65951694d7110ee2f40a3ba3a0fdff4d7e09d60d"
+content-hash = "4e7ec237ece9d6e2e1a57797dfc37aaed0c3647f18e84297d5b15371cf402dbf"
 
 [metadata.files]
 alabaster = [
@@ -2040,8 +2040,7 @@ django-select2 = [
 ]
 django-yamlfield = []
 djangosaml2 = [
-    {file = "djangosaml2-0.19.1-py2.py3-none-any.whl", hash = "sha256:2881813f00ea78dac4f38c14838ae90662d0781b911925c6373b900145a0e392"},
-    {file = "djangosaml2-0.19.1.tar.gz", hash = "sha256:7c6b3cceeb2022d15c3205e3a0f3f96c969b3a447a1fcfdb6c78c048994a186d"},
+    {file = "djangosaml2-1.0.5.tar.gz", hash = "sha256:505bb2768294823ce3d682b036fef98981a99fb8cf26b9a46de5eaaa4eb20cb6"},
 ]
 dnspython = [
     {file = "dnspython-1.16.0-py2.py3-none-any.whl", hash = "sha256:f69c21288a962f4da86e56c4905b49d11aba7938d3d740e80d9e366ee4f1632d"},
@@ -2133,8 +2132,8 @@ imagesize = [
     {file = "imagesize-1.2.0.tar.gz", hash = "sha256:b1f6b5a4eab1f73479a50fb79fcf729514a900c341d8503d62a62dbc4127a2b1"},
 ]
 importlib-metadata = [
-    {file = "importlib_metadata-3.7.0-py3-none-any.whl", hash = "sha256:c6af5dbf1126cd959c4a8d8efd61d4d3c83bddb0459a17e554284a077574b614"},
-    {file = "importlib_metadata-3.7.0.tar.gz", hash = "sha256:24499ffde1b80be08284100393955842be4a59c7c16bbf2738aad0e464a8e0aa"},
+    {file = "importlib_metadata-3.7.1-py3-none-any.whl", hash = "sha256:10ab3abe22ce1b2925a4918151538d2f9f9e905ebea8638f8a389bf9923facf6"},
+    {file = "importlib_metadata-3.7.1.tar.gz", hash = "sha256:2af2089b29fef4eedaebef97e9046d3bc781a1a85fe1aef90cc5a1de30f06e27"},
 ]
 importlib-resources = [
     {file = "importlib_resources-5.1.2-py3-none-any.whl", hash = "sha256:ebab3efe74d83b04d6bf5cd9a17f0c5c93e60fb60f30c90f56265fce4682a469"},

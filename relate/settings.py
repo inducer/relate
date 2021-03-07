@@ -105,7 +105,7 @@ AUTHENTICATION_BACKENDS = (
 
 if local_settings.get("RELATE_SIGN_IN_BY_SAML2_ENABLED"):
     AUTHENTICATION_BACKENDS = AUTHENTICATION_BACKENDS + (  # type: ignore
-            "djangosaml2.backends.Saml2Backend",
+            "course.auth.RelateSaml2Backend",
             )
 
 if local_settings.get("RELATE_SOCIAL_AUTH_BACKENDS"):

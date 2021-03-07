@@ -1096,10 +1096,11 @@ class SignOutTest(CoursesTestMixinBase, AuthTestMixin,
     def test_sign_out_by_get(self):
         with mock.patch("djangosaml2.views._get_subject_id") \
                 as mock_get_subject_id, \
-                mock.patch("djangosaml2.views.logout") as mock_saml2_logout:
+                mock.patch("djangosaml2.views.LogoutInitView.get") \
+                as mock_saml2_logout:
             mock_get_subject_id.return_value = "some_id"
             with self.temporarily_switch_to_user(self.test_user):
-                resp = self.get_sign_out()
+                resp = self.get_sign_out(follow=True)
                 self.assertRedirects(resp, reverse("relate-home"),
                                      target_status_code=200,
                                      fetch_redirect_response=False)
@@ -1110,7 +1111,8 @@ class SignOutTest(CoursesTestMixinBase, AuthTestMixin,
     def test_sign_out_by_post(self):
         with mock.patch("djangosaml2.views._get_subject_id") \
                 as mock_get_subject_id, \
-                mock.patch("djangosaml2.views.logout") as mock_saml2_logout:
+                mock.patch("djangosaml2.views.LogoutInitView.get") \
+                as mock_saml2_logout:
             mock_get_subject_id.return_value = "some_id"
             with self.temporarily_switch_to_user(self.test_user):
                 resp = self.post_sign_out({})
@@ -1133,11 +1135,12 @@ class SignOutTest(CoursesTestMixinBase, AuthTestMixin,
     def test_sign_out_with_saml2_enabled_no_subject_id(self):
         with mock.patch("djangosaml2.views._get_subject_id") \
                 as mock_get_subject_id, \
-                mock.patch("djangosaml2.views.logout") as mock_saml2_logout:
+                mock.patch("djangosaml2.views.LogoutInitView.get") \
+                as mock_saml2_logout:
             mock_get_subject_id.return_value = None
             with self.temporarily_switch_to_user(self.test_user):
-                resp = self.get_sign_out()
-                self.assertEqual(resp.status_code, 302)
+                resp = self.get_sign_out(follow=True)
+                self.assertEqual(resp.status_code, 200)
                 self.assertSessionHasNoUserLoggedIn()
             self.assertEqual(mock_saml2_logout.call_count, 0)
 
@@ -1146,10 +1149,13 @@ class SignOutTest(CoursesTestMixinBase, AuthTestMixin,
         self.c.force_login(self.test_user)
         with mock.patch("djangosaml2.views._get_subject_id") \
                 as mock_get_subject_id, \
-                mock.patch("djangosaml2.views.logout") as mock_saml2_logout:
+                mock.patch("djangosaml2.views.LogoutInitView.get") \
+                as mock_saml2_logout:
             mock_get_subject_id.return_value = "some_id"
             mock_saml2_logout.return_value = HttpResponse()
-            resp = self.get_sign_out()
+
+            resp = self.get_sign_out(follow=True)
+
             self.assertEqual(resp.status_code, 200)
             self.assertEqual(mock_saml2_logout.call_count, 1)
 
@@ -1951,8 +1957,8 @@ class TestSaml2AttributeMapping(TestCase):
                                      name_verified=False,
                                      status=constants.user_status.unconfirmed)
 
-        from djangosaml2.backends import Saml2Backend
-        backend = Saml2Backend()
+        from course.auth import RelateSaml2Backend
+        backend = RelateSaml2Backend()
 
         saml_attribute_mapping = {
             'PrincipalName': ('username',),
@@ -1969,12 +1975,13 @@ class TestSaml2AttributeMapping(TestCase):
 
             with mock.patch("accounts.models.User.save") as mock_save:
                 # no changes
-                user = backend.update_user(user, user_attribute,
+                user = backend._rl_update_user(user, user_attribute,
                         saml_attribute_mapping)
                 self.assertEqual(mock_save.call_count, 0)
 
-            self.assertEqual(user.first_name, "")
-            self.assertEqual(user.last_name, "")
+            # not set as part of _rl_update_user
+            # self.assertEqual(user.first_name, "")
+            # self.assertEqual(user.last_name, "")
             self.assertFalse(user.name_verified)
             self.assertEqual(user.status, constants.user_status.unconfirmed)
             self.assertFalse(user.institutional_id_verified)
@@ -1992,13 +1999,15 @@ class TestSaml2AttributeMapping(TestCase):
             }
 
             with mock.patch("accounts.models.User.save") as mock_save:
-                user = backend.update_user(user, user_attribute,
+                user = backend._rl_update_user(user, user_attribute,
                         saml_attribute_mapping)
                 self.assertEqual(mock_save.call_count, 1)
 
-            user = backend.update_user(user, user_attribute, saml_attribute_mapping)
-            self.assertEqual(user.first_name, expected_first)
-            self.assertEqual(user.last_name, expected_last)
+            user = backend._rl_update_user(
+                    user, user_attribute, saml_attribute_mapping)
+            # not set as part of _rl_update_user
+            # self.assertEqual(user.first_name, expected_first)
+            # self.assertEqual(user.last_name, expected_last)
             self.assertTrue(user.name_verified)
             self.assertEqual(user.status, constants.user_status.unconfirmed)
             self.assertTrue(user.institutional_id_verified)
@@ -2010,16 +2019,18 @@ class TestSaml2AttributeMapping(TestCase):
                 'givenName': (expected_first,),
                 'sn': (expected_last,),
             }
-            user = backend.update_user(user, user_attribute, saml_attribute_mapping)
-            self.assertEqual(user.first_name, expected_first)
-            self.assertEqual(user.last_name, expected_last)
+            user = backend._rl_update_user(
+                    user, user_attribute, saml_attribute_mapping)
+            # not set as part of _rl_update_user
+            # self.assertEqual(user.first_name, expected_first)
+            # self.assertEqual(user.last_name, expected_last)
             self.assertTrue(user.name_verified)
             self.assertEqual(user.status, constants.user_status.active)
             self.assertTrue(user.institutional_id_verified)
 
             with mock.patch("accounts.models.User.save") as mock_save:
                 # no changes
-                backend.update_user(user, user_attribute, saml_attribute_mapping)
+                backend._rl_update_user(user, user_attribute, saml_attribute_mapping)
                 self.assertEqual(mock_save.call_count, 0)
 
 

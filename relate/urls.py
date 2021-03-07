@@ -26,7 +26,6 @@ THE SOFTWARE.
 
 from django.conf.urls import include, url
 from django.contrib import admin
-from django.conf import settings
 from course.constants import COURSE_ID_REGEX, FLOW_ID_REGEX, STATICPAGE_PATH_REGEX
 
 import course.auth
@@ -562,17 +561,7 @@ urlpatterns = [
     url(r"^admin/", admin.site.urls),
 
     url("^social-auth/", include("social_django.urls", namespace="social")),
+    url(r"^saml2/", include("djangosaml2.urls")),
 ]
-
-if settings.RELATE_SIGN_IN_BY_SAML2_ENABLED:
-    urlpatterns.extend([
-        url(r"^saml2/", include("djangosaml2.urls")),
-        ])
-    if settings.DEBUG:  # pragma: no cover
-        import djangosaml2.views
-        urlpatterns.extend([
-            # Keep commented unless debugging SAML2.
-            url(r"^saml2-test/", djangosaml2.views.echo_attributes),
-            ])
 
 # vim: fdm=marker
