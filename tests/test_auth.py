@@ -1096,10 +1096,11 @@ class SignOutTest(CoursesTestMixinBase, AuthTestMixin,
     def test_sign_out_by_get(self):
         with mock.patch("djangosaml2.views._get_subject_id") \
                 as mock_get_subject_id, \
-                mock.patch("djangosaml2.views.logout") as mock_saml2_logout:
+                mock.patch("djangosaml2.views.LogoutInitView.get") \
+                as mock_saml2_logout:
             mock_get_subject_id.return_value = "some_id"
             with self.temporarily_switch_to_user(self.test_user):
-                resp = self.get_sign_out()
+                resp = self.get_sign_out(follow=True)
                 self.assertRedirects(resp, reverse("relate-home"),
                                      target_status_code=200,
                                      fetch_redirect_response=False)
@@ -1110,7 +1111,8 @@ class SignOutTest(CoursesTestMixinBase, AuthTestMixin,
     def test_sign_out_by_post(self):
         with mock.patch("djangosaml2.views._get_subject_id") \
                 as mock_get_subject_id, \
-                mock.patch("djangosaml2.views.logout") as mock_saml2_logout:
+                mock.patch("djangosaml2.views.LogoutInitView.get") \
+                as mock_saml2_logout:
             mock_get_subject_id.return_value = "some_id"
             with self.temporarily_switch_to_user(self.test_user):
                 resp = self.post_sign_out({})
@@ -1133,11 +1135,12 @@ class SignOutTest(CoursesTestMixinBase, AuthTestMixin,
     def test_sign_out_with_saml2_enabled_no_subject_id(self):
         with mock.patch("djangosaml2.views._get_subject_id") \
                 as mock_get_subject_id, \
-                mock.patch("djangosaml2.views.logout") as mock_saml2_logout:
+                mock.patch("djangosaml2.views.LogoutInitView.get") \
+                as mock_saml2_logout:
             mock_get_subject_id.return_value = None
             with self.temporarily_switch_to_user(self.test_user):
-                resp = self.get_sign_out()
-                self.assertEqual(resp.status_code, 302)
+                resp = self.get_sign_out(follow=True)
+                self.assertEqual(resp.status_code, 200)
                 self.assertSessionHasNoUserLoggedIn()
             self.assertEqual(mock_saml2_logout.call_count, 0)
 
@@ -1146,10 +1149,13 @@ class SignOutTest(CoursesTestMixinBase, AuthTestMixin,
         self.c.force_login(self.test_user)
         with mock.patch("djangosaml2.views._get_subject_id") \
                 as mock_get_subject_id, \
-                mock.patch("djangosaml2.views.logout") as mock_saml2_logout:
+                mock.patch("djangosaml2.views.LogoutInitView.get") \
+                as mock_saml2_logout:
             mock_get_subject_id.return_value = "some_id"
             mock_saml2_logout.return_value = HttpResponse()
-            resp = self.get_sign_out()
+
+            resp = self.get_sign_out(follow=True)
+
             self.assertEqual(resp.status_code, 200)
             self.assertEqual(mock_saml2_logout.call_count, 1)
 

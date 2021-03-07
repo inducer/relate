@@ -1152,9 +1152,10 @@ def sign_out(request, redirect_field_name=REDIRECT_FIELD_NAME):
     response = None
 
     if settings.RELATE_SIGN_IN_BY_SAML2_ENABLED:
-        from djangosaml2.views import _get_subject_id, logout as saml2_logout
+        from djangosaml2.views import _get_subject_id
         if _get_subject_id(request.session) is not None:
-            response = saml2_logout(request)
+            # skip auth_logout below, rely on djangosaml2 to complete logout
+            return redirect("saml2_logout")
 
     auth_logout(request)
 
