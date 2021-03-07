@@ -565,11 +565,4 @@ urlpatterns = [
     url(r"^saml2/", include("djangosaml2.urls")),
 ]
 
-if settings.DEBUG:  # pragma: no cover
-    import djangosaml2.views
-    urlpatterns.extend([
-        # Keep commented unless debugging SAML2.
-        url(r"^saml2-test/", djangosaml2.views.echo_attributes),
-        ])
-
 # vim: fdm=marker
