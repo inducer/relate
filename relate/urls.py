@@ -26,7 +26,6 @@ THE SOFTWARE.
 
 from django.conf.urls import include, url
 from django.contrib import admin
-from django.conf import settings
 from course.constants import COURSE_ID_REGEX, FLOW_ID_REGEX, STATICPAGE_PATH_REGEX
 
 import course.auth
