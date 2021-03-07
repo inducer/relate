@@ -1049,8 +1049,8 @@ def user_profile(request):
 
 class RelateSaml2Backend(Saml2Backend):
     def get_or_create_user(self,
-            user_lookup_key: str, user_lookup_value: Any, create_unknown_user: bool,
-            idp_entityid: str, attributes: dict, attribute_mapping: dict, request):
+            user_lookup_key, user_lookup_value, create_unknown_user,
+            idp_entityid, attributes, attribute_mapping, request):
         user, created = super().get_or_create_user(
                 user_lookup_key, user_lookup_value, create_unknown_user,
                 idp_entityid, attributes, attribute_mapping, request)
