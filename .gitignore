@@ -9,6 +9,8 @@ local_settings.py
 doc/_build
 node_modules
 
+poetry.toml
+
 setuptools-[0-9]*
 virtualenv-[0-9]*
 
