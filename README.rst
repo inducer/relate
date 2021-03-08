@@ -3,13 +3,13 @@ RELATE
 
 Relate is an Environment for Learning And TEaching
 
-.. image:: https://gitlab.tiker.net/inducer/relate/badges/master/pipeline.svg
+.. image:: https://gitlab.tiker.net/inducer/relate/badges/main/pipeline.svg
     :alt: Gitlab Build Status
-    :target: https://gitlab.tiker.net/inducer/relate/commits/master
-.. image:: https://github.com/inducer/relate/workflows/CI/badge.svg?branch=master
+    :target: https://gitlab.tiker.net/inducer/relate/commits/main
+.. image:: https://github.com/inducer/relate/workflows/CI/badge.svg?branch=main
     :alt: Github Build Status
-    :target: https://github.com/inducer/relate/actions?query=branch%3Amaster+workflow%3ACI
-.. image:: https://codecov.io/gh/inducer/relate/branch/master/graph/badge.svg
+    :target: https://github.com/inducer/relate/actions?query=branch%3Amain+workflow%3ACI
+.. image:: https://codecov.io/gh/inducer/relate/branch/main/graph/badge.svg
     :alt: Codecov Coverage Status
     :target: https://codecov.io/gh/inducer/relate/commits
 .. image:: https://badge.fury.io/py/relate-courseware.png
@@ -17,7 +17,7 @@ Relate is an Environment for Learning And TEaching
     :target: https://pypi.org/project/relate-courseware/
 
 +----------------------------------------------------------------------------------------------+------------------------------------------------------------------------------------------------+
-| .. image:: https://raw.githubusercontent.com/inducer/relate/master/doc/images/screenshot.png | .. image:: https://raw.githubusercontent.com/inducer/relate/master/doc/images/screenshot-2.png |
+| .. image:: https://raw.githubusercontent.com/inducer/relate/main/doc/images/screenshot.png | .. image:: https://raw.githubusercontent.com/inducer/relate/main/doc/images/screenshot-2.png |
 +----------------------------------------------------------------------------------------------+------------------------------------------------------------------------------------------------+
 
 RELATE is a web-based courseware package.  It is set apart by the following
