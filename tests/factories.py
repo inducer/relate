@@ -236,6 +236,11 @@ class GradeChangeFactory(factory.django.DjangoModelFactory):
     grade_time = now()
     flow_session = factory.SubFactory(FlowSessionFactory)
 
+    effective_time = factory.lazy_attribute(
+        lambda x: (
+                x.flow_session.last_activity() or x.flow_session.completion_time)
+        if x.flow_session is not None else None)
+
 
 class ParticipationPreapprovalFactory(factory.django.DjangoModelFactory):
     class Meta:

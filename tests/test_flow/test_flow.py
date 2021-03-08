@@ -457,7 +457,7 @@ class AssemblePageGradesTest(HackRepoMixin,
 
         self.assertSessionScoreEqual(7)
 
-        self.assertListEqual(list(self.get_grades_of_opps()), ["100.0%"])
+        self.assertListEqual(list(self.get_grades_of_opps()), ["100.00%"])
         self.assertListEqual(
             self.get_page_grades_of_opp("la_quiz")[self.student.username],
             [None, 100, 100, 100])
@@ -483,7 +483,7 @@ class AssemblePageGradesTest(HackRepoMixin,
 
         self.assertSessionScoreEqual(2)
 
-        self.assertListEqual(list(self.get_grades_of_opps()), ['28.6% (/2)'])
+        self.assertListEqual(list(self.get_grades_of_opps()), ['28.57% (/2)'])
         self.assertListEqual(
             self.get_page_grades_of_opp("la_quiz")[self.student.username],
             [None, 0, 100, 100])
@@ -501,7 +501,7 @@ class AssemblePageGradesTest(HackRepoMixin,
                 page_id, answer_data=answer_data)
         self.end_flow()
 
-        self.assertListEqual(list(self.get_grades_of_opps()), ['28.6%'])
+        self.assertListEqual(list(self.get_grades_of_opps()), ['28.57%'])
         self.assertListEqual(
             self.get_page_grades_of_opp("la_quiz")[self.student.username],
             [None, 0, 100, 100])
@@ -518,7 +518,7 @@ class AssemblePageGradesTest(HackRepoMixin,
 
         self.assertSessionScoreEqual(2)
 
-        self.assertListEqual(list(self.get_grades_of_opps()), ['100.0% (/2)'])
+        self.assertListEqual(list(self.get_grades_of_opps()), ['100.00% (/2)'])
         self.assertListEqual(
             self.get_page_grades_of_opp("la_quiz")[self.student.username],
             [None, 100, 100, None])
@@ -536,7 +536,7 @@ class AssemblePageGradesTest(HackRepoMixin,
                 page_id, answer_data=answer_data)
         self.end_flow()
 
-        self.assertListEqual(list(self.get_grades_of_opps()), ['28.6%'])
+        self.assertListEqual(list(self.get_grades_of_opps()), ['28.57%'])
         self.assertListEqual(
             self.get_page_grades_of_opp("la_quiz")[self.student.username],
             [None, 0, 100, 100])
@@ -556,7 +556,7 @@ class AssemblePageGradesTest(HackRepoMixin,
 
         self.assertSessionScoreEqual(2)
 
-        self.assertListEqual(list(self.get_grades_of_opps()), ['100.0% (/2)'])
+        self.assertListEqual(list(self.get_grades_of_opps()), ['100.00% (/2)'])
         self.assertListEqual(
             self.get_page_grades_of_opp("la_quiz")[self.student.username],
             [None, 100, 100])
@@ -574,7 +574,7 @@ class AssemblePageGradesTest(HackRepoMixin,
                 page_id, answer_data=answer_data)
         self.end_flow()
 
-        self.assertListEqual(list(self.get_grades_of_opps()), ['28.6%'])
+        self.assertListEqual(list(self.get_grades_of_opps()), ['28.57%'])
         self.assertListEqual(
             self.get_page_grades_of_opp("la_quiz")[self.student.username],
             [None, 0, 100, 100])
@@ -600,7 +600,7 @@ class AssemblePageGradesTest(HackRepoMixin,
 
         # This should fail after fixing Issue # 263 and #417, or there will
         # be inconsistencies
-        self.assertListEqual(list(self.get_grades_of_opps()), ['100.0% (/2)'])
+        self.assertListEqual(list(self.get_grades_of_opps()), ['100.00% (/2)'])
         self.assertListEqual(
             self.get_page_grades_of_opp("la_quiz")[self.student.username],
             [None, 100, 100])

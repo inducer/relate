@@ -1108,6 +1108,8 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
         class ClientUserSwitcher(object):
             def __init__(self, switch_to):
                 self.client = cls.c
+                if isinstance(switch_to, Participation):
+                    switch_to = switch_to.user
                 self.switch_to = switch_to
                 self.logged_in_user = cls.get_logged_in_user()
 

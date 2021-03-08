@@ -123,9 +123,6 @@ def view_participant_grades(pctx, participation_id=None):
             if not (opp.shown_in_grade_book
                     and opp.shown_in_participant_grade_book):
                 continue
-        else:
-            if not opp.shown_in_grade_book:
-                continue
 
         while (
                 idx < len(grade_changes)
@@ -539,6 +536,7 @@ def view_grades_by_opportunity(pctx, opp_id):
                 "grade_time")
             .select_related("participation")
             .select_related("participation__user")
+            .select_related("flow_session")
             .select_related("opportunity"))
 
     if opportunity.flow_id:
