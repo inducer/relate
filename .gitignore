@@ -37,3 +37,4 @@ bulk-storage
 /.coverage
 /coverage.xml
 /.vscode/
+/.venv/
