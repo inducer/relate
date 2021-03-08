@@ -1,0 +1,21 @@
+{% extends "course/course-base.html" %}
+{% load i18n %}
+
+{% load static %}
+
+{% block title %}
+  {% trans "Participant Tags" %} - {{ relate_site_name }}
+{% endblock %}
+
+{% block header_extra %}
+  {% include "datatables-header.html" %}
+{% endblock %}
+
+{% block content %}
+  <h1>{% trans "Participant Tags" %}</h1>
+
+  <a href="{% url "relate-edit_participation_tag" course.identifier -1 %}" class="btn btn-default">{% trans "Add participation tag" %}</a>
+
+  {% include "course/participation-tag-table.html" with participation_tags=participation_tags %}
+
+{% endblock %}

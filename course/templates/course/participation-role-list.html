@@ -1,0 +1,21 @@
+{% extends "course/course-base.html" %}
+{% load i18n %}
+
+{% load static %}
+
+{% block title %}
+  {% trans "Participation Roles" %} - {{ relate_site_name }}
+{% endblock %}
+
+{% block header_extra %}
+  {% include "datatables-header.html" %}
+{% endblock %}
+
+{% block content %}
+  <h1>{% trans "Participation roles" %}</h1>
+
+  <a href="{% url "relate-edit_participation_role" course.identifier -1 %}" class="btn btn-default">{% trans "Add participation role" %}</a>
+
+  {% include "course/participation-role-table.html" with participation_roles=participation_roles %}
+
+{% endblock %}

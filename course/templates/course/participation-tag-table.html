@@ -1,0 +1,48 @@
+{% load i18n %}
+
+<table class="table table-striped participant-tags">
+  <thead>
+    <th class="datacol">{% trans "Tag name" %}</th>
+    <th class="datacol">{% trans "Shown to participant" %}</th>
+    {% if pperm.edit_participation_tag %}
+      <th class="datacol no-sort">{% trans "Actions" %}</th>
+    {% endif %}
+  </thead>
+  <tbody>
+    {% for tag in participation_tags %}
+    <tr>
+      <td class="headcol"><span class="sensitive">{{ tag.name }}</span></td>
+      <td class="datacol">
+        {% if tag.shown_to_participant %}
+          <i class="fa fa-check-square-o"></i>
+        {% else %}
+          <i class="fa fa-square-o"></i>
+        {% endif %}
+      </td>
+      {% if pperm.edit_participation_tag %}
+        <td class="datacol">
+          <a href="{% url "relate-edit_participation_tag" course.identifier tag.id %}" class="btn btn-default btn-xs">{% trans "Edit" %}</a>
+        </td>
+      {% endif %}
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+
+{% block participation_tag_table_bottom_js %}
+  {% load static %}
+  {% get_current_js_lang_name as LANG %}
+    <script type="text/javascript">
+      var tbl = $("table.participant-tags").dataTable({
+        "scrollCollapse": true,
+        "paging": false,
+        "ordering": true,
+        "columnDefs": [
+          { type: 'name', targets: 1 },
+          { targets: 'no-sort', orderable: false,}],
+        "language": {url: '{% static "datatables-i18n/i18n/" %}{{LANG}}.json'},
+      });
+    </script>
+
+{% endblock %}

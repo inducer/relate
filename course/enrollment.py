@@ -1110,4 +1110,194 @@ def edit_participation(pctx, participation_id):
 
 # }}}
 
+
+# {{{ edit_participation_tag
+
+class EditParticipationTagForm(StyledModelForm):
+    def __init__(self, add_new, *args, **kwargs):
+        # type: (bool, *Any, **Any) -> None
+        super(EditParticipationTagForm, self).__init__(*args, **kwargs)
+
+        if add_new:
+            self.helper.add_input(
+                    Submit("submit", _("Add"), css_class="btn-success"))
+        else:
+            self.helper.add_input(
+                    Submit("submit", _("Update"), css_class="btn-success"))
+            self.helper.add_input(
+                    Submit("delete", _("Delete"), css_class="btn-danger"))
+
+    class Meta:
+        model = ParticipationTag
+        exclude = ("course",)
+
+
+@course_view
+def view_participation_tag_list(pctx):
+    if not pctx.has_permission(pperm.view_gradebook):
+        raise PermissionDenied(_("may not edit participation tags"))
+
+    participation_tags = list(ParticipationTag.objects.filter(course=pctx.course))
+
+    return render_course_page(pctx, "course/participation-tag-list.html", {
+        "participation_tags": participation_tags,
+        })
+
+
+@course_view
+def edit_participation_tag(pctx, ptag_id):
+    # type: (CoursePageContext, int) -> http.HttpResponse
+    if not pctx.has_permission(pperm.edit_participation_tag):
+        raise PermissionDenied()
+
+    request = pctx.request
+
+    num_ptag_id = int(ptag_id)
+
+    if num_ptag_id == -1:
+        ptag = ParticipationTag(course=pctx.course)
+        add_new = True
+    else:
+        ptag = get_object_or_404(ParticipationTag, id=num_ptag_id)
+        add_new = False
+
+    if ptag.course.id != pctx.course.id:
+        raise SuspiciousOperation(
+            "may not edit participation tag in different course")
+
+    if request.method == "POST":
+        form = EditParticipationTagForm(add_new, request.POST, instance=ptag)
+        try:
+            if form.is_valid():
+                if "submit" in request.POST or "update" in request.POST:
+                    # Ref: https://stackoverflow.com/q/21458387/3437454
+                    with transaction.atomic():
+                        form.save()
+
+                    if "submit" in request.POST:
+                        assert add_new
+                        msg = _("New participation tag saved.")
+                    else:
+                        msg = _("Changes saved.")
+                elif "delete" in request.POST:
+                    ptag.delete()
+                    msg = (_("successfully deleted participation tag '%(tag)s'.")
+                           % {"tag": ptag.name})
+                else:
+                    raise SuspiciousOperation(_("invalid operation"))
+
+                messages.add_message(request, messages.SUCCESS, msg)
+                return redirect(
+                    "relate-view_participation_tags", pctx.course.identifier)
+        except IntegrityError:
+            messages.add_message(
+                request, messages.ERROR,
+                _("A participation tag with that name already exists."))
+
+    else:
+        form = EditParticipationTagForm(add_new, instance=ptag)
+
+    return render_course_page(pctx, "course/generic-course-form.html", {
+        "form_description": _("Edit Participation Tag"),
+        "form": form,
+        })
+
+# }}}
+
+
+# {{{ edit_participation_role
+
+class EditParticipationRoleForm(StyledModelForm):
+    def __init__(self, add_new, *args, **kwargs):
+        # type: (bool, *Any, **Any) -> None
+        super(EditParticipationRoleForm, self).__init__(*args, **kwargs)
+
+        if add_new:
+            self.helper.add_input(
+                    Submit("submit", _("Add"), css_class="btn-success"))
+        else:
+            self.helper.add_input(
+                    Submit("submit", _("Update"), css_class="btn-success"))
+            self.helper.add_input(
+                    Submit("delete", _("Delete"), css_class="btn-danger"))
+
+    class Meta:
+        model = ParticipationRole
+        exclude = ("course",)
+
+
+@course_view
+def view_participation_role_list(pctx):
+    if not pctx.has_permission(pperm.view_gradebook):
+        raise PermissionDenied(_("may not edit participation tags"))
+
+    participation_roles = list(ParticipationRole.objects.filter(course=pctx.course))
+
+    return render_course_page(pctx, "course/participation-role-list.html", {
+        "participation_roles": participation_roles,
+        })
+
+
+@course_view
+def edit_participation_role(pctx, prole_id):
+    # type: (CoursePageContext, int) -> http.HttpResponse
+    if not pctx.has_permission(pperm.edit_participation_role):
+        raise PermissionDenied()
+
+    request = pctx.request
+
+    num_prole_id = int(prole_id)
+
+    if num_prole_id == -1:
+        prole = ParticipationRole(course=pctx.course)
+        add_new = True
+    else:
+        prole = get_object_or_404(ParticipationRole, id=num_prole_id)
+        add_new = False
+
+    if prole.course.id != pctx.course.id:
+        raise SuspiciousOperation(
+            "may not edit participation role in different course")
+
+    if request.method == "POST":
+        form = EditParticipationRoleForm(add_new, request.POST, instance=prole)
+        try:
+            if form.is_valid():
+                if "submit" in request.POST or "update" in request.POST:
+                    # Ref: https://stackoverflow.com/q/21458387/3437454
+                    with transaction.atomic():
+                        form.save()
+
+                    if "submit" in request.POST:
+                        assert add_new
+                        msg = _("New participation role saved.")
+                    else:
+                        msg = _("Changes saved.")
+                elif "delete" in request.POST:
+                    prole.delete()
+                    msg = (
+                        _("successfully deleted participation role '%(role)s'.")
+                        % {"role": prole.identifier})
+                else:
+                    raise SuspiciousOperation(_("invalid operation"))
+
+                messages.add_message(request, messages.SUCCESS, msg)
+                return redirect(
+                    "relate-view_participation_roles", pctx.course.identifier)
+        except IntegrityError:
+            messages.add_message(
+                request, messages.ERROR,
+                _("A participation role with that identifier already exists."))
+
+    else:
+        form = EditParticipationRoleForm(add_new, instance=prole)
+
+    return render_course_page(pctx, "course/generic-course-form.html", {
+        "form_description": _("Edit Participation Role"),
+        "form": form,
+        })
+
+# }}}
+
+
 # vim: foldmethod=marker

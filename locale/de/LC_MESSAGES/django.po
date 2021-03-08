@@ -2156,7 +2156,7 @@ msgid "Role name"
 msgstr "Kurs-Modul"
 
 #, fuzzy
-#| msgid "List of Participants"
+#| msgid "List of participants"
 msgid "Is default role for new participants"
 msgstr "Teilnehmerliste"
 
@@ -3367,7 +3367,7 @@ msgstr "Analytics-Überblick"
 msgid "Grade Book"
 msgstr "Notenbuch"
 
-msgid "List of Participants"
+msgid "List of participants"
 msgstr "Teilnehmerliste"
 
 msgid "List of Grading Opportunities"
