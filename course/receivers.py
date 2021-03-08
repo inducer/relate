@@ -34,7 +34,9 @@ from course.models import (
         ParticipationPreapproval,
         )
 
-from typing import List, Union, Text, Optional, Tuple, Any  # noqa
+from typing import List, Union, Text, Optional, Tuple, Any, TYPE_CHECKING  # noqa
+if TYPE_CHECKING:
+    from course.models import ParticipationTag, ParticipationRole  # noqa
 
 
 # {{{ Update enrollment status when a User/Course instance is saved
@@ -51,6 +53,8 @@ def update_requested_participation_status(sender, created, instance,
 
     user_updated = False
     course_updated = False
+    course = None
+    user = None
 
     if isinstance(instance, Course):
         course_updated = True
@@ -71,20 +75,22 @@ def update_requested_participation_status(sender, created, instance,
             assert user_updated
             course = requested.course
 
-        may_preapprove, roles = may_preapprove_role(course, user)
+        assert course is not None
+        assert user is not None
+        may_preapprove, roles, tags = may_preapprove_role_and_tag(course, user)
 
         if may_preapprove:
             from course.enrollment import handle_enrollment_request
 
             handle_enrollment_request(
-                course, user, participation_status.active, roles)
+                course, user, participation_status.active, roles, tags)
 
 
-def may_preapprove_role(course, user):
-    # type: (Course, User) -> Tuple[bool, Optional[List[Text]]]
+def may_preapprove_role_and_tag(course, user):
+    # type: (Course, User) -> Tuple[bool, Optional[List[ParticipationRole]], Optional[List[ParticipationTag]]]  # noqa
 
     if not user.is_active:
-        return False, None
+        return False, None, None
 
     preapproval = None
     if user.email:
@@ -105,9 +111,9 @@ def may_preapprove_role(course, user):
                     pass
 
     if preapproval:
-        return True, list(preapproval.roles.all())
+        return True, list(preapproval.roles.all()), list(preapproval.tags.all())
     else:
-        return False, None
+        return False, None, None
 
 # }}}
 

@@ -263,6 +263,21 @@ class ParticipationPreapprovalFactory(factory.django.DjangoModelFactory):
             role = ParticipationRoleFactory(course=self.course)
             self.roles.set([role])
 
+    @factory.post_generation
+    def tags(self, create, extracted, **kwargs):
+        if not create:
+            # Simple build, do nothing.
+            return
+        if extracted:
+            for tag in extracted:
+                if isinstance(tag, str):
+                    tag = ParticipationTagFactory(
+                        course=self.course, name=tag)
+                else:
+                    assert isinstance(tag, models.ParticipationTag)
+                self.tags.set([tag])
+                return
+
 
 def generate_random_hash():
     import hashlib

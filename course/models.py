@@ -612,6 +612,8 @@ class ParticipationPreapproval(models.Model):
             verbose_name=_("Role (unused)"),)
     roles = models.ManyToManyField(ParticipationRole, blank=True,
             verbose_name=_("Roles"), related_name="+")
+    tags = models.ManyToManyField(ParticipationTag, blank=True,
+            verbose_name=_("Participation tags"))
 
     creator = models.ForeignKey(settings.AUTH_USER_MODEL, null=True,
             verbose_name=_("Creator"), on_delete=models.SET_NULL)
