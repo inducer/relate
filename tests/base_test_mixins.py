@@ -69,7 +69,7 @@ SINGLE_COURSE_SETUP_LIST = [
             "hidden": False,
             "listed": True,
             "accepts_enrollment": True,
-            "git_source": "git://github.com/inducer/relate-sample",
+            "git_source": "git://github.com/dzhuang/relate-sample",
             "course_file": "course.yml",
             "events_file": "events.yml",
             "enrollment_approval_required": False,
