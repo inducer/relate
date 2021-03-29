@@ -648,9 +648,7 @@ def look_up_git_object(repo: "dulwich.Repo",
         raise ObjectDoesNotExist(_("symlink nesting depth exceeded "
             "while locating '%s'") % full_name)
 
-    # https://github.com/inducer/relate/pull/556
-    # FIXME: https://github.com/inducer/relate/issues/767
-    name_parts = os.path.normpath(full_name).split(os.sep)
+    name_parts = list(os.path.split(os.path.normpath(full_name)))
 
     processed_name_parts: List[str] = []
 
@@ -800,7 +798,7 @@ def is_repo_file_accessible_as(access_kinds, repo, commit_sha, path):
     """
 
     # set the path to .attributes.yml
-    attributes_path = os.path.join(os.path.dirname(path), ATTRIBUTES_FILENAME)
+    attributes_path = "/".join([os.path.dirname(path), ATTRIBUTES_FILENAME])
 
     # retrieve the .attributes.yml structure
     try:
