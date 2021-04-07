@@ -50,233 +50,116 @@ def expand_yaml(yml_file, repo_root):
 # {{{ code test
 
 def test_code_question(page_desc, repo_root):
-    if page_desc.type in [
-            "PythonCodeQuestion",
-            "PythonCodeQuestionWithHumanTextFeedback"]:
+    print(75*"-")
+    print("TESTING", page_desc.id, "...", end=" ")
+    sys.stdout.flush()
 
-        print(75*"-")
-        print("TESTING", page_desc.id, "...", end=" ")
-        sys.stdout.flush()
+    test_code = getattr(page_desc, "test_code", None)
+    if test_code is not None:
 
-        test_code = getattr(page_desc, "test_code", None)
-        if test_code is not None:
+        correct_code = getattr(page_desc, "correct_code", "")
 
-            correct_code = getattr(page_desc, "correct_code", "")
+        from course.page.code_run_backend import \
+                substitute_correct_code_into_test_code
+        test_code = substitute_correct_code_into_test_code(test_code, correct_code)
 
-            from course.page.code_run_backend_py import \
-                    substitute_correct_code_into_test_code
-            test_code = substitute_correct_code_into_test_code(test_code, correct_code)
+    from course.page.code_run_backend import run_code, package_exception
 
-        from course.page.code_run_backend_py import run_code, package_exception
+    data_files = {}
 
-        data_files = {}
+    for data_file_name in getattr(page_desc, "data_files", []):
+        from base64 import b64encode
+        with open(data_file_name, "rb") as df:
+            data_files[data_file_name] = b64encode(df.read()).decode()
 
-        for data_file_name in getattr(page_desc, "data_files", []):
-            from base64 import b64encode
-            with open(data_file_name, "rb") as df:
-                data_files[data_file_name] = b64encode(df.read()).decode()
+    run_req = {
+            "setup_code": getattr(page_desc, "setup_code", ""),
+            "names_for_user": getattr(page_desc, "names_for_user", []),
+            "user_code": (
+                getattr(page_desc, "check_user_code", "")
+                or getattr(page_desc, "correct_code", "")),
+            "names_from_user": getattr(page_desc, "names_from_user", []),
+            "test_code": test_code,
+            "data_files": data_files,
+            }
 
-        run_req = {
-                "setup_code": getattr(page_desc, "setup_code", ""),
-                "names_for_user": getattr(page_desc, "names_for_user", []),
-                "user_code": (
-                    getattr(page_desc, "check_user_code", "")
-                    or getattr(page_desc, "correct_code", "")),
-                "names_from_user": getattr(page_desc, "names_from_user", []),
-                "test_code": test_code,
-                "data_files": data_files,
-                }
+    response = {}
 
+    prev_stdin = sys.stdin  # noqa
+    prev_stdout = sys.stdout  # noqa
+    prev_stderr = sys.stderr  # noqa
+
+    stdout = io.StringIO()
+    stderr = io.StringIO()
+
+    from time import time
+    start = time()
+
+    try:
+        sys.stdin = None
+        sys.stdout = stdout
+        sys.stderr = stderr
+
+        from relate.utils import Struct
+        run_code(response, Struct(run_req))
+
+        response["stdout"] = stdout.getvalue()
+        response["stderr"] = stderr.getvalue()
+
+    except Exception:
         response = {}
+        package_exception(response, "uncaught_error")
 
-        prev_stdin = sys.stdin  # noqa
-        prev_stdout = sys.stdout  # noqa
-        prev_stderr = sys.stderr  # noqa
+    finally:
+        sys.stdin = prev_stdin
+        sys.stdout = prev_stdout
+        sys.stderr = prev_stderr
 
-        stdout = io.StringIO()
-        stderr = io.StringIO()
+    stop = time()
+    response["timeout"] = (
+            "Execution took %.1f seconds. "
+            "(Timeout is %.1f seconds.)"
+            % (stop-start, page_desc.timeout))
 
-        from time import time
-        start = time()
-
-        try:
-            sys.stdin = None
-            sys.stdout = stdout
-            sys.stderr = stderr
-
-            from relate.utils import Struct
-            run_code(response, Struct(run_req))
-
-            response["stdout"] = stdout.getvalue()
-            response["stderr"] = stderr.getvalue()
-
-        except Exception:
-            response = {}
-            package_exception(response, "uncaught_error")
-
-        finally:
-            sys.stdin = prev_stdin
-            sys.stdout = prev_stdout
-            sys.stderr = prev_stderr
-
-        stop = time()
-        response["timeout"] = (
-                "Execution took %.1f seconds. "
-                "(Timeout is %.1f seconds.)"
-                % (stop-start, page_desc.timeout))
-
-        from colorama import Fore, Style
-        if response["result"] == "success":
-            points = response.get("points", 0)
-            if points is None:
-                print(Fore.RED
-                        + "FAIL: no points value recorded"
-                        + Style.RESET_ALL)
-            elif points < 1:
-                print(Fore.RED
-                        + "FAIL: code did not pass test"
-                        + Style.RESET_ALL)
-            else:
-                print(Fore.GREEN+response["result"].upper()+Style.RESET_ALL)
+    from colorama import Fore, Style
+    if response["result"] == "success":
+        points = response.get("points", 0)
+        if points is None:
+            print(Fore.RED
+                    + "FAIL: no points value recorded"
+                    + Style.RESET_ALL)
+        elif points < 1:
+            print(Fore.RED
+                    + "FAIL: code did not pass test"
+                    + Style.RESET_ALL)
         else:
-            print(Style.BRIGHT+Fore.RED
-                    + response["result"].upper()+Style.RESET_ALL)
+            print(Fore.GREEN+response["result"].upper()+Style.RESET_ALL)
+    else:
+        print(Style.BRIGHT+Fore.RED
+                + response["result"].upper()+Style.RESET_ALL)
 
-        def print_response_aspect(s):
-            if s not in response:
-                return
+    def print_response_aspect(s):
+        if s not in response:
+            return
 
-            if isinstance(response[s], list):
-                response_s = "\n".join(str(s_i) for s_i in response[s])
-            else:
-                response_s = str(response[s]).strip()
-
-            if not response_s:
-                return
-
-            print(s, ":")
-            indentation = 4*" "
-            print(indentation + response_s.replace("\n", "\n"+indentation))
-
-        print_response_aspect("points")
-        print_response_aspect("feedback")
-        print_response_aspect("traceback")
-        print_response_aspect("stdout")
-        print_response_aspect("stderr")
-        print_response_aspect("timeout")
-
-    elif page_desc.type in [
-            "OctaveCodeQuestion"]:
-        print(75*"-")
-        print("TESTING", page_desc.id, "...", end=" ")
-        sys.stdout.flush()
-
-        test_code = getattr(page_desc, "test_code", None)
-        if test_code is not None:
-
-            correct_code = getattr(page_desc, "correct_code", "")
-
-            from course.page.code_run_backend_octave import \
-                    substitute_correct_code_into_test_code
-            test_code = substitute_correct_code_into_test_code(test_code, correct_code)
-
-        from course.page.code_run_backend_octave import run_code, package_exception
-
-        data_files = {}
-
-        for data_file_name in getattr(page_desc, "data_files", []):
-            from base64 import b64encode
-            with open(data_file_name, "rb") as df:
-                data_files[data_file_name] = b64encode(df.read()).decode()
-
-        run_req = {
-                "setup_code": getattr(page_desc, "setup_code", ""),
-                "names_for_user": getattr(page_desc, "names_for_user", []),
-                "user_code": (
-                    getattr(page_desc, "check_user_code", "")
-                    or getattr(page_desc, "correct_code", "")),
-                "names_from_user": getattr(page_desc, "names_from_user", []),
-                "test_code": test_code,
-                "data_files": data_files,
-                }
-
-        response = {}
-
-        prev_stdin = sys.stdin  # noqa
-        prev_stdout = sys.stdout  # noqa
-        prev_stderr = sys.stderr  # noqa
-
-        stdout = io.StringIO()
-        stderr = io.StringIO()
-
-        from time import time
-        start = time()
-
-        try:
-            sys.stdin = None
-            sys.stdout = stdout
-            sys.stderr = stderr
-
-            from relate.utils import Struct
-            run_code(response, Struct(run_req))
-
-            response["stdout"] = stdout.getvalue()
-            response["stderr"] = stderr.getvalue()
-
-        except Exception:
-            response = {}
-            package_exception(response, "uncaught_error")
-
-        finally:
-            sys.stdin = prev_stdin
-            sys.stdout = prev_stdout
-            sys.stderr = prev_stderr
-
-        stop = time()
-        response["timeout"] = (
-                "Execution took %.1f seconds. "
-                "(Timeout is %.1f seconds.)"
-                % (stop-start, page_desc.timeout))
-
-        from colorama import Fore, Style
-        if response["result"] == "success":
-            points = response.get("points", 0)
-            if points is None:
-                print(Fore.RED
-                        + "FAIL: no points value recorded"
-                        + Style.RESET_ALL)
-            elif points < 1:
-                print(Fore.RED
-                        + "FAIL: code did not pass test"
-                        + Style.RESET_ALL)
-            else:
-                print(Fore.GREEN+response["result"].upper()+Style.RESET_ALL)
+        if isinstance(response[s], list):
+            response_s = "\n".join(str(s_i) for s_i in response[s])
         else:
-            print(Style.BRIGHT+Fore.RED
-                    + response["result"].upper()+Style.RESET_ALL)
+            response_s = str(response[s]).strip()
 
-        def print_response_aspect(s):
-            if s not in response:
-                return
+        if not response_s:
+            return
 
-            if isinstance(response[s], list):
-                response_s = "\n".join(str(s_i) for s_i in response[s])
-            else:
-                response_s = str(response[s]).strip()
+        print(s, ":")
+        indentation = 4*" "
+        print(indentation + response_s.replace("\n", "\n"+indentation))
 
-            if not response_s:
-                return
-
-            print(s, ":")
-            indentation = 4*" "
-            print(indentation + response_s.replace("\n", "\n"+indentation))
-
-        print_response_aspect("points")
-        print_response_aspect("feedback")
-        print_response_aspect("traceback")
-        print_response_aspect("stdout")
-        print_response_aspect("stderr")
-        print_response_aspect("timeout")
+    print_response_aspect("points")
+    print_response_aspect("feedback")
+    print_response_aspect("traceback")
+    print_response_aspect("stdout")
+    print_response_aspect("stderr")
+    print_response_aspect("timeout")
 
 
 def test_code_yml(yml_file, repo_root):

@@ -3,6 +3,8 @@ MAINTAINER Neal Davis <davis68@illinois.edu>
 EXPOSE 9941
 RUN useradd runcode
 
+RUN echo 'APT::Default-Release "testing";' >> /etc/apt/apt.conf
+
 # Based on `compdatasci/octave-desktop` Docker image
 ARG OCTAVE_VERSION=5.1.0
 
@@ -23,8 +25,6 @@ RUN apt-get install -y --no-install-recommends \
 RUN apt-get install -y --no-install-recommends \
         octave \
         liboctave-dev \
-        octave-info \
-        octave-symbolic \
         octave-parallel \
         octave-struct \
         octave-statistics
@@ -35,8 +35,7 @@ RUN apt-get install -y --no-install-recommends \
         python3-numpy \
         python3-scipy \
         python3-matplotlib \
-        pandoc \
-        ttf-dejavu
+        pandoc
 RUN apt-get clean && \
     apt-get autoremove && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
@@ -51,7 +50,8 @@ RUN fc-cache
 RUN mkdir -p /opt/runcode
 ADD runcode /opt/runcode/
 COPY code_feedback.py /opt/runcode/
-COPY code_run_backend_octave.py /opt/runcode/
+COPY code_run_backend.py /opt/runcode/
+RUN ls /opt/runcode
 
 # currently no graphics support
 #TODO

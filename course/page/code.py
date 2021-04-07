@@ -544,7 +544,7 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
         answer.  This overrides the image set in the `local_settings.py`
         configuration.  The Docker image should provide two files; these are
         supplied in RELATE's standard Python Docker image by `course/page/
-        code_run_backend_python.py` and `course/page/code_feedback.py`, for
+        code_run_backend_py.py` and `course/page/code_feedback.py`, for
         instance.  Consult `docker-image-run-py/docker-build.sh` for one
         example of a local build.  The Docker image should already be loaded
         on the system (RELATE does not pull the image automatically).
@@ -721,7 +721,7 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
                 "PythonCodeQuestion",
                 "PythonCodeQuestionWithHumanFeedback"]:
             from .code_run_backend_py import substitute_correct_code_into_test_code
-        elif self.type in [
+        elif self.page_desc.type in [
                 "OctaveCodeQuestion"]:
             from .code_run_backend_octave import substitute_correct_code_into_test_code
         return substitute_correct_code_into_test_code(test_code, correct_code)
