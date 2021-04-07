@@ -53,6 +53,7 @@ __all__ = (
 
         "ChoiceQuestion", "SurveyChoiceQuestion", "MultipleChoiceQuestion",
         "PythonCodeQuestion", "PythonCodeQuestionWithHumanTextFeedback",
+        "OctaveCodeQuestion",
         "FileUploadQuestion",
         )
 

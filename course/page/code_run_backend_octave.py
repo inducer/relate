@@ -253,7 +253,7 @@ def run_code(result, run_req):
     # }}}
 
     if hasattr(run_req, "names_from_user"):
-        values = []
+        #values = []
         for name in run_req.names_from_user:
             try:
                 maint_ctx[name] = oc.pull(name)
