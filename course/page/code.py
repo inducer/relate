@@ -323,7 +323,7 @@ def request_run(run_req, run_timeout, image=None):
             start_time = time()
 
             debug_print("BEFPOST")
-            connection.request("POST", "/run-python", json_run_req, headers)
+            connection.request("POST", "/run-code", json_run_req, headers)
             debug_print("AFTPOST")
 
             http_response = connection.getresponse()
