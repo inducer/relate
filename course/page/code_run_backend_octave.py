@@ -227,14 +227,14 @@ def run_code(result, run_req):
 
     # {{{ export plots
 
-    '''
-    if "matplotlib" in sys.modules:
+    """
+    if 'matplotlib' in sys.modules:
         import matplotlib.pyplot as pt
         from io import BytesIO
         from base64 import b64encode
 
-        format = "png"
-        mime = "image/png"
+        format = 'png'
+        mime = 'image/png'
         figures = []
 
         for fignum in pt.get_fignums():
@@ -248,8 +248,8 @@ def run_code(result, run_req):
                 figures.append(
                     (fignum, mime, b64encode(bio.getvalue()).decode()))
 
-        result["figures"] = figures
-    '''
+        result['figures'] = figures
+    """
     # }}}
 
     if hasattr(run_req, "names_from_user"):

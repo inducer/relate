@@ -38,3 +38,7 @@ bulk-storage
 /coverage.xml
 /.vscode/
 /.venv/
+
+my-relate-venv
+package-lock.json
+.gitignore

@@ -720,10 +720,12 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
         if self.page_desc.type in [
                 "PythonCodeQuestion",
                 "PythonCodeQuestionWithHumanFeedback"]:
-            from .code_run_backend_py import substitute_correct_code_into_test_code
+            from .code_run_backend_py \
+                import substitute_correct_code_into_test_code
         elif self.page_desc.type in [
                 "OctaveCodeQuestion"]:
-            from .code_run_backend_octave import substitute_correct_code_into_test_code
+            from .code_run_backend_octave \
+                import substitute_correct_code_into_test_code
         return substitute_correct_code_into_test_code(test_code, correct_code)
 
     @staticmethod
