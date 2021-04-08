@@ -245,6 +245,7 @@ def request_run(run_req, run_timeout, image=None):
 
         if container_id is not None:
             docker_cnx.start(container_id)
+            print(docker_cnx)
 
             container_props = docker_cnx.inspect_container(container_id)
             (port_info,) = (container_props
@@ -258,6 +259,8 @@ def request_run(run_req, run_timeout, image=None):
             port = int(port_info["HostPort"])
         else:
             port = CODE_QUESTION_CONTAINER_PORT
+
+        #print(container_id,CODE_QUESTION_CONTAINER_PORT)
 
         from time import time, sleep
         start_time = time()
@@ -281,8 +284,9 @@ def request_run(run_req, run_timeout, image=None):
         while True:
             try:
                 connection = http_client.HTTPConnection(connect_host_ip, port)
+                print('attempting connection',connect_host_ip,port)
 
-                connection.request("GET", "/ping")
+                connection.request("GET", "/ping")  # XXX here's the trouble
 
                 response = connection.getresponse()
                 response_data = response.read().decode()
@@ -349,6 +353,7 @@ def request_run(run_req, run_timeout, image=None):
                     "exec_host": connect_host_ip,
                     }
     finally:
+        print(container_id)
         if container_id is not None:
             debug_print("-----------BEGIN DOCKER LOGS for %s" % container_id)
             debug_print(docker_cnx.logs(container_id))
