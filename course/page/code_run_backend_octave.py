@@ -205,6 +205,20 @@ def run_code(result, run_req):
             package_exception(result, "setup_error")
             return
 
+    if getattr(run_req, "test_code", None):
+        try:
+            test_code = compile(
+                    run_req.test_code, "[test code]", "exec")
+        except Exception:
+            package_exception(result, "test_compile_error")
+            return
+    else:
+        test_code = None
+
+    if hasattr(run_req, "compile_only") and run_req.compile_only:
+        result["result"] = "success"
+        return
+
     '''
     user_ctx = {}
     if hasattr(run_req, "names_for_user"):  #XXX unused for Octave context currently
@@ -220,6 +234,7 @@ def run_code(result, run_req):
     '''
 
     try:
+        #user_ctx["_MODULE_SOURCE_CODE"] = run_req.user_code
         oc.eval(run_req.user_code)
     except Exception:
         package_exception(result, "user_error")
@@ -253,7 +268,6 @@ def run_code(result, run_req):
     # }}}
 
     if hasattr(run_req, "names_from_user"):
-        #values = []
         for name in run_req.names_from_user:
             try:
                 maint_ctx[name] = oc.pull(name)
@@ -263,10 +277,10 @@ def run_code(result, run_req):
                         % name)
                 maint_ctx[name] = None
 
-    if run_req.test_code is not None:  # XXX test code is written in Python
+    if test_code is not None:  # XXX test code is written in Python
         try:
             maint_ctx["_MODULE_SOURCE_CODE"] = run_req.test_code
-            exec(run_req.test_code, maint_ctx)
+            exec(test_code, maint_ctx)
         except GradingComplete:
             pass
         except Exception:
