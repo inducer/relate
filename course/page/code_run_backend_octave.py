@@ -198,7 +198,7 @@ def run_code(result, run_req):
             "GradingComplete": GradingComplete,
             }
 
-    if run_req.setup_code is not None:
+    if getattr(run_req, "setup_code", None):
         try:
             oc.eval(run_req.setup_code)
         except Exception:
