@@ -284,7 +284,7 @@ def request_run(run_req, run_timeout, image=None):
         while True:
             try:
                 connection = http_client.HTTPConnection(connect_host_ip, port)
-                print('attempting connection',connect_host_ip,port)
+                print("attempting connection", connect_host_ip, port)
 
                 connection.request("GET", "/ping")  # XXX here's the trouble
 
@@ -722,13 +722,16 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
         if correct_code is None:
             correct_code = ""
 
-        from .code_run_backend_py \
-            import substitute_correct_code_into_test_code
+        
 
         if self.page_desc.type in [
                 "OctaveCodeQuestion"]:
             from .code_run_backend_octave \
                 import substitute_correct_code_into_test_code
+        else:
+            from .code_run_backend_py \
+                import substitute_correct_code_into_test_code
+
         return substitute_correct_code_into_test_code(test_code, correct_code)
 
     @staticmethod

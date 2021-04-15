@@ -219,19 +219,19 @@ def run_code(result, run_req):
         result["result"] = "success"
         return
 
-    '''
+    """
     user_ctx = {}
     if hasattr(run_req, "names_for_user"):  #XXX unused for Octave context currently
         for name in run_req.names_for_user:
             if name not in maint_ctx:
                 result["result"] = "setup_error"
-                result["message"] = "Setup code did not define '%s'." % name
+                result["message"] = "Setup code did not define \'%s\'." % name
 
             user_ctx[name] = maint_ctx[name]
 
     from copy import deepcopy
     user_ctx = deepcopy(user_ctx)
-    '''
+    """
 
     try:
         #user_ctx["_MODULE_SOURCE_CODE"] = run_req.user_code
