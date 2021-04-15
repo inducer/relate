@@ -43,8 +43,6 @@ stages:
   except:
     - tags
   coverage: "/TOTAL.+ ([0-9]{1,3}%)/"
-  variables:
-    CODECOV_TOKEN: "895e3bf2-cfd0-45f8-9a14-4b7bd148f76d"
 
 setup:
   <<: *install-deps

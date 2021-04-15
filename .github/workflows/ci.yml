@@ -104,10 +104,6 @@ jobs:
           RL_CI_TEST: ${{ matrix.suite }}
         run: |
           bash ./.ci/run-tests-for-ci.sh
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v1
-        with:
-          fail_ci_if_error: true
       - name: Test command line tool
         if: matrix.suite == 'base'
         run: |
@@ -141,10 +137,5 @@ jobs:
           RELATE_LOCAL_TEST_SETTINGS: "local_settings_example.py"
         run: |
           poetry run pytest -v --cov-config=setup.cfg --cov-report=xml --cov=.
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v1
-        with:
-          fail_ci_if_error: true
-
 
 # vim: sw=2

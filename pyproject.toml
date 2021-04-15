@@ -111,7 +111,6 @@ cryptography = "^3.2.1"
 social-auth-app-django = "^4.0.0"
 
 [tool.poetry.dev-dependencies]
-codecov = "^2.1.4"
 factory_boy = "^2.12.0"
 flake8-quotes = "^3.2.0"
 flake8 = "^3.8.3"
