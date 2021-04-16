@@ -139,7 +139,7 @@ including LaTeX, HTML, MediaWiki, Microsoft Word, and many more.
 
 Further, YAML files are quite easy to read and traverse in most programming languages,
 facilitating automated coversion.  `This example Python script
-<https://github.com/inducer/relate/blob/master/contrib/flow-to-worksheet>`_
+<https://github.com/inducer/relate/blob/main/contrib/flow-to-worksheet>`_
 provided as part of RELATE takes a flow and converts it to a paper-based
 worksheet. To do so, it makes use of `pypandoc
 <https://pypi.python.org/pypi/pypandoc>`_ and `PyYAML <http://pyyaml.org/>`_.

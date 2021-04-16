@@ -37,9 +37,6 @@ features:
 * Facilitates live quizzes in the classroom.
 * In-class instant messaging via XMPP.
   Works well with `xmpp-popup <https://github.com/inducer/xmpp-popup>`_.
-* Built-in support for `VideoJS <http://www.videojs.com/>`_ offers
-  easy-to-use support for integrating HTML5 video into course content
-  without the need for third-party content hosting.
 
 RELATE is a based on the popular `Django <https://docs.djangoproject.com/>`_
 web framework for Python.  It lets students participate in online activities,
@@ -48,24 +45,17 @@ pages, each of which can be both static or interactive content, for exapmle a
 video, a quiz question, a page of text, or, within the confines of HTML,
 something completely different.
 
-Links
------
-
-More information around the web:
-
-* `Documentation <http://documen.tician.de/relate>`_
-* `Source code <https://github.com/inducer/relate>`_
-
 Table of Contents
 -----------------
 
 .. toctree::
-    :maxdepth: 3
+    :maxdepth: 2
 
     content
     flow
-    page
+    page-types
     api
+    flow-page-api
     faq
     misc
     🚀 Github <https://github.com/inducer/relate>

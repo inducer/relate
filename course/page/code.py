@@ -1077,6 +1077,41 @@ class PythonCodeQuestion(CodeQuestion):
     All user code as well as all code specified as part of the problem
     is in Python 3.
 
+    Example:
+
+    .. code-block:: yaml
+
+        type: PythonCodeQuestion
+        id: addition
+        access_rules:
+            add_permissions:
+                - change_answer
+        value: 1
+        timeout: 10
+        prompt: |
+            # Adding two numbers in Python
+            Your code will receive two variables, *a* and *b*. Compute their sum and
+            assign it to *c*.
+        setup_code: |
+            import random
+            a = random.uniform(-10, 10)
+            b = random.uniform(-10, 10)
+        names_for_user: [a, b]
+
+        correct_code: |
+            c = a + b
+        names_from_user: [c]
+
+        test_code: |
+            if not isinstance(c, float):
+                feedback.finish(0, "Your computed c is not a float.")
+            correct_c = a + b
+            rel_err = abs(correct_c-c)/abs(correct_c)
+            if rel_err < 1e-7:
+                feedback.finish(1, "Your computed c was correct.")
+            else:
+                feedback.finish(0, "Your computed c was incorrect.")
+
     If you are not including the
     :attr:`course.constants.flow_permission.change_answer`
     permission for your entire flow, you likely want to

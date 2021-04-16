@@ -1965,31 +1965,7 @@ def get_flow_page_class(repo, typename, commit_sha):
     except ClassNotFoundError:
         pass
 
-    if typename.startswith("repo:"):
-        stripped_typename = typename[5:]
-
-        components = stripped_typename.split(".")
-        if len(components) != 2:
-            raise ClassNotFoundError(
-                    _("repo page class must conist of two "
-                    "dotted components (invalid: '%s')")
-                    % typename)
-
-        module, classname = components
-        module_name = "code/"+module+".py"
-        module_code = get_repo_blob(repo, module_name, commit_sha,
-                allow_tree=False).data
-
-        module_dict = {}  # type: Dict
-
-        exec(compile(module_code, module_name, "exec"), module_dict)
-
-        try:
-            return module_dict[classname]
-        except (AttributeError, KeyError):
-            raise ClassNotFoundError(typename)
-    else:
-        raise ClassNotFoundError(typename)
+    raise ClassNotFoundError(typename)
 
 
 def instantiate_flow_page(location, repo, page_desc, commit_sha):

@@ -1,5 +1,8 @@
+Internals
+=========
+
 Flow Page Interface
-===================
+-------------------
 
 This describes the programming interface between Relate and a page in a flow.
 
@@ -10,23 +13,8 @@ Validation
 
 .. automodule:: course.validation
 
-Canonicalization of Django Names
-================================
-
-.. currentmodule:: django.forms.forms
-
-.. class:: Form
-
-    See :class:`django.forms.Form`.
-
-.. currentmodule:: django.http.request
-
-.. class:: HttpRequest
-
-    See :class:`django.http.HttpRequest`.
-
 Stub Docs
-=========
+---------
 
 .. currentmodule:: course.models
 
@@ -40,3 +28,18 @@ Stub Docs
 .. currentmodule:: course.utils
 
 .. class:: FlowPageContext
+
+Canonicalization of Django Names
+--------------------------------
+
+.. currentmodule:: django.forms.forms
+
+.. class:: Form
+
+    See :class:`django.forms.Form`.
+
+.. currentmodule:: django.http.request
+
+.. class:: HttpRequest
+
+    See :class:`django.http.HttpRequest`.

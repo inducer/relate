@@ -574,54 +574,6 @@ class ValidateFlowPageTest(ValidationTestMixin, unittest.TestCase):
         expected_error_msg = "flow page has no ID"
         self.assertIn(expected_error_msg, str(cm.exception))
 
-    def test_custom_page_types_stop_support_deadline(self):
-        from datetime import datetime, timedelta
-        deadline = datetime(2019, 1, 1, 0, 0, 0, 0)
-        one_month_before_deadline = deadline - timedelta(days=30)
-        one_month_after_deadline = deadline + timedelta(days=30)
-
-        with mock.patch("course.validation.validate_identifier"
-                        ) as mock_vi, mock.patch(
-            "course.utils.get_custom_page_types_stop_support_deadline"
-        ) as mock_gcptssd, mock.patch(
-            "relate.utils.local_now"
-        ) as mock_local_now, mock.patch(
-            "course.content.get_flow_page_class"
-        ) as mock_gfpc:
-            mock_vi.return_value = None
-            mock_gfpc.return_value = FakeCustomRepoPageType1
-
-            from relate.utils import localize_datetime
-
-            # passed deadline
-            mock_gcptssd.return_value = localize_datetime(deadline)
-            mock_local_now.return_value = (
-                localize_datetime(one_month_after_deadline))
-
-            with self.assertRaises(ValidationError) as cm:
-                validation.validate_flow_page(
-                    vctx, location,
-                    self.get_updated_page_desc(type="repo:my_custom_page_type"))
-            expected_error_msg = (
-                "Custom page type \'repo:my_custom_page_type\' specified. "
-                "Custom page types were no longer supported in RELATE since "
-                "Jan. 1, 2019, midnight.")
-            self.assertIn(expected_error_msg, str(cm.exception))
-
-            # not passing deadline
-            mock_local_now.return_value = (
-                localize_datetime(one_month_before_deadline))
-
-            validation.validate_flow_page(
-                vctx, location,
-                self.get_updated_page_desc(type="repo:my_custom_page_type"))
-
-            expected_warn_msg = (
-                "Custom page type \'repo:my_custom_page_type\' specified. "
-                "Custom page types will stop being supported in RELATE at "
-                "Jan. 1, 2019, midnight.")
-            self.assertIn(expected_warn_msg, vctx.add_warning.call_args[0])
-
     def test_flow_page_fail_validation(self):
         with mock.patch("course.validation.validate_identifier"
                         ) as mock_vi, mock.patch(
