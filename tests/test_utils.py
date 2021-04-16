@@ -24,7 +24,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from datetime import datetime
 from copy import deepcopy
 
 import unittest
@@ -36,17 +35,14 @@ from django.utils import translation
 from django.utils.translation import gettext_noop
 from django.conf import settings
 
-from relate.utils import (
-    localize_datetime, format_datetime_local,
-    struct_to_dict, dict_to_struct)
+from relate.utils import struct_to_dict, dict_to_struct
 
 from course import utils
 from course.content import parse_date_spec
 from course import constants  # noqa
 from course.constants import flow_permission as fperm
 
-from tests.constants import (
-    QUIZ_FLOW_ID, COMMIT_SHA_SUPPORT_CUSTOM_PAGES)
+from tests.constants import QUIZ_FLOW_ID
 from tests.base_test_mixins import (
     CoursesTestMixinBase,
     SingleCoursePageTestMixin, SubprocessRunpyContainerMixin,
