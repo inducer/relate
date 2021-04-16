@@ -1019,8 +1019,12 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
         # {{{ html output / santization
 
         if hasattr(response, "html") and response.html:
-            bulk_feedback_bits.extend(
-                    sanitize_from_code_html(snippet) for snippet in response.html)
+            if page_context.course.trusted_for_markup:
+                bulk_feedback_bits.extend(response.html)
+            else:
+                bulk_feedback_bits.extend(
+                        sanitize_from_code_html(snippet)
+                        for snippet in response.html)
 
         # }}}
 
