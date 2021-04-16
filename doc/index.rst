@@ -64,8 +64,8 @@ Table of Contents
 
     content
     flow
-    page
     api
+    page
     faq
     misc
     🚀 Github <https://github.com/inducer/relate>
