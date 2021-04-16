@@ -82,7 +82,18 @@ Page Interface
 
 .. exception:: InvalidPageData
 
+Base Classes For Pages
+======================
+
 .. autoclass:: PageBase
+.. autoclass:: PageBaseWithTitle
+.. autoclass:: PageBaseWithHumanTextFeedback
+.. autoclass:: PageBaseWithCorrectAnswer
+
+Automatic Feedback
+==================
+
+.. autofunction:: get_auto_feedback
 """
 
 mark_safe_lazy = lazy(mark_safe, str)

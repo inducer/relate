@@ -570,7 +570,9 @@ class InlineMultiQuestion(TextQuestionBase, PageBaseWithValue):
 
         Text justifying the answer, written in :ref:`markup`.
 
-    Here is an example of :class:`InlineMultiQuestion`::
+    Example:
+
+    .. code-block:: yaml
 
         type: InlineMultiQuestion
         id: inlinemulti
