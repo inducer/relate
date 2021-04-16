@@ -1361,37 +1361,6 @@ class GetFlowPageClassTest(SingleCourseTestMixin, TestCase):
                 repo, "tests.resource.MyFakeQuestionType", commit_sha),
             MyFakeQuestionType)
 
-    def test_repo_path_length_1(self):
-        repo = mock.MagicMock()
-        commit_sha = mock.MagicMock()
-        type_name = "repo:UnknownClass"
-        with self.assertRaises(content.ClassNotFoundError) as cm:
-
-            content.get_flow_page_class(
-                repo, type_name, commit_sha)
-
-        expected_error_msg = (
-            "repo page class must conist of two "
-            "dotted components (invalid: '%s')"
-            % type_name)
-
-        self.assertIn(expected_error_msg, str(cm.exception))
-
-    def test_repo_path_length_3(self):
-        repo = mock.MagicMock()
-        commit_sha = mock.MagicMock()
-        type_name = "repo:mydir.mymodule.UnknownClass"
-        with self.assertRaises(content.ClassNotFoundError) as cm:
-            content.get_flow_page_class(
-                repo, type_name, commit_sha)
-
-        expected_error_msg = (
-            "repo page class must conist of two "
-            "dotted components (invalid: '%s')"
-            % type_name)
-
-        self.assertIn(expected_error_msg, str(cm.exception))
-
 
 class ListFlowIdsTest(unittest.TestCase):
     # test content.list_flow_ids
