@@ -480,36 +480,6 @@ def validate_flow_page(vctx, location, page_desc):
 
     validate_identifier(vctx, location, page_desc.id)
 
-    if page_desc.type.startswith("repo:"):
-        from django.conf import settings
-        from course.utils import get_custom_page_types_stop_support_deadline
-        from relate.utils import local_now, format_datetime_local
-
-        deadline = get_custom_page_types_stop_support_deadline()
-
-        assert deadline is not None
-
-        if deadline < local_now():
-            raise ValidationError(
-                    location,
-                    _("Custom page type '%(page_type)s' specified. "
-                      "Custom page types were no longer supported in "
-                      "%(relate_site_name)s since %(date_time)s.")
-                    % {"page_type": page_desc.type,
-                       "date_time": format_datetime_local(deadline),
-                       "relate_site_name": settings.RELATE_SITE_NAME,
-                       })
-        else:
-            vctx.add_warning(
-                    location,
-                    _("Custom page type '%(page_type)s' specified. "
-                      "Custom page types will stop being supported in "
-                      "%(relate_site_name)s at %(date_time)s.")
-                    % {"page_type": page_desc.type,
-                       "date_time": format_datetime_local(deadline),
-                       "relate_site_name": settings.RELATE_SITE_NAME
-                       })
-
     from course.content import get_flow_page_class
     try:
         class_ = get_flow_page_class(vctx.repo, page_desc.type, vctx.commit_sha)
