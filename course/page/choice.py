@@ -257,6 +257,29 @@ class ChoiceQuestion(ChoiceQuestionBase):
     """
     A page asking the participant to choose one of multiple answers.
 
+    Example:
+
+    .. code-block:: yaml
+
+        type: ChoiceQuestion
+        id: fp_accuracy
+        shuffle: True
+        prompt: |
+            # Floating point "machine epsilon"
+            For a (binary) floating point system of the form
+            $(s_1.s_2s_3)_2\\cdot 2^{p}$ that has an exponent range from $-128$ to
+            $127$ and that uses three bits to store the significand $s$, what is the
+            difference between 1 and the smallest representable number greater than
+            one?
+        choices:
+            - $2^{-3}$
+            - $2^{-4}$
+            - $2^{-1}$
+            - ~CORRECT~  $2^{-2}$
+        answer_explanation: |
+
+            That's just what it is.
+
     .. attribute:: id
 
         |id-page-attr|

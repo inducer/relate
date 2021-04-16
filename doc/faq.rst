@@ -1,5 +1,8 @@
 Frequently Asked Questions
-==========================
+##########################
+
+Getting Started
+===============
 
 How do I get started with Relate?
 ---------------------------------
@@ -61,7 +64,7 @@ Getting everything set up
 
         The course identifier is final and cannot be changed once the course
         is created.
-        
+
         When choosing the course identifier, note that this will appear as
         part of the URL when students browse your course, so it is best to
         choose something that is easy to type and does not look out of place

@@ -46,9 +46,6 @@ features:
 * Facilitates live quizzes in the classroom.
 * In-class instant messaging via XMPP.
   Works well with `xmpp-popup <https://github.com/inducer/xmpp-popup>`_.
-* Built-in support for `VideoJS <http://www.videojs.com/>`_ offers
-  easy-to-use support for integrating HTML5 video into course content
-  without the need for third-party content hosting.
 
 Links
 -----
