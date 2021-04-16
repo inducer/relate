@@ -13,8 +13,6 @@ FIXTURE_PATH = os.path.join(os.path.dirname(__file__), 'resource')
 CSV_PATH = os.path.join(FIXTURE_PATH, "csv")
 FAKED_YAML_PATH = os.path.join(FIXTURE_PATH, 'faked_yamls')
 
-COMMIT_SHA_SUPPORT_CUSTOM_PAGES = "593a1cdcecc6f4759fd5cadaacec0ba9dd0715a7"
-
 
 def get_upload_file_path(file_name, fixture_path=FIXTURE_PATH):
     return os.path.join(fixture_path, file_name)
