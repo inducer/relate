@@ -1469,7 +1469,7 @@ def markup_to_html(
         extensions=extensions,
         output_format="html5")
 
-    if not course.trusted_for_markup:
+    if course is None or not course.trusted_for_markup:
         import bleach
         result = bleach.clean(result,
                 tags=bleach.ALLOWED_TAGS + [
