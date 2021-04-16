@@ -1373,6 +1373,26 @@ def expand_markup(
     return text
 
 
+def filter_html_attributes(tag, name, value):
+    from bleach.sanitizer import ALLOWED_ATTRIBUTES
+
+    allowed_attrs = ALLOWED_ATTRIBUTES.get(tag, [])
+    result = name in allowed_attrs
+
+    if tag == "a":
+        result = (result
+                or (name == "role" and value == "button")
+                or (name == "class" and value.startswith("btn btn-")))
+    elif tag == "img":
+        result = result or name == "src"
+    elif tag == "div":
+        result = result or (name == "class" and value == "well")
+    elif tag == "i":
+        result = result or (name == "class" and value.startswith("fa fa-"))
+
+    return result
+
+
 def markup_to_html(
         course,  # type: Optional[Course]
         repo,  # type: Repo_ish
@@ -1396,9 +1416,9 @@ def markup_to_html(
             cache_key = None
         else:
             import hashlib
-            cache_key = ("markup:v7:%s:%d:%s:%s%s"
+            cache_key = ("markup:v8:%s:%d:%s:%s:%s%s"
                     % (CACHE_KEY_ROOT,
-                       course.id, str(commit_sha),
+                       course.id, course.trusted_for_markup, str(commit_sha),
                        hashlib.md5(text.encode("utf-8")).hexdigest(),
                        ":NOCODEHILITE" if disable_codehilite else ""
                        ))
@@ -1448,6 +1468,15 @@ def markup_to_html(
     result = markdown.markdown(text,
         extensions=extensions,
         output_format="html5")
+
+    if not course.trusted_for_markup:
+        import bleach
+        result = bleach.clean(result,
+                tags=bleach.ALLOWED_TAGS + [
+                    "div", "span", "p", "img",
+                    "h1", "h2", "h3", "h4", "h5", "h6",
+                    ],
+                attributes=filter_html_attributes)
 
     assert isinstance(result, str)
     if cache_key is not None:
