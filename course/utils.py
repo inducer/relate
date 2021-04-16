@@ -1353,20 +1353,4 @@ class NBConvertExtension(markdown.Extension):
 
 # }}}
 
-
-def get_custom_page_types_stop_support_deadline():
-    # type: () -> Optional[datetime.datetime]
-    from django.conf import settings
-    custom_page_types_removed_deadline = getattr(
-        settings, "RELATE_CUSTOM_PAGE_TYPES_REMOVED_DEADLINE", None)
-
-    force_deadline = datetime.datetime(2019, 1, 1, 0, 0, 0, 0)
-
-    if (custom_page_types_removed_deadline is None
-            or custom_page_types_removed_deadline > force_deadline):
-        custom_page_types_removed_deadline = force_deadline
-
-    from relate.utils import localize_datetime
-    return localize_datetime(custom_page_types_removed_deadline)
-
 # vim: foldmethod=marker
