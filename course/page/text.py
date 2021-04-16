@@ -814,7 +814,30 @@ class SurveyTextQuestion(TextQuestionBase):
 
 class TextQuestion(TextQuestionBase, PageBaseWithValue):
     """
-    A page asking for a textual answer
+    A page asking for a textual answer.
+
+    Example:
+
+    .. code-block:: yaml
+
+        type: TextQuestion
+        id: fwd_err
+        prompt: |
+            # Forward Error
+            Consider the function $f(x)=1/x$, which we approximate by its Taylor
+            series about 1:
+            $$
+              f(x)\\approx 1-(x-1)+\\cdots
+            $$
+            What is the **forward error** of using this approximation at $x=0.5$?
+        answers:
+        -   type: float
+            value: 0.5
+            rtol: 0.01
+        -   <plain>HI THERE
+        answer_explanation: |
+
+            That's just what it is.
 
     .. attribute:: id
 
