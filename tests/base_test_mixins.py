@@ -663,10 +663,8 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
                 extra_attrs = cls.courses_attributes_extra_list[i]
                 assert isinstance(extra_attrs, dict)
                 course_setup_kwargs.update(extra_attrs)
-            try:
-                cls.create_course(course_setup_kwargs)
-            except Exception:
-                raise
+
+            cls.create_course(course_setup_kwargs)
 
             course = Course.objects.get(identifier=course_identifier)
             if "participations" in course_setup:
