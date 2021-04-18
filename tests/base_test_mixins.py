@@ -76,7 +76,9 @@ SINGLE_COURSE_SETUP_LIST = [
             "enrollment_required_email_suffix": "",
             "preapproval_require_verified_inst_id": True,
             "from_email": "inform@tiker.net",
-            "notify_email": "inform@tiker.net"},
+            "notify_email": "inform@tiker.net",
+            "trusted_for_markup": True,
+            },
         "participations": [
             {
                 "role_identifier": "instructor",
@@ -782,6 +784,13 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
             # the course is created successfully
             last_course = all_courses.last()
             assert last_course
+            if "trusted_for_markup" in create_course_kwargs:
+                # This attribute is not settable via POST by the user, so set it
+                # manually here.
+                last_course.trusted_for_markup = \
+                        create_course_kwargs["trusted_for_markup"]
+                last_course.save()
+
             url_cache_key, commit_sha_cach_key = (
                 git_source_url_to_cache_keys(last_course.git_source))
             mc.set_multi({url_cache_key: get_course_repo_path(last_course),
