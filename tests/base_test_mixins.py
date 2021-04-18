@@ -181,6 +181,8 @@ class CourseCreateFailure(Exception):
     pass
 
 
+# {{{ ResponseContextMixin
+
 class ResponseContextMixin(object):
     """
     Response context refers to "the template Context instance that was used
@@ -604,8 +606,10 @@ class SuperuserCreateMixin(ResponseContextMixin):
         for err in errors:
             self.assertIn(err, form_errors)
 
+# }}}
 
-# {{{ defined here so that they can be used by in classmethod and instance method
+
+# {{{ get_flow_page_ordinal_from_page_id, get_flow_page_id_from_page_ordinal
 
 def get_flow_page_ordinal_from_page_id(flow_session_id, page_id,
                                        with_group_id=False):
@@ -630,6 +634,8 @@ def get_flow_page_id_from_page_ordinal(flow_session_id, page_ordinal,
 
 # }}}
 
+
+# {{{ CoursesTestMixinBase
 
 class CoursesTestMixinBase(SuperuserCreateMixin):
 
@@ -1777,6 +1783,10 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
         return reverse("relate-manage_authentication_tokens",
                        args=(course_identifier,))
 
+# }}}
+
+
+# {{{ SingleCourseTestMixin
 
 class SingleCourseTestMixin(CoursesTestMixinBase):
     courses_setup_list = SINGLE_COURSE_SETUP_LIST
@@ -1921,6 +1931,10 @@ class SingleCourseTestMixin(CoursesTestMixinBase):
         assert hacked_flow_desc.rules.tags == rule_tags
         return hacked_flow_desc
 
+# }}}
+
+
+# {{{ TwoCourseTestMixin
 
 class TwoCourseTestMixin(CoursesTestMixinBase):
     courses_setup_list = TWO_COURSE_SETUP_LIST
@@ -1992,6 +2006,10 @@ class TwoCourseTestMixin(CoursesTestMixinBase):
         self.course2_student_participation.refresh_from_db()
         self.course2_ta_participation.refresh_from_db()
 
+# }}}
+
+
+# {{{ SingleCoursePageTestMixin
 
 class SingleCoursePageTestMixin(SingleCourseTestMixin):
     # This serves as cache
@@ -2010,6 +2028,10 @@ class SingleCoursePageTestMixin(SingleCourseTestMixin):
         cls._default_session_id = cls.get_latest_session_id(course_identifier)
         return cls._default_session_id
 
+# }}}
+
+
+# {{{ TwoCoursePageTestMixin
 
 class TwoCoursePageTestMixin(TwoCourseTestMixin):
     _course1_default_session_id = None
@@ -2042,6 +2064,10 @@ class TwoCoursePageTestMixin(TwoCourseTestMixin):
         elif course_identifier == cls.course2.identifier:
             cls._course2_default_session_id = new_session_id
 
+# }}}
+
+
+# {{{ SingleCourseQuizPageTestMixin
 
 class SingleCourseQuizPageTestMixin(SingleCoursePageTestMixin):
 
@@ -2371,6 +2397,10 @@ class SingleCourseQuizPageTestMixin(SingleCoursePageTestMixin):
 
         return post_grade_response
 
+# }}}
+
+
+# {{{ MockAddMessageMixing
 
 class MockAddMessageMixing(object):
     """
@@ -2450,6 +2480,10 @@ class MockAddMessageMixing(object):
     def reset_add_message_mock(self):
         self._mock_add_message.reset_mock()
 
+# }}}
+
+
+# {{{ SubprocessRunpyContainerMixin
 
 class SubprocessRunpyContainerMixin(object):
     """
@@ -2502,6 +2536,8 @@ class SubprocessRunpyContainerMixin(object):
             # this mixin. So we don't kill the subprocess, and it won't bring
             # bad side effects to remainder tests.
             cls.faked_container_process.kill()
+
+# }}}
 
 
 def improperly_configured_cache_patch():
@@ -2691,6 +2727,8 @@ class APITestMixin(SingleCoursePageTestMixin):
 # }}}
 
 
+# {{{ HackRepoMixin
+
 class HackRepoMixin(object):
 
     # This is need to for correctly getting other blobs
@@ -2767,5 +2805,7 @@ class HackRepoMixin(object):
 
         if not_match_infos:
             self.fail("\n".join(not_match_infos))
+
+# }}}
 
 # vim: fdm=marker
