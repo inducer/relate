@@ -1411,6 +1411,7 @@ class EditCourseForm(StyledModelForm):
         model = Course
         exclude = (
                 "participants",
+                "trusted_for_markup",
                 )
         widgets = {
                 "start_date": DateTimePicker(options={"format": "YYYY-MM-DD"}),

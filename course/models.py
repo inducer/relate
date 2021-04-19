@@ -235,6 +235,10 @@ class Course(models.Model):
     participants = models.ManyToManyField(settings.AUTH_USER_MODEL,
             through="Participation")
 
+    trusted_for_markup = models.BooleanField(
+            default=False,
+            verbose_name=_("May present arbitrary HTML to course participants"))
+
     class Meta:
         verbose_name = _("Course")
         verbose_name_plural = _("Courses")

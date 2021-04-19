@@ -82,7 +82,6 @@ AUTO_FEEDBACK_POINTS_OUT_OF_RANGE_ERROR_MSG_PATTERN = (
 class SingleCourseQuizPageCodeQuestionTest(
             SingleCourseQuizPageTestMixin, MockAddMessageMixing,
             SubprocessRunpyContainerMixin, TestCase):
-
     skip_code_question = False
 
     @classmethod
@@ -211,7 +210,6 @@ class SingleCourseQuizPageCodeQuestionTest(
 class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
                        SubprocessRunpyContainerMixin, LocmemBackendTestsMixin,
                        TestCase):
-
     def test_data_files_missing_random_question_data_file(self):
         file_name = "foo"
         markdown = (
