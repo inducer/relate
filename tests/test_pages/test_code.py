@@ -86,7 +86,7 @@ class SingleCourseQuizPageCodeQuestionTest(
 
     @classmethod
     def setUpTestData(cls):  # noqa
-        super(SingleCourseQuizPageCodeQuestionTest, cls).setUpTestData()
+        super().setUpTestData()
         cls.start_flow(cls.flow_id)
 
     def test_code_page_correct(self):
@@ -1330,11 +1330,11 @@ class CodeQuestionWithHumanTextFeedbackSpecialCase(
 
     @classmethod
     def setUpTestData(cls):  # noqa
-        super(CodeQuestionWithHumanTextFeedbackSpecialCase, cls).setUpTestData()
+        super().setUpTestData()
         cls.start_flow(cls.flow_id)
 
     def setUp(self):  # noqa
-        super(CodeQuestionWithHumanTextFeedbackSpecialCase, self).setUp()
+        super().setUp()
         self.rf = RequestFactory()
 
     def get_grade_feedback(self, answer_data, page_value,

@@ -1,5 +1,3 @@
-from __future__ import division
-
 __copyright__ = "Copyright (C) 2018 Dong Zhuang"
 
 __license__ = """
@@ -674,7 +672,7 @@ def get_repo_blob_side_effect(repo, full_name, commit_sha, allow_tree=True):
             and commit_sha == b"ec41a2de73a99e6022060518cb5c5c162b88cdf5"):
         return get_repo_blob(repo, full_name, commit_sha, allow_tree)
     else:
-        class Blob(object):
+        class Blob:
             pass
         blob = Blob()
         blob.data = INLINE_MULTI_MARKDOWN_FEWER.encode()
@@ -941,7 +939,7 @@ class InlineMultiQuestionTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
         expected_page_error = (
             "'choice' choice 2: unable to convert to string")
 
-        class BadChoice(object):
+        class BadChoice:
             def __str__(self):
                 raise Exception
 
@@ -1065,7 +1063,7 @@ class InlineMultiPageUpdateTest(SingleCourseQuizPageTestMixin, TestCase):
     page_id = "inlinemulti"
 
     def setUp(self):
-        super(InlineMultiPageUpdateTest, self).setUp()
+        super().setUp()
 
     def test_quiz_inline_not_show_correctness(self):
         self.start_flow(self.flow_id)

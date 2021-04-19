@@ -1,7 +1,3 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import division
-
 __copyright__ = "Copyright (C) 2017 Dong Zhuang"
 
 __license__ = """
@@ -193,7 +189,7 @@ class LanguageOverrideTest(SingleCoursePageTestMixin,
 
     @classmethod
     def setUpTestData(cls):  # noqa
-        super(LanguageOverrideTest, cls).setUpTestData()
+        super().setUpTestData()
         cls.c.force_login(cls.instructor_participation.user)
         cls.start_flow(cls.flow_id)
 
@@ -204,10 +200,10 @@ class LanguageOverrideTest(SingleCoursePageTestMixin,
             self.course.save()
         with utils.LanguageOverride(course=self.course):
             self.assertEqual(translation.get_language(), "de")
-            self.assertEqual(translation.gettext("user"), u"Benutzer")
+            self.assertEqual(translation.gettext("user"), "Benutzer")
 
         self.assertEqual(translation.get_language(), "ko")
-        self.assertEqual(translation.gettext("user"), u"사용자")
+        self.assertEqual(translation.gettext("user"), "사용자")
 
     @override_settings(RELATE_ADMIN_EMAIL_LOCALE="de", LANGUAGE_CODE="ko")
     def test_language_override_course_has_force_lang(self):
@@ -240,7 +236,7 @@ class LanguageOverrideTest(SingleCoursePageTestMixin,
         translation.deactivate_all()
         with utils.LanguageOverride(course=self.course):
             self.assertEqual(translation.get_language(), "de")
-            self.assertEqual(translation.gettext("user"), u"Benutzer")
+            self.assertEqual(translation.gettext("user"), "Benutzer")
 
         self.assertEqual(translation.get_language(), None)
         self.assertEqual(translation.gettext("whatever"), "whatever")
@@ -252,7 +248,7 @@ class LanguageOverrideTest(SingleCoursePageTestMixin,
 
         with utils.LanguageOverride(course=self.course, deactivate=True):
             self.assertEqual(translation.get_language(), "zh-hans")
-            self.assertEqual(translation.gettext("user"), u"用户")
+            self.assertEqual(translation.gettext("user"), "用户")
 
         self.assertEqual(translation.get_language(), "en-us")
 
@@ -317,7 +313,7 @@ class LanguageOverrideTest(SingleCoursePageTestMixin,
         self.feedback_test(course_force_lang="zh-hans")
 
 
-class Foo(object):
+class Foo:
     def __init__(self, a=None):
         self.a = a
 
@@ -858,7 +854,7 @@ def parse_date_spec_get_rule_test_side_effect(
     return parse_date_spec(course, datespec, vctx, location)
 
 
-class GetSessionRuleMixin(object):
+class GetSessionRuleMixin:
 
     flow_id = QUIZ_FLOW_ID
 
@@ -895,7 +891,7 @@ class GetSessionRuleMixin(object):
         self.assertDictEqual(rule_dict, expected_rule_dict)
 
     def setUp(self):
-        super(GetSessionRuleMixin, self).setUp()
+        super().setUp()
 
         fake_get_flow_rules = mock.patch("course.utils.get_flow_rules")
         self.mock_get_flow_rules = fake_get_flow_rules.start()
@@ -1159,7 +1155,7 @@ class GetSessionAccessRuleTest(GetSessionRuleMixin, SingleCourseTestMixin, TestC
 
     @classmethod
     def setUpTestData(cls):  # noqa
-        super(GetSessionAccessRuleTest, cls).setUpTestData()
+        super().setUpTestData()
 
         cls.now = now() - timedelta(days=1)
 
@@ -1406,7 +1402,7 @@ class GetSessionGradingRuleTest(GetSessionRuleMixin,
 
     @classmethod
     def setUpTestData(cls):  # noqa
-        super(GetSessionGradingRuleTest, cls).setUpTestData()
+        super().setUpTestData()
 
         cls.now = now() - timedelta(days=1)
 
@@ -1625,7 +1621,7 @@ class CoursePageContextTest(SingleCourseTestMixin, MockAddMessageMixing, TestCas
     # test utils.CoursePageContext (for cases not covered by other tests)
 
     def setUp(self):
-        super(CoursePageContextTest, self).setUp()
+        super().setUp()
         rf = RequestFactory()
         self.request = rf.get(self.get_course_page_url())
 
@@ -1714,7 +1710,7 @@ class ParticipationPermissionWrapperTest(SingleCourseTestMixin, TestCase):
     # by other tests)
 
     def setUp(self):
-        super(ParticipationPermissionWrapperTest, self).setUp()
+        super().setUp()
         rf = RequestFactory()
         request = rf.get(self.get_course_page_url())
         request.user = self.ta_participation.user

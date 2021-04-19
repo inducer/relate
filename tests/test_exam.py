@@ -1,7 +1,3 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import division
-
 __copyright__ = "Copyright (C) 2014 Andreas Kloeckner, Zesheng Wang, Dong Zhuang"
 
 __license__ = """
@@ -66,14 +62,14 @@ class ExamTestMixin(SingleCourseTestMixin, MockAddMessageMixing):
 
     @classmethod
     def setUpTestData(cls):  # noqa
-        super(ExamTestMixin, cls).setUpTestData()
+        super().setUpTestData()
         cls.add_user_permission(
             cls.instructor_participation.user, "can_issue_exam_tickets",
             model=ExamTicket)
         cls.exam = factories.ExamFactory(course=cls.course)
 
     def setUp(self):
-        super(ExamTestMixin, self).setUp()
+        super().setUp()
         self.c.force_login(self.instructor_participation.user)
 
         fake_get_now_or_fake_time = mock.patch(
@@ -201,7 +197,7 @@ class BatchIssueExamTicketsTest(ExamTestMixin, TestCase):
         return self.c.post(self.get_batch_issue_exam_ticket_url(), data)
 
     def get_post_data(self, **kwargs):
-        data = super(BatchIssueExamTicketsTest, self).get_post_data()
+        data = super().get_post_data()
         del data["user"]
         data["format"] = "{{ tickets }}{{checkin_uri}}"
         data.update(kwargs)
@@ -290,7 +286,7 @@ class BatchIssueExamTicketsTest(ExamTestMixin, TestCase):
 @override_settings(RELATE_TICKET_MINUTES_VALID_AFTER_USE=120)
 class CheckExamTicketTest(ExamTestMixin, TestCase):
     def setUp(self):
-        super(CheckExamTicketTest, self).setUp()
+        super().setUp()
         self.exam.refresh_from_db()
         self.now = now()
         self.facilities = frozenset([])
@@ -440,7 +436,7 @@ class CheckExamTicketTest(ExamTestMixin, TestCase):
 
 class ExamTicketBackendTest(ExamTestMixin, TestCase):
     def setUp(self):
-        super(ExamTicketBackendTest, self).setUp()
+        super().setUp()
         self.backend = exam.ExamTicketBackend()
 
     def test_not_authenticate(self):
@@ -486,7 +482,7 @@ class IsFromExamsOnlyFacilityTest(unittest.TestCase):
 class GetLoginExamTicketTest(ExamTestMixin, TestCase):
     """test exam.get_login_exam_ticket"""
     def setUp(self):
-        super(GetLoginExamTicketTest, self).setUp()
+        super().setUp()
         self.ticket = factories.ExamTicketFactory(
             exam=self.exam, participation=self.student_participation,
             state=constants.exam_ticket_states.valid)
@@ -514,7 +510,7 @@ class CheckInForExamTest(ExamTestMixin, TestCase):
     force_login_student_for_each_test = True
 
     def setUp(self):
-        super(CheckInForExamTest, self).setUp()
+        super().setUp()
         self.ticket = factories.ExamTicketFactory(
             exam=self.exam, participation=self.student_participation,
             state=constants.exam_ticket_states.valid)
@@ -615,7 +611,7 @@ class CheckInForExamTest(ExamTestMixin, TestCase):
 class ListAvailableExamsTest(ExamTestMixin, TestCase):
 
     def setUp(self):
-        super(ListAvailableExamsTest, self).setUp()
+        super().setUp()
         self.ticket = factories.ExamTicketFactory(
             exam=self.exam, participation=self.student_participation,
             state=constants.exam_ticket_states.valid)
@@ -658,7 +654,7 @@ class ExamFacilityMiddlewareTest(SingleCoursePageTestMixin,
                                  MockAddMessageMixing, TestCase):
     """Integration tests for exam.ExamFacilityMiddleware"""
     def setUp(self):
-        super(ExamFacilityMiddlewareTest, self).setUp()
+        super().setUp()
         fake_is_from_exams_only_facility = mock.patch(
             "course.exam.is_from_exams_only_facility")
         self.mock_is_from_exams_only_facility = (
@@ -816,7 +812,7 @@ class ExamLockdownMiddlewareTest(SingleCoursePageTestMixin,
         cls.fs = FlowSession.objects.last()
 
     def setUp(self):
-        super(ExamLockdownMiddlewareTest, self).setUp()
+        super().setUp()
         self.fs.refresh_from_db()
 
     def tweak_session_to_lock_down(self, flow_session_id=None):

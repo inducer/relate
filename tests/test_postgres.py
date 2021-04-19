@@ -1,5 +1,3 @@
-from __future__ import division
-
 __copyright__ = "Copyright (C) 2018 Dong Zhuang"
 
 __license__ = """
@@ -37,17 +35,17 @@ from tests.utils import mock, is_connection_psql, SKIP_NON_PSQL_REASON  # noqa
 
 @pytest.mark.postgres
 @pytest.mark.django_db
-class PostgreSQLTestMixin(object):
+class PostgreSQLTestMixin:
     @classmethod
     def setUpTestData(cls):  # noqa
-        super(PostgreSQLTestMixin, cls).setUpTestData()
+        super().setUpTestData()
 
     @classmethod
     def tearDownClass(cls):  # biqa
         # No need to keep that signal overhead for non PostgreSQL-related tests.
         from django.contrib.postgres.signals import register_type_handlers
         connection_created.disconnect(register_type_handlers)
-        super(PostgreSQLTestMixin, cls).tearDownClass()
+        super().tearDownClass()
 
 
 @pytest.mark.postgres

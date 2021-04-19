@@ -141,11 +141,11 @@ class TextAnswerFormTest(unittest.TestCase):
         self.assertEqual(TextAnswerForm.get_text_widget("unkown"), (None, None))
 
     def test_validation_error(self):
-        class SomeValidator1(object):
+        class SomeValidator1:
             def validate(self, s):
                 raise forms.ValidationError("foo")
 
-        class SomeValidator2(object):
+        class SomeValidator2:
             def validate(self, s):
                 raise forms.ValidationError("bar")
 

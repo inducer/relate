@@ -432,7 +432,7 @@ class CrossCourseImpersonateTest(CoursesTestMixinBase, TestCase):
 
     @classmethod
     def setUpTestData(cls):  # noqa
-        super(CrossCourseImpersonateTest, cls).setUpTestData()
+        super().setUpTestData()
         course1 = factories.CourseFactory()
         course2 = factories.CourseFactory(identifier="another-course")
 
@@ -475,7 +475,7 @@ class CrossCourseImpersonateTest(CoursesTestMixinBase, TestCase):
             self.assertEqual(resp.status_code, 403)
 
 
-class AuthTestMixin(object):
+class AuthTestMixin:
     _user_create_kwargs = {
         "username": "test_user", "password": "mypassword",
         "email": "my_email@example.com"
@@ -483,13 +483,13 @@ class AuthTestMixin(object):
 
     @classmethod
     def setUpTestData(cls):  # noqa
-        super(AuthTestMixin, cls).setUpTestData()
+        super().setUpTestData()
         cls.test_user = (
             get_user_model().objects.create_user(**cls._user_create_kwargs))
         cls.existing_user_count = get_user_model().objects.count()
 
     def setUp(self):
-        super(AuthTestMixin, self).setUp()
+        super().setUp()
         self.test_user.refresh_from_db()
 
     def get_sign_in_data(self):
@@ -517,7 +517,7 @@ class AuthTestMixin(object):
             if parse_qs and attr == 'query':
                 x, y = QueryDict(x), QueryDict(y)
             if x and y and x != y:
-                self.fail("%r != %r (%s doesn't match)" % (url, expected, attr))
+                self.fail(f"{url!r} != {expected!r} ({attr} doesn't match)")
 
     def do_test_security_check(self, url_name):
         url = reverse(url_name)
@@ -571,11 +571,11 @@ class AuthTestMixin(object):
     def concatenate_redirect_url(self, url, redirect_to=None):
         if not redirect_to:
             return url
-        return ('%(url)s?%(next)s=%(bad_url)s' % {
-            'url': url,
-            'next': REDIRECT_FIELD_NAME,
-            'bad_url': quote(redirect_to),
-        })
+        return ('{url}?{next}={bad_url}'.format(
+            url=url,
+            next=REDIRECT_FIELD_NAME,
+            bad_url=quote(redirect_to),
+        ))
 
     def get_sign_up_view_url(self, redirect_to=None):
         return self.concatenate_redirect_url(
@@ -797,7 +797,7 @@ class SignInByEmailTest(CoursesTestMixinBase, MockAddMessageMixing,
 
     @classmethod
     def setUpTestData(cls):  # noqa
-        super(SignInByEmailTest, cls).setUpTestData()
+        super().setUpTestData()
 
         new_email = "somebody@example.com"
         data = {"email": new_email}
@@ -838,7 +838,7 @@ class SignInByEmailTest(CoursesTestMixinBase, MockAddMessageMixing,
         cls.user = user
 
     def setUp(self):
-        super(SignInByEmailTest, self).setUp()
+        super().setUp()
         self.user.refresh_from_db()
         self.flush_mailbox()
 
@@ -987,7 +987,7 @@ class SignUpTest(CoursesTestMixinBase, MockAddMessageMixing,
     }
 
     def setUp(self):
-        super(SignUpTest, self).setUp()
+        super().setUp()
         self.c.logout()
 
     @override_settings()
@@ -1193,7 +1193,7 @@ class UserProfileTest(CoursesTestMixinBase, AuthTestMixin,
                       MockAddMessageMixing, TestCase):
 
     def setUp(self):
-        super(UserProfileTest, self).setUp()
+        super().setUp()
         self.rf = RequestFactory()
 
     def generate_profile_data(self, **kwargs):
@@ -1210,9 +1210,9 @@ class UserProfileTest(CoursesTestMixinBase, AuthTestMixin,
         url = self.get_profile_view_url()
         if query_string_dict is not None:
             url = (
-                "%s?%s" % (
+                "{}?{}".format(
                     url,
-                    "&".join(["%s=%s" % (k, v)
+                    "&".join([f"{k}={v}"
                               for k, v in query_string_dict.items()])))
         request = self.rf.post(url, data)
         request.user = self.test_user
@@ -1601,14 +1601,14 @@ class ResetPasswordStageOneTest(CoursesTestMixinBase, MockAddMessageMixing,
                                 LocmemBackendTestsMixin, TestCase):
     @classmethod
     def setUpTestData(cls):  # noqa
-        super(ResetPasswordStageOneTest, cls).setUpTestData()
+        super().setUpTestData()
         cls.user_email = "a_very_looooooong_email@somehost.com"
         cls.user_inst_id = "1234"
         cls.user = factories.UserFactory.create(email=cls.user_email,
                                       institutional_id=cls.user_inst_id)
 
     def setUp(self):
-        super(ResetPasswordStageOneTest, self).setUp()
+        super().setUp()
         self.registration_override_setting = override_settings(
             RELATE_REGISTRATION_ENABLED=True)
         self.registration_override_setting.enable()
@@ -1734,7 +1734,7 @@ class ResetPasswordStageTwoTest(CoursesTestMixinBase, MockAddMessageMixing,
 
     @classmethod
     def setUpTestData(cls):  # noqa
-        super(ResetPasswordStageTwoTest, cls).setUpTestData()
+        super().setUpTestData()
         user = factories.UserFactory()
         cls.c.logout()
 
@@ -1746,7 +1746,7 @@ class ResetPasswordStageTwoTest(CoursesTestMixinBase, MockAddMessageMixing,
         cls.user = user
 
     def setUp(self):
-        super(ResetPasswordStageTwoTest, self).setUp()
+        super().setUp()
         self.registration_override_setting = override_settings(
             RELATE_REGISTRATION_ENABLED=True)
         self.registration_override_setting.enable()
@@ -2084,7 +2084,7 @@ class AuthCourseWithTokenTest(APITestMixin, TestCase):
     # test auth_course_with_token
 
     def setUp(self):
-        super(AuthCourseWithTokenTest, self).setUp()
+        super().setUp()
         self.c.force_login(self.instructor_participation.user)
 
     def get_test_token_url(self, course_identifier=None):
@@ -2208,7 +2208,7 @@ class AuthCourseWithTokenTest(APITestMixin, TestCase):
 
     def test_basic_auth_no_match(self):
         from base64 import b64encode
-        bad_auth_data = b64encode("foobar".encode("utf-8")).decode()
+        bad_auth_data = b64encode(b"foobar").decode()
 
         resp = self.c.get(
             self.get_test_basic_url(),
@@ -2260,7 +2260,7 @@ class ManageAuthenticationTokensTest(
     # test manage_authentication_tokens
 
     def setUp(self):
-        super(ManageAuthenticationTokensTest, self).setUp()
+        super().setUp()
         self.c.force_login(self.instructor_participation.user)
 
     def test_not_authenticated(self):

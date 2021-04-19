@@ -138,7 +138,7 @@ class CheckRelateUserProfileMaskMethod(CheckRelateSettingsBase):
     msg_id_prefix = "relate_user_profile_mask_method"
 
     def setUp(self):
-        super(CheckRelateUserProfileMaskMethod, self).setUp()
+        super().setUp()
         self.user = UserFactory.create(first_name="my_first", last_name="my_last")
 
         from accounts.utils import relate_user_method_settings
@@ -161,7 +161,7 @@ class CheckRelateUserProfileMaskMethod(CheckRelateSettingsBase):
 
     def test_get_masked_profile_valid_method1(self):
         def custom_method(u):
-            return "%s%s" % ("User", str(u.pk + 1))
+            return "{}{}".format("User", str(u.pk + 1))
 
         with override_settings(RELATE_USER_PROFILE_MASK_METHOD=custom_method):
             self.assertCheckMessages([])
@@ -171,7 +171,7 @@ class CheckRelateUserProfileMaskMethod(CheckRelateSettingsBase):
     def test_get_masked_profile_valid_method2(self):
         def custom_method(user=None):
             if user is not None:
-                return "%s%s" % ("User", str(user.pk + 1))
+                return "{}{}".format("User", str(user.pk + 1))
             else:
                 return ""
 
@@ -202,7 +202,7 @@ class CheckRelateUserProfileMaskMethod(CheckRelateSettingsBase):
     def test_get_masked_profile_param_invalid2(self):
         # the method has 2 args/kwargs
         def custom_method(u, v):
-            return "%s%s" % ("User", str(u.pk + 1))
+            return "{}{}".format("User", str(u.pk + 1))
 
         with override_settings(RELATE_USER_PROFILE_MASK_METHOD=custom_method):
             self.assertCheckMessages(['relate_user_profile_mask_method.E003'])
@@ -210,7 +210,7 @@ class CheckRelateUserProfileMaskMethod(CheckRelateSettingsBase):
     def test_get_masked_profile_param_invalid3(self):
         # the method has 2 args/kwargs
         def custom_method(u, v=None):
-            return "%s%s" % ("User", str(u.pk + 1))
+            return "{}{}".format("User", str(u.pk + 1))
 
         with override_settings(RELATE_USER_PROFILE_MASK_METHOD=custom_method):
             self.assertCheckMessages(['relate_user_profile_mask_method.E003'])
@@ -268,7 +268,7 @@ class CheckRelateUserFullNameFormatMethod(CheckRelateSettingsBase):
 
     def test_get_full_name(self):
         def valid_method(first_name, last_name):
-            return "%s %s" % (last_name, first_name)
+            return f"{last_name} {first_name}"
 
         def invalid_method1(first_name):
             return first_name
@@ -393,7 +393,7 @@ class CheckRelateUserFullNameFormatMethod(CheckRelateSettingsBase):
 
         # Ensure no duplicate entries in user_get_full_name_test_kwargs_list
         # to generate error info when subTests fail.
-        ids = set([kwargs["id"] for kwargs in user_get_full_name_test_kwargs_list])
+        ids = {kwargs["id"] for kwargs in user_get_full_name_test_kwargs_list}
         assert len(ids) == len(user_get_full_name_test_kwargs_list)
 
         for kwargs in user_get_full_name_test_kwargs_list:

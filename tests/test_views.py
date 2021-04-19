@@ -1,5 +1,3 @@
-from __future__ import division
-
 __copyright__ = "Copyright (C) 2017 Dong Zhuang"
 
 __license__ = """
@@ -272,7 +270,7 @@ class TestSetPretendFacilities(SingleCourseTestMixin, TestCase):
 class TestEditCourse(SingleCourseTestMixin, MockAddMessageMixing, TestCase):
 
     def setUp(self):
-        super(TestEditCourse, self).setUp()
+        super().setUp()
         self.rf = RequestFactory()
 
     def test_non_auth_edit_get(self):
@@ -1113,13 +1111,13 @@ class GrantExceptionTestMixin(MockAddMessageMixing, SingleCoursePageTestMixin):
 
     @classmethod
     def setUpTestData(cls):  # noqa
-        super(GrantExceptionTestMixin, cls).setUpTestData()
+        super().setUpTestData()
         cls.fs = factories.FlowSessionFactory(
             course=cls.course, participation=cls.student_participation,
             flow_id=cls.flow_id, in_progress=False)
 
     def setUp(self):
-        super(GrantExceptionTestMixin, self).setUp()
+        super().setUp()
         self.fs.refresh_from_db()
 
     def get_grant_exception_url(self, course_identifier=None):
@@ -1550,7 +1548,7 @@ class GrantExceptionStage3Test(GrantExceptionTestMixin, TestCase):
     # test views.grant_exception_stage_2
 
     def setUp(self):
-        super(GrantExceptionStage3Test, self).setUp()
+        super().setUp()
         fake_validate_session_access_rule = mock.patch(
             "course.validation.validate_session_access_rule")
         self.mock_validate_session_access_rule = (
@@ -1859,7 +1857,7 @@ class GrantExceptionStage3Test(GrantExceptionTestMixin, TestCase):
 
         for permissions in comb:
             with self.subTest(permissions=permissions):
-                kwargs = dict((perm, True) for perm in permissions)
+                kwargs = {perm: True for perm in permissions}
                 resp = self.post_grant_exception_stage_3_view(
                     data=self.get_default_post_data(
                         create_access_exception=True,

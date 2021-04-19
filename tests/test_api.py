@@ -32,7 +32,7 @@ class GetFlowSessionsTest(APITestMixin, TestCase):
     # test get_flow_sessions
 
     def setUp(self):
-        super(GetFlowSessionsTest, self).setUp()
+        super().setUp()
         self.c.force_login(self.instructor_participation.user)
 
     def test_success(self):
@@ -73,7 +73,7 @@ class GetFlowSessionContentTest(
     skip_code_question = False
 
     def setUp(self):
-        super(GetFlowSessionContentTest, self).setUp()
+        super().setUp()
         self.c.force_login(self.instructor_participation.user)
 
     def test_success(self):

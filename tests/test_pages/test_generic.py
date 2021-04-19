@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 __copyright__ = "Copyright (C) 2014 Andreas Kloeckner, Zesheng Wang, Dong Zhuang"
 
 __license__ = """
@@ -50,7 +48,7 @@ class SingleCourseQuizPageTest(SingleCourseQuizPageTestMixin,
                                MockAddMessageMixing, TestCase):
     @classmethod
     def setUpTestData(cls):  # noqa
-        super(SingleCourseQuizPageTest, cls).setUpTestData()
+        super().setUpTestData()
 
         # cls.default_flow_params will only be available after a flow is started
         cls.start_flow(cls.flow_id)
@@ -95,7 +93,7 @@ class SingleCourseQuizPageTest(SingleCourseQuizPageTestMixin,
 
                 with self.subTest(page_id=page_id,
                                   name="no answer download submission"):
-                    group_page_id = "%s/%s" % (group_id, page_id)
+                    group_page_id = f"{group_id}/{page_id}"
 
                     # ensure download submissions work when no answer_data
                     resp = self.post_download_all_submissions_by_group_page_id(
