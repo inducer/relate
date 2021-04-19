@@ -312,7 +312,6 @@ class PlainMatcher(CaseSensitivePlainMatcher):
 
 class RegexMatcher(TextAnswerMatcher):
     type = "regex"
-    is_case_sensitive = False
 
     VALUE_VALIDATION_TYPE = str
     ALLOWED_ATTRIBUTES = (
@@ -331,11 +330,18 @@ class RegexMatcher(TextAnswerMatcher):
 
         flags = getattr(self.matcher_desc, "flags", None)
         if flags is None:
-            if not self.is_case_sensitive:
-                re_flags = re.IGNORECASE
-            else:
+            self.is_case_sensitive = type(self) == CaseSensitiveRegexMatcher
+            if self.is_case_sensitive:
                 re_flags = 0
+            else:
+                re_flags = re.IGNORECASE
         else:
+            if type(self) == CaseSensitiveRegexMatcher:
+                raise ValidationError(
+                        string_concat("%s: ",
+                            _("may not specify flags in CaseSensitiveRegexMatcher"))
+                        % (location))
+
             re_flags = 0
             for flag in flags:
                 if not isinstance(flag, str):
@@ -348,6 +354,7 @@ class RegexMatcher(TextAnswerMatcher):
                             % (location))
                 re_flags |= getattr(re, flag)
 
+            self.is_case_sensitive = "I" in flags or "IGNORECASE" in flags
         try:
             self.regex = re.compile(self.value, re_flags)
         except Exception:
@@ -377,7 +384,6 @@ class RegexMatcher(TextAnswerMatcher):
 
 class CaseSensitiveRegexMatcher(RegexMatcher):
     type = "case_sens_regex"
-    is_case_sensitive = True
 
     def __init__(self, vctx, location, matcher_desc):
         super().__init__(vctx, location, matcher_desc)
@@ -1071,7 +1077,7 @@ class TextQuestion(TextQuestionBase, PageBaseWithValue):
         return result
 
     def _is_case_sensitive(self):
-        return any(matcher._is_case_sensitive for matcher in self.matchers)
+        return any(matcher.is_case_sensitive for matcher in self.matchers)
 
 # }}}
 
