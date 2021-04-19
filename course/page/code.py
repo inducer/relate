@@ -1016,11 +1016,16 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
             fig_lines.append("</dl>")
             bulk_feedback_bits.extend(fig_lines)
 
-        # {{{ html output / santization
+        # {{{ html output / sanitization
 
         if hasattr(response, "html") and response.html:
-            bulk_feedback_bits.extend(
-                    sanitize_from_code_html(snippet) for snippet in response.html)
+            if (page_context.course is None
+                    or not page_context.course.trusted_for_markup):
+                bulk_feedback_bits.extend(
+                        sanitize_from_code_html(snippet)
+                        for snippet in response.html)
+            else:
+                bulk_feedback_bits.extend(response.html)
 
         # }}}
 

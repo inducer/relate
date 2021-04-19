@@ -27,6 +27,7 @@ import unittest
 import pytest
 import datetime
 import stat
+from copy import deepcopy
 from dulwich.repo import Tree
 
 from django.test import TestCase, RequestFactory, override_settings
@@ -269,6 +270,10 @@ def get_nb_html_from_response(response):
 
 
 class NbconvertRenderTestMixin(SingleCoursePageSandboxTestBaseMixin):
+    courses_setup_list = deepcopy(
+            SingleCoursePageSandboxTestBaseMixin.courses_setup_list)
+    courses_setup_list[0]["course"]["trusted_for_markup"] = True
+
     def assertIsValidNbConversion(self, response):  # noqa
         self.assertNotContains(response, MARKDOWN_PLACEHOLDER)
         self.assertNotContains(response, "```")
@@ -285,7 +290,6 @@ class NbconvertRenderTestMixin(SingleCoursePageSandboxTestBaseMixin):
 
 
 class NbconvertRenderTest(NbconvertRenderTestMixin, TestCase):
-
     force_login_student_for_each_test = False
 
     @classmethod
@@ -441,6 +445,9 @@ content: |
 
 
 class YamlJinjaExpansionTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
+    courses_setup_list = deepcopy(
+            SingleCoursePageSandboxTestBaseMixin.courses_setup_list)
+    courses_setup_list[0]["course"]["trusted_for_markup"] = True
 
     # {{{ test https://github.com/inducer/relate/pull/376 which
     # fixed https://github.com/inducer/relate/issues/373
@@ -751,7 +758,7 @@ content: |
     [A static page](staticpage:test#abcd)
     <a href="blablabla">
     <a href=http://foo.com />
-    <table bootstrop></table>
+    <table bootstrap></table>
     <!-- This is an invalid link -->
     [A static page](course:test#abcd)
 
@@ -782,14 +789,12 @@ class TagProcessingHTMLParserAndLinkFixerTreeprocessorTest(
             '<a href="blablabla">',
 
             # handle_startendtag
-            '<a href="http://foo.com"/>',
+            '<a href="http://foo.com">',
 
-            # handle_comment
-            '<!-- This is an invalid link -->',
-
-            # invalid link
-            "data:text/plain;base64,SW52YWxpZCBjaGFyYWN0ZXIgaW4gUkVMQVR"
-            "FIFVSTDogY291cnNlOnRlc3QjYWJjZA==",
+            # invalid link (? AK does not understand where this should be coming
+            # from, 2021-04-18)
+            # "data:text/plain;base64,SW52YWxpZCBjaGFyYWN0ZXIgaW4gUkVMQVR"
+            # "FIFVSTDogY291cnNlOnRlc3QjYWJjZA==",
 
             # images
             "https://raw.githubusercontent.com/inducer/relate/master/"
@@ -814,8 +819,8 @@ class TagProcessingHTMLParserAndLinkFixerTreeprocessorTest(
                 self.assertResponseContextContains(resp, "body", literal)
 
         table_literals = [
-            '<table bootstrop class="table table-condensed"></table>',
-            '<table class="table table-condensed" bootstrop></table>',
+            '<table bootstrap="" class="table table-condensed"></table>',
+            '<table class="table table-condensed" bootstrap=""></table>',
         ]
         if table_literals[0] not in resp.context["body"]:
             self.assertResponseContextContains(resp, "body", table_literals[1])
