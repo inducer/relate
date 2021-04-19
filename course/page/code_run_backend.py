@@ -164,11 +164,13 @@ def package_exception(result, what):
 
 
 def run_code(result, run_req):
-    # {{{ silence matplotlib font cache warnings
+    # {{{ silence matplotlib warnings
 
     import warnings
     warnings.filterwarnings(
             "ignore", message="Matplotlib is building the font cache.*")
+    import os
+    os.environ["MPLCONFIGDIR"] = "/tmp"
 
     # }}}
 
