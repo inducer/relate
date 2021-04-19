@@ -56,7 +56,9 @@ answers:
 - <plain>matrix
 - <case_sens_plain>Eigenmatrix
 - <regex>(?:linear\s+)?\s*map
-- <case_sens_regex>(?:operator\s+)?\s*map
+- type: regex
+  value: (?:operator\s+)?\s*map
+  flags: []
 
 """
 
@@ -76,7 +78,9 @@ answers:
 - <plain>matrix
 - <case_sens_plain>Eigenmatrix
 - <regex>(?:linear\s+)?\s*map
-- <case_sens_regex>(?:operator\s+)?\s*map
+- type: regex
+  value: (?:operator\s+)?\s*map
+  flags: []
 
 """
 
@@ -97,7 +101,9 @@ answers:
 - <plain>matrix
 - <case_sens_plain>Eigenmatrix
 - <regex>(?:linear\s+)?\s*map
-- <case_sens_regex>(?:operator\s+)?\s*map
+- type: regex
+  value: (?:operator\s+)?\s*map
+  flags: []
 
 """
 
