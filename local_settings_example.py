@@ -538,6 +538,12 @@ if RELATE_SIGN_IN_BY_SAML2_ENABLED:
         "service": {
             "sp": {
                 "name": "RELATE SAML2 SP",
+
+                # Django sets SameSite attribute on session cookies,
+                # which causes problems. Work around that, for now.
+                # https://github.com/peppelinux/djangosaml2/issues/143#issuecomment-633694504
+                "allow_unsolicited": True,
+
                 "name_id_format": saml2.saml.NAMEID_FORMAT_TRANSIENT,
                 "endpoints": {
                     # url and binding to the assertion consumer service view
