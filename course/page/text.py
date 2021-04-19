@@ -1021,7 +1021,9 @@ class TextQuestion(TextQuestionBase, PageBaseWithValue):
 
         answer = answer_data["answer"]
 
-        afb = AnswerFeedback(0)
+        # Must start with 'None' to allow matcher to set feedback for zero
+        # correctness.
+        afb = None
 
         for matcher in self.matchers:
             try:
@@ -1030,9 +1032,14 @@ class TextQuestion(TextQuestionBase, PageBaseWithValue):
                 continue
 
             matcher_afb = matcher.grade(answer)
-            if (matcher_afb.correctness is not None
-                    and matcher_afb.correctness > afb.correctness):
-                afb = matcher_afb
+            if matcher_afb.correctness is not None:
+                if afb is None:
+                    afb = matcher_afb
+                elif matcher_afb.correctness > afb.correctness:
+                    afb = matcher_afb
+
+        if afb is None:
+            afb = AnswerFeedback(0)
 
         return afb
 
