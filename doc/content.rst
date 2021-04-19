@@ -299,10 +299,14 @@ Symbols from `that set <http://fontawesome.io/icons/>`_ can be included as follo
 In-line HTML
 ^^^^^^^^^^^^
 
-In addition to Markdown, HTML is also allowed and puts the
+In addition to Markdown, HTML can also be allowed and puts the
 full power of modern web technologies at the content author's disposal.
-Markdown and HTML may also be mixed. For example, the following
-creates a box with a recessed appearance around the content::
+In order to use arbitrary HTML, the course must have the setting "may
+present arbitrary HTML to participants" enabled. This setting is available
+in the admin functionality.
+
+When enabled, Markdown and HTML may also be mixed. For example, the
+following creates a box with a recessed appearance around the content::
 
     <div class="well" markdown="1">
       Exam 2 takes place **next week**. Make sure to [prepare early](flow:exam2-prep).
