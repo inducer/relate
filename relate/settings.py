@@ -335,7 +335,7 @@ SAML_DJANGO_USER_MAIN_ATTRIBUTE = "username"
 
 SAML_CREATE_UNKNOWN_USER = True
 
-SAML_SESSION_COOKIE_NAME = 'relate_saml_session'
+SAML_SESSION_COOKIE_NAME = "relate_saml_session"
 
 # }}}
 
