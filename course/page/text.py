@@ -25,6 +25,7 @@ THE SOFTWARE.
 """
 
 
+from typing import Tuple, Any
 from django.utils.translation import (
         gettext_lazy as _, gettext)
 from course.validation import validate_struct, ValidationError
@@ -214,13 +215,43 @@ class TextAnswerMatcher(object):
 
     .. attribute:: type
     .. attribute:: is_case_sensitive
-    .. attribute:: pattern_type
 
-        "struct" or "string"
+        Only used for answer normalization. Matchers are responsible for
+        case sensitivity themselves.
     """
+    ALLOWED_ATTRIBUTES: Tuple[Any, ...] = ()
 
-    def __init__(self, vctx, location, pattern):
-        pass  # pragma: no cover
+    def __init__(self, vctx, location, matcher_desc):
+        self.matcher_desc = matcher_desc
+        validate_struct(
+                vctx, location, matcher_desc,
+                required_attrs=(
+                    ("type", str),
+                    ("value", self.VALUE_VALIDATION_TYPE),
+                    ),
+                allowed_attrs=(
+                    ("correctness", (int, float)),
+                    ("feedback", str),
+                    ) + self.ALLOWED_ATTRIBUTES,
+                )
+
+        assert matcher_desc.type == self.type
+        self.value = matcher_desc.value
+
+        if hasattr(matcher_desc, "correctness"):
+            from course.constants import MAX_EXTRA_CREDIT_FACTOR
+            if not 0 <= matcher_desc.correctness <= MAX_EXTRA_CREDIT_FACTOR:
+                raise ValidationError(
+                        string_concat(
+                            "%s: ",
+                            _("correctness value is out of bounds"))
+                        % (location))
+
+            self.correctness = matcher_desc.correctness
+        else:
+            self.correctness = 1
+
+        self.feedback = getattr(matcher_desc, "feedback", None)
 
     def validate(self, s):
         """Called to validate form input against simple input mistakes.
@@ -248,40 +279,84 @@ def multiple_to_single_spaces(s):
 class CaseSensitivePlainMatcher(TextAnswerMatcher):
     type = "case_sens_plain"
     is_case_sensitive = True
-    pattern_type = "string"
 
-    def __init__(self, vctx, location, pattern):
-        self.pattern = pattern
+    VALUE_VALIDATION_TYPE = str
+
+    def __init__(self, vctx, location, matcher_desc):
+        super().__init__(vctx, location, matcher_desc)
 
     def grade(self, s):
-        return int(
-                multiple_to_single_spaces(self.pattern)
-                == multiple_to_single_spaces(s))
+        if multiple_to_single_spaces(self.value) == multiple_to_single_spaces(s):
+            return AnswerFeedback(self.correctness, self.feedback)
+        else:
+            return AnswerFeedback(0)
 
     def correct_answer_text(self):
-        return self.pattern
+        if self.correctness >= 1:
+            return self.value
+        else:
+            return None
 
 
 class PlainMatcher(CaseSensitivePlainMatcher):
     type = "plain"
     is_case_sensitive = False
-    pattern_type = "string"
 
     def grade(self, s):
-        return int(
-            multiple_to_single_spaces(self.pattern.lower())
-            == multiple_to_single_spaces(s.lower()))
+        if (multiple_to_single_spaces(self.value.lower())
+                == multiple_to_single_spaces(s.lower())):
+            return AnswerFeedback(self.correctness, self.feedback)
+        else:
+            return AnswerFeedback(0)
 
 
 class RegexMatcher(TextAnswerMatcher):
     type = "regex"
-    re_flags = re.I
-    is_case_sensitive = False
-    pattern_type = "string"
 
-    def __init__(self, vctx, location, pattern):
+    VALUE_VALIDATION_TYPE = str
+    ALLOWED_ATTRIBUTES = (
+            ("flags", list),
+            )
+
+    RE_FLAGS = [
+            "A", "ASCII", "DOTALL", "I", "IGNORECASE", "M", "MULTILINE", "S",
+            "U", "UNICODE", "VERBOSE", "X",
+            # omitted, grade should be locale-independent
+            # "L", "LOCALE"
+            ]
+
+    def __init__(self, vctx, location, matcher_desc):
+        super().__init__(vctx, location, matcher_desc)
+
+        flags = getattr(self.matcher_desc, "flags", None)
+        if flags is None:
+            self.is_case_sensitive = type(self) == CaseSensitiveRegexMatcher
+            if self.is_case_sensitive:
+                re_flags = 0
+            else:
+                re_flags = re.IGNORECASE
+        else:
+            if type(self) == CaseSensitiveRegexMatcher:
+                raise ValidationError(
+                        string_concat("%s: ",
+                            _("may not specify flags in CaseSensitiveRegexMatcher"))
+                        % (location))
+
+            re_flags = 0
+            for flag in flags:
+                if not isinstance(flag, str):
+                    raise ValidationError(
+                            string_concat("%s: ", _("regex flag is not a string"))
+                            % (location))
+                if flag not in self.RE_FLAGS:
+                    raise ValidationError(
+                            string_concat("%s: ", _("regex flag is invalid"))
+                            % (location))
+                re_flags |= getattr(re, flag)
+
+            self.is_case_sensitive = "I" in flags or "IGNORECASE" in flags
         try:
-            self.pattern = re.compile(pattern, self.re_flags)
+            self.regex = re.compile(self.value, re_flags)
         except Exception:
             tp, e, __ = sys.exc_info()
 
@@ -292,16 +367,16 @@ class RegexMatcher(TextAnswerMatcher):
                         ": %(err_type)s: %(err_str)s")
                     % {
                         "location": location,
-                        "pattern": pattern,
+                        "pattern": self.value,
                         "err_type": tp.__name__,
                         "err_str": str(e)})
 
     def grade(self, s):
-        match = self.pattern.match(s)
+        match = self.regex.match(s)
         if match is not None:
-            return 1
+            return AnswerFeedback(self.correctness, self.feedback)
         else:
-            return 0
+            return AnswerFeedback(0)
 
     def correct_answer_text(self):
         return None
@@ -309,9 +384,14 @@ class RegexMatcher(TextAnswerMatcher):
 
 class CaseSensitiveRegexMatcher(RegexMatcher):
     type = "case_sens_regex"
-    re_flags = 0  # type:ignore
-    is_case_sensitive = True
-    pattern_type = "string"
+
+    def __init__(self, vctx, location, matcher_desc):
+        super().__init__(vctx, location, matcher_desc)
+
+        if vctx is not None:
+            vctx.add_warning(location, _("Uses 'case_sens_regex' matcher. "
+                "This will go away in 2022. Use 'regex' with specified flags "
+                "instead."))
 
 
 def parse_sympy(s):
@@ -325,13 +405,14 @@ def parse_sympy(s):
 class SymbolicExpressionMatcher(TextAnswerMatcher):
     type = "sym_expr"
     is_case_sensitive = True
-    pattern_type = "string"
 
-    def __init__(self, vctx, location, pattern):
-        self.pattern = pattern
+    VALUE_VALIDATION_TYPE = str
+
+    def __init__(self, vctx, location, matcher_desc):
+        super().__init__(vctx, location, matcher_desc)
 
         try:
-            self.pattern_sym = parse_sympy(pattern)
+            self.value_sym = parse_sympy(self.value)
         except ImportError:
             tp, e, __ = sys.exc_info()
             if vctx is not None:
@@ -369,21 +450,24 @@ class SymbolicExpressionMatcher(TextAnswerMatcher):
         try:
             answer_sym = parse_sympy(s)
         except Exception:
-            return 0
+            return AnswerFeedback(0)
 
         from sympy import simplify
         try:
-            simp_result = simplify(answer_sym - self.pattern_sym)
+            simp_result = simplify(answer_sym - self.value_sym)
         except Exception:
-            return 0
+            return AnswerFeedback(0)
 
         if simp_result == 0:
-            return 1
+            return AnswerFeedback(self.correctness, self.feedback)
         else:
-            return 0
+            return AnswerFeedback(0)
 
     def correct_answer_text(self):
-        return self.pattern
+        if self.correctness >= 1:
+            return self.value
+        else:
+            return None
 
 
 def float_or_sympy_evalf(s):
@@ -399,10 +483,8 @@ def float_or_sympy_evalf(s):
     except ValueError:
         pass
 
-    # avoiding IO error if empty input when
-    # the is field not required
     if s == "":
-        return s
+        raise ValueError("floating point value expected, empty string found")
 
     # return a float type value, expression not allowed
     return float(parse_sympy(s).evalf())
@@ -411,28 +493,19 @@ def float_or_sympy_evalf(s):
 class FloatMatcher(TextAnswerMatcher):
     type = "float"
     is_case_sensitive = False
-    pattern_type = "struct"
+
+    VALUE_VALIDATION_TYPE = (int, float, str)
+    ALLOWED_ATTRIBUTES = (
+            ("rtol", (int, float, str)),
+            ("atol", (int, float, str)),
+            )
 
     def __init__(self, vctx, location, matcher_desc):
-        self.matcher_desc = matcher_desc
-
-        validate_struct(
-                vctx,
-                location,
-                matcher_desc,
-                required_attrs=(
-                    ("type", str),
-                    ("value", (int, float, str)),
-                    ),
-                allowed_attrs=(
-                    ("rtol", (int, float, str)),
-                    ("atol", (int, float, str)),
-                    ),
-                )
+        super().__init__(vctx, location, matcher_desc)
 
         try:
             self.matcher_desc.value = \
-                    float_or_sympy_evalf(matcher_desc.value)
+                    float_or_sympy_evalf(self.value)
         except Exception:
             raise ValidationError(
                     string_concat(
@@ -492,36 +565,40 @@ class FloatMatcher(TextAnswerMatcher):
                     % {"err_type": tp.__name__, "err_str": str(e)})
 
     def grade(self, s):
-        if s == "":
-            return 0
-
         try:
             answer_float = float_or_sympy_evalf(s)
         except Exception:
-            return 0
+            # Should not happen, no need to give verbose feedback.
+            return AnswerFeedback(0)
+
+        good_afb = AnswerFeedback(self.correctness, self.feedback)
+        bad_afb = AnswerFeedback(0)
 
         from math import isnan, isinf
         if isinf(self.matcher_desc.value):
-            return 1 if isinf(answer_float) else 0
+            return good_afb if isinf(answer_float) else bad_afb
         if isnan(self.matcher_desc.value):
-            return 1 if isnan(answer_float) else 0
+            return good_afb if isnan(answer_float) else bad_afb
         if isinf(answer_float) or isnan(answer_float):
-            return 0
+            return bad_afb
 
         if hasattr(self.matcher_desc, "atol"):
             if (abs(answer_float - self.matcher_desc.value)
                     > self.matcher_desc.atol):
-                return 0
+                return bad_afb
         if hasattr(self.matcher_desc, "rtol"):
             if (abs(answer_float - self.matcher_desc.value)
                     / abs(self.matcher_desc.value)
                     > self.matcher_desc.rtol):
-                return 0
+                return bad_afb
 
-        return 1
+        return good_afb
 
     def correct_answer_text(self):
-        return str(self.matcher_desc.value)
+        if self.correctness >= 1:
+            return str(self.matcher_desc.value)
+        else:
+            return None
 
 
 TEXT_ANSWER_MATCHER_CLASSES = [
@@ -535,85 +612,54 @@ TEXT_ANSWER_MATCHER_CLASSES = [
 
 
 MATCHER_RE = re.compile(r"^\<([a-zA-Z0-9_:.]+)\>(.*)$")
-MATCHER_RE_2 = re.compile(r"^([a-zA-Z0-9_.]+):(.*)$")
 
 
-def get_matcher_class(location, matcher_type, pattern_type):
+def get_matcher_class(location, matcher_type):
     for matcher_class in TEXT_ANSWER_MATCHER_CLASSES:
         if matcher_class.type == matcher_type:
-
-            if matcher_class.pattern_type != pattern_type:
-                raise ValidationError(
-                    string_concat(
-                        "%(location)s: ",
-                        # Translators: a "matcher" is used to determine
-                        # if the answer to text question (blank filling
-                        # question) is correct.
-                        _("%(matcherclassname)s only accepts "
-                            "'%(matchertype)s' patterns"))
-                        % {
-                            "location": location,
-                            "matcherclassname": matcher_class.__name__,
-                            "matchertype": matcher_class.pattern_type})
-
             return matcher_class
 
     raise ValidationError(
             string_concat(
                 "%(location)s: ",
-                _("unknown match type '%(matchertype)s'"))
+                _("unknown matcher type '%(matchertype)s'"))
             % {
                 "location": location,
                 "matchertype": matcher_type})
 
 
-def parse_matcher_string(vctx, location, matcher_desc):
-    match = MATCHER_RE.match(matcher_desc)
-
-    if match is not None:
-        matcher_type = match.group(1)
-        pattern = match.group(2)
-    else:
-        match = MATCHER_RE_2.match(matcher_desc)
-
-        if match is None:
-            raise ValidationError(
-                    string_concat(
-                        "%s: ",
-                        _("does not specify match type"))
-                    % location)
-
-        matcher_type = match.group(1)
-        pattern = match.group(2)
-
-        if vctx is not None:
-            vctx.add_warning(location,
-                    _("uses deprecated 'matcher:answer' style"))
-
-    return (get_matcher_class(location, matcher_type, "string")
-            (vctx, location, pattern))
-
-
 def parse_matcher(vctx, location, matcher_desc):
     if isinstance(matcher_desc, str):
-        return parse_matcher_string(vctx, location, matcher_desc)
-    else:
-        if not isinstance(matcher_desc, Struct):
+        match = MATCHER_RE.match(matcher_desc)
+
+        if match is not None:
+            matcher_desc = Struct({
+                "type": match.group(1),
+                "value": match.group(2),
+                })
+        else:
             raise ValidationError(
                     string_concat(
                         "%s: ",
-                        _("must be struct or string"))
+                        _("matcher string does not have expected format"))
                     % location)
 
-        if not hasattr(matcher_desc, "type"):
-            raise ValidationError(
-                    string_concat(
-                        "%s: ",
-                        _("matcher must supply 'type'"))
-                    % location)
+    if not isinstance(matcher_desc, Struct):
+        raise ValidationError(
+                string_concat(
+                    "%s: ",
+                    _("must be struct or string"))
+                % location)
 
-        return (get_matcher_class(location, matcher_desc.type, "struct")
-            (vctx, location, matcher_desc))
+    if not hasattr(matcher_desc, "type"):
+        raise ValidationError(
+                string_concat(
+                    "%s: ",
+                    _("matcher must supply 'type'"))
+                % location)
+
+    return (get_matcher_class(location, matcher_desc.type)
+        (vctx, location, matcher_desc))
 
 # }}}
 
@@ -720,7 +766,7 @@ class TextQuestionBase(PageBaseWithTitle):
     def answer_data(self, page_context, page_data, form, files_data):
         return {"answer": form.cleaned_data["answer"].strip()}
 
-    def is_case_sensitive(self):
+    def _is_case_sensitive(self):
         return True
 
     def normalized_answer(self, page_context, page_data, answer_data):
@@ -729,7 +775,7 @@ class TextQuestionBase(PageBaseWithTitle):
 
         normalized_answer = answer_data["answer"]
 
-        if not self.is_case_sensitive():
+        if not self._is_case_sensitive():
             normalized_answer = normalized_answer.lower()
 
         from django.utils.html import escape
@@ -877,8 +923,7 @@ class TextQuestion(TextQuestionBase, PageBaseWithValue):
 
     .. attribute:: answers
 
-        A list of answers. If the participant's response matches one of these
-        answers, it is considered fully correct. Each answer consists of a 'matcher'
+        A list of answers. Each answer consists of a 'matcher'
         and an answer template for that matcher to use. Each type of matcher
         requires one of two syntax variants to be used. The
         'simple/abbreviated' syntax::
@@ -890,6 +935,15 @@ class TextQuestion(TextQuestionBase, PageBaseWithValue):
             - type: float
               value: 1.25
               rtol: 0.2
+
+              # All structured-form matchers allow (but do not require) these:
+              correctness: 0.5
+              feedback: "Close, but not quite"
+
+        If ``correctness`` is not explicitly given, the answer is considered
+        fully correct. The ``answers`` list of answers is evaluated in order.
+        The first applicable matcher yielding the highest correctness value
+        will determine the result shown to the user.
 
         Here are examples of all the supported simple/abbreviated matchers:
 
@@ -905,16 +959,17 @@ class TextQuestion(TextQuestionBase, PageBaseWithValue):
           (Python-style) regular expression that
           follows. Case-insensitive, i.e. capitalization does not matter.
 
-        - ``<case_sens_regex>[a-z]+`` Matches anything matched by the given
-          (Python-style) regular expression that
-          follows. Case-sensitive, i.e. capitalization matters.
-
         - ``<sym_expr>x+2*y`` Matches anything that :mod:`sympy` considers
           equivalent to the given expression. Equivalence is determined
           by simplifying ``user_answer - given_expr`` and testing the result
           against 0 using :mod:`sympy`.
 
-        Here are examples of all the supported structured matchers:
+        Each simple matcher may also be given in structured form, e.g.::
+
+            -   type: sym_expr
+                value: x+2*y
+
+        Additionally, the following structured-only matchers exist:
 
         - Floating point. Example::
 
@@ -923,7 +978,12 @@ class TextQuestion(TextQuestionBase, PageBaseWithValue):
                   rtol: 0.2  # relative tolerance
                   atol: 0.2  # absolute tolerance
 
-          One of ``rtol`` or ``atol`` must be given.
+        - Regular expression. Example::
+
+              -   type: regex
+                  value: [a-z]+
+                  flags: [IGNORECASE, DOTALL]  # see python regex documentation
+                  # if not given, defaults to "[IGNORECASE]"
 
     .. attribute:: answer_explanation
 
@@ -976,7 +1036,9 @@ class TextQuestion(TextQuestionBase, PageBaseWithValue):
 
         answer = answer_data["answer"]
 
-        correctness = 0
+        # Must start with 'None' to allow matcher to set feedback for zero
+        # correctness.
+        afb = None
 
         for matcher in self.matchers:
             try:
@@ -984,12 +1046,17 @@ class TextQuestion(TextQuestionBase, PageBaseWithValue):
             except forms.ValidationError:
                 continue
 
-            matcher_correctness = matcher.grade(answer)
-            if (matcher_correctness is not None
-                    and matcher_correctness >= correctness):
-                correctness = matcher_correctness
+            matcher_afb = matcher.grade(answer)
+            if matcher_afb.correctness is not None:
+                if afb is None:
+                    afb = matcher_afb
+                elif matcher_afb.correctness > afb.correctness:
+                    afb = matcher_afb
 
-        return AnswerFeedback(correctness=correctness)
+        if afb is None:
+            afb = AnswerFeedback(0)
+
+        return afb
 
     def correct_answer(self, page_context, page_data, answer_data, grade_data):
         # FIXME: Could use 'best' match to answer
@@ -1009,7 +1076,7 @@ class TextQuestion(TextQuestionBase, PageBaseWithValue):
 
         return result
 
-    def is_case_sensitive(self):
+    def _is_case_sensitive(self):
         return any(matcher.is_case_sensitive for matcher in self.matchers)
 
 # }}}

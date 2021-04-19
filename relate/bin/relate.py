@@ -16,7 +16,7 @@ def validate(args):
             course_file=args.course_file,
             events_file=args.events_file)
 
-    if has_warnings:
+    if has_warnings and args.warn_error:
         return 1
     else:
         return 0
@@ -226,6 +226,8 @@ def main() -> None:
     parser_validate = subp.add_parser("validate")
     parser_validate.add_argument("--course-file", default="course.yml")
     parser_validate.add_argument("--events-file", default="events.yml")
+    parser_validate.add_argument("--warn-error", action="store_true",
+            help="Treat warnings as errors")
     parser_validate.add_argument("REPO_ROOT", default=os.getcwd())
     parser_validate.set_defaults(func=validate)
 
