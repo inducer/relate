@@ -292,7 +292,10 @@ class CaseSensitivePlainMatcher(TextAnswerMatcher):
             return AnswerFeedback(0)
 
     def correct_answer_text(self):
-        return self.value
+        if self.correctness >= 1:
+            return self.value
+        else:
+            return None
 
 
 class PlainMatcher(CaseSensitivePlainMatcher):
@@ -455,7 +458,10 @@ class SymbolicExpressionMatcher(TextAnswerMatcher):
             return AnswerFeedback(0)
 
     def correct_answer_text(self):
-        return self.value
+        if self.correctness >= 1:
+            return self.value
+        else:
+            return None
 
 
 def float_or_sympy_evalf(s):
@@ -583,7 +589,10 @@ class FloatMatcher(TextAnswerMatcher):
         return good_afb
 
     def correct_answer_text(self):
-        return str(self.matcher_desc.value)
+        if self.correctness >= 1:
+            return str(self.matcher_desc.value)
+        else:
+            return None
 
 
 TEXT_ANSWER_MATCHER_CLASSES = [
