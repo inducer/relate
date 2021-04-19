@@ -1389,6 +1389,8 @@ def filter_html_attributes(tag, name, value):
         result = result or (name == "class" and value == "well")
     elif tag == "i":
         result = result or (name == "class" and value.startswith("fa fa-"))
+    elif tag == "table":
+        result = (result or (name == "class") or (name == "bootstrap"))
 
     return result
 
@@ -1475,6 +1477,7 @@ def markup_to_html(
                 tags=bleach.ALLOWED_TAGS + [
                     "div", "span", "p", "img",
                     "h1", "h2", "h3", "h4", "h5", "h6",
+                    "table", "td", "tr", "th",
                     ],
                 attributes=filter_html_attributes)
 

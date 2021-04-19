@@ -77,7 +77,6 @@ SINGLE_COURSE_SETUP_LIST = [
             "preapproval_require_verified_inst_id": True,
             "from_email": "inform@tiker.net",
             "notify_email": "inform@tiker.net",
-            "trusted_for_markup": True,
             },
         "participations": [
             {
