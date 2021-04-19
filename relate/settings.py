@@ -89,6 +89,8 @@ MIDDLEWARE = (
     "relate.utils.MaintenanceMiddleware",
     "social_django.middleware.SocialAuthExceptionMiddleware",
 )
+if local_settings.get("RELATE_SIGN_IN_BY_SAML2_ENABLED"):
+    MIDDLEWARE = MIDDLEWARE + ("djangosaml2.middleware.SamlSessionMiddleware",)
 
 # }}}
 
@@ -332,6 +334,8 @@ LOCALE_PATHS = (
 SAML_DJANGO_USER_MAIN_ATTRIBUTE = "username"
 
 SAML_CREATE_UNKNOWN_USER = True
+
+SAML_SESSION_COOKIE_NAME = 'relate_saml_session'
 
 # }}}
 
