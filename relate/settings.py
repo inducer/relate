@@ -90,7 +90,8 @@ MIDDLEWARE = (
     "social_django.middleware.SocialAuthExceptionMiddleware",
 )
 if local_settings.get("RELATE_SIGN_IN_BY_SAML2_ENABLED"):
-    MIDDLEWARE = MIDDLEWARE + ("djangosaml2.middleware.SamlSessionMiddleware",)
+    MIDDLEWARE = MIDDLEWARE + (  # type: ignore
+        "djangosaml2.middleware.SamlSessionMiddleware",)
 
 # }}}
 
