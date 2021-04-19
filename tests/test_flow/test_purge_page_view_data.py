@@ -1,5 +1,3 @@
-from __future__ import division
-
 __copyright__ = "Copyright (C) 2018 Dong Zhuang"
 
 __license__ = """
@@ -55,7 +53,7 @@ class PurgeViewMixin(TwoCoursePageTestMixin):
 
     @classmethod
     def setUpTestData(cls):  # noqa
-        super(PurgeViewMixin, cls).setUpTestData()
+        super().setUpTestData()
         assert cls.course1_instructor_participation.has_permission(
             pperm.use_admin_interface)
         assert cls.course2_instructor_participation.has_permission(

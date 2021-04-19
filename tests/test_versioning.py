@@ -1,5 +1,3 @@
-from __future__ import division
-
 __copyright__ = "Copyright (C) 2017 Dong Zhuang"
 
 __license__ = """
@@ -78,13 +76,13 @@ class VersioningTestMixin(CoursesTestMixinBase, MockAddMessageMixing):
 
     @classmethod
     def setUpTestData(cls):  # noqa
-        super(VersioningTestMixin, cls).setUpTestData()
+        super().setUpTestData()
         cls.instructor = cls.create_user(
             SINGLE_COURSE_SETUP_LIST[0]["participations"][0]["user"])
         cls.add_user_permission(cls.instructor, "add_course")
 
     def setUp(self):
-        super(VersioningTestMixin, self).setUp()
+        super().setUp()
         self.rf = RequestFactory()
         self.addCleanup(self.force_remove_all_course_dir)
 
@@ -400,7 +398,7 @@ class ParamikoSSHVendorTest(TestCase):
                 mock_channel.exec_command.call_args[0])
 
 
-class FakeCommit(object):
+class FakeCommit:
     def __init__(self, name, parents=None, id=None,
                  message=b"my commit message"):
         self.name = name
@@ -497,8 +495,8 @@ class DirectGitEndpointTest(TestCase):
         response = versioning.git_endpoint(request, course.identifier, "")
         self.assertEqual(response.status_code, 401)
 
-        auth_data = b64encode("foo".encode()).decode("utf-8")
-        request.META.get.return_value = "Basic {}".format(auth_data)
+        auth_data = b64encode(b"foo").decode("utf-8")
+        request.META.get.return_value = f"Basic {auth_data}"
         request.environ = request.META
         response = versioning.git_endpoint(request, course.identifier, "")
         self.assertEqual(response.status_code, 401)
@@ -530,7 +528,7 @@ class DirectGitEndpointTest(TestCase):
         auth_data_unencoded = "{}:{}".format(student.username, "spam").encode()
         auth_data = b64encode(auth_data_unencoded).decode("utf-8")
         request = mock.MagicMock()
-        request.META.get.return_value = "Basic {}".format(auth_data)
+        request.META.get.return_value = f"Basic {auth_data}"
         request.environ = request.META
         response = versioning.git_endpoint(request, course.identifier, "")
         self.assertEqual(response.status_code, 401)
@@ -540,7 +538,7 @@ class DirectGitEndpointTest(TestCase):
                                                 "eggs", "ham").encode()
         auth_data = b64encode(auth_data_unencoded).decode("utf-8")
         request = mock.MagicMock()
-        request.META.get.return_value = "Basic {}".format(auth_data)
+        request.META.get.return_value = f"Basic {auth_data}"
         request.environ = request.META
         response = versioning.git_endpoint(request, course.identifier, "")
         self.assertEqual(response.status_code, 401)
@@ -550,7 +548,7 @@ class DirectGitEndpointTest(TestCase):
                                                 "eggs", "ham").encode()
         auth_data = b64encode(auth_data_unencoded).decode("utf-8")
         request = mock.MagicMock()
-        request.META.get.return_value = "Basic {}".format(auth_data)
+        request.META.get.return_value = f"Basic {auth_data}"
         request.environ = request.META
         response = versioning.git_endpoint(request, course.identifier, "")
         self.assertEqual(response.status_code, 401)
@@ -560,7 +558,7 @@ class DirectGitEndpointTest(TestCase):
                                                 auth_token.id, "ham").encode()
         auth_data = b64encode(auth_data_unencoded).decode("utf-8")
         request = mock.MagicMock()
-        request.META.get.return_value = "Basic {}".format(auth_data)
+        request.META.get.return_value = f"Basic {auth_data}"
         request.environ = request.META
         response = versioning.git_endpoint(request, course.identifier, "")
         self.assertEqual(response.status_code, 401)
@@ -570,7 +568,7 @@ class DirectGitEndpointTest(TestCase):
                                                 auth_token.id, "spam").encode()
         auth_data = b64encode(auth_data_unencoded).decode("utf-8")
         request = mock.MagicMock()
-        request.META.get.return_value = "Basic {}".format(auth_data)
+        request.META.get.return_value = f"Basic {auth_data}"
         request.environ = request.META
         response = versioning.git_endpoint(request, course.identifier, "")
         self.assertEqual(response.status_code, 401)
@@ -611,7 +609,7 @@ class DirectGitEndpointTest(TestCase):
                                                 auth_token.id, "spam").encode()
         auth_data = b64encode(auth_data_unencoded).decode("utf-8")
         request = mock.MagicMock()
-        request.META.get.return_value = "Basic {}".format(auth_data)
+        request.META.get.return_value = f"Basic {auth_data}"
         request.environ = request.META
         versioning.git_endpoint(request, course.identifier, "")
         self.assertEqual(mock_call_wsgi_app.call_count, 1)
@@ -622,7 +620,7 @@ class DirectGitEndpointTest(TestCase):
         mock_dulwich_web_backend = fake_dulwich_web_backend.start()
         self.addCleanup(fake_dulwich_web_backend.stop)
         request = mock.MagicMock()
-        request.META.get.return_value = "Basic {}".format(auth_data)
+        request.META.get.return_value = f"Basic {auth_data}"
         request.environ = request.META
         versioning.git_endpoint(request, course.identifier, "")
         self.assertEqual(mock_dulwich_web_backend.call_count, 1)
@@ -653,7 +651,7 @@ class RunCourseUpdateCommandTest(MockAddMessageMixing, unittest.TestCase):
     default_lastest_sha = "latest_sha"
 
     def setUp(self):
-        super(RunCourseUpdateCommandTest, self).setUp()
+        super().setUp()
         self.course = factories.CourseFactory(
             active_git_commit_sha=self.default_old_sha)
         user = factories.UserFactory()
@@ -1075,10 +1073,10 @@ class RunCourseUpdateCommandTest(MockAddMessageMixing, unittest.TestCase):
                     self.course.active_git_commit_sha, expected_course_sha)
 
 
-class VersioningRepoMixin(object):
+class VersioningRepoMixin:
     @classmethod
     def setUpTestData(cls):  # noqa
-        super(VersioningRepoMixin, cls).setUpTestData()
+        super().setUpTestData()
         cls.rf = RequestFactory()
         request = cls.rf.get(cls.get_update_course_url())
         request.user = cls.instructor_participation.user

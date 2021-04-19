@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import os
 from collections import namedtuple
 
@@ -21,7 +19,7 @@ def get_upload_file_path(file_name, fixture_path=FIXTURE_PATH):
 TEST_TEXT_FILE_PATH = get_upload_file_path("test_file.txt")
 TEST_PDF_FILE_PATH = get_upload_file_path("test_file.pdf")
 
-TEST_HGTEXT_MARKDOWN_ANSWER = u"""
+TEST_HGTEXT_MARKDOWN_ANSWER = """
 type: ChoiceQuestion
 id: myquestion
 shuffle: True
@@ -38,7 +36,7 @@ choices:
   - 四分之三
 """
 
-TEST_HGTEXT_MARKDOWN_ANSWER_WRONG = u"""
+TEST_HGTEXT_MARKDOWN_ANSWER_WRONG = """
 type: ChoiceQuestion
 id: myquestion
 shuffle: True

@@ -1,5 +1,3 @@
-from __future__ import division
-
 __copyright__ = "Copyright (C) 2017 Dong Zhuang"
 
 __license__ = """
@@ -52,7 +50,7 @@ class SingleCoursePageCacheTest(SingleCoursePageTestMixin, TestCase):
 
     @classmethod
     def setUpTestData(cls):  # noqa
-        super(SingleCoursePageCacheTest, cls).setUpTestData()
+        super().setUpTestData()
         cls.start_flow(cls.flow_id)
 
     @improperly_configured_cache_patch()
@@ -262,7 +260,7 @@ def strip_nbsp(s):
     Returns the given HTML with '&nbsp;' (introduced by nbconvert) stripped
     """
     from django.utils.encoding import force_str
-    return force_str(s).replace('&nbsp;', '').replace(u'\xa0', '')
+    return force_str(s).replace('&nbsp;', '').replace('\xa0', '')
 
 
 def get_nb_html_from_response(response):
@@ -279,7 +277,7 @@ class NbconvertRenderTestMixin(SingleCoursePageSandboxTestBaseMixin):
         self.assertNotContains(response, RELATE_IPYNB_CONVERT_PRE_WRAPPER_TAG_NAME)
 
     def setUp(self):
-        super(NbconvertRenderTestMixin, self).setUp()
+        super().setUp()
         patcher = mock.patch("course.content.get_repo_blob_data_cached")
         self.mock_func = patcher.start()
         self.mock_func.return_value = TEST_IPYNB_BYTES
@@ -292,7 +290,7 @@ class NbconvertRenderTest(NbconvertRenderTestMixin, TestCase):
 
     @classmethod
     def setUpTestData(cls):  # noqa
-        super(NbconvertRenderTest, cls).setUpTestData()
+        super().setUpTestData()
         cls.c.force_login(cls.instructor_participation.user)
 
     def test_notebook_page_view(self):
@@ -521,7 +519,7 @@ class YamlJinjaExpansionTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
 class GetCourseCommitShaTest(SingleCourseTestMixin, TestCase):
     # test content.get_course_commit_sha
     def setUp(self):
-        super(GetCourseCommitShaTest, self).setUp()
+        super().setUp()
         self.valid_sha = self.course.active_git_commit_sha
         self.new_sha = "some_sha"
         self.course.active_git_commit_sha = self.new_sha
@@ -595,7 +593,7 @@ class SubDirRepoTest(SingleCourseQuizPageTestMixin, MockAddMessageMixing, TestCa
 
     @classmethod
     def setUpTestData(cls):  # noqa
-        super(SubDirRepoTest, cls).setUpTestData()
+        super().setUpTestData()
         cls.course.course_root_path = "course_content"
         cls.course.active_git_commit_sha = cls.subdir_branch_commit_sha
         cls.course.save()
@@ -618,7 +616,7 @@ class SubDirRepoTest(SingleCourseQuizPageTestMixin, MockAddMessageMixing, TestCa
 class GetRepoBlobTest(SingleCourseTestMixin, TestCase):
     # test content.get_repo_blob (for cases not covered by other tests)
     def setUp(self):
-        super(GetRepoBlobTest, self).setUp()
+        super().setUp()
         rf = RequestFactory()
         request = rf.get(self.get_course_page_url())
         request.user = self.instructor_participation.user
@@ -663,7 +661,7 @@ class GetRepoBlobTest(SingleCourseTestMixin, TestCase):
 class GitTemplateLoaderTest(SingleCourseTestMixin, TestCase):
     # test content.GitTemplateLoader
     def setUp(self):
-        super(GitTemplateLoaderTest, self).setUp()
+        super().setUp()
         rf = RequestFactory()
         request = rf.get(self.course_page_url)
         request.user = self.instructor_participation.user
@@ -705,7 +703,7 @@ class YamlBlockEscapingFileSystemLoaderTest(SingleCourseTestMixin, TestCase):
 class GetYamlFromRepoTest(SingleCourseTestMixin, TestCase):
     # test content.get_yaml_from_repo
     def setUp(self):
-        super(GetYamlFromRepoTest, self).setUp()
+        super().setUp()
         rf = RequestFactory()
         request = rf.get(self.course_page_url)
         request.user = self.instructor_participation.user
@@ -713,9 +711,9 @@ class GetYamlFromRepoTest(SingleCourseTestMixin, TestCase):
         self.pctx = CoursePageContext(request, self.course.identifier)
 
     def test_file_uses_tab_in_indentation(self):
-        fake_yaml_bytestream = "\tabcd\n".encode()
+        fake_yaml_bytestream = b"\tabcd\n"
 
-        class _Blob(object):
+        class _Blob:
             def __init__(self):
                 self.data = fake_yaml_bytestream
 
@@ -838,7 +836,7 @@ class YamlBlockEscapingGitTemplateLoaderTest(SingleCourseTestMixin, TestCase):
     # (for cases not covered by other tests)
 
     def setUp(self):
-        super(YamlBlockEscapingGitTemplateLoaderTest, self).setUp()
+        super().setUp()
         rf = RequestFactory()
         request = rf.get(self.course_page_url)
         request.user = self.instructor_participation.user
@@ -869,7 +867,7 @@ class ParseDateSpecTest(SingleCourseTestMixin, TestCase):
     mock_now_value = mock.MagicMock()
 
     def setUp(self):
-        super(ParseDateSpecTest, self).setUp()
+        super().setUp()
 
         fake_now = mock.patch("course.content.now")
         self.mock_now = fake_now.start()
@@ -1183,7 +1181,7 @@ class GetFlowPageDescTest(SingleCoursePageTestMixin, TestCase):
 
     @classmethod
     def setUpTestData(cls):  # noqa
-        super(GetFlowPageDescTest, cls).setUpTestData()
+        super().setUpTestData()
         cls.flow_desc = cls.get_hacked_flow_desc()
 
     def test_success(self):
@@ -1225,7 +1223,7 @@ class NormalizeFlowDescTest(SingleCoursePageTestMixin, TestCase):
 class MarkupToHtmlTest(SingleCoursePageTestMixin, TestCase):
     # content.markup_to_html
     def setUp(self):
-        super(MarkupToHtmlTest, self).setUp()
+        super().setUp()
         from django.core.cache import cache
         cache.clear()
         rf = RequestFactory()
@@ -1258,7 +1256,7 @@ class MarkupToHtmlTest(SingleCoursePageTestMixin, TestCase):
         with self.pctx.repo as repo:
             text = "[this course](course:)"
             with mock.patch("markdown.markdown") as mock_markdown:
-                mock_markdown.return_value = u"some text"
+                mock_markdown.return_value = "some text"
                 content.markup_to_html(
                     self.course, repo,
                     self.course.active_git_commit_sha.encode(), text)
@@ -1274,7 +1272,7 @@ class MarkupToHtmlTest(SingleCoursePageTestMixin, TestCase):
         with self.pctx.repo as repo:
             text = "[this course](course:)"
             with mock.patch("markdown.markdown") as mock_markdown:
-                mock_markdown.return_value = u"some text"
+                mock_markdown.return_value = "some text"
                 content.markup_to_html(
                     self.course, repo,
                     self.course.active_git_commit_sha.encode(), text)
@@ -1290,7 +1288,7 @@ class MarkupToHtmlTest(SingleCoursePageTestMixin, TestCase):
         with self.pctx.repo as repo:
             text = "[this course](course:)"
             with mock.patch("markdown.markdown") as mock_markdown:
-                mock_markdown.return_value = u"some text"
+                mock_markdown.return_value = "some text"
                 content.markup_to_html(
                     self.course, repo,
                     self.course.active_git_commit_sha.encode(), text)

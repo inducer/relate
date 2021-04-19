@@ -1,5 +1,3 @@
-from __future__ import division
-
 __copyright__ = "Copyright (C) 2018 Dong Zhuang"
 
 __license__ = """
@@ -159,7 +157,7 @@ class IsPageMultipleSubmitTest(SingleCoursePageTestMixin, HackRepoMixin, TestCas
     """test course.analytics.is_page_multiple_submit"""
     @classmethod
     def setUpTestData(cls):  # noqa
-        super(IsPageMultipleSubmitTest, cls).setUpTestData()
+        super().setUpTestData()
         cls.course.active_git_commit_sha = "my_fake_commit_sha_for_page_analytics"
         cls.course.save()
 
@@ -168,7 +166,7 @@ class IsPageMultipleSubmitTest(SingleCoursePageTestMixin, HackRepoMixin, TestCas
         cls.flow_desc = cls.get_hacked_flow_desc()
 
     def setUp(self):
-        super(IsPageMultipleSubmitTest, self).setUp()
+        super().setUp()
         faked_is_flow_multiple_submit = \
             mock.patch("course.analytics.is_flow_multiple_submit")
         self.mock_is_flow_multiple_submit = faked_is_flow_multiple_submit.start()
@@ -257,7 +255,7 @@ class FlowAnalyticsTest(SingleCourseQuizPageTestMixin, HackRepoMixin,
 
     @classmethod
     def setUpTestData(cls):  # noqa
-        super(FlowAnalyticsTest, cls).setUpTestData()
+        super().setUpTestData()
         cls.course.active_git_commit_sha = "my_fake_commit_sha_for_flow_analytics"
         cls.course.save()
         cls.start_flow(cls.flow_id)

@@ -1,5 +1,3 @@
-from __future__ import division
-
 __copyright__ = "Copyright (C) 2018 Dong Zhuang"
 
 __license__ = """
@@ -26,7 +24,7 @@ from django.core.mail.backends.locmem import EmailBackend as LocMemEmailBackend
 
 
 def my_customized_get_full_name_method(first_name, last_name):
-    return "%s %s" % (first_name.title(), last_name.title())
+    return f"{first_name.title()} {last_name.title()}"
 
 
 def my_customized_get_full_name_method_invalid(first_name, last_name):
@@ -37,7 +35,7 @@ my_customized_get_full_name_method_invalid_str = "some_string"
 
 
 def my_custom_get_masked_profile_method_valid(u):
-    return "%s%s" % ("User", str(u.pk + 100))
+    return "{}{}".format("User", str(u.pk + 100))
 
 
 my_custom_get_masked_profile_method_invalid_str = "some_string"
@@ -55,7 +53,7 @@ class MyFakeEmailBackend(LocMemEmailBackend):
     pass
 
 
-class MyFakeQuestionType(object):
+class MyFakeQuestionType:
     pass
 
 

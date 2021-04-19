@@ -1,5 +1,3 @@
-from __future__ import division
-
 __copyright__ = "Copyright (C) 2018 Dong Zhuang"
 
 __license__ = """
@@ -263,7 +261,7 @@ class UserModelTest(TestCase):
             ".check_user_profile_mask_method")
 
         def custom_method(u):
-            return "%s%s" % ("User", str(u.pk + 100))
+            return "{}{}".format("User", str(u.pk + 100))
 
         with override_settings(RELATE_USER_PROFILE_MASK_METHOD=custom_method):
             relate_user_method_settings.__dict__ = {}

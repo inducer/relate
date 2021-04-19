@@ -37,13 +37,13 @@ class GradeGenericTestMixin(SingleCoursePageTestMixin):
     # Nice little tricks :)
     @classmethod
     def setUpTestData(cls):  # noqa
-        super(GradeGenericTestMixin, cls).setUpTestData()
+        super().setUpTestData()
         cls.flow_session_ids = []
         cls.do_quiz(cls.student_participation)
 
     @classmethod
     def tearDownClass(cls):
-        super(GradeGenericTestMixin, cls).tearDownClass()
+        super().tearDownClass()
 
     # Use specified user to take a quiz
     @classmethod
@@ -308,7 +308,7 @@ class GradeTwoQuizTakerTest(GradeGenericTestMixin, TestCase):
 
     @classmethod
     def setUpTestData(cls): # noqa
-        super(GradeTwoQuizTakerTest, cls).setUpTestData()
+        super().setUpTestData()
         cls.do_quiz(cls.instructor_participation)
         cls.n_quiz_takers = 2
         cls.n_participations = 3
@@ -324,7 +324,7 @@ class GradeThreeQuizTakerTest(GradeGenericTestMixin, TestCase):
 
     @classmethod
     def setUpTestData(cls): # noqa
-        super(GradeThreeQuizTakerTest, cls).setUpTestData()
+        super().setUpTestData()
         cls.do_quiz(cls.ta_participation)
         cls.do_quiz(cls.instructor_participation)
         cls.n_quiz_takers = 3
@@ -337,7 +337,7 @@ class GradeThreeQuizTakerTest(GradeGenericTestMixin, TestCase):
 class GradePermissionsTests(SingleCoursePageTestMixin, TestCase):
     @classmethod
     def setUpTestData(cls):  # noqa
-        super(GradePermissionsTests, cls).setUpTestData()
+        super().setUpTestData()
         cls.start_flow(flow_id=cls.flow_id)
         cls.end_flow()
 

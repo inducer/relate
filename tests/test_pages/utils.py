@@ -1,7 +1,3 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import division
-
 __copyright__ = "Copyright (C) 2018 Dong Zhuang"
 
 __license__ = """
@@ -75,7 +71,7 @@ REAL_RELATE_DOCKER_TLS_CONFIG = None
 REAL_RELATE_DOCKER_RUNPY_IMAGE = "inducer/relate-runcode-python"
 
 
-class RealDockerTestMixin(object):
+class RealDockerTestMixin:
     """
     This is used for code question test with real docker container.
     Note: the test speed is slow when using this mixin.
@@ -87,7 +83,7 @@ class RealDockerTestMixin(object):
         if skip_real_docker_test:
             raise SkipTest(SKIP_REAL_DOCKER_REASON)
 
-        super(RealDockerTestMixin, cls).setUpClass()
+        super().setUpClass()
         cls.override_docker_settings = override_settings(
             RELATE_DOCKER_URL=REAL_RELATE_DOCKER_URL,
             RELATE_DOCKER_RUNPY_IMAGE=REAL_RELATE_DOCKER_RUNPY_IMAGE,
@@ -98,7 +94,7 @@ class RealDockerTestMixin(object):
 
     @classmethod
     def tearDownClass(cls):  # noqa
-        super(RealDockerTestMixin, cls).tearDownClass()
+        super().tearDownClass()
         cls.override_docker_settings.disable()
 
     @classmethod

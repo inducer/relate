@@ -112,7 +112,7 @@ class CourseTest(CoursesTestMixinBase, unittest.TestCase):
 
 
 @pytest.mark.django_db
-class RelateModelTestMixin(object):
+class RelateModelTestMixin:
     def setUp(self):
         self.course = factories.CourseFactory()
 
@@ -445,7 +445,7 @@ class InstantFlowRequestTest(RelateModelTestMixin, unittest.TestCase):
 
 class FlowSessionTest(RelateModelTestMixin, unittest.TestCase):
     def setUp(self):
-        super(FlowSessionTest, self).setUp()
+        super().setUp()
         self.user = factories.UserFactory()
         self.participation = factories.ParticipationFactory(
             course=self.course,
@@ -506,7 +506,7 @@ class FlowSessionTest(RelateModelTestMixin, unittest.TestCase):
 
 class FlowPageDataTest(RelateModelTestMixin, unittest.TestCase):
     def setUp(self):
-        super(FlowPageDataTest, self).setUp()
+        super().setUp()
         self.user = factories.UserFactory()
         self.participation = factories.ParticipationFactory(
             course=self.course,
@@ -520,7 +520,7 @@ class FlowPageDataTest(RelateModelTestMixin, unittest.TestCase):
 
 class FlowPageVisitTest(RelateModelTestMixin, unittest.TestCase):
     def setUp(self):
-        super(FlowPageVisitTest, self).setUp()
+        super().setUp()
         self.user = factories.UserFactory()
         self.participation = factories.ParticipationFactory(
             course=self.course,
@@ -557,7 +557,7 @@ class FlowPageVisitTest(RelateModelTestMixin, unittest.TestCase):
 
 class FlowPageVisitGradeTest(RelateModelTestMixin, unittest.TestCase):
     def setUp(self):
-        super(FlowPageVisitGradeTest, self).setUp()
+        super().setUp()
         self.user = factories.UserFactory()
         self.participation = factories.ParticipationFactory(
             course=self.course,
@@ -629,7 +629,7 @@ class GetFeedbackForGradeTest(RelateModelTestMixin, unittest.TestCase):
 
 class FlowRuleExceptionTest(RelateModelTestMixin, TestCase):
     def setUp(self):
-        super(FlowRuleExceptionTest, self).setUp()
+        super().setUp()
         user = factories.UserFactory()
         self.participation = factories.ParticipationFactory(
             course=self.course,
@@ -817,7 +817,7 @@ class FlowRuleExceptionTest(RelateModelTestMixin, TestCase):
 
 class GradingChangeTest(RelateModelTestMixin, unittest.TestCase):
     def setUp(self):
-        super(GradingChangeTest, self).setUp()
+        super().setUp()
         self.user = factories.UserFactory()
         self.participation = factories.ParticipationFactory(
             course=self.course,
@@ -883,7 +883,7 @@ class ExamTest(RelateModelTestMixin, unittest.TestCase):
 
 class ExamTicketTest(RelateModelTestMixin, unittest.TestCase):
     def setUp(self):
-        super(ExamTicketTest, self).setUp()
+        super().setUp()
         self.exam = factories.ExamFactory(course=self.course)
 
         self.user1 = factories.UserFactory()

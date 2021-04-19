@@ -1,7 +1,3 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import division
-
 __copyright__ = "Copyright (C) 2018 Dong Zhuang, Zesheng Wang, Andreas Kloeckner"
 
 __license__ = """
@@ -65,12 +61,12 @@ class GradesTestMixin(SingleCoursePageTestMixin, MockAddMessageMixing):
 
     @classmethod
     def setUpTestData(cls):  # noqa
-        super(GradesTestMixin, cls).setUpTestData()
+        super().setUpTestData()
         cls.gopp = factories.GradingOpportunityFactory(
             course=cls.course, aggregation_strategy=g_stragety.use_latest)
 
     def setUp(self):
-        super(GradesTestMixin, self).setUp()
+        super().setUp()
         self.gopp.refresh_from_db()
 
     def use_default_setup(self):  # noqa
@@ -378,7 +374,7 @@ class GetGradeTableTest(GradesTestMixin, TestCase):
 
     @classmethod
     def setUpTestData(cls):  # noqa
-        super(GetGradeTableTest, cls).setUpTestData()
+        super().setUpTestData()
         # 2 more participations
         (cls.ptpt1, cls.ptpt2) = factories.ParticipationFactory.create_batch(
             size=2, course=cls.course)
@@ -392,7 +388,7 @@ class GetGradeTableTest(GradesTestMixin, TestCase):
         factories.GradingOpportunityFactory(course=another_course)
 
     def run_test(self):
-        super(GetGradeTableTest, self).setUp()
+        super().setUp()
 
         # {{{ gopps. Notice: there is another gopp created in setUp
         # shown for all (gopp with no gchanges)
@@ -657,7 +653,7 @@ fake_access_rules_tag = "fake_tag"
 fake_task_id = "abcdef123"
 
 
-class MockAsyncRes(object):
+class MockAsyncRes:
     def __init__(self):
         self.id = fake_task_id
 
@@ -666,7 +662,7 @@ class ViewGradesByOpportunityTest(GradesTestMixin, TestCase):
     # test grades.view_grades_by_opportunity
 
     def setUp(self):
-        super(ViewGradesByOpportunityTest, self).setUp()
+        super().setUp()
 
         # create 2 flow sessions, one with access_rules_tag
         factories.FlowSessionFactory(
@@ -1231,7 +1227,7 @@ class GradesChangeStateMachineTest(GradesTestMixin, TestCase):
 
 class ViewParticipantGradesTest2(GradesTestMixin, TestCase):
     def setUp(self):
-        super(ViewParticipantGradesTest2, self).setUp()
+        super().setUp()
         self.use_default_setup()
         self.gopp_hidden_in_gradebook = factories.GradingOpportunityFactory(
             course=self.course, aggregation_strategy=g_stragety.use_latest,
@@ -1328,7 +1324,7 @@ class ViewReopenSessionTest(GradesTestMixin, TestCase):
     gopp_id = "la_quiz"
 
     def setUp(self):
-        super(ViewReopenSessionTest, self).setUp()
+        super().setUp()
         self.fs1 = factories.FlowSessionFactory(
             participation=self.student_participation, in_progress=False)
 
@@ -1403,7 +1399,7 @@ class ViewSingleGradeTest(GradesTestMixin, TestCase):
     # grades.view_single_grade (currently for cases not covered by other tests)
 
     def setUp(self):
-        super(ViewSingleGradeTest, self).setUp()
+        super().setUp()
 
         fake_regrade_session = mock.patch("course.flow.regrade_session")
         self.mock_regrade_session = fake_regrade_session.start()
@@ -1794,7 +1790,7 @@ class DownloadAllSubmissionsTest(SingleCourseQuizPageTestMixin,
 
     @classmethod
     def setUpTestData(cls):  # noqa
-        super(DownloadAllSubmissionsTest, cls).setUpTestData()
+        super().setUpTestData()
 
         # with this faked commit_sha, we may do multiple submissions
         cls.course.active_git_commit_sha = (
@@ -1830,7 +1826,7 @@ class DownloadAllSubmissionsTest(SingleCourseQuizPageTestMixin,
     def group_page_id(self):
         _, group_id = self.get_page_ordinal_via_page_id(
             self.page_id, with_group_id=True)
-        return "%s/%s" % (group_id, self.page_id)
+        return f"{group_id}/{self.page_id}"
 
     def get_zip_file_buf_from_response(self, resp):
         return io.BytesIO(resp.content)
