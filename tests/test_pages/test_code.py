@@ -311,7 +311,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
         self.assertResponseContextAnswerFeedbackCorrectnessEquals(resp, 1)
 
     def test_data_files_missing_random_question_data_file_octave(self):
-        file_name = "foo"
+        file_name = "question-data/random-data.m"
         markdown = (
                 markdowns.OCTAVE_CODE_MARKDWON_PATTERN_WITH_DATAFILES
                 % {"extra_data_file": "- %s" % file_name}
@@ -328,7 +328,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
         self.assertEqual(resp.status_code, 200)
         self.assertSandboxNotHasValidPage(resp)
         self.assertResponseContextContains(
-            resp, PAGE_ERRORS, "data file '%s' not found" % "['foo', 'bar']")
+            resp, PAGE_ERRORS, "data file '%s' not found" % "question-data/random-data.m")
 
     def test_not_multiple_submit_warning_octave(self):
         markdown = (
