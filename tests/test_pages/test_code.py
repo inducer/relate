@@ -273,7 +273,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
         self.assertSandboxWarningTextContain(resp, None)
 
     def test_explicity_not_allow_multiple_submit(self):
-        markdown = (markdowns. \
+        markdown = (markdowns.
                 CODE_MARKDWON_PATTERN_EXPLICITLY_NOT_ALLOW_MULTI_SUBMIT
                 % {"extra_data_file": ""}
         )
@@ -374,10 +374,10 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
 
     def test_explicity_not_allow_multiple_submit_octave(self):
         markdown = \
-            (markdowns. \
+            (markdowns.
                 OCTAVE_CODE_MARKDWON_PATTERN_EXPLICITLY_NOT_ALLOW_MULTI_SUBMIT
                 % {"extra_data_file": ""}
-        )
+            )
         resp = self.get_page_sandbox_preview_response(markdown)
         self.assertEqual(resp.status_code, 200)
         self.assertSandboxHasValidPage(resp)
@@ -640,7 +640,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
                         resp, msg, html=True)
 
             self.assertEqual(resp.status_code, 200)
-            self.assertResponseContextAnswerFeedbackCorrectnessEquals(resp, \
+            self.assertResponseContextAnswerFeedbackCorrectnessEquals(resp,
                                                                     correctness)
             self.assertEqual(len(mail.outbox), mail_count)
 
@@ -1082,7 +1082,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
                 markdown,
                 answer_data={"answer": ['c = b + a\r']})
             self.assertEqual(resp.status_code, 200)
-            self.assertResponseContextAnswerFeedbackCorrectnessEquals(resp, \
+            self.assertResponseContextAnswerFeedbackCorrectnessEquals(resp,
                                                                       None)
             error_msg = (AUTO_FEEDBACK_POINTS_OUT_OF_RANGE_ERROR_MSG_PATTERN
                          % (MAX_EXTRA_CREDIT_FACTOR, invalid_feedback_points))
@@ -1134,7 +1134,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
     #     )
 
     # def test_not_multiple_submit_warning2(self):
-    #     markdown = markdowns. \ 
+    #     markdown = markdowns. \
     #                OCTAVE_CODE_MARKDWON_NOT_EXPLICITLY_NOT_ALLOW_MULTI_SUBMIT1
     #     resp = self.get_page_sandbox_preview_response(markdown)
     #     self.assertEqual(resp.status_code, 200)
@@ -1386,7 +1386,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
                 markdown,
                 answer_data={"answer": ['c = b + a\r']})
             self.assertEqual(resp.status_code, 200)
-            self.assertResponseContextAnswerFeedbackCorrectnessEquals(resp, \
+            self.assertResponseContextAnswerFeedbackCorrectnessEquals(resp,
                                                                       None)
             error_msg = (AUTO_FEEDBACK_POINTS_OUT_OF_RANGE_ERROR_MSG_PATTERN
                          % (MAX_EXTRA_CREDIT_FACTOR, invalid_feedback_points))
@@ -1410,8 +1410,7 @@ class RequestPythonRunWithRetriesTest(unittest.TestCase):
     @override_settings(RELATE_DOCKER_RUNPY_IMAGE="some_other_image")
     def test_image_none(self):
         # Testing if image is None, settings.RELATE_DOCKER_RUNPY_IMAGE is used
-        with mock.patch("docker.client.Client.create_container") as \
-            mock_create_ctn:
+        with mock.patch("docker.client.Client.create_container") as mock_create_ctn:
 
             # this will raise KeyError
             mock_create_ctn.return_value = {}
