@@ -373,11 +373,9 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
         self.assertSandboxWarningTextContain(resp, None)
 
     def test_explicity_not_allow_multiple_submit_octave(self):
-        markdown = \
-            (markdowns.
+        markdown = (markdowns.
                 OCTAVE_CODE_MARKDWON_PATTERN_EXPLICITLY_NOT_ALLOW_MULTI_SUBMIT
-                % {"extra_data_file": ""}
-            )
+                % {"extra_data_file": ""})
         resp = self.get_page_sandbox_preview_response(markdown)
         self.assertEqual(resp.status_code, 200)
         self.assertSandboxHasValidPage(resp)
