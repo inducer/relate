@@ -328,7 +328,8 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
         self.assertEqual(resp.status_code, 200)
         self.assertSandboxNotHasValidPage(resp)
         self.assertResponseContextContains(
-            resp, PAGE_ERRORS, "data file '%s' not found" % "question-data/random-data.m")
+            resp, PAGE_ERRORS, 
+            "data file '%s' not found" % "question-data/random-data.m")
 
     def test_not_multiple_submit_warning_octave(self):
         markdown = (
