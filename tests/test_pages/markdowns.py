@@ -469,6 +469,7 @@ prompt: |
     # Adding two numbers in Octave
 
 setup_code: |
+    pkg load statistics
     a = unifrnd(-10,10)
     b = unifrnd(-10,10)
 
@@ -507,6 +508,7 @@ prompt: |
     # Adding two numbers in Octave
 
 setup_code: |
+    pkg load statistics
     a = unifrnd(-10,10)
     b = unifrnd(-10,10)
 
@@ -544,6 +546,7 @@ prompt: |
     # Adding two numbers in Octave
 
 setup_code: |
+    pkg load statistics
     a = unifrnd(-10,10)
     b = unifrnd(-10,10)
 
@@ -581,6 +584,7 @@ prompt: |
     # Adding two numbers in Octave
 
 setup_code: |
+    pkg load statistics
     a = unifrnd(-10,10)
     b = unifrnd(-10,10)
 
@@ -616,6 +620,7 @@ prompt: |
     # Adding two numbers in Octave
 
 setup_code: |
+    pkg load statistics
     a = unifrnd(-10,10)
     b = unifrnd(-10,10)
 
@@ -650,6 +655,7 @@ prompt: |
     # Adding two numbers in Octave
 
 setup_code: |
+    pkg load statistics
     a = unifrnd(-10,10)
     b = unifrnd(-10,10)
 
@@ -672,6 +678,7 @@ prompt: |
     # Adding two numbers in Octave
 
 setup_code: |
+    pkg load statistics
     a = unifrnd(-10,10)
     b = unifrnd(-10,10)
 
@@ -703,6 +710,7 @@ prompt: |
     # Adding two numbers in Octave
 
 setup_code: |
+    pkg load statistics
     a = unifrnd(-10,10)
     b = unifrnd(-10,10)
 
@@ -737,6 +745,7 @@ prompt: |
     # Adding two numbers in Octave
 
 setup_code: |
+    pkg load statistics
     a = unifrnd(-10,10)
     b = unifrnd(-10,10)
 

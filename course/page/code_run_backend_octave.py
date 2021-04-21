@@ -201,6 +201,12 @@ def run_code(result, run_req):
     if getattr(run_req, "setup_code", None):
         try:
             oc.eval(run_req.setup_code)
+            # put variables from user in main context
+            for name in run_req.names_for_user:
+                try:
+                    maint_ctx[name] = oc.pull(name)
+                except oct2py.Oct2PyError:
+                    maint_ctx[name] = None
         except Exception:
             package_exception(result, "setup_error")
             return
