@@ -134,7 +134,7 @@ You should also pull the default container image::
 
     docker pull inducer/relate-runpy-amd64
 
-(or ``docker pull davis68/relate-octave` if using Octave).
+(or `docker pull davis68/relate-octave` if using Octave).
 
 Add to kernel command line, if needed::
 
