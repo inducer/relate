@@ -41,7 +41,7 @@ features:
 RELATE is a based on the popular `Django <https://docs.djangoproject.com/>`_
 web framework for Python.  It lets students participate in online activities,
 each of which is (generically) called a "flow", which allows a sequence of
-pages, each of which can be both static or interactive content, for exapmle a
+pages, each of which can be both static or interactive content, for example a
 video, a quiz question, a page of text, or, within the confines of HTML,
 something completely different.
 
