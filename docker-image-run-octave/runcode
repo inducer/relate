@@ -37,7 +37,7 @@ except ImportError:
         from course.page.code_run_backend import (
             Struct, run_code, package_exception)
     except ImportError:
-        # When debugging, i.e., run "python runpy" command line
+        # When debugging, i.e., run "octave-cli runoc" command line
         import os
         sys.path.insert(0, os.path.abspath(
             os.path.join(os.path.dirname(__file__), os.pardir)))
@@ -54,9 +54,7 @@ TEST_COUNT = 0
 
 def truncate_if_long(s):
     if len(s) > OUTPUT_LENGTH_LIMIT:
-        s = (s[:OUTPUT_LENGTH_LIMIT//2]
-                + "\n[... TOO MUCH OUTPUT, SKIPPING ...]\n"
-                + s[-OUTPUT_LENGTH_LIMIT//2:])
+        s = s[:OUTPUT_LENGTH_LIMIT] + "[TRUNCATED... TOO MUCH OUTPUT]"
     return s
 
 

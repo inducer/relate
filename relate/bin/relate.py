@@ -50,11 +50,6 @@ def expand_yaml(yml_file, repo_root):
 # {{{ code test
 
 def test_code_question(page_desc, repo_root):
-    if page_desc.type not in [
-            "PythonCodeQuestion",
-            "PythonCodeQuestionWithHumanTextFeedback"]:
-        return
-
     print(75*"-")
     print("TESTING", page_desc.id, "...", end=" ")
     sys.stdout.flush()

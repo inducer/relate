@@ -99,6 +99,7 @@ jobs:
           DEBIAN_FRONTEND: noninteractive
         run: |
           sudo apt-get install gettext
+          docker pull davis68/relate-octave
       - name: Run test suite
         env:
           RL_CI_TEST: ${{ matrix.suite }}

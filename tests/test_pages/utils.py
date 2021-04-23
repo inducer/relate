@@ -69,6 +69,7 @@ SKIP_REAL_DOCKER_REASON = "These are tests for real docker"
 REAL_RELATE_DOCKER_URL = "unix:///var/run/docker.sock"
 REAL_RELATE_DOCKER_TLS_CONFIG = None
 REAL_RELATE_DOCKER_RUNPY_IMAGE = "inducer/relate-runcode-python"
+REAL_RELATE_DOCKER_RUNOC_IMAGE = "davis68/relate-octave"
 
 
 class RealDockerTestMixin:
@@ -109,3 +110,7 @@ class RealDockerTestMixin:
         if not bool(cli.images(REAL_RELATE_DOCKER_RUNPY_IMAGE)):
             # This should run only once and get cached on Travis-CI
             cli.pull(REAL_RELATE_DOCKER_RUNPY_IMAGE)
+
+        if not bool(cli.images(REAL_RELATE_DOCKER_RUNOC_IMAGE)):
+            # This should run only once and get cached on Travis-CI
+            cli.pull(REAL_RELATE_DOCKER_RUNOC_IMAGE)
