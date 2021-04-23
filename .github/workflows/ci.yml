@@ -100,8 +100,6 @@ jobs:
         run: |
           sudo apt-get install gettext
           docker pull davis68/relate-octave
-      - name: Setup tmate session
-        uses: mxschmitt/action-tmate@v3
       - name: Run test suite
         env:
           RL_CI_TEST: ${{ matrix.suite }}
