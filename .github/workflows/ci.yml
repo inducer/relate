@@ -2,48 +2,54 @@ name: CI
 on:
   push:
     branches:
-      - master
+      - main
   pull_request:
-    paths-ignore:
-      - "doc/*.rst"
   schedule:
     - cron: "17 3 * * 0"
+
+defaults:
+  run:
+    # required by https://github.com/snok/install-poetry#windows
+    shell: bash
 
 jobs:
   lint:
     name: Lint and typecheck
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: [3.6, 3.7, 3.8]
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-python@v1
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: '3.x'
       - name: Install Poetry
-        uses: dschep/install-poetry-action@v1.3
+        uses: snok/install-poetry@v1.1.1
         with:
-          create_virtualenvs: true
-      - name: Cache python dependencies
-        uses: actions/cache@v2
-        id: cache
-        with:
-          path: ~/.cache/pypoetry
-          key: poetry-${{ hashFiles('**/poetry.lock') }}-${{ matrix.python-version }}
-          restore-keys: |
-            poetry-${{ hashFiles('**/poetry.lock') }}-${{ matrix.python-version }}
+          version: "1.1.0"
+          virtualenvs-create: true
+
+      #- name: Cache python dependencies
+      #  uses: actions/cache@v2
+      #  id: cache
+      #  with:
+      #    path: ~/.cache/pypoetry
+      #    key: poetry-${{ hashFiles('**/poetry.lock') }}-${{ matrix.python-version }}
+      #    restore-keys: |
+      #      poetry-${{ hashFiles('**/poetry.lock') }}-${{ matrix.python-version }}
       - name: Install Dependencies
         run: poetry install
-        if: steps.cache.outputs.cache-hit != 'true'
+      #  if: steps.cache.outputs.cache-hit != 'true'
       - name: "Flake8"
-        run: poetry run flake8 relate course accounts tests
+        run: |
+          poetry run flake8 relate course accounts
+          poetry run flake8 --extend-ignore Q000 tests
       - name: "Mypy"
         run: poetry run mypy relate course
       - name: "Safety"
-        env:
-          safety_ignores: "-i 37910 -i 38076 -i 38107 -i 35792"
-        run: poetry run safety check ${safety_ignores} --full-report
+        run: bash ./.ci/run-safety.sh
+      - name: "Sphinx"
+        run: |
+            cp local_settings_example.py local_settings.py
+            (cd doc; poetry run make html SPHINXOPTS="-W --keep-going -n")
 
 
   pytest:
@@ -51,7 +57,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.6, 3.7, 3.8]
+        python-version: [3.6, 3.8, 3.9]
         suite: ['base', 'postgres', 'expensive']
     services:
         postgres:
@@ -72,20 +78,22 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install Poetry
-        uses: dschep/install-poetry-action@v1.3
+        uses: snok/install-poetry@v1.1.1
         with:
-          create_virtualenvs: true
-      - name: Cache python dependencies
-        uses: actions/cache@v2
-        id: cache
-        with:
-          path: ~/.cache/pypoetry
-          key: poetry-${{ hashFiles('**/poetry.lock') }}-${{ matrix.python-version }}
-          restore-keys: |
-            poetry-${{ hashFiles('**/poetry.lock') }}-${{ matrix.python-version }}
+          version: "1.1.0"
+          virtualenvs-create: true
+
+      #- name: Cache python dependencies
+      #  uses: actions/cache@v2
+      #  id: cache
+      #  with:
+      #    path: ~/.cache/pypoetry
+      #    key: poetry-${{ hashFiles('**/poetry.lock') }}-${{ matrix.python-version }}
+      #    restore-keys: |
+      #      poetry-${{ hashFiles('**/poetry.lock') }}-${{ matrix.python-version }}
       - name: Install Dependencies
         run: poetry install
-        if: steps.cache.outputs.cache-hit != 'true'
+      #  if: steps.cache.outputs.cache-hit != 'true'
       - name: Install OS dependencies
         env:
           DEBIAN_FRONTEND: noninteractive
@@ -96,10 +104,6 @@ jobs:
           RL_CI_TEST: ${{ matrix.suite }}
         run: |
           bash ./.ci/run-tests-for-ci.sh
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v1
-        with:
-          fail_ci_if_error: true
       - name: Test command line tool
         if: matrix.suite == 'base'
         run: |
@@ -109,40 +113,29 @@ jobs:
           poetry run relate validate .
           poetry run relate test-code questions/autograded-python-example.yml
           poetry run relate expand-yaml flows/quiz-test.yml > /dev/null
-  
-  # pytest-windows:
-  #   name: Python - Windows
-  #   runs-on: windows-latest
-  #   steps:
-  #     - uses: actions/checkout@v2
-  #     - uses: actions/setup-python@v1
-  #       with:
-  #         python-version: 3.7
-  #     - name: Install Poetry
-  #       uses: dschep/install-poetry-action@v1.3
-  #     - name: Confiure Poetry
-  #       run: |
-  #         poetry config virtualenvs.in-project true
-  #     - name: Cache python dependencies
-  #       uses: actions/cache@v2
-  #       id: cache
-  #       with:
-  #         path: .venv
-  #         key: pypoetry-${{ hashFiles('**/poetry.lock') }}-windows
-  #         restore-keys: |
-  #           pypoetry-${{ hashFiles('**/poetry.lock') }}-windows
-  #     - name: Install Dependencies
-  #       run: poetry install
-  #       if: steps.cache.outputs.cache-hit != 'true'
-  #     - name: Run test suite
-  #       env:
-  #         RELATE_LOCAL_TEST_SETTINGS: "local_settings_example.py"
-  #       run: |
-  #         poetry run pytest --cov-config=setup.cfg --cov-report=xml --cov=.
-  #     - name: Upload coverage to Codecov
-  #       uses: codecov/codecov-action@v1
-  #       with:
-  #         fail_ci_if_error: true
-      
+
+  pytest-windows:
+    name: Python - Windows
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v1
+        with:
+          python-version: '3.x'
+      - name: Install Poetry
+        uses: snok/install-poetry@v1.1.1
+        with:
+          version: "1.1.0"
+          virtualenvs-create: true
+      - name: Configure Poetry
+        run: |
+          poetry config virtualenvs.in-project true
+      - name: Install Dependencies
+        run: poetry install
+      - name: Run test suite
+        env:
+          RELATE_LOCAL_TEST_SETTINGS: "local_settings_example.py"
+        run: |
+          poetry run pytest -v --cov-config=setup.cfg --cov-report=xml --cov=.
 
 # vim: sw=2

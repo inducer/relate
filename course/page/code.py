@@ -200,12 +200,12 @@ def request_run(run_req, run_timeout, image=None):
         def debug_print(s):
             pass
 
-    command_path = '/opt/runcode/runcode'
-    user = 'runcode'
+    command_path = "/opt/runcode/runcode"
+    user = "runcode"
 
     # The following is necessary because tests don't arise from a CodeQuestion
     # object, so we provide a fallback.
-    debug_print('Image is %s.' % repr(image))
+    debug_print("Image is %s." % repr(image))
     if image is None:
         image = settings.RELATE_DOCKER_RUNPY_IMAGE
 
@@ -238,7 +238,7 @@ def request_run(run_req, run_timeout, image=None):
     else:
         container_id = None
 
-    connect_host_ip = 'localhost'
+    connect_host_ip = "localhost"
 
     try:
         # FIXME: Prohibit networking
@@ -282,7 +282,7 @@ def request_run(run_req, run_timeout, image=None):
             try:
                 connection = http_client.HTTPConnection(connect_host_ip, port)
 
-                connection.request('GET', '/ping')
+                connection.request("GET", "/ping")
 
                 response = connection.getresponse()
                 response_data = response.read().decode()
@@ -315,7 +315,7 @@ def request_run(run_req, run_timeout, image=None):
             connection = http_client.HTTPConnection(connect_host_ip, port,
                     timeout=1 + run_timeout)
 
-            headers = {'Content-type': 'application/json'}
+            headers = {"Content-type": "application/json"}
 
             json_run_req = json.dumps(run_req).encode("utf-8")
 
@@ -323,7 +323,7 @@ def request_run(run_req, run_timeout, image=None):
             start_time = time()
 
             debug_print("BEFPOST")
-            connection.request('POST', '/run-python', json_run_req, headers)
+            connection.request("POST", "/run-python", json_run_req, headers)
             debug_print("AFTPOST")
 
             http_response = connection.getresponse()
@@ -645,7 +645,7 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
             answer_data, page_behavior):
 
         if answer_data is not None:
-            answer = {"answer": answer_data["answer"]}
+            answer = {"answer": self.get_code_from_answer_data(answer_data)}
             form = CodeForm(
                     not page_behavior.may_change_answer,
                     get_editor_interaction_mode(page_context),
@@ -672,8 +672,40 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
                 self.language_mode,
                 post_data, files_data)
 
+    def get_submission_filename_pattern(self, page_context):
+        username = "anon"
+        flow_id = "unk_flow"
+        if page_context.flow_session is not None:
+            if page_context.flow_session.participation is not None:
+                username = page_context.flow_session.participation.user.username
+            if page_context.flow_session.flow_id:
+                flow_id = page_context.flow_session.flow_id
+
+        return (
+                "submission/"
+                f"{page_context.course.identifier}/"
+                "code/"
+                f"{flow_id}/"
+                f"{self.page_desc.id}/"
+                f"{username}"
+                f"{self.suffix}")
+
+    def code_to_answer_data(self, page_context, code):
+        # Linux sector size is 512. Anything below a half-full
+        # sector is probably inefficient.
+        if len(code) <= 256:
+            return {"answer": code}
+
+        from django.core.files.base import ContentFile
+        saved_name = settings.RELATE_BULK_STORAGE.save(
+                self.get_submission_filename_pattern(page_context),
+                ContentFile(code))
+
+        return {"storage_filename": saved_name}
+
     def answer_data(self, page_context, page_data, form, files_data):
-        return {"answer": form.cleaned_data["answer"].strip()}
+        code = form.cleaned_data["answer"].strip()
+        return self.code_to_answer_data(page_context, code)
 
     def get_test_code(self):
         test_code = getattr(self.page_desc, "test_code", None)
@@ -687,12 +719,25 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
         from .code_run_backend import substitute_correct_code_into_test_code
         return substitute_correct_code_into_test_code(test_code, correct_code)
 
+    @staticmethod
+    def get_code_from_answer_data(answer_data):
+        if "storage_filename" in answer_data:
+            bulk_storage = settings.RELATE_BULK_STORAGE
+            with bulk_storage.open(answer_data["storage_filename"]) as inf:
+                return inf.read().decode("utf-8")
+
+        elif "answer" in answer_data:
+            return answer_data["answer"]
+
+        else:
+            raise ValueError("could not get submitted data from answer_data JSON")
+
     def grade(self, page_context, page_data, answer_data, grade_data):
         if answer_data is None:
             return AnswerFeedback(correctness=0,
                     feedback=_("No answer provided."))
 
-        user_code = answer_data["answer"]
+        user_code = self.get_code_from_answer_data(answer_data)
 
         # {{{ request run
 
@@ -971,11 +1016,16 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
             fig_lines.append("</dl>")
             bulk_feedback_bits.extend(fig_lines)
 
-        # {{{ html output / santization
+        # {{{ html output / sanitization
 
         if hasattr(response, "html") and response.html:
-            bulk_feedback_bits.extend(
-                    sanitize_from_code_html(snippet) for snippet in response.html)
+            if (page_context.course is None
+                    or not page_context.course.trusted_for_markup):
+                bulk_feedback_bits.extend(
+                        sanitize_from_code_html(snippet)
+                        for snippet in response.html)
+            else:
+                bulk_feedback_bits.extend(response.html)
 
         # }}}
 
@@ -1004,7 +1054,7 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
         if answer_data is None:
             return None
 
-        normalized_answer = answer_data["answer"]
+        normalized_answer = self.get_code_from_answer_data(answer_data)
 
         from django.utils.html import escape
         return "<pre>%s</pre>" % escape(normalized_answer)
@@ -1014,7 +1064,7 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
             return None
 
         suffix = self.suffix
-        return (suffix, answer_data["answer"].encode("utf-8"))
+        return (suffix, self.get_code_from_answer_data(answer_data).encode("utf-8"))
 
 # }}}
 
@@ -1026,6 +1076,41 @@ class PythonCodeQuestion(CodeQuestion):
     An auto-graded question allowing an answer consisting of Python code.
     All user code as well as all code specified as part of the problem
     is in Python 3.
+
+    Example:
+
+    .. code-block:: yaml
+
+        type: PythonCodeQuestion
+        id: addition
+        access_rules:
+            add_permissions:
+                - change_answer
+        value: 1
+        timeout: 10
+        prompt: |
+            # Adding two numbers in Python
+            Your code will receive two variables, *a* and *b*. Compute their sum and
+            assign it to *c*.
+        setup_code: |
+            import random
+            a = random.uniform(-10, 10)
+            b = random.uniform(-10, 10)
+        names_for_user: [a, b]
+
+        correct_code: |
+            c = a + b
+        names_from_user: [c]
+
+        test_code: |
+            if not isinstance(c, float):
+                feedback.finish(0, "Your computed c is not a float.")
+            correct_c = a + b
+            rel_err = abs(correct_c-c)/abs(correct_c)
+            if rel_err < 1e-7:
+                feedback.finish(1, "Your computed c was correct.")
+            else:
+                feedback.finish(0, "Your computed c was incorrect.")
 
     If you are not including the
     :attr:`course.constants.flow_permission.change_answer`
@@ -1199,7 +1284,7 @@ class PythonCodeQuestion(CodeQuestion):
 
     @property
     def language_mode(self):
-        return 'python'
+        return "python"
 
     @property
     def container_image(self):
@@ -1207,9 +1292,9 @@ class PythonCodeQuestion(CodeQuestion):
 
     @property
     def suffix(self):
-        return '.py'
+        return ".py"
 
-    def __init__(self, vctx, location, page_desc, language_mode='python'):
+    def __init__(self, vctx, location, page_desc, language_mode="python"):
         super(PythonCodeQuestion, self).__init__(vctx, location, page_desc,
         language_mode)
 
@@ -1279,7 +1364,7 @@ class PythonCodeQuestionWithHumanTextFeedback(
                         _("'human_feedback_value' and "
                           "'human_feedback_percentage' are not "
                           "allowed to coexist"))
-                    % {'location': location}
+                    % {"location": location}
                 )
             if not (hasattr(self.page_desc, "human_feedback_value")
                     or hasattr(self.page_desc, "human_feedback_percentage")):
@@ -1288,7 +1373,7 @@ class PythonCodeQuestionWithHumanTextFeedback(
                         "%(location)s: ",
                         _("expecting either 'human_feedback_value' "
                           "or 'human_feedback_percentage', found neither."))
-                    % {'location': location}
+                    % {"location": location}
                 )
             if hasattr(self.page_desc, "human_feedback_value"):
                 vctx.add_warning(

@@ -27,11 +27,11 @@ except ImportError:
 
 
 # {{{ These are copied (and maybe modified) from django official unit tests
-class BaseEmailBackendTestsMixin(object):
+class BaseEmailBackendTestsMixin:
     email_backend = None
 
     def setUp(self):  # noqa
-        super(BaseEmailBackendTestsMixin, self).setUp()
+        super().setUp()
         self.email_backend_settings_override = (
             override_settings(EMAIL_BACKEND=self.email_backend))
         self.email_backend_settings_override.enable()
@@ -105,14 +105,14 @@ class LocmemBackendTestsMixin(BaseEmailBackendTestsMixin):
         mail.outbox = []
 
     def tearDown(self):  # noqa
-        super(LocmemBackendTestsMixin, self).tearDown()
+        super().tearDown()
         mail.outbox = []
 
 
 # }}}
 
 
-class suppress_stdout_decorator(object):  # noqa
+class suppress_stdout_decorator:  # noqa
     def __init__(self, suppress_stderr=False):
         self.original_stdout = None
         self.suppress_stderr = None

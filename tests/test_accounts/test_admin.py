@@ -1,5 +1,3 @@
-from __future__ import division
-
 __copyright__ = "Copyright (C) 2018 Dong Zhuang"
 
 __license__ = """
@@ -42,7 +40,7 @@ class AccountsAdminTest(AdminTestMixin, TestCase):
 
     @classmethod
     def setUpTestData(cls):  # noqa
-        super(AccountsAdminTest, cls).setUpTestData()
+        super().setUpTestData()
 
         cls.user_change_list_url = cls.get_admin_change_list_view_url()
         cls.superuser_change_url = (
@@ -58,16 +56,16 @@ class AccountsAdminTest(AdminTestMixin, TestCase):
 
     @classmethod
     def get_admin_change_list_view_url(cls):
-        return super(AccountsAdminTest, cls).get_admin_change_list_view_url(
+        return super().get_admin_change_list_view_url(
             app_name="accounts", model_name="user")
 
     @classmethod
     def get_admin_change_view_url(cls, args=None):
-        return super(AccountsAdminTest, cls).get_admin_change_view_url(
+        return super().get_admin_change_view_url(
             app_name="accounts", model_name="user", args=args)
 
     def setUp(self):
-        super(AccountsAdminTest, self).setUp()
+        super().setUp()
         self.superuser.refresh_from_db()
         self.rf = RequestFactory()
 

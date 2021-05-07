@@ -20,9 +20,9 @@ Host doc-upload
    StrictHostKeyChecking false
 END
 
-make html
+make html SPHINXOPTS="-W --keep-going -n"
 
-if test -n "${DOC_UPLOAD_KEY}"; then
+if test -n "${DOC_UPLOAD_KEY}" && test "$CI_COMMIT_REF_NAME" = "main"; then
   echo "${DOC_UPLOAD_KEY}" > doc_upload_key
   chmod 0600 doc_upload_key
   RSYNC_RSH="ssh -F doc_upload_ssh_config" ./upload-docs.sh || { rm doc_upload_key; exit 1; }

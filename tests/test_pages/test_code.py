@@ -82,12 +82,11 @@ AUTO_FEEDBACK_POINTS_OUT_OF_RANGE_ERROR_MSG_PATTERN = (
 class SingleCourseQuizPageCodeQuestionTest(
             SingleCourseQuizPageTestMixin, MockAddMessageMixing,
             SubprocessRunpyContainerMixin, TestCase):
-
     skip_code_question = False
 
     @classmethod
     def setUpTestData(cls):  # noqa
-        super(SingleCourseQuizPageCodeQuestionTest, cls).setUpTestData()
+        super().setUpTestData()
         cls.start_flow(cls.flow_id)
 
     def test_code_page_correct(self):
@@ -211,7 +210,6 @@ class SingleCourseQuizPageCodeQuestionTest(
 class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
                        SubprocessRunpyContainerMixin, LocmemBackendTestsMixin,
                        TestCase):
-
     def test_data_files_missing_random_question_data_file(self):
         file_name = "foo"
         markdown = (
@@ -1332,11 +1330,11 @@ class CodeQuestionWithHumanTextFeedbackSpecialCase(
 
     @classmethod
     def setUpTestData(cls):  # noqa
-        super(CodeQuestionWithHumanTextFeedbackSpecialCase, cls).setUpTestData()
+        super().setUpTestData()
         cls.start_flow(cls.flow_id)
 
     def setUp(self):  # noqa
-        super(CodeQuestionWithHumanTextFeedbackSpecialCase, self).setUp()
+        super().setUp()
         self.rf = RequestFactory()
 
     def get_grade_feedback(self, answer_data, page_value,

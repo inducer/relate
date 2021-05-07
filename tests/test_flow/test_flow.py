@@ -1,5 +1,3 @@
-from __future__ import division
-
 __copyright__ = "Copyright (C) 2018 Dong Zhuang"
 
 __license__ = """
@@ -73,7 +71,7 @@ class AdjustFlowSessionPageDataTest(
 
     @classmethod
     def setUpTestData(cls):  # noqa
-        super(AdjustFlowSessionPageDataTest, cls).setUpTestData()
+        super().setUpTestData()
         cls.start_flow(flow_id=cls.flow_id)
 
     def test_remove_rename_and_revive(self):
@@ -235,7 +233,7 @@ class GradePageVisitTest(SingleCourseQuizPageTestMixin, TestCase):
 class StartFlowTest(CoursesTestMixinBase, unittest.TestCase):
     # test flow.start_flow
     def setUp(self):
-        super(StartFlowTest, self).setUp()
+        super().setUp()
         self.repo = mock.MagicMock()
 
         self.course = factories.CourseFactory()
@@ -384,7 +382,7 @@ class AssemblePageGradesTest(HackRepoMixin,
     initial_commit_sha = "my_fake_commit_sha_for_grades1"
 
     def setUp(self):
-        super(AssemblePageGradesTest, self).setUp()
+        super().setUp()
         self.student = self.student_participation.user
 
         # start_flow is done per tests instead of class level
@@ -611,7 +609,7 @@ class AssembleAnswerVisitsTest(unittest.TestCase):
     # test flow.assemble_answer_visits (flowsession.answer_visits())
 
     def setUp(self):
-        super(AssembleAnswerVisitsTest, self).setUp()
+        super().setUp()
         self.course = factories.CourseFactory()
         self.participation = factories.ParticipationFactory(course=self.course)
 
@@ -694,7 +692,7 @@ class AssembleAnswerVisitsTest(unittest.TestCase):
         self.assertEqual(len([v for v in answer_visits if v is not None]), 0)
 
 
-class MockPage(object):
+class MockPage:
     def __init__(self, expects_answer, is_answer_gradable):
         self._is_answer_gradable = is_answer_gradable
         self._expects_answer = expects_answer
@@ -706,7 +704,7 @@ class MockPage(object):
         return self._expects_answer
 
 
-class FakePageData(object):
+class FakePageData:
     def __init__(self, page_ordinal, expects_answer, is_answer_gradable):
         self.page_ordinal = page_ordinal
         self._is_answer_gradable = is_answer_gradable
@@ -939,7 +937,7 @@ class FinishFlowSessionViewTest(HackRepoMixin,
     initial_commit_sha = "my_fake_commit_sha_for_finish_flow_session"
 
     def setUp(self):
-        super(FinishFlowSessionViewTest, self).setUp()
+        super().setUp()
         self.student = self.student_participation.user
         self.start_flow(self.flow_id)
 
@@ -1503,7 +1501,7 @@ class FinishFlowSessionViewTest(HackRepoMixin,
 class FinishFlowSessionTest(SingleCourseTestMixin, TestCase):
     # test flow.finish_flow_session
     def setUp(self):
-        super(FinishFlowSessionTest, self).setUp()
+        super().setUp()
         self.fctx = mock.MagicMock()
 
     def test_finish_non_in_progress_session(self):
@@ -1693,7 +1691,7 @@ class FinishFlowSessionTest(SingleCourseTestMixin, TestCase):
 class ExpireFlowSessionTest(SingleCourseTestMixin, TestCase):
     # test flow.expire_flow_session
     def setUp(self):
-        super(ExpireFlowSessionTest, self).setUp()
+        super().setUp()
         self.fctx = mock.MagicMock()
 
         fake_adjust_flow_session_page_data = mock.patch(
@@ -1920,7 +1918,7 @@ class GradeFlowSessionTest(SingleCourseQuizPageTestMixin,
     initial_commit_sha = "my_fake_commit_sha_for_grade_flow_session"
 
     def setUp(self):
-        super(GradeFlowSessionTest, self).setUp()
+        super().setUp()
 
         self.fctx = mock.MagicMock()
         self.fctx.title = "my flow session title"
@@ -2431,7 +2429,7 @@ class UnsubmitPageTest(unittest.TestCase):
 class ReopenSessionTest(SingleCourseTestMixin, TestCase):
     # test flow.reopen_session
     def setUp(self):
-        super(ReopenSessionTest, self).setUp()
+        super().setUp()
 
         fake_assemble_answer_visits = mock.patch(
             "course.flow.assemble_answer_visits")
@@ -2541,7 +2539,7 @@ class FinishFlowSessionStandaloneTest(SingleCourseTestMixin, TestCase):
     # test flow.finish_flow_session_standalone
 
     def setUp(self):
-        super(FinishFlowSessionStandaloneTest, self).setUp()
+        super().setUp()
 
         fake_get_session_grading_rule = mock.patch(
             "course.flow.get_session_grading_rule")
@@ -2687,7 +2685,7 @@ class ExpireFlowSessionStandaloneTest(SingleCourseTestMixin, TestCase):
     # test flow.expire_flow_session_standalone
 
     def setUp(self):
-        super(ExpireFlowSessionStandaloneTest, self).setUp()
+        super().setUp()
 
         fake_get_session_grading_rule = mock.patch(
             "course.flow.get_session_grading_rule")
@@ -2767,7 +2765,7 @@ class ExpireFlowSessionStandaloneTest(SingleCourseTestMixin, TestCase):
 class RegradeSessionTest(SingleCourseTestMixin, TestCase):
     # test flow.regrade_session
     def setUp(self):
-        super(RegradeSessionTest, self).setUp()
+        super().setUp()
 
         fake_adjust_flow_session_page_data = mock.patch(
             "course.flow.adjust_flow_session_page_data")
@@ -2869,7 +2867,7 @@ class RegradeSessionTest(SingleCourseTestMixin, TestCase):
 
 class RecalculateSessionGradeTest(SingleCourseTestMixin, TestCase):
     def setUp(self):
-        super(RecalculateSessionGradeTest, self).setUp()
+        super().setUp()
 
         fake_adjust_flow_session_page_data = mock.patch(
             "course.flow.adjust_flow_session_page_data")
@@ -2944,7 +2942,7 @@ class RecalculateSessionGradeTest(SingleCourseTestMixin, TestCase):
 class LockDownIfNeededTest(unittest.TestCase):
     # test flow.lock_down_if_needed
     def setUp(self):
-        super(LockDownIfNeededTest, self).setUp()
+        super().setUp()
         self.flow_session = mock.MagicMock()
         self.flow_session.id = 1
         self.flow_session.pk = 1
@@ -2983,7 +2981,7 @@ class ViewStartFlowTest(SingleCourseTestMixin, TestCase):
     flow_id = QUIZ_FLOW_ID
 
     def setUp(self):
-        super(ViewStartFlowTest, self).setUp()
+        super().setUp()
 
         fake_get_login_exam_ticket = mock.patch("course.flow.get_login_exam_ticket")
         self.mock_get_login_exam_ticket = fake_get_login_exam_ticket.start()
@@ -3168,7 +3166,7 @@ class PostStartFlowTest(SingleCourseTestMixin, TestCase):
     flow_id = QUIZ_FLOW_ID
 
     def setUp(self):
-        super(PostStartFlowTest, self).setUp()
+        super().setUp()
 
         fake_get_login_exam_ticket = mock.patch("course.flow.get_login_exam_ticket")
         self.mock_get_login_exam_ticket = fake_get_login_exam_ticket.start()
@@ -3287,7 +3285,7 @@ class ViewResumeFlowTest(SingleCourseTestMixin, TestCase):
     # test flow.view_resume_flow
 
     def setUp(self):
-        super(ViewResumeFlowTest, self).setUp()
+        super().setUp()
 
         fake_get_now_or_fake_time = mock.patch(
             "course.flow.get_now_or_fake_time")
@@ -3350,7 +3348,7 @@ class GetAndCheckFlowSessionTest(SingleCourseTestMixin, TestCase):
     # test flow.get_and_check_flow_session
 
     def setUp(self):
-        super(GetAndCheckFlowSessionTest, self).setUp()
+        super().setUp()
         self.rf = RequestFactory()
 
     def get_pctx(self, request_user):
@@ -3972,7 +3970,7 @@ class GetPageBehaviorTest(unittest.TestCase):
 class AddButtonsToFormTest(unittest.TestCase):
     # test flow.add_buttons_to_form
     def setUp(self):
-        super(AddButtonsToFormTest, self).setUp()
+        super().setUp()
         self.flow_session = mock.MagicMock()
         self.fpctx = mock.MagicMock()
 
@@ -4102,7 +4100,7 @@ class AddButtonsToFormTest(unittest.TestCase):
 class CreateFlowPageVisitTest(SingleCourseTestMixin, TestCase):
     # test flow.create_flow_page_visit
     def setUp(self):
-        super(CreateFlowPageVisitTest, self).setUp()
+        super().setUp()
         rf = RequestFactory()
         self.request = rf.get(self.get_course_page_url())
 
@@ -4150,7 +4148,7 @@ class ViewFlowPageTest(SingleCourseQuizPageTestMixin, HackRepoMixin, TestCase):
     # test flow.view_flow_page for not covered part by other tests
 
     def setUp(self):
-        super(ViewFlowPageTest, self).setUp()
+        super().setUp()
 
         fake_lock_down_if_needed = mock.patch(
             "course.flow.lock_down_if_needed")
@@ -4404,7 +4402,7 @@ class PostFlowPageTest(HackRepoMixin, SingleCourseQuizPageTestMixin, TestCase):
 
     @classmethod
     def setUpTestData(cls):  # noqa
-        super(PostFlowPageTest, cls).setUpTestData()
+        super().setUpTestData()
 
         # We only concern one page, so it can be put here to speed up
         cls.start_flow(cls.flow_id)
@@ -4415,7 +4413,7 @@ class PostFlowPageTest(HackRepoMixin, SingleCourseQuizPageTestMixin, TestCase):
         cls.page_data = models.FlowPageData.objects.get(page_id=cls.page_id)
 
     def setUp(self):
-        super(PostFlowPageTest, self).setUp()
+        super().setUp()
         self.flow_session.refresh_from_db()
         self.page_data.refresh_from_db()
         self.fpctx = mock.MagicMock()
@@ -4559,7 +4557,7 @@ class SendEmailAboutFlowPageTest(HackRepoMixin,
 
     @classmethod
     def setUpTestData(cls):  # noqa
-        super(SendEmailAboutFlowPageTest, cls).setUpTestData()
+        super().setUpTestData()
 
         # We only conern one page, so it can be put here to speed up
         cls.start_flow(cls.flow_id)
@@ -4570,7 +4568,7 @@ class SendEmailAboutFlowPageTest(HackRepoMixin,
         cls.page_data = models.FlowPageData.objects.get(page_id=cls.page_id)
 
     def setUp(self):
-        super(SendEmailAboutFlowPageTest, self).setUp()
+        super().setUp()
 
         fake_get_session_access_rule = mock.patch(
             "course.flow.get_session_access_rule")
@@ -4782,7 +4780,7 @@ class UpdatePageBookmarkStateTest(SingleCourseQuizPageTestMixin, TestCase):
     # test flow.update_page_bookmark_state
 
     def setUp(self):
-        super(UpdatePageBookmarkStateTest, self).setUp()
+        super().setUp()
         self.start_flow(self.flow_id)
         self.flow_session = models.FlowSession.objects.last()
 
@@ -4846,7 +4844,7 @@ class UpdateExpirationModeTest(SingleCourseQuizPageTestMixin, TestCase):
     # test flow.update_expiration_mode
 
     def setUp(self):
-        super(UpdateExpirationModeTest, self).setUp()
+        super().setUp()
         self.start_flow(self.flow_id)
         self.flow_session = models.FlowSession.objects.last()
 
@@ -4946,7 +4944,7 @@ class RegradeFlowsViewTest(SingleCourseQuizPageTestMixin, TestCase):
     # test flow.regrade_flows_view
 
     def setUp(self):
-        super(RegradeFlowsViewTest, self).setUp()
+        super().setUp()
         self.c.force_login(self.instructor_participation.user)
 
         fake_regrade_task = mock.patch(
@@ -5050,13 +5048,13 @@ class ViewUnsubmitFlowPageTest(SingleCourseQuizPageTestMixin, TestCase):
 
     @classmethod
     def setUpTestData(cls):  # noqa
-        super(ViewUnsubmitFlowPageTest, cls).setUpTestData()
+        super().setUpTestData()
         with cls.temporarily_switch_to_user(cls.student_participation.user):
             cls.start_flow(cls.flow_id)
             cls.submit_page_answer_by_page_id_and_test(page_id=cls.page_id)
 
     def setUp(self):
-        super(ViewUnsubmitFlowPageTest, self).setUp()
+        super().setUp()
         self.c.force_login(self.instructor_participation.user)
 
         fake_unsubmit_page = mock.patch(

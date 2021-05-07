@@ -1,5 +1,3 @@
-from __future__ import division
-
 __copyright__ = "Copyright (C) 2018 Dong Zhuang"
 
 __license__ = """
@@ -628,7 +626,7 @@ class MultiChoicesQuestionTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
         expected_page_error = (
             "choice 2: unable to convert to string")
 
-        class BadChoice(object):
+        class BadChoice:
             def __str__(self):
                 raise Exception
 
@@ -668,7 +666,7 @@ class MultiChoicesQuestionTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
 class BrokenPageDataTest(SingleCoursePageTestMixin, TestCase):
     @classmethod
     def setUpTestData(cls):  # noqa
-        super(BrokenPageDataTest, cls).setUpTestData()
+        super().setUpTestData()
         cls.start_flow(cls.flow_id)
         cls.end_flow()
         from course.models import FlowPageData
@@ -676,7 +674,7 @@ class BrokenPageDataTest(SingleCoursePageTestMixin, TestCase):
         cls.fpd = FlowPageData.objects.get(page_id=cls.page_id)
 
     def setUp(self):
-        super(BrokenPageDataTest, self).setUp()
+        super().setUp()
         self.fpd.refresh_from_db()
 
     def test_broken_page_data_no_permutation(self):
@@ -762,7 +760,7 @@ class SurveyChoiceQuestionExtra(SingleCoursePageSandboxTestBaseMixin, TestCase):
         expected_page_error = (
             "choice 10: unable to convert to string")
 
-        class BadChoice(object):
+        class BadChoice:
             def __str__(self):
                 raise Exception
 

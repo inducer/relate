@@ -1,5 +1,3 @@
-from __future__ import division
-
 __copyright__ = "Copyright (C) 2018 Dong Zhuang"
 
 __license__ = """
@@ -396,7 +394,7 @@ class RenumberEventsTest(SingleCourseTestMixin,
 
     @classmethod
     def setUpTestData(cls):  # noqa
-        super(RenumberEventsTest, cls).setUpTestData()
+        super().setUpTestData()
         times = []
         now_time = now()
         for i in range(5):
@@ -418,7 +416,7 @@ class RenumberEventsTest(SingleCourseTestMixin,
         cls.evt_another_kind2_ordinal = cls.evt_another_kind2.ordinal
 
     def setUp(self):
-        super(RenumberEventsTest, self).setUp()
+        super().setUp()
         self.evt1.refresh_from_db()
         self.evt2.refresh_from_db()
         self.evt3.refresh_from_db()
@@ -593,7 +591,7 @@ class ViewCalendarTest(SingleCourseTestMixin, HackRepoMixin, TestCase):
     default_event_kind = "lecture"
 
     def setUp(self):
-        super(ViewCalendarTest, self).setUp()
+        super().setUp()
         fake_get_now_or_fake_time = mock.patch(
             "course.views.get_now_or_fake_time")
         self.mock_get_now_or_fake_time = fake_get_now_or_fake_time.start()

@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 __copyright__ = "Copyright (C) 2014 Andreas Kloeckner, Zesheng Wang, Dong Zhuang"
 
 __license__ = """
@@ -23,7 +21,6 @@ THE SOFTWARE.
 """
 
 import pytest
-from base64 import b64encode
 
 import unittest
 from django.test import TestCase
@@ -51,7 +48,7 @@ class SingleCourseQuizPageTest(SingleCourseQuizPageTestMixin,
                                MockAddMessageMixing, TestCase):
     @classmethod
     def setUpTestData(cls):  # noqa
-        super(SingleCourseQuizPageTest, cls).setUpTestData()
+        super().setUpTestData()
 
         # cls.default_flow_params will only be available after a flow is started
         cls.start_flow(cls.flow_id)
@@ -96,7 +93,7 @@ class SingleCourseQuizPageTest(SingleCourseQuizPageTestMixin,
 
                 with self.subTest(page_id=page_id,
                                   name="no answer download submission"):
-                    group_page_id = "%s/%s" % (group_id, page_id)
+                    group_page_id = f"{group_id}/{page_id}"
 
                     # ensure download submissions work when no answer_data
                     resp = self.post_download_all_submissions_by_group_page_id(
@@ -275,7 +272,7 @@ class SingleCourseQuizPageTest(SingleCourseQuizPageTestMixin,
         self.assertAddMessageCalledWith(MESSAGE_ANSWER_SAVED_TEXT)
 
         with open(TEST_TEXT_FILE_PATH, 'rb') as fp:
-            expected_result1 = b64encode(fp.read()).decode()
+            expected_result1 = fp.read()
 
         # change answer
         submit_answer_response, post_grade_response = (
@@ -286,19 +283,25 @@ class SingleCourseQuizPageTest(SingleCourseQuizPageTestMixin,
         self.assertAddMessageCalledWith(MESSAGE_ANSWER_SAVED_TEXT)
 
         with open(TEST_PDF_FILE_PATH, 'rb') as fp:
-            expected_result2 = b64encode(fp.read()).decode()
+            expected_result2 = fp.read()
 
         page_ordinal = self.get_page_ordinal_via_page_id(page_id)
         self.assertSubmitHistoryItemsCount(page_ordinal=page_ordinal,
                                            expected_count=2)
 
+        from course.page.upload import FileUploadQuestion
+
         answer_visits_qset = (
             self.get_page_visits(page_id=page_id, answer_visit=True))
         self.assertEqual(answer_visits_qset.count(), 2)
         self.assertEqual(
-            answer_visits_qset[1].answer["base64_data"], expected_result2)
+            FileUploadQuestion.get_content_from_answer_data(
+                answer_visits_qset[1].answer)[0],
+            expected_result2)
         self.assertEqual(
-            answer_visits_qset[0].answer["base64_data"], expected_result1)
+            FileUploadQuestion.get_content_from_answer_data(
+                answer_visits_qset[0].answer)[0],
+            expected_result1)
 
     def test_fileupload_pdf_wrong_mime_type(self):
         page_id = "proof"
@@ -327,10 +330,14 @@ class SingleCourseQuizPageTest(SingleCourseQuizPageTestMixin,
         self.assertAddMessageCalledWith(MESSAGE_ANSWER_SAVED_TEXT)
 
         with open(TEST_PDF_FILE_PATH, 'rb') as fp:
-            expected_result = b64encode(fp.read()).decode()
+            expected_result = fp.read()
 
+        from course.page.upload import FileUploadQuestion
         last_answer_visit = self.get_last_answer_visit()
-        self.assertEqual(last_answer_visit.answer["base64_data"], expected_result)
+        self.assertEqual(
+                FileUploadQuestion.get_content_from_answer_data(
+                    last_answer_visit.answer)[0],
+                expected_result)
 
     # }}}
 

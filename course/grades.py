@@ -312,7 +312,7 @@ def export_gradebook_csv(pctx):
 
     import csv
 
-    fieldnames = ['user_name', 'last_name', 'first_name'] + [
+    fieldnames = ["user_name", "last_name", "first_name"] + [
             gopp.identifier for gopp in grading_opps]
 
     writer = csv.writer(csvfile)
@@ -330,7 +330,7 @@ def export_gradebook_csv(pctx):
     response = http.HttpResponse(
             csvfile.getvalue().encode("utf-8"),
             content_type="text/plain; charset=utf-8")
-    response['Content-Disposition'] = (
+    response["Content-Disposition"] = (
             'attachment; filename="grades-%s.csv"'
             % pctx.course.identifier)
     return response
@@ -1144,7 +1144,7 @@ class ImportGradesForm(StyledForm):
                     header_count)
 
             if not importable:
-                self.add_error('file', err_msg)
+                self.add_error("file", err_msg)
 
 
 class ParticipantNotFound(ValueError):
@@ -1324,8 +1324,8 @@ def csv_to_grade_changes(
                                 "%(participation)s: %(updated)s ",
                                 _("updated")
                                 ) % {
-                                    'participation': gchange.participation,
-                                    'updated': ", ".join(updated)})
+                                    "participation": gchange.participation,
+                                    "updated": ", ".join(updated)})
 
                     result.append(gchange)
             else:
@@ -1388,8 +1388,8 @@ def import_grades(pctx):
                 if total_count != len(grade_changes):
                     messages.add_message(pctx.request, messages.INFO,
                             _("%(total)d grades found, %(unchaged)d unchanged.")
-                            % {'total': total_count,
-                               'unchaged': total_count - len(grade_changes)})
+                            % {"total": total_count,
+                               "unchaged": total_count - len(grade_changes)})
 
                 from django.template.loader import render_to_string
 
@@ -1616,7 +1616,7 @@ def download_all_submissions(pctx, flow_id):
             response = http.HttpResponse(
                     bio.getvalue(),
                     content_type="application/zip")
-            response['Content-Disposition'] = (
+            response["Content-Disposition"] = (
                     'attachment; filename="submissions_%s_%s_%s_%s_%s.zip"'
                     % (pctx.course.identifier, flow_id, group_id, page_id,
                         now().date().strftime("%Y-%m-%d")))
@@ -1684,7 +1684,7 @@ def edit_grading_opportunity(pctx, opportunity_id):
         raise SuspiciousOperation(
                 "may not edit grading opportunity in different course")
 
-    if request.method == 'POST':
+    if request.method == "POST":
         form = EditGradingOpportunityForm(add_new, request.POST, instance=gopp)
 
         if form.is_valid():

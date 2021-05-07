@@ -49,7 +49,7 @@ class TextAnswerForm(StyledForm):
 
     @staticmethod
     def get_text_widget(widget_type, read_only=False, check_only=False,
-            interaction_mode=None):
+            interaction_mode=None, initial_text=None):
         """Returns None if no widget found."""
 
         if widget_type in [None, "text_input"]:
@@ -89,6 +89,7 @@ class TextAnswerForm(StyledForm):
 
     def __init__(self, read_only, interaction_mode, validators, *args, **kwargs):
         widget_type = kwargs.pop("widget_type", "text_input")
+        initial_text = kwargs.pop("initial_text", None)
 
         super(TextAnswerForm, self).__init__(*args, **kwargs)
         widget, help_text = self.get_text_widget(
@@ -97,6 +98,7 @@ class TextAnswerForm(StyledForm):
         self.validators = validators
         self.fields["answer"] = forms.CharField(
                 required=True,
+                initial=initial_text,
                 widget=widget,
                 help_text=help_text,
                 label=_("Answer"))
@@ -181,7 +183,7 @@ def get_validator_class(location, validator_type):
                 "%(location)s: ",
                 _("unknown validator type"),
                 "'%(type)s'")
-            % {'location': location, 'type': validator_type})
+            % {"location": location, "type": validator_type})
 
 
 def parse_validator(vctx, location, validator_desc):
@@ -340,7 +342,7 @@ class SymbolicExpressionMatcher(TextAnswerMatcher):
                             _("unable to check symbolic expression"),
                             "(%(err_type)s: %(err_str)s)")
                         % {
-                            'location': location,
+                            "location": location,
                             "err_type": tp.__name__,
                             "err_str": str(e)
                             })
@@ -550,9 +552,9 @@ def get_matcher_class(location, matcher_type, pattern_type):
                         _("%(matcherclassname)s only accepts "
                             "'%(matchertype)s' patterns"))
                         % {
-                            'location': location,
-                            'matcherclassname': matcher_class.__name__,
-                            'matchertype': matcher_class.pattern_type})
+                            "location": location,
+                            "matcherclassname": matcher_class.__name__,
+                            "matchertype": matcher_class.pattern_type})
 
             return matcher_class
 
@@ -561,8 +563,8 @@ def get_matcher_class(location, matcher_type, pattern_type):
                 "%(location)s: ",
                 _("unknown match type '%(matchertype)s'"))
             % {
-                'location': location,
-                'matchertype': matcher_type})
+                "location": location,
+                "matchertype": matcher_type})
 
 
 def parse_matcher_string(vctx, location, matcher_desc):
@@ -650,6 +652,9 @@ class TextQuestionBase(PageBaseWithTitle):
 
         |text-widget-page-attr|
 
+    .. attribute:: initial_text
+
+        Text with which to prepopulate the input widget.
     """
     def __init__(self, vctx, location, page_desc):
         super(TextQuestionBase, self).__init__(vctx, location, page_desc)
@@ -665,8 +670,8 @@ class TextQuestionBase(PageBaseWithTitle):
                         _("unrecognized widget type"),
                         "'%(type)s'")
                     % {
-                        'location': location,
-                        'type': getattr(page_desc, "widget")})
+                        "location": location,
+                        "type": getattr(page_desc, "widget")})
 
     def required_attrs(self):
         return super(TextQuestionBase, self).required_attrs() + (
@@ -676,6 +681,7 @@ class TextQuestionBase(PageBaseWithTitle):
     def allowed_attrs(self):
         return super(TextQuestionBase, self).allowed_attrs() + (
                 ("widget", str),
+                ("initial_text", str),
                 )
 
     def markup_body_for_title(self):
@@ -695,6 +701,7 @@ class TextQuestionBase(PageBaseWithTitle):
             "interaction_mode": getattr(self.page_desc, "widget", None),
             "validators": self.get_validators(),
             "widget_type": getattr(self.page_desc, "widget", None),
+            "initial_text": getattr(self.page_desc, "initial_text", None),
         }
 
         if answer_data is not None:
@@ -770,6 +777,10 @@ class SurveyTextQuestion(TextQuestionBase):
 
         |text-widget-page-attr|
 
+    .. attribute:: initial_text
+
+        Text with which to prepopulate the input widget.
+
     .. attribute:: answer_comment
 
         A comment that is shown in the same situations a 'correct answer' would
@@ -803,7 +814,30 @@ class SurveyTextQuestion(TextQuestionBase):
 
 class TextQuestion(TextQuestionBase, PageBaseWithValue):
     """
-    A page asking for a textual answer
+    A page asking for a textual answer.
+
+    Example:
+
+    .. code-block:: yaml
+
+        type: TextQuestion
+        id: fwd_err
+        prompt: |
+            # Forward Error
+            Consider the function $f(x)=1/x$, which we approximate by its Taylor
+            series about 1:
+            $$
+              f(x)\\approx 1-(x-1)+\\cdots
+            $$
+            What is the **forward error** of using this approximation at $x=0.5$?
+        answers:
+        -   type: float
+            value: 0.5
+            rtol: 0.01
+        -   <plain>HI THERE
+        answer_explanation: |
+
+            That's just what it is.
 
     .. attribute:: id
 
@@ -836,6 +870,10 @@ class TextQuestion(TextQuestionBase, PageBaseWithValue):
     .. attribute:: widget
 
         |text-widget-page-attr|
+
+    .. attribute:: initial_text
+
+        Text with which to prepopulate the input widget.
 
     .. attribute:: answers
 
@@ -1015,6 +1053,10 @@ class HumanGradedTextQuestion(TextQuestionBase, PageBaseWithValue,
     .. attribute:: widget
 
         |text-widget-page-attr|
+
+    .. attribute:: initial_text
+
+        Text with which to prepopulate the input widget.
 
     .. attribute:: validators
 

@@ -396,8 +396,8 @@ def grade_flow_page(pctx, flow_session_id, page_ordinal):
 
                 # Wrappers used by JavaScript template (tmpl) so as not to
                 # conflict with Django template's tag wrapper
-                "JQ_OPEN": '{%',
-                'JQ_CLOSE': '%}',
+                "JQ_OPEN": "{%",
+                "JQ_CLOSE": "%}",
             })
 
 

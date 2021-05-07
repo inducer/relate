@@ -1,5 +1,3 @@
-from __future__ import division
-
 __copyright__ = "Copyright (C) 2018 Dong Zhuang"
 
 __license__ = """
@@ -37,21 +35,21 @@ from tests.constants import QUIZ_FLOW_ID
 class CourseAdminTestMixin(AdminTestMixin):
     @classmethod
     def get_admin_course_change_list_view_url(cls, model_name):
-        return super(CourseAdminTestMixin, cls).get_admin_change_list_view_url(
+        return super().get_admin_change_list_view_url(
             app_name="course", model_name=model_name.lower())
 
     @classmethod
     def get_admin_course_add_view_url(cls, model_name):
-        return super(CourseAdminTestMixin, cls).get_admin_add_view_url(
+        return super().get_admin_add_view_url(
             app_name="course", model_name=model_name.lower())
 
     @classmethod
     def get_admin_course_change_view_url(cls, model_name, args=None):
-        return super(CourseAdminTestMixin, cls).get_admin_change_view_url(
+        return super().get_admin_change_view_url(
             app_name="course", model_name=model_name.lower(), args=args)
 
     def setUp(self):
-        super(CourseAdminTestMixin, self).setUp()
+        super().setUp()
         self.superuser.refresh_from_db()
         self.rf = RequestFactory()
 
@@ -183,7 +181,7 @@ class CourseAdminGenericTest(CourseAdminTestMixin, TestCase):
 class CourseAdminSessionRelatedMixin(CourseAdminTestMixin):
     @classmethod
     def setUpTestData(cls):  # noqa
-        super(CourseAdminSessionRelatedMixin, cls).setUpTestData()
+        super().setUpTestData()
 
         course1_session = factories.FlowSessionFactory.create(
             participation=cls.course1_student_participation2,
@@ -382,7 +380,7 @@ class ParticipationAdminTest(CourseAdminTestMixin, TestCase):
 @pytest.mark.slow
 class ParticipationFormTest(CourseAdminTestMixin, TestCase):
     def setUp(self):
-        super(ParticipationFormTest, self).setUp()
+        super().setUp()
         self.test_user = factories.UserFactory()
 
     def test_clean_success(self):

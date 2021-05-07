@@ -3,24 +3,18 @@ RELATE
 
 Relate is an Environment for Learning And TEaching
 
-.. image:: https://gitlab.tiker.net/inducer/relate/badges/master/pipeline.svg
+.. image:: https://gitlab.tiker.net/inducer/relate/badges/main/pipeline.svg
     :alt: Gitlab Build Status
-    :target: https://gitlab.tiker.net/inducer/relate/commits/master
-.. image:: https://github.com/inducer/relate/workflows/CI/badge.svg?branch=master&event=push
+    :target: https://gitlab.tiker.net/inducer/relate/commits/main
+.. image:: https://github.com/inducer/relate/workflows/CI/badge.svg?branch=main
     :alt: Github Build Status
-    :target: https://github.com/inducer/relate/actions?query=branch%3Amaster+workflow%3ACI+event%3Apush
-.. image:: https://codecov.io/gh/inducer/relate/branch/master/graph/badge.svg
-    :alt: Codecov Coverage Status
-    :target: https://codecov.io/gh/inducer/relate/commits
-.. image:: https://ci.appveyor.com/api/projects/status/d5bigdw90bxnfdgy?svg=true
-    :alt: Appveyor CI Status
-    :target: https://ci.appveyor.com/project/inducer/relate
+    :target: https://github.com/inducer/relate/actions?query=branch%3Amain+workflow%3ACI
 .. image:: https://badge.fury.io/py/relate-courseware.png
     :alt: Python Package Index Release Page
     :target: https://pypi.org/project/relate-courseware/
 
 +----------------------------------------------------------------------------------------------+------------------------------------------------------------------------------------------------+
-| .. image:: https://raw.githubusercontent.com/inducer/relate/master/doc/images/screenshot.png | .. image:: https://raw.githubusercontent.com/inducer/relate/master/doc/images/screenshot-2.png |
+| .. image:: https://raw.githubusercontent.com/inducer/relate/main/doc/images/screenshot.png | .. image:: https://raw.githubusercontent.com/inducer/relate/main/doc/images/screenshot-2.png |
 +----------------------------------------------------------------------------------------------+------------------------------------------------------------------------------------------------+
 
 RELATE is a web-based courseware package.  It is set apart by the following
@@ -52,9 +46,6 @@ features:
 * Facilitates live quizzes in the classroom.
 * In-class instant messaging via XMPP.
   Works well with `xmpp-popup <https://github.com/inducer/xmpp-popup>`_.
-* Built-in support for `VideoJS <http://www.videojs.com/>`_ offers
-  easy-to-use support for integrating HTML5 video into course content
-  without the need for third-party content hosting.
 
 Links
 -----

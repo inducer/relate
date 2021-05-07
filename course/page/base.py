@@ -25,6 +25,7 @@ THE SOFTWARE.
 """
 
 import django.forms as forms
+from django import http
 
 from course.validation import validate_struct, ValidationError
 from course.constants import MAX_EXTRA_CREDIT_FACTOR
@@ -40,17 +41,60 @@ from django.conf import settings
 
 # {{{ mypy
 
-from typing import Text, Optional, Any, Tuple, Dict, Callable, FrozenSet, Union, TYPE_CHECKING  # noqa
+from typing import (Text, Optional, Any, Tuple, Dict, Callable, FrozenSet, Union,
+        TYPE_CHECKING)
+
 if TYPE_CHECKING:
-    from django import http  # noqa
+    # FIXME There seem to be some cyclic imports that prevent importing these
+    # outright.
     from course.models import (  # noqa
             Course,
             FlowSession
             )
-    from course.content import Repo_ish  # noqa
+    from relate.utils import Repo_ish
 
 # }}}
 
+
+__doc__ = """
+Stub Docs of Internals
+======================
+
+.. class:: Repo_ish
+
+    See ``relate.utils.Repo_ish``.
+
+.. class:: Course
+
+    See ``course.models.Course``.
+
+.. class:: FlowSession
+
+    See ``course.models.FlowSession``.
+
+Page Interface
+==============
+
+.. autoclass:: PageContext
+.. autoclass:: PageBehavior
+
+.. autoclass:: AnswerFeedback
+
+.. exception:: InvalidPageData
+
+Base Classes For Pages
+======================
+
+.. autoclass:: PageBase
+.. autoclass:: PageBaseWithTitle
+.. autoclass:: PageBaseWithHumanTextFeedback
+.. autoclass:: PageBaseWithCorrectAnswer
+
+Automatic Feedback
+==================
+
+.. autofunction:: get_auto_feedback
+"""
 
 mark_safe_lazy = lazy(mark_safe, str)
 
@@ -72,12 +116,12 @@ class PageContext(object):
 
     def __init__(
             self,
-            course,  # type: Course
-            repo,  # type: Repo_ish
-            commit_sha,  # type: bytes
-            flow_session,  # type: FlowSession
-            in_sandbox=False,  # type: bool
-            page_uri=None,  # type: Optional[str]
+            course: "Course",
+            repo: "Repo_ish",
+            commit_sha: bytes,
+            flow_session: "FlowSession",
+            in_sandbox: bool = False,
+            page_uri: Optional[str] = None,
             ):
         # type: (...) -> None
 
@@ -508,12 +552,11 @@ class PageBase(object):
 
     def answer_data(
             self,
-            page_context,  # type:  PageContext
-            page_data,  # type: Any
-            form,  # type: forms.Form
-            files_data,  # type: Any
-            ):
-        # type: (...) -> Any
+            page_context: PageContext,
+            page_data: Any,
+            form: forms.Form,
+            files_data: Any,
+            ) -> Any:
         """Return a JSON-persistable object reflecting the user's answer on the
         form. This will be passed to methods below as *answer_data*.
         """
@@ -540,12 +583,11 @@ class PageBase(object):
 
     def post_form(
             self,
-            page_context,  # type: PageContext
-            page_data,  # type: Any
-            post_data,  # type: Any
-            files_data  # type: Any
-            ):
-        # type: (...) -> forms.Form
+            page_context: PageContext,
+            page_data: Any,
+            post_data: Any,
+            files_data: Any,
+            ) -> forms.Form:
         raise NotImplementedError()
 
     def process_form_post(
@@ -555,8 +597,7 @@ class PageBase(object):
             post_data,  # type: Any
             files_data,  # type: Any
             page_behavior,  # type: PageBehavior
-            ):
-        # type: (...) -> forms.Form
+            ) -> forms.Form:
         """Return a form with the POST response from *post_data* and *files_data*
         filled in.
 
@@ -596,11 +637,10 @@ class PageBase(object):
 
     def make_grading_form(
             self,
-            page_context,  # type: PageContext
-            page_data,  # type: Any
-            grade_data  # type: Any
-            ):
-        # type: (...) -> forms.Form
+            page_context: PageContext,
+            page_data: Any,
+            grade_data: Any,
+            ) -> forms.Form:
         """
         :arg grade_data: value returned by
             :meth:`update_grade_data_from_grading_form_v2`.  May be *None*.
@@ -611,13 +651,12 @@ class PageBase(object):
 
     def post_grading_form(
             self,
-            page_context,  # type: PageContext
-            page_data,  # type: Any
-            grade_data,  # type: Any
-            post_data,  # type: Any
-            files_data  # type: Any
-            ):
-        # type: (...) -> forms.Form
+            page_context: PageContext,
+            page_data: Any,
+            grade_data: Any,
+            post_data: Any,
+            files_data: Any,
+            ) -> forms.Form:
         """Return a form with the POST response from *post_data* and *files_data*
         filled in.
 
@@ -1076,8 +1115,8 @@ class PageBaseWithHumanTextFeedback(PageBase):
                 msg = EmailMessage(
                         string_concat("[%(identifier)s:%(flow_id)s] ",
                             _("New notification"))
-                        % {'identifier': page_context.course.identifier,
-                            'flow_id': page_context.flow_session.flow_id},
+                        % {"identifier": page_context.course.identifier,
+                            "flow_id": page_context.flow_session.flow_id},
                         message,
                         getattr(settings, "GRADER_FEEDBACK_EMAIL_FROM",
                                 page_context.course.get_from_email()),
@@ -1124,9 +1163,9 @@ class PageBaseWithHumanTextFeedback(PageBase):
                 msg = EmailMessage(
                         string_concat("[%(identifier)s:%(flow_id)s] ",
                             _("Grading notes from %(ta)s"))
-                        % {'identifier': page_context.course.identifier,
-                           'flow_id': page_context.flow_session.flow_id,
-                           'ta': request.user.get_full_name()
+                        % {"identifier": page_context.course.identifier,
+                           "flow_id": page_context.flow_session.flow_id,
+                           "ta": request.user.get_full_name()
                            },
                         message,
                         getattr(settings, "GRADER_FEEDBACK_EMAIL_FROM",

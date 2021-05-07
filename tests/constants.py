@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import os
 from collections import namedtuple
 
@@ -13,8 +11,6 @@ FIXTURE_PATH = os.path.join(os.path.dirname(__file__), 'resource')
 CSV_PATH = os.path.join(FIXTURE_PATH, "csv")
 FAKED_YAML_PATH = os.path.join(FIXTURE_PATH, 'faked_yamls')
 
-COMMIT_SHA_SUPPORT_CUSTOM_PAGES = "593a1cdcecc6f4759fd5cadaacec0ba9dd0715a7"
-
 
 def get_upload_file_path(file_name, fixture_path=FIXTURE_PATH):
     return os.path.join(fixture_path, file_name)
@@ -23,7 +19,7 @@ def get_upload_file_path(file_name, fixture_path=FIXTURE_PATH):
 TEST_TEXT_FILE_PATH = get_upload_file_path("test_file.txt")
 TEST_PDF_FILE_PATH = get_upload_file_path("test_file.pdf")
 
-TEST_HGTEXT_MARKDOWN_ANSWER = u"""
+TEST_HGTEXT_MARKDOWN_ANSWER = """
 type: ChoiceQuestion
 id: myquestion
 shuffle: True
@@ -40,7 +36,7 @@ choices:
   - 四分之三
 """
 
-TEST_HGTEXT_MARKDOWN_ANSWER_WRONG = u"""
+TEST_HGTEXT_MARKDOWN_ANSWER_WRONG = """
 type: ChoiceQuestion
 id: myquestion
 shuffle: True

@@ -59,8 +59,8 @@ def expire_in_progress_sessions(self, course_id, flow_id, rule_tag, now_datetime
             count += 1
 
         self.update_state(
-                state='PROGRESS',
-                meta={'current': i, 'total': nsessions})
+                state="PROGRESS",
+                meta={"current": i, "total": nsessions})
 
     repo.close()
 
@@ -96,8 +96,8 @@ def finish_in_progress_sessions(self, course_id, flow_id, rule_tag, now_datetime
             count += 1
 
         self.update_state(
-                state='PROGRESS',
-                meta={'current': i, 'total': nsessions})
+                state="PROGRESS",
+                meta={"current": i, "total": nsessions})
 
     repo.close()
 
@@ -127,8 +127,8 @@ def recalculate_ended_sessions(self, course_id, flow_id, rule_tag):
         count += 1
 
         self.update_state(
-                state='PROGRESS',
-                meta={'current': count, 'total': nsessions})
+                state="PROGRESS",
+                meta={"current": count, "total": nsessions})
 
     repo.close()
 
@@ -161,8 +161,8 @@ def regrade_flow_sessions(self, course_id, flow_id, access_rules_tag, inprog_val
         count += 1
 
         self.update_state(
-                state='PROGRESS',
-                meta={'current': count, 'total': nsessions})
+                state="PROGRESS",
+                meta={"current": count, "total": nsessions})
 
     repo.close()
 

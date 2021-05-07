@@ -39,73 +39,73 @@ from course.constants import USER_STATUS_CHOICES
 
 class User(AbstractBaseUser, PermissionsMixin):
     username = models.CharField(
-        _('username'),
+        _("username"),
         max_length=30,
         unique=True,
         help_text=_(
-            'Required. 30 characters or fewer. Letters, digits and @/./+/-/_ only.'),
+            "Required. 30 characters or fewer. Letters, digits and @/./+/-/_ only."),
         validators=[ASCIIUsernameValidator()],
         error_messages={
-            'unique': _("A user with that username already exists."),
+            "unique": _("A user with that username already exists."),
         },
     )
-    first_name = models.CharField(_('first name'), max_length=100, blank=True)
-    last_name = models.CharField(_('last name'), max_length=100, blank=True)
-    email = models.EmailField(_('email address'), blank=True,
+    first_name = models.CharField(_("first name"), max_length=100, blank=True)
+    last_name = models.CharField(_("last name"), max_length=100, blank=True)
+    email = models.EmailField(_("email address"), blank=True,
             max_length=100)
     name_verified = models.BooleanField(
-        _('Name verified'),
+        _("Name verified"),
         default=False,
         help_text=_(
-            'Indicates that this user\'s name has been verified '
-            'as being associated with the individual able to sign '
-            'in to this account.'
+            "Indicates that this user's name has been verified "
+            "as being associated with the individual able to sign "
+            "in to this account."
         ),
     )
     is_active = models.BooleanField(
         pgettext_lazy("User status", "active"),
         default=True,
         help_text=_(
-            'Designates whether this user should be treated as active. '
-            'Unselect this instead of deleting accounts.'
+            "Designates whether this user should be treated as active. "
+            "Unselect this instead of deleting accounts."
         ),
     )
-    date_joined = models.DateTimeField(_('date joined'), default=timezone.now)
+    date_joined = models.DateTimeField(_("date joined"), default=timezone.now)
 
     objects = UserManager()
 
     is_staff = models.BooleanField(
-        _('staff status'),
+        _("staff status"),
         default=False,
-        help_text=_('Designates whether the user can log into this admin site.'),
+        help_text=_("Designates whether the user can log into this admin site."),
     )
 
     institutional_id = models.CharField(max_length=100,
-            verbose_name=_('Institutional ID'),
+            verbose_name=_("Institutional ID"),
             blank=True, null=True, unique=True, db_index=True)
     institutional_id_verified = models.BooleanField(
-        _('Institutional ID verified'),
+        _("Institutional ID verified"),
         default=False,
         help_text=_(
-            'Indicates that this user\'s institutional ID has been verified '
-            'as being associated with the individual able to log '
-            'in to this account.'
+            "Indicates that this user's institutional ID has been verified "
+            "as being associated with the individual able to log "
+            "in to this account."
         ),
     )
     status = models.CharField(max_length=50,
             choices=USER_STATUS_CHOICES,
-            verbose_name=_('User status'),
+            verbose_name=_("User status"),
             null=True)
     sign_in_key = models.CharField(max_length=50,
             help_text=_("The sign in token sent out in email."),
             null=True, unique=True, db_index=True, blank=True,
             # Translators: the sign in token of the user.
-            verbose_name=_('Sign in key'))
+            verbose_name=_("Sign in key"))
     key_time = models.DateTimeField(default=None,
             null=True, blank=True,
             help_text=_("The time stamp of the sign in token."),
             # Translators: the time when the token is sent out.
-            verbose_name=_('Key time'))
+            verbose_name=_("Key time"))
 
     editor_mode = models.CharField(max_length=20,
             help_text=_("Which key bindings you prefer when editing "
@@ -122,12 +122,12 @@ class User(AbstractBaseUser, PermissionsMixin):
             # Translators: the text editor used by participants
             verbose_name=_("Editor mode"))
 
-    USERNAME_FIELD = 'username'
-    REQUIRED_FIELDS = ['email']
+    USERNAME_FIELD = "username"
+    REQUIRED_FIELDS = ["email"]
 
     class Meta:
-        verbose_name = _('user')
-        verbose_name_plural = _('users')
+        verbose_name = _("user")
+        verbose_name_plural = _("users")
 
     def get_full_name(self, allow_blank=True, force_verbose_blank=False):
         if (not allow_blank
@@ -147,7 +147,7 @@ class User(AbstractBaseUser, PermissionsMixin):
             Returns the first_name plus the last_name, with a space in
             between.
             """
-            return '%s %s' % (
+            return "%s %s" % (
                 verbose_blank(first_name), verbose_blank(last_name))
 
         from accounts.utils import relate_user_method_settings
@@ -189,11 +189,11 @@ class User(AbstractBaseUser, PermissionsMixin):
         return result
 
     def get_short_name(self):
-        "Returns the short name for the user."
+        """Returns the short name for the user."""
         return self.first_name
 
     def get_email_appellation(self):
-        "Return the appellation of the receiver in email."
+        """Return the appellation of the receiver in email."""
 
         from accounts.utils import relate_user_method_settings
         priority_list = (

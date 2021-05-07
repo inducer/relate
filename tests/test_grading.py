@@ -1,5 +1,3 @@
-from __future__ import division
-
 __copyright__ = "Copyright (C) 2018 Dong Zhuang"
 
 __license__ = """
@@ -43,7 +41,7 @@ class SingleCourseQuizPageGradeInterfaceTestMixin(SingleCourseQuizPageTestMixin)
 
     @classmethod
     def setUpTestData(cls):  # noqa
-        super(SingleCourseQuizPageGradeInterfaceTestMixin, cls).setUpTestData()
+        super().setUpTestData()
         cls.start_flow(cls.flow_id)
         cls.this_flow_session_id = cls.default_flow_params["flow_session_id"]
         cls.submit_page_answer_by_page_id_and_test(cls.page_id)
@@ -55,7 +53,7 @@ class SingleCourseQuizPageGradeInterfaceTest(
 
     @classmethod
     def setUpTestData(cls):  # noqa
-        super(SingleCourseQuizPageGradeInterfaceTest, cls).setUpTestData()
+        super().setUpTestData()
 
         with cls.temporarily_switch_to_user(cls.student_participation.user):
             # a failure submission
@@ -577,7 +575,7 @@ class SingleCourseQuizPageGradeInterfaceTest(
                     resp, "grading_opportunity")
 
 
-class GraderSetUpMixin(object):
+class GraderSetUpMixin:
     @classmethod
     def create_flow_page_visit_grade(cls, course=None,
                                      n_participations_per_course=1,
@@ -631,7 +629,7 @@ class ShowGraderStatisticsTest(
 
     @classmethod
     def setUpTestData(cls):  # noqa
-        super(ShowGraderStatisticsTest, cls).setUpTestData()
+        super().setUpTestData()
         cls.create_flow_page_visit_grade(cls.course)
 
     def get_show_grader_statistics_url(self, flow_id, course_identifier=None):

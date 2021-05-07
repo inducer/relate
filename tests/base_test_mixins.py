@@ -76,7 +76,8 @@ SINGLE_COURSE_SETUP_LIST = [
             "enrollment_required_email_suffix": "",
             "preapproval_require_verified_inst_id": True,
             "from_email": "inform@tiker.net",
-            "notify_email": "inform@tiker.net"},
+            "notify_email": "inform@tiker.net",
+            },
         "participations": [
             {
                 "role_identifier": "instructor",
@@ -181,7 +182,9 @@ class CourseCreateFailure(Exception):
     pass
 
 
-class ResponseContextMixin(object):
+# {{{ ResponseContextMixin
+
+class ResponseContextMixin:
     """
     Response context refers to "the template Context instance that was used
     to render the template that produced the response content".
@@ -382,7 +385,7 @@ class SuperuserCreateMixin(ResponseContextMixin):
         cls.settings_git_root_override = (
             override_settings(GIT_ROOT=tempfile.mkdtemp()))
         cls.settings_git_root_override.enable()
-        super(SuperuserCreateMixin, cls).setUpTestData()
+        super().setUpTestData()
 
     @classmethod
     def add_user_permission(cls, user, perm, model=Course):
@@ -499,7 +502,7 @@ class SuperuserCreateMixin(ResponseContextMixin):
             assert isinstance(querystring, dict)
             url += ("?%s"
                     % "&".join(
-                        ["%s=%s" % (k, v)
+                        [f"{k}={v}"
                          for (k, v) in querystring.items()]))
         return url
 
@@ -604,8 +607,10 @@ class SuperuserCreateMixin(ResponseContextMixin):
         for err in errors:
             self.assertIn(err, form_errors)
 
+# }}}
 
-# {{{ defined here so that they can be used by in classmethod and instance method
+
+# {{{ get_flow_page_ordinal_from_page_id, get_flow_page_id_from_page_ordinal
 
 def get_flow_page_ordinal_from_page_id(flow_session_id, page_id,
                                        with_group_id=False):
@@ -631,6 +636,8 @@ def get_flow_page_id_from_page_ordinal(flow_session_id, page_ordinal,
 # }}}
 
 
+# {{{ CoursesTestMixinBase
+
 class CoursesTestMixinBase(SuperuserCreateMixin):
 
     # A list of Dicts, each of which contain a course dict and a list of
@@ -642,7 +649,7 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
 
     @classmethod
     def setUpTestData(cls):  # noqa
-        super(CoursesTestMixinBase, cls).setUpTestData()
+        super().setUpTestData()
         cls.default_flow_params = None
         cls.n_courses = 0
         if cls.courses_attributes_extra_list is not None:
@@ -663,10 +670,8 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
                 extra_attrs = cls.courses_attributes_extra_list[i]
                 assert isinstance(extra_attrs, dict)
                 course_setup_kwargs.update(extra_attrs)
-            try:
-                cls.create_course(course_setup_kwargs)
-            except Exception:
-                raise
+
+            cls.create_course(course_setup_kwargs)
 
             course = Course.objects.get(identifier=course_identifier)
             if "participations" in course_setup:
@@ -767,7 +772,7 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
                     error_list = [
                         "%s: %s"
                         % (field,
-                           "\n".join(["%s:%s" % (type(e).__name__, str(e))
+                           "\n".join(["{}:{}".format(type(e).__name__, str(e))
                                       for e in errs]))
                         for field, errs
                         in form_context.errors.as_data().items()]
@@ -782,6 +787,13 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
             # the course is created successfully
             last_course = all_courses.last()
             assert last_course
+            if "trusted_for_markup" in create_course_kwargs:
+                # This attribute is not settable via POST by the user, so set it
+                # manually here.
+                last_course.trusted_for_markup = \
+                        create_course_kwargs["trusted_for_markup"]
+                last_course.save()
+
             url_cache_key, commit_sha_cach_key = (
                 git_source_url_to_cache_keys(last_course.git_source))
             mc.set_multi({url_cache_key: get_course_repo_path(last_course),
@@ -1105,7 +1117,7 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
 
         from functools import wraps
 
-        class ClientUserSwitcher(object):
+        class ClientUserSwitcher:
             def __init__(self, switch_to):
                 self.client = cls.c
                 self.switch_to = switch_to
@@ -1779,6 +1791,10 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
         return reverse("relate-manage_authentication_tokens",
                        args=(course_identifier,))
 
+# }}}
+
+
+# {{{ SingleCourseTestMixin
 
 class SingleCourseTestMixin(CoursesTestMixinBase):
     courses_setup_list = SINGLE_COURSE_SETUP_LIST
@@ -1787,7 +1803,7 @@ class SingleCourseTestMixin(CoursesTestMixinBase):
 
     @classmethod
     def setUpTestData(cls):  # noqa
-        super(SingleCourseTestMixin, cls).setUpTestData()
+        super().setUpTestData()
         assert len(cls.course_qset) == 1
         cls.course = cls.course_qset.first()
         if cls.initial_commit_sha is not None:
@@ -1822,7 +1838,7 @@ class SingleCourseTestMixin(CoursesTestMixinBase):
         cls.course_page_url = cls.get_course_page_url()
 
     def setUp(self):  # noqa
-        super(SingleCourseTestMixin, self).setUp()
+        super().setUp()
 
         # reload objects created during setUpTestData in case they were modified in
         # tests. Ref: https://goo.gl/AuzJRC#django.test.TestCase.setUpTestData
@@ -1923,13 +1939,17 @@ class SingleCourseTestMixin(CoursesTestMixinBase):
         assert hacked_flow_desc.rules.tags == rule_tags
         return hacked_flow_desc
 
+# }}}
+
+
+# {{{ TwoCourseTestMixin
 
 class TwoCourseTestMixin(CoursesTestMixinBase):
     courses_setup_list = TWO_COURSE_SETUP_LIST
 
     @classmethod
     def setUpTestData(cls):  # noqa
-        super(TwoCourseTestMixin, cls).setUpTestData()
+        super().setUpTestData()
         assert len(cls.course_qset) == 2, (
             "'courses_setup_list' should contain two courses")
         cls.course1 = cls.course_qset.first()
@@ -1981,7 +2001,7 @@ class TwoCourseTestMixin(CoursesTestMixinBase):
         cls.c.logout()
 
     def setUp(self):  # noqa
-        super(TwoCourseTestMixin, self).setUp()
+        super().setUp()
         # reload objects created during setUpTestData in case they were modified in
         # tests. Ref: https://goo.gl/AuzJRC#django.test.TestCase.setUpTestData
         self.course1.refresh_from_db()
@@ -1994,6 +2014,10 @@ class TwoCourseTestMixin(CoursesTestMixinBase):
         self.course2_student_participation.refresh_from_db()
         self.course2_ta_participation.refresh_from_db()
 
+# }}}
+
+
+# {{{ SingleCoursePageTestMixin
 
 class SingleCoursePageTestMixin(SingleCourseTestMixin):
     # This serves as cache
@@ -2012,6 +2036,10 @@ class SingleCoursePageTestMixin(SingleCourseTestMixin):
         cls._default_session_id = cls.get_latest_session_id(course_identifier)
         return cls._default_session_id
 
+# }}}
+
+
+# {{{ TwoCoursePageTestMixin
 
 class TwoCoursePageTestMixin(TwoCourseTestMixin):
     _course1_default_session_id = None
@@ -2044,6 +2072,10 @@ class TwoCoursePageTestMixin(TwoCourseTestMixin):
         elif course_identifier == cls.course2.identifier:
             cls._course2_default_session_id = new_session_id
 
+# }}}
+
+
+# {{{ SingleCourseQuizPageTestMixin
 
 class SingleCourseQuizPageTestMixin(SingleCoursePageTestMixin):
 
@@ -2069,7 +2101,7 @@ class SingleCourseQuizPageTestMixin(SingleCoursePageTestMixin):
             cls, group_id, page_id, dl_file_extension=None,
             file_with_ext_count=None):
         with cls.temporarily_switch_to_user(cls.instructor_participation.user):
-            group_page_id = "%s/%s" % (group_id, page_id)
+            group_page_id = f"{group_id}/{page_id}"
             resp = cls.post_download_all_submissions_by_group_page_id(
                 group_page_id=group_page_id, flow_id=cls.flow_id)
             assert resp.status_code == 200
@@ -2219,7 +2251,7 @@ class SingleCourseQuizPageTestMixin(SingleCoursePageTestMixin):
 
                     assert (submit_answer_response.status_code
                             == expected_post_answer_status_code), (
-                            "%s != %s" % (submit_answer_response.status_code,
+                            "{} != {}".format(submit_answer_response.status_code,
                                           expected_post_answer_status_code))
 
                     if ensure_analytic_page_get_after_submission:
@@ -2373,14 +2405,18 @@ class SingleCourseQuizPageTestMixin(SingleCoursePageTestMixin):
 
         return post_grade_response
 
+# }}}
 
-class MockAddMessageMixing(object):
+
+# {{{ MockAddMessageMixing
+
+class MockAddMessageMixing:
     """
     The mixing for testing django.contrib.messages.add_message
     """
 
     def setUp(self):
-        super(MockAddMessageMixing, self).setUp()
+        super().setUp()
         self._fake_add_message_path = "django.contrib.messages.add_message"
         fake_add_messag = mock.patch(self._fake_add_message_path)
 
@@ -2426,7 +2462,7 @@ class MockAddMessageMixing(object):
         if not_called:
             fail_msg = "%s unexpectedly not added in messages. " % repr(not_called)
             if joined_msgs:
-                fail_msg += "the actual message are \"%s\"" % joined_msgs
+                fail_msg += 'the actual message are "%s"' % joined_msgs
             self.fail(fail_msg)
         if reset:
             self._mock_add_message.reset_mock()
@@ -2444,7 +2480,7 @@ class MockAddMessageMixing(object):
 
         if called:
             fail_msg = "%s unexpectedly added in messages. " % repr(called)
-            fail_msg += "the actual message are \"%s\"" % joined_msgs
+            fail_msg += 'the actual message are \"%s\"' % joined_msgs
             self.fail(fail_msg)
         if reset:
             self._mock_add_message.reset_mock()
@@ -2452,15 +2488,19 @@ class MockAddMessageMixing(object):
     def reset_add_message_mock(self):
         self._mock_add_message.reset_mock()
 
+# }}}
 
-class SubprocessRunpyContainerMixin(object):
+
+# {{{ SubprocessRunpyContainerMixin
+
+class SubprocessRunpyContainerMixin:
     """
     This mixin is used to fake a runpy container, only needed when
     the TestCase include test(s) for code questions
     """
     @classmethod
     def setUpClass(cls):  # noqa
-        super(SubprocessRunpyContainerMixin, cls).setUpClass()
+        super().setUpClass()
 
         python_executable = os.getenv("PY_EXE")
 
@@ -2483,7 +2523,7 @@ class SubprocessRunpyContainerMixin(object):
         )
 
     def setUp(self):
-        super(SubprocessRunpyContainerMixin, self).setUp()
+        super().setUp()
         self.faked_container_patch = mock.patch(
             "course.page.code.SPAWN_CONTAINERS", False)
         self.faked_container_patch.start()
@@ -2491,7 +2531,7 @@ class SubprocessRunpyContainerMixin(object):
 
     @classmethod
     def tearDownClass(cls):  # noqa
-        super(SubprocessRunpyContainerMixin, cls).tearDownClass()
+        super().tearDownClass()
 
         from course.page.code import SPAWN_CONTAINERS
         # Make sure SPAWN_CONTAINERS is reset to True
@@ -2504,6 +2544,8 @@ class SubprocessRunpyContainerMixin(object):
             # this mixin. So we don't kill the subprocess, and it won't bring
             # bad side effects to remainder tests.
             cls.faked_container_process.kill()
+
+# }}}
 
 
 def improperly_configured_cache_patch():
@@ -2537,7 +2579,7 @@ class AdminTestMixin(TwoCourseTestMixin):
 
     @classmethod
     def setUpTestData(cls):  # noqa
-        super(AdminTestMixin, cls).setUpTestData()  # noqa
+        super().setUpTestData()  # noqa
 
         # create 2 participation (with new user) for course1
         from tests.factories import ParticipationFactory
@@ -2561,19 +2603,19 @@ class AdminTestMixin(TwoCourseTestMixin):
 
     @classmethod
     def get_admin_change_list_view_url(cls, app_name, model_name):
-        return reverse("admin:%s_%s_changelist" % (app_name, model_name))
+        return reverse(f"admin:{app_name}_{model_name}_changelist")
 
     @classmethod
     def get_admin_change_view_url(cls, app_name, model_name, args=None):
         if args is None:
             args = []
-        return reverse("admin:%s_%s_change" % (app_name, model_name), args=args)
+        return reverse(f"admin:{app_name}_{model_name}_change", args=args)
 
     @classmethod
     def get_admin_add_view_url(cls, app_name, model_name, args=None):
         if args is None:
             args = []
-        return reverse("admin:%s_%s_add" % (app_name, model_name), args=args)
+        return reverse(f"admin:{app_name}_{model_name}_add", args=args)
 
     def get_admin_form_fields(self, response):
         """
@@ -2682,7 +2724,7 @@ class APITestMixin(SingleCoursePageTestMixin):
         participation = participation or self.instructor_participation
         user = user or participation.user
         token = token or self.create_token(participation=participation)
-        basic_auth_str = "%s:%s_%s" % (
+        basic_auth_str = "{}:{}_{}".format(
             user.username,
             token.id, self.default_token_hash_str)
 
@@ -2693,7 +2735,9 @@ class APITestMixin(SingleCoursePageTestMixin):
 # }}}
 
 
-class HackRepoMixin(object):
+# {{{ HackRepoMixin
+
+class HackRepoMixin:
 
     # This is need to for correctly getting other blobs
     fallback_commit_sha = b"4124e0c23e369d6709a670398167cb9c2fe52d35"
@@ -2704,9 +2748,9 @@ class HackRepoMixin(object):
 
     @classmethod
     def setUpTestData(cls):  # noqa
-        super(HackRepoMixin, cls).setUpTestData()
+        super().setUpTestData()
 
-        class Blob(object):
+        class Blob:
             def __init__(self, yaml_file_name):
                 with open(os.path.join(FAKED_YAML_PATH, yaml_file_name), "rb") as f:
                     data = f.read()
@@ -2731,7 +2775,7 @@ class HackRepoMixin(object):
     @classmethod
     def tearDownClass(cls):  # noqa
         # This must be done to avoid inconsistency
-        super(HackRepoMixin, cls).tearDownClass()
+        super().tearDownClass()
         cls.batch_fake_get_repo_blob.stop()
 
     def get_current_page_ids(self):
@@ -2769,5 +2813,7 @@ class HackRepoMixin(object):
 
         if not_match_infos:
             self.fail("\n".join(not_match_infos))
+
+# }}}
 
 # vim: fdm=marker

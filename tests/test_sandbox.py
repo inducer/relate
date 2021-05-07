@@ -1,5 +1,3 @@
-from __future__ import division
-
 __copyright__ = "Copyright (C) 2017 Zesheng Wang"
 
 __license__ = """
@@ -83,7 +81,7 @@ content: |
 
 class SingleCoursePageSandboxTestBaseMixin(SingleCourseTestMixin):
     def setUp(self):  # noqa
-        super(SingleCoursePageSandboxTestBaseMixin, self).setUp()
+        super().setUp()
         self.c.force_login(self.instructor_participation.user)
 
     @classmethod

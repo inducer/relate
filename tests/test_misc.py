@@ -1,7 +1,3 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import division
-
 __copyright__ = "Copyright (C) 2017 Dong Zhuang"
 
 __license__ = """
@@ -127,7 +123,7 @@ class CourseSpecificLangConfigureTest(CourseSpecificLangTestMixin, TestCase):
     # By default, self.course.force_lang is None
 
     def setUp(self):
-        super(CourseSpecificLangConfigureTest, self).setUp()
+        super().setUp()
         # We use faked time header to find out whether the expected Chinese
         # characters are rendered
         self.c.force_login(self.instructor_participation.user)
@@ -275,7 +271,7 @@ class CourseSpecificLangFormTest(SingleCourseTestMixin, TestCase):
 
 class GetCurrentLanguageJsLangNameTest(TestCase):
     def setUp(self):
-        super(GetCurrentLanguageJsLangNameTest, self).setUp()
+        super().setUp()
 
         from django.template.utils import EngineHandler
         self.engines = EngineHandler()
@@ -371,7 +367,7 @@ class GetCurrentLanguageJsLangNameTest(TestCase):
 
 class HasPermissionTemplateFilterTest(SingleCourseTestMixin, TestCase):
     def setUp(self):
-        super(HasPermissionTemplateFilterTest, self).setUp()
+        super().setUp()
 
         from django.template.utils import EngineHandler
         self.engines = EngineHandler()
@@ -412,7 +408,7 @@ class HasPermissionTemplateFilterTest(SingleCourseTestMixin, TestCase):
 
 class RelateSiteNameTest(SingleCourseTestMixin, LocmemBackendTestsMixin, TestCase):
     def setUp(self):
-        super(RelateSiteNameTest, self).setUp()
+        super().setUp()
 
     def get_translation_count(self, mocked_method, literal):
 

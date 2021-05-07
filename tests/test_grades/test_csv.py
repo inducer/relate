@@ -1,5 +1,3 @@
-from __future__ import division
-
 __copyright__ = "Copyright (C) 2018 Dong Zhuang, Zesheng Wang, Andreas Kloeckner"
 
 __license__ = """
@@ -45,7 +43,7 @@ from tests.constants import CSV_PATH
 class ExportGradebook(GradesTestMixin, TestCase):
     @classmethod
     def setUpTestData(cls):  # noqa
-        super(ExportGradebook, cls).setUpTestData()
+        super().setUpTestData()
         cls.gopp = factories.GradingOpportunityFactory(course=cls.course)
         cls.student_participation.user.institutional_id = "1234"
         cls.student_participation.user.save()
@@ -63,7 +61,7 @@ class ExportGradebook(GradesTestMixin, TestCase):
         assert models.GradeChange.objects.count() == 2
 
     def setUp(self):
-        super(ExportGradebook, self).setUp()
+        super().setUp()
         self.gopp.refresh_from_db()
         self.ta_session.refresh_from_db()
         self.instructor_gc.refresh_from_db()
@@ -103,7 +101,7 @@ class FindParticipantFromIdTest(CoursesTestMixinBase, TestCase):
     # test grades.find_participant_from_id
     @classmethod
     def setUpTestData(cls):  # noqa
-        super(FindParticipantFromIdTest, cls).setUpTestData()
+        super().setUpTestData()
         cls.course = factories.CourseFactory()
         cls.student_participation = factories.ParticipationFactory(
             course=cls.course)
@@ -177,7 +175,7 @@ class FindParticipantFromUserAttrTest(CoursesTestMixinBase, TestCase):
 
     @classmethod
     def setUpTestData(cls):  # noqa
-        super(FindParticipantFromUserAttrTest, cls).setUpTestData()
+        super().setUpTestData()
         cls.course = factories.CourseFactory()
         cls.student_participation = factories.ParticipationFactory(
             course=cls.course)
@@ -274,7 +272,7 @@ class FindParticipantFromUserAttrTest(CoursesTestMixinBase, TestCase):
 class ImportGradesTest(GradesTestMixin, TestCase):
     @classmethod
     def setUpTestData(cls):  # noqa
-        super(ImportGradesTest, cls).setUpTestData()
+        super().setUpTestData()
         cls.gopp = factories.GradingOpportunityFactory(course=cls.course)
         cls.student_participation.user.institutional_id = "1234"
         cls.student_participation.user.save()

@@ -1,5 +1,3 @@
-from __future__ import division
-
 __copyright__ = "Copyright (C) 2018 Dong Zhuang"
 
 __license__ = """
@@ -44,9 +42,9 @@ vctx = mock.MagicMock()
 vctx.repo = mock.MagicMock()
 
 
-class ValidationTestMixin(object):
+class ValidationTestMixin:
     def setUp(self):
-        super(ValidationTestMixin, self).setUp()
+        super().setUp()
         self.addCleanup(vctx.reset_mock)
 
 
@@ -78,7 +76,7 @@ class ValidateRoleTest(ValidationTestMixin, CoursesTestMixinBase, TestCase):
     # test validation.validate_role
 
     def setUp(self):
-        super(ValidateRoleTest, self).setUp()
+        super().setUp()
         course = factories.CourseFactory()
         vctx.course = course
         factories.ParticipationRoleFactory(course=course, identifier="role1")
@@ -129,7 +127,7 @@ class ValidateParticipationtagTest(CoursesTestMixinBase, TestCase):
     def setUp(self):
         # we don't use mock vctx, because there is a memoize_in decorator
         # which won't function when the vctx itself is mocked.
-        super(ValidateParticipationtagTest, self).setUp()
+        super().setUp()
         course = factories.CourseFactory()
 
         repo = mock.MagicMock()
@@ -545,17 +543,17 @@ class ValidateStaticpageDesc(ValidationTestMixin, unittest.TestCase):
             self.assertEqual(mock_npd.call_count, 0)
 
 
-class FakeCustomRepoPageType1(object):
+class FakeCustomRepoPageType1:
     def __init__(self, vctx, location, page_desc):
         return
 
 
-class FakePageType1(object):
+class FakePageType1:
     def __init__(self, vctx, location, page_desc):
         raise ValidationError("This is a faked validation error")
 
 
-class FakePageType2(object):
+class FakePageType2:
     def __init__(self, vctx, location, page_desc):
         raise RuntimeError("This is a faked RuntimeError")
 
@@ -573,54 +571,6 @@ class ValidateFlowPageTest(ValidationTestMixin, unittest.TestCase):
             validation.validate_flow_page(vctx, location, dict_to_struct({}))
         expected_error_msg = "flow page has no ID"
         self.assertIn(expected_error_msg, str(cm.exception))
-
-    def test_custom_page_types_stop_support_deadline(self):
-        from datetime import datetime, timedelta
-        deadline = datetime(2019, 1, 1, 0, 0, 0, 0)
-        one_month_before_deadline = deadline - timedelta(days=30)
-        one_month_after_deadline = deadline + timedelta(days=30)
-
-        with mock.patch("course.validation.validate_identifier"
-                        ) as mock_vi, mock.patch(
-            "course.utils.get_custom_page_types_stop_support_deadline"
-        ) as mock_gcptssd, mock.patch(
-            "relate.utils.local_now"
-        ) as mock_local_now, mock.patch(
-            "course.content.get_flow_page_class"
-        ) as mock_gfpc:
-            mock_vi.return_value = None
-            mock_gfpc.return_value = FakeCustomRepoPageType1
-
-            from relate.utils import localize_datetime
-
-            # passed deadline
-            mock_gcptssd.return_value = localize_datetime(deadline)
-            mock_local_now.return_value = (
-                localize_datetime(one_month_after_deadline))
-
-            with self.assertRaises(ValidationError) as cm:
-                validation.validate_flow_page(
-                    vctx, location,
-                    self.get_updated_page_desc(type="repo:my_custom_page_type"))
-            expected_error_msg = (
-                "Custom page type \'repo:my_custom_page_type\' specified. "
-                "Custom page types were no longer supported in RELATE since "
-                "Jan. 1, 2019, midnight.")
-            self.assertIn(expected_error_msg, str(cm.exception))
-
-            # not passing deadline
-            mock_local_now.return_value = (
-                localize_datetime(one_month_before_deadline))
-
-            validation.validate_flow_page(
-                vctx, location,
-                self.get_updated_page_desc(type="repo:my_custom_page_type"))
-
-            expected_warn_msg = (
-                "Custom page type \'repo:my_custom_page_type\' specified. "
-                "Custom page types will stop being supported in RELATE at "
-                "Jan. 1, 2019, midnight.")
-            self.assertIn(expected_warn_msg, vctx.add_warning.call_args[0])
 
     def test_flow_page_fail_validation(self):
         with mock.patch("course.validation.validate_identifier"
@@ -2748,7 +2698,7 @@ class CheckGradeIdentifierLinkTest(
 
     @classmethod
     def setUpTestData(cls):  # noqa
-        super(CheckGradeIdentifierLinkTest, cls).setUpTestData()
+        super().setUpTestData()
 
         cls.default_grade_indentifier = "gopp1"
 
@@ -2815,7 +2765,7 @@ class CheckForPageTypeChangesTest(
 
     @classmethod
     def setUpTestData(cls):  # noqa
-        super(CheckForPageTypeChangesTest, cls).setUpTestData()
+        super().setUpTestData()
         cls.course1 = factories.CourseFactory(identifier="test-course1")
         course1_participation = factories.ParticipationFactory(course=cls.course1)
         course1_session1 = factories.FlowSessionFactory(
@@ -2964,12 +2914,12 @@ default_access_kinds = ["public", "in_exam", "student", "ta",
                         "unenrolled", "instructor"]
 
 
-class FakeBlob(object):
+class FakeBlob:
     def __init__(self, data):
         self.data = data
 
 
-class FakeRepo(object):
+class FakeRepo:
     def __setitem__(self, key, value):
         self.__dict__[key] = value
 
@@ -2981,7 +2931,7 @@ class CheckAttributesYmlTest(ValidationTestMixin, unittest.TestCase):
     # test validation.check_attributes_yml
 
     def setUp(self):
-        super(CheckAttributesYmlTest, self).setUp()
+        super().setUp()
         patch = mock.patch("course.content.get_true_repo_and_path")
         self.mock_get_true_repo_and_path = patch.start()
 

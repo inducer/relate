@@ -48,6 +48,7 @@ RELATE_MAINTENANCE_MODE_EXCEPTIONS = "RELATE_MAINTENANCE_MODE_EXCEPTIONS"
 RELATE_SESSION_RESTART_COOLDOWN_SECONDS = "RELATE_SESSION_RESTART_COOLDOWN_SECONDS"
 RELATE_TICKET_MINUTES_VALID_AFTER_USE = "RELATE_TICKET_MINUTES_VALID_AFTER_USE"
 GIT_ROOT = "GIT_ROOT"
+RELATE_BULK_STORAGE = "RELATE_BULK_STORAGE"
 RELATE_STARTUP_CHECKS = "RELATE_STARTUP_CHECKS"
 RELATE_STARTUP_CHECKS_EXTRA = "RELATE_STARTUP_CHECKS_EXTRA"
 
@@ -344,6 +345,25 @@ def check_relate_settings(app_configs, **kwargs):
                          % {"path": git_root, "location": GIT_ROOT}),
                     id="git_root.E005"
                 ))
+
+    # }}}
+
+    # {{{ check RELATE_BULK_STORAGE
+
+    bulk_storage = getattr(settings, RELATE_BULK_STORAGE, None)
+    from django.core.files.storage import Storage
+    if bulk_storage is None:
+        errors.append(RelateCriticalCheckMessage(
+            msg=REQUIRED_CONF_ERROR_PATTERN % {
+                "location": RELATE_BULK_STORAGE},
+            id="bulk_storage.E001"
+        ))
+    elif not isinstance(bulk_storage, Storage):
+        errors.append(RelateCriticalCheckMessage(
+            msg=INSTANCE_ERROR_PATTERN % {
+                "location": RELATE_BULK_STORAGE, "types": "Storage"},
+            id="bulk_storage.E002"
+        ))
 
     # }}}
 

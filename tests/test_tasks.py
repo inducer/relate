@@ -1,5 +1,3 @@
-from __future__ import division
-
 __copyright__ = "Copyright (C) 2018 Dong Zhuang"
 
 __license__ = """
@@ -48,12 +46,12 @@ import celery
 is_celery_4_or_higher = parse_version(celery.__version__) >= parse_version("4.0.0")
 
 
-class TaskTestMixin(object):
+class TaskTestMixin:
     """
     This test is actually testing without celery dependency.
     """
     def setUp(self):
-        super(TaskTestMixin, self).setUp()
+        super().setUp()
 
         # Emulates the behavior of AsyncResult
         if is_celery_4_or_higher:
@@ -74,7 +72,7 @@ class TaskTestMixin(object):
         self.addCleanup(update_state_patcher.stop)
 
 
-class GradesTasksTestSetUpMixin(object):
+class GradesTasksTestSetUpMixin:
     def create_flow_sessions(self, course,
                              n_participations_per_course=4,
                              n_in_progress_sessions_per_participation=1,
@@ -116,7 +114,7 @@ class GradesTasksTest(SingleCourseTestMixin, GradesTasksTestSetUpMixin,
                       TaskTestMixin, TestCase):
 
     def setUp(self):
-        super(GradesTasksTest, self).setUp()
+        super().setUp()
         self.create_flow_sessions(self.course)
 
         # reset the user_name format sequence
@@ -464,7 +462,7 @@ class GradesTasksTest(SingleCourseTestMixin, GradesTasksTestSetUpMixin,
     # }}}
 
 
-class PurgePageViewDataTaskTestSetUpMixin(object):
+class PurgePageViewDataTaskTestSetUpMixin:
     def create_flow_page_visit(self, course,
                                n_participations_per_course=5,
                                n_sessions_per_participation=1,
@@ -529,7 +527,7 @@ class PurgePageViewDataTaskTest(TwoCoursePageTestMixin,
     courses_setup_list = PURGE_VIEW_TWO_COURSE_SETUP_LIST
 
     def setUp(self):
-        super(PurgePageViewDataTaskTest, self).setUp()
+        super().setUp()
 
         # {{{ create flow page visits
         # all 40, null answer 25, answerd 15

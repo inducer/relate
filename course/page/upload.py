@@ -44,7 +44,7 @@ from crispy_forms.layout import Layout, Field
 class FileUploadForm(StyledForm):
     show_save_button = False
     uploaded_file = forms.FileField(required=True,
-            label=gettext_lazy('Uploaded file'))
+            label=gettext_lazy("Uploaded file"))
 
     def __init__(self, maximum_megabytes, mime_types, *args, **kwargs):
         super(FileUploadForm, self).__init__(*args, **kwargs)
@@ -66,15 +66,15 @@ class FileUploadForm(StyledForm):
                 Field("uploaded_file", **field_kwargs))
 
     def clean_uploaded_file(self):
-        uploaded_file = self.cleaned_data['uploaded_file']
+        uploaded_file = self.cleaned_data["uploaded_file"]
         from django.template.defaultfilters import filesizeformat
 
         if uploaded_file.size > self.max_file_size:
             raise forms.ValidationError(
                     _("Please keep file size under %(allowedsize)s. "
                     "Current filesize is %(uploadedsize)s.")
-                    % {'allowedsize': filesizeformat(self.max_file_size),
-                        'uploadedsize': filesizeformat(uploaded_file.size)})
+                    % {"allowedsize": filesizeformat(self.max_file_size),
+                        "uploadedsize": filesizeformat(uploaded_file.size)})
 
         if self.mime_types is not None and self.mime_types == ["application/pdf"]:
             if uploaded_file.read()[:4] != b"%PDF":
@@ -143,12 +143,6 @@ class FileUploadQuestion(PageBaseWithTitle, PageBaseWithValue,
         Content that is revealed when answers are visible
         (see :ref:`flow-permissions`). Written in :ref:`markup`.
 
-    .. attribute:: correct_answer
-
-        Optional.
-        Content that is revealed when answers are visible
-        (see :ref:`flow-permissions`). Written in :ref:`markup`.
-
     .. attribute:: rubric
 
         Required.
@@ -171,7 +165,7 @@ class FileUploadQuestion(PageBaseWithTitle, PageBaseWithValue,
                     _("unrecognized mime types"),
                     " '%(presenttype)s'")
                 % {
-                    'presenttype': ", ".join(
+                    "presenttype": ", ".join(
                         set(page_desc.mime_types)
                         - set(self.ALLOWED_MIME_TYPES))})
 
@@ -181,7 +175,7 @@ class FileUploadQuestion(PageBaseWithTitle, PageBaseWithValue,
                     location, ": ",
                     _("'maximum_megabytes' expects a positive value, "
                       "got %(value)s instead")
-                    % {'value': str(page_desc.maximum_megabytes)}))
+                    % {"value": str(page_desc.maximum_megabytes)}))
 
         if vctx is not None:
             if not hasattr(page_desc, "value"):
@@ -209,19 +203,61 @@ class FileUploadQuestion(PageBaseWithTitle, PageBaseWithValue,
     def body(self, page_context, page_data):
         return markup_to_html(page_context, self.page_desc.prompt)
 
-    def files_data_to_answer_data(self, files_data):
-        files_data["uploaded_file"].seek(0)
-        buf = files_data["uploaded_file"].read()
+    def get_submission_filename_pattern(self, page_context, mime_type):
+        from mimetypes import guess_extension
+        if mime_type is not None:
+            ext = guess_extension(mime_type)
+        else:
+            ext = ".bin"
 
+        username = "anon"
+        flow_id = "unk_flow"
+        if page_context.flow_session is not None:
+            if page_context.flow_session.participation is not None:
+                username = page_context.flow_session.participation.user.username
+            if page_context.flow_session.flow_id:
+                flow_id = page_context.flow_session.flow_id
+
+        return ("submission/"
+                f"{page_context.course.identifier}/"
+                "file-upload/"
+                f"{flow_id}/"
+                f"{self.page_desc.id}/"
+                f"{username}"
+                f"{ext}")
+
+    def file_to_answer_data(self, page_context, uploaded_file, mime_type):
         if len(self.page_desc.mime_types) == 1:
             mime_type, = self.page_desc.mime_types
-        else:
-            mime_type = files_data["uploaded_file"].content_type
-        from base64 import b64encode
+
+        from django.conf import settings
+
+        uploaded_file.seek(0)
+        saved_name = settings.RELATE_BULK_STORAGE.save(
+                self.get_submission_filename_pattern(page_context, mime_type),
+                uploaded_file)
+
         return {
-                "base64_data": b64encode(buf).decode(),
+                "storage_filename": saved_name,
                 "mime_type": mime_type,
                 }
+
+    @staticmethod
+    def get_content_from_answer_data(answer_data):
+        mime_type = answer_data.get("mime_type", "application/octet-stream")
+
+        if "storage_filename" in answer_data:
+            from django.conf import settings
+            with settings.RELATE_BULK_STORAGE.open(
+                    answer_data["storage_filename"]) as inf:
+                return inf.read(), mime_type
+
+        elif "base64_data" in answer_data:
+            from base64 import b64decode
+            return b64decode(answer_data["base64_data"]), mime_type
+
+        else:
+            raise ValueError("could not get submitted data from answer_data JSON")
 
     def make_form(self, page_context, page_data,
             answer_data, page_behavior):
@@ -239,34 +275,35 @@ class FileUploadQuestion(PageBaseWithTitle, PageBaseWithValue,
     def form_to_html(self, request, page_context, form, answer_data):
         ctx = {"form": form}
         if answer_data is not None:
-            ctx["mime_type"] = answer_data["mime_type"]
+            from base64 import b64encode
+            subm_data, subm_mime = self.get_content_from_answer_data(answer_data)
+            ctx["mime_type"] = subm_mime
             ctx["data_url"] = "data:%s;base64,%s" % (
-                answer_data["mime_type"],
-                answer_data["base64_data"],
-                )
+                subm_mime,
+                b64encode(subm_data).decode())
 
         from django.template.loader import render_to_string
         return render_to_string(
                 "course/file-upload-form.html", ctx, request)
 
     def answer_data(self, page_context, page_data, form, files_data):
-        return self.files_data_to_answer_data(files_data)
+        uploaded_file = files_data["uploaded_file"]
+        return self.file_to_answer_data(page_context, uploaded_file,
+                mime_type=uploaded_file.content_type)
 
     def normalized_bytes_answer(self, page_context, page_data, answer_data):
         if answer_data is None:
             return None
 
-        ext = None
-        if len(self.page_desc.mime_types) == 1:
-            mtype, = self.page_desc.mime_types
-            from mimetypes import guess_extension
-            ext = guess_extension(mtype)
+        subm_data, subm_mime = self.get_content_from_answer_data(answer_data)
+
+        from mimetypes import guess_extension
+        ext = guess_extension(subm_mime)
 
         if ext is None:
             ext = ".dat"
 
-        from base64 import b64decode
-        return (ext, b64decode(answer_data["base64_data"]))
+        return (ext, subm_data)
 
 # }}}
 

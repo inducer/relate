@@ -1,5 +1,3 @@
-from __future__ import division
-
 __copyright__ = "Copyright (C) 2018 Dong Zhuang"
 
 __license__ = """
@@ -187,6 +185,6 @@ class UploadQuestionNormalizeTest(SingleCourseQuizPageTestMixin,
 
         self.submit_page_answer_by_page_id_and_test(
             page_id="proof", do_grading=True, do_human_grade=True,
-            ensure_download_after_grading=True, dl_file_extension=".dat")
+            ensure_download_after_grading=True, dl_file_extension=".pdf")
 
 # vim: fdm=marker

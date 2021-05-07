@@ -3,13 +3,37 @@ Installation
 
 RELATE requires Python 3.
 
-Install [Node.js](https://nodejs.org) and NPM, or [Yarn](https://yarnpkg.com)
-(alternative package manager) at your option.
+Minimal Install for Validating Course Content
+---------------------------------------------
 
-Install [poetry](https://python-poetry.org) to manage dependencies and virtual
+Make a virtualenv, install poetry and relate::
+
+    python3 -m venv my-relate-venv
+    source my-relate-venv/bin/activate
+    pip install poetry
+    git clone https://github.com/inducer/relate.git
+    cd relate
+    poetry install
+
+After this, you can delete the ``relate`` git checkout created. In order to
+use the ``relate`` comand, you need to activate the virtualenv that was created::
+
+    source my-relate-venv/bin/activate
+
+Installation for Relate Development
+-----------------------------------
+
+Install `Node.js <https://nodejs.org>`__ and NPM, or `Yarn <https://yarnpkg.com>`__
+(version 1, an alternative package manager) at your option.
+
+Install `poetry <https://python-poetry.org>`__ to manage dependencies and virtual
 environments::
 
-    pip install poetry
+    curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python3
+
+Note that this will put poetry in ``$HOME/.poetry/bin`` and modify your
+``$HOME/.profile``. If you don't like that, see the
+`poetry docs <https://python-poetry.org/docs/>`__ for alternate installation options.
 
 To install, clone the repository::
 
@@ -19,7 +43,8 @@ Enter the relate directory::
 
     cd relate
 
-Install the dependencies. This should not be done in an existing virtual environment::
+Install the dependencies. Poetry will automatically create a virtualenv
+(somewhere under ``$HOME/.poetry``) for this:
 
     poetry install
 
@@ -149,6 +174,24 @@ Setting up SAML2
 - Edit :file:`saml_config.py` using :file:`saml_config.py.example`
   as a guide.
 
+Setting up Social Authentication (Google as an example)
+-------------------------------------------------------
+
+- Go to the `Google Developer Console <https://console.developers.google.com>`__.
+- Create a project.
+- Create an OAuth consent screen. You'll only need the ``.../auth/userinfo.email``
+  and ``.../auth/userinfo.profile`` scopes.
+- Under "Credentials", create an OAuth 2.0 Client ID. Enter your equivalent of
+  ``https://relate.cs.illinois.edu/social-auth/complete/google-oauth2/`` as
+  an authorized redirect URI. For testing, you can also add
+  ``http://localhost:8000/social-auth/complete/google-oauth2/``.
+  You do not need any authorized JavaScript origins.
+- Add ``"social_core.backends.google.GoogleOAuth2"`` to
+  ``RELATE_SOCIAL_AUTH_BACKENDS``.
+- Copy the Client ID into ``SOCIAL_AUTH_GOOGLE_OAUTH2_KEY``, and the
+  Client Secret from the developer console into ``SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET``.
+- Restart your server. You should be good to go.
+
 Deployment
 ----------
 
@@ -260,8 +303,8 @@ Use a variant of this as :file:`/etc/systemd/system/relate-celery.service`::
     ExecStartPre=/bin/mkdir -p /var/run/celery
     ExecStartPre=/bin/chown -R www-data:www-data /var/run/celery/
 
-    ExecStart=/home/andreas/my-relate-env/bin/celery multi start worker \
-        -A relate --pidfile=/var/run/celery/celery.pid \
+    ExecStart=/home/andreas/my-relate-env/bin/celery -A relate multi start worker \
+        --pidfile=/var/run/celery/celery.pid \
         --logfile=/var/log/celery/celery.log --loglevel="INFO"
     ExecStop=/home/andreas/my-relate-env/bin/celery multi stopwait worker \
         --pidfile=/var/run/celery/celery.pid

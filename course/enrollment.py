@@ -57,7 +57,6 @@ from course.models import (
 from course.constants import (
         PARTICIPATION_PERMISSION_CHOICES,
         participation_permission as pperm,
-        NAME_VALID_REGEX,
         )
 
 from course.auth import UserSearchWidget
@@ -330,12 +329,13 @@ def handle_enrollment_request(course, user, status, roles, request=None):
         participation.status = status
         participation.save()
 
-        if roles is not None:
-            participation.roles.set(roles)
     else:
         (participation,) = participations
         participation.status = status
         participation.save()
+
+    if roles is not None:
+        participation.roles.set(roles)
 
     if status == participation_status.active:
         send_enrollment_decision(participation, True, request)
@@ -456,7 +456,7 @@ class BulkPreapprovalsForm(StyledForm):
         self.fields["preapproval_data"] = forms.CharField(
                 required=True, widget=forms.Textarea,
                 help_text=_("Enter fully qualified data according to the "
-                            "\"Preapproval type\" you selected, one per line."),
+                            "'Preapproval type' you selected, one per line."),
                 label=_("Preapproval data"))
 
         self.helper.add_input(
@@ -541,9 +541,9 @@ def create_preapprovals(pctx):
                         "%(n_exist)d already existed, "
                         "%(n_requested_approved)d pending requests approved.")
                     % {
-                        'n_created': created_count,
-                        'n_exist': exist_count,
-                        'n_requested_approved': pending_approved_count
+                        "n_created": created_count,
+                        "n_exist": exist_count,
+                        "n_requested_approved": pending_approved_count
                         })
             return redirect("relate-course_page", pctx.course.identifier)
 
@@ -832,10 +832,7 @@ class ParticipationQueryForm(StyledForm):
         tag = self.cleaned_data.get("tag")
 
         if tag:
-            import re
-            name_valid_re = re.compile(NAME_VALID_REGEX)
-
-            if name_valid_re.match(tag) is None:
+            if not tag.isidentifier():
                 self.add_error(
                     "tag",
                     _("Name contains invalid characters."))
@@ -1045,7 +1042,7 @@ def edit_participation(pctx, participation_id):
     if participation.course.id != pctx.course.id:
         raise SuspiciousOperation("may not edit participation in different course")
 
-    if request.method == 'POST':
+    if request.method == "POST":
         form = EditParticipationForm(
                 add_new, pctx, request.POST, instance=participation)
         reset_form = False

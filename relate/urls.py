@@ -24,9 +24,13 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from django.conf.urls import include, re_path
+from django.urls import include, re_path, path
 from django.contrib import admin
-from django.conf import settings
+
+import django_select2.urls
+import social_django.urls
+import djangosaml2.urls
+
 from course.constants import COURSE_ID_REGEX, FLOW_ID_REGEX, STATICPAGE_PATH_REGEX
 
 import course.auth
@@ -103,6 +107,7 @@ urlpatterns = [
     re_path(r"^user/impersonate/$",
         course.auth.impersonate,
         name="relate-impersonate"),
+
     re_path(r"^user/stop_impersonating/$",
         course.auth.stop_impersonating,
         name="relate-stop_impersonating"),
@@ -541,11 +546,7 @@ urlpatterns = [
 
     # }}}
 
-    # {{{ django-select2
-
-    re_path(r"^select2/", include("django_select2.urls")),
-
-    #}}}
+    path(r"^select2/", include("django_select2.urls")),
 
     re_path(r"^course"
         "/" + COURSE_ID_REGEX
@@ -560,17 +561,9 @@ urlpatterns = [
         name="relate-course_get_flow_session_content"),
 
     re_path(r"^admin/", admin.site.urls),
-]
 
-if settings.RELATE_SIGN_IN_BY_SAML2_ENABLED:
-    urlpatterns.extend([
-        re_path(r"^saml2/", include("djangosaml2.urls")),
-        ])
-    if settings.DEBUG:  # pragma: no cover
-        import djangosaml2.views
-        urlpatterns.extend([
-            # Keep commented unless debugging SAML2.
-            re_path(r"^saml2-test/", djangosaml2.views.echo_attributes),
-            ])
+    path("^social-auth/", include("social_django.urls"), name="social"),
+    path(r"^saml2/", include("djangosaml2.urls")),
+]
 
 # vim: fdm=marker

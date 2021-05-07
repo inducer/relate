@@ -38,7 +38,7 @@ class GetCurrentLanguageJsFmtNode(Node):
         lang_name = (
             translation.to_locale(translation.get_language()).replace("_", "-"))
         context[self.variable] = lang_name
-        return ''
+        return ""
 
 
 @register.tag("get_current_js_lang_name")
@@ -61,13 +61,13 @@ def do_get_current_js_lang_name(parser, token):
     # token.split_contents() isn't useful here because this tag doesn't
     # accept variable as arguments
     args = token.contents.split()
-    if len(args) != 3 or args[1] != 'as':
+    if len(args) != 3 or args[1] != "as":
         raise TemplateSyntaxError("'get_current_js_lang_name' requires "
                 "'as variable' (got %r)" % args)
     return GetCurrentLanguageJsFmtNode(args[2])
 
 
-@register.filter(name='js_lang_fallback')
+@register.filter(name="js_lang_fallback")
 def js_lang_fallback(lang_name, js_name=None):
     """
     Return the fallback lang name for js files.
@@ -90,7 +90,7 @@ def js_lang_fallback(lang_name, js_name=None):
 
 # {{{ filter for participation.has_permission()
 
-@register.filter(name='has_permission')
+@register.filter(name="has_permission")
 def has_permission(participation, arg):
     """
     Check if a participation instance has specific permission.
@@ -115,7 +115,7 @@ def has_permission(participation, arg):
 # }}}
 
 
-@register.filter(name='may_set_fake_time')
+@register.filter(name="may_set_fake_time")
 def may_set_fake_time(user):
     """
     Check if a user may set fake time.
@@ -126,7 +126,7 @@ def may_set_fake_time(user):
     return msf(user)
 
 
-@register.filter(name='may_set_pretend_facility')
+@register.filter(name="may_set_pretend_facility")
 def may_set_pretend_facility(user):
     """
     Check if a user may set pretend_facility
@@ -137,7 +137,22 @@ def may_set_pretend_facility(user):
     return mspf(user)
 
 
-@register.filter(name='commit_message_as_html')
+@register.filter(name="commit_message_as_html")
 def commit_message_as_html(commit_sha, repo):
     from course.versioning import _get_commit_message_as_html
     return _get_commit_message_as_html(repo, commit_sha)
+
+
+@register.filter(name="get_item")
+def get_item(dictionary, key):
+    return dictionary.get(key, None)
+
+
+@register.filter(name="get_item_or_key")
+def get_item_or_key(dictionary, key):
+    return dictionary.get(key, key)
+
+
+@register.filter(name="startswith")
+def startswith(s, arg):
+    return s.startswith(arg)

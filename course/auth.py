@@ -50,9 +50,8 @@ from django.views.decorators.debug import sensitive_post_parameters
 from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_protect
 from django import http  # noqa
-from django.dispatch import receiver
 
-from djangosaml2.signals import pre_user_save as saml2_pre_user_save
+from djangosaml2.backends import Saml2Backend
 
 from bootstrap3_datetime.widgets import DateTimePicker
 
@@ -127,8 +126,8 @@ class ImpersonateMiddleware(object):
         self.get_response = get_response
 
     def __call__(self, request):
-        if 'impersonate_id' in request.session:
-            imp_id = request.session['impersonate_id']
+        if "impersonate_id" in request.session:
+            imp_id = request.session["impersonate_id"]
             impersonee = None
 
             try:
@@ -159,10 +158,10 @@ class ImpersonateMiddleware(object):
 class UserSearchWidget(ModelSelect2Widget):
     model = User
     search_fields = [
-            'username__icontains',
-            'email__icontains',
-            'first_name__icontains',
-            'last_name__icontains',
+            "username__icontains",
+            "email__icontains",
+            "first_name__icontains",
+            "last_name__icontains",
             ]
 
     def label_from_instance(self, u):
@@ -197,7 +196,10 @@ class ImpersonateForm(StyledForm):
                 queryset=qset,
                 required=True,
                 help_text=_("Select user to impersonate."),
-                widget=UserSearchWidget(queryset=qset),
+                widget=UserSearchWidget(
+                    queryset=qset,
+                    attrs={"data-minimum-input-length": 0},
+                ),
                 label=_("User"))
 
         self.fields["add_impersonation_header"] = forms.BooleanField(
@@ -230,13 +232,13 @@ def impersonate(request):
     qset = (User.objects
             .filter(pk__in=impersonable_user_qset.values_list("pk", flat=True))
             .order_by("last_name", "first_name", "username"))
-    if request.method == 'POST':
+    if request.method == "POST":
         form = ImpersonateForm(request.POST, impersonable_qset=qset)
         if form.is_valid():
             impersonee = form.cleaned_data["user"]
 
-            request.session['impersonate_id'] = impersonee.id
-            request.session['relate_impersonation_header'] = form.cleaned_data[
+            request.session["impersonate_id"] = impersonee.id
+            request.session["relate_impersonation_header"] = form.cleaned_data[
                     "add_impersonation_header"]
 
             # Because we'll likely no longer have access to this page.
@@ -285,7 +287,7 @@ def stop_impersonating(request):
                 _("Not currently impersonating anyone."))
         return http.JsonResponse({})
 
-    del request.session['impersonate_id']
+    del request.session["impersonate_id"]
     messages.add_message(request, messages.INFO,
             _("No longer impersonating anyone."))
     return http.JsonResponse({"result": "success"})
@@ -317,7 +319,7 @@ def make_sign_in_key(user):
 
 def logout_confirmation_required(
         func=None, redirect_field_name=REDIRECT_FIELD_NAME,
-        logout_confirmation_url='relate-logout-confirmation'):
+        logout_confirmation_url="relate-logout-confirmation"):
     """
     Decorator for views that checks that no user is logged in.
     If a user is currently logged in, redirect him/her to the logout
@@ -362,12 +364,20 @@ class EmailedTokenBackend(object):
 @logout_confirmation_required
 def sign_in_choice(request, redirect_field_name=REDIRECT_FIELD_NAME):
     redirect_to = request.POST.get(redirect_field_name,
-                                   request.GET.get(redirect_field_name, ''))
+                                   request.GET.get(redirect_field_name, ""))
     next_uri = ""
     if redirect_to:
         next_uri = "?%s=%s" % (redirect_field_name, redirect_to)
 
-    return render(request, "sign-in-choice.html", {"next_uri": next_uri})
+    return render(request, "sign-in-choice.html", {
+        "next_uri": next_uri,
+        "social_provider_to_logo": {
+            "google-oauth2": "google",
+            },
+        "social_provider_to_human_name": {
+            "google-oauth2": "Google",
+            },
+        })
 
 # }}}
 
@@ -400,7 +410,7 @@ def sign_in_by_user_pw(request, redirect_field_name=REDIRECT_FIELD_NAME):
         return redirect("relate-sign_in_choice")
 
     redirect_to = request.POST.get(redirect_field_name,
-                                   request.GET.get(redirect_field_name, ''))
+                                   request.GET.get(redirect_field_name, ""))
 
     if request.method == "POST":
         form = LoginForm(request, data=request.POST)
@@ -427,9 +437,9 @@ def sign_in_by_user_pw(request, redirect_field_name=REDIRECT_FIELD_NAME):
         next_uri = "?%s=%s" % (redirect_field_name, redirect_to)
 
     context = {
-        'form': form,
+        "form": form,
         redirect_field_name: redirect_to,
-        'next_uri': next_uri,
+        "next_uri": next_uri,
     }
 
     return TemplateResponse(request, "course/login.html", context)
@@ -459,7 +469,7 @@ def sign_up(request):
         raise SuspiciousOperation(
                 _("self-registration is not enabled"))
 
-    if request.method == 'POST':
+    if request.method == "POST":
         form = SignUpForm(request.POST)
         if form.is_valid():
             if get_user_model().objects.filter(
@@ -533,7 +543,7 @@ def sign_up(request):
 
 class ResetPasswordFormByEmail(StyledForm):
     email = forms.EmailField(required=True, label=_("Email"),
-                             max_length=User._meta.get_field('email').max_length)
+                             max_length=User._meta.get_field("email").max_length)
 
     def __init__(self, *args, **kwargs):
         super(ResetPasswordFormByEmail, self).__init__(*args, **kwargs)
@@ -556,7 +566,7 @@ class ResetPasswordFormByInstid(StyledForm):
 
 def masked_email(email):
     # return a masked email address
-    at = email.find('@')
+    at = email.find("@")
     return email[:2] + "*" * (len(email[3:at])-1) + email[at-1:]
 
 
@@ -568,7 +578,7 @@ def reset_password(request, field="email"):
 
     # return form class by string of class name
     ResetPasswordForm = globals()["ResetPasswordFormBy" + field.title()]  # noqa
-    if request.method == 'POST':
+    if request.method == "POST":
         form = ResetPasswordForm(request.POST)
         user = None
         if form.is_valid():
@@ -709,7 +719,7 @@ def reset_password_stage2(request, user_id, sign_in_key):
         messages.add_message(request, messages.ERROR, _("Account does not exist."))
         raise PermissionDenied(_("invalid sign-in token"))
 
-    if request.method == 'POST':
+    if request.method == "POST":
         form = ResetPasswordStage2Form(request.POST)
         if form.is_valid():
             from django.contrib.auth import authenticate, login
@@ -761,7 +771,7 @@ def reset_password_stage2(request, user_id, sign_in_key):
 class SignInByEmailForm(StyledForm):
     email = forms.EmailField(required=True, label=_("Email"),
             # For now, until we upgrade to a custom user model.
-            max_length=User._meta.get_field('email').max_length)
+            max_length=User._meta.get_field("email").max_length)
 
     def __init__(self, *args, **kwargs):
         super(SignInByEmailForm, self).__init__(*args, **kwargs)
@@ -777,7 +787,7 @@ def sign_in_by_email(request):
                 _("Email-based sign-in is not being used"))
         return redirect("relate-sign_in_choice")
 
-    if request.method == 'POST':
+    if request.method == "POST":
         form = SignInByEmailForm(request.POST)
         if form.is_valid():
             email = form.cleaned_data["email"]
@@ -888,16 +898,18 @@ class UserForm(StyledModelForm):
 
     class Meta:
         model = get_user_model()
-        fields = ("first_name", "last_name", "institutional_id",
+        fields = ("first_name", "last_name", "email", "institutional_id",
                 "editor_mode")
 
     def __init__(self, *args, **kwargs):
-        self.is_inst_id_locked = kwargs.pop('is_inst_id_locked')
+        self.is_inst_id_locked = kwargs.pop("is_inst_id_locked")
         super(UserForm, self).__init__(*args, **kwargs)
 
         if self.instance.name_verified:
             self.fields["first_name"].disabled = True
             self.fields["last_name"].disabled = True
+
+        self.fields["email"].disabled = True
 
         if self.is_inst_id_locked:
             self.fields["institutional_id"].disabled = True
@@ -916,8 +928,9 @@ class UserForm(StyledModelForm):
                    is_inst_id_editable_before_validation()
                    and _("verified") or _("submitted")})
 
-        # {{ build layout
-        name_fields_layout = ["last_name", "first_name"]
+        # {{{ build layout
+
+        name_fields_layout = ["last_name", "first_name", "email"]
         fields_layout = [Div(*name_fields_layout, css_class="well")]
 
         if getattr(settings, "RELATE_SHOW_INST_ID_FORM", True):
@@ -946,6 +959,7 @@ class UserForm(StyledModelForm):
                        onclick=(
                            "window.location.href='%s'"
                            % reverse("relate-logout"))))
+
         # }}}
 
     def clean_institutional_id_confirm(self):
@@ -958,6 +972,8 @@ class UserForm(StyledModelForm):
             if any([inst_id, inst_id_confirmed]) and inst_id != inst_id_confirmed:
                 raise forms.ValidationError(_("Inputs do not match."))
         return inst_id_confirmed
+
+# }}}
 
 
 @login_required
@@ -1031,34 +1047,87 @@ def user_profile(request):
 # This ticks the 'verified' boxes once we've receive attribute assertions
 # through SAML2.
 
-@receiver(saml2_pre_user_save)
-def saml2_update_user_hook(sender, instance, attributes, user_modified, **kwargs):
-    attr_mapping = getattr(settings, "SAML_ATTRIBUTE_MAPPING", {})
+class RelateSaml2Backend(Saml2Backend):
+    def get_or_create_user(self,
+            user_lookup_key, user_lookup_value, create_unknown_user,
+            idp_entityid, attributes, attribute_mapping, request):
+        user, created = super().get_or_create_user(
+                user_lookup_key, user_lookup_value, create_unknown_user,
+                idp_entityid, attributes, attribute_mapping, request)
 
-    mod = False
+        user = self._rl_update_user(user, attributes, attribute_mapping)
 
-    mapped_attributes = {
-            mapped_key: val
-            for key, val in attributes.items()
-            for mapped_key in attr_mapping.get(key, ())}
+        return user, created
 
-    if "institutional_id" in mapped_attributes:
-        if not instance.institutional_id_verified:
-            instance.institutional_id_verified = True
-            mod = True
+    def _rl_update_user(self, user, attributes, attribute_mapping):
+        mod = False
 
-    if "first_name" in mapped_attributes and "last_name" in mapped_attributes:
-        if not instance.name_verified:
-            instance.name_verified = True
-            mod = True
+        mapped_attributes = {
+                mapped_key: val
+                for key, val in attributes.items()
+                for mapped_key in attribute_mapping.get(key, ())}
 
-    if "email" in mapped_attributes:
+        if "institutional_id" in mapped_attributes:
+            if not user.institutional_id_verified:
+                user.institutional_id_verified = True
+                mod = True
+
+        if "first_name" in mapped_attributes and "last_name" in mapped_attributes:
+            if not user.name_verified:
+                user.name_verified = True
+                mod = True
+
+        if "email" in mapped_attributes:
+            from course.constants import user_status
+            if user.status != user_status.active:
+                user.status = user_status.active
+                mod = True
+
+        if mod:
+            user.save()
+
+        return user
+
+# }}}
+
+
+# {{{ social auth
+
+def social_set_user_email_verified(backend, details, user=None, *args, **kwargs):
+    email = details.get("email")
+
+    modified = False
+
+    if email:
+        if email != user.email:
+            user.email = email
+            modified = True
+
         from course.constants import user_status
-        if instance.status != user_status.active:
-            instance.status = user_status.active
-            mod = True
+        if user.status != user_status.active:
+            user.status = user_status.active
+            modified = True
 
-    return mod
+    if modified:
+        user.save()
+
+    # continue the social auth pipeline
+    return None
+
+
+def social_auth_check_domain_against_blacklist(backend, details, *args, **kwargs):
+    email = details.get("email")
+
+    domain_blacklist = getattr(
+            settings, "RELATE_SOCIAL_AUTH_BLACKLIST_EMAIL_DOMAINS", {})
+    if domain_blacklist and email:
+        domain = email.split("@", 1)[1]
+        if domain in domain_blacklist:
+            from social_core.exceptions import SocialAuthBaseException
+            raise SocialAuthBaseException(domain_blacklist[domain])
+
+    # continue the social auth pipeline
+    return None
 
 # }}}
 
@@ -1072,7 +1141,7 @@ def sign_out_confirmation(request, redirect_field_name=REDIRECT_FIELD_NAME):
         return redirect("relate-home")
 
     redirect_to = request.POST.get(redirect_field_name,
-                                   request.GET.get(redirect_field_name, ''))
+                                   request.GET.get(redirect_field_name, ""))
 
     next_uri = ""
     if redirect_to:
@@ -1090,13 +1159,14 @@ def sign_out(request, redirect_field_name=REDIRECT_FIELD_NAME):
         return redirect("relate-home")
 
     redirect_to = request.POST.get(redirect_field_name,
-                                   request.GET.get(redirect_field_name, ''))
+                                   request.GET.get(redirect_field_name, ""))
     response = None
 
     if settings.RELATE_SIGN_IN_BY_SAML2_ENABLED:
-        from djangosaml2.views import _get_subject_id, logout as saml2_logout
+        from djangosaml2.views import _get_subject_id
         if _get_subject_id(request.session) is not None:
-            response = saml2_logout(request)
+            # skip auth_logout below, rely on djangosaml2 to complete logout
+            return redirect("saml2_logout")
 
     auth_logout(request)
 
@@ -1266,7 +1336,7 @@ def auth_course_with_token(method, func, request,
             realm = _("Relate direct git access for {}".format(course_identifier))
             response = http.HttpResponse("Forbidden: " + str(e),
                         content_type="text/plain")
-            response['WWW-Authenticate'] = 'Basic realm="%s"' % (realm)
+            response["WWW-Authenticate"] = 'Basic realm="%s"' % (realm)
             response.status_code = 401
             return response
 
@@ -1284,8 +1354,7 @@ def auth_course_with_token(method, func, request,
     return response
 
 
-def with_course_api_auth(method):
-    # type: (Text,) -> Any
+def with_course_api_auth(method: Text) -> Any:
     def wrapper_with_method(func):
         def wrapper(*args, **kwargs):
             return auth_course_with_token(method, func, *args, **kwargs)
@@ -1352,7 +1421,7 @@ def manage_authentication_tokens(pctx):
     from course.views import get_now_or_fake_time
     now_datetime = get_now_or_fake_time(request)
 
-    if request.method == 'POST':
+    if request.method == "POST":
         form = AuthenticationTokenForm(pctx.participation, request.POST)
 
         revoke_prefix = "revoke_"

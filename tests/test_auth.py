@@ -432,7 +432,7 @@ class CrossCourseImpersonateTest(CoursesTestMixinBase, TestCase):
 
     @classmethod
     def setUpTestData(cls):  # noqa
-        super(CrossCourseImpersonateTest, cls).setUpTestData()
+        super().setUpTestData()
         course1 = factories.CourseFactory()
         course2 = factories.CourseFactory(identifier="another-course")
 
@@ -475,7 +475,7 @@ class CrossCourseImpersonateTest(CoursesTestMixinBase, TestCase):
             self.assertEqual(resp.status_code, 403)
 
 
-class AuthTestMixin(object):
+class AuthTestMixin:
     _user_create_kwargs = {
         "username": "test_user", "password": "mypassword",
         "email": "my_email@example.com"
@@ -483,13 +483,13 @@ class AuthTestMixin(object):
 
     @classmethod
     def setUpTestData(cls):  # noqa
-        super(AuthTestMixin, cls).setUpTestData()
+        super().setUpTestData()
         cls.test_user = (
             get_user_model().objects.create_user(**cls._user_create_kwargs))
         cls.existing_user_count = get_user_model().objects.count()
 
     def setUp(self):
-        super(AuthTestMixin, self).setUp()
+        super().setUp()
         self.test_user.refresh_from_db()
 
     def get_sign_in_data(self):
@@ -517,7 +517,7 @@ class AuthTestMixin(object):
             if parse_qs and attr == 'query':
                 x, y = QueryDict(x), QueryDict(y)
             if x and y and x != y:
-                self.fail("%r != %r (%s doesn't match)" % (url, expected, attr))
+                self.fail(f"{url!r} != {expected!r} ({attr} doesn't match)")
 
     def do_test_security_check(self, url_name):
         url = reverse(url_name)
@@ -571,11 +571,11 @@ class AuthTestMixin(object):
     def concatenate_redirect_url(self, url, redirect_to=None):
         if not redirect_to:
             return url
-        return ('%(url)s?%(next)s=%(bad_url)s' % {
-            'url': url,
-            'next': REDIRECT_FIELD_NAME,
-            'bad_url': quote(redirect_to),
-        })
+        return ('{url}?{next}={bad_url}'.format(
+            url=url,
+            next=REDIRECT_FIELD_NAME,
+            bad_url=quote(redirect_to),
+        ))
 
     def get_sign_up_view_url(self, redirect_to=None):
         return self.concatenate_redirect_url(
@@ -797,7 +797,7 @@ class SignInByEmailTest(CoursesTestMixinBase, MockAddMessageMixing,
 
     @classmethod
     def setUpTestData(cls):  # noqa
-        super(SignInByEmailTest, cls).setUpTestData()
+        super().setUpTestData()
 
         new_email = "somebody@example.com"
         data = {"email": new_email}
@@ -838,7 +838,7 @@ class SignInByEmailTest(CoursesTestMixinBase, MockAddMessageMixing,
         cls.user = user
 
     def setUp(self):
-        super(SignInByEmailTest, self).setUp()
+        super().setUp()
         self.user.refresh_from_db()
         self.flush_mailbox()
 
@@ -987,7 +987,7 @@ class SignUpTest(CoursesTestMixinBase, MockAddMessageMixing,
     }
 
     def setUp(self):
-        super(SignUpTest, self).setUp()
+        super().setUp()
         self.c.logout()
 
     @override_settings()
@@ -1096,10 +1096,11 @@ class SignOutTest(CoursesTestMixinBase, AuthTestMixin,
     def test_sign_out_by_get(self):
         with mock.patch("djangosaml2.views._get_subject_id") \
                 as mock_get_subject_id, \
-                mock.patch("djangosaml2.views.logout") as mock_saml2_logout:
+                mock.patch("djangosaml2.views.LogoutInitView.get") \
+                as mock_saml2_logout:
             mock_get_subject_id.return_value = "some_id"
             with self.temporarily_switch_to_user(self.test_user):
-                resp = self.get_sign_out()
+                resp = self.get_sign_out(follow=True)
                 self.assertRedirects(resp, reverse("relate-home"),
                                      target_status_code=200,
                                      fetch_redirect_response=False)
@@ -1110,7 +1111,8 @@ class SignOutTest(CoursesTestMixinBase, AuthTestMixin,
     def test_sign_out_by_post(self):
         with mock.patch("djangosaml2.views._get_subject_id") \
                 as mock_get_subject_id, \
-                mock.patch("djangosaml2.views.logout") as mock_saml2_logout:
+                mock.patch("djangosaml2.views.LogoutInitView.get") \
+                as mock_saml2_logout:
             mock_get_subject_id.return_value = "some_id"
             with self.temporarily_switch_to_user(self.test_user):
                 resp = self.post_sign_out({})
@@ -1133,11 +1135,12 @@ class SignOutTest(CoursesTestMixinBase, AuthTestMixin,
     def test_sign_out_with_saml2_enabled_no_subject_id(self):
         with mock.patch("djangosaml2.views._get_subject_id") \
                 as mock_get_subject_id, \
-                mock.patch("djangosaml2.views.logout") as mock_saml2_logout:
+                mock.patch("djangosaml2.views.LogoutInitView.get") \
+                as mock_saml2_logout:
             mock_get_subject_id.return_value = None
             with self.temporarily_switch_to_user(self.test_user):
-                resp = self.get_sign_out()
-                self.assertEqual(resp.status_code, 302)
+                resp = self.get_sign_out(follow=True)
+                self.assertEqual(resp.status_code, 200)
                 self.assertSessionHasNoUserLoggedIn()
             self.assertEqual(mock_saml2_logout.call_count, 0)
 
@@ -1146,10 +1149,13 @@ class SignOutTest(CoursesTestMixinBase, AuthTestMixin,
         self.c.force_login(self.test_user)
         with mock.patch("djangosaml2.views._get_subject_id") \
                 as mock_get_subject_id, \
-                mock.patch("djangosaml2.views.logout") as mock_saml2_logout:
+                mock.patch("djangosaml2.views.LogoutInitView.get") \
+                as mock_saml2_logout:
             mock_get_subject_id.return_value = "some_id"
             mock_saml2_logout.return_value = HttpResponse()
-            resp = self.get_sign_out()
+
+            resp = self.get_sign_out(follow=True)
+
             self.assertEqual(resp.status_code, 200)
             self.assertEqual(mock_saml2_logout.call_count, 1)
 
@@ -1187,7 +1193,7 @@ class UserProfileTest(CoursesTestMixinBase, AuthTestMixin,
                       MockAddMessageMixing, TestCase):
 
     def setUp(self):
-        super(UserProfileTest, self).setUp()
+        super().setUp()
         self.rf = RequestFactory()
 
     def generate_profile_data(self, **kwargs):
@@ -1204,9 +1210,9 @@ class UserProfileTest(CoursesTestMixinBase, AuthTestMixin,
         url = self.get_profile_view_url()
         if query_string_dict is not None:
             url = (
-                "%s?%s" % (
+                "{}?{}".format(
                     url,
-                    "&".join(["%s=%s" % (k, v)
+                    "&".join([f"{k}={v}"
                               for k, v in query_string_dict.items()])))
         request = self.rf.post(url, data)
         request.user = self.test_user
@@ -1595,14 +1601,14 @@ class ResetPasswordStageOneTest(CoursesTestMixinBase, MockAddMessageMixing,
                                 LocmemBackendTestsMixin, TestCase):
     @classmethod
     def setUpTestData(cls):  # noqa
-        super(ResetPasswordStageOneTest, cls).setUpTestData()
+        super().setUpTestData()
         cls.user_email = "a_very_looooooong_email@somehost.com"
         cls.user_inst_id = "1234"
         cls.user = factories.UserFactory.create(email=cls.user_email,
                                       institutional_id=cls.user_inst_id)
 
     def setUp(self):
-        super(ResetPasswordStageOneTest, self).setUp()
+        super().setUp()
         self.registration_override_setting = override_settings(
             RELATE_REGISTRATION_ENABLED=True)
         self.registration_override_setting.enable()
@@ -1728,7 +1734,7 @@ class ResetPasswordStageTwoTest(CoursesTestMixinBase, MockAddMessageMixing,
 
     @classmethod
     def setUpTestData(cls):  # noqa
-        super(ResetPasswordStageTwoTest, cls).setUpTestData()
+        super().setUpTestData()
         user = factories.UserFactory()
         cls.c.logout()
 
@@ -1740,7 +1746,7 @@ class ResetPasswordStageTwoTest(CoursesTestMixinBase, MockAddMessageMixing,
         cls.user = user
 
     def setUp(self):
-        super(ResetPasswordStageTwoTest, self).setUp()
+        super().setUp()
         self.registration_override_setting = override_settings(
             RELATE_REGISTRATION_ENABLED=True)
         self.registration_override_setting.enable()
@@ -1951,8 +1957,8 @@ class TestSaml2AttributeMapping(TestCase):
                                      name_verified=False,
                                      status=constants.user_status.unconfirmed)
 
-        from djangosaml2.backends import Saml2Backend
-        backend = Saml2Backend()
+        from course.auth import RelateSaml2Backend
+        backend = RelateSaml2Backend()
 
         saml_attribute_mapping = {
             'PrincipalName': ('username',),
@@ -1969,12 +1975,13 @@ class TestSaml2AttributeMapping(TestCase):
 
             with mock.patch("accounts.models.User.save") as mock_save:
                 # no changes
-                user = backend.update_user(user, user_attribute,
+                user = backend._rl_update_user(user, user_attribute,
                         saml_attribute_mapping)
                 self.assertEqual(mock_save.call_count, 0)
 
-            self.assertEqual(user.first_name, "")
-            self.assertEqual(user.last_name, "")
+            # not set as part of _rl_update_user
+            # self.assertEqual(user.first_name, "")
+            # self.assertEqual(user.last_name, "")
             self.assertFalse(user.name_verified)
             self.assertEqual(user.status, constants.user_status.unconfirmed)
             self.assertFalse(user.institutional_id_verified)
@@ -1992,13 +1999,15 @@ class TestSaml2AttributeMapping(TestCase):
             }
 
             with mock.patch("accounts.models.User.save") as mock_save:
-                user = backend.update_user(user, user_attribute,
+                user = backend._rl_update_user(user, user_attribute,
                         saml_attribute_mapping)
                 self.assertEqual(mock_save.call_count, 1)
 
-            user = backend.update_user(user, user_attribute, saml_attribute_mapping)
-            self.assertEqual(user.first_name, expected_first)
-            self.assertEqual(user.last_name, expected_last)
+            user = backend._rl_update_user(
+                    user, user_attribute, saml_attribute_mapping)
+            # not set as part of _rl_update_user
+            # self.assertEqual(user.first_name, expected_first)
+            # self.assertEqual(user.last_name, expected_last)
             self.assertTrue(user.name_verified)
             self.assertEqual(user.status, constants.user_status.unconfirmed)
             self.assertTrue(user.institutional_id_verified)
@@ -2010,16 +2019,18 @@ class TestSaml2AttributeMapping(TestCase):
                 'givenName': (expected_first,),
                 'sn': (expected_last,),
             }
-            user = backend.update_user(user, user_attribute, saml_attribute_mapping)
-            self.assertEqual(user.first_name, expected_first)
-            self.assertEqual(user.last_name, expected_last)
+            user = backend._rl_update_user(
+                    user, user_attribute, saml_attribute_mapping)
+            # not set as part of _rl_update_user
+            # self.assertEqual(user.first_name, expected_first)
+            # self.assertEqual(user.last_name, expected_last)
             self.assertTrue(user.name_verified)
             self.assertEqual(user.status, constants.user_status.active)
             self.assertTrue(user.institutional_id_verified)
 
             with mock.patch("accounts.models.User.save") as mock_save:
                 # no changes
-                backend.update_user(user, user_attribute, saml_attribute_mapping)
+                backend._rl_update_user(user, user_attribute, saml_attribute_mapping)
                 self.assertEqual(mock_save.call_count, 0)
 
 
@@ -2073,7 +2084,7 @@ class AuthCourseWithTokenTest(APITestMixin, TestCase):
     # test auth_course_with_token
 
     def setUp(self):
-        super(AuthCourseWithTokenTest, self).setUp()
+        super().setUp()
         self.c.force_login(self.instructor_participation.user)
 
     def get_test_token_url(self, course_identifier=None):
@@ -2197,7 +2208,7 @@ class AuthCourseWithTokenTest(APITestMixin, TestCase):
 
     def test_basic_auth_no_match(self):
         from base64 import b64encode
-        bad_auth_data = b64encode("foobar".encode("utf-8")).decode()
+        bad_auth_data = b64encode(b"foobar").decode()
 
         resp = self.c.get(
             self.get_test_basic_url(),
@@ -2249,7 +2260,7 @@ class ManageAuthenticationTokensTest(
     # test manage_authentication_tokens
 
     def setUp(self):
-        super(ManageAuthenticationTokensTest, self).setUp()
+        super().setUp()
         self.c.force_login(self.instructor_participation.user)
 
     def test_not_authenticated(self):

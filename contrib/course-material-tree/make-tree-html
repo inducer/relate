@@ -197,7 +197,7 @@ def render(settings, outf, node, indent=0, skip=1):
         if "link" in node:
             print(
                 indent * " ",
-                "<a href=\"%s\">%s</a>" % (
+                '<a href="%s">%s</a>' % (
                     settings.apply_replacements(node["link"]),
                     settings.apply_replacements(text)),
                 file=outf, sep="")
@@ -260,7 +260,7 @@ def main():
     import argparse
 
     parser = argparse.ArgumentParser(
-            description='Turn a YAML file into a jsTree-compatible data file')
+            description="Turn a YAML file into a jsTree-compatible data file")
 
     parser.add_argument("-o", "--output-file", metavar="FILE", required=True)
 

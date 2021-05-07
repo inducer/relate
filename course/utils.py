@@ -48,7 +48,9 @@ from course.constants import (
 from course.content import (  # noqa
         FlowDesc,
         FlowPageDesc,
-        FlowSessionAccessRuleDesc
+        FlowSessionStartRuleDesc,
+        FlowSessionAccessRuleDesc,
+        FlowSessionGradingRuleDesc,
         )
 from course.page.base import (  # noqa
         PageBase,
@@ -300,7 +302,8 @@ def get_session_start_rule(
         facilities = frozenset()
 
     from relate.utils import dict_to_struct
-    rules = get_flow_rules(flow_desc, flow_rule_kind.start,
+    rules: List[FlowSessionStartRuleDesc] = get_flow_rules(
+            flow_desc, flow_rule_kind.start,
             participation, flow_id, now_datetime,
             default_rules_desc=[
                 dict_to_struct(dict(
@@ -391,12 +394,13 @@ def get_session_access_rule(
         facilities = frozenset()
 
     from relate.utils import dict_to_struct
-    rules = get_flow_rules(flow_desc, flow_rule_kind.access,
+    rules: List[FlowSessionAccessRuleDesc] = get_flow_rules(
+            flow_desc, flow_rule_kind.access,
             session.participation, session.flow_id, now_datetime,
             default_rules_desc=[
                 dict_to_struct(dict(
                     permissions=[flow_permission.view],
-                    ))])  # type: List[FlowSessionAccessRuleDesc]
+                    ))])
 
     for rule in rules:
         if not _eval_generic_conditions(
@@ -476,7 +480,8 @@ def get_session_grading_rule(
     flow_desc_rules = getattr(flow_desc, "rules", None)
 
     from relate.utils import dict_to_struct
-    rules = get_flow_rules(flow_desc, flow_rule_kind.grading,
+    rules: List[FlowSessionGradingRuleDesc] = get_flow_rules(
+            flow_desc, flow_rule_kind.grading,
             session.participation, session.flow_id, now_datetime,
             default_rules_desc=[
                 dict_to_struct(dict(
@@ -982,13 +987,13 @@ def get_codemirror_widget(
 
     if interaction_mode == "vim":
         actual_config["vimMode"] = True
-        actual_addon_js += ('../keymap/vim',)
+        actual_addon_js += ("../keymap/vim",)
     elif interaction_mode == "emacs":
         actual_config["keyMap"] = "emacs"
-        actual_addon_js += ('../keymap/emacs',)
+        actual_addon_js += ("../keymap/emacs",)
     elif interaction_mode == "sublime":
         actual_config["keyMap"] = "sublime"
-        actual_addon_js += ('../keymap/sublime',)
+        actual_addon_js += ("../keymap/sublime",)
     # every other interaction mode goes to default
 
     if config is not None:
@@ -1042,7 +1047,7 @@ class FacilityFindingMiddleware(object):
         else:
             import ipaddress
             remote_address = ipaddress.ip_address(
-                    str(request.META['REMOTE_ADDR']))
+                    str(request.META["REMOTE_ADDR"]))
 
             facilities = set()
 
@@ -1292,7 +1297,7 @@ class IpynbJinjaMacro(RelateJinjaMacroBase):
         if clear_markdown:
             nb_source_dict.update(
                 {"cells": [cell for cell in nb_source_dict["cells"]
-                           if cell['cell_type'] != "markdown"]})
+                           if cell["cell_type"] != "markdown"]})
 
         nb_source_dict.update({"cells": nb_source_dict["cells"]})
 
@@ -1344,24 +1349,8 @@ class NBConvertHTMLPostprocessor(markdown.postprocessors.Postprocessor):
 
 class NBConvertExtension(markdown.Extension):
     def extendMarkdown(self, md, md_globals):  # noqa
-        md.postprocessors['relate_nbconvert'] = NBConvertHTMLPostprocessor(md)
+        md.postprocessors["relate_nbconvert"] = NBConvertHTMLPostprocessor(md)
 
 # }}}
-
-
-def get_custom_page_types_stop_support_deadline():
-    # type: () -> Optional[datetime.datetime]
-    from django.conf import settings
-    custom_page_types_removed_deadline = getattr(
-        settings, "RELATE_CUSTOM_PAGE_TYPES_REMOVED_DEADLINE", None)
-
-    force_deadline = datetime.datetime(2019, 1, 1, 0, 0, 0, 0)
-
-    if (custom_page_types_removed_deadline is None
-            or custom_page_types_removed_deadline > force_deadline):
-        custom_page_types_removed_deadline = force_deadline
-
-    from relate.utils import localize_datetime
-    return localize_datetime(custom_page_types_removed_deadline)
 
 # vim: foldmethod=marker

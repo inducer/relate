@@ -1,7 +1,3 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import division
-
 __copyright__ = "Copyright (C) 2017 Dong Zhuang"
 
 __license__ = """
@@ -24,7 +20,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from datetime import datetime
 from copy import deepcopy
 
 import unittest
@@ -36,17 +31,14 @@ from django.utils import translation
 from django.utils.translation import gettext_noop
 from django.conf import settings
 
-from relate.utils import (
-    localize_datetime, format_datetime_local,
-    struct_to_dict, dict_to_struct)
+from relate.utils import struct_to_dict, dict_to_struct
 
 from course import utils
 from course.content import parse_date_spec
 from course import constants  # noqa
 from course.constants import flow_permission as fperm
 
-from tests.constants import (
-    QUIZ_FLOW_ID, COMMIT_SHA_SUPPORT_CUSTOM_PAGES)
+from tests.constants import QUIZ_FLOW_ID
 from tests.base_test_mixins import (
     CoursesTestMixinBase,
     SingleCoursePageTestMixin, SubprocessRunpyContainerMixin,
@@ -197,7 +189,7 @@ class LanguageOverrideTest(SingleCoursePageTestMixin,
 
     @classmethod
     def setUpTestData(cls):  # noqa
-        super(LanguageOverrideTest, cls).setUpTestData()
+        super().setUpTestData()
         cls.c.force_login(cls.instructor_participation.user)
         cls.start_flow(cls.flow_id)
 
@@ -208,10 +200,10 @@ class LanguageOverrideTest(SingleCoursePageTestMixin,
             self.course.save()
         with utils.LanguageOverride(course=self.course):
             self.assertEqual(translation.get_language(), "de")
-            self.assertEqual(translation.gettext("user"), u"Benutzer")
+            self.assertEqual(translation.gettext("user"), "Benutzer")
 
         self.assertEqual(translation.get_language(), "ko")
-        self.assertEqual(translation.gettext("user"), u"사용자")
+        self.assertEqual(translation.gettext("user"), "사용자")
 
     @override_settings(RELATE_ADMIN_EMAIL_LOCALE="de", LANGUAGE_CODE="ko")
     def test_language_override_course_has_force_lang(self):
@@ -244,7 +236,7 @@ class LanguageOverrideTest(SingleCoursePageTestMixin,
         translation.deactivate_all()
         with utils.LanguageOverride(course=self.course):
             self.assertEqual(translation.get_language(), "de")
-            self.assertEqual(translation.gettext("user"), u"Benutzer")
+            self.assertEqual(translation.gettext("user"), "Benutzer")
 
         self.assertEqual(translation.get_language(), None)
         self.assertEqual(translation.gettext("whatever"), "whatever")
@@ -256,7 +248,7 @@ class LanguageOverrideTest(SingleCoursePageTestMixin,
 
         with utils.LanguageOverride(course=self.course, deactivate=True):
             self.assertEqual(translation.get_language(), "zh-hans")
-            self.assertEqual(translation.gettext("user"), u"用户")
+            self.assertEqual(translation.gettext("user"), "用户")
 
         self.assertEqual(translation.get_language(), "en-us")
 
@@ -321,135 +313,7 @@ class LanguageOverrideTest(SingleCoursePageTestMixin,
         self.feedback_test(course_force_lang="zh-hans")
 
 
-class GetCustomPageTypesStopSupportDeadlineTest(unittest.TestCase):
-    # test course.utils.get_custom_page_types_stop_support_deadline
-
-    force_deadline = datetime(2019, 1, 1, 0, 0, 0, 0)
-
-    def test_custom_deadline_before_force_deadline(self):
-        deadline = datetime(2017, 1, 1, 0, 0, 0, 0)
-        with override_settings(
-                RELATE_CUSTOM_PAGE_TYPES_REMOVED_DEADLINE=deadline):
-            self.assertEqual(
-                utils.get_custom_page_types_stop_support_deadline(),
-                localize_datetime(deadline))
-
-    def test_custom_deadline_after_force_deadline(self):
-        deadline = datetime(2019, 1, 1, 1, 0, 0, 0)
-        with override_settings(
-                RELATE_CUSTOM_PAGE_TYPES_REMOVED_DEADLINE=deadline):
-            self.assertEqual(
-                utils.get_custom_page_types_stop_support_deadline(),
-                localize_datetime(self.force_deadline))
-
-    def test_custom_deadline_not_configured(self):
-        with override_settings():
-            del settings.RELATE_CUSTOM_PAGE_TYPES_REMOVED_DEADLINE
-            self.assertEqual(
-                utils.get_custom_page_types_stop_support_deadline(),
-                localize_datetime(self.force_deadline))
-
-
-class CustomRepoPageStopSupportTest(SingleCourseTestMixin,
-                                    MockAddMessageMixing, TestCase):
-    force_login_student_for_each_test = True
-
-    def setUp(self):
-        super(CustomRepoPageStopSupportTest, self).setUp()
-        self.current_commit_sha = self.get_course_commit_sha(
-            self.instructor_participation)
-
-    force_deadline = datetime(2019, 1, 1, 0, 0, 0, 0)
-
-    custom_page_type = "repo:simple_questions.MyTextQuestion"
-
-    commit_sha_deprecated = COMMIT_SHA_SUPPORT_CUSTOM_PAGES.encode()
-
-    deprecate_warning_message_pattern = (
-        "Custom page type '%(page_type)s' specified. "
-        "Custom page types will stop being supported in "
-        "RELATE at %(date_time)s.")
-
-    expired_error_message_pattern = (
-        "Custom page type '%(page_type)s' specified. "
-        "Custom page types were no longer supported in "
-        "RELATE since %(date_time)s.")
-
-    def test_custom_page_types_deprecate(self):
-        deadline = datetime(2039, 1, 1, 0, 0, 0, 0)
-
-        with override_settings(
-                RELATE_CUSTOM_PAGE_TYPES_REMOVED_DEADLINE=deadline):
-            resp = self.post_update_course_content(
-                commit_sha=self.commit_sha_deprecated)
-            self.assertEqual(resp.status_code, 200)
-
-            if datetime.now() <= self.force_deadline:
-                expected_message = (
-                    self.deprecate_warning_message_pattern
-                    % {"page_type": self.custom_page_type,
-                       "date_time": format_datetime_local(self.force_deadline)}
-                )
-                self.assertEqual(
-                    self.get_course_commit_sha(self.instructor_participation),
-                    self.commit_sha_deprecated)
-            else:
-                expected_message = (
-                    self.expired_error_message_pattern
-                    % {"page_type": self.custom_page_type,
-                       "date_time": format_datetime_local(self.force_deadline)}
-                )
-                self.assertEqual(
-                    self.get_course_commit_sha(self.instructor_participation),
-                    self.current_commit_sha)
-            self.assertAddMessageCalledWith(expected_message)
-
-    def test_custom_page_types_not_supported(self):
-        deadline = datetime(2017, 1, 1, 0, 0, 0, 0)
-        with override_settings(
-                RELATE_CUSTOM_PAGE_TYPES_REMOVED_DEADLINE=deadline):
-            resp = self.post_update_course_content(
-                commit_sha=self.commit_sha_deprecated)
-            self.assertEqual(resp.status_code, 200)
-            expected_message = (
-                self.expired_error_message_pattern
-                % {"page_type": self.custom_page_type,
-                   "date_time": format_datetime_local(deadline)}
-            )
-            self.assertAddMessageCalledWith(expected_message)
-            self.assertEqual(
-                self.get_course_commit_sha(self.instructor_participation),
-                self.current_commit_sha)
-
-    def test_custom_page_types_deadline_configured_none(self):
-        with override_settings(
-                RELATE_CUSTOM_PAGE_TYPES_REMOVED_DEADLINE=None):
-            resp = self.post_update_course_content(
-                commit_sha=self.commit_sha_deprecated)
-            self.assertEqual(resp.status_code, 200)
-
-            if datetime.now() <= self.force_deadline:
-                expected_message = (
-                    self.deprecate_warning_message_pattern
-                    % {"page_type": self.custom_page_type,
-                       "date_time": format_datetime_local(self.force_deadline)}
-                )
-                self.assertEqual(
-                    self.get_course_commit_sha(self.instructor_participation),
-                    self.commit_sha_deprecated)
-            else:
-                expected_message = (
-                    self.expired_error_message_pattern
-                    % {"page_type": self.custom_page_type,
-                       "date_time": format_datetime_local(self.force_deadline)}
-                )
-                self.assertEqual(
-                    self.get_course_commit_sha(self.instructor_participation),
-                    self.current_commit_sha)
-            self.assertAddMessageCalledWith(expected_message)
-
-
-class Foo(object):
+class Foo:
     def __init__(self, a=None):
         self.a = a
 
@@ -990,7 +854,7 @@ def parse_date_spec_get_rule_test_side_effect(
     return parse_date_spec(course, datespec, vctx, location)
 
 
-class GetSessionRuleMixin(object):
+class GetSessionRuleMixin:
 
     flow_id = QUIZ_FLOW_ID
 
@@ -1027,7 +891,7 @@ class GetSessionRuleMixin(object):
         self.assertDictEqual(rule_dict, expected_rule_dict)
 
     def setUp(self):
-        super(GetSessionRuleMixin, self).setUp()
+        super().setUp()
 
         fake_get_flow_rules = mock.patch("course.utils.get_flow_rules")
         self.mock_get_flow_rules = fake_get_flow_rules.start()
@@ -1291,7 +1155,7 @@ class GetSessionAccessRuleTest(GetSessionRuleMixin, SingleCourseTestMixin, TestC
 
     @classmethod
     def setUpTestData(cls):  # noqa
-        super(GetSessionAccessRuleTest, cls).setUpTestData()
+        super().setUpTestData()
 
         cls.now = now() - timedelta(days=1)
 
@@ -1538,7 +1402,7 @@ class GetSessionGradingRuleTest(GetSessionRuleMixin,
 
     @classmethod
     def setUpTestData(cls):  # noqa
-        super(GetSessionGradingRuleTest, cls).setUpTestData()
+        super().setUpTestData()
 
         cls.now = now() - timedelta(days=1)
 
@@ -1757,7 +1621,7 @@ class CoursePageContextTest(SingleCourseTestMixin, MockAddMessageMixing, TestCas
     # test utils.CoursePageContext (for cases not covered by other tests)
 
     def setUp(self):
-        super(CoursePageContextTest, self).setUp()
+        super().setUp()
         rf = RequestFactory()
         self.request = rf.get(self.get_course_page_url())
 
@@ -1846,7 +1710,7 @@ class ParticipationPermissionWrapperTest(SingleCourseTestMixin, TestCase):
     # by other tests)
 
     def setUp(self):
-        super(ParticipationPermissionWrapperTest, self).setUp()
+        super().setUp()
         rf = RequestFactory()
         request = rf.get(self.get_course_page_url())
         request.user = self.ta_participation.user

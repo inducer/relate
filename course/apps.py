@@ -4,7 +4,7 @@ from relate.checks import register_startup_checks_extra, register_startup_checks
 
 
 class CourseConfig(AppConfig):
-    name = 'course'
+    name = "course"
     # for translation of the name of "Course" app displayed in admin.
     verbose_name = _("Course module")
 

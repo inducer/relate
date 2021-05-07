@@ -50,6 +50,19 @@ if TYPE_CHECKING:
 # }}}
 
 
+__doc__ = """
+.. autoclass:: ValidationContext
+
+.. autofunction:: validate_struct
+
+Stub Docs
+=========
+
+.. class:: Course
+.. class:: Repo_ish
+"""
+
+
 # {{{ validation tools
 
 class ValidationError(RuntimeError):
@@ -68,7 +81,7 @@ def validate_identifier(vctx, location, s, warning_only=False):
             msg = (string_concat(
                         _("invalid identifier"),
                         " '%(string)s'")
-                    % {'location': location, 'string': s})
+                    % {"location": location, "string": s})
 
             vctx.add_warning(location, msg)
         else:
@@ -76,7 +89,7 @@ def validate_identifier(vctx, location, s, warning_only=False):
                         "%(location)s: ",
                         _("invalid identifier"),
                         " '%(string)s'")
-                    % {'location': location, 'string': s})
+                    % {"location": location, "string": s})
 
             raise ValidationError(msg)
 
@@ -93,7 +106,7 @@ def validate_role(vctx, location, role):
             raise ValidationError(
                     string_concat("%(location)s: ",
                         _("invalid role '%(role)s'"))
-                    % {'location': location, 'role': role})
+                    % {"location": location, "role": role})
 
 
 def validate_facility(vctx, location, facility):
@@ -126,7 +139,7 @@ def validate_participationtag(vctx, location, participationtag):
             from course.models import ParticipationTag
             return list(
                 ParticipationTag.objects.filter(course=vctx.course)
-                .values_list('name', flat=True))
+                .values_list("name", flat=True))
 
         ptag_list = get_ptag_list(vctx)
         if participationtag not in ptag_list:
@@ -182,7 +195,7 @@ def validate_struct(
                     raise ValidationError(
                             string_concat("%(location)s: ",
                                 _("attribute '%(attr)s' missing"))
-                            % {'location': location, 'attr': attr})
+                            % {"location": location, "attr": attr})
             else:
                 present_attrs.remove(attr)
                 val = getattr(obj, attr)
@@ -199,10 +212,10 @@ def validate_struct(
                                     "wrong type: got '%(name)s', "
                                     "expected '%(allowed)s'"))
                             % {
-                                'location': location,
-                                'attr': attr,
-                                'name': type(val).__name__,
-                                'allowed': escape(str(allowed_types))})
+                                "location": location,
+                                "attr": attr,
+                                "name": type(val).__name__,
+                                "allowed": escape(str(allowed_types))})
 
                 if is_markup:
                     validate_markup(vctx, "%s: attribute %s" % (location, attr), val)
@@ -211,7 +224,7 @@ def validate_struct(
         raise ValidationError(
                 string_concat("%(location)s: ",
                     _("extraneous attribute(s) '%(attr)s'"))
-                % {'location': location, 'attr': ",".join(present_attrs)})
+                % {"location": location, "attr": ",".join(present_attrs)})
 
 
 datespec_types = (datetime.date, str, datetime.datetime)
@@ -285,7 +298,7 @@ def validate_markup(vctx, location, markup_str):
 
         raise ValidationError(
                 "%(location)s: %(err_type)s: %(err_str)s" % {
-                    'location': location,
+                    "location": location,
                     "err_type": tp.__name__,
                     "err_str": str(e)})
 
@@ -386,7 +399,7 @@ def validate_page_chunk(vctx, location, chunk):
         raise ValidationError(
                 string_concat("%(location)s: ",
                     _("no title present"))
-                % {'location': location})
+                % {"location": location})
 
     if hasattr(chunk, "rules"):
         for i, rule in enumerate(chunk.rules):
@@ -418,7 +431,7 @@ def validate_staticpage_desc(vctx, location, page_desc):
         raise ValidationError(
                 string_concat("%(location)s: ",
                     _("must have either 'chunks' or 'content'"))
-                % {'location': location})
+                % {"location": location})
 
     # }}}
 
@@ -445,7 +458,7 @@ def validate_staticpage_desc(vctx, location, page_desc):
                     string_concat(
                         "%(location)s: ",
                         _("chunk id '%(chunkid)s' not unique"))
-                    % {'location': location, 'chunkid': chunk.id})
+                    % {"location": location, "chunkid": chunk.id})
 
         chunk_ids.add(chunk.id)
 
@@ -467,36 +480,6 @@ def validate_flow_page(vctx, location, page_desc):
 
     validate_identifier(vctx, location, page_desc.id)
 
-    if page_desc.type.startswith("repo:"):
-        from django.conf import settings
-        from course.utils import get_custom_page_types_stop_support_deadline
-        from relate.utils import local_now, format_datetime_local
-
-        deadline = get_custom_page_types_stop_support_deadline()
-
-        assert deadline is not None
-
-        if deadline < local_now():
-            raise ValidationError(
-                    location,
-                    _("Custom page type '%(page_type)s' specified. "
-                      "Custom page types were no longer supported in "
-                      "%(relate_site_name)s since %(date_time)s.")
-                    % {"page_type": page_desc.type,
-                       "date_time": format_datetime_local(deadline),
-                       "relate_site_name": settings.RELATE_SITE_NAME,
-                       })
-        else:
-            vctx.add_warning(
-                    location,
-                    _("Custom page type '%(page_type)s' specified. "
-                      "Custom page types will stop being supported in "
-                      "%(relate_site_name)s at %(date_time)s.")
-                    % {"page_type": page_desc.type,
-                       "date_time": format_datetime_local(deadline),
-                       "relate_site_name": settings.RELATE_SITE_NAME
-                       })
-
     from course.content import get_flow_page_class
     try:
         class_ = get_flow_page_class(vctx.repo, page_desc.type, vctx.commit_sha)
@@ -514,10 +497,10 @@ def validate_flow_page(vctx, location, page_desc):
                     ": %(err_type)s: "
                     "%(err_str)s<br><pre>%(format_exc)s</pre>")
                 % {
-                    'location': location,
+                    "location": location,
                     "err_type": tp.__name__,  # type: ignore
                     "err_str": str(e),
-                    'format_exc': format_exc()})
+                    "format_exc": format_exc()})
 
 
 def validate_flow_group(vctx, location, grp):
@@ -540,7 +523,7 @@ def validate_flow_group(vctx, location, grp):
                 string_concat(
                     "%(location)s, ",
                     _("group '%(group_id)s': group is empty"))
-                % {'location': location, 'group_id': grp.id})
+                % {"location": location, "group_id": grp.id})
 
     for i, page_desc in enumerate(grp.pages):
         validate_flow_page(
@@ -556,11 +539,11 @@ def validate_flow_group(vctx, location, grp):
                     "%(location)s, ",
                     _("group '%(group_id)s': "
                         "max_page_count is not positive"))
-                % {'location': location, 'group_id': grp.id})
+                % {"location": location, "group_id": grp.id})
         elif not hasattr(grp, "shuffle") and grp.max_page_count < len(grp.pages):
             vctx.add_warning(
                 _("%(location)s, group '%(group_id)s': ") % {
-                    'location': location, 'group_id': grp.id},
+                    "location": location, "group_id": grp.id},
                 _("shuffle attribute will be required for groups with"
                   "max_page_count in a future version. set "
                   "'shuffle: False' to match current behavior."))
@@ -575,7 +558,7 @@ def validate_flow_group(vctx, location, grp):
                     string_concat(
                         "%(location)s: ",
                         _("page id '%(page_desc_id)s' not unique"))
-                    % {'location': location, 'page_desc_id': page_desc.id})
+                    % {"location": location, "page_desc_id": page_desc.id})
 
         page_ids.add(page_desc.id)
 
@@ -664,7 +647,7 @@ def validate_session_start_rule(vctx, location, nrule, tags):
                     string_concat(
                         "%(location)s: ",
                         _("invalid tag '%(tag)s'"))
-                    % {'location': location, 'tag': nrule.tag_session})
+                    % {"location": location, "tag": nrule.tag_session})
 
     if hasattr(nrule, "default_expiration_mode"):
         from course.constants import FLOW_SESSION_EXPIRATION_MODE_CHOICES
@@ -674,8 +657,8 @@ def validate_session_start_rule(vctx, location, nrule, tags):
                     string_concat("%(location)s: ",
                         _("invalid default expiration mode '%(expiremode)s'"))
                     % {
-                        'location': location,
-                        'expiremode': nrule.default_expiration_mode})
+                        "location": location,
+                        "expiremode": nrule.default_expiration_mode})
 
 
 def validate_session_access_rule(vctx, location, arule, tags):
@@ -739,7 +722,7 @@ def validate_session_access_rule(vctx, location, arule, tags):
                     string_concat(
                         "%(location)s: ",
                         _("invalid tag '%(tag)s'"))
-                    % {'location': location, 'tag': arule.if_has_tag})
+                    % {"location": location, "tag": arule.if_has_tag})
 
     if hasattr(arule, "if_expiration_mode"):
         if arule.if_expiration_mode not in dict(
@@ -748,8 +731,8 @@ def validate_session_access_rule(vctx, location, arule, tags):
                     string_concat("%(location)s: ",
                         _("invalid expiration mode '%(expiremode)s'"))
                     % {
-                        'location': location,
-                        'expiremode': arule.if_expiration_mode})
+                        "location": location,
+                        "expiremode": arule.if_expiration_mode})
 
     for j, perm in enumerate(arule.permissions):
         validate_flow_permission(
@@ -866,7 +849,7 @@ def validate_session_grading_rule(
                     string_concat(
                         "%(location)s: ",
                         _("invalid tag '%(tag)s'"))
-                    % {'location': location, 'tag': grule.if_has_tag})
+                    % {"location": location, "tag": grule.if_has_tag})
         has_conditionals = True
 
     if hasattr(grule, "due"):
@@ -916,7 +899,7 @@ def validate_flow_rules(vctx, location, rules):
                       "the 'rules' block itself."))
         raise ValidationError(
                 string_concat("%(location)s: ", error_msg)
-                % {'location': location})
+                % {"location": location})
 
     tags = getattr(rules, "tags", [])
 
@@ -956,8 +939,8 @@ def validate_flow_rules(vctx, location, rules):
                             "must have grading rules with a "
                             "grade_aggregation_strategy"))
                     % {
-                        'location': location,
-                        'identifier': rules.grade_identifier})
+                        "location": location,
+                        "identifier": rules.grade_identifier})
 
     from course.constants import GRADE_AGGREGATION_STRATEGY_CHOICES
     if (
@@ -980,7 +963,7 @@ def validate_flow_rules(vctx, location, rules):
                     string_concat("%(location)s: ",
                         _("'grading' block is required if grade_identifier "
                             "is not null/None."))
-                    % {'location': location})
+                    % {"location": location})
 
     else:
         has_conditionals = None
@@ -1030,7 +1013,7 @@ def validate_flow_permission(vctx, location, permission):
         raise ValidationError(
                 string_concat("%(location)s: ",
                     _("invalid flow permission '%(permission)s'"))
-                % {'location': location, 'permission': permission})
+                % {"location": location, "permission": permission})
 
 # }}}
 
@@ -1069,7 +1052,7 @@ def validate_flow_desc(vctx, location, flow_desc):
         raise ValidationError(
                 string_concat("%(location)s: ",
                     _("must have either 'groups' or 'pages'"))
-                % {'location': location})
+                % {"location": location})
 
     # }}}
 
@@ -1093,9 +1076,9 @@ def validate_flow_desc(vctx, location, flow_desc):
                         _("group %(group_index)d ('%(group_id)s'): "
                             "'pages' is not a list"))
                     % {
-                        'location': location,
-                        'group_index': i+1,
-                        'group_id': grp.id})
+                        "location": location,
+                        "group_index": i+1,
+                        "group_id": grp.id})
 
         for page in grp.pages:
             group_has_page = flow_has_page = True
@@ -1108,9 +1091,9 @@ def validate_flow_desc(vctx, location, flow_desc):
                         _("group %(group_index)d ('%(group_id)s'): "
                             "no pages found"))
                     % {
-                        'location': location,
-                        'group_index': i+1,
-                        'group_id': grp.id})
+                        "location": location,
+                        "group_index": i+1,
+                        "group_id": grp.id})
 
     if not flow_has_page:
         raise ValidationError(_("%s: no pages found")
@@ -1127,7 +1110,7 @@ def validate_flow_desc(vctx, location, flow_desc):
             raise ValidationError(
                     string_concat("%(location)s: ",
                         _("group id '%(group_id)s' not unique"))
-                    % {'location': location, 'group_id': grp.id})
+                    % {"location": location, "group_id": grp.id})
 
         group_ids.add(grp.id)
 
@@ -1234,7 +1217,7 @@ def get_yaml_from_repo_safely(repo, full_name, commit_sha):
 
         raise ValidationError(
                 "%(fullname)s: %(err_type)s: %(err_str)s" % {
-                    'fullname': full_name,
+                    "fullname": full_name,
                     "err_type": tp.__name__,
                     "err_str": str(e)})
 
@@ -1508,7 +1491,7 @@ def validate_course_content(repo, course_file, events_file,
         pass
     else:
         vctx.add_warning(
-                'media/', _(
+                "media/", _(
                     "Your course repository has a 'media/' directory. "
                     "Linking to media files using 'media:' is discouraged. "
                     "Use the 'repo:' and 'repocur:' linkng schemes instead."))
@@ -1636,17 +1619,20 @@ class FileSystemFakeRepoTree(object):  # pragma: no cover
         if not name:
             raise KeyError("<empty filename>")
 
-        from os.path import join, isdir, exists
+        from os.path import join, exists
         name = join(self.root, name)
 
         if not exists(name):
             raise KeyError(name)
 
+        from os import stat
+        from stat import S_ISDIR
+        stat_result = stat(name)
         # returns mode, "sha"
-        if isdir(name):
-            return None, FileSystemFakeRepoTree(name)
+        if S_ISDIR(stat_result.st_mode):
+            return stat_result.st_mode, FileSystemFakeRepoTree(name)
         else:
-            return None, FileSystemFakeRepoFile(name)
+            return stat_result.st_mode, FileSystemFakeRepoFile(name)
 
     def items(self):
         import os

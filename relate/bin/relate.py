@@ -220,23 +220,23 @@ def main() -> None:
     os.environ["RELATE_COMMAND_LINE"] = "1"
 
     parser = argparse.ArgumentParser(
-            description='RELATE course content command line tool')
+            description="RELATE course content command line tool")
     subp = parser.add_subparsers()
 
     parser_validate = subp.add_parser("validate")
     parser_validate.add_argument("--course-file", default="course.yml")
     parser_validate.add_argument("--events-file", default="events.yml")
-    parser_validate.add_argument('REPO_ROOT', default=os.getcwd())
+    parser_validate.add_argument("REPO_ROOT", default=os.getcwd())
     parser_validate.set_defaults(func=validate)
 
     parser_test_code = subp.add_parser("test-code")
-    parser_test_code.add_argument('--repo-root', default=os.getcwd())
-    parser_test_code.add_argument('FLOW_OR_PROBLEM_YMLS', nargs="+")
+    parser_test_code.add_argument("--repo-root", default=os.getcwd())
+    parser_test_code.add_argument("FLOW_OR_PROBLEM_YMLS", nargs="+")
     parser_test_code.set_defaults(func=test_code)
 
     parser_expand_yaml = subp.add_parser("expand-yaml")
-    parser_expand_yaml.add_argument('--repo-root', default=os.getcwd())
-    parser_expand_yaml.add_argument('YAML_FILE')
+    parser_expand_yaml.add_argument("--repo-root", default=os.getcwd())
+    parser_expand_yaml.add_argument("YAML_FILE")
     parser_expand_yaml.set_defaults(func=expand_yaml_ui)
 
     args = parser.parse_args()
