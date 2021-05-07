@@ -542,7 +542,7 @@ urlpatterns = [
 
     # }}}
 
-    path(r"^select2/", include("django_select2.urls")),
+    path(r"select2/", include("django_select2.urls")),
 
     re_path(r"^course"
         "/" + COURSE_ID_REGEX
@@ -556,10 +556,10 @@ urlpatterns = [
         course.api.get_flow_session_content,
         name="relate-course_get_flow_session_content"),
 
-    re_path(r"^admin/", admin.site.urls),
+    re_path(r"admin/", admin.site.urls),
 
-    path("^social-auth/", include("social_django.urls"), name="social"),
-    path(r"^saml2/", include("djangosaml2.urls")),
+    path("social-auth/", include("social_django.urls"), name="social"),
+    path(r"saml2/", include("djangosaml2.urls")),
 ]
 
 # vim: fdm=marker
