@@ -8,6 +8,8 @@ class CourseConfig(AppConfig):
     # for translation of the name of "Course" app displayed in admin.
     verbose_name = _("Course module")
 
+    default_auto_field = "django.db.models.BigAutoField"
+
     def ready(self):
         import course.receivers  # noqa
 
