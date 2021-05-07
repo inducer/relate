@@ -373,7 +373,7 @@ class ShortAnswer(AnswerBase):
             except forms.ValidationError:
                 continue
 
-            correctnesses.append(matcher.grade(answer))
+            correctnesses.append(matcher.grade(answer).correctness)
 
         return max(correctnesses)
 

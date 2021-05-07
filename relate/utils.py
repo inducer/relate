@@ -255,7 +255,7 @@ class Struct(object):
     def __init__(self, entries):
         # type: (Dict) -> None
         for name, val in entries.items():
-            self.__dict__[name] = val
+            setattr(self, name, val)
 
         self._field_names = list(entries.keys())
 
