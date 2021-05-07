@@ -556,7 +556,7 @@ urlpatterns = [
         course.api.get_flow_session_content,
         name="relate-course_get_flow_session_content"),
 
-    re_path(r"admin/", admin.site.urls),
+    path(r"admin/", admin.site.urls),
 
     path("social-auth/", include("social_django.urls"), name="social"),
     path(r"saml2/", include("djangosaml2.urls")),
