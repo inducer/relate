@@ -27,10 +27,6 @@ THE SOFTWARE.
 from django.urls import include, re_path, path
 from django.contrib import admin
 
-import django_select2.urls
-import social_django.urls
-import djangosaml2.urls
-
 from course.constants import COURSE_ID_REGEX, FLOW_ID_REGEX, STATICPAGE_PATH_REGEX
 
 import course.auth
