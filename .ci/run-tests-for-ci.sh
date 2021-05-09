@@ -15,7 +15,7 @@ echo "i18n"
 cp local_settings_example.py local_settings.py
 
 # Make sure i18n literals marked correctly
-poetry run python manage.py makemessages
+poetry run python manage.py makemessages --all
 poetry run python manage.py compilemessages
 
 echo "Starts testing"

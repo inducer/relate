@@ -1084,10 +1084,11 @@ class FlowPageVisit(models.Model):
     #   (Should coincide with 'answer is None')
     # True means it's a final, submitted answer fit for grading.
     # False means it's just a saved answer.
-    is_submitted_answer = models.NullBooleanField(
+    is_submitted_answer = models.BooleanField(
             # Translators: determine whether the answer is a final,
             # submitted answer fit for grading.
-            verbose_name=_("Is submitted answer"))
+            verbose_name=_("Is submitted answer"),
+            null=True)
 
     def __unicode__(self):
         result = (
