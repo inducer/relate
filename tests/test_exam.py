@@ -24,7 +24,7 @@ import datetime
 import pytz
 
 import unittest
-from django.test import TestCase, override_settings
+from django.test import Client, TestCase, override_settings
 from django import http
 from django.urls import reverse
 from django.utils.timezone import now, timedelta
@@ -70,7 +70,7 @@ class ExamTestMixin(SingleCourseTestMixin, MockAddMessageMixing):
 
     def setUp(self):
         super().setUp()
-        self.c.force_login(self.instructor_participation.user)
+        self.client.force_login(self.instructor_participation.user)
 
         fake_get_now_or_fake_time = mock.patch(
             "course.views.get_now_or_fake_time")
@@ -101,10 +101,10 @@ class IssueExamTicketTest(ExamTestMixin, TestCase):
         return reverse("relate-issue_exam_ticket")
 
     def get_issue_exam_ticket_view(self):
-        return self.c.get(self.get_issue_exam_ticket_url())
+        return self.client.get(self.get_issue_exam_ticket_url())
 
     def post_issue_exam_ticket_view(self, data):
-        return self.c.post(self.get_issue_exam_ticket_url(), data)
+        return self.client.post(self.get_issue_exam_ticket_url(), data)
 
     def test_not_authenticated(self):
         with self.temporarily_switch_to_user(None):
@@ -191,10 +191,10 @@ class BatchIssueExamTicketsTest(ExamTestMixin, TestCase):
             course_identifier=course_identifier)
 
     def get_batch_issue_exam_ticket_view(self):
-        return self.c.get(self.get_batch_issue_exam_ticket_url())
+        return self.client.get(self.get_batch_issue_exam_ticket_url())
 
     def post_batch_issue_exam_ticket_view(self, data):
-        return self.c.post(self.get_batch_issue_exam_ticket_url(), data)
+        return self.client.post(self.get_batch_issue_exam_ticket_url(), data)
 
     def get_post_data(self, **kwargs):
         data = super().get_post_data()
@@ -526,10 +526,10 @@ class CheckInForExamTest(ExamTestMixin, TestCase):
         return reverse("relate-check_in_for_exam")
 
     def get_check_in_for_exam_view(self):
-        return self.c.get(self.get_check_in_for_exam_url())
+        return self.client.get(self.get_check_in_for_exam_url())
 
     def post_check_in_for_exam_view(self, data):
-        return self.c.post(self.get_check_in_for_exam_url(), data)
+        return self.client.post(self.get_check_in_for_exam_url(), data)
 
     def get_post_data(self, **kwargs):
         data = {
@@ -583,7 +583,7 @@ class CheckInForExamTest(ExamTestMixin, TestCase):
 
     def test_pretend_facility(self):
         with self.temporarily_switch_to_user(self.instructor_participation.user):
-            session = self.c.session
+            session = self.client.session
             fa = ["my_falicity_1"]
             session["relate_pretend_facilities"] = fa
             session.save()
@@ -598,9 +598,9 @@ class CheckInForExamTest(ExamTestMixin, TestCase):
 
             self.assertIn(frozenset(fa), self.mock_check_exam_ticket.call_args[0])
             self.assertEqual(
-                self.c.session["relate_pretend_facilities"], fa)
+                self.client.session["relate_pretend_facilities"], fa)
             self.assertEqual(
-                self.c.session["relate_exam_ticket_pk_used_for_login"],
+                self.client.session["relate_exam_ticket_pk_used_for_login"],
                 self.instructor_ticket.pk)
 
             self.instructor_ticket.refresh_from_db()
@@ -623,7 +623,7 @@ class ListAvailableExamsTest(ExamTestMixin, TestCase):
         return reverse("relate-list_available_exams")
 
     def get_list_available_view(self):
-        return self.c.get(self.get_list_available_exams_url())
+        return self.client.get(self.get_list_available_exams_url())
 
     def test_not_authenticated(self):
         with self.temporarily_switch_to_user(None):
@@ -664,18 +664,18 @@ class ExamFacilityMiddlewareTest(SingleCoursePageTestMixin,
 
     def test_not_exams_only_facility(self):
         self.mock_is_from_exams_only_facility.return_value = False
-        resp = self.c.get(self.course_page_url)
+        resp = self.client.get(self.course_page_url)
         self.assertEqual(resp.status_code, 200)
 
     def test_exams_only_facility(self):
-        resp = self.c.get(self.course_page_url)
+        resp = self.client.get(self.course_page_url)
         self.assertRedirects(
             resp, reverse("relate-list_available_exams"),
             fetch_redirect_response=False)
 
     def test_exams_only_facility_not_authenticated(self):
         with self.temporarily_switch_to_user(None):
-            resp = self.c.get(self.course_page_url)
+            resp = self.client.get(self.course_page_url)
             self.assertRedirects(
                 resp, reverse("relate-sign_in_choice"),
                 fetch_redirect_response=False)
@@ -683,11 +683,11 @@ class ExamFacilityMiddlewareTest(SingleCoursePageTestMixin,
     def test_already_locked_down(self):
         fs = factories.FlowSessionFactory(
             participation=self.student_participation, flow_id=self.flow_id)
-        session = self.c.session
+        session = self.client.session
         session["relate_session_locked_to_exam_flow_session_pk"] = fs.pk
         session.save()
 
-        resp = self.c.get(self.course_page_url)
+        resp = self.client.get(self.course_page_url)
 
         self.assertRedirects(
             resp, self.get_view_start_flow_url(self.flow_id),
@@ -705,7 +705,7 @@ class ExamFacilityMiddlewareTest(SingleCoursePageTestMixin,
         u.sign_in_key = sign_in_key
         u.save()
 
-        self.c.force_login(self.ta_participation.user)
+        self.client.force_login(self.ta_participation.user)
 
         my_session = factories.FlowSessionFactory(
             participation=self.ta_participation, flow_id=self.flow_id)
@@ -743,7 +743,8 @@ class ExamFacilityMiddlewareTest(SingleCoursePageTestMixin,
                     else:
                         switch_to = self.ta_participation.user
                     with self.temporarily_switch_to_user(switch_to):
-                        resp = self.c.get(reverse(url, args=args, kwargs=kwargs))
+                        resp = self.client.get(
+                                reverse(url, args=args, kwargs=kwargs))
                         try:
                             code = int(code_or_redirect)
                             self.assertEqual(resp.status_code, code)
@@ -757,11 +758,11 @@ class ExamFacilityMiddlewareTest(SingleCoursePageTestMixin,
             reload_urlconf()
 
             with self.temporarily_switch_to_user(None):
-                # 'Settings' object has no attribute 'SAML_CONFIG'
+                # "Settings" object has no attribute "SAML_CONFIG"
                 # with that error raised, we can confirm it is actually
                 # requesting the view
                 with self.assertRaises(AttributeError):
-                    self.c.get(reverse("saml2_login"))
+                    self.client.get(reverse("saml2_login"))
 
     def test_ok_with_select2_views(self):
         # test by using the select2 widget of impersonating form
@@ -783,13 +784,14 @@ class ExamFacilityMiddlewareTest(SingleCoursePageTestMixin,
         for user, status_code in tup:
             with self.subTest(user=user):
                 with self.temporarily_switch_to_user(user):
-                    resp = self.c.get(reverse("relate-issue_exam_ticket"))
+                    resp = self.client.get(reverse("relate-issue_exam_ticket"))
                     self.assertEqual(resp.status_code, status_code)
 
     def test_not_ok_view_flow_page(self):
         fs = factories.FlowSessionFactory(
             participation=self.student_participation, flow_id=self.flow_id)
-        resp = self.c.get(self.get_page_url_by_ordinal(0, flow_session_id=fs.pk))
+        resp = self.client.get(
+                self.get_page_url_by_ordinal(0, flow_session_id=fs.pk))
         self.assertRedirects(
             resp, reverse("relate-list_available_exams"),
             fetch_redirect_response=False)
@@ -808,7 +810,9 @@ class ExamLockdownMiddlewareTest(SingleCoursePageTestMixin,
     @classmethod
     def setUpTestData(cls):  # noqa
         super(SingleCoursePageTestMixin, cls).setUpTestData()
-        cls.start_flow(cls.flow_id)
+        client = Client()
+        client.force_login(cls.student_participation.user)
+        cls.start_flow(client, cls.flow_id)
         cls.fs = FlowSession.objects.last()
 
     def setUp(self):
@@ -816,7 +820,7 @@ class ExamLockdownMiddlewareTest(SingleCoursePageTestMixin,
         self.fs.refresh_from_db()
 
     def tweak_session_to_lock_down(self, flow_session_id=None):
-        session = self.c.session
+        session = self.client.session
         session["relate_session_locked_to_exam_flow_session_pk"] = (
             flow_session_id or FlowSession.objects.last().pk)
         session.save()
@@ -827,7 +831,7 @@ class ExamLockdownMiddlewareTest(SingleCoursePageTestMixin,
         # not locked down
         with mock.patch("course.views.render") as mock_render:
             mock_render.return_value = http.HttpResponse("hello")
-            self.c.get("/")
+            self.client.get("/")
             request_obj = mock_render.call_args[0][0]
             self.assertTrue(hasattr(request_obj, "relate_exam_lockdown"))
             self.assertFalse(request_obj.relate_exam_lockdown)
@@ -836,7 +840,7 @@ class ExamLockdownMiddlewareTest(SingleCoursePageTestMixin,
         self.tweak_session_to_lock_down()
         with mock.patch("course.utils.render") as mock_render:
             mock_render.return_value = http.HttpResponse("hello")
-            resp = self.c.get("/")
+            resp = self.client.get("/")
             self.assertRedirects(
                 resp,
                 self.get_view_start_flow_url(self.flow_id))
@@ -847,7 +851,7 @@ class ExamLockdownMiddlewareTest(SingleCoursePageTestMixin,
     def test_lock_down_session_does_not_exist(self):
         """lock down to a session which does not exist"""
         self.tweak_session_to_lock_down(flow_session_id=100)
-        resp = self.c.get("/")
+        resp = self.client.get("/")
         self.assertEqual(resp.status_code, 403)
         self.assertAddMessageCallCount(1)
         self.assertAddMessageCalledWith(
@@ -896,7 +900,8 @@ class ExamLockdownMiddlewareTest(SingleCoursePageTestMixin,
                         switch_to = self.student_participation.user
                     with self.temporarily_switch_to_user(switch_to):
                         self.tweak_session_to_lock_down()
-                        resp = self.c.get(reverse(url, args=args, kwargs=kwargs))
+                        resp = self.client.get(
+                                reverse(url, args=args, kwargs=kwargs))
                         try:
                             code = int(code_or_redirect)
                             self.assertEqual(resp.status_code, code)
@@ -915,7 +920,7 @@ class ExamLockdownMiddlewareTest(SingleCoursePageTestMixin,
                 # with that error raised, we can confirm it is actually
                 # requesting the view
                 with self.assertRaises(AttributeError):
-                    self.c.get(reverse("saml2_login"))
+                    self.client.get(reverse("saml2_login"))
                 self.assertAddMessageCallCount(0)
 
     def test_ok_with_select2_views(self):
@@ -957,7 +962,7 @@ class ExamLockdownMiddlewareTest(SingleCoursePageTestMixin,
         ]:
             with self.subTest(url=url):
                 self.tweak_session_to_lock_down()
-                resp = self.c.get(reverse(url, args=args, kwargs=kwargs))
+                resp = self.client.get(reverse(url, args=args, kwargs=kwargs))
                 try:
                     code = int(code_or_redirect)
                     self.assertEqual(resp.status_code, code)
@@ -995,7 +1000,7 @@ class ExamLockdownMiddlewareTest(SingleCoursePageTestMixin,
         ]:
             with self.subTest(url=url):
                 self.tweak_session_to_lock_down()
-                resp = self.c.get(reverse(url, args=args, kwargs=kwargs))
+                resp = self.client.get(reverse(url, args=args, kwargs=kwargs))
                 try:
                     code = int(code_or_redirect)
                     self.assertEqual(resp.status_code, code)
@@ -1018,7 +1023,7 @@ class ExamLockdownMiddlewareTest(SingleCoursePageTestMixin,
         ]:
             with self.subTest(url=url):
                 self.tweak_session_to_lock_down()
-                resp = self.c.get(reverse(url, args=args, kwargs=kwargs))
+                resp = self.client.get(reverse(url, args=args, kwargs=kwargs))
                 try:
                     code = int(code_or_redirect)
                     self.assertEqual(resp.status_code, code)
@@ -1040,7 +1045,7 @@ class ExamLockdownMiddlewareTest(SingleCoursePageTestMixin,
         ]:
             with self.subTest(url=url):
                 self.tweak_session_to_lock_down()
-                resp = self.c.get(reverse(url, args=args, kwargs=kwargs))
+                resp = self.client.get(reverse(url, args=args, kwargs=kwargs))
                 try:
                     code = int(code_or_redirect)
                     self.assertEqual(resp.status_code, code)

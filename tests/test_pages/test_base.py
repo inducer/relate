@@ -20,7 +20,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from django.test import TestCase
+from django.test import TestCase, Client
 import unittest
 
 from relate.utils import dict_to_struct
@@ -188,18 +188,20 @@ class PageBaseAPITest(SingleCourseQuizPageTestMixin, TestCase):
     @classmethod
     def setUpTestData(cls):  # noqa
         super().setUpTestData()
-        cls.start_flow(cls.flow_id)
+        client = Client()
+        client.force_login(cls.student_participation.user)
+        cls.start_flow(client, cls.flow_id)
 
     def test_correctness(self):
         self.submit_page_answer_by_page_id_and_test(self.page_id)
-        resp = self.c.get(self.get_page_url_by_page_id(self.page_id))
+        resp = self.client.get(self.get_page_url_by_page_id(self.page_id))
         self.assertResponseContextIsNotNone(resp, "correct_answer")
 
         # make sure PageBase.correctness works
         with mock.patch("course.page.text.TextQuestion.correct_answer",
                         autospec=True) as mock_correctness:
             mock_correctness.side_effect = correct_answer_side_effect_super
-            resp = self.c.get(self.get_page_url_by_page_id(self.page_id))
+            resp = self.client.get(self.get_page_url_by_page_id(self.page_id))
             self.assertResponseContextIsNone(resp, "correct_answer")
 
     def test_normalized_answer(self):
@@ -583,8 +585,10 @@ class PageBaseWithHumanTextFeedbackTest(SingleCourseQuizPageGradeInterfaceTestMi
     def setUpTestData(cls):  # noqa
         super().setUpTestData()
         cls.page_id = "anyup"
-        cls.submit_page_answer_by_page_id_and_test(page_id=cls.page_id)
-        cls.end_flow()
+        client = Client()
+        client.force_login(cls.student_participation.user)
+        cls.submit_page_answer_by_page_id_and_test(client, page_id=cls.page_id)
+        cls.end_flow(client)
 
     def test_base_class_grading_form_to_html(self):
         # make sure subclass grading_form_to_html method works
@@ -598,7 +602,7 @@ class PageBaseWithHumanTextFeedbackTest(SingleCourseQuizPageGradeInterfaceTestMi
             with self.temporarily_switch_to_user(
                     self.instructor_participation.user):
 
-                resp = self.c.get(
+                resp = self.client.get(
                     self.get_page_grading_url_by_page_id(self.page_id))
                 self.assertEqual(resp.status_code, 200)
 
@@ -614,7 +618,7 @@ class PageBaseWithHumanTextFeedbackTest(SingleCourseQuizPageGradeInterfaceTestMi
             with self.temporarily_switch_to_user(
                     self.instructor_participation.user):
 
-                resp = self.c.get(
+                resp = self.client.get(
                     self.get_page_grading_url_by_page_id(self.page_id))
                 self.assertEqual(resp.status_code, 200)
 

@@ -22,36 +22,31 @@ THE SOFTWARE.
 
 import pytest
 from django.urls import reverse, NoReverseMatch
-from django.test import TestCase
+from django.test import TestCase, Client
 
 from course.models import (
     Participation, GradingOpportunity, FlowSession,
     FlowRuleException
 )
 
-from tests.base_test_mixins import SingleCoursePageTestMixin
+from tests.base_test_mixins import SingleCoursePageTestMixin, classmethod_with_client
 
 
 class GradeGenericTestMixin(SingleCoursePageTestMixin):
-    # This serve as a base test cases for other grade tests to subclass
-    # Nice little tricks :)
     @classmethod
     def setUpTestData(cls):  # noqa
         super().setUpTestData()
+        client = Client()
         cls.flow_session_ids = []
-        cls.do_quiz(cls.student_participation)
-
-    @classmethod
-    def tearDownClass(cls):
-        super().tearDownClass()
+        cls.do_quiz(client, cls.student_participation)
 
     # Use specified user to take a quiz
-    @classmethod
-    def do_quiz(cls, participation):
+    @classmethod_with_client
+    def do_quiz(cls, client, participation):  # noqa: N805
         # Login user first
-        cls.c.force_login(participation.user)
-        cls.start_flow(cls.flow_id)
-        cls.end_flow()
+        client.force_login(participation.user)
+        cls.start_flow(client, cls.flow_id)
+        cls.end_flow(client)
         cls.flow_session_ids.append(
             int(cls.default_flow_params["flow_session_id"]))
 
@@ -61,29 +56,29 @@ class GradeGenericTestMixin(SingleCoursePageTestMixin):
         self.assertEqual(GradingOpportunity.objects.all().count(), 1)
 
     def test_view_my_grade(self):
-        resp = self.c.get(reverse("relate-view_participant_grades",
+        resp = self.client.get(reverse("relate-view_participant_grades",
                                   args=[self.course.identifier]))
         self.assertEqual(resp.status_code, 200)
 
     def test_view_participant_grades(self):
         params = {"course_identifier": self.course.identifier,
                   "participation_id": self.instructor_participation.user.id}
-        resp = self.c.get(reverse("relate-view_participant_grades",
+        resp = self.client.get(reverse("relate-view_participant_grades",
                                                     kwargs=params))
         self.assertEqual(resp.status_code, 200)
 
     def test_view_participant_list(self):
-        resp = self.c.get(reverse("relate-view_participant_list",
+        resp = self.client.get(reverse("relate-view_participant_list",
                                   args=[self.course.identifier]))
         self.assertEqual(resp.status_code, 200)
 
     def test_view_grading_opportunity_list(self):
-        resp = self.c.get(reverse("relate-view_grading_opportunity_list",
+        resp = self.client.get(reverse("relate-view_grading_opportunity_list",
                                   args=[self.course.identifier]))
         self.assertEqual(resp.status_code, 200)
 
     def test_view_gradebook(self):
-        resp = self.c.get(reverse("relate-view_gradebook",
+        resp = self.client.get(reverse("relate-view_gradebook",
                                   args=[self.course.identifier]))
         self.assertEqual(resp.status_code, 200)
 
@@ -97,7 +92,7 @@ class GradeGenericTestMixin(SingleCoursePageTestMixin):
         # Check page
         params = {"course_identifier": self.course.identifier,
                   "opp_id": opportunity.id}
-        resp = self.c.get(reverse("relate-view_grades_by_opportunity",
+        resp = self.client.get(reverse("relate-view_grades_by_opportunity",
                                   kwargs=params))
         self.assertEqual(resp.status_code, 200)
 
@@ -112,7 +107,7 @@ class GradeGenericTestMixin(SingleCoursePageTestMixin):
         params = {"course_identifier": self.course.identifier,
                   "opportunity_id": opportunity.id,
                   "participation_id": self.student_participation.id}
-        resp = self.c.get(reverse("relate-view_single_grade", kwargs=params))
+        resp = self.client.get(reverse("relate-view_single_grade", kwargs=params))
         self.assertEqual(resp.status_code, 200)
 
     def test_view_reopen_session(self):
@@ -142,12 +137,12 @@ class GradeGenericTestMixin(SingleCoursePageTestMixin):
 
         page_count = FlowSession.objects.get(id=self.flow_session_ids[0]).page_count
         for i in range(page_count):
-            resp = self.c.get(
+            resp = self.client.get(
                 self.get_page_grading_url_by_ordinal(page_ordinal=i, **params))
             self.assertEqual(resp.status_code, 200)
 
         # test PageOrdinalOutOfRange
-        resp = self.c.get(
+        resp = self.client.get(
             self.get_page_grading_url_by_ordinal(page_ordinal=page_count+1,
                                                  **params))
         self.assertEqual(resp.status_code, 404)
@@ -155,7 +150,7 @@ class GradeGenericTestMixin(SingleCoursePageTestMixin):
     def test_view_grader_statistics(self):
         params = {"course_identifier": self.course.identifier,
                     "flow_id": self.flow_id}
-        resp = self.c.get(reverse("relate-show_grader_statistics",
+        resp = self.client.get(reverse("relate-show_grader_statistics",
                                             kwargs=params))
         self.assertEqual(resp.status_code, 200)
 
@@ -195,7 +190,7 @@ class GradeGenericTestMixin(SingleCoursePageTestMixin):
         # Grant a new one
         data = {'access_rules_tag_for_new_session': ['<<<NONE>>>'],
                     'create_session': ['Create session']}
-        resp = self.c.post(reverse("relate-grant_exception_stage_2",
+        resp = self.client.post(reverse("relate-grant_exception_stage_2",
                                                 kwargs=params), data)
         self.assertEqual(resp.status_code, 200)
 
@@ -207,7 +202,7 @@ class GradeGenericTestMixin(SingleCoursePageTestMixin):
 
         # Grant an existing one
         data = {'session': [str(flow_session.id)], 'next': ['Next \xbb']}
-        resp = self.c.post(reverse("relate-grant_exception_stage_2",
+        resp = self.client.post(reverse("relate-grant_exception_stage_2",
                                                 kwargs=params), data)
         self.assertEqual(resp.status_code, 302)
 
@@ -218,7 +213,7 @@ class GradeGenericTestMixin(SingleCoursePageTestMixin):
                                                                 kwargs=params))
 
         # Check stage three page
-        resp = self.c.get(reverse("relate-grant_exception_stage_3",
+        resp = self.client.get(reverse("relate-grant_exception_stage_3",
                                                                 kwargs=params))
         self.assertEqual(resp.status_code, 200)
 
@@ -231,7 +226,7 @@ class GradeGenericTestMixin(SingleCoursePageTestMixin):
                 'bonus_points': ['0.0'], 'max_points': [''],
                 'credit_percent': ['100.0'], 'max_points_enforced_cap': [''],
                 'generates_grade': ['on'], 'see_correctness': ['on']}
-        resp = self.c.post(reverse("relate-grant_exception_stage_3",
+        resp = self.client.post(reverse("relate-grant_exception_stage_3",
                                                 kwargs=params), data)
         self.assertEqual(resp.status_code, 302)
 
@@ -248,7 +243,7 @@ class GradeGenericTestMixin(SingleCoursePageTestMixin):
         params = {"course_identifier": self.course.identifier,
                     "opportunity_id": opportunity_id,
                     "flow_session_id": session_id}
-        resp = self.c.get(reverse("relate-view_reopen_session",
+        resp = self.client.get(reverse("relate-view_reopen_session",
                                                     kwargs=params))
         self.assertEqual(resp.status_code, 200)
 
@@ -257,7 +252,7 @@ class GradeGenericTestMixin(SingleCoursePageTestMixin):
                 'comment': ['test-reopen'],
                 'unsubmit_pages': ['on'],
                 'reopen': ['Reopen']}
-        resp = self.c.post(
+        resp = self.client.post(
             reverse("relate-view_reopen_session", kwargs=params), data)
 
         flow_session = FlowSession.objects.filter(id=session_id)[0]
@@ -266,7 +261,7 @@ class GradeGenericTestMixin(SingleCoursePageTestMixin):
     # Helper method for testing grant exception view
     def check_stage_one_and_two(self, participation):
         # Check stage one page
-        resp = self.c.get(
+        resp = self.client.get(
             reverse("relate-grant_exception", args=[self.course.identifier]))
         self.assertEqual(resp.status_code, 200)
 
@@ -276,7 +271,7 @@ class GradeGenericTestMixin(SingleCoursePageTestMixin):
         data = {"next": ["Next \xbb"],
                 "participation": [str(participation.id)],
                 "flow_id": [self.flow_id]}
-        resp = self.c.post(reverse("relate-grant_exception",
+        resp = self.client.post(reverse("relate-grant_exception",
                                    args=[self.course.identifier]), data)
         self.assertEqual(resp.status_code, 302)
 
@@ -293,7 +288,7 @@ class GradeGenericTestMixin(SingleCoursePageTestMixin):
                              "relate-grant_exception_stage_2", kwargs=params))
 
         # Check stage two page
-        resp = self.c.get(
+        resp = self.client.get(
             reverse("relate-grant_exception_stage_2", kwargs=params))
         self.assertEqual(resp.status_code, 200)
 
@@ -309,12 +304,16 @@ class GradeTwoQuizTakerTest(GradeGenericTestMixin, TestCase):
     @classmethod
     def setUpTestData(cls): # noqa
         super().setUpTestData()
-        cls.do_quiz(cls.instructor_participation)
+        client = Client()
+
+        cls.do_quiz(client, cls.instructor_participation)
         cls.n_quiz_takers = 2
         cls.n_participations = 3
 
+    def setUp(self):
+        super().setUp()
         # Make sure the instructor is logged in after all quizes finished
-        cls.c.force_login(cls.instructor_participation.user)
+        self.client.force_login(self.instructor_participation.user)
 
 
 @pytest.mark.slow
@@ -325,12 +324,16 @@ class GradeThreeQuizTakerTest(GradeGenericTestMixin, TestCase):
     @classmethod
     def setUpTestData(cls): # noqa
         super().setUpTestData()
-        cls.do_quiz(cls.ta_participation)
-        cls.do_quiz(cls.instructor_participation)
+        client = Client()
+        cls.do_quiz(client, cls.ta_participation)
+        cls.do_quiz(client, cls.instructor_participation)
         cls.n_quiz_takers = 3
         cls.n_participations = 3
 
-        cls.c.force_login(cls.instructor_participation.user)
+    def setUp(self):
+        super().setUp()
+        # Make sure the instructor is logged in after all quizes finished
+        self.client.force_login(self.instructor_participation.user)
 
 
 @pytest.mark.slow
@@ -338,8 +341,12 @@ class GradePermissionsTests(SingleCoursePageTestMixin, TestCase):
     @classmethod
     def setUpTestData(cls):  # noqa
         super().setUpTestData()
-        cls.start_flow(flow_id=cls.flow_id)
-        cls.end_flow()
+
+        client = Client()
+        client.force_login(cls.student_participation.user)
+
+        cls.start_flow(client, flow_id=cls.flow_id)
+        cls.end_flow(client)
 
     def view_grades_permission(self, user, status_codes):
         try:
@@ -384,7 +391,7 @@ class GradePermissionsTests(SingleCoursePageTestMixin, TestCase):
                         "Reversal of url named '%s' failed with "
                         "NoReverseMatch" % urlname)
                 with self.subTest(user=user, urlname=urlname, method="GET"):
-                    resp = self.c.get(url)
+                    resp = self.client.get(url)
                     self.assertEqual(
                         resp.status_code,
                         status_codes.get(
@@ -396,7 +403,7 @@ class GradePermissionsTests(SingleCoursePageTestMixin, TestCase):
 
                 with self.subTest(user=user, urlname=urlname, method="POST"):
                     postdata = {}
-                    resp = self.c.post(url, data=postdata)
+                    resp = self.client.post(url, data=postdata)
                     self.assertEqual(
                         resp.status_code,
                         status_codes.get(

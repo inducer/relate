@@ -201,7 +201,7 @@ class EnrollViewTest(EnrollmentTestMixin, TestCase):
             status=p_status.requested)
         self.assertParticiaptionStatusCallCount([0, 0, 0, 1])
         with self.temporarily_switch_to_user(participation.user):
-            resp = self.c.post(self.enroll_request_url)
+            resp = self.client.post(self.enroll_request_url)
         self.assertRedirects(
             resp, self.course_page_url, fetch_redirect_response=False)
         self.assertAddMessageCallCount(1)
@@ -214,7 +214,7 @@ class EnrollViewTest(EnrollmentTestMixin, TestCase):
             status=p_status.denied)
         self.assertParticiaptionStatusCallCount([0, 1, 0, 0])
         with self.temporarily_switch_to_user(participation.user):
-            resp = self.c.post(self.enroll_request_url)
+            resp = self.client.post(self.enroll_request_url)
         self.assertRedirects(
             resp, self.course_page_url, fetch_redirect_response=False)
         self.assertAddMessageCallCount(1)
@@ -227,7 +227,7 @@ class EnrollViewTest(EnrollmentTestMixin, TestCase):
             status=p_status.dropped)
         self.assertParticiaptionStatusCallCount([0, 0, 1, 0])
         with self.temporarily_switch_to_user(participation.user):
-            resp = self.c.post(self.enroll_request_url)
+            resp = self.client.post(self.enroll_request_url)
         self.assertRedirects(
             resp, self.course_page_url, fetch_redirect_response=False)
         self.assertAddMessageCallCount(1)
@@ -240,7 +240,7 @@ class EnrollViewTest(EnrollmentTestMixin, TestCase):
             status=p_status.active)
         self.assertParticiaptionStatusCallCount([1, 0, 0, 0])
         with self.temporarily_switch_to_user(participation.user):
-            resp = self.c.post(self.enroll_request_url)
+            resp = self.client.post(self.enroll_request_url)
         self.assertRedirects(
             resp, self.course_page_url, fetch_redirect_response=False)
         self.assertAddMessageCallCount(1)
@@ -253,7 +253,7 @@ class EnrollViewTest(EnrollmentTestMixin, TestCase):
         user = factories.UserFactory()
 
         with self.temporarily_switch_to_user(user):
-            resp = self.c.post(self.enroll_request_url)
+            resp = self.client.post(self.enroll_request_url)
         self.assertRedirects(
             resp, self.course_page_url, fetch_redirect_response=False)
         self.assertAddMessageCallCount(1)
@@ -264,7 +264,7 @@ class EnrollViewTest(EnrollmentTestMixin, TestCase):
     def test_not_post_request(self):
         user = factories.UserFactory()
         with self.temporarily_switch_to_user(user):
-            resp = self.c.get(self.enroll_request_url)
+            resp = self.client.get(self.enroll_request_url)
             self.assertRedirects(
                 resp, self.course_page_url, fetch_redirect_response=False)
             self.assertAddMessageCallCount(1)
@@ -279,7 +279,7 @@ class EnrollViewTest(EnrollmentTestMixin, TestCase):
                 with self.subTest(user_status=status):
                     user = factories.UserFactory(status=status)
                     with self.temporarily_switch_to_user(user):
-                        resp = self.c.post(self.enroll_request_url)
+                        resp = self.client.post(self.enroll_request_url)
                     self.assertRedirects(
                         resp, self.course_page_url, fetch_redirect_response=False)
                     self.assertAddMessageCallCount(1)
@@ -291,7 +291,7 @@ class EnrollViewTest(EnrollmentTestMixin, TestCase):
     def test_no_restrictions(self):
         user = factories.UserFactory()
         with self.temporarily_switch_to_user(user):
-            resp = self.c.post(self.enroll_request_url)
+            resp = self.client.post(self.enroll_request_url)
         self.assertRedirects(
             resp, self.course_page_url, fetch_redirect_response=False)
         self.assertAddMessageCallCount(1)
@@ -302,7 +302,7 @@ class EnrollViewTest(EnrollmentTestMixin, TestCase):
     def test_no_restrictions_user_has_no_instid(self):
         user = factories.UserFactory(institutional_id=None)
         with self.temporarily_switch_to_user(user):
-            resp = self.c.post(self.enroll_request_url)
+            resp = self.client.post(self.enroll_request_url)
         self.assertRedirects(
             resp, self.course_page_url, fetch_redirect_response=False)
         self.assertAddMessageCallCount(1)
@@ -316,7 +316,7 @@ class EnrollViewTest(EnrollmentTestMixin, TestCase):
         self.get_test_preapproval(email="blabla@com")
 
         with self.temporarily_switch_to_user(user):
-            resp = self.c.post(self.enroll_request_url)
+            resp = self.client.post(self.enroll_request_url)
         self.assertRedirects(
             resp, self.course_page_url, fetch_redirect_response=False)
         self.assertAddMessageCallCount(1)
@@ -330,7 +330,7 @@ class EnrollViewTest(EnrollmentTestMixin, TestCase):
         self.get_test_preapproval(email=user.email)
 
         with self.temporarily_switch_to_user(user):
-            resp = self.c.post(self.enroll_request_url)
+            resp = self.client.post(self.enroll_request_url)
         self.assertRedirects(
             resp, self.course_page_url, fetch_redirect_response=False)
         self.assertAddMessageCallCount(1)
@@ -348,7 +348,7 @@ class EnrollViewTest(EnrollmentTestMixin, TestCase):
                 self.get_test_preapproval(institutional_id=user.institutional_id)
 
                 with self.temporarily_switch_to_user(user):
-                    resp = self.c.post(self.enroll_request_url)
+                    resp = self.client.post(self.enroll_request_url)
                 self.assertRedirects(
                     resp, self.course_page_url, fetch_redirect_response=False)
                 self.assertAddMessageCallCount(1)
@@ -366,7 +366,7 @@ class EnrollViewTest(EnrollmentTestMixin, TestCase):
         self.get_test_preapproval(institutional_id=user.institutional_id)
 
         with self.temporarily_switch_to_user(user):
-            resp = self.c.post(self.enroll_request_url)
+            resp = self.client.post(self.enroll_request_url)
         self.assertRedirects(
             resp, self.course_page_url, fetch_redirect_response=False)
         self.assertAddMessageCallCount(1)
@@ -383,7 +383,7 @@ class EnrollViewTest(EnrollmentTestMixin, TestCase):
         self.get_test_preapproval(institutional_id="not_exist_instid")
 
         with self.temporarily_switch_to_user(user):
-            resp = self.c.post(self.enroll_request_url)
+            resp = self.client.post(self.enroll_request_url)
         self.assertRedirects(
             resp, self.course_page_url, fetch_redirect_response=False)
         self.assertAddMessageCallCount(1)
@@ -409,7 +409,7 @@ class EnrollViewTest(EnrollmentTestMixin, TestCase):
             institutional_id=inst_id, roles=[expected_role_identifier])
 
         with self.temporarily_switch_to_user(user):
-            self.c.post(self.enroll_request_url)
+            self.client.post(self.enroll_request_url)
 
         # Add back the inst_id
         user.institutional_id = inst_id
@@ -429,7 +429,7 @@ class EnrollViewTest(EnrollmentTestMixin, TestCase):
         self.get_test_preapproval(institutional_id=user.institutional_id)
 
         with self.temporarily_switch_to_user(user):
-            resp = self.c.post(self.enroll_request_url)
+            resp = self.client.post(self.enroll_request_url)
         self.assertRedirects(
             resp, self.course_page_url, fetch_redirect_response=False)
         self.assertAddMessageCallCount(1)
@@ -446,7 +446,7 @@ class EnrollViewTest(EnrollmentTestMixin, TestCase):
         self.get_test_preapproval(institutional_id="not_exist_instid")
 
         with self.temporarily_switch_to_user(user):
-            resp = self.c.post(self.enroll_request_url)
+            resp = self.client.post(self.enroll_request_url)
         self.assertRedirects(
             resp, self.course_page_url, fetch_redirect_response=False)
         self.assertAddMessageCallCount(1)
@@ -461,7 +461,7 @@ class EnrollViewTest(EnrollmentTestMixin, TestCase):
         user = factories.UserFactory(email="abc@blabla.com")
 
         with self.temporarily_switch_to_user(user):
-            resp = self.c.post(self.enroll_request_url)
+            resp = self.client.post(self.enroll_request_url)
         self.assertRedirects(
             resp, self.course_page_url, fetch_redirect_response=False)
         self.assertAddMessageCallCount(1)
@@ -476,7 +476,7 @@ class EnrollViewTest(EnrollmentTestMixin, TestCase):
         user = factories.UserFactory(email="abc@blabla.com")
 
         with self.temporarily_switch_to_user(user):
-            resp = self.c.post(self.enroll_request_url)
+            resp = self.client.post(self.enroll_request_url)
         self.assertRedirects(
             resp, self.course_page_url, fetch_redirect_response=False)
         self.assertAddMessageCallCount(1)
@@ -491,7 +491,7 @@ class EnrollViewTest(EnrollmentTestMixin, TestCase):
         user = factories.UserFactory(email="abc@edu.blabla.com")
 
         with self.temporarily_switch_to_user(user):
-            resp = self.c.post(self.enroll_request_url)
+            resp = self.client.post(self.enroll_request_url)
         self.assertRedirects(
             resp, self.course_page_url, fetch_redirect_response=False)
         self.assertAddMessageCallCount(1)
@@ -506,7 +506,7 @@ class EnrollViewTest(EnrollmentTestMixin, TestCase):
         user = factories.UserFactory(email="abc@blabla.com.hk")
 
         with self.temporarily_switch_to_user(user):
-            resp = self.c.post(self.enroll_request_url)
+            resp = self.client.post(self.enroll_request_url)
         self.assertRedirects(
             resp, self.course_page_url, fetch_redirect_response=False)
         self.assertAddMessageCallCount(1)
@@ -523,7 +523,7 @@ class EnrollViewTest(EnrollmentTestMixin, TestCase):
             mock_handle_enrollment_request.side_effect = IntegrityError
             user = factories.UserFactory()
             with self.temporarily_switch_to_user(user):
-                resp = self.c.post(self.enroll_request_url)
+                resp = self.client.post(self.enroll_request_url)
             self.assertRedirects(
                 resp, self.course_page_url, fetch_redirect_response=False)
             self.assertAddMessageCallCount(1)
@@ -723,7 +723,7 @@ class EnrollmentDecisionTest(EnrollmentDecisionTestMixin, TestCase):
             self.get_participation_count_by_status(p_status.requested),
             1)
         with self.temporarily_switch_to_user(self.instructor_participation.user):
-            resp = self.c.post(self.my_participation_edit_url,
+            resp = self.client.post(self.my_participation_edit_url,
                                self.get_edit_participation_form_data("approve"))
 
         self.assertEqual(resp.status_code, 200)
@@ -739,7 +739,7 @@ class EnrollmentDecisionTest(EnrollmentDecisionTestMixin, TestCase):
 
     def test_edit_participation_view_enroll_decision_approve_no_permission1(self):
         with self.temporarily_switch_to_user(self.student_participation.user):
-            resp = self.c.post(self.my_participation_edit_url,
+            resp = self.client.post(self.my_participation_edit_url,
                                self.get_edit_participation_form_data("approve"))
 
         self.assertEqual(resp.status_code, 403)
@@ -750,7 +750,7 @@ class EnrollmentDecisionTest(EnrollmentDecisionTestMixin, TestCase):
 
     def test_edit_participation_view_enroll_decision_approve_no_permission2(self):
         with self.temporarily_switch_to_user(self.non_ptcp_active_user1):
-            resp = self.c.post(self.my_participation_edit_url,
+            resp = self.client.post(self.my_participation_edit_url,
                                self.get_edit_participation_form_data("approve"))
 
         self.assertEqual(resp.status_code, 403)
@@ -765,16 +765,16 @@ class EnrollmentDecisionTest(EnrollmentDecisionTestMixin, TestCase):
         )
         url = self.get_participation_edit_url(other_course_participation.pk)
         with self.temporarily_switch_to_user(self.instructor_participation.user):
-            resp = self.c.get(url)
+            resp = self.client.get(url)
             self.assertEqual(resp.status_code, 400)
 
-            resp = self.c.post(url, data={})
+            resp = self.client.post(url, data={})
             self.assertEqual(resp.status_code, 400)
 
     def test_edit_participation_update_individual_permission(self):
         url = self.get_participation_edit_url(self.student_participation.pk)
         with self.temporarily_switch_to_user(self.instructor_participation.user):
-            resp = self.c.post(
+            resp = self.client.post(
                 url,
                 self.get_edit_participation_form_data(
                     "submit", individual_permissions=[
@@ -800,7 +800,7 @@ class EnrollmentDecisionTest(EnrollmentDecisionTestMixin, TestCase):
 
     def test_edit_participation_view_enroll_decision_deny(self):
         with self.temporarily_switch_to_user(self.instructor_participation.user):
-            resp = self.c.post(
+            resp = self.client.post(
                 self.my_participation_edit_url,
                 self.get_edit_participation_form_data("deny"))
 
@@ -826,7 +826,7 @@ class EnrollmentDecisionTest(EnrollmentDecisionTestMixin, TestCase):
         post_data["unknown"] = ''
 
         with self.temporarily_switch_to_user(self.instructor_participation.user):
-            resp = self.c.post(
+            resp = self.client.post(
                 self.my_participation_edit_url, data=post_data)
 
         self.assertEqual(resp.status_code, 200)
@@ -841,7 +841,7 @@ class EnrollmentDecisionTest(EnrollmentDecisionTestMixin, TestCase):
         self.create_participation(self.course, self.non_ptcp_unconfirmed_user1,
                                   status=p_status.active)
         with self.temporarily_switch_to_user(self.instructor_participation.user):
-            resp = self.c.post(self.my_participation_edit_url,
+            resp = self.client.post(self.my_participation_edit_url,
                                self.get_edit_participation_form_data("drop"))
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(
@@ -851,8 +851,8 @@ class EnrollmentDecisionTest(EnrollmentDecisionTestMixin, TestCase):
         self.assertEqual(len(mail.outbox), 0)
 
     def test_edit_participation_view_add_new_unconfirmed_user(self):
-        self.c.force_login(self.instructor_participation.user)
-        resp = self.c.get(self.add_new_url)
+        self.client.force_login(self.instructor_participation.user)
+        resp = self.client.get(self.add_new_url)
         self.assertTrue(resp.status_code, 200)
 
         if self.non_ptcp_unconfirmed_user1.status != u_status.unconfirmed:
@@ -873,7 +873,7 @@ class EnrollmentDecisionTest(EnrollmentDecisionTestMixin, TestCase):
                      }
         add_post_data = {"submit": [""]}
         add_post_data.update(form_data)
-        resp = self.c.post(self.add_new_url, add_post_data, follow=True)
+        resp = self.client.post(self.add_new_url, add_post_data, follow=True)
         self.assertFormError(resp, 'form', 'user',
                              VALIDATION_ERROR_USER_NOT_CONFIRMED)
         self.assertEqual(
@@ -888,8 +888,8 @@ class EnrollmentDecisionTest(EnrollmentDecisionTestMixin, TestCase):
         self.assertEqual(len(mail.outbox), 0)
 
     def test_edit_participation_view_add_new_active_user(self):
-        self.c.force_login(self.instructor_participation.user)
-        resp = self.c.get(self.add_new_url)
+        self.client.force_login(self.instructor_participation.user)
+        resp = self.client.get(self.add_new_url)
         self.assertTrue(resp.status_code, 200)
 
         if self.non_ptcp_unconfirmed_user2.status != u_status.active:
@@ -912,7 +912,7 @@ class EnrollmentDecisionTest(EnrollmentDecisionTestMixin, TestCase):
                      }
         add_post_data = {"submit": [""]}
         add_post_data.update(form_data)
-        resp = self.c.post(self.add_new_url, add_post_data, follow=True)
+        resp = self.client.post(self.add_new_url, add_post_data, follow=True)
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(
             self.get_participation_count_by_status(p_status.active),
@@ -935,7 +935,7 @@ class EnrollmentDecisionTest(EnrollmentDecisionTestMixin, TestCase):
         add_post_data = {"submit": [""]}
         add_post_data.update(form_data)
         with self.temporarily_switch_to_user(self.instructor_participation.user):
-            resp = self.c.post(self.add_new_url, add_post_data, follow=True)
+            resp = self.client.post(self.add_new_url, add_post_data, follow=True)
 
         from django.forms.models import ModelChoiceField
         self.assertFormError(
@@ -944,7 +944,7 @@ class EnrollmentDecisionTest(EnrollmentDecisionTestMixin, TestCase):
 
     def test_edit_participation_view_enroll_decision_deny_no_permission1(self):
         with self.temporarily_switch_to_user(self.student_participation.user):
-            resp = self.c.post(
+            resp = self.client.post(
                 self.my_participation_edit_url,
                 self.get_edit_participation_form_data("deny"))
 
@@ -959,7 +959,7 @@ class EnrollmentDecisionTest(EnrollmentDecisionTestMixin, TestCase):
 
     def test_edit_participation_view_enroll_decision_deny_no_permission2(self):
         with self.temporarily_switch_to_user(self.non_ptcp_active_user1):
-            resp = self.c.post(
+            resp = self.client.post(
                 self.my_participation_edit_url,
                 self.get_edit_participation_form_data("deny"))
 
@@ -984,7 +984,7 @@ class EnrollmentDecisionTest(EnrollmentDecisionTestMixin, TestCase):
 
             with self.temporarily_switch_to_user(
                     self.instructor_participation.user):
-                resp = self.c.post(
+                resp = self.client.post(
                     self.my_participation_edit_url,
                     self.get_edit_participation_form_data("deny"))
 
@@ -1063,7 +1063,7 @@ class EnrollmentPreapprovalTestMixin(LocmemBackendTestsMixin,
         else:
             approver = self.instructor_participation.user
         with self.temporarily_switch_to_user(approver):
-            return self.c.post(self.preapproval_url, data, follow=True)
+            return self.client.post(self.preapproval_url, data, follow=True)
 
     def get_preapproval_count(self):
         return ParticipationPreapproval.objects.all().count()
@@ -1101,25 +1101,25 @@ class CreatePreapprovalsTest(EnrollmentTestMixin,
         else:
             approver = self.instructor_participation.user
         with self.temporarily_switch_to_user(approver):
-            return self.c.post(self.preapproval_url, data, follow=True)
+            return self.client.post(self.preapproval_url, data, follow=True)
 
     def test_no_permission(self):
         with self.temporarily_switch_to_user(self.student_participation.user):
-            resp = self.c.get(self.preapproval_url)
+            resp = self.client.get(self.preapproval_url)
             self.assertEqual(resp.status_code, 403)
-            resp = self.c.post(self.preapproval_url, data={})
+            resp = self.client.post(self.preapproval_url, data={})
             self.assertEqual(resp.status_code, 403)
 
     def test_login_required(self):
         with self.temporarily_switch_to_user(None):
-            resp = self.c.get(self.preapproval_url)
+            resp = self.client.get(self.preapproval_url)
             self.assertEqual(resp.status_code, 302)
-            resp = self.c.post(self.preapproval_url, data={})
+            resp = self.client.post(self.preapproval_url, data={})
             self.assertEqual(resp.status_code, 302)
 
     def test_get(self):
         with self.temporarily_switch_to_user(self.instructor_participation.user):
-            resp = self.c.get(self.preapproval_url)
+            resp = self.client.get(self.preapproval_url)
             self.assertEqual(resp.status_code, 200)
 
     def test_post_form_not_valid(self):
@@ -1428,7 +1428,7 @@ class EnrollmentRequestEmailConnectionsTest(
 
             expected_from_email = settings.ENROLLMENT_EMAIL_FROM
             with self.temporarily_switch_to_user(self.non_ptcp_active_user1):
-                self.c.post(self.enroll_request_url, follow=True)
+                self.client.post(self.enroll_request_url, follow=True)
 
             msg = mail.outbox[0]
             self.assertEqual(msg.from_email, expected_from_email)
@@ -1444,7 +1444,7 @@ class EnrollmentRequestEmailConnectionsTest(
             expected_from_email = settings.ROBOT_EMAIL_FROM
 
             with self.temporarily_switch_to_user(self.non_ptcp_active_user1):
-                self.c.post(self.enroll_request_url, follow=True)
+                self.client.post(self.enroll_request_url, follow=True)
 
             msg = mail.outbox[0]
             self.assertEqual(msg.from_email, expected_from_email)
@@ -1465,7 +1465,7 @@ class EnrollmentDecisionEmailConnectionsTest(
 
             with self.temporarily_switch_to_user(
                     self.instructor_participation.user):
-                self.c.post(
+                self.client.post(
                     self.my_participation_edit_url,
                     self.get_edit_participation_form_data("approve"))
 
@@ -1483,7 +1483,7 @@ class EnrollmentDecisionEmailConnectionsTest(
 
             with self.temporarily_switch_to_user(
                     self.instructor_participation.user):
-                self.c.post(
+                self.client.post(
                     self.my_participation_edit_url,
                     self.get_edit_participation_form_data("approve"))
 
@@ -1505,7 +1505,7 @@ class EnrollmentDecisionEmailConnectionsTest(
 
             with self.temporarily_switch_to_user(
                     self.instructor_participation.user):
-                self.c.post(
+                self.client.post(
                     self.my_participation_edit_url,
                     self.get_edit_participation_form_data("approve"))
 
@@ -1525,7 +1525,7 @@ class EnrollmentDecisionEmailConnectionsTest(
 
             with self.temporarily_switch_to_user(
                     self.instructor_participation.user):
-                self.c.post(self.my_participation_edit_url,
+                self.client.post(self.my_participation_edit_url,
                             self.get_edit_participation_form_data("approve"))
             msg = mail.outbox[0]
             self.assertEqual(msg.from_email, expected_from_email)
@@ -1602,7 +1602,7 @@ class QueryParticipationsTestMixin(MockAddMessageMixing, SingleCoursePageTestMix
         else:
             u = self.instructor_participation.user
         with self.temporarily_switch_to_user(u):
-            return self.c.post(self.query_participation_url, data=form_data)
+            return self.client.post(self.query_participation_url, data=form_data)
 
 
 class QueryParticipationsParseQueryTest(QueryParticipationsTestMixin, TestCase):
@@ -1616,16 +1616,16 @@ class QueryParticipationsParseQueryTest(QueryParticipationsTestMixin, TestCase):
 
     def test_no_query_permission(self):
         with self.temporarily_switch_to_user(self.participations[0].user):
-            resp = self.c.get(self.query_participation_url)
+            resp = self.client.get(self.query_participation_url)
             self.assertEqual(resp.status_code, 403)
-            resp = self.c.post(self.query_participation_url, data={})
+            resp = self.client.post(self.query_participation_url, data={})
             self.assertEqual(resp.status_code, 403)
 
     def test_with_view_participant_masked_profile_permission(self):
         with self.temporarily_switch_to_user(self.ta_participation.user):
-            resp = self.c.get(self.query_participation_url)
+            resp = self.client.get(self.query_participation_url)
             self.assertEqual(resp.status_code, 200)
-            resp = self.c.post(self.query_participation_url, data={})
+            resp = self.client.post(self.query_participation_url, data={})
             self.assertEqual(resp.status_code, 200)
 
         from course.constants import participation_permission as pperm
@@ -1636,9 +1636,9 @@ class QueryParticipationsParseQueryTest(QueryParticipationsTestMixin, TestCase):
         pp.save()
 
         with self.temporarily_switch_to_user(self.ta_participation.user):
-            resp = self.c.get(self.query_participation_url)
+            resp = self.client.get(self.query_participation_url)
             self.assertEqual(resp.status_code, 403)
-            resp = self.c.post(self.query_participation_url, data={})
+            resp = self.client.post(self.query_participation_url, data={})
             self.assertEqual(resp.status_code, 403)
 
     def test_user_id_equal(self):

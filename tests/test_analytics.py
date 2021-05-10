@@ -21,7 +21,7 @@ THE SOFTWARE.
 """
 
 import pytest
-from django.test import TestCase
+from django.test import TestCase, Client
 from django.core.exceptions import ObjectDoesNotExist
 from django.urls import reverse
 
@@ -35,6 +35,14 @@ from tests.base_test_mixins import (  # noqa
     SingleCourseQuizPageTestMixin, MockAddMessageMixing, HackRepoMixin)
 from tests.utils import mock
 from tests import factories
+
+
+def _dummy_histogram(*args):
+    from course.analytics import Histogram
+    hist = Histogram()
+    hist.add_data_point(1)
+    hist.add_data_point(2)
+    return hist
 
 
 @pytest.mark.slow
@@ -54,7 +62,7 @@ class FlowListTest(SingleCourseTestMixin, TestCase):
             user = self.instructor_participation.user
 
         with self.temporarily_switch_to_user(user):
-            return self.c.get(
+            return self.client.get(
                 self.get_flow_list_url(course_identifier))
 
     def test_not_authenticated(self):
@@ -161,8 +169,10 @@ class IsPageMultipleSubmitTest(SingleCoursePageTestMixin, HackRepoMixin, TestCas
         cls.course.active_git_commit_sha = "my_fake_commit_sha_for_page_analytics"
         cls.course.save()
 
+        client = Client()
+        client.force_login(cls.student_participation.user)
         # cache the page_descs
-        cls.start_flow(cls.flow_id)
+        cls.start_flow(client, cls.flow_id)
         cls.flow_desc = cls.get_hacked_flow_desc()
 
     def setUp(self):
@@ -258,29 +268,36 @@ class FlowAnalyticsTest(SingleCourseQuizPageTestMixin, HackRepoMixin,
         super().setUpTestData()
         cls.course.active_git_commit_sha = "my_fake_commit_sha_for_flow_analytics"
         cls.course.save()
-        cls.start_flow(cls.flow_id)
+
+        client = Client()
+        client.force_login(cls.student_participation.user)
+        cls.start_flow(client, cls.flow_id)
         fs = FlowSession.objects.last()
         for page_ordinal in range(fs.page_count):
             cls.submit_page_answer_by_ordinal_and_test(
-                page_ordinal=page_ordinal, do_grading=False, do_human_grade=False)
-        cls.end_flow()
+                    client,
+                    page_ordinal=page_ordinal, do_grading=False,
+                    do_human_grade=False)
+        cls.end_flow(client)
 
         # start another in-progress session with answers
-        cls.start_flow(cls.flow_id)
+        cls.start_flow(client, cls.flow_id)
         fs = FlowSession.objects.last()
         for page_ordinal in range(fs.page_count):
             cls.submit_page_answer_by_ordinal_and_test(
-                page_ordinal=page_ordinal, do_grading=False, do_human_grade=False)
+                    client,
+                    page_ordinal=page_ordinal, do_grading=False,
+                    do_human_grade=False)
 
         # start another ended session with out answers
-        cls.start_flow(cls.flow_id)
-        cls.end_flow()
+        cls.start_flow(client, cls.flow_id)
+        cls.end_flow(client)
 
         # create another participation and with a flow session
         another_partcpt = factories.ParticipationFactory(course=cls.course)
-        with cls.temporarily_switch_to_user(another_partcpt.user):
-            cls.start_flow(cls.flow_id)
-            cls.end_flow()
+        with cls.temporarily_switch_to_user(client, another_partcpt.user):
+            cls.start_flow(client, cls.flow_id)
+            cls.end_flow(client)
 
     def test_not_authenticated(self):
         with self.temporarily_switch_to_user(None):
@@ -308,13 +325,16 @@ class FlowAnalyticsTest(SingleCourseQuizPageTestMixin, HackRepoMixin,
 
     def test_success_check_func_call(self):
         with mock.patch(
-                "course.analytics.make_grade_histogram"
+            "course.analytics.make_grade_histogram",
+            return_value=_dummy_histogram()
         ) as mock_make_g_his, mock.patch(
             "course.analytics.make_page_answer_stats_list"
         ) as mock_make_stats_list, mock.patch(
-            "course.analytics.make_time_histogram"
+            "course.analytics.make_time_histogram",
+            return_value=_dummy_histogram()
         ) as mock_make_t_his, mock.patch(
-            "course.analytics.count_participants"
+            "course.analytics.count_participants",
+            return_value=2,
         ) as mock_count_particpt:
             resp = self.get_flow_analytics_view(flow_id=self.flow_id)
             self.assertEqual(resp.status_code, 200)
@@ -330,13 +350,16 @@ class FlowAnalyticsTest(SingleCourseQuizPageTestMixin, HackRepoMixin,
 
     def test_success_test_restrict_to_first_attempt(self):
         with mock.patch(
-                "course.analytics.make_grade_histogram"
+            "course.analytics.make_grade_histogram",
+            return_value=_dummy_histogram()
         ) as mock_make_g_his, mock.patch(
             "course.analytics.make_page_answer_stats_list"
         ) as mock_make_stats_list, mock.patch(
-            "course.analytics.make_time_histogram"
+            "course.analytics.make_time_histogram",
+            return_value=_dummy_histogram(),
         ) as mock_make_t_his, mock.patch(
-            "course.analytics.count_participants"
+            "course.analytics.count_participants",
+            return_value=2,
         ) as mock_count_particpt:
             resp = self.get_flow_analytics_view(flow_id=self.flow_id,
                                                 restrict_to_first_attempt=1)
@@ -357,13 +380,16 @@ class FlowAnalyticsTest(SingleCourseQuizPageTestMixin, HackRepoMixin,
 
     def test_success_test_restrict_to_first_attempt_invalid(self):
         with mock.patch(
-                "course.analytics.make_grade_histogram"
+            "course.analytics.make_grade_histogram",
+            return_value=_dummy_histogram()
         ) as mock_make_g_his, mock.patch(
             "course.analytics.make_page_answer_stats_list"
         ) as mock_make_stats_list, mock.patch(
-            "course.analytics.make_time_histogram"
+            "course.analytics.make_time_histogram",
+            return_value=_dummy_histogram()
         ) as mock_make_t_his, mock.patch(
-            "course.analytics.count_participants"
+            "course.analytics.count_participants",
+            return_value=2,
         ) as mock_count_particpt:
             resp = self.get_flow_analytics_view(flow_id=self.flow_id,
                                                 restrict_to_first_attempt="foo")

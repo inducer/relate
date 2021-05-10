@@ -20,7 +20,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from django.test import TestCase
+from django.test import TestCase, Client
 import unittest
 
 from course.page.choice import markup_to_html_plain
@@ -667,8 +667,12 @@ class BrokenPageDataTest(SingleCoursePageTestMixin, TestCase):
     @classmethod
     def setUpTestData(cls):  # noqa
         super().setUpTestData()
-        cls.start_flow(cls.flow_id)
-        cls.end_flow()
+
+        client = Client()
+        client.force_login(cls.student_participation.user)
+
+        cls.start_flow(client, cls.flow_id)
+        cls.end_flow(client)
         from course.models import FlowPageData
         cls.page_id = "ice_cream_toppings"
         cls.fpd = FlowPageData.objects.get(page_id=cls.page_id)
@@ -682,7 +686,7 @@ class BrokenPageDataTest(SingleCoursePageTestMixin, TestCase):
         self.fpd.data = {}
         self.fpd.save()
         self.fpd.refresh_from_db()
-        resp = self.c.get(self.get_page_url_by_page_id(page_id=self.page_id))
+        resp = self.client.get(self.get_page_url_by_page_id(page_id=self.page_id))
         self.assertEqual(resp.status_code, 200)
         self.assertContains(
             resp, ("existing choice permutation not "
@@ -693,7 +697,7 @@ class BrokenPageDataTest(SingleCoursePageTestMixin, TestCase):
         self.fpd.data = {"permutation": [0, 1]}
         self.fpd.save()
         self.fpd.refresh_from_db()
-        resp = self.c.get(self.get_page_url_by_page_id(page_id=self.page_id))
+        resp = self.client.get(self.get_page_url_by_page_id(page_id=self.page_id))
         self.assertEqual(resp.status_code, 200)
         self.assertContains(
             resp, ("existing choice permutation not "

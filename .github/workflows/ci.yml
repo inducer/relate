@@ -136,6 +136,6 @@ jobs:
         env:
           RELATE_LOCAL_TEST_SETTINGS: "local_settings_example.py"
         run: |
-          poetry run pytest -v --cov-config=setup.cfg --cov-report=xml --cov=.
+          poetry run pytest -rxsw --cov-config=setup.cfg --cov-report=xml --cov=. --tb=native
 
 # vim: sw=2

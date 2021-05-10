@@ -87,23 +87,23 @@ class CourseSpecificLangTestMixin(SingleCourseTestMixin, TestCase):
         response_content_language_result = []
 
         with override_settings(USE_I18N=True, LANGUAGE_CODE='en-us'):
-            resp = self.c.get(url)
+            resp = self.client.get(url)
             self.assertEqual(resp.status_code, 200)
             contains_korean_result.append(self.response_contains_korean(resp))
             response_content_language_result.append(resp['content-language'])
 
-            resp = self.c.get(url, HTTP_ACCEPT_LANGUAGE='ko')
+            resp = self.client.get(url, HTTP_ACCEPT_LANGUAGE='ko')
             self.assertEqual(resp.status_code, 200)
             contains_korean_result.append(self.response_contains_korean(resp))
             response_content_language_result.append(resp['content-language'])
 
         with override_settings(USE_I18N=False):
-            resp = self.c.get(url)
+            resp = self.client.get(url)
             self.assertEqual(resp.status_code, 200)
             contains_korean_result.append(self.response_contains_korean(resp))
             response_content_language_result.append(resp['content-language'])
 
-            resp = self.c.get(url, HTTP_ACCEPT_LANGUAGE='ko')
+            resp = self.client.get(url, HTTP_ACCEPT_LANGUAGE='ko')
             self.assertEqual(resp.status_code, 200)
             contains_korean_result.append(self.response_contains_korean(resp))
             response_content_language_result.append(resp['content-language'])
@@ -126,7 +126,7 @@ class CourseSpecificLangConfigureTest(CourseSpecificLangTestMixin, TestCase):
         super().setUp()
         # We use faked time header to find out whether the expected Chinese
         # characters are rendered
-        self.c.force_login(self.instructor_participation.user)
+        self.client.force_login(self.instructor_participation.user)
         fake_time = datetime.datetime(2038, 12, 31, 0, 0, 0, 0)
         set_fake_time_data = {
             "time": fake_time.strftime(DATE_TIME_PICKER_TIME_FORMAT),
@@ -421,7 +421,7 @@ class RelateSiteNameTest(SingleCourseTestMixin, LocmemBackendTestsMixin, TestCas
         # home page
         with mock.patch(REAL_TRANSLATION_FUNCTION_TO_MOCK) as mock_gettext:
             mock_gettext.side_effect = real_trans_side_effect
-            resp = self.c.get("/")
+            resp = self.client.get("/")
             self.assertEqual(resp.status_code, 200)
             self.assertContains(resp, "<title>%s</title>" % my_site_name, html=True)
 
@@ -432,7 +432,7 @@ class RelateSiteNameTest(SingleCourseTestMixin, LocmemBackendTestsMixin, TestCas
             mock_gettext.reset_mock()
 
             # course page
-            resp = self.c.get(self.get_course_page_url())
+            resp = self.client.get(self.get_course_page_url())
             self.assertEqual(resp.status_code, 200)
 
             test_site_name_re = re.compile(
@@ -490,7 +490,7 @@ class MaintenanceModeTest(SingleCourseTestMixin, TestCase):
     def test_is(self):
         with override_settings(RELATE_MAINTENANCE_MODE=True):
             self.assertTrue(is_maintenance_mode(self.request))
-            self.c.get("/")
+            self.client.get("/")
             self.assertTemplateUsed("maintenance.html")
 
     def test_exceptions(self):
@@ -502,7 +502,7 @@ class MaintenanceModeTest(SingleCourseTestMixin, TestCase):
             mata["REMOTE_ADDR"] = "192.168.1.1"
 
             self.assertFalse(is_maintenance_mode(self.request))
-            self.c.get("/")
+            self.client.get("/")
             self.assertTemplateNotUsed("maintenance.html")
 
 

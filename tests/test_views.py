@@ -59,13 +59,13 @@ class SetFakeTimeTest(SingleCourseTestMixin, TestCase):
     # test views.set_fake_time
     fake_time = datetime.datetime(2038, 12, 31, 0, 0, 0, 0)
     set_fake_time_data = {"time": fake_time.strftime(DATE_TIME_PICKER_TIME_FORMAT),
-                          "set": ['']}
-    unset_fake_time_data = {"time": set_fake_time_data["time"], "unset": ['']}
+                          "set": [""]}
+    unset_fake_time_data = {"time": set_fake_time_data["time"], "unset": [""]}
 
     def test_set_fake_time_by_anonymous(self):
         with self.temporarily_switch_to_user(None):
             # the faking url is not rendered in template
-            resp = self.c.get(self.course_page_url)
+            resp = self.client.get(self.course_page_url)
             self.assertNotContains(resp, self.get_fake_time_url())
 
             resp = self.get_set_fake_time()
@@ -73,12 +73,12 @@ class SetFakeTimeTest(SingleCourseTestMixin, TestCase):
 
             resp = self.post_set_fake_time(self.set_fake_time_data, follow=False)
             self.assertEqual(resp.status_code, 302)
-            self.assertSessionFakeTimeIsNone(self.c.session)
+            self.assertSessionFakeTimeIsNone(self.client.session)
 
     def test_set_fake_time_no_pperm(self):
         with self.temporarily_switch_to_user(self.student_participation.user):
             # the faking url is not rendered in template
-            resp = self.c.get(self.course_page_url)
+            resp = self.client.get(self.course_page_url)
             self.assertNotContains(resp, self.get_fake_time_url())
 
             resp = self.get_set_fake_time()
@@ -86,12 +86,12 @@ class SetFakeTimeTest(SingleCourseTestMixin, TestCase):
 
             resp = self.post_set_fake_time(self.set_fake_time_data)
             self.assertEqual(resp.status_code, 403)
-            self.assertSessionFakeTimeIsNone(self.c.session)
+            self.assertSessionFakeTimeIsNone(self.client.session)
 
     def test_set_fake_time_by_instructor(self):
         with self.temporarily_switch_to_user(self.instructor_participation.user):
             # the faking url is rendered in template
-            resp = self.c.get(self.course_page_url)
+            resp = self.client.get(self.course_page_url)
             self.assertContains(resp, self.get_fake_time_url())
 
             resp = self.get_set_fake_time()
@@ -100,7 +100,7 @@ class SetFakeTimeTest(SingleCourseTestMixin, TestCase):
             # set fake time
             resp = self.post_set_fake_time(self.set_fake_time_data)
             self.assertEqual(resp.status_code, 200)
-            self.assertSessionFakeTimeEqual(self.c.session, self.fake_time)
+            self.assertSessionFakeTimeEqual(self.client.session, self.fake_time)
 
             # revisit the page, just to make sure it works
             resp = self.get_set_fake_time()
@@ -109,7 +109,7 @@ class SetFakeTimeTest(SingleCourseTestMixin, TestCase):
             # unset fake time
             resp = self.post_set_fake_time(self.unset_fake_time_data)
             self.assertEqual(resp.status_code, 200)
-            self.assertSessionFakeTimeIsNone(self.c.session)
+            self.assertSessionFakeTimeIsNone(self.client.session)
 
     def test_set_fake_time_by_instructor_when_impersonating(self):
         with self.temporarily_switch_to_user(self.instructor_participation.user):
@@ -118,18 +118,18 @@ class SetFakeTimeTest(SingleCourseTestMixin, TestCase):
 
             self.post_impersonate_view(impersonatee=self.student_participation.user)
             # the faking url is rendered in template
-            resp = self.c.get(self.course_page_url)
+            resp = self.client.get(self.course_page_url)
             self.assertContains(resp, self.get_fake_time_url())
 
             # set fake time
             resp = self.post_set_fake_time(self.set_fake_time_data)
             self.assertEqual(resp.status_code, 200)
-            self.assertSessionFakeTimeEqual(self.c.session, self.fake_time)
+            self.assertSessionFakeTimeEqual(self.client.session, self.fake_time)
 
             # unset fake time
             resp = self.post_set_fake_time(self.unset_fake_time_data)
             self.assertEqual(resp.status_code, 200)
-            self.assertSessionFakeTimeIsNone(self.c.session)
+            self.assertSessionFakeTimeIsNone(self.client.session)
 
     def test_form_invalid(self):
         with mock.patch("course.views.FakeTimeForm.is_valid") as mock_is_valid:
@@ -139,7 +139,7 @@ class SetFakeTimeTest(SingleCourseTestMixin, TestCase):
                 self.assertEqual(resp.status_code, 200)
 
                 # fake failed
-                self.assertSessionFakeTimeIsNone(self.c.session)
+                self.assertSessionFakeTimeIsNone(self.client.session)
 
 
 class GetNowOrFakeTimeTest(unittest.TestCase):
@@ -175,15 +175,15 @@ class TestSetPretendFacilities(SingleCourseTestMixin, TestCase):
         "facilities": ["test_center1"],
         "custom_facilities": [],
         "add_pretend_facilities_header": ["on"],
-        "set": ['']}
+        "set": [""]}
     unset_pretend_facilities_data = set_pretend_facilities_data.copy()
     unset_pretend_facilities_data.pop("set")
-    unset_pretend_facilities_data["unset"] = ['']
+    unset_pretend_facilities_data["unset"] = [""]
 
     def test_pretend_facilities_by_anonymous(self):
         with self.temporarily_switch_to_user(None):
             # the pretending url is not rendered in template
-            resp = self.c.get(self.course_page_url)
+            resp = self.client.get(self.course_page_url)
             self.assertNotContains(resp, self.get_set_pretend_facilities_url())
 
             resp = self.get_set_pretend_facilities()
@@ -192,12 +192,12 @@ class TestSetPretendFacilities(SingleCourseTestMixin, TestCase):
             resp = self.post_set_pretend_facilities(
                 self.set_pretend_facilities_data, follow=False)
             self.assertEqual(resp.status_code, 302)
-            self.assertSessionPretendFacilitiesIsNone(self.c.session)
+            self.assertSessionPretendFacilitiesIsNone(self.client.session)
 
     def test_pretend_facilities_no_pperm(self):
         with self.temporarily_switch_to_user(self.student_participation.user):
             # the pretending url is not rendered in template
-            resp = self.c.get(self.course_page_url)
+            resp = self.client.get(self.course_page_url)
             self.assertNotContains(resp, self.get_set_pretend_facilities_url())
 
             resp = self.get_set_pretend_facilities()
@@ -206,12 +206,12 @@ class TestSetPretendFacilities(SingleCourseTestMixin, TestCase):
             resp = self.post_set_pretend_facilities(
                 self.set_pretend_facilities_data)
             self.assertEqual(resp.status_code, 403)
-            self.assertSessionPretendFacilitiesIsNone(self.c.session)
+            self.assertSessionPretendFacilitiesIsNone(self.client.session)
 
     def test_pretend_facilities_by_instructor(self):
         with self.temporarily_switch_to_user(self.instructor_participation.user):
             # the pretending url is rendered in template
-            resp = self.c.get(self.course_page_url)
+            resp = self.client.get(self.course_page_url)
             self.assertContains(resp, self.get_set_pretend_facilities_url())
 
             resp = self.get_set_pretend_facilities()
@@ -220,7 +220,7 @@ class TestSetPretendFacilities(SingleCourseTestMixin, TestCase):
             resp = self.post_set_pretend_facilities(
                 self.set_pretend_facilities_data)
             self.assertEqual(resp.status_code, 200)
-            self.assertSessionPretendFacilitiesContains(self.c.session,
+            self.assertSessionPretendFacilitiesContains(self.client.session,
                                                         "test_center1")
 
             # revisit the page, just to make sure it works
@@ -230,7 +230,7 @@ class TestSetPretendFacilities(SingleCourseTestMixin, TestCase):
             resp = self.post_set_pretend_facilities(
                 self.unset_pretend_facilities_data)
             self.assertEqual(resp.status_code, 200)
-            self.assertSessionPretendFacilitiesIsNone(self.c.session)
+            self.assertSessionPretendFacilitiesIsNone(self.client.session)
 
     def test_pretend_facilities_by_instructor_when_impersonating(self):
         with self.temporarily_switch_to_user(self.instructor_participation.user):
@@ -238,7 +238,7 @@ class TestSetPretendFacilities(SingleCourseTestMixin, TestCase):
             self.post_impersonate_view(impersonatee=self.student_participation.user)
 
             # the pretending url is rendered in template
-            resp = self.c.get(self.course_page_url)
+            resp = self.client.get(self.course_page_url)
             self.assertContains(resp, self.get_set_pretend_facilities_url())
 
             resp = self.get_set_pretend_facilities()
@@ -247,13 +247,13 @@ class TestSetPretendFacilities(SingleCourseTestMixin, TestCase):
             resp = self.post_set_pretend_facilities(
                 self.set_pretend_facilities_data)
             self.assertEqual(resp.status_code, 200)
-            self.assertSessionPretendFacilitiesContains(self.c.session,
+            self.assertSessionPretendFacilitiesContains(self.client.session,
                                                         "test_center1")
 
             resp = self.post_set_pretend_facilities(
                 self.unset_pretend_facilities_data)
             self.assertEqual(resp.status_code, 200)
-            self.assertSessionPretendFacilitiesIsNone(self.c.session)
+            self.assertSessionPretendFacilitiesIsNone(self.client.session)
 
     def test_form_invalid(self):
         with mock.patch("course.views.FakeFacilityForm.is_valid") as mock_is_valid:
@@ -264,7 +264,7 @@ class TestSetPretendFacilities(SingleCourseTestMixin, TestCase):
                 self.assertEqual(resp.status_code, 200)
 
                 # pretending failed
-                self.assertSessionPretendFacilitiesIsNone(self.c.session)
+                self.assertSessionPretendFacilitiesIsNone(self.client.session)
 
 
 class TestEditCourse(SingleCourseTestMixin, MockAddMessageMixing, TestCase):
@@ -311,8 +311,8 @@ class TestEditCourse(SingleCourseTestMixin, MockAddMessageMixing, TestCase):
     def test_instructor_edit_post_unchanged(self):
         # test when form data is the same with current instance,
         # the message shows "no change"
-        with mock.patch('course.views.EditCourseForm.is_valid') as mock_is_valid, \
-            mock.patch('course.views.EditCourseForm.has_changed') as mock_changed, \
+        with mock.patch("course.views.EditCourseForm.is_valid") as mock_is_valid, \
+            mock.patch("course.views.EditCourseForm.has_changed") as mock_changed, \
             mock.patch("course.views.render_course_page"),\
                 mock.patch("course.views._") as mock_gettext:
 
@@ -332,9 +332,9 @@ class TestEditCourse(SingleCourseTestMixin, MockAddMessageMixing, TestCase):
     def test_instructor_edit_post_saved(self):
         # test when form data is_valid and different with the current instance,
         # the message shows "success"
-        with mock.patch('course.views.EditCourseForm.is_valid') as mock_is_valid, \
-            mock.patch('course.views.EditCourseForm.has_changed') as mock_changed, \
-            mock.patch('course.views.EditCourseForm.save')as mock_save, \
+        with mock.patch("course.views.EditCourseForm.is_valid") as mock_is_valid, \
+            mock.patch("course.views.EditCourseForm.has_changed") as mock_changed, \
+            mock.patch("course.views.EditCourseForm.save")as mock_save, \
             mock.patch("course.views.render_course_page"),\
                 mock.patch("course.views._") as mock_gettext:
 
@@ -358,7 +358,7 @@ class TestEditCourse(SingleCourseTestMixin, MockAddMessageMixing, TestCase):
         self.course.force_lang = "en-us"
         self.course.save()
         data = self.copy_course_dict_and_set_attrs_for_post({"force_lang": ""})
-        with mock.patch('course.views.EditCourseForm.save') as mock_save, \
+        with mock.patch("course.views.EditCourseForm.save") as mock_save, \
             mock.patch("course.views.render_course_page"),\
                 mock.patch("course.views._") as mock_gettext:
 
@@ -388,7 +388,7 @@ class TestEditCourse(SingleCourseTestMixin, MockAddMessageMixing, TestCase):
     def test_instructor_post_save_spaces_as_force_lang(self):
         # current force_lang is "", testing that the save won't occur
         data = self.copy_course_dict_and_set_attrs_for_post({"force_lang": "   "})
-        with mock.patch('course.views.EditCourseForm.save') as mock_form_save, \
+        with mock.patch("course.views.EditCourseForm.save") as mock_form_save, \
             mock.patch("course.views.render_course_page"),\
                 mock.patch("course.views._") as mock_gettext:
 
@@ -412,7 +412,7 @@ class TestEditCourse(SingleCourseTestMixin, MockAddMessageMixing, TestCase):
         self.assertEqual(len(self.course.force_lang), 0)
 
     def test_instructor_edit_post_form_invalid(self):
-        with mock.patch('course.views.EditCourseForm.is_valid') as mock_is_valid, \
+        with mock.patch("course.views.EditCourseForm.is_valid") as mock_is_valid, \
             mock.patch("course.views.render_course_page"),\
                 mock.patch("course.views._") as mock_gettext:
 
@@ -442,7 +442,7 @@ class GenerateSshKeypairTest(CoursesTestMixinBase, AuthTestMixin, TestCase):
 
     def test_anonymous(self):
         with self.temporarily_switch_to_user(None):
-            resp = self.c.get(self.get_generate_ssh_keypair_url())
+            resp = self.client.get(self.get_generate_ssh_keypair_url())
             self.assertEqual(resp.status_code, 302)
 
             expected_redirect_url = self.get_sign_in_choice_url(
@@ -455,7 +455,7 @@ class GenerateSshKeypairTest(CoursesTestMixinBase, AuthTestMixin, TestCase):
         user = factories.UserFactory()
         assert not user.is_staff
         with self.temporarily_switch_to_user(user):
-            resp = self.c.get(self.get_generate_ssh_keypair_url())
+            resp = self.client.get(self.get_generate_ssh_keypair_url())
             self.assertEqual(resp.status_code, 403)
 
     def test_success(self):
@@ -463,7 +463,7 @@ class GenerateSshKeypairTest(CoursesTestMixinBase, AuthTestMixin, TestCase):
         user.is_staff = True
         user.save()
         with self.temporarily_switch_to_user(user):
-            resp = self.c.get(self.get_generate_ssh_keypair_url())
+            resp = self.client.get(self.get_generate_ssh_keypair_url())
             self.assertEqual(resp.status_code, 200)
             self.assertResponseContextContains(
                 resp, "public_key",
@@ -495,12 +495,12 @@ class HomeTest(CoursesTestMixinBase, TestCase):
             course=course3, user=user, roles=["instructor"])
 
         with self.temporarily_switch_to_user(None):
-            resp = self.c.get("/")
+            resp = self.client.get("/")
         self.assertResponseContextEqual(resp, "current_courses", [course1])
         self.assertResponseContextEqual(resp, "past_courses", [course4])
 
         with self.temporarily_switch_to_user(user):
-            resp = self.c.get("/")
+            resp = self.client.get("/")
             self.assertResponseContextEqual(
                 resp, "current_courses", [course1, course2])
             self.assertResponseContextEqual(resp, "past_courses", [course4])
@@ -536,15 +536,16 @@ class StaticPageTest(SingleCourseTestMixin, TestCase):
                                "page_path": page_path})
 
     def get_static_page(self, page_path, course_identifier=None):
-        return self.c.get(self.get_static_page_url(page_path, course_identifier))
+        return self.client.get(
+                self.get_static_page_url(page_path, course_identifier))
 
     def test_success(self):
         resp = self.get_static_page("test")
         self.assertEqual(resp.status_code, 200)
         self.assertContains(
-            resp, '<h1>Demo page</h1>', html=True)
+            resp, "<h1>Demo page</h1>", html=True)
         self.assertContains(
-            resp, 'I am just a simple demo page. Go back to the '
+            resp, "I am just a simple demo page. Go back to the "
                   '<a href="/course/test-course/">course page</a>?')
 
     def test_404(self):
@@ -558,20 +559,20 @@ class CoursePageTest(SingleCourseTestMixin, MockAddMessageMixing, TestCase):
     # {{{ test show enroll button
     def test_student_no_enroll_button(self):
         with self.temporarily_switch_to_user(self.student_participation.user):
-            resp = self.c.get(self.get_course_page_url())
+            resp = self.client.get(self.get_course_page_url())
             self.assertEqual(resp.status_code, 200)
             self.assertResponseContextEqual(resp, "show_enroll_button", False)
 
     def test_anonymous_show_enroll_button(self):
         with self.temporarily_switch_to_user(None):
-            resp = self.c.get(self.get_course_page_url())
+            resp = self.client.get(self.get_course_page_url())
             self.assertEqual(resp.status_code, 200)
             self.assertResponseContextEqual(resp, "show_enroll_button", True)
 
     def test_non_participation_show_enroll_button(self):
         user = factories.UserFactory()
         with self.temporarily_switch_to_user(user):
-            resp = self.c.get(self.get_course_page_url())
+            resp = self.client.get(self.get_course_page_url())
             self.assertEqual(resp.status_code, 200)
             self.assertResponseContextEqual(resp, "show_enroll_button", True)
 
@@ -579,7 +580,7 @@ class CoursePageTest(SingleCourseTestMixin, MockAddMessageMixing, TestCase):
         requested = factories.ParticipationFactory(
             course=self.course, status=constants.participation_status.requested)
         with self.temporarily_switch_to_user(requested.user):
-            resp = self.c.get(self.get_course_page_url())
+            resp = self.client.get(self.get_course_page_url())
             self.assertEqual(resp.status_code, 200)
             self.assertResponseContextEqual(resp, "show_enroll_button", False)
 
@@ -594,7 +595,7 @@ class CoursePageTest(SingleCourseTestMixin, MockAddMessageMixing, TestCase):
         factories.ParticipationPreapprovalFactory(
             course=self.course, institutional_id="inst_id1234")
         with self.temporarily_switch_to_user(requested.user):
-            resp = self.c.get(self.get_course_page_url())
+            resp = self.client.get(self.get_course_page_url())
             self.assertEqual(resp.status_code, 200)
             self.assertResponseContextEqual(resp, "show_enroll_button", False)
 
@@ -609,7 +610,7 @@ class CoursePageTest(SingleCourseTestMixin, MockAddMessageMixing, TestCase):
         self.course.save()
 
         with self.temporarily_switch_to_user(requested.user):
-            resp = self.c.get(self.get_course_page_url())
+            resp = self.client.get(self.get_course_page_url())
             self.assertEqual(resp.status_code, 200)
             self.assertResponseContextEqual(resp, "show_enroll_button", False)
 
@@ -619,7 +620,7 @@ class CoursePageTest(SingleCourseTestMixin, MockAddMessageMixing, TestCase):
         requested.user.institutional_id = ""
         requested.user.save()
         with self.temporarily_switch_to_user(requested.user):
-            resp = self.c.get(self.get_course_page_url())
+            resp = self.client.get(self.get_course_page_url())
             self.assertEqual(resp.status_code, 200)
             self.assertResponseContextEqual(resp, "show_enroll_button", False)
 
@@ -648,7 +649,7 @@ class GetMediaTest(SingleCourseTestMixin, TestCase):
                                "media_path": media_path})
 
     def get_media_view(self, media_path, course_identifier=None, commit_sha=None):
-        return self.c.get(
+        return self.client.get(
             self.get_media_url(media_path, course_identifier, commit_sha))
 
     def test(self):
@@ -687,7 +688,7 @@ class GetRepoFileTestMixin(SingleCourseTestMixin):
                                "path": path})
 
     def get_repo_file_view(self, path, course_identifier=None, commit_sha=None):
-        return self.c.get(
+        return self.client.get(
             self.get_repo_file_url(path, course_identifier, commit_sha))
 
     def get_current_repo_file_url(self, path, course_identifier=None):
@@ -697,7 +698,7 @@ class GetRepoFileTestMixin(SingleCourseTestMixin):
                                "path": path})
 
     def get_current_repo_file_view(self, path, course_identifier=None):
-        return self.c.get(
+        return self.client.get(
             self.get_current_repo_file_url(path, course_identifier))
 
 
@@ -871,7 +872,7 @@ class ManageInstantFlowRequestsTest(SingleCoursePageTestMixin, TestCase):
         else:
             u = self.instructor_participation.user
         with self.temporarily_switch_to_user(u):
-            return self.c.get(
+            return self.client.get(
                 self.get_manage_instant_flow_requests_url(course_identifier))
 
     def post_manage_instant_flow_requests_view(
@@ -883,7 +884,7 @@ class ManageInstantFlowRequestsTest(SingleCoursePageTestMixin, TestCase):
         else:
             u = self.instructor_participation.user
         with self.temporarily_switch_to_user(u):
-            return self.c.post(
+            return self.client.post(
                 self.get_manage_instant_flow_requests_url(course_identifier),
                 data=data)
 
@@ -891,7 +892,7 @@ class ManageInstantFlowRequestsTest(SingleCoursePageTestMixin, TestCase):
         data = {
             "flow_id": self.flow_id,
             "duration_in_minutes": 20,
-            action: ''
+            action: ""
         }
         data.update(kwargs)
         return data
@@ -1038,7 +1039,7 @@ class TestFlowTest(SingleCoursePageTestMixin, TestCase):
         else:
             u = self.instructor_participation.user
         with self.temporarily_switch_to_user(u):
-            return self.c.get(
+            return self.client.get(
                 self.get_test_flow_url(course_identifier))
 
     def post_test_flow_view(
@@ -1050,14 +1051,14 @@ class TestFlowTest(SingleCoursePageTestMixin, TestCase):
         else:
             u = self.instructor_participation.user
         with self.temporarily_switch_to_user(u):
-            return self.c.post(
+            return self.client.post(
                 self.get_test_flow_url(course_identifier),
                 data=data)
 
     def get_default_post_data(self, action="test", **kwargs):
         data = {
             "flow_id": self.flow_id,
-            action: ''
+            action: ""
         }
         data.update(kwargs)
         return data
@@ -1134,7 +1135,7 @@ class GrantExceptionTestMixin(MockAddMessageMixing, SingleCoursePageTestMixin):
         else:
             u = self.instructor_participation.user
         with self.temporarily_switch_to_user(u):
-            return self.c.get(
+            return self.client.get(
                 self.get_grant_exception_url(course_identifier))
 
     def post_grant_exception_view(
@@ -1145,7 +1146,7 @@ class GrantExceptionTestMixin(MockAddMessageMixing, SingleCoursePageTestMixin):
         else:
             u = self.instructor_participation.user
         with self.temporarily_switch_to_user(u):
-            return self.c.post(
+            return self.client.post(
                 self.get_grant_exception_url(course_identifier),
                 data=data)
 
@@ -1171,7 +1172,7 @@ class GrantExceptionTestMixin(MockAddMessageMixing, SingleCoursePageTestMixin):
         else:
             u = self.instructor_participation.user
         with self.temporarily_switch_to_user(u):
-            return self.c.get(
+            return self.client.get(
                 self.get_grant_exception_stage_2_url(
                     participation_id, flow_id, course_identifier))
 
@@ -1187,7 +1188,7 @@ class GrantExceptionTestMixin(MockAddMessageMixing, SingleCoursePageTestMixin):
         else:
             u = self.instructor_participation.user
         with self.temporarily_switch_to_user(u):
-            return self.c.post(
+            return self.client.post(
                 self.get_grant_exception_stage_2_url(
                     participation_id, flow_id, course_identifier),
                 data=data)
@@ -1221,7 +1222,7 @@ class GrantExceptionTestMixin(MockAddMessageMixing, SingleCoursePageTestMixin):
         else:
             u = self.instructor_participation.user
         with self.temporarily_switch_to_user(u):
-            return self.c.get(
+            return self.client.get(
                 self.get_grant_exception_stage_3_url(
                     session_id, participation_id, flow_id, course_identifier))
 
@@ -1238,7 +1239,7 @@ class GrantExceptionTestMixin(MockAddMessageMixing, SingleCoursePageTestMixin):
         else:
             u = self.instructor_participation.user
         with self.temporarily_switch_to_user(u):
-            return self.c.post(
+            return self.client.post(
                 self.get_grant_exception_stage_3_url(
                     session_id, participation_id, flow_id, course_identifier),
                 data=data)
@@ -1251,7 +1252,7 @@ class GrantExceptionStage1Test(GrantExceptionTestMixin, TestCase):
         data = {
             "participation": self.student_participation.pk,
             "flow_id": self.flow_id,
-            action: ''
+            action: ""
         }
         data.update(kwargs)
         return data
@@ -1302,7 +1303,7 @@ class GrantExceptionStage2Test(GrantExceptionTestMixin, TestCase):
     def get_default_post_data(self, action="next", **kwargs):
         data = {
             "session": self.fs.pk,
-            action: ''
+            action: ""
         }
         data.update(kwargs)
         return data
@@ -1563,7 +1564,7 @@ class GrantExceptionStage3Test(GrantExceptionTestMixin, TestCase):
     def get_default_post_data(self, action="submit", **kwargs):
         data = {
             "session": self.fs.pk,
-            action: '',
+            action: "",
             "comment": "my_comment"
         }
         data.update(kwargs)
@@ -2206,30 +2207,30 @@ class MonitorTaskTest(SingleCourseTestMixin, TestCase):
     # test views.monitor_task
     def mock_task(self, name, state, result, traceback=None):
         return {
-            'id': uuid(), 'name': name, 'state': state,
-            'result': result, 'traceback': traceback,
+            "id": uuid(), "name": name, "state": state,
+            "result": result, "traceback": traceback,
         }
 
     def save_result(self, app, task):
-        traceback = task.get('traceback') or 'Some traceback'
-        state = task['state']
+        traceback = task.get("traceback") or "Some traceback"
+        state = task["state"]
         if state == states.SUCCESS:
-            app.backend.mark_as_done(task['id'], task['result'])
+            app.backend.mark_as_done(task["id"], task["result"])
         elif state == states.RETRY:
             app.backend.mark_as_retry(
-                task['id'], task['result'], traceback=traceback,
+                task["id"], task["result"], traceback=traceback,
             )
         elif state == states.FAILURE:
             app.backend.mark_as_failure(
-                task['id'], task['result'], traceback=traceback)
+                task["id"], task["result"], traceback=traceback)
         elif state == states.REVOKED:
             app.backend.mark_as_revoked(
-                task_id=task['id'], reason="blabla", state=state)
+                task_id=task["id"], reason="blabla", state=state)
         elif state == states.STARTED:
-            app.backend.mark_as_started(task['id'], **task['result'])
+            app.backend.mark_as_started(task["id"], **task["result"])
         else:
             app.backend.store_result(
-                task['id'], task['result'], state,
+                task["id"], task["result"], state,
             )
 
     def get_monitor_url(self, task_id):
@@ -2237,54 +2238,54 @@ class MonitorTaskTest(SingleCourseTestMixin, TestCase):
         return reverse("relate-monitor_task", kwargs={"task_id": task_id})
 
     def get_monitor_view(self, task_id):
-        return self.c.get(self.get_monitor_url(task_id))
+        return self.client.get(self.get_monitor_url(task_id))
 
     def test_user_not_authenticated(self):
         message = "This is good!"
-        task = self.mock_task('task', states.SUCCESS, {"message": message})
+        task = self.mock_task("task", states.SUCCESS, {"message": message})
         self.save_result(app, task)
         with self.temporarily_switch_to_user(None):
-            resp = self.get_monitor_view(task['id'])
+            resp = self.get_monitor_view(task["id"])
         self.assertEqual(resp.status_code, 302)
 
     def test_state_success(self):
         message = "This is good!"
-        task = self.mock_task('task', states.SUCCESS, {"message": message})
+        task = self.mock_task("task", states.SUCCESS, {"message": message})
         self.save_result(app, task)
-        resp = self.get_monitor_view(task['id'])
+        resp = self.get_monitor_view(task["id"])
         self.assertEqual(resp.status_code, 200)
-        self.assertResponseContextEqual(resp, "state", task['state'])
+        self.assertResponseContextEqual(resp, "state", task["state"])
         self.assertResponseContextEqual(resp, "progress_statement", message)
         self.assertResponseContextIsNone(resp, "progress_percent")
         self.assertResponseContextIsNone(resp, "traceback")
 
     def test_state_success_result_not_dict(self):
-        task = self.mock_task('task', states.SUCCESS, "This is good!")
+        task = self.mock_task("task", states.SUCCESS, "This is good!")
         self.save_result(app, task)
-        resp = self.get_monitor_view(task['id'])
+        resp = self.get_monitor_view(task["id"])
         self.assertEqual(resp.status_code, 200)
-        self.assertResponseContextEqual(resp, "state", task['state'])
+        self.assertResponseContextEqual(resp, "state", task["state"])
         self.assertResponseContextIsNone(resp, "progress_percent")
         self.assertResponseContextIsNone(resp, "progress_statement")
         self.assertResponseContextIsNone(resp, "traceback")
 
     def test_state_success_result_contains_no_message(self):
-        task = self.mock_task('task', states.SUCCESS, {"log": "This is good!"})
+        task = self.mock_task("task", states.SUCCESS, {"log": "This is good!"})
         self.save_result(app, task)
-        resp = self.get_monitor_view(task['id'])
+        resp = self.get_monitor_view(task["id"])
         self.assertEqual(resp.status_code, 200)
-        self.assertResponseContextEqual(resp, "state", task['state'])
+        self.assertResponseContextEqual(resp, "state", task["state"])
         self.assertResponseContextIsNone(resp, "progress_percent")
         self.assertResponseContextIsNone(resp, "progress_statement")
         self.assertResponseContextIsNone(resp, "traceback")
 
     def test_state_progress(self):
         task = self.mock_task("progressing", "PROGRESS",
-                         {'current': 20, 'total': 40})
+                         {"current": 20, "total": 40})
         self.save_result(app, task)
-        resp = self.get_monitor_view(task['id'])
+        resp = self.get_monitor_view(task["id"])
         self.assertEqual(resp.status_code, 200)
-        self.assertResponseContextEqual(resp, "state", task['state'])
+        self.assertResponseContextEqual(resp, "state", task["state"])
         self.assertResponseContextEqual(resp, "progress_percent", 50)
         self.assertResponseContextEqual(
             resp, "progress_statement", "20 out of 40 items processed.")
@@ -2292,11 +2293,11 @@ class MonitorTaskTest(SingleCourseTestMixin, TestCase):
 
     def test_state_progress_total_zero(self):
         task = self.mock_task("progressing", "PROGRESS",
-                         {'current': 0, 'total': 0})
+                         {"current": 0, "total": 0})
         self.save_result(app, task)
-        resp = self.get_monitor_view(task['id'])
+        resp = self.get_monitor_view(task["id"])
         self.assertEqual(resp.status_code, 200)
-        self.assertResponseContextEqual(resp, "state", task['state'])
+        self.assertResponseContextEqual(resp, "state", task["state"])
         self.assertResponseContextIsNone(resp, "progress_percent")
         self.assertResponseContextEqual(
             resp, "progress_statement", "0 out of 0 items processed.")
@@ -2310,9 +2311,9 @@ class MonitorTaskTest(SingleCourseTestMixin, TestCase):
                               PYTRACEBACK)
         self.save_result(app, task)
         with self.temporarily_switch_to_user(self.superuser):
-            resp = self.get_monitor_view(task['id'])
+            resp = self.get_monitor_view(task["id"])
         self.assertEqual(resp.status_code, 200)
-        self.assertResponseContextEqual(resp, "state", task['state'])
+        self.assertResponseContextEqual(resp, "state", task["state"])
         self.assertResponseContextIsNone(resp, "progress_percent")
         self.assertResponseContextIsNone(resp, "progress_statement")
         self.assertResponseContextEqual(resp, "traceback", PYTRACEBACK)
@@ -2322,10 +2323,10 @@ class MonitorTaskTest(SingleCourseTestMixin, TestCase):
                               KeyError("foo"),
                               PYTRACEBACK)
         self.save_result(app, task)
-        resp = self.get_monitor_view(task['id'])
+        resp = self.get_monitor_view(task["id"])
 
         self.assertEqual(resp.status_code, 200)
-        self.assertResponseContextEqual(resp, "state", task['state'])
+        self.assertResponseContextEqual(resp, "state", task["state"])
         self.assertResponseContextIsNone(resp, "progress_percent")
         self.assertResponseContextIsNone(resp, "progress_statement")
         self.assertResponseContextIsNone(resp, "traceback")
@@ -2333,9 +2334,9 @@ class MonitorTaskTest(SingleCourseTestMixin, TestCase):
     def test_pending(self):
         state = states.PENDING
         task = self.mock_task("task", state,
-                              {'current': 20, 'total': 40})
+                              {"current": 20, "total": 40})
         self.save_result(app, task)
-        resp = self.get_monitor_view(task['id'])
+        resp = self.get_monitor_view(task["id"])
         self.assertEqual(resp.status_code, 200)
         self.assertResponseContextEqual(resp, "state", state)
         self.assertResponseContextIsNone(resp, "progress_percent")
@@ -2345,9 +2346,9 @@ class MonitorTaskTest(SingleCourseTestMixin, TestCase):
     def test_received(self):
         state = states.RECEIVED
         task = self.mock_task("task", state,
-                              {'current': 20, 'total': 40})
+                              {"current": 20, "total": 40})
         self.save_result(app, task)
-        resp = self.get_monitor_view(task['id'])
+        resp = self.get_monitor_view(task["id"])
         self.assertEqual(resp.status_code, 200)
         self.assertResponseContextEqual(resp, "state", state)
         self.assertResponseContextIsNone(resp, "progress_percent")
@@ -2357,9 +2358,9 @@ class MonitorTaskTest(SingleCourseTestMixin, TestCase):
     def test_started(self):
         state = states.STARTED
         task = self.mock_task("task", state,
-                              {'foo': "foo", 'bar': "bar"})
+                              {"foo": "foo", "bar": "bar"})
         self.save_result(app, task)
-        resp = self.get_monitor_view(task['id'])
+        resp = self.get_monitor_view(task["id"])
         self.assertEqual(resp.status_code, 200)
         self.assertResponseContextEqual(resp, "state", state)
         self.assertResponseContextIsNone(resp, "progress_percent")
@@ -2371,7 +2372,7 @@ class MonitorTaskTest(SingleCourseTestMixin, TestCase):
         task = self.mock_task("task", state,
                               KeyError())
         self.save_result(app, task)
-        resp = self.get_monitor_view(task['id'])
+        resp = self.get_monitor_view(task["id"])
         self.assertEqual(resp.status_code, 200)
         self.assertResponseContextEqual(resp, "state", state)
         self.assertResponseContextIsNone(resp, "progress_percent")
@@ -2382,7 +2383,7 @@ class MonitorTaskTest(SingleCourseTestMixin, TestCase):
         state = states.REVOKED
         task = self.mock_task("task", state, {})
         self.save_result(app, task)
-        resp = self.get_monitor_view(task['id'])
+        resp = self.get_monitor_view(task["id"])
         self.assertEqual(resp.status_code, 200)
         self.assertResponseContextEqual(resp, "state", state)
         self.assertResponseContextIsNone(resp, "progress_percent")

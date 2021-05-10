@@ -23,7 +23,7 @@ THE SOFTWARE.
 import pytest
 import io
 import datetime
-from django.test import TestCase
+from django.test import TestCase, Client
 from django.urls import reverse
 from django.utils.timezone import now, timedelta
 import unittest
@@ -721,7 +721,7 @@ class ViewGradesByOpportunityTest(GradesTestMixin, TestCase):
 
     def test_gopp_does_not_exist(self):
         with self.temporarily_switch_to_user(self.instructor_participation.user):
-            resp = self.c.get(self.get_gradebook_url_by_opp_id("2"))
+            resp = self.client.get(self.get_gradebook_url_by_opp_id("2"))
             self.assertEqual(resp.status_code, 404)
 
     def test_gopp_course_not_match(self):
@@ -730,7 +730,7 @@ class ViewGradesByOpportunityTest(GradesTestMixin, TestCase):
             course=another_course, identifier=self.gopp_id)
 
         with self.temporarily_switch_to_user(self.instructor_participation.user):
-            resp = self.c.get(self.get_gradebook_url_by_opp_id(
+            resp = self.client.get(self.get_gradebook_url_by_opp_id(
                 another_course_gopp.id))
             self.assertEqual(resp.status_code, 400)
 
@@ -1433,7 +1433,7 @@ class ViewSingleGradeTest(GradesTestMixin, TestCase):
             course=factories.CourseFactory(identifier="another-course"),
             identifier=QUIZ_FLOW_ID)
         with self.temporarily_switch_to_user(self.instructor_participation.user):
-            resp = self.c.get(self.get_single_grade_url(
+            resp = self.client.get(self.get_single_grade_url(
                 self.student_participation.pk, another_course_gopp.pk))
             self.assertEqual(resp.status_code, 400)
 
@@ -1664,7 +1664,7 @@ class EditGradingOpportunityTest(GradesTestMixin, TestCase):
             user = self.instructor_participation.user
 
         with self.temporarily_switch_to_user(user):
-            return self.c.get(
+            return self.client.get(
                 self.get_edit_grading_opportunity_url(opp_id, course_identifier))
 
     def post_edit_grading_opportunity_view(self, opp_id, data,
@@ -1677,7 +1677,7 @@ class EditGradingOpportunityTest(GradesTestMixin, TestCase):
             user = self.instructor_participation.user
 
         with self.temporarily_switch_to_user(user):
-            return self.c.post(
+            return self.client.post(
                 self.get_edit_grading_opportunity_url(opp_id, course_identifier),
                 data)
 
@@ -1796,31 +1796,34 @@ class DownloadAllSubmissionsTest(SingleCourseQuizPageTestMixin,
         cls.course.active_git_commit_sha = (
             "my_fake_commit_sha_for_download_submissions")
         cls.course.save()
-        with cls.temporarily_switch_to_user(cls.student_participation.user):
-            cls.start_flow(cls.flow_id)
-            cls.submit_page_answer_by_page_id_and_test(
-                cls.page_id, answer_data={"answer": 0.25})
-            cls.end_flow()
 
-            fs = models.FlowSession.objects.first()
-            fs.access_rules_tag = cls.my_access_rule_tag
-            fs.save()
+        client = Client()
+        client.force_login(cls.student_participation.user)
 
-            cls.start_flow(cls.flow_id)
-            cls.submit_page_answer_by_page_id_and_test("proof")
-            cls.submit_page_answer_by_page_id_and_test(cls.page_id)
-            cls.end_flow()
+        cls.start_flow(client, cls.flow_id)
+        cls.submit_page_answer_by_page_id_and_test(
+            client, cls.page_id, answer_data={"answer": 0.25})
+        cls.end_flow(client)
+
+        fs = models.FlowSession.objects.first()
+        fs.access_rules_tag = cls.my_access_rule_tag
+        fs.save()
+
+        cls.start_flow(client, cls.flow_id)
+        cls.submit_page_answer_by_page_id_and_test(client, "proof")
+        cls.submit_page_answer_by_page_id_and_test(client, cls.page_id)
+        cls.end_flow(client)
 
         # create an in_progress flow, with the same page submitted
         another_particpation = factories.ParticipationFactory(
             course=cls.course)
-        with cls.temporarily_switch_to_user(another_particpation.user):
-            cls.start_flow(cls.flow_id)
-            cls.submit_page_answer_by_page_id_and_test(cls.page_id)
+        client.force_login(another_particpation.user)
+        cls.start_flow(client, cls.flow_id)
+        cls.submit_page_answer_by_page_id_and_test(client, cls.page_id)
 
-            # create a flow with no answers
-            cls.start_flow(cls.flow_id)
-            cls.end_flow()
+        # create a flow with no answers
+        cls.start_flow(client, cls.flow_id)
+        cls.end_flow(client)
 
     @property
     def group_page_id(self):
@@ -2184,9 +2187,9 @@ class FixingTest(GradesTestMixin, TestCase):
             args=(flow_session.id,))
         delete_dict = {'post': 'yes'}
         with self.temporarily_switch_to_user(self.superuser):
-            resp = self.c.get(flow_session_delete_url)
+            resp = self.client.get(flow_session_delete_url)
             self.assertEqual(resp.status_code, 200)
-            resp = self.c.post(flow_session_delete_url, data=delete_dict)
+            resp = self.client.post(flow_session_delete_url, data=delete_dict)
         self.assertEqual(resp.status_code, 302)
         self.assertEqual(exist_flow_session_count,
                          models.FlowSession.objects.count() + 1)

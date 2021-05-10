@@ -28,7 +28,7 @@ from course.sandbox import (
     ANSWER_DATA_SESSION_KEY_PREFIX, make_sandbox_session_key)
 
 from tests.base_test_mixins import (
-    SingleCourseTestMixin, MockAddMessageMixing)
+    SingleCourseTestMixin, MockAddMessageMixing, classmethod_with_client)
 from tests.constants import PAGE_WARNINGS, HAVE_VALID_PAGE, PAGE_ERRORS
 from tests.utils import mock
 
@@ -82,31 +82,31 @@ content: |
 class SingleCoursePageSandboxTestBaseMixin(SingleCourseTestMixin):
     def setUp(self):  # noqa
         super().setUp()
-        self.c.force_login(self.instructor_participation.user)
+        self.client.force_login(self.instructor_participation.user)
 
     @classmethod
     def get_page_sandbox_url(cls):
         return reverse("relate-view_page_sandbox", args=[cls.course.identifier])
 
-    @classmethod
-    def get_page_sandbox_post_response(cls, data, action):
+    @classmethod_with_client
+    def get_page_sandbox_post_response(cls, client, data, action):  # noqa: N805
         post_data = {action: ""}
         post_data.update(data)
-        return cls.c.post(cls.get_page_sandbox_url(), post_data)
+        return client.post(cls.get_page_sandbox_url(), post_data)
 
-    @classmethod
-    def get_page_sandbox_preview_response(cls, markup_content):
+    @classmethod_with_client
+    def get_page_sandbox_preview_response(cls, client, markup_content):  # noqa: N805
         """
         Get the preview response of content in page sandbox
         :param markup_content: :class:`String`, RELATE flavored page markdown
         :return: :class: `http.HttpResponse`
         """
-        data = {'content': [markup_content]}
-        return cls.get_page_sandbox_post_response(data, action='preview')
+        data = {"content": [markup_content]}
+        return cls.get_page_sandbox_post_response(client, data, action="preview")
 
-    @classmethod
-    def get_page_sandbox_submit_answer_response(cls, markup_content,
-                                                answer_data):
+    @classmethod_with_client
+    def get_page_sandbox_submit_answer_response(cls, client,  # noqa: N805
+            markup_content, answer_data):
         """
         Get the response of preview content and then post an answer, in page sandbox
         :param markup_content: :class:`String`, RELATE flavored page markdown
@@ -114,11 +114,12 @@ class SingleCoursePageSandboxTestBaseMixin(SingleCourseTestMixin):
         :return: :class: `http.HttpResponse`
         """
 
-        cls.get_page_sandbox_preview_response(markup_content)
-        return cls.get_page_sandbox_post_response(answer_data, action='submit')
+        cls.get_page_sandbox_preview_response(client, markup_content)
+        return cls.get_page_sandbox_post_response(
+                client, answer_data, action="submit")
 
     def get_sandbox_data_by_key(self, key):
-        return self.c.session.get(
+        return self.client.session.get(
             make_sandbox_session_key(key, self.course.identifier))
 
     def get_sandbox_page_data(self):
@@ -152,21 +153,22 @@ class SingleCoursePageSandboxTestBaseMixin(SingleCourseTestMixin):
     def get_markup_sandbox_url(cls):
         return reverse("relate-view_markup_sandbox", args=[cls.course.identifier])
 
-    @classmethod
-    def get_markup_sandbox_view(cls):
-        return cls.c.get(cls.get_markup_sandbox_url())
+    @classmethod_with_client
+    def get_markup_sandbox_view(cls, client):  # noqa: N805
+        return client.get(cls.get_markup_sandbox_url())
 
-    @classmethod
-    def post_markup_sandbox_view(cls, markup_content, action="preview"):
+    @classmethod_with_client
+    def post_markup_sandbox_view(cls, client,  # noqa: N805
+            markup_content, *, action="preview"):
         post_data = {
             "content": markup_content,
             action: ""}
-        return cls.c.post(cls.get_markup_sandbox_url(), post_data)
+        return client.post(cls.get_markup_sandbox_url(), post_data)
 
 
 class SingleCoursePageSandboxTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
     def test_page_sandbox_get(self):
-        resp = self.c.get(reverse("relate-view_page_sandbox",
+        resp = self.client.get(reverse("relate-view_page_sandbox",
                                   args=[self.course.identifier]))
         self.assertEqual(resp.status_code, 200)
 
@@ -188,13 +190,13 @@ class SingleCoursePageSandboxTest(SingleCoursePageSandboxTestBaseMixin, TestCase
 
     def test_page_sandbox_submit_answer(self):
         # Try to answer the rendered question
-        answer_data = {'answer': ['a half']}
+        answer_data = {"answer": ["a half"]}
         resp = self.get_page_sandbox_submit_answer_response(
             markup_content=QUESTION_MARKUP, answer_data=answer_data)
         self.assertEqual(resp.status_code, 200)
         self.assertResponseContextAnswerFeedbackCorrectnessEquals(resp, 1)
 
-        answer_data = {'answer': ['0.6']}
+        answer_data = {"answer": ["0.6"]}
         resp = self.get_page_sandbox_submit_answer_response(
             markup_content=QUESTION_MARKUP, answer_data=answer_data)
         self.assertResponseContextAnswerFeedbackCorrectnessEquals(resp, 0)
@@ -205,7 +207,7 @@ class ViewPageSandboxTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
      (for cases not covered by other tests)"""
     def test_not_authenticated(self):
         with self.temporarily_switch_to_user(None):
-            resp = self.c.get(self.get_page_sandbox_url())
+            resp = self.client.get(self.get_page_sandbox_url())
             self.assertEqual(resp.status_code, 403)
 
             resp = self.get_page_sandbox_preview_response(QUESTION_MARKUP)
@@ -213,7 +215,7 @@ class ViewPageSandboxTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
 
     def test_no_pperm(self):
         with self.temporarily_switch_to_user(self.student_participation.user):
-            resp = self.c.get(self.get_page_sandbox_url())
+            resp = self.client.get(self.get_page_sandbox_url())
             self.assertEqual(resp.status_code, 403)
 
             resp = self.get_page_sandbox_preview_response(QUESTION_MARKUP)
@@ -239,28 +241,28 @@ class ViewPageSandboxTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
             "list marker ('-') or some stray indentation?")
 
     def test_is_clear_post(self):
-        answer_data = {'answer': ['a half']}
+        answer_data = {"answer": ["a half"]}
         self.get_page_sandbox_submit_answer_response(
             markup_content=QUESTION_MARKUP, answer_data=answer_data)
         self.assertIsNotNone(self.get_sandbox_page_data())
         self.assertIsNotNone(self.get_sandbox_answer_data())
 
-        data = {'content': [QUESTION_MARKUP]}
-        resp = self.get_page_sandbox_post_response(data, action='clear')
+        data = {"content": [QUESTION_MARKUP]}
+        resp = self.get_page_sandbox_post_response(data, action="clear")
         self.assertEqual(resp.status_code, 200)
         self.assertIsNone(self.get_sandbox_page_data())
         self.assertIsNone(self.get_sandbox_answer_data())
         self.assertResponseContextIsNone(resp, "page_form_html")
 
     def test_is_clear_response_post(self):
-        answer_data = {'answer': ['a half']}
+        answer_data = {"answer": ["a half"]}
         self.get_page_sandbox_submit_answer_response(
             markup_content=QUESTION_MARKUP, answer_data=answer_data)
         self.assertIsNotNone(self.get_sandbox_page_data())
         self.assertIsNotNone(self.get_sandbox_answer_data())
 
-        data = {'content': [QUESTION_MARKUP]}
-        resp = self.get_page_sandbox_post_response(data, action='clear_response')
+        data = {"content": [QUESTION_MARKUP]}
+        resp = self.get_page_sandbox_post_response(data, action="clear_response")
         self.assertEqual(resp.status_code, 200)
 
         self.assertIsNone(self.get_sandbox_page_data())
@@ -283,7 +285,7 @@ class ViewPageSandboxTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
     def test_reload_from_storage(self):
         self.get_page_sandbox_preview_response(
             markup_content=QUESTION_MARKUP)
-        resp = self.c.get(self.get_page_sandbox_url())
+        resp = self.client.get(self.get_page_sandbox_url())
 
         self.assertEqual(resp.status_code, 200)
         self.assertSandboxHasValidPage(resp)
@@ -291,7 +293,7 @@ class ViewPageSandboxTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
     def test_reload_from_storage_success(self):
         self.get_page_sandbox_preview_response(
             markup_content=QUESTION_MARKUP)
-        resp = self.c.get(self.get_page_sandbox_url())
+        resp = self.client.get(self.get_page_sandbox_url())
 
         self.assertEqual(resp.status_code, 200)
         self.assertSandboxHasValidPage(resp)
@@ -305,11 +307,11 @@ class ViewPageSandboxTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
         # change the page_desc stored
         key = make_sandbox_session_key(
             PAGE_SESSION_KEY_PREFIX, self.course.identifier)
-        session = self.c.session
+        session = self.client.session
         session[key] = PAGE_MARKUP
         session.save()
 
-        resp = self.c.get(self.get_page_sandbox_url())
+        resp = self.client.get(self.get_page_sandbox_url())
         self.assertEqual(resp.status_code, 200)
         self.assertSandboxHasValidPage(resp)
 
@@ -322,7 +324,7 @@ class ViewPageSandboxTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
                 "course.content.instantiate_flow_page") as mock_instantiate:
             error_msg = "my make form error"
             mock_instantiate.side_effect = RuntimeError(error_msg)
-            resp = self.c.get(self.get_page_sandbox_url())
+            resp = self.client.get(self.get_page_sandbox_url())
 
             self.assertEqual(resp.status_code, 200)
             self.assertSandboxNotHasValidPage(resp)
