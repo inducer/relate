@@ -70,7 +70,7 @@ class CreateRecurringEventsTest(SingleCourseTestMixin,
         else:
             user = self.instructor_participation.user
 
-        with self.temporarily_switch_to_user(self.client, user):
+        with self.temporarily_switch_to_user(user):
             return self.client.post(
                 self.get_create_recurring_events_url(course_identifier), data)
 

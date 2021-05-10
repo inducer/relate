@@ -23,7 +23,7 @@ THE SOFTWARE.
 import pytest
 
 import unittest
-from django.test import TestCase
+from django.test import TestCase, Client
 from django.urls import resolve
 
 from course.models import FlowSession
@@ -50,8 +50,11 @@ class SingleCourseQuizPageTest(SingleCourseQuizPageTestMixin,
     def setUpTestData(cls):  # noqa
         super().setUpTestData()
 
+        client = Client()
+        client.force_login(cls.student_participation.user)
+
         # cls.default_flow_params will only be available after a flow is started
-        cls.start_flow(cls.flow_id)
+        cls.start_flow(client, cls.flow_id)
 
     # view all pages
     def test_view_all_flow_pages_ordinal_out_of_range(self):

@@ -22,36 +22,31 @@ THE SOFTWARE.
 
 import pytest
 from django.urls import reverse, NoReverseMatch
-from django.test import TestCase
+from django.test import TestCase, Client
 
 from course.models import (
     Participation, GradingOpportunity, FlowSession,
     FlowRuleException
 )
 
-from tests.base_test_mixins import SingleCoursePageTestMixin
+from tests.base_test_mixins import SingleCoursePageTestMixin, classmethod_with_client
 
 
 class GradeGenericTestMixin(SingleCoursePageTestMixin):
-    # This serve as a base test cases for other grade tests to subclass
-    # Nice little tricks :)
     @classmethod
     def setUpTestData(cls):  # noqa
         super().setUpTestData()
+        client = Client()
         cls.flow_session_ids = []
-        cls.do_quiz(cls.student_participation)
-
-    @classmethod
-    def tearDownClass(cls):
-        super().tearDownClass()
+        cls.do_quiz(client, cls.student_participation)
 
     # Use specified user to take a quiz
-    @classmethod
-    def do_quiz(cls, participation):
+    @classmethod_with_client
+    def do_quiz(cls, client, participation):  # noqa: N805
         # Login user first
-        cls.c.force_login(participation.user)
-        cls.start_flow(cls.flow_id)
-        cls.end_flow()
+        client.force_login(participation.user)
+        cls.start_flow(client, cls.flow_id)
+        cls.end_flow(client)
         cls.flow_session_ids.append(
             int(cls.default_flow_params["flow_session_id"]))
 
@@ -309,12 +304,16 @@ class GradeTwoQuizTakerTest(GradeGenericTestMixin, TestCase):
     @classmethod
     def setUpTestData(cls): # noqa
         super().setUpTestData()
-        cls.do_quiz(cls.instructor_participation)
+        client = Client()
+
+        cls.do_quiz(client, cls.instructor_participation)
         cls.n_quiz_takers = 2
         cls.n_participations = 3
 
+    def setUp(self):
+        super().setUp()
         # Make sure the instructor is logged in after all quizes finished
-        cls.c.force_login(cls.instructor_participation.user)
+        self.client.force_login(self.instructor_participation.user)
 
 
 @pytest.mark.slow
@@ -325,12 +324,16 @@ class GradeThreeQuizTakerTest(GradeGenericTestMixin, TestCase):
     @classmethod
     def setUpTestData(cls): # noqa
         super().setUpTestData()
-        cls.do_quiz(cls.ta_participation)
-        cls.do_quiz(cls.instructor_participation)
+        client = Client()
+        cls.do_quiz(client, cls.ta_participation)
+        cls.do_quiz(client, cls.instructor_participation)
         cls.n_quiz_takers = 3
         cls.n_participations = 3
 
-        cls.c.force_login(cls.instructor_participation.user)
+    def setUp(self):
+        super().setUp()
+        # Make sure the instructor is logged in after all quizes finished
+        self.client.force_login(self.instructor_participation.user)
 
 
 @pytest.mark.slow
@@ -338,8 +341,12 @@ class GradePermissionsTests(SingleCoursePageTestMixin, TestCase):
     @classmethod
     def setUpTestData(cls):  # noqa
         super().setUpTestData()
-        cls.start_flow(flow_id=cls.flow_id)
-        cls.end_flow()
+
+        client = Client()
+        client.force_login(cls.student_participation.user)
+
+        cls.start_flow(client, flow_id=cls.flow_id)
+        cls.end_flow(client)
 
     def view_grades_permission(self, user, status_codes):
         try:

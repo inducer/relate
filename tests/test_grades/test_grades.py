@@ -23,7 +23,7 @@ THE SOFTWARE.
 import pytest
 import io
 import datetime
-from django.test import TestCase
+from django.test import TestCase, Client
 from django.urls import reverse
 from django.utils.timezone import now, timedelta
 import unittest
@@ -1796,31 +1796,34 @@ class DownloadAllSubmissionsTest(SingleCourseQuizPageTestMixin,
         cls.course.active_git_commit_sha = (
             "my_fake_commit_sha_for_download_submissions")
         cls.course.save()
-        with cls.temporarily_switch_to_user(cls.student_participation.user):
-            cls.start_flow(cls.flow_id)
-            cls.submit_page_answer_by_page_id_and_test(
-                cls.page_id, answer_data={"answer": 0.25})
-            cls.end_flow()
 
-            fs = models.FlowSession.objects.first()
-            fs.access_rules_tag = cls.my_access_rule_tag
-            fs.save()
+        client = Client()
+        client.force_login(cls.student_participation.user)
 
-            cls.start_flow(cls.flow_id)
-            cls.submit_page_answer_by_page_id_and_test("proof")
-            cls.submit_page_answer_by_page_id_and_test(cls.page_id)
-            cls.end_flow()
+        cls.start_flow(client, cls.flow_id)
+        cls.submit_page_answer_by_page_id_and_test(
+            client, cls.page_id, answer_data={"answer": 0.25})
+        cls.end_flow(client)
+
+        fs = models.FlowSession.objects.first()
+        fs.access_rules_tag = cls.my_access_rule_tag
+        fs.save()
+
+        cls.start_flow(client, cls.flow_id)
+        cls.submit_page_answer_by_page_id_and_test(client, "proof")
+        cls.submit_page_answer_by_page_id_and_test(client, cls.page_id)
+        cls.end_flow(client)
 
         # create an in_progress flow, with the same page submitted
         another_particpation = factories.ParticipationFactory(
             course=cls.course)
-        with cls.temporarily_switch_to_user(another_particpation.user):
-            cls.start_flow(cls.flow_id)
-            cls.submit_page_answer_by_page_id_and_test(cls.page_id)
+        client.force_login(another_particpation.user)
+        cls.start_flow(client, cls.flow_id)
+        cls.submit_page_answer_by_page_id_and_test(client, cls.page_id)
 
-            # create a flow with no answers
-            cls.start_flow(cls.flow_id)
-            cls.end_flow()
+        # create a flow with no answers
+        cls.start_flow(client, cls.flow_id)
+        cls.end_flow(client)
 
     @property
     def group_page_id(self):

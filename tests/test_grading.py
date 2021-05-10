@@ -24,7 +24,7 @@ import pytest
 from random import shuffle
 from django.utils.timezone import now, timedelta
 from django.core import mail
-from django.test import TestCase, override_settings
+from django.test import TestCase, override_settings, Client
 
 from course.models import ParticipationPermission
 from course.constants import participation_permission as pperm
@@ -42,9 +42,12 @@ class SingleCourseQuizPageGradeInterfaceTestMixin(SingleCourseQuizPageTestMixin)
     @classmethod
     def setUpTestData(cls):  # noqa
         super().setUpTestData()
-        cls.start_flow(cls.flow_id)
+        client = Client()
+        client.force_login(cls.student_participation.user)
+
+        cls.start_flow(client, cls.flow_id)
         cls.this_flow_session_id = cls.default_flow_params["flow_session_id"]
-        cls.submit_page_answer_by_page_id_and_test(cls.page_id)
+        cls.submit_page_answer_by_page_id_and_test(client, cls.page_id)
 
 
 @pytest.mark.slow
@@ -55,16 +58,19 @@ class SingleCourseQuizPageGradeInterfaceTest(
     def setUpTestData(cls):  # noqa
         super().setUpTestData()
 
-        with cls.temporarily_switch_to_user(cls.student_participation.user):
-            # a failure submission
-            cls.submit_page_answer_by_page_id_and_test(
+        client = Client()
+        client.force_login(cls.student_participation.user)
+        # a failure submission
+        cls.submit_page_answer_by_page_id_and_test(
+                client,
                 cls.page_id, answer_data={"uploaded_file": []})
-            # a success full
-            cls.submit_page_answer_by_page_id_and_test(
+        # a success full
+        cls.submit_page_answer_by_page_id_and_test(
+                client,
                 cls.page_id,
                 do_grading=False)
 
-        cls.end_flow()
+        cls.end_flow(client)
 
     def test_post_grades(self):
         self.submit_page_human_grading_by_page_id_and_test(self.page_id)

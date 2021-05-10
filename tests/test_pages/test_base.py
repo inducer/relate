@@ -20,7 +20,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from django.test import TestCase
+from django.test import TestCase, Client
 import unittest
 
 from relate.utils import dict_to_struct
@@ -188,7 +188,9 @@ class PageBaseAPITest(SingleCourseQuizPageTestMixin, TestCase):
     @classmethod
     def setUpTestData(cls):  # noqa
         super().setUpTestData()
-        cls.start_flow(cls.flow_id)
+        client = Client()
+        client.force_login(cls.student_participation.user)
+        cls.start_flow(client, cls.flow_id)
 
     def test_correctness(self):
         self.submit_page_answer_by_page_id_and_test(self.page_id)
@@ -583,8 +585,10 @@ class PageBaseWithHumanTextFeedbackTest(SingleCourseQuizPageGradeInterfaceTestMi
     def setUpTestData(cls):  # noqa
         super().setUpTestData()
         cls.page_id = "anyup"
-        cls.submit_page_answer_by_page_id_and_test(page_id=cls.page_id)
-        cls.end_flow()
+        client = Client()
+        client.force_login(cls.student_participation.user)
+        cls.submit_page_answer_by_page_id_and_test(client, page_id=cls.page_id)
+        cls.end_flow(client)
 
     def test_base_class_grading_form_to_html(self):
         # make sure subclass grading_form_to_html method works

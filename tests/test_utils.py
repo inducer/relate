@@ -23,7 +23,7 @@ THE SOFTWARE.
 from copy import deepcopy
 
 import unittest
-from django.test import SimpleTestCase, TestCase, RequestFactory
+from django.test import SimpleTestCase, TestCase, RequestFactory, Client
 from django.utils.timezone import now, timedelta
 from django.test.utils import override_settings
 from django import VERSION as DJANGO_VERSION
@@ -190,8 +190,14 @@ class LanguageOverrideTest(SingleCoursePageTestMixin,
     @classmethod
     def setUpTestData(cls):  # noqa
         super().setUpTestData()
-        cls.c.force_login(cls.instructor_participation.user)
-        cls.start_flow(cls.flow_id)
+
+        client = Client()
+        client.force_login(cls.student_participation.user)
+        cls.start_flow(client, cls.flow_id)
+
+    def setUp(self):  # noqa
+        super().setUp()
+        self.client.force_login(self.instructor_participation.user)
 
     @override_settings(RELATE_ADMIN_EMAIL_LOCALE="de", LANGUAGE_CODE="ko")
     def test_language_override_no_course_force_lang(self):

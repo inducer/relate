@@ -30,7 +30,7 @@ import stat
 from copy import deepcopy
 from dulwich.repo import Tree
 
-from django.test import TestCase, RequestFactory, override_settings
+from django.test import TestCase, RequestFactory, override_settings, Client
 from django.core.exceptions import ObjectDoesNotExist
 from django.conf import settings
 
@@ -52,7 +52,9 @@ class SingleCoursePageCacheTest(SingleCoursePageTestMixin, TestCase):
     @classmethod
     def setUpTestData(cls):  # noqa
         super().setUpTestData()
-        cls.start_flow(cls.flow_id)
+        client = Client()
+        client.force_login(cls.student_participation.user)
+        cls.start_flow(client, cls.flow_id)
 
     @improperly_configured_cache_patch()
     def test_disable_cache(self, mock_cache):
@@ -292,10 +294,9 @@ class NbconvertRenderTestMixin(SingleCoursePageSandboxTestBaseMixin):
 class NbconvertRenderTest(NbconvertRenderTestMixin, TestCase):
     force_login_student_for_each_test = False
 
-    @classmethod
-    def setUpTestData(cls):  # noqa
-        super().setUpTestData()
-        cls.c.force_login(cls.instructor_participation.user)
+    def setUp(self):  # noqa
+        super().setUp()
+        self.client.force_login(self.instructor_participation.user)
 
     def test_notebook_page_view(self):
         self.start_flow(flow_id="001-linalg-recap",

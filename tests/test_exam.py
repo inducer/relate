@@ -24,7 +24,7 @@ import datetime
 import pytz
 
 import unittest
-from django.test import TestCase, override_settings
+from django.test import Client, TestCase, override_settings
 from django import http
 from django.urls import reverse
 from django.utils.timezone import now, timedelta
@@ -808,7 +808,9 @@ class ExamLockdownMiddlewareTest(SingleCoursePageTestMixin,
     @classmethod
     def setUpTestData(cls):  # noqa
         super(SingleCoursePageTestMixin, cls).setUpTestData()
-        cls.start_flow(cls.flow_id)
+        client = Client()
+        client.force_login(cls.student_participation.user)
+        cls.start_flow(client, cls.flow_id)
         cls.fs = FlowSession.objects.last()
 
     def setUp(self):

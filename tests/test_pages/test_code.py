@@ -22,7 +22,7 @@ THE SOFTWARE.
 
 import io
 import unittest
-from django.test import TestCase, override_settings, RequestFactory
+from django.test import TestCase, override_settings, RequestFactory, Client
 
 from docker.errors import APIError as DockerAPIError
 from socket import error as socket_error, timeout as sock_timeout
@@ -87,7 +87,11 @@ class SingleCourseQuizPageCodeQuestionTest(
     @classmethod
     def setUpTestData(cls):  # noqa
         super().setUpTestData()
-        cls.start_flow(cls.flow_id)
+
+        client = Client()
+        client.force_login(cls.student_participation.user)
+
+        cls.start_flow(client, cls.flow_id)
 
     def test_code_page_correct(self):
         page_id = "addition"
@@ -1331,7 +1335,11 @@ class CodeQuestionWithHumanTextFeedbackSpecialCase(
     @classmethod
     def setUpTestData(cls):  # noqa
         super().setUpTestData()
-        cls.start_flow(cls.flow_id)
+
+        client = Client()
+        client.force_login(cls.student_participation.user)
+
+        cls.start_flow(client, cls.flow_id)
 
     def setUp(self):  # noqa
         super().setUp()

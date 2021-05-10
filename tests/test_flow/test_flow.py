@@ -29,7 +29,7 @@ from django.urls import reverse
 from django.contrib.sessions.middleware import SessionMiddleware
 from django.contrib.auth.models import AnonymousUser
 from django.core.exceptions import PermissionDenied
-from django.test import TestCase, RequestFactory
+from django.test import Client, TestCase, RequestFactory
 from django.utils.timezone import now, timedelta
 from django.core import mail
 
@@ -72,7 +72,9 @@ class AdjustFlowSessionPageDataTest(
     @classmethod
     def setUpTestData(cls):  # noqa
         super().setUpTestData()
-        cls.start_flow(flow_id=cls.flow_id)
+        client = Client()
+        client.force_login(cls.student_participation.user)
+        cls.start_flow(client, flow_id=cls.flow_id)
 
     def test_remove_rename_and_revive(self):
         # {{{ 1st round: do a visit
@@ -4405,7 +4407,9 @@ class PostFlowPageTest(HackRepoMixin, SingleCourseQuizPageTestMixin, TestCase):
         super().setUpTestData()
 
         # We only concern one page, so it can be put here to speed up
-        cls.start_flow(cls.flow_id)
+        client = Client()
+        client.force_login(cls.student_participation.user)
+        cls.start_flow(client, cls.flow_id)
 
         # Because they change between test, we need to refer to them
         # to do refresh_from_db when setUp.
@@ -4560,7 +4564,9 @@ class SendEmailAboutFlowPageTest(HackRepoMixin,
         super().setUpTestData()
 
         # We only conern one page, so it can be put here to speed up
-        cls.start_flow(cls.flow_id)
+        client = Client()
+        client.force_login(cls.student_participation.user)
+        cls.start_flow(client, cls.flow_id)
 
         # Because they change between test, we need to refer to them
         # to do refresh_from_db when setUp.
@@ -5049,9 +5055,10 @@ class ViewUnsubmitFlowPageTest(SingleCourseQuizPageTestMixin, TestCase):
     @classmethod
     def setUpTestData(cls):  # noqa
         super().setUpTestData()
-        with cls.temporarily_switch_to_user(cls.student_participation.user):
-            cls.start_flow(cls.flow_id)
-            cls.submit_page_answer_by_page_id_and_test(page_id=cls.page_id)
+        client = Client()
+        client.force_login(cls.student_participation.user)
+        cls.start_flow(client, cls.flow_id)
+        cls.submit_page_answer_by_page_id_and_test(client, page_id=cls.page_id)
 
     def setUp(self):
         super().setUp()

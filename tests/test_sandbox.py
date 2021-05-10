@@ -28,7 +28,7 @@ from course.sandbox import (
     ANSWER_DATA_SESSION_KEY_PREFIX, make_sandbox_session_key)
 
 from tests.base_test_mixins import (
-    SingleCourseTestMixin, MockAddMessageMixing)
+    SingleCourseTestMixin, MockAddMessageMixing, classmethod_with_client)
 from tests.constants import PAGE_WARNINGS, HAVE_VALID_PAGE, PAGE_ERRORS
 from tests.utils import mock
 
@@ -88,25 +88,25 @@ class SingleCoursePageSandboxTestBaseMixin(SingleCourseTestMixin):
     def get_page_sandbox_url(cls):
         return reverse("relate-view_page_sandbox", args=[cls.course.identifier])
 
-    @classmethod
-    def get_page_sandbox_post_response(cls, data, action):
+    @classmethod_with_client
+    def get_page_sandbox_post_response(cls, client, data, action):  # noqa: N805
         post_data = {action: ""}
         post_data.update(data)
-        return cls.c.post(cls.get_page_sandbox_url(), post_data)
+        return client.post(cls.get_page_sandbox_url(), post_data)
 
-    @classmethod
-    def get_page_sandbox_preview_response(cls, markup_content):
+    @classmethod_with_client
+    def get_page_sandbox_preview_response(cls, client, markup_content):  # noqa: N805
         """
         Get the preview response of content in page sandbox
         :param markup_content: :class:`String`, RELATE flavored page markdown
         :return: :class: `http.HttpResponse`
         """
         data = {'content': [markup_content]}
-        return cls.get_page_sandbox_post_response(data, action='preview')
+        return cls.get_page_sandbox_post_response(client, data, action='preview')
 
-    @classmethod
-    def get_page_sandbox_submit_answer_response(cls, markup_content,
-                                                answer_data):
+    @classmethod_with_client
+    def get_page_sandbox_submit_answer_response(cls, client,  # noqa: N805
+            markup_content, answer_data):
         """
         Get the response of preview content and then post an answer, in page sandbox
         :param markup_content: :class:`String`, RELATE flavored page markdown
@@ -114,8 +114,8 @@ class SingleCoursePageSandboxTestBaseMixin(SingleCourseTestMixin):
         :return: :class: `http.HttpResponse`
         """
 
-        cls.get_page_sandbox_preview_response(markup_content)
-        return cls.get_page_sandbox_post_response(answer_data, action='submit')
+        cls.get_page_sandbox_preview_response(client, markup_content)
+        return cls.get_page_sandbox_post_response(client, answer_data, action='submit')
 
     def get_sandbox_data_by_key(self, key):
         return self.client.session.get(
@@ -152,16 +152,17 @@ class SingleCoursePageSandboxTestBaseMixin(SingleCourseTestMixin):
     def get_markup_sandbox_url(cls):
         return reverse("relate-view_markup_sandbox", args=[cls.course.identifier])
 
-    @classmethod
-    def get_markup_sandbox_view(cls):
-        return cls.c.get(cls.get_markup_sandbox_url())
+    @classmethod_with_client
+    def get_markup_sandbox_view(cls, client):  # noqa: N805
+        return client.get(cls.get_markup_sandbox_url())
 
-    @classmethod
-    def post_markup_sandbox_view(cls, markup_content, action="preview"):
+    @classmethod_with_client
+    def post_markup_sandbox_view(cls, client,  # noqa: N805
+            markup_content, *, action="preview"):
         post_data = {
             "content": markup_content,
             action: ""}
-        return cls.c.post(cls.get_markup_sandbox_url(), post_data)
+        return client.post(cls.get_markup_sandbox_url(), post_data)
 
 
 class SingleCoursePageSandboxTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
