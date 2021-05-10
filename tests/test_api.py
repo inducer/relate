@@ -33,13 +33,13 @@ class GetFlowSessionsTest(APITestMixin, TestCase):
 
     def setUp(self):
         super().setUp()
-        self.c.force_login(self.instructor_participation.user)
+        self.client.force_login(self.instructor_participation.user)
 
     def test_success(self):
         self.start_flow(self.flow_id)
         token = self.create_token()
 
-        resp = self.c.get(
+        resp = self.client.get(
             self.get_get_flow_session_api_url(),
             HTTP_AUTHORIZATION="Token %i_%s" % (
                 token.id, self.default_token_hash_str))
@@ -49,7 +49,7 @@ class GetFlowSessionsTest(APITestMixin, TestCase):
         self.start_flow(self.flow_id)
         token = self.create_token()
 
-        resp = self.c.get(
+        resp = self.client.get(
             self.get_get_flow_session_api_url(auto_add_default_flow_id=False),
             HTTP_AUTHORIZATION="Token %i_%s" % (
                 token.id, self.default_token_hash_str))
@@ -59,7 +59,7 @@ class GetFlowSessionsTest(APITestMixin, TestCase):
         self.start_flow(self.flow_id)
         token = self.create_token(participation=self.student_participation)
 
-        resp = self.c.get(
+        resp = self.client.get(
             self.get_get_flow_session_api_url(auto_add_default_flow_id=False),
             HTTP_AUTHORIZATION="Token %i_%s" % (
                 token.id, self.default_token_hash_str))
@@ -74,13 +74,13 @@ class GetFlowSessionContentTest(
 
     def setUp(self):
         super().setUp()
-        self.c.force_login(self.instructor_participation.user)
+        self.client.force_login(self.instructor_participation.user)
 
     def test_success(self):
         self.start_flow(self.flow_id)
         token = self.create_token()
 
-        resp = self.c.get(
+        resp = self.client.get(
             self.get_get_flow_session_content_url(),
             HTTP_AUTHORIZATION="Token %i_%s" % (
                 token.id, self.default_token_hash_str))
@@ -95,7 +95,7 @@ class GetFlowSessionContentTest(
         self.end_flow()
         token = self.create_token()
 
-        resp = self.c.get(
+        resp = self.client.get(
             self.get_get_flow_session_content_url(),
             HTTP_AUTHORIZATION="Token %i_%s" % (
                 token.id, self.default_token_hash_str))
@@ -105,7 +105,7 @@ class GetFlowSessionContentTest(
         self.start_flow(self.flow_id)
         token = self.create_token()
 
-        resp = self.c.get(
+        resp = self.client.get(
             self.get_get_flow_session_content_url(
                 auto_add_default_flow_session_id=False),
             HTTP_AUTHORIZATION="Token %i_%s" % (
@@ -116,7 +116,7 @@ class GetFlowSessionContentTest(
         self.start_flow(self.flow_id)
         token = self.create_token(participation=self.student_participation)
 
-        resp = self.c.get(
+        resp = self.client.get(
             self.get_get_flow_session_content_url(
                 auto_add_default_flow_session_id=False),
             HTTP_AUTHORIZATION="Token %i_%s" % (
@@ -131,7 +131,7 @@ class GetFlowSessionContentTest(
 
         token = self.create_token()
 
-        resp = self.c.get(
+        resp = self.client.get(
             self.get_get_flow_session_content_url(
                 flow_session_id=another_course_fs.id),
             HTTP_AUTHORIZATION="Token %i_%s" % (

@@ -82,30 +82,27 @@ content: |
 class SingleCoursePageSandboxTestBaseMixin(SingleCourseTestMixin):
     def setUp(self):  # noqa
         super().setUp()
-        self.c.force_login(self.instructor_participation.user)
+        self.client.force_login(self.instructor_participation.user)
 
     @classmethod
     def get_page_sandbox_url(cls):
         return reverse("relate-view_page_sandbox", args=[cls.course.identifier])
 
-    @classmethod
-    def get_page_sandbox_post_response(cls, data, action):
+    def get_page_sandbox_post_response(self, data, action):
         post_data = {action: ""}
         post_data.update(data)
-        return cls.c.post(cls.get_page_sandbox_url(), post_data)
+        return self.client.post(self.get_page_sandbox_url(), post_data)
 
-    @classmethod
-    def get_page_sandbox_preview_response(cls, markup_content):
+    def get_page_sandbox_preview_response(self, markup_content):
         """
         Get the preview response of content in page sandbox
         :param markup_content: :class:`String`, RELATE flavored page markdown
         :return: :class: `http.HttpResponse`
         """
         data = {'content': [markup_content]}
-        return cls.get_page_sandbox_post_response(data, action='preview')
+        return self.get_page_sandbox_post_response(data, action='preview')
 
-    @classmethod
-    def get_page_sandbox_submit_answer_response(cls, markup_content,
+    def get_page_sandbox_submit_answer_response(self, markup_content,
                                                 answer_data):
         """
         Get the response of preview content and then post an answer, in page sandbox
@@ -114,8 +111,8 @@ class SingleCoursePageSandboxTestBaseMixin(SingleCourseTestMixin):
         :return: :class: `http.HttpResponse`
         """
 
-        cls.get_page_sandbox_preview_response(markup_content)
-        return cls.get_page_sandbox_post_response(answer_data, action='submit')
+        self.get_page_sandbox_preview_response(markup_content)
+        return self.get_page_sandbox_post_response(answer_data, action='submit')
 
     def get_sandbox_data_by_key(self, key):
         return self.c.session.get(

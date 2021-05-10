@@ -381,7 +381,6 @@ class SuperuserCreateMixin(ResponseContextMixin):
         # Create superuser, without this, we cannot
         # create user, course and participation.
         cls.superuser = cls.create_superuser()
-        cls.c = Client()
         cls.settings_git_root_override = (
             override_settings(GIT_ROOT=tempfile.mkdtemp()))
         cls.settings_git_root_override.enable()
@@ -405,13 +404,11 @@ class SuperuserCreateMixin(ResponseContextMixin):
     def get_sign_up_view_url(cls):
         return reverse("relate-sign_up")
 
-    @classmethod
-    def get_sign_up(cls, follow=True):
-        return cls.c.get(cls.get_sign_up_view_url(), follow=follow)
+    def get_sign_up(self, follow=True):
+        return self.client.get(self.get_sign_up_view_url(), follow=follow)
 
-    @classmethod
-    def post_sign_up(cls, data, follow=True):
-        return cls.c.post(cls.get_sign_up_view_url(), data, follow=follow)
+    def post_sign_up(self, data, follow=True):
+        return self.client.post(self.get_sign_up_view_url(), data, follow=follow)
 
     @classmethod
     def get_profile_view_url(cls):
@@ -514,17 +511,15 @@ class SuperuserCreateMixin(ResponseContextMixin):
         return self.c.post(self.get_reset_password_stage2_url(
             user_id=user_id, sign_in_key=sign_in_key, **kwargs), data=data)
 
-    @classmethod
-    def get_fake_time_url(cls):
+    @staticmethod
+    def get_fake_time_url():
         return reverse("relate-set_fake_time")
 
-    @classmethod
-    def get_set_fake_time(cls):
-        return cls.c.get(cls.get_fake_time_url())
+    def get_set_fake_time(self):
+        return self.client.get(self.get_fake_time_url())
 
-    @classmethod
-    def post_set_fake_time(cls, data, follow=True):
-        return cls.c.post(cls.get_fake_time_url(), data, follow=follow)
+    def post_set_fake_time(self, data, follow=True):
+        return self.client.post(self.get_fake_time_url(), data, follow=follow)
 
     def assertSessionFakeTimeEqual(self, session, expected_date_time):  # noqa
         fake_time_timestamp = session.get("relate_fake_time", None)
@@ -540,17 +535,15 @@ class SuperuserCreateMixin(ResponseContextMixin):
     def assertSessionFakeTimeIsNone(self, session):  # noqa
         self.assertSessionFakeTimeEqual(session, None)
 
-    @classmethod
-    def get_set_pretend_facilities_url(cls):
+    @staticmethod
+    def get_set_pretend_facilities_url():
         return reverse("relate-set_pretend_facilities")
 
-    @classmethod
-    def get_set_pretend_facilities(cls):
-        return cls.c.get(cls.get_set_pretend_facilities_url())
+    def get_set_pretend_facilities(self):
+        return self.client.get(self.get_set_pretend_facilities_url())
 
-    @classmethod
-    def post_set_pretend_facilities(cls, data, follow=True):
-        return cls.c.post(cls.get_set_pretend_facilities_url(), data,
+    def post_set_pretend_facilities(self, data, follow=True):
+        return self.client.post(self.get_set_pretend_facilities_url(), data,
                           follow=follow)
 
     @classmethod
@@ -637,6 +630,38 @@ def get_flow_page_id_from_page_ordinal(flow_session_id, page_ordinal,
 
 
 # {{{ CoursesTestMixinBase
+
+class _ClientUserSwitcher:
+    def __init__(self, client, logged_in_user, switch_to):
+        self.client = client
+        self.switch_to = switch_to
+        self.logged_in_user = logged_in_user
+
+    def __enter__(self):
+        if self.logged_in_user == self.switch_to:
+            return
+        if self.switch_to is None:
+            self.client.logout()
+            return
+        self.client.force_login(self.switch_to)
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if self.logged_in_user == self.switch_to:
+            return
+        if self.logged_in_user is None:
+            self.client.logout()
+            return
+        self.client.force_login(self.logged_in_user)
+
+    def __call__(self, func):
+        from functools import wraps
+
+        @wraps(func)
+        def wrapper(*args, **kw):
+            with self:
+                return func(*args, **kw)
+        return wrapper
+
 
 class CoursesTestMixinBase(SuperuserCreateMixin):
 
@@ -751,14 +776,13 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
         return participation
 
     @classmethod
-    def post_create_course(cls, create_course_kwargs, raise_error=True,
-                           login_superuser=True):
+    def post_create_course(cls, create_course_kwargs, raise_error=True):
         # To speed up, use create_course instead, this is better used for tests
-        if login_superuser:
-            cls.c.force_login(cls.superuser)
+        client = Client()
+        client.force_login(cls.superuser)
         existing_course_count = Course.objects.count()
         with override_settings(**cls.override_settings_at_post_create_course):
-            resp = cls.c.post(cls.get_set_up_new_course_url(),
+            resp = client.post(cls.get_set_up_new_course_url(),
                               data=create_course_kwargs)
         if raise_error:
             all_courses = Course.objects.all()
@@ -845,26 +869,22 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
     def get_set_up_new_course_url(cls):
         return reverse("relate-set_up_new_course")
 
-    @classmethod
-    def get_set_up_new_course(cls):
-        return cls.c.get(cls.get_update_course_url)
+    def get_set_up_new_course(self):
+        return self.client.get(self.get_update_course_url)
 
-    @classmethod
-    def get_edit_course_url(cls, course_identifier=None):
+    def get_edit_course_url(self, course_identifier=None):
         course_identifier = (
-            course_identifier or cls.get_default_course_identifier())
-        return cls.get_course_view_url("relate-edit_course", course_identifier)
+            course_identifier or self.get_default_course_identifier())
+        return self.get_course_view_url("relate-edit_course", course_identifier)
 
-    @classmethod
-    def post_edit_course(cls, data, course=None):
-        course = course or cls.get_default_course()
-        edit_course_url = cls.get_edit_course_url(course.identifier)
-        return cls.c.post(edit_course_url, data)
+    def post_edit_course(self, data, course=None):
+        course = course or self.get_default_course()
+        edit_course_url = self.get_edit_course_url(course.identifier)
+        return self.client.post(edit_course_url, data)
 
-    @classmethod
-    def get_edit_course(cls, course=None):
-        course = course or cls.get_default_course()
-        return cls.c.get(cls.get_edit_course_url(course.identifier))
+    def get_edit_course(self, course=None):
+        course = course or self.get_default_course()
+        return self.client.get(self.get_edit_course_url(course.identifier))
 
     @classmethod
     def get_course_page_url(cls, course_identifier=None):
@@ -1101,10 +1121,9 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
                 participation.pk, opp_id, course_identifier),
                 data=data)
 
-    @classmethod
-    def get_logged_in_user(cls):
+    def get_logged_in_user(self):
         try:
-            logged_in_user_id = cls.c.session['_auth_user_id']
+            logged_in_user_id = self.client.session['_auth_user_id']
             from django.contrib.auth import get_user_model
             logged_in_user = get_user_model().objects.get(
                 pk=int(logged_in_user_id))
@@ -1112,41 +1131,8 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
             logged_in_user = None
         return logged_in_user
 
-    @classmethod
-    def temporarily_switch_to_user(cls, switch_to):
-
-        from functools import wraps
-
-        class ClientUserSwitcher:
-            def __init__(self, switch_to):
-                self.client = cls.c
-                self.switch_to = switch_to
-                self.logged_in_user = cls.get_logged_in_user()
-
-            def __enter__(self):
-                if self.logged_in_user == self.switch_to:
-                    return
-                if self.switch_to is None:
-                    self.client.logout()
-                    return
-                self.client.force_login(self.switch_to)
-
-            def __exit__(self, exc_type, exc_val, exc_tb):
-                if self.logged_in_user == self.switch_to:
-                    return
-                if self.logged_in_user is None:
-                    self.client.logout()
-                    return
-                self.client.force_login(self.logged_in_user)
-
-            def __call__(self, func):
-                @wraps(func)
-                def wrapper(*args, **kw):
-                    with self:
-                        return func(*args, **kw)
-                return wrapper
-
-        return ClientUserSwitcher(switch_to)
+    def temporarily_switch_to_user(self, switch_to):
+        return _ClientUserSwitcher(self.client, self.get_logged_in_user(), switch_to)
 
     @classmethod
     def get_default_course(cls):
@@ -1220,9 +1206,12 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
             cool_down_seconds = 0
         else:
             cool_down_seconds = settings.RELATE_SESSION_RESTART_COOLDOWN_SECONDS
+
+        client = Client()
+        client.force_login(cls.student_participation.user)
         with override_settings(
                 RELATE_SESSION_RESTART_COOLDOWN_SECONDS=cool_down_seconds):
-            resp = cls.c.post(
+            resp = client.post(
                 cls.get_view_start_flow_url(flow_id, course_identifier))
 
         if assume_success:
@@ -1236,16 +1225,15 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
 
         return resp
 
-    @classmethod
-    def end_flow(cls, course_identifier=None, flow_session_id=None,
+    def end_flow(self, course_identifier=None, flow_session_id=None,
                  post_parameter="submit"):
         if not course_identifier or not flow_session_id:
-            if cls.default_flow_params is None:
+            if self.default_flow_params is None:
                 raise RuntimeError(
                     "There's no started flow_sessions, or "
                     "the session is not started by start_flow")
-        resp = cls.c.post(
-            cls.get_finish_flow_session_view_url(
+        resp = self.client.post(
+            self.get_finish_flow_session_view_url(
                 course_identifier, flow_session_id),
             data={post_parameter: ['']})
         return resp
@@ -1347,29 +1335,26 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
         return cls.get_page_grading_url_by_ordinal(
             page_ordinal, course_identifier, flow_session_id)
 
-    @classmethod
     def post_answer_by_ordinal(
-            cls, page_ordinal, answer_data,
+            self, page_ordinal, answer_data,
             course_identifier=None, flow_session_id=None, visit_id=None):
         submit_data = answer_data
         submit_data.update({"submit": ["Submit final answer"]})
-        resp = cls.c.post(
-            cls.get_page_url_by_ordinal(
+        resp = self.client.post(
+            self.get_page_url_by_ordinal(
                 page_ordinal, course_identifier, flow_session_id, visit_id),
             submit_data)
         return resp
 
-    @classmethod
     def post_answer_by_page_id(
-            cls, page_id, answer_data,
+            self, page_id, answer_data,
             course_identifier=None, flow_session_id=None, visit_id=None):
-        page_ordinal = cls.get_page_ordinal_via_page_id(
+        page_ordinal = self.get_page_ordinal_via_page_id(
             page_id, course_identifier, flow_session_id)
-        return cls.post_answer_by_ordinal(
+        return self.post_answer_by_ordinal(
             page_ordinal, answer_data, course_identifier, flow_session_id, visit_id)
 
-    @classmethod
-    def post_answer_by_ordinal_class(cls, page_ordinal, answer_data,
+    def post_answer_by_ordinal_class(self, page_ordinal, answer_data,
                                      course_identifier, flow_session_id):
         submit_data = answer_data
         submit_data.update({"submit": ["Submit final answer"]})
@@ -1379,34 +1364,32 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
             "page_ordinal": page_ordinal
         }
         page_url = reverse("relate-view_flow_page", kwargs=page_params)
-        resp = cls.c.post(page_url, submit_data)
+        resp = self.client.post(page_url, submit_data)
         return resp
 
-    @classmethod
-    def post_answer_by_page_id_class(cls, page_id, answer_data,
+    def post_answer_by_page_id_class(self, page_id, answer_data,
                                      course_identifier, flow_session_id):
         page_ordinal = get_flow_page_ordinal_from_page_id(flow_session_id, page_id)
-        return cls.post_answer_by_ordinal_class(page_ordinal, answer_data,
+        return self.post_answer_by_ordinal_class(page_ordinal, answer_data,
                                                 course_identifier, flow_session_id)
 
-    @classmethod
-    def post_grade_by_ordinal(cls, page_ordinal, grade_data,
+    def post_grade_by_ordinal(self, page_ordinal, grade_data,
                               course_identifier=None, flow_session_id=None,
                               force_login_instructor=True):
         post_data = {"submit": [""]}
         post_data.update(grade_data)
 
-        page_params = cls.get_page_params(
+        page_params = self.get_page_params(
             course_identifier, flow_session_id, page_ordinal)
 
-        force_login_user = cls.get_logged_in_user()
+        force_login_user = self.get_logged_in_user()
         if force_login_instructor:
-            force_login_user = cls.get_default_instructor_user(
+            force_login_user = self.get_default_instructor_user(
                 page_params["course_identifier"])
 
-        with cls.temporarily_switch_to_user(force_login_user):
-            response = cls.c.post(
-                cls.get_page_grading_url_by_ordinal(**page_params),
+        with self.temporarily_switch_to_user(force_login_user):
+            response = self.c.post(
+                self.get_page_grading_url_by_ordinal(**page_params),
                 data=post_data,
                 follow=True)
         return response
@@ -1831,10 +1814,6 @@ class SingleCourseTestMixin(CoursesTestMixinBase):
         ).first()
         assert cls.ta_participation
 
-        if cls.force_login_student_for_each_test:
-            cls.c.force_login(cls.student_participation.user)
-        else:
-            cls.c.logout()
         cls.course_page_url = cls.get_course_page_url()
 
     def setUp(self):  # noqa
@@ -1847,7 +1826,7 @@ class SingleCourseTestMixin(CoursesTestMixinBase):
         self.student_participation.refresh_from_db()
         self.ta_participation.refresh_from_db()
         if self.force_login_student_for_each_test:
-            self.c.force_login(self.student_participation.user)
+            self.client.force_login(self.student_participation.user)
 
     @classmethod
     def get_default_course(cls):
@@ -2140,9 +2119,8 @@ class SingleCourseQuizPageTestMixin(SingleCoursePageTestMixin):
                                  dl_file_extension,
                                  repr([f.filename for f in zf.filelist])))
 
-    @classmethod
     def submit_page_answer_by_ordinal_and_test(
-            cls, page_ordinal, use_correct_answer=True, answer_data=None,
+            self, page_ordinal, use_correct_answer=True, answer_data=None,
             skip_code_question=True,
             expected_grades=None, expected_post_answer_status_code=200,
             do_grading=False, do_human_grade=False, grade_data=None,
@@ -2159,9 +2137,9 @@ class SingleCourseQuizPageTestMixin(SingleCoursePageTestMixin):
             ensure_download_before_grading=False,
             ensure_download_after_grading=False,
             dl_file_with_ext_count=None):
-        page_id = cls.get_page_id_via_page_oridnal(page_ordinal)
+        page_id = self.get_page_id_via_page_oridnal(page_ordinal)
 
-        return cls.submit_page_answer_by_page_id_and_test(
+        return self.submit_page_answer_by_page_id_and_test(
             page_id, use_correct_answer,
             answer_data, skip_code_question, expected_grades,
             expected_post_answer_status_code,
@@ -2179,9 +2157,8 @@ class SingleCourseQuizPageTestMixin(SingleCoursePageTestMixin):
             ensure_download_after_grading,
             dl_file_with_ext_count)
 
-    @classmethod
     def submit_page_answer_by_page_id_and_test(
-            cls, page_id, use_correct_answer=True, answer_data=None,
+            self, page_id, use_correct_answer=True, answer_data=None,
             skip_code_question=True,
             expected_grades=None, expected_post_answer_status_code=200,
             do_grading=False, do_human_grade=False, grade_data=None,
@@ -2212,13 +2189,13 @@ class SingleCourseQuizPageTestMixin(SingleCoursePageTestMixin):
             if page_id == page_tuple.page_id:
                 group_id = page_tuple.group_id
                 if ensure_grading_ui_get_before_grading:
-                    cls.ensure_grading_ui_get(page_id)
+                    self.ensure_grading_ui_get(page_id)
 
                 if ensure_analytic_page_get_before_submission:
-                    cls.ensure_analytic_page_get(group_id, page_id)
+                    self.ensure_analytic_page_get(group_id, page_id)
 
                 if ensure_download_before_submission:
-                    cls.ensure_download_submission(group_id, page_id)
+                    self.ensure_download_submission(group_id, page_id)
 
                 if page_tuple.correct_answer is not None:
 
@@ -2230,7 +2207,7 @@ class SingleCourseQuizPageTestMixin(SingleCoursePageTestMixin):
                         if not file_path:
                             # submitting an empty answer
                             submit_answer_response = (
-                                cls.post_answer_by_page_id(page_id, answer_data))
+                                self.post_answer_by_page_id(page_id, answer_data))
                         else:
                             if isinstance(file_path, list):
                                 file_path, = file_path
@@ -2239,11 +2216,11 @@ class SingleCourseQuizPageTestMixin(SingleCoursePageTestMixin):
                             with open(file_path, 'rb') as fp:
                                 answer_data = {"uploaded_file": fp}
                                 submit_answer_response = (
-                                    cls.post_answer_by_page_id(
+                                    self.post_answer_by_page_id(
                                         page_id, answer_data))
                     else:
                         submit_answer_response = (
-                            cls.post_answer_by_page_id(page_id, answer_data))
+                            self.post_answer_by_page_id(page_id, answer_data))
 
                     # Fixed #514
                     # https://github.com/inducer/relate/issues/514
@@ -2255,21 +2232,21 @@ class SingleCourseQuizPageTestMixin(SingleCoursePageTestMixin):
                                           expected_post_answer_status_code))
 
                     if ensure_analytic_page_get_after_submission:
-                        cls.ensure_analytic_page_get(group_id, page_id)
+                        self.ensure_analytic_page_get(group_id, page_id)
 
                     if ensure_download_after_submission:
-                        cls.ensure_download_submission(group_id, page_id)
+                        self.ensure_download_submission(group_id, page_id)
 
                 if not do_grading:
                     break
 
-                assert cls.end_flow().status_code == 200
+                assert self.end_flow().status_code == 200
 
                 if ensure_analytic_page_get_before_grading:
-                    cls.ensure_analytic_page_get(group_id, page_id)
+                    self.ensure_analytic_page_get(group_id, page_id)
 
                 if ensure_download_before_grading:
-                    cls.ensure_download_submission(group_id, page_id)
+                    self.ensure_download_submission(group_id, page_id)
 
                 if page_tuple.correct_answer is not None:
                     if use_correct_answer:
@@ -2277,7 +2254,7 @@ class SingleCourseQuizPageTestMixin(SingleCoursePageTestMixin):
 
                     if page_tuple.need_human_grade:
                         if not do_human_grade:
-                            cls.assertSessionScoreEqual(None)
+                            self.assertSessionScoreEqual(None)
                             break
                         if grade_data is not None:
                             assert isinstance(grade_data, dict)
@@ -2288,24 +2265,24 @@ class SingleCourseQuizPageTestMixin(SingleCoursePageTestMixin):
                             assert isinstance(grade_data_extra_kwargs, dict)
                             grade_data.update(grade_data_extra_kwargs)
 
-                        post_grade_response = cls.post_grade_by_page_id(
+                        post_grade_response = self.post_grade_by_page_id(
                             page_id, grade_data)
-                    cls.assertSessionScoreEqual(expected_grades)
+                    self.assertSessionScoreEqual(expected_grades)
 
                     if not dl_file_extension:
                         dl_file_extension = page_tuple.dl_file_extension
 
                     if ensure_download_after_grading:
-                        cls.ensure_download_submission(
+                        self.ensure_download_submission(
                             group_id, page_id,
                             dl_file_extension=dl_file_extension,
                             file_with_ext_count=dl_file_with_ext_count)
 
                 if ensure_analytic_page_get_after_grading:
-                    cls.ensure_analytic_page_get(group_id, page_id)
+                    self.ensure_analytic_page_get(group_id, page_id)
 
                 if ensure_grading_ui_get_after_grading:
-                    cls.ensure_grading_ui_get(page_id)
+                    self.ensure_grading_ui_get(page_id)
 
         return submit_answer_response, post_grade_response
 
