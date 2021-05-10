@@ -2169,7 +2169,7 @@ class GrantExceptionStage3Test(GrantExceptionTestMixin, TestCase):
                     kind=constants.flow_rule_kind.grading).count(), 1)
 
             self.assertAddMessageCallCount(1)
-            self.assertAddMessageCalledWith('"Grading" exception granted to ')
+            self.assertAddMessageCalledWith("'Grading' exception granted to ")
             another_fs.refresh_from_db()
             self.assertEqual(another_fs.access_rules_tag, another_fs_tag)
 
