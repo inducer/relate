@@ -61,22 +61,22 @@ class SingleCoursePageCacheTest(SingleCoursePageTestMixin, TestCase):
             from django.core.cache import cache  # noqa
 
     def test_view_flow_with_cache(self):
-        resp = self.c.get(self.get_page_url_by_ordinal(0))
+        resp = self.client.get(self.get_page_url_by_ordinal(0))
         self.assertEqual(resp.status_code, 200)
-        self.c.get(self.get_page_url_by_ordinal(1))
+        self.client.get(self.get_page_url_by_ordinal(1))
 
         with mock.patch("course.content.get_repo_blob") as mock_get_repo_blob:
-            resp = self.c.get(self.get_page_url_by_ordinal(0))
+            resp = self.client.get(self.get_page_url_by_ordinal(0))
             self.assertEqual(resp.status_code, 200)
             self.assertEqual(mock_get_repo_blob.call_count, 0)
 
     def test_view_flow_with_cache_improperly_configured(self):
-        resp = self.c.get(self.get_page_url_by_ordinal(0))
+        resp = self.client.get(self.get_page_url_by_ordinal(0))
         self.assertEqual(resp.status_code, 200)
-        self.c.get(self.get_page_url_by_ordinal(1))
+        self.client.get(self.get_page_url_by_ordinal(1))
 
         with improperly_configured_cache_patch():
-            resp = self.c.get(self.get_page_url_by_ordinal(0))
+            resp = self.client.get(self.get_page_url_by_ordinal(0))
             self.assertEqual(resp.status_code, 200)
 
 
@@ -302,7 +302,7 @@ class NbconvertRenderTest(NbconvertRenderTestMixin, TestCase):
                         course_identifier=self.course.identifier,
                         assume_success=False)
         fs = FlowSession.objects.last()
-        resp = self.c.get(
+        resp = self.client.get(
             self.get_page_url_by_page_id(
                 "ipynb", course_identifier=self.course.identifier,
                 flow_session_id=fs.id))
@@ -320,7 +320,7 @@ class NbconvertRenderTest(NbconvertRenderTestMixin, TestCase):
 
             fs = FlowSession.objects.last()
             with self.assertRaises(ObjectDoesNotExist):
-                self.c.get(
+                self.client.get(
                     self.get_page_url_by_page_id(
                         "ipynb", course_identifier=self.course.identifier,
                         flow_session_id=fs.id))
@@ -1094,7 +1094,7 @@ class GetCourseDescTest(SingleCourseTestMixin, HackRepoMixin, TestCase):
     fake_commit_sha = "my_fake_commit_sha_for_course_desc"
 
     def test_shown(self):
-        resp = self.c.get(self.course_page_url)
+        resp = self.client.get(self.course_page_url)
         self.assertEqual(resp.status_code, 200)
         self.assertContains(resp, "Welcome to the sample course")
 
@@ -1102,7 +1102,7 @@ class GetCourseDescTest(SingleCourseTestMixin, HackRepoMixin, TestCase):
         self.assertContains(resp, "course/test-course/flow/quiz-test/start/")
 
     def test_not_shown(self):
-        resp = self.c.get(self.course_page_url)
+        resp = self.client.get(self.course_page_url)
         self.assertNotContains(
             resp, "Welcome to the computer-based testing facility")
 
@@ -1121,7 +1121,7 @@ class GetCourseDescTest(SingleCourseTestMixin, HackRepoMixin, TestCase):
             # pretend facility
             self.post_set_pretend_facilities(data=data)
 
-            resp = self.c.get(self.course_page_url)
+            resp = self.client.get(self.course_page_url)
             self.assertEqual(resp.status_code, 200)
             self.assertContains(resp, "Welcome to the sample course")
             self.assertContains(
@@ -1131,18 +1131,18 @@ class GetCourseDescTest(SingleCourseTestMixin, HackRepoMixin, TestCase):
         self.course.active_git_commit_sha = self.fake_commit_sha
         self.course.save()
 
-        resp = self.c.get(self.course_page_url)
+        resp = self.client.get(self.course_page_url)
         self.assertContains(resp, "empty rules")
 
     def test_visible_for_role(self):
         self.course.active_git_commit_sha = self.fake_commit_sha
         self.course.save()
 
-        resp = self.c.get(self.course_page_url)
+        resp = self.client.get(self.course_page_url)
         self.assertNotContains(resp, "Shown to instructor")
 
         with self.temporarily_switch_to_user(self.instructor_participation.user):
-            resp = self.c.get(self.course_page_url)
+            resp = self.client.get(self.course_page_url)
             self.assertContains(resp, "Shown to instructor")
 
     def test_weight_higher_shown_first(self):
@@ -1150,7 +1150,7 @@ class GetCourseDescTest(SingleCourseTestMixin, HackRepoMixin, TestCase):
         self.course.save()
 
         with self.temporarily_switch_to_user(self.instructor_participation.user):
-            resp = self.c.get(self.course_page_url)
+            resp = self.client.get(self.course_page_url)
 
             shown_to_instructor = "Shown to instructor"  # weight 100
 
@@ -1173,7 +1173,7 @@ class GetCourseDescTest(SingleCourseTestMixin, HackRepoMixin, TestCase):
             self.post_set_fake_time(data=set_fake_time_data)
 
             # second visit
-            resp = self.c.get(self.course_page_url)
+            resp = self.client.get(self.course_page_url)
             response_text = resp.content.decode()
 
             shown_to_instructor_idx = response_text.index(shown_to_instructor)

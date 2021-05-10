@@ -59,7 +59,7 @@ class CreateRecurringEventsTest(SingleCourseTestMixin,
             user = self.instructor_participation.user
 
         with self.temporarily_switch_to_user(user):
-            return self.c.get(
+            return self.client.get(
                 self.get_create_recurring_events_url(course_identifier))
 
     def post_create_recurring_events_view(self, data, course_identifier=None,
@@ -71,7 +71,7 @@ class CreateRecurringEventsTest(SingleCourseTestMixin,
             user = self.instructor_participation.user
 
         with self.temporarily_switch_to_user(self.client, user):
-            return self.c.post(
+            return self.client.post(
                 self.get_create_recurring_events_url(course_identifier), data)
 
     def get_post_create_recur_evt_data(
@@ -366,7 +366,7 @@ class RenumberEventsTest(SingleCourseTestMixin,
             user = self.instructor_participation.user
 
         with self.temporarily_switch_to_user(user):
-            return self.c.get(
+            return self.client.get(
                 self.get_renumber_events_events_url(course_identifier))
 
     def post_renumber_events_view(self, data, course_identifier=None,
@@ -378,7 +378,7 @@ class RenumberEventsTest(SingleCourseTestMixin,
             user = self.instructor_participation.user
 
         with self.temporarily_switch_to_user(user):
-            return self.c.post(
+            return self.client.post(
                 self.get_renumber_events_events_url(course_identifier), data)
 
     def get_post_renumber_evt_data(
@@ -602,7 +602,7 @@ class ViewCalendarTest(SingleCourseTestMixin, HackRepoMixin, TestCase):
 
     def get_course_calendar_view(self, course_identifier=None):
         course_identifier = course_identifier or self.get_default_course_identifier()
-        return self.c.get(self.get_course_calender_url(course_identifier))
+        return self.client.get(self.get_course_calender_url(course_identifier))
 
     def switch_to_fake_commit_sha(self):
         self.course.active_git_commit_sha = "my_fake_commit_sha_for_events"

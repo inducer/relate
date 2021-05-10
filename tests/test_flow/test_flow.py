@@ -76,7 +76,7 @@ class AdjustFlowSessionPageDataTest(
 
     def test_remove_rename_and_revive(self):
         # {{{ 1st round: do a visit
-        resp = self.c.get(self.get_page_url_by_ordinal(0))
+        resp = self.client.get(self.get_page_url_by_ordinal(0))
         self.assertEqual(resp.status_code, 200)
 
         fpds_1st = models.FlowPageData.objects.all()
@@ -88,7 +88,7 @@ class AdjustFlowSessionPageDataTest(
         self.course.active_git_commit_sha = "my_fake_commit_sha_2"
         self.course.save()
 
-        resp = self.c.get(self.get_page_url_by_ordinal(0))
+        resp = self.client.get(self.get_page_url_by_ordinal(0))
         self.assertEqual(resp.status_code, 200)
 
         fpds_2nd = models.FlowPageData.objects.all()
@@ -119,7 +119,7 @@ class AdjustFlowSessionPageDataTest(
         self.course.active_git_commit_sha = "my_fake_commit_sha_1"
         self.course.save()
 
-        resp = self.c.get(self.get_page_url_by_ordinal(0))
+        resp = self.client.get(self.get_page_url_by_ordinal(0))
         self.assertEqual(resp.status_code, 200)
 
         fpds_3rd = models.FlowPageData.objects.all()
@@ -142,7 +142,7 @@ class AdjustFlowSessionPageDataTest(
     # disabled by AK 2020-05-03: why is it valid to set a flow page's ordinal
     # to None while it is in use?
     def no_test_remove_page_with_non_ordinal(self):
-        resp = self.c.get(self.get_page_url_by_ordinal(0))
+        resp = self.client.get(self.get_page_url_by_ordinal(0))
         self.assertEqual(resp.status_code, 200)
 
         # change this page's ordinal to None before change the commit_sha,
@@ -159,7 +159,7 @@ class AdjustFlowSessionPageDataTest(
             self.course.active_git_commit_sha = "my_fake_commit_sha_2"
             self.course.save()
 
-            resp = self.c.get(self.get_page_url_by_ordinal(0))
+            resp = self.client.get(self.get_page_url_by_ordinal(0))
             self.assertEqual(resp.status_code, 200)
 
 # }}}
@@ -545,7 +545,7 @@ class AssemblePageGradesTest(HackRepoMixin,
         self.start_flow(self.flow_id)
 
         # This will adjust the flow_page_data of the first session
-        self.c.get(self.get_page_url_by_ordinal(0, flow_session_id=1))
+        self.client.get(self.get_page_url_by_ordinal(0, flow_session_id=1))
 
         page_ids = self.get_current_page_ids()
         for page_id in page_ids:
@@ -583,7 +583,7 @@ class AssemblePageGradesTest(HackRepoMixin,
         self.start_flow(self.flow_id)
 
         # This will adjust the flow_page_data of the first session
-        self.c.get(self.get_page_url_by_ordinal(0, flow_session_id=1))
+        self.client.get(self.get_page_url_by_ordinal(0, flow_session_id=1))
 
         page_ids = self.get_current_page_ids()
         for page_id in page_ids:
@@ -977,7 +977,7 @@ class FinishFlowSessionViewTest(HackRepoMixin,
 
         self.assertGradeInfoEqual(resp, expected_grade_info_dict)
 
-        resp = self.c.get(self.get_finish_flow_session_view_url())
+        resp = self.client.get(self.get_finish_flow_session_view_url())
         self.assertGradeInfoEqual(resp, expected_grade_info_dict)
 
     def test_submit_all_correct_all_graded(self):
@@ -1007,7 +1007,7 @@ class FinishFlowSessionViewTest(HackRepoMixin,
             "provisional_points": 12.0,
             "unknown_count": 0
         }
-        resp = self.c.get(self.get_finish_flow_session_view_url())
+        resp = self.client.get(self.get_finish_flow_session_view_url())
         self.assertEqual(resp.status_code, 200)
         self.assertGradeInfoEqual(resp, expected_grade_info_dict)
 
@@ -1071,7 +1071,7 @@ class FinishFlowSessionViewTest(HackRepoMixin,
             "provisional_points": 5.5,
             "unknown_count": 0
         }
-        resp = self.c.get(self.get_finish_flow_session_view_url())
+        resp = self.client.get(self.get_finish_flow_session_view_url())
         self.assertEqual(resp.status_code, 200)
         self.assertGradeInfoEqual(resp, expected_grade_info_dict)
 
@@ -1126,7 +1126,7 @@ class FinishFlowSessionViewTest(HackRepoMixin,
                 "provisional_points": 7.5,
                 "unknown_count": 0
             }
-            resp = self.c.get(self.get_finish_flow_session_view_url())
+            resp = self.client.get(self.get_finish_flow_session_view_url())
             self.assertEqual(resp.status_code, 200)
             self.assertGradeInfoEqual(resp, expected_grade_info_dict)
 
@@ -1250,7 +1250,7 @@ class FinishFlowSessionViewTest(HackRepoMixin,
                     permissions=[fperm.end_session]))
 
             # fail for get
-            resp = self.c.get(self.get_finish_flow_session_view_url())
+            resp = self.client.get(self.get_finish_flow_session_view_url())
             self.assertEqual(resp.status_code, 403)
 
             # fail for post
@@ -1450,13 +1450,13 @@ class FinishFlowSessionViewTest(HackRepoMixin,
     def test_get_finish_non_interactive_flow(self):
         resp = self.start_flow(flow_id="001-linalg-recap")
         self.assertEqual(resp.status_code, 302)
-        resp = self.c.get(self.get_finish_flow_session_view_url())
+        resp = self.client.get(self.get_finish_flow_session_view_url())
         self.assertEqual(resp.status_code, 200)
         self.assertTemplateUsed(resp, "course/flow-completion.html")
 
     def test_get_finish_interactive_flow_with_unfinished_pages(self):
         self.start_flow(flow_id=self.flow_id)
-        resp = self.c.get(self.get_finish_flow_session_view_url())
+        resp = self.client.get(self.get_finish_flow_session_view_url())
         self.assertEqual(resp.status_code, 200)
         self.assertTemplateUsed(resp, "course/flow-confirm-completion.html")
         self.assertResponseHasNoContext(resp, "grade_info")
@@ -1492,7 +1492,7 @@ class FinishFlowSessionViewTest(HackRepoMixin,
             self.assertResponseContextIsNone(resp, "grade_info")
 
             # Then we get the finish page
-            resp = self.c.get(self.get_finish_flow_session_view_url())
+            resp = self.client.get(self.get_finish_flow_session_view_url())
             self.assertEqual(resp.status_code, 200)
             self.assertTemplateUsed(resp, "course/flow-completion-grade.html")
             self.assertResponseContextIsNone(resp, "grade_info")
@@ -3032,7 +3032,7 @@ class ViewStartFlowTest(SingleCourseTestMixin, TestCase):
 
     def test_post(self):
         with self.temporarily_switch_to_user(self.student_participation.user):
-            self.c.post(self.get_view_start_flow_url(self.flow_id))
+            self.client.post(self.get_view_start_flow_url(self.flow_id))
             self.assertEqual(self.mock_post_start_flow.call_count, 1)
 
             self.assertEqual(self.mock_get_login_exam_ticket.call_count, 0)
@@ -3050,7 +3050,7 @@ class ViewStartFlowTest(SingleCourseTestMixin, TestCase):
         self.mock_get_session_start_rule.return_value = session_start_rule
 
         with self.temporarily_switch_to_user(self.student_participation.user):
-            resp = self.c.get(self.get_view_start_flow_url(self.flow_id))
+            resp = self.client.get(self.get_view_start_flow_url(self.flow_id))
             self.assertResponseContextEqual(resp, "may_start", True)
             self.assertResponseContextEqual(
                 resp, "start_may_decrease_grade", False)
@@ -3104,7 +3104,7 @@ class ViewStartFlowTest(SingleCourseTestMixin, TestCase):
         ]
 
         with self.temporarily_switch_to_user(self.student_participation.user):
-            resp = self.c.get(self.get_view_start_flow_url(self.flow_id))
+            resp = self.client.get(self.get_view_start_flow_url(self.flow_id))
             self.assertResponseContextEqual(resp, "may_start", True)
             self.assertResponseContextEqual(
                 resp, "start_may_decrease_grade", True)
@@ -3146,7 +3146,7 @@ class ViewStartFlowTest(SingleCourseTestMixin, TestCase):
                 due=now() + timedelta(hours=2), max_points=8))
 
         with self.temporarily_switch_to_user(self.student_participation.user):
-            resp = self.c.get(self.get_view_start_flow_url(self.flow_id))
+            resp = self.client.get(self.get_view_start_flow_url(self.flow_id))
             self.assertResponseContextEqual(resp, "may_start", False)
             self.assertResponseContextEqual(
                 resp, "start_may_decrease_grade", False)
@@ -3260,7 +3260,7 @@ class PostStartFlowTest(SingleCourseTestMixin, TestCase):
             self.assertEqual(self.mock_lock_down_if_needed.call_count, 0)
 
     def test_start_session_for_anonymous(self):
-        self.c.logout()
+        self.client.logout()
         self.mock_get_session_start_rule.return_value = \
             self.get_hacked_session_start_rule(
                 may_start_new_session=True,
@@ -3322,7 +3322,7 @@ class ViewResumeFlowTest(SingleCourseTestMixin, TestCase):
 
         self.mock_get_and_check_flow_session.return_value = fs
 
-        resp = self.c.get(self.get_resume_flow_url(
+        resp = self.client.get(self.get_resume_flow_url(
             course_identifier=self.course.identifier, flow_session_id=fs.pk))
 
         self.assertRedirects(
@@ -4168,7 +4168,7 @@ class ViewFlowPageTest(SingleCourseQuizPageTestMixin, HackRepoMixin, TestCase):
                 "flow_session_id": 100,  # invalid
                 "page_ordinal": 0
             }
-            resp = self.c.get(
+            resp = self.client.get(
                 reverse("relate-view_flow_page", kwargs=kwargs))
             self.assertEqual(resp.status_code, 404)
 
@@ -4183,7 +4183,7 @@ class ViewFlowPageTest(SingleCourseQuizPageTestMixin, HackRepoMixin, TestCase):
             from django.core.exceptions import ObjectDoesNotExist
             mock_get_page_desc.side_effect = ObjectDoesNotExist
 
-            resp = self.c.get(self.get_page_url_by_ordinal(0))
+            resp = self.client.get(self.get_page_url_by_ordinal(0))
             self.assertEqual(resp.status_code, 404)
 
             self.assertEqual(self.mock_create_flow_page_visit.call_count, 0)
@@ -4196,7 +4196,7 @@ class ViewFlowPageTest(SingleCourseQuizPageTestMixin, HackRepoMixin, TestCase):
                 "course.page.base.PageBase.get_modified_permissions_for_page"
         ) as mock_perms:
             mock_perms.return_value = []
-            resp = self.c.get(self.get_page_url_by_ordinal(0))
+            resp = self.client.get(self.get_page_url_by_ordinal(0))
             self.assertEqual(resp.status_code, 403)
             self.assertEqual(mock_perms.call_count, 1)
 
@@ -4205,7 +4205,7 @@ class ViewFlowPageTest(SingleCourseQuizPageTestMixin, HackRepoMixin, TestCase):
 
     def test_post_finish(self):
         self.start_flow(self.flow_id)
-        resp = self.c.post(
+        resp = self.client.post(
             self.get_page_url_by_ordinal(0), data={"finish": ""})
         self.assertRedirects(resp, self.get_finish_flow_session_view_url(),
                              fetch_redirect_response=False)
@@ -4237,13 +4237,13 @@ class ViewFlowPageTest(SingleCourseQuizPageTestMixin, HackRepoMixin, TestCase):
 
     def test_get_prev_visit_id_not_number(self):
         self.start_flow(self.flow_id)
-        resp = self.c.get(self.get_page_url_by_ordinal(1, visit_id="foo"))
+        resp = self.client.get(self.get_page_url_by_ordinal(1, visit_id="foo"))
         self.assertEqual(resp.status_code, 400)
 
     def test_get_prev_visit_id_not_exists(self):
         # no prev_answer_visits
         self.start_flow(self.flow_id)
-        resp = self.c.get(self.get_page_url_by_ordinal(1, visit_id=100))
+        resp = self.client.get(self.get_page_url_by_ordinal(1, visit_id=100))
         self.assertEqual(resp.status_code, 200)
         self.assertResponseContextEqual(resp, "viewing_prior_version", False)
 
@@ -4254,7 +4254,7 @@ class ViewFlowPageTest(SingleCourseQuizPageTestMixin, HackRepoMixin, TestCase):
         factories.FlowPageVisitFactory(
             page_data=page_data, answer={"answer": "hi"})
 
-        resp = self.c.get(self.get_page_url_by_page_id(page_id, visit_id=100))
+        resp = self.client.get(self.get_page_url_by_page_id(page_id, visit_id=100))
         self.assertEqual(resp.status_code, 200)
         self.assertResponseContextEqual(resp, "viewing_prior_version", False)
 
@@ -4287,7 +4287,7 @@ class ViewFlowPageTest(SingleCourseQuizPageTestMixin, HackRepoMixin, TestCase):
 
         with mock.patch("course.flow.messages.add_message") as mock_add_msg:
             # viewing current visit
-            resp = self.c.get(
+            resp = self.client.get(
                 self.get_page_url_by_page_id(page_id, visit_id=visit2.id))
             self.assertEqual(resp.status_code, 200)
             self.assertResponseContextEqual(resp, "viewing_prior_version", False)
@@ -4295,7 +4295,7 @@ class ViewFlowPageTest(SingleCourseQuizPageTestMixin, HackRepoMixin, TestCase):
             mock_add_msg.reset_mock()
 
             # viewing non-answer visit
-            resp = self.c.get(
+            resp = self.client.get(
                 self.get_page_url_by_page_id(page_id, visit_id=visit0.id))
             self.assertEqual(resp.status_code, 200)
             self.assertResponseContextEqual(resp, "viewing_prior_version", False)
@@ -4303,7 +4303,7 @@ class ViewFlowPageTest(SingleCourseQuizPageTestMixin, HackRepoMixin, TestCase):
             mock_add_msg.reset_mock()
 
             # viewing previous visit
-            resp = self.c.get(
+            resp = self.client.get(
                 self.get_page_url_by_page_id(page_id, visit_id=visit1.id))
             self.assertEqual(resp.status_code, 200)
             self.assertResponseContextEqual(resp, "viewing_prior_version", True)
@@ -4324,12 +4324,12 @@ class ViewFlowPageTest(SingleCourseQuizPageTestMixin, HackRepoMixin, TestCase):
             start_time=start_time,
             completion_time=completion_time, in_progress=False)
 
-        resp = self.c.get(self.get_page_url_by_ordinal(0, flow_session_id=fs.id))
+        resp = self.client.get(self.get_page_url_by_ordinal(0, flow_session_id=fs.id))
         self.assertResponseContextEqual(resp, "session_minutes", None)
         self.assertResponseContextEqual(resp, "time_factor", 1)
 
         self.switch_to_fake_commit_sha()
-        resp = self.c.get(self.get_page_url_by_ordinal(0, flow_session_id=fs.id))
+        resp = self.client.get(self.get_page_url_by_ordinal(0, flow_session_id=fs.id))
         self.assertResponseContextEqual(resp, "session_minutes", 60)
         self.assertResponseContextEqual(resp, "time_factor", 1.11)
 
@@ -4344,18 +4344,18 @@ class ViewFlowPageTest(SingleCourseQuizPageTestMixin, HackRepoMixin, TestCase):
             start_time=start_time,
             in_progress=True)
 
-        resp = self.c.get(self.get_page_url_by_ordinal(0, flow_session_id=fs.id))
+        resp = self.client.get(self.get_page_url_by_ordinal(0, flow_session_id=fs.id))
         self.assertTrue(resp.context["session_minutes"] > 61)
         self.assertResponseContextEqual(resp, "time_factor", 1)
 
     def test_warning_for_anonymous_flow_session(self):
         # switch to a fake flow which allow anonymous to start a flow
         self.switch_to_fake_commit_sha()
-        self.c.logout()
+        self.client.logout()
         self.start_flow(self.flow_id)
 
         with mock.patch("course.flow.messages.add_message") as mock_add_msg:
-            resp = self.c.get(self.get_page_url_by_ordinal(1))
+            resp = self.client.get(self.get_page_url_by_ordinal(1))
             expected_warn_msg = (
                 "Changes to this session are being prevented "
                 "because this session yields a permanent grade, but "
@@ -4369,10 +4369,10 @@ class ViewFlowPageTest(SingleCourseQuizPageTestMixin, HackRepoMixin, TestCase):
         self.switch_to_fake_commit_sha()
         self.start_flow(self.flow_id)
 
-        resp = self.c.get(self.get_page_url_by_page_id("half"))
+        resp = self.client.get(self.get_page_url_by_page_id("half"))
         self.assertResponseHasNoContext(resp, "is_optional_page")
 
-        resp = self.c.get(self.get_page_url_by_page_id("half2"))
+        resp = self.client.get(self.get_page_url_by_page_id("half2"))
         self.assertResponseContextEqual(resp, "is_optional_page", True)
 
 
@@ -4629,7 +4629,7 @@ class SendEmailAboutFlowPageTest(HackRepoMixin,
         with mock.patch("course.content.get_flow_page_desc") as mock_get_page_desc:
             from django.core.exceptions import ObjectDoesNotExist
             mock_get_page_desc.side_effect = ObjectDoesNotExist
-            resp = self.c.get(
+            resp = self.client.get(
                 self.get_send_email_about_flow_page_url(page_ordinal=1))
             self.assertEqual(resp.status_code, 404)
 
@@ -4639,7 +4639,7 @@ class SendEmailAboutFlowPageTest(HackRepoMixin,
     def test_no_permission_404(self):
         self.mock_get_modified_permissions_for_page.return_value = [fperm.view]
 
-        resp = self.c.get(
+        resp = self.client.get(
             self.get_send_email_about_flow_page_url(page_ordinal=1))
         self.assertEqual(resp.status_code, 404)
 
@@ -4656,7 +4656,7 @@ class SendEmailAboutFlowPageTest(HackRepoMixin,
             permissions = mock.MagicMock()
             self.mock_get_modified_permissions_for_page.return_value = permissions
 
-            resp = self.c.get(
+            resp = self.client.get(
                 self.get_send_email_about_flow_page_url(page_ordinal=1))
             self.assertEqual(resp.status_code, 404)
             self.assertEqual(mock_check.call_count, 1)
@@ -4666,14 +4666,14 @@ class SendEmailAboutFlowPageTest(HackRepoMixin,
 
             mock_check.return_value = True
 
-            resp = self.c.get(
+            resp = self.client.get(
                 self.get_send_email_about_flow_page_url(page_ordinal=1))
             self.assertEqual(resp.status_code, 200)
             self.assertEqual(mock_check.call_count, 1)
             self.assertIn(permissions, mock_check.call_args[0])
 
     def test_get(self):
-        resp = self.c.get(
+        resp = self.client.get(
             self.get_send_email_about_flow_page_url(page_ordinal=1))
         self.assertEqual(resp.status_code, 200)
 
@@ -4683,7 +4683,7 @@ class SendEmailAboutFlowPageTest(HackRepoMixin,
         self.assertEqual(self.mock_get_modified_permissions_for_page.call_count, 1)
 
     def test_post(self):
-        resp = self.c.post(
+        resp = self.client.post(
             self.get_send_email_about_flow_page_url(page_ordinal=1),
             data={"message": "foo bar" * 10}
         )
@@ -4706,7 +4706,7 @@ class SendEmailAboutFlowPageTest(HackRepoMixin,
             mail.outbox[0].bcc, [self.student_participation.user.email])
 
     def test_post_too_few_words(self):
-        resp = self.c.post(
+        resp = self.client.post(
             self.get_send_email_about_flow_page_url(page_ordinal=1),
             data={"message": "foo bar"}
         )
@@ -4719,7 +4719,7 @@ class SendEmailAboutFlowPageTest(HackRepoMixin,
         self.ta_participation.status = constants.participation_status.dropped
         self.ta_participation.save()
 
-        resp = self.c.post(
+        resp = self.client.post(
             self.get_send_email_about_flow_page_url(page_ordinal=1),
             data={"message": "foo bar" * 10}
         )
@@ -4754,7 +4754,7 @@ class SendEmailAboutFlowPageTest(HackRepoMixin,
     def test_mask_student_profile(self):
         self.mock_will_use_masked_profile_for_email.return_value = True
 
-        resp = self.c.post(
+        resp = self.client.post(
             self.get_send_email_about_flow_page_url(page_ordinal=1),
             data={"message": "foo bar" * 10}
         )
@@ -4796,14 +4796,14 @@ class UpdatePageBookmarkStateTest(SingleCourseQuizPageTestMixin, TestCase):
                     "page_ordinal": page_ordinal})
 
     def test_not_post(self):
-        resp = self.c.get(self.get_update_page_bookmark_state_url(1))
+        resp = self.client.get(self.get_update_page_bookmark_state_url(1))
         self.assertEqual(resp.status_code, 400)
         fpd = models.FlowPageData.objects.get(
             flow_session=self.flow_session, page_ordinal=1)
         self.assertEqual(fpd.bookmarked, False)
 
     def test_invalid_flow_session_id(self):
-        resp = self.c.post(
+        resp = self.client.post(
             self.get_update_page_bookmark_state_url(1, flow_session_id=100),
             data={"bookmark_state": "1"})
         self.assertEqual(resp.status_code, 404)
@@ -4812,7 +4812,7 @@ class UpdatePageBookmarkStateTest(SingleCourseQuizPageTestMixin, TestCase):
         self.assertEqual(fpd.bookmarked, False)
 
     def test_success(self):
-        resp = self.c.post(
+        resp = self.client.post(
             self.get_update_page_bookmark_state_url(1),
             data={"bookmark_state": "1"})
         self.assertEqual(resp.status_code, 200)
@@ -4821,7 +4821,7 @@ class UpdatePageBookmarkStateTest(SingleCourseQuizPageTestMixin, TestCase):
         self.assertEqual(fpd.bookmarked, True)
 
     def test_post_invalid_bookmark_state(self):
-        resp = self.c.post(
+        resp = self.client.post(
             self.get_update_page_bookmark_state_url(1),
             data={"bookmark_state": "a"})
         self.assertEqual(resp.status_code, 400)
@@ -4831,7 +4831,7 @@ class UpdatePageBookmarkStateTest(SingleCourseQuizPageTestMixin, TestCase):
 
     def test_not_you_session(self):
         with self.temporarily_switch_to_user(self.ta_participation.user):
-            resp = self.c.post(
+            resp = self.client.post(
                 self.get_update_page_bookmark_state_url(1),
                 data={"bookmark_state": "1"})
             self.assertEqual(resp.status_code, 403)
@@ -4870,14 +4870,14 @@ class UpdateExpirationModeTest(SingleCourseQuizPageTestMixin, TestCase):
                     "flow_session_id": flow_session_id})
 
     def test_not_post(self):
-        resp = self.c.get(self.get_relate_update_expiration_mode_url())
+        resp = self.client.get(self.get_relate_update_expiration_mode_url())
         self.assertEqual(resp.status_code, 400)
         fs = models.FlowSession.objects.last()
         self.assertEqual(fs.expiration_mode,
                          constants.flow_session_expiration_mode.end)
 
     def test_invalid_flow_session_id(self):
-        resp = self.c.post(
+        resp = self.client.post(
             self.get_relate_update_expiration_mode_url(flow_session_id=100),
             data={"expiration_mode":
                       constants.flow_session_expiration_mode.roll_over})
@@ -4889,7 +4889,7 @@ class UpdateExpirationModeTest(SingleCourseQuizPageTestMixin, TestCase):
     def test_session_not_in_progress(self):
         self.flow_session.in_progress = False
         self.flow_session.save()
-        resp = self.c.post(
+        resp = self.client.post(
             self.get_relate_update_expiration_mode_url(),
             data={"expiration_mode":
                       constants.flow_session_expiration_mode.roll_over})
@@ -4899,7 +4899,7 @@ class UpdateExpirationModeTest(SingleCourseQuizPageTestMixin, TestCase):
                          constants.flow_session_expiration_mode.end)
 
     def test_success(self):
-        resp = self.c.post(
+        resp = self.client.post(
             self.get_relate_update_expiration_mode_url(),
             data={"expiration_mode":
                       constants.flow_session_expiration_mode.roll_over})
@@ -4910,7 +4910,7 @@ class UpdateExpirationModeTest(SingleCourseQuizPageTestMixin, TestCase):
 
     def test_not_is_expiration_mode_allowed(self):
         self.mock_is_expiration_mode_allowed.return_value = False
-        resp = self.c.post(
+        resp = self.client.post(
             self.get_relate_update_expiration_mode_url(),
             data={"expiration_mode":
                       constants.flow_session_expiration_mode.roll_over})
@@ -4920,7 +4920,7 @@ class UpdateExpirationModeTest(SingleCourseQuizPageTestMixin, TestCase):
                          constants.flow_session_expiration_mode.end)
 
     def test_post_invalid_bookmark_state(self):
-        resp = self.c.post(
+        resp = self.client.post(
             self.get_relate_update_expiration_mode_url(),
             data={"expiration_mode": "unknown"})
         self.assertEqual(resp.status_code, 400)
@@ -4930,7 +4930,7 @@ class UpdateExpirationModeTest(SingleCourseQuizPageTestMixin, TestCase):
 
     def test_not_you_session(self):
         with self.temporarily_switch_to_user(self.ta_participation.user):
-            resp = self.c.post(
+            resp = self.client.post(
                 self.get_relate_update_expiration_mode_url(),
                 data={"expiration_mode":
                           constants.flow_session_expiration_mode.roll_over})
@@ -4945,7 +4945,7 @@ class RegradeFlowsViewTest(SingleCourseQuizPageTestMixin, TestCase):
 
     def setUp(self):
         super().setUp()
-        self.c.force_login(self.instructor_participation.user)
+        self.client.force_login(self.instructor_participation.user)
 
         fake_regrade_task = mock.patch(
                 "course.tasks.regrade_flow_sessions.delay")
@@ -4962,13 +4962,13 @@ class RegradeFlowsViewTest(SingleCourseQuizPageTestMixin, TestCase):
 
     def test_no_pperm(self):
         with self.temporarily_switch_to_user(self.student_participation.user):
-            resp = self.c.get(self.get_regrade_flows_view_url())
+            resp = self.client.get(self.get_regrade_flows_view_url())
             self.assertEqual(resp.status_code, 403)
 
             self.assertEqual(self.mock_regrade_task.call_count, 0)
             self.assertEqual(self.mock_redirect.call_count, 0)
 
-            resp = self.c.post(
+            resp = self.client.post(
                 self.get_regrade_flows_view_url(),
                 data={
                     "regraded_session_in_progress": "yes",
@@ -4985,7 +4985,7 @@ class RegradeFlowsViewTest(SingleCourseQuizPageTestMixin, TestCase):
         with mock.patch(
                 "course.flow.RegradeFlowForm.is_valid") as mock_form_is_valid:
             mock_form_is_valid.return_value = False
-            resp = self.c.post(
+            resp = self.client.post(
                 self.get_regrade_flows_view_url(),
                 data={
                     "regraded_session_in_progress": "yes",
@@ -5000,7 +5000,7 @@ class RegradeFlowsViewTest(SingleCourseQuizPageTestMixin, TestCase):
 
     def test_success(self):
         # get success
-        resp = self.c.get(self.get_regrade_flows_view_url())
+        resp = self.client.get(self.get_regrade_flows_view_url())
         self.assertEqual(resp.status_code, 200)
 
         # post success
@@ -5017,7 +5017,7 @@ class RegradeFlowsViewTest(SingleCourseQuizPageTestMixin, TestCase):
                     regraded_session_in_progress=regraded_session_in_progress):
                 self.mock_regrade_task.return_value = mock.MagicMock()
                 self.mock_redirect.return_value = http.HttpResponse()
-                resp = self.c.post(
+                resp = self.client.post(
                     self.get_regrade_flows_view_url(),
                     data={
                         "regraded_session_in_progress":
@@ -5055,7 +5055,7 @@ class ViewUnsubmitFlowPageTest(SingleCourseQuizPageTestMixin, TestCase):
 
     def setUp(self):
         super().setUp()
-        self.c.force_login(self.instructor_participation.user)
+        self.client.force_login(self.instructor_participation.user)
 
         fake_unsubmit_page = mock.patch(
             "course.flow.unsubmit_page")
@@ -5095,11 +5095,11 @@ class ViewUnsubmitFlowPageTest(SingleCourseQuizPageTestMixin, TestCase):
 
     def test_anonymous(self):
         with self.temporarily_switch_to_user(None):
-            resp = self.c.get(
+            resp = self.client.get(
                 self.get_view_unsubmit_flow_page_url_by_page_id(self.page_id))
             self.assertEqual(resp.status_code, 403)
 
-            resp = self.c.post(
+            resp = self.client.post(
                 self.get_view_unsubmit_flow_page_url_by_page_id(self.page_id),
                 data={"submit": ""})
 
@@ -5108,11 +5108,11 @@ class ViewUnsubmitFlowPageTest(SingleCourseQuizPageTestMixin, TestCase):
 
     def test_no_pperm(self):
         with self.temporarily_switch_to_user(self.student_participation.user):
-            resp = self.c.get(
+            resp = self.client.get(
                 self.get_view_unsubmit_flow_page_url_by_page_id(self.page_id))
             self.assertEqual(resp.status_code, 403)
 
-            resp = self.c.post(
+            resp = self.client.post(
                 self.get_view_unsubmit_flow_page_url_by_page_id(self.page_id),
                 data={"submit": ""})
 
@@ -5120,12 +5120,12 @@ class ViewUnsubmitFlowPageTest(SingleCourseQuizPageTestMixin, TestCase):
             self.assertEqual(self.mock_unsubmit_page.call_count, 0)
 
     def test_session_does_not_exist(self):
-        resp = self.c.get(
+        resp = self.client.get(
             self.get_view_unsubmit_flow_page_url_by_page_id(
                 self.page_id, flow_session_id=100))
         self.assertEqual(resp.status_code, 404)
 
-        resp = self.c.post(
+        resp = self.client.post(
             self.get_view_unsubmit_flow_page_url_by_page_id(
                 self.page_id, flow_session_id=100),
             data={"submit": ""})
@@ -5135,12 +5135,12 @@ class ViewUnsubmitFlowPageTest(SingleCourseQuizPageTestMixin, TestCase):
 
     def test_success(self):
         # get_success
-        resp = self.c.get(
+        resp = self.client.get(
             self.get_view_unsubmit_flow_page_url_by_page_id(self.page_id))
         self.assertEqual(resp.status_code, 200)
 
         # post_success
-        resp = self.c.post(
+        resp = self.client.post(
             self.get_view_unsubmit_flow_page_url_by_page_id(self.page_id),
             data={"submit": ""})
 
@@ -5153,7 +5153,7 @@ class ViewUnsubmitFlowPageTest(SingleCourseQuizPageTestMixin, TestCase):
         )
 
     def test_postdata_without_submit(self):
-        resp = self.c.post(
+        resp = self.client.post(
             self.get_view_unsubmit_flow_page_url_by_page_id(self.page_id),
             data={})
 
@@ -5166,7 +5166,7 @@ class ViewUnsubmitFlowPageTest(SingleCourseQuizPageTestMixin, TestCase):
         with mock.patch(
                 "course.flow.UnsubmitFlowPageForm.is_valid") as mock_form_valid:
             mock_form_valid.return_value = False
-            resp = self.c.post(
+            resp = self.client.post(
                 self.get_view_unsubmit_flow_page_url_by_page_id(self.page_id),
                 data={"submit": ""})
 
@@ -5178,7 +5178,7 @@ class ViewUnsubmitFlowPageTest(SingleCourseQuizPageTestMixin, TestCase):
         page_id = "ice_cream_toppings"
         expected_error_msg = "No prior answers found that could be un-submitted."
 
-        resp = self.c.get(
+        resp = self.client.get(
             self.get_view_unsubmit_flow_page_url_by_page_id(page_id))
 
         self.assertEqual(resp.status_code, 302)
@@ -5188,7 +5188,7 @@ class ViewUnsubmitFlowPageTest(SingleCourseQuizPageTestMixin, TestCase):
         self.assertIn(expected_error_msg, self.mock_add_message.call_args[0])
         self.mock_add_message.reset_mock()
 
-        resp = self.c.post(
+        resp = self.client.post(
             self.get_view_unsubmit_flow_page_url_by_page_id(page_id),
             data={"submit": ""})
 

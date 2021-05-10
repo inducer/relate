@@ -721,7 +721,7 @@ class ViewGradesByOpportunityTest(GradesTestMixin, TestCase):
 
     def test_gopp_does_not_exist(self):
         with self.temporarily_switch_to_user(self.instructor_participation.user):
-            resp = self.c.get(self.get_gradebook_url_by_opp_id("2"))
+            resp = self.client.get(self.get_gradebook_url_by_opp_id("2"))
             self.assertEqual(resp.status_code, 404)
 
     def test_gopp_course_not_match(self):
@@ -730,7 +730,7 @@ class ViewGradesByOpportunityTest(GradesTestMixin, TestCase):
             course=another_course, identifier=self.gopp_id)
 
         with self.temporarily_switch_to_user(self.instructor_participation.user):
-            resp = self.c.get(self.get_gradebook_url_by_opp_id(
+            resp = self.client.get(self.get_gradebook_url_by_opp_id(
                 another_course_gopp.id))
             self.assertEqual(resp.status_code, 400)
 
@@ -1433,7 +1433,7 @@ class ViewSingleGradeTest(GradesTestMixin, TestCase):
             course=factories.CourseFactory(identifier="another-course"),
             identifier=QUIZ_FLOW_ID)
         with self.temporarily_switch_to_user(self.instructor_participation.user):
-            resp = self.c.get(self.get_single_grade_url(
+            resp = self.client.get(self.get_single_grade_url(
                 self.student_participation.pk, another_course_gopp.pk))
             self.assertEqual(resp.status_code, 400)
 
@@ -1664,7 +1664,7 @@ class EditGradingOpportunityTest(GradesTestMixin, TestCase):
             user = self.instructor_participation.user
 
         with self.temporarily_switch_to_user(user):
-            return self.c.get(
+            return self.client.get(
                 self.get_edit_grading_opportunity_url(opp_id, course_identifier))
 
     def post_edit_grading_opportunity_view(self, opp_id, data,
@@ -1677,7 +1677,7 @@ class EditGradingOpportunityTest(GradesTestMixin, TestCase):
             user = self.instructor_participation.user
 
         with self.temporarily_switch_to_user(user):
-            return self.c.post(
+            return self.client.post(
                 self.get_edit_grading_opportunity_url(opp_id, course_identifier),
                 data)
 
@@ -2184,9 +2184,9 @@ class FixingTest(GradesTestMixin, TestCase):
             args=(flow_session.id,))
         delete_dict = {'post': 'yes'}
         with self.temporarily_switch_to_user(self.superuser):
-            resp = self.c.get(flow_session_delete_url)
+            resp = self.client.get(flow_session_delete_url)
             self.assertEqual(resp.status_code, 200)
-            resp = self.c.post(flow_session_delete_url, data=delete_dict)
+            resp = self.client.post(flow_session_delete_url, data=delete_dict)
         self.assertEqual(resp.status_code, 302)
         self.assertEqual(exist_flow_session_count,
                          models.FlowSession.objects.count() + 1)

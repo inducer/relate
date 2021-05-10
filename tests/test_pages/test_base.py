@@ -192,14 +192,14 @@ class PageBaseAPITest(SingleCourseQuizPageTestMixin, TestCase):
 
     def test_correctness(self):
         self.submit_page_answer_by_page_id_and_test(self.page_id)
-        resp = self.c.get(self.get_page_url_by_page_id(self.page_id))
+        resp = self.client.get(self.get_page_url_by_page_id(self.page_id))
         self.assertResponseContextIsNotNone(resp, "correct_answer")
 
         # make sure PageBase.correctness works
         with mock.patch("course.page.text.TextQuestion.correct_answer",
                         autospec=True) as mock_correctness:
             mock_correctness.side_effect = correct_answer_side_effect_super
-            resp = self.c.get(self.get_page_url_by_page_id(self.page_id))
+            resp = self.client.get(self.get_page_url_by_page_id(self.page_id))
             self.assertResponseContextIsNone(resp, "correct_answer")
 
     def test_normalized_answer(self):
@@ -598,7 +598,7 @@ class PageBaseWithHumanTextFeedbackTest(SingleCourseQuizPageGradeInterfaceTestMi
             with self.temporarily_switch_to_user(
                     self.instructor_participation.user):
 
-                resp = self.c.get(
+                resp = self.client.get(
                     self.get_page_grading_url_by_page_id(self.page_id))
                 self.assertEqual(resp.status_code, 200)
 
@@ -614,7 +614,7 @@ class PageBaseWithHumanTextFeedbackTest(SingleCourseQuizPageGradeInterfaceTestMi
             with self.temporarily_switch_to_user(
                     self.instructor_participation.user):
 
-                resp = self.c.get(
+                resp = self.client.get(
                     self.get_page_grading_url_by_page_id(self.page_id))
                 self.assertEqual(resp.status_code, 200)
 

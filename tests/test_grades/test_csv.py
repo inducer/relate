@@ -89,7 +89,7 @@ class ExportGradebook(GradesTestMixin, TestCase):
         else:
             user = self.get_logged_in_user()
         with self.temporarily_switch_to_user(user):
-            return self.c.get(self.get_export_gradebook_csv_url())
+            return self.client.get(self.get_export_gradebook_csv_url())
 
     def test_view_export_gradebook_csv(self):
         resp = self.get_export_gradebook_csv()
@@ -287,7 +287,7 @@ class ImportGradesTest(GradesTestMixin, TestCase):
         else:
             user = self.get_logged_in_user()
         with self.temporarily_switch_to_user(user):
-            return self.c.get(self.get_import_grades_url())
+            return self.client.get(self.get_import_grades_url())
 
     def post_import_grades(self, csv_file=None, post_data=None,
                            force_login_instructor=True, post_type='import',
@@ -315,7 +315,7 @@ class ImportGradesTest(GradesTestMixin, TestCase):
         else:
             user = self.get_logged_in_user()
         with self.temporarily_switch_to_user(user):
-            return self.c.post(self.get_import_grades_url(), data=post_data)
+            return self.client.post(self.get_import_grades_url(), data=post_data)
 
     def test_preview_success(self):
         with open(

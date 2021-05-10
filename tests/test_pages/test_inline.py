@@ -1096,7 +1096,7 @@ class InlineMultiPageUpdateTest(SingleCourseQuizPageTestMixin, TestCase):
                 commit_sha=b"ec41a2de73a99e6022060518cb5c5c162b88cdf5")
 
             self.start_flow(self.flow_id)
-            resp = self.c.get(
+            resp = self.client.get(
                 self.get_page_url_by_page_id(page_id=self.page_id))
 
             self.assertEqual(resp.status_code, 200)
@@ -1116,7 +1116,7 @@ class InlineMultiPageUpdateTest(SingleCourseQuizPageTestMixin, TestCase):
 
         self.post_update_course_content(
             commit_sha=b"4124e0c23e369d6709a670398167cb9c2fe52d35")
-        resp = self.c.get(
+        resp = self.client.get(
             self.get_page_url_by_page_id(page_id=self.page_id))
 
         self.assertEqual(resp.status_code, 200)

@@ -333,26 +333,26 @@ class SingleCourseQuizPageGradeInterfaceTest(
 
     # {{{ test grading.get_prev_grades_dropdown_content
     def test_grade_history_failure_no_perm(self):
-        resp = self.c.get(
+        resp = self.client.get(
             self.get_page_grade_history_url_by_ordinal(
                 page_ordinal=1), HTTP_X_REQUESTED_WITH='XMLHttpRequest')
         self.assertEqual(resp.status_code, 403)
 
     def test_grade_history_failure_not_ajax(self):
-        resp = self.c.get(
+        resp = self.client.get(
             self.get_page_grade_history_url_by_ordinal(
                 page_ordinal=1))
         self.assertEqual(resp.status_code, 403)
 
     def test_submit_history_failure_not_get(self):
-        resp = self.c.post(
+        resp = self.client.post(
             self.get_page_grade_history_url_by_ordinal(
                 page_ordinal=1), HTTP_X_REQUESTED_WITH='XMLHttpRequest')
         self.assertEqual(resp.status_code, 403)
 
     def test_grade_history_failure_not_authenticated(self):
         with self.temporarily_switch_to_user(None):
-            resp = self.c.get(
+            resp = self.client.get(
                 self.get_page_grade_history_url_by_ordinal(
                     page_ordinal=1), HTTP_X_REQUESTED_WITH='XMLHttpRequest')
         self.assertEqual(resp.status_code, 403)
@@ -387,14 +387,14 @@ class SingleCourseQuizPageGradeInterfaceTest(
     # {{{ prev_grade
     def test_viewing_prev_grade_id_not_exist(self):
         with self.temporarily_switch_to_user(self.instructor_participation.user):
-            resp = self.c.get(
+            resp = self.client.get(
                 self.get_page_grading_url_by_page_id(self.page_id)
                 + "?grade_id=1000")
             self.assertEqual(resp.status_code, 404)
 
     def test_viewing_prev_grade_id_not_int(self):
         with self.temporarily_switch_to_user(self.instructor_participation.user):
-            resp = self.c.get(
+            resp = self.client.get(
                 self.get_page_grading_url_by_page_id(self.page_id)
                 + "?grade_id=my_id")
             self.assertEqual(resp.status_code, 400)
@@ -410,7 +410,7 @@ class SingleCourseQuizPageGradeInterfaceTest(
                 self.instructor_participation.user), mock.patch(
                 "course.grading.get_feedback_for_grade") as mock_get_feedback:
 
-            resp = self.c.get(
+            resp = self.client.get(
                 self.get_page_grading_url_by_page_id(self.page_id)
                 + "?grade_id=1")
             self.assertEqual(resp.status_code, 200)
@@ -428,7 +428,7 @@ class SingleCourseQuizPageGradeInterfaceTest(
         self.assertGradeHistoryItemsCount(page_ordinal=ordinal, expected_count=3)
 
         with self.temporarily_switch_to_user(self.instructor_participation.user):
-            resp = self.c.post(
+            resp = self.client.post(
                 self.get_page_grading_url_by_page_id(self.page_id) + "?grade_id=1",
                 data=grade_data
             )
@@ -450,7 +450,7 @@ class SingleCourseQuizPageGradeInterfaceTest(
             flow_session_id=his_flow_session.pk)
 
         with self.temporarily_switch_to_user(self.instructor_participation.user):
-            resp = self.c.get(url)
+            resp = self.client.get(url)
             self.assertEqual(resp.status_code, 400)
 
     def test_flow_session_has_no_participation(self):
@@ -463,7 +463,7 @@ class SingleCourseQuizPageGradeInterfaceTest(
         )
 
         with self.temporarily_switch_to_user(self.instructor_participation.user):
-            resp = self.c.get(url)
+            resp = self.client.get(url)
             self.assertEqual(resp.status_code, 400)
 
     def test_page_desc_none(self):
@@ -473,7 +473,7 @@ class SingleCourseQuizPageGradeInterfaceTest(
             mock_get_flow_page_desc.side_effect = ObjectDoesNotExist
 
             with self.temporarily_switch_to_user(self.instructor_participation.user):
-                resp = self.c.get(
+                resp = self.client.get(
                     self.get_page_grading_url_by_page_id(self.page_id))
                 self.assertEqual(resp.status_code, 404)
 
@@ -496,7 +496,7 @@ class SingleCourseQuizPageGradeInterfaceTest(
 
             with self.temporarily_switch_to_user(
                     self.instructor_participation.user):
-                resp = self.c.get(
+                resp = self.client.get(
                     self.get_page_grading_url_by_page_id(self.page_id))
                 self.assertEqual(resp.status_code, 200)
                 self.assertAddMessageCalledWith(expected_error_msg)
@@ -513,7 +513,7 @@ class SingleCourseQuizPageGradeInterfaceTest(
         pp.save()
         his_participation.individual_permissions.set([pp])
         with self.temporarily_switch_to_user(some_user):
-            resp = self.c.get(
+            resp = self.client.get(
                 self.get_page_grading_url_by_page_id(self.page_id))
             self.assertEqual(resp.status_code, 200)
 
@@ -560,7 +560,7 @@ class SingleCourseQuizPageGradeInterfaceTest(
             with self.temporarily_switch_to_user(
                     self.instructor_participation.user):
                 # get success
-                resp = self.c.get(
+                resp = self.client.get(
                     self.get_page_grading_url_by_page_id(self.page_id))
                 self.assertEqual(resp.status_code, 200)
                 self.assertResponseContextIsNone(
@@ -642,12 +642,12 @@ class ShowGraderStatisticsTest(
 
     def test_no_permission(self):
         with self.temporarily_switch_to_user(self.student_participation.user):
-            resp = self.c.get(self.get_show_grader_statistics_url(self.flow_id))
+            resp = self.client.get(self.get_show_grader_statistics_url(self.flow_id))
             self.assertEqual(resp.status_code, 403)
 
     def test_success(self):
         with self.temporarily_switch_to_user(self.instructor_participation.user):
-            resp = self.c.get(self.get_show_grader_statistics_url(self.flow_id))
+            resp = self.client.get(self.get_show_grader_statistics_url(self.flow_id))
             self.assertEqual(resp.status_code, 200)
 
 
