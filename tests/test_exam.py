@@ -743,7 +743,8 @@ class ExamFacilityMiddlewareTest(SingleCoursePageTestMixin,
                     else:
                         switch_to = self.ta_participation.user
                     with self.temporarily_switch_to_user(switch_to):
-                        resp = self.client.get(reverse(url, args=args, kwargs=kwargs))
+                        resp = self.client.get(
+                                reverse(url, args=args, kwargs=kwargs))
                         try:
                             code = int(code_or_redirect)
                             self.assertEqual(resp.status_code, code)
@@ -789,7 +790,8 @@ class ExamFacilityMiddlewareTest(SingleCoursePageTestMixin,
     def test_not_ok_view_flow_page(self):
         fs = factories.FlowSessionFactory(
             participation=self.student_participation, flow_id=self.flow_id)
-        resp = self.client.get(self.get_page_url_by_ordinal(0, flow_session_id=fs.pk))
+        resp = self.client.get(
+                self.get_page_url_by_ordinal(0, flow_session_id=fs.pk))
         self.assertRedirects(
             resp, reverse("relate-list_available_exams"),
             fetch_redirect_response=False)
@@ -896,7 +898,8 @@ class ExamLockdownMiddlewareTest(SingleCoursePageTestMixin,
                         switch_to = self.student_participation.user
                     with self.temporarily_switch_to_user(switch_to):
                         self.tweak_session_to_lock_down()
-                        resp = self.client.get(reverse(url, args=args, kwargs=kwargs))
+                        resp = self.client.get(
+                                reverse(url, args=args, kwargs=kwargs))
                         try:
                             code = int(code_or_redirect)
                             self.assertEqual(resp.status_code, code)

@@ -78,7 +78,8 @@ class SingleCourseQuizPageTest(SingleCourseQuizPageTestMixin,
                 page_id, group_id = (
                     self.get_page_id_via_page_oridnal(i, with_group_id=True))
                 with self.subTest(page_id=page_id, name="no answer page view"):
-                    resp = self.client.get(self.get_page_url_by_page_id(page_id=page_id))
+                    resp = self.client.get(
+                            self.get_page_url_by_page_id(page_id=page_id))
                     self.assertEqual(resp.status_code, 200)
                     if page_id not in ["age_group", "fear", "welcome"]:
                         self.assertContains(resp, "No answer provided.")

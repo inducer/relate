@@ -536,7 +536,8 @@ class StaticPageTest(SingleCourseTestMixin, TestCase):
                                "page_path": page_path})
 
     def get_static_page(self, page_path, course_identifier=None):
-        return self.client.get(self.get_static_page_url(page_path, course_identifier))
+        return self.client.get(
+                self.get_static_page_url(page_path, course_identifier))
 
     def test_success(self):
         resp = self.get_static_page("test")
