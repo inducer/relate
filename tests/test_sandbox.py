@@ -149,16 +149,14 @@ class SingleCoursePageSandboxTestBaseMixin(SingleCourseTestMixin):
     def get_markup_sandbox_url(cls):
         return reverse("relate-view_markup_sandbox", args=[cls.course.identifier])
 
-    @classmethod
-    def get_markup_sandbox_view(cls):
-        return cls.c.get(cls.get_markup_sandbox_url())
+    def get_markup_sandbox_view(self):
+        return self.client.get(self.get_markup_sandbox_url())
 
-    @classmethod
-    def post_markup_sandbox_view(cls, markup_content, action="preview"):
+    def post_markup_sandbox_view(self, markup_content, action="preview"):
         post_data = {
             "content": markup_content,
             action: ""}
-        return cls.c.post(cls.get_markup_sandbox_url(), post_data)
+        return self.client.post(self.get_markup_sandbox_url(), post_data)
 
 
 class SingleCoursePageSandboxTest(SingleCoursePageSandboxTestBaseMixin, TestCase):

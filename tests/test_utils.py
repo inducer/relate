@@ -190,7 +190,6 @@ class LanguageOverrideTest(SingleCoursePageTestMixin,
     @classmethod
     def setUpTestData(cls):  # noqa
         super().setUpTestData()
-        cls.c.force_login(cls.instructor_participation.user)
         cls.start_flow(cls.flow_id)
 
     @override_settings(RELATE_ADMIN_EMAIL_LOCALE="de", LANGUAGE_CODE="ko")

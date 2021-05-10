@@ -33,27 +33,19 @@ from tests.base_test_mixins import SingleCoursePageTestMixin
 
 
 class GradeGenericTestMixin(SingleCoursePageTestMixin):
-    # This serve as a base test cases for other grade tests to subclass
-    # Nice little tricks :)
-    @classmethod
-    def setUpTestData(cls):  # noqa
-        super().setUpTestData()
-        cls.flow_session_ids = []
-        cls.do_quiz(cls.student_participation)
-
-    @classmethod
-    def tearDownClass(cls):
-        super().tearDownClass()
+    def setUp(self):  # noqa
+        super().setUp()
+        self.flow_session_ids = []
+        self.do_quiz(self.student_participation)
 
     # Use specified user to take a quiz
-    @classmethod
-    def do_quiz(cls, participation):
+    def do_quiz(self, participation):
         # Login user first
-        cls.c.force_login(participation.user)
-        cls.start_flow(cls.flow_id)
-        cls.end_flow()
-        cls.flow_session_ids.append(
-            int(cls.default_flow_params["flow_session_id"]))
+        with self.temporarily_switch_to_user(participation.user):
+            self.start_flow(self.flow_id)
+            self.end_flow()
+            self.flow_session_ids.append(
+                int(self.default_flow_params["flow_session_id"]))
 
     # Seperate the test here
     def test_grading_opportunity(self):
@@ -135,7 +127,7 @@ class GradeGenericTestMixin(SingleCoursePageTestMixin):
                          len(self.flow_session_ids))
 
     # Just show the grading interfaces of the unanswered pages
-    # the answered pages are tested in tests.teat_pages.test_generic
+    # the answered pages are tested in tests.test_pages.test_generic
     def test_view_grade_flow_page(self):
         params = {"course_identifier": self.course.identifier,
                   "flow_session_id": self.flow_session_ids[0]}
@@ -306,15 +298,14 @@ class GradeTwoQuizTakerTest(GradeGenericTestMixin, TestCase):
 
     force_login_student_for_each_test = False
 
-    @classmethod
-    def setUpTestData(cls): # noqa
-        super().setUpTestData()
-        cls.do_quiz(cls.instructor_participation)
-        cls.n_quiz_takers = 2
-        cls.n_participations = 3
+    def setUp(self): # noqa
+        super().setUp()
+        self.do_quiz(self.instructor_participation)
+        self.n_quiz_takers = 2
+        self.n_participations = 3
 
         # Make sure the instructor is logged in after all quizes finished
-        cls.c.force_login(cls.instructor_participation.user)
+        self.client.force_login(self.instructor_participation.user)
 
 
 @pytest.mark.slow
@@ -322,15 +313,14 @@ class GradeThreeQuizTakerTest(GradeGenericTestMixin, TestCase):
 
     force_login_student_for_each_test = False
 
-    @classmethod
-    def setUpTestData(cls): # noqa
-        super().setUpTestData()
-        cls.do_quiz(cls.ta_participation)
-        cls.do_quiz(cls.instructor_participation)
-        cls.n_quiz_takers = 3
-        cls.n_participations = 3
+    def setUp(self): # noqa
+        super().setUp()
+        self.do_quiz(self.ta_participation)
+        self.do_quiz(self.instructor_participation)
+        self.n_quiz_takers = 3
+        self.n_participations = 3
 
-        cls.c.force_login(cls.instructor_participation.user)
+        self.client.force_login(self.instructor_participation.user)
 
 
 @pytest.mark.slow

@@ -1796,31 +1796,33 @@ class DownloadAllSubmissionsTest(SingleCourseQuizPageTestMixin,
         cls.course.active_git_commit_sha = (
             "my_fake_commit_sha_for_download_submissions")
         cls.course.save()
-        with cls.temporarily_switch_to_user(cls.student_participation.user):
-            cls.start_flow(cls.flow_id)
-            cls.submit_page_answer_by_page_id_and_test(
-                cls.page_id, answer_data={"answer": 0.25})
-            cls.end_flow()
+
+    def setUp(self):
+        with self.temporarily_switch_to_user(self.student_participation.user):
+            self.start_flow(self.flow_id)
+            self.submit_page_answer_by_page_id_and_test(
+                self.page_id, answer_data={"answer": 0.25})
+            self.end_flow()
 
             fs = models.FlowSession.objects.first()
-            fs.access_rules_tag = cls.my_access_rule_tag
+            fs.access_rules_tag = self.my_access_rule_tag
             fs.save()
 
-            cls.start_flow(cls.flow_id)
-            cls.submit_page_answer_by_page_id_and_test("proof")
-            cls.submit_page_answer_by_page_id_and_test(cls.page_id)
-            cls.end_flow()
+            self.start_flow(self.flow_id)
+            self.submit_page_answer_by_page_id_and_test("proof")
+            self.submit_page_answer_by_page_id_and_test(self.page_id)
+            self.end_flow()
 
         # create an in_progress flow, with the same page submitted
         another_particpation = factories.ParticipationFactory(
-            course=cls.course)
-        with cls.temporarily_switch_to_user(another_particpation.user):
-            cls.start_flow(cls.flow_id)
-            cls.submit_page_answer_by_page_id_and_test(cls.page_id)
+            course=self.course)
+        with self.temporarily_switch_to_user(another_particpation.user):
+            self.start_flow(self.flow_id)
+            self.submit_page_answer_by_page_id_and_test(self.page_id)
 
             # create a flow with no answers
-            cls.start_flow(cls.flow_id)
-            cls.end_flow()
+            self.start_flow(self.flow_id)
+            self.end_flow()
 
     @property
     def group_page_id(self):

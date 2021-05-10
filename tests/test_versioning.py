@@ -103,8 +103,7 @@ class CourseCreationTest(VersioningTestMixin, TestCase):
             self.assertTrue(resp.status_code, 403)
 
             data = SINGLE_COURSE_SETUP_LIST[0]["course"]
-            resp = self.post_create_course(data, raise_error=False,
-                                           login_superuser=False)
+            resp = self.post_create_course(data, raise_error=False)
             self.assertTrue(resp.status_code, 403)
             self.assertEqual(Course.objects.count(), 0)
 

@@ -44,27 +44,29 @@ class SingleCourseQuizPageGradeInterfaceTestMixin(SingleCourseQuizPageTestMixin)
         super().setUpTestData()
         cls.start_flow(cls.flow_id)
         cls.this_flow_session_id = cls.default_flow_params["flow_session_id"]
-        cls.submit_page_answer_by_page_id_and_test(cls.page_id)
+
+    def setUp(self):
+        super().setUp()
+        self.submit_page_answer_by_page_id_and_test(self.page_id)
 
 
 @pytest.mark.slow
 class SingleCourseQuizPageGradeInterfaceTest(
         SingleCourseQuizPageGradeInterfaceTestMixin, MockAddMessageMixing, TestCase):
 
-    @classmethod
-    def setUpTestData(cls):  # noqa
-        super().setUpTestData()
+    def setUp(self):  # noqa
+        super().setUp()
 
-        with cls.temporarily_switch_to_user(cls.student_participation.user):
+        with self.temporarily_switch_to_user(self.student_participation.user):
             # a failure submission
-            cls.submit_page_answer_by_page_id_and_test(
-                cls.page_id, answer_data={"uploaded_file": []})
+            self.submit_page_answer_by_page_id_and_test(
+                self.page_id, answer_data={"uploaded_file": []})
             # a success full
-            cls.submit_page_answer_by_page_id_and_test(
-                cls.page_id,
+            self.submit_page_answer_by_page_id_and_test(
+                self.page_id,
                 do_grading=False)
 
-        cls.end_flow()
+        self.end_flow()
 
     def test_post_grades(self):
         self.submit_page_human_grading_by_page_id_and_test(self.page_id)

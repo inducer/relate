@@ -28,7 +28,7 @@ import re
 
 from django.utils.timezone import now
 from djangosaml2.urls import urlpatterns as djsaml2_urlpatterns
-from django.test import TestCase, override_settings, RequestFactory
+from django.test import Client, TestCase, override_settings, RequestFactory
 from django.conf import settings
 from django.core import mail
 from django.contrib.auth import (
@@ -802,8 +802,9 @@ class SignInByEmailTest(CoursesTestMixinBase, MockAddMessageMixing,
         new_email = "somebody@example.com"
         data = {"email": new_email}
 
+        client = Client()
         # first login attempt
-        resp = cls.c.post(reverse("relate-sign_in_by_email"), data=data)
+        resp = client.post(reverse("relate-sign_in_by_email"), data=data)
 
         first_request = resp.wsgi_request
         assert resp.status_code == 302
@@ -819,7 +820,7 @@ class SignInByEmailTest(CoursesTestMixinBase, MockAddMessageMixing,
         assert cls.first_sign_in_url in mail.outbox[0].body
 
         # second login attempt
-        resp = cls.c.post(reverse("relate-sign_in_by_email"), data=data)
+        resp = client.post(reverse("relate-sign_in_by_email"), data=data)
 
         second_request = resp.wsgi_request
         assert resp.status_code == 302
@@ -1736,10 +1737,10 @@ class ResetPasswordStageTwoTest(CoursesTestMixinBase, MockAddMessageMixing,
     def setUpTestData(cls):  # noqa
         super().setUpTestData()
         user = factories.UserFactory()
-        cls.c.logout()
-
+        client = Client()
         with override_settings(RELATE_REGISTRATION_ENABLED=True):
-            cls.post_reset_password(data={"email": user.email})
+            client.post(cls.get_reset_password_url(),
+                              data={"email": user.email})
 
         user.refresh_from_db()
         assert user.sign_in_key is not None
