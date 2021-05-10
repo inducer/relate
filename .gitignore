@@ -38,3 +38,5 @@ bulk-storage
 /coverage.xml
 /.vscode/
 /.venv/
+
+tags
