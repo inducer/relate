@@ -37,6 +37,14 @@ from tests.utils import mock
 from tests import factories
 
 
+def _dummy_histogram(*args):
+    from course.analytics import Histogram
+    hist = Histogram()
+    hist.add_data_point(1)
+    hist.add_data_point(2)
+    return hist
+
+
 @pytest.mark.slow
 class FlowListTest(SingleCourseTestMixin, TestCase):
     """test analytics.flow_list"""
@@ -317,13 +325,16 @@ class FlowAnalyticsTest(SingleCourseQuizPageTestMixin, HackRepoMixin,
 
     def test_success_check_func_call(self):
         with mock.patch(
-                "course.analytics.make_grade_histogram"
+            "course.analytics.make_grade_histogram",
+            return_value=_dummy_histogram()
         ) as mock_make_g_his, mock.patch(
             "course.analytics.make_page_answer_stats_list"
         ) as mock_make_stats_list, mock.patch(
-            "course.analytics.make_time_histogram"
+            "course.analytics.make_time_histogram",
+            return_value=_dummy_histogram()
         ) as mock_make_t_his, mock.patch(
-            "course.analytics.count_participants"
+            "course.analytics.count_participants",
+            return_value=2,
         ) as mock_count_particpt:
             resp = self.get_flow_analytics_view(flow_id=self.flow_id)
             self.assertEqual(resp.status_code, 200)
@@ -339,13 +350,16 @@ class FlowAnalyticsTest(SingleCourseQuizPageTestMixin, HackRepoMixin,
 
     def test_success_test_restrict_to_first_attempt(self):
         with mock.patch(
-                "course.analytics.make_grade_histogram"
+            "course.analytics.make_grade_histogram",
+            return_value=_dummy_histogram()
         ) as mock_make_g_his, mock.patch(
             "course.analytics.make_page_answer_stats_list"
         ) as mock_make_stats_list, mock.patch(
-            "course.analytics.make_time_histogram"
+            "course.analytics.make_time_histogram",
+            return_value=_dummy_histogram(),
         ) as mock_make_t_his, mock.patch(
-            "course.analytics.count_participants"
+            "course.analytics.count_participants",
+            return_value=2,
         ) as mock_count_particpt:
             resp = self.get_flow_analytics_view(flow_id=self.flow_id,
                                                 restrict_to_first_attempt=1)
@@ -366,13 +380,16 @@ class FlowAnalyticsTest(SingleCourseQuizPageTestMixin, HackRepoMixin,
 
     def test_success_test_restrict_to_first_attempt_invalid(self):
         with mock.patch(
-                "course.analytics.make_grade_histogram"
+            "course.analytics.make_grade_histogram",
+            return_value=_dummy_histogram()
         ) as mock_make_g_his, mock.patch(
             "course.analytics.make_page_answer_stats_list"
         ) as mock_make_stats_list, mock.patch(
-            "course.analytics.make_time_histogram"
+            "course.analytics.make_time_histogram",
+            return_value=_dummy_histogram()
         ) as mock_make_t_his, mock.patch(
-            "course.analytics.count_participants"
+            "course.analytics.count_participants",
+            return_value=2,
         ) as mock_count_particpt:
             resp = self.get_flow_analytics_view(flow_id=self.flow_id,
                                                 restrict_to_first_attempt="foo")
