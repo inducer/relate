@@ -162,7 +162,7 @@ NONE_PARTICIPATION_USER_CREATE_KWARG_LIST = [
 ]
 
 try:
-    mc = memcache.Client(['127.0.0.1:11211'])
+    mc = memcache.Client(["127.0.0.1:11211"])
 except Exception:
     pass
 
@@ -366,11 +366,11 @@ class ResponseContextMixin:
                 params["term"] = term
 
         return self.c.get(select2_url, params,
-                          HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+                          HTTP_X_REQUESTED_WITH="XMLHttpRequest")
 
     def get_select2_response_data(self, response, key="results"):
         import json
-        return json.loads(response.content.decode('utf-8'))[key]
+        return json.loads(response.content.decode("utf-8"))[key]
 
 
 class SuperuserCreateMixin(ResponseContextMixin):
@@ -381,7 +381,6 @@ class SuperuserCreateMixin(ResponseContextMixin):
         # Create superuser, without this, we cannot
         # create user, course and participation.
         cls.superuser = cls.create_superuser()
-        cls.c = Client()
         cls.settings_git_root_override = (
             override_settings(GIT_ROOT=tempfile.mkdtemp()))
         cls.settings_git_root_override.enable()
@@ -406,29 +405,29 @@ class SuperuserCreateMixin(ResponseContextMixin):
         return reverse("relate-sign_up")
 
     @classmethod
-    def get_sign_up(cls, follow=True):
-        return cls.c.get(cls.get_sign_up_view_url(), follow=follow)
+    def get_sign_up(cls, client, *, follow=True):
+        return client.get(cls.get_sign_up_view_url(), follow=follow)
 
     @classmethod
-    def post_sign_up(cls, data, follow=True):
-        return cls.c.post(cls.get_sign_up_view_url(), data, follow=follow)
+    def post_sign_up(cls, client, data, *, follow=True):
+        return client.post(cls.get_sign_up_view_url(), data, follow=follow)
 
     @classmethod
     def get_profile_view_url(cls):
         return reverse("relate-user_profile")
 
     @classmethod
-    def get_profile(cls, follow=True):
-        return cls.c.get(cls.get_profile_view_url(), follow=follow)
+    def get_profile(cls, client, *, follow=True):
+        return client.get(cls.get_profile_view_url(), follow=follow)
 
     @classmethod
-    def post_profile(cls, data, follow=True):
+    def post_profile(cls, client, data, *, follow=True):
         data.update({"submit_user": [""]})
-        return cls.c.post(cls.get_profile_view_url(), data, follow=follow)
+        return client.post(cls.get_profile_view_url(), data, follow=follow)
 
     @classmethod
-    def post_signout(cls, data, follow=True):
-        return cls.c.post(cls.get_sign_up_view_url(), data, follow=follow)
+    def post_signout(cls, client, data, *, follow=True):
+        return client.post(cls.get_sign_up_view_url(), data, follow=follow)
 
     @classmethod
     def get_impersonate_view_url(cls):
@@ -439,30 +438,31 @@ class SuperuserCreateMixin(ResponseContextMixin):
         return reverse("relate-stop_impersonating")
 
     @classmethod
-    def get_impersonate_view(cls):
-        return cls.c.get(cls.get_impersonate_view_url())
+    def get_impersonate_view(cls, client):
+        return client.get(cls.get_impersonate_view_url())
 
     @classmethod
-    def post_impersonate_view(cls, impersonatee, follow=True):
+    def post_impersonate_view(cls, client, impersonatee, follow=True):
         data = {"add_impersonation_header": ["on"],
-                "submit": [''],
+                "submit": [""],
                 }
         data["user"] = [str(impersonatee.pk)]
-        return cls.c.post(cls.get_impersonate_view_url(), data, follow=follow)
+        return client.post(cls.get_impersonate_view_url(), data, follow=follow)
 
     @classmethod
-    def get_stop_impersonate(cls, follow=True):
-        return cls.c.get(cls.get_stop_impersonate_view_url(), follow=follow)
+    def get_stop_impersonate(cls, client, *, follow=True):
+        return client.get(cls.get_stop_impersonate_view_url(), follow=follow)
 
     @classmethod
-    def post_stop_impersonate(cls, data=None, follow=True, using_ajax=True):
+    def post_stop_impersonate(cls, client, *,
+            data=None, follow=True, using_ajax=True):
         if not data:
             data = {"stop_impersonating": ""}
         if using_ajax:
-            return cls.c.post(
+            return client.post(
                 cls.get_stop_impersonate_view_url(),
-                data, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
-        return cls.c.post(
+                data, HTTP_X_REQUESTED_WITH="XMLHttpRequest")
+        return client.post(
             cls.get_stop_impersonate_view_url(), data, follow=follow)
 
     @classmethod
@@ -470,13 +470,13 @@ class SuperuserCreateMixin(ResponseContextMixin):
         return reverse("relate-confirm_stop_impersonating")
 
     @classmethod
-    def get_confirm_stop_impersonate(cls, follow=True):
-        return cls.c.get(
+    def get_confirm_stop_impersonate(cls, client, *, follow=True):
+        return client.get(
             cls.get_confirm_stop_impersonate_view_url(), follow=follow)
 
     @classmethod
-    def post_confirm_stop_impersonate(cls, follow=True):
-        return cls.c.post(
+    def post_confirm_stop_impersonate(cls, client, *, follow=True):
+        return client.post(
             cls.get_confirm_stop_impersonate_view_url(), {}, follow=follow)
 
     @classmethod
@@ -487,12 +487,12 @@ class SuperuserCreateMixin(ResponseContextMixin):
         return reverse("relate-reset_password", kwargs=kwargs)
 
     @classmethod
-    def get_reset_password(cls, use_instid=False):
-        return cls.c.get(cls.get_reset_password_url(use_instid))
+    def get_reset_password(cls, client, *, use_instid=False):
+        return client.get(cls.get_reset_password_url(use_instid))
 
     @classmethod
-    def post_reset_password(cls, data, use_instid=False):
-        return cls.c.post(cls.get_reset_password_url(use_instid),
+    def post_reset_password(cls, client, data, *, use_instid=False):
+        return client.post(cls.get_reset_password_url(use_instid),
                           data=data)
 
     def get_reset_password_stage2_url(self, user_id, sign_in_key, **kwargs):
@@ -519,12 +519,12 @@ class SuperuserCreateMixin(ResponseContextMixin):
         return reverse("relate-set_fake_time")
 
     @classmethod
-    def get_set_fake_time(cls):
-        return cls.c.get(cls.get_fake_time_url())
+    def get_set_fake_time(cls, client):
+        return client.get(cls.get_fake_time_url())
 
     @classmethod
-    def post_set_fake_time(cls, data, follow=True):
-        return cls.c.post(cls.get_fake_time_url(), data, follow=follow)
+    def post_set_fake_time(cls, client, data, *, follow=True):
+        return client.post(cls.get_fake_time_url(), data, follow=follow)
 
     def assertSessionFakeTimeEqual(self, session, expected_date_time):  # noqa
         fake_time_timestamp = session.get("relate_fake_time", None)
@@ -545,12 +545,12 @@ class SuperuserCreateMixin(ResponseContextMixin):
         return reverse("relate-set_pretend_facilities")
 
     @classmethod
-    def get_set_pretend_facilities(cls):
-        return cls.c.get(cls.get_set_pretend_facilities_url())
+    def get_set_pretend_facilities(cls, client):
+        return client.get(cls.get_set_pretend_facilities_url())
 
     @classmethod
-    def post_set_pretend_facilities(cls, data, follow=True):
-        return cls.c.post(cls.get_set_pretend_facilities_url(), data,
+    def post_set_pretend_facilities(cls, client, data, follow=True):
+        return client.post(cls.get_set_pretend_facilities_url(), data,
                           follow=follow)
 
     @classmethod
@@ -638,6 +638,38 @@ def get_flow_page_id_from_page_ordinal(flow_session_id, page_ordinal,
 
 # {{{ CoursesTestMixinBase
 
+class _ClientUserSwitcher:
+    def __init__(self, client, logged_in_user, switch_to):
+        self.client = client
+        self.logged_in_user = logged_in_user
+        self.switch_to = switch_to
+
+    def __enter__(self):
+        if self.logged_in_user == self.switch_to:
+            return
+        if self.switch_to is None:
+            self.client.logout()
+            return
+        self.client.force_login(self.switch_to)
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if self.logged_in_user == self.switch_to:
+            return
+        if self.logged_in_user is None:
+            self.client.logout()
+            return
+        self.client.force_login(self.logged_in_user)
+
+    def __call__(self, func):
+        from functools import wraps
+
+        @wraps(func)
+        def wrapper(*args, **kw):
+            with self:
+                return func(*args, **kw)
+        return wrapper
+
+
 class CoursesTestMixinBase(SuperuserCreateMixin):
 
     # A list of Dicts, each of which contain a course dict and a list of
@@ -650,6 +682,9 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
     @classmethod
     def setUpTestData(cls):  # noqa
         super().setUpTestData()
+
+        client = Client()
+        client.force_login(cls.superuser)
         cls.default_flow_params = None
         cls.n_courses = 0
         if cls.courses_attributes_extra_list is not None:
@@ -671,7 +706,7 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
                 assert isinstance(extra_attrs, dict)
                 course_setup_kwargs.update(extra_attrs)
 
-            cls.create_course(course_setup_kwargs)
+            cls.create_course(client, course_setup_kwargs)
 
             course = Course.objects.get(identifier=course_identifier)
             if "participations" in course_setup:
@@ -751,14 +786,14 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
         return participation
 
     @classmethod
-    def post_create_course(cls, create_course_kwargs, raise_error=True,
+    def post_create_course(cls, client, create_course_kwargs, *, raise_error=True,
                            login_superuser=True):
         # To speed up, use create_course instead, this is better used for tests
         if login_superuser:
-            cls.c.force_login(cls.superuser)
+            client.force_login(cls.superuser)
         existing_course_count = Course.objects.count()
         with override_settings(**cls.override_settings_at_post_create_course):
-            resp = cls.c.post(cls.get_set_up_new_course_url(),
+            resp = client.post(cls.get_set_up_new_course_url(),
                               data=create_course_kwargs)
         if raise_error:
             all_courses = Course.objects.all()
@@ -803,7 +838,7 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
         return resp
 
     @classmethod
-    def create_course(cls, create_course_kwargs, raise_error=True):
+    def create_course(cls, client, create_course_kwargs, *, raise_error=True):
         has_cached_repo = False
         repo_cache_key, commit_sha_cach_key = (
             git_source_url_to_cache_keys(create_course_kwargs["git_source"]))
@@ -820,7 +855,7 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
         if not has_cached_repo:
             # fall back to post create
             return cls.post_create_course(
-                create_course_kwargs, raise_error=raise_error)
+                    client, create_course_kwargs, raise_error=raise_error)
         existing_course_count = Course.objects.count()
         new_course_repo_path = os.path.join(settings.GIT_ROOT,
                                         create_course_kwargs["identifier"])
@@ -1102,9 +1137,9 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
                 data=data)
 
     @classmethod
-    def get_logged_in_user(cls):
+    def get_logged_in_user(cls, client):
         try:
-            logged_in_user_id = cls.c.session['_auth_user_id']
+            logged_in_user_id = client.session["_auth_user_id"]
             from django.contrib.auth import get_user_model
             logged_in_user = get_user_model().objects.get(
                 pk=int(logged_in_user_id))
@@ -1113,40 +1148,9 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
         return logged_in_user
 
     @classmethod
-    def temporarily_switch_to_user(cls, switch_to):
-
-        from functools import wraps
-
-        class ClientUserSwitcher:
-            def __init__(self, switch_to):
-                self.client = cls.c
-                self.switch_to = switch_to
-                self.logged_in_user = cls.get_logged_in_user()
-
-            def __enter__(self):
-                if self.logged_in_user == self.switch_to:
-                    return
-                if self.switch_to is None:
-                    self.client.logout()
-                    return
-                self.client.force_login(self.switch_to)
-
-            def __exit__(self, exc_type, exc_val, exc_tb):
-                if self.logged_in_user == self.switch_to:
-                    return
-                if self.logged_in_user is None:
-                    self.client.logout()
-                    return
-                self.client.force_login(self.logged_in_user)
-
-            def __call__(self, func):
-                @wraps(func)
-                def wrapper(*args, **kw):
-                    with self:
-                        return func(*args, **kw)
-                return wrapper
-
-        return ClientUserSwitcher(switch_to)
+    def temporarily_switch_to_user(cls, client, switch_to):
+        return _ClientUserSwitcher(
+                client, cls.get_logged_in_user(client), switch_to)
 
     @classmethod
     def get_default_course(cls):
@@ -1167,7 +1171,7 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
     @classmethod
     def get_latest_session_id(cls, course_identifier):
         flow_session_qset = FlowSession.objects.filter(
-            course__identifier=course_identifier).order_by('-pk')[:1]
+            course__identifier=course_identifier).order_by("-pk")[:1]
         if flow_session_qset:
             return flow_session_qset[0].id
         else:
@@ -1208,7 +1212,7 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
         return reverse("relate-view_start_flow", kwargs=kwargs)
 
     @classmethod
-    def start_flow(cls, flow_id, course_identifier=None,
+    def start_flow(cls, client, flow_id, *, course_identifier=None,
                    ignore_cool_down=True, assume_success=True):
         """
         Notice: be cautious to use this in setUpTestData, because this will
@@ -1222,7 +1226,7 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
             cool_down_seconds = settings.RELATE_SESSION_RESTART_COOLDOWN_SECONDS
         with override_settings(
                 RELATE_SESSION_RESTART_COOLDOWN_SECONDS=cool_down_seconds):
-            resp = cls.c.post(
+            resp = client.post(
                 cls.get_view_start_flow_url(flow_id, course_identifier))
 
         if assume_success:
@@ -1237,17 +1241,17 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
         return resp
 
     @classmethod
-    def end_flow(cls, course_identifier=None, flow_session_id=None,
+    def end_flow(cls, client, *, course_identifier=None, flow_session_id=None,
                  post_parameter="submit"):
         if not course_identifier or not flow_session_id:
             if cls.default_flow_params is None:
                 raise RuntimeError(
                     "There's no started flow_sessions, or "
                     "the session is not started by start_flow")
-        resp = cls.c.post(
+        resp = client.post(
             cls.get_finish_flow_session_view_url(
                 course_identifier, flow_session_id),
-            data={post_parameter: ['']})
+            data={post_parameter: [""]})
         return resp
 
     @classmethod
@@ -1349,11 +1353,11 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
 
     @classmethod
     def post_answer_by_ordinal(
-            cls, page_ordinal, answer_data,
+            cls, client, page_ordinal, answer_data, *,
             course_identifier=None, flow_session_id=None, visit_id=None):
         submit_data = answer_data
         submit_data.update({"submit": ["Submit final answer"]})
-        resp = cls.c.post(
+        resp = client.post(
             cls.get_page_url_by_ordinal(
                 page_ordinal, course_identifier, flow_session_id, visit_id),
             submit_data)
@@ -1369,7 +1373,7 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
             page_ordinal, answer_data, course_identifier, flow_session_id, visit_id)
 
     @classmethod
-    def post_answer_by_ordinal_class(cls, page_ordinal, answer_data,
+    def post_answer_by_ordinal_class(cls, client, page_ordinal, answer_data,
                                      course_identifier, flow_session_id):
         submit_data = answer_data
         submit_data.update({"submit": ["Submit final answer"]})
@@ -1379,7 +1383,7 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
             "page_ordinal": page_ordinal
         }
         page_url = reverse("relate-view_flow_page", kwargs=page_params)
-        resp = cls.c.post(page_url, submit_data)
+        resp = client.post(page_url, submit_data)
         return resp
 
     @classmethod
@@ -1390,7 +1394,7 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
                                                 course_identifier, flow_session_id)
 
     @classmethod
-    def post_grade_by_ordinal(cls, page_ordinal, grade_data,
+    def post_grade_by_ordinal(cls, client, page_ordinal, grade_data, *,
                               course_identifier=None, flow_session_id=None,
                               force_login_instructor=True):
         post_data = {"submit": [""]}
@@ -1405,20 +1409,20 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
                 page_params["course_identifier"])
 
         with cls.temporarily_switch_to_user(force_login_user):
-            response = cls.c.post(
+            response = client.post(
                 cls.get_page_grading_url_by_ordinal(**page_params),
                 data=post_data,
                 follow=True)
         return response
 
     @classmethod
-    def post_grade_by_page_id(cls, page_id, grade_data,
+    def post_grade_by_page_id(cls, client, page_id, grade_data, *,
                               course_identifier=None, flow_session_id=None,
                               force_login_instructor=True):
         page_ordinal = cls.get_page_ordinal_via_page_id(
             page_id, course_identifier, flow_session_id)
 
-        return cls.post_grade_by_ordinal(
+        return cls.post_grade_by_ordinal(client,
             page_ordinal, grade_data, course_identifier,
             flow_session_id, force_login_instructor)
 
@@ -1456,20 +1460,22 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
 
     @classmethod
     def get_page_submit_history_by_ordinal(
-            cls, page_ordinal, course_identifier=None, flow_session_id=None):
-        resp = cls.c.get(
+            cls, client, page_ordinal, *,
+            course_identifier=None, flow_session_id=None):
+        resp = client.get(
             cls.get_page_submit_history_url_by_ordinal(
                 page_ordinal, course_identifier, flow_session_id),
-            HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest")
         return resp
 
     @classmethod
     def get_page_grade_history_by_ordinal(
-            cls, page_ordinal, course_identifier=None, flow_session_id=None):
-        resp = cls.c.get(
+            cls, client, page_ordinal, *,
+            course_identifier=None, flow_session_id=None):
+        resp = client.get(
             cls.get_page_grade_history_url_by_ordinal(
                 page_ordinal, course_identifier, flow_session_id),
-            HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest")
         return resp
 
     def assertSubmitHistoryItemsCount(  # noqa
@@ -1516,7 +1522,7 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
         return get_course_commit_sha(course, participation)
 
     @classmethod
-    def post_update_course_content(cls, commit_sha,
+    def post_update_course_content(cls, client, commit_sha, *,
                                    prevent_discarding_revisions=True,
                                    force_login_instructor=True,
                                    course=None,
@@ -1539,14 +1545,14 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
         # normally, command should be in
         # ["fetch", "fetch_update", "update", "fetch_preview", "preview",
         #  "end_preview"]
-        data[command] = 'on'
+        data[command] = "on"
 
         force_login_user = cls.get_logged_in_user()
         if force_login_instructor:
             force_login_user = cls.get_default_instructor_user(course.identifier)
 
         with cls.temporarily_switch_to_user(force_login_user):
-            response = cls.c.post(
+            response = client.post(
                 cls.get_update_course_url(course.identifier), data)
             course.refresh_from_db()
 
@@ -1580,7 +1586,7 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
                               page_id=None, assert_not_none=True):
         result_qset = cls.get_page_visits(course_identifier,
                                           flow_session_id, page_ordinal, page_id,
-                                          answer_visit=True).order_by('-pk')[:1]
+                                          answer_visit=True).order_by("-pk")[:1]
         if result_qset:
             result = result_qset[0]
         else:
@@ -1616,11 +1622,11 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
         if course_identifier is None:
             course_identifier = cls.get_default_course_identifier()
 
-        data = {'restrict_to_rules_tag': '<<<ALL>>>',
-                'which_attempt': 'last',
-                'extra_file': '', 'download': 'Download',
-                'page_id': group_page_id,
-                'non_in_progress_only': 'on'}
+        data = {"restrict_to_rules_tag": "<<<ALL>>>",
+                "which_attempt": "last",
+                "extra_file": "", "download": "Download",
+                "page_id": group_page_id,
+                "non_in_progress_only": "on"}
 
         non_in_progress_only = kwargs.pop("non_in_progress_only", True)
         if not non_in_progress_only:
@@ -1799,7 +1805,6 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
 class SingleCourseTestMixin(CoursesTestMixinBase):
     courses_setup_list = SINGLE_COURSE_SETUP_LIST
     initial_commit_sha = None
-    force_login_student_for_each_test = True
 
     @classmethod
     def setUpTestData(cls):  # noqa
@@ -1831,10 +1836,6 @@ class SingleCourseTestMixin(CoursesTestMixinBase):
         ).first()
         assert cls.ta_participation
 
-        if cls.force_login_student_for_each_test:
-            cls.c.force_login(cls.student_participation.user)
-        else:
-            cls.c.logout()
         cls.course_page_url = cls.get_course_page_url()
 
     def setUp(self):  # noqa
@@ -1846,8 +1847,8 @@ class SingleCourseTestMixin(CoursesTestMixinBase):
         self.instructor_participation.refresh_from_db()
         self.student_participation.refresh_from_db()
         self.ta_participation.refresh_from_db()
-        if self.force_login_student_for_each_test:
-            self.c.force_login(self.student_participation.user)
+
+        self.client.force_login(self.student_participation.user)
 
     @classmethod
     def get_default_course(cls):
@@ -2082,7 +2083,7 @@ class SingleCourseQuizPageTestMixin(SingleCoursePageTestMixin):
     skip_code_question = True
 
     @classmethod
-    def ensure_grading_ui_get(cls, page_id):
+    def ensure_grading_ui_get(cls, client, page_id):
         with cls.temporarily_switch_to_user(cls.instructor_participation.user):
             url = cls.get_page_grading_url_by_page_id(page_id)
             resp = cls.c.get(url)
@@ -2105,15 +2106,15 @@ class SingleCourseQuizPageTestMixin(SingleCoursePageTestMixin):
             resp = cls.post_download_all_submissions_by_group_page_id(
                 group_page_id=group_page_id, flow_id=cls.flow_id)
             assert resp.status_code == 200
-            prefix, zip_file = resp["Content-Disposition"].split('=')
+            prefix, zip_file = resp["Content-Disposition"].split("=")
             assert prefix == "attachment; filename"
-            assert resp.get('Content-Type') == "application/zip"
+            assert resp.get("Content-Type") == "application/zip"
 
             import io
             if dl_file_extension:
                 buf = io.BytesIO(resp.content)
                 import zipfile
-                with zipfile.ZipFile(buf, 'r') as zf:
+                with zipfile.ZipFile(buf, "r") as zf:
                     assert zf.testzip() is None
                     # todo: make more assertions in terms of file content
 
@@ -2236,7 +2237,7 @@ class SingleCourseQuizPageTestMixin(SingleCoursePageTestMixin):
                                 file_path, = file_path
 
                             file_path = file_path.strip()
-                            with open(file_path, 'rb') as fp:
+                            with open(file_path, "rb") as fp:
                                 answer_data = {"uploaded_file": fp}
                                 submit_answer_response = (
                                     cls.post_answer_by_page_id(
@@ -2621,7 +2622,7 @@ class AdminTestMixin(TwoCourseTestMixin):
         """
         Return a list of AdminFields for the AdminForm in the response.
         """
-        admin_form = response.context['adminform']
+        admin_form = response.context["adminform"]
         fieldsets = list(admin_form)
 
         field_lines = []
@@ -2658,7 +2659,7 @@ class AdminTestMixin(TwoCourseTestMixin):
         filterspecs = changelist.get_filters(request)[0]
         filterspec_list = []
         for filterspec in filterspecs:
-            choices = tuple(c['display'] for c in filterspec.choices(changelist))
+            choices = tuple(c["display"] for c in filterspec.choices(changelist))
             filterspec_list.append(choices)
 
         return filterspec_list

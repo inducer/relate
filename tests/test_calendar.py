@@ -70,7 +70,7 @@ class CreateRecurringEventsTest(SingleCourseTestMixin,
         else:
             user = self.instructor_participation.user
 
-        with self.temporarily_switch_to_user(user):
+        with self.temporarily_switch_to_user(self.client, user):
             return self.c.post(
                 self.get_create_recurring_events_url(course_identifier), data)
 
@@ -82,7 +82,7 @@ class CreateRecurringEventsTest(SingleCourseTestMixin,
                 DATE_TIME_PICKER_TIME_FORMAT),
             "interval": "weekly",
             "count": 5,
-            op: ''
+            op: "",
         }
 
         if starting_ordinal:
