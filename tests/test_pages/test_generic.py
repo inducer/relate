@@ -59,7 +59,7 @@ class SingleCourseQuizPageTest(SingleCourseQuizPageTestMixin,
             id=self.default_flow_params["flow_session_id"]).page_count
 
         # test PageOrdinalOutOfRange
-        resp = self.c.get(
+        resp = self.client.get(
             self.get_page_url_by_ordinal(page_ordinal=page_count + 1))
         self.assertEqual(resp.status_code, 302)
         _, _, params = resolve(resp.url)
@@ -78,7 +78,7 @@ class SingleCourseQuizPageTest(SingleCourseQuizPageTestMixin,
                 page_id, group_id = (
                     self.get_page_id_via_page_oridnal(i, with_group_id=True))
                 with self.subTest(page_id=page_id, name="no answer page view"):
-                    resp = self.c.get(self.get_page_url_by_page_id(page_id=page_id))
+                    resp = self.client.get(self.get_page_url_by_page_id(page_id=page_id))
                     self.assertEqual(resp.status_code, 200)
                     if page_id not in ["age_group", "fear", "welcome"]:
                         self.assertContains(resp, "No answer provided.")
@@ -367,13 +367,13 @@ class SingleCourseQuizPageTest(SingleCourseQuizPageTestMixin,
     # {{{ tests on submission history dropdown
     def test_submit_history_failure_not_ajax(self):
         self.post_answer_by_ordinal(1, {"answer": ['0.5']})
-        resp = self.c.get(
+        resp = self.client.get(
             self.get_page_submit_history_url_by_ordinal(page_ordinal=1))
         self.assertEqual(resp.status_code, 403)
 
     def test_submit_history_failure_not_get(self):
         self.post_answer_by_ordinal(1, {"answer": ['0.5']})
-        resp = self.c.post(
+        resp = self.client.post(
             self.get_page_submit_history_url_by_ordinal(page_ordinal=1))
         self.assertEqual(resp.status_code, 403)
 
@@ -382,7 +382,7 @@ class SingleCourseQuizPageTest(SingleCourseQuizPageTestMixin,
 
         # anonymous user has not pperm to view submit history
         with self.temporarily_switch_to_user(None):
-            resp = self.c.post(
+            resp = self.client.post(
                 self.get_page_submit_history_url_by_ordinal(page_ordinal=1))
         self.assertEqual(resp.status_code, 403)
 

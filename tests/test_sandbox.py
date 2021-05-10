@@ -115,7 +115,7 @@ class SingleCoursePageSandboxTestBaseMixin(SingleCourseTestMixin):
         return self.get_page_sandbox_post_response(answer_data, action='submit')
 
     def get_sandbox_data_by_key(self, key):
-        return self.c.session.get(
+        return self.client.session.get(
             make_sandbox_session_key(key, self.course.identifier))
 
     def get_sandbox_page_data(self):
@@ -163,7 +163,7 @@ class SingleCoursePageSandboxTestBaseMixin(SingleCourseTestMixin):
 
 class SingleCoursePageSandboxTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
     def test_page_sandbox_get(self):
-        resp = self.c.get(reverse("relate-view_page_sandbox",
+        resp = self.client.get(reverse("relate-view_page_sandbox",
                                   args=[self.course.identifier]))
         self.assertEqual(resp.status_code, 200)
 
@@ -202,7 +202,7 @@ class ViewPageSandboxTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
      (for cases not covered by other tests)"""
     def test_not_authenticated(self):
         with self.temporarily_switch_to_user(None):
-            resp = self.c.get(self.get_page_sandbox_url())
+            resp = self.client.get(self.get_page_sandbox_url())
             self.assertEqual(resp.status_code, 403)
 
             resp = self.get_page_sandbox_preview_response(QUESTION_MARKUP)
@@ -210,7 +210,7 @@ class ViewPageSandboxTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
 
     def test_no_pperm(self):
         with self.temporarily_switch_to_user(self.student_participation.user):
-            resp = self.c.get(self.get_page_sandbox_url())
+            resp = self.client.get(self.get_page_sandbox_url())
             self.assertEqual(resp.status_code, 403)
 
             resp = self.get_page_sandbox_preview_response(QUESTION_MARKUP)
@@ -280,7 +280,7 @@ class ViewPageSandboxTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
     def test_reload_from_storage(self):
         self.get_page_sandbox_preview_response(
             markup_content=QUESTION_MARKUP)
-        resp = self.c.get(self.get_page_sandbox_url())
+        resp = self.client.get(self.get_page_sandbox_url())
 
         self.assertEqual(resp.status_code, 200)
         self.assertSandboxHasValidPage(resp)
@@ -288,7 +288,7 @@ class ViewPageSandboxTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
     def test_reload_from_storage_success(self):
         self.get_page_sandbox_preview_response(
             markup_content=QUESTION_MARKUP)
-        resp = self.c.get(self.get_page_sandbox_url())
+        resp = self.client.get(self.get_page_sandbox_url())
 
         self.assertEqual(resp.status_code, 200)
         self.assertSandboxHasValidPage(resp)
@@ -302,11 +302,11 @@ class ViewPageSandboxTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
         # change the page_desc stored
         key = make_sandbox_session_key(
             PAGE_SESSION_KEY_PREFIX, self.course.identifier)
-        session = self.c.session
+        session = self.client.session
         session[key] = PAGE_MARKUP
         session.save()
 
-        resp = self.c.get(self.get_page_sandbox_url())
+        resp = self.client.get(self.get_page_sandbox_url())
         self.assertEqual(resp.status_code, 200)
         self.assertSandboxHasValidPage(resp)
 
@@ -319,7 +319,7 @@ class ViewPageSandboxTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
                 "course.content.instantiate_flow_page") as mock_instantiate:
             error_msg = "my make form error"
             mock_instantiate.side_effect = RuntimeError(error_msg)
-            resp = self.c.get(self.get_page_sandbox_url())
+            resp = self.client.get(self.get_page_sandbox_url())
 
             self.assertEqual(resp.status_code, 200)
             self.assertSandboxNotHasValidPage(resp)

@@ -365,7 +365,7 @@ class ResponseContextMixin:
             if term:
                 params["term"] = term
 
-        return self.c.get(select2_url, params,
+        return self.client.get(select2_url, params,
                           HTTP_X_REQUESTED_WITH='XMLHttpRequest')
 
     def get_select2_response_data(self, response, key="results"):
@@ -504,11 +504,11 @@ class SuperuserCreateMixin(ResponseContextMixin):
         return url
 
     def get_reset_password_stage2(self, user_id, sign_in_key, **kwargs):
-        return self.c.get(self.get_reset_password_stage2_url(
+        return self.client.get(self.get_reset_password_stage2_url(
             user_id=user_id, sign_in_key=sign_in_key, **kwargs))
 
     def post_reset_password_stage2(self, user_id, sign_in_key, data, **kwargs):
-        return self.c.post(self.get_reset_password_stage2_url(
+        return self.client.post(self.get_reset_password_stage2_url(
             user_id=user_id, sign_in_key=sign_in_key, **kwargs), data=data)
 
     @staticmethod
@@ -960,11 +960,11 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
         return reverse("relate-view_participant_grades", kwargs=kwargs)
 
     def get_view_participant_grades(self, participation_id, course_identifier=None):
-        return self.c.get(self.view_participant_grades_url(
+        return self.client.get(self.view_participant_grades_url(
             participation_id, course_identifier))
 
     def get_view_my_grades(self, course_identifier=None):
-        return self.c.get(self.view_participant_grades_url(
+        return self.client.get(self.view_participant_grades_url(
             participation_id=None, course_identifier=course_identifier))
 
     @classmethod
@@ -1388,7 +1388,7 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
                 page_params["course_identifier"])
 
         with self.temporarily_switch_to_user(force_login_user):
-            response = self.c.post(
+            response = self.client.post(
                 self.get_page_grading_url_by_ordinal(**page_params),
                 data=post_data,
                 follow=True)
@@ -1764,7 +1764,7 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
             user = self.instructor_participation.user
 
         with self.temporarily_switch_to_user(user):
-            return self.c.get(
+            return self.client.get(
                 self.get_flow_analytics_url(
                     flow_id, course_identifier=course_identifier,
                     restrict_to_first_attempt=restrict_to_first_attempt))
@@ -1976,7 +1976,6 @@ class TwoCourseTestMixin(CoursesTestMixinBase):
         ).first()
         assert cls.course2_ta_participation
         cls.course2_page_url = cls.get_course_page_url(cls.course2.identifier)
-
         cls.c.logout()
 
     def setUp(self):  # noqa

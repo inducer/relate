@@ -57,17 +57,17 @@ class CourseAdminTestMixin(AdminTestMixin):
             self, model_class, with_add_view=True, with_change_view=True):
         for user in [self.superuser, self.instructor1, self.instructor2]:
             with self.temporarily_switch_to_user(user):
-                resp = self.c.get(self.get_admin_course_change_list_view_url(
+                resp = self.client.get(self.get_admin_course_change_list_view_url(
                     model_class.__name__))
                 self.assertEqual(resp.status_code, 200)
 
                 if with_add_view:
-                    resp = self.c.get(
+                    resp = self.client.get(
                         self.get_admin_course_add_view_url(model_class.__name__))
                     self.assertIn(resp.status_code, [200, 403])  # 403 for not implemented  # noqa
 
                 if with_change_view:
-                    resp = self.c.get(
+                    resp = self.client.get(
                         self.get_admin_course_change_view_url(
                             model_class.__name__, args=[1]))
                     self.assertIn(resp.status_code, [200, 302])  # 302 for no objects  # noqa
@@ -336,7 +336,7 @@ class ParticipationAdminTest(CourseAdminTestMixin, TestCase):
             'index': 0,
         }
         with self.temporarily_switch_to_user(self.instructor1):
-            resp = self.c.post(
+            resp = self.client.post(
                 self.get_admin_course_change_list_view_url(
                     models.Participation.__name__), action_data)
             self.assertEqual(resp.status_code, 302)
@@ -364,7 +364,7 @@ class ParticipationAdminTest(CourseAdminTestMixin, TestCase):
             'index': 0,
         }
         with self.temporarily_switch_to_user(self.instructor1):
-            resp = self.c.post(
+            resp = self.client.post(
                 self.get_admin_course_change_list_view_url(
                     models.Participation.__name__), action_data)
             self.assertEqual(resp.status_code, 302)
@@ -465,7 +465,7 @@ class ParticipationPreapprovalAdminTest(CourseAdminTestMixin, TestCase):
         add_dict = {'institutional_id': '1234',
                     'course': self.course1.pk}
         with self.temporarily_switch_to_user(self.instructor1):
-            self.c.post(
+            self.client.post(
                 self.get_admin_course_add_view_url(
                     models.ParticipationPreapproval.__name__), add_dict)
         all_objs = models.ParticipationPreapproval.objects
@@ -500,7 +500,7 @@ class GradeChangeAdminTest(CourseAdminSessionRelatedMixin, TestCase):
             'max_points': 100,
         }
         with self.temporarily_switch_to_user(self.instructor2):
-            self.c.post(
+            self.client.post(
                 self.get_admin_course_add_view_url(
                     models.GradeChange.__name__), add_dict)
         all_objs = models.GradeChange.objects
@@ -530,7 +530,7 @@ class ExamTicketAdminTest(CourseAdminTestMixin, TestCase):
             'creation_time_1': "10:54:39",
         }
         with self.temporarily_switch_to_user(self.instructor1):
-            resp = self.c.post(
+            resp = self.client.post(
                 self.get_admin_course_add_view_url(
                     models.ExamTicket.__name__), add_dict)
             self.assertEqual(resp.status_code, 302)
@@ -554,7 +554,7 @@ class ExamTicketAdminTest(CourseAdminTestMixin, TestCase):
             'index': 0,
         }
         with self.temporarily_switch_to_user(self.instructor1):
-            resp = self.c.post(
+            resp = self.client.post(
                 self.get_admin_course_change_list_view_url(
                     models.ExamTicket.__name__), action_data)
             self.assertEqual(resp.status_code, 302)

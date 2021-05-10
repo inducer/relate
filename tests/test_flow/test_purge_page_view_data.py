@@ -104,14 +104,14 @@ class PurgePageViewDataTest(PurgeViewMixin, TestCase):
         return reverse("relate-purge_page_view_data")
 
     def get_purget_page_view(self):
-        return self.c.get(self.get_purge_page_view_url())
+        return self.client.get(self.get_purge_page_view_url())
 
     def post_purget_page_view(self, course_id, add_submit=True):
         post_data = {}
         if add_submit:
             post_data["submit"] = True
         post_data["course"] = course_id
-        return self.c.post(self.get_purge_page_view_url(), data=post_data)
+        return self.client.post(self.get_purge_page_view_url(), data=post_data)
 
     def test_get_purge_page_view_anonymous(self):
         with self.temporarily_switch_to_user(None):

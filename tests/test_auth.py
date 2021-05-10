@@ -108,7 +108,7 @@ class ImpersonateTest(SingleCoursePageTestMixin, MockAddMessageMixing, TestCase)
             self.assertEqual(resp.status_code, 403)
             resp = self.get_stop_impersonate()
             self.assertEqual(resp.status_code, 403)
-            self.assertIsNone(self.c.session.get("impersonate_id"))
+            self.assertIsNone(self.client.session.get("impersonate_id"))
 
             resp = self.post_stop_impersonate()
             self.assertEqual(resp.status_code, 403)
@@ -137,7 +137,7 @@ class ImpersonateTest(SingleCoursePageTestMixin, MockAddMessageMixing, TestCase)
             resp = self.post_impersonate_view(
                 impersonatee=self.student_participation.user)
             self.assertEqual(resp.status_code, 200)
-            self.assertEqual(self.c.session["impersonate_id"],
+            self.assertEqual(self.client.session["impersonate_id"],
                              self.student_participation.user.pk)
 
             # re-impersonate without stop_impersonating
@@ -146,12 +146,12 @@ class ImpersonateTest(SingleCoursePageTestMixin, MockAddMessageMixing, TestCase)
             # because the request.user is the impernatee (student)
             # who has no pperm
             self.assertEqual(resp.status_code, 403)
-            self.assertEqual(self.c.session["impersonate_id"],
+            self.assertEqual(self.client.session["impersonate_id"],
                              self.student_participation.user.pk)
 
             # stop_impersonating
             self.post_stop_impersonate()
-            self.assertIsNone(self.c.session.get("impersonate_id"))
+            self.assertIsNone(self.client.session.get("impersonate_id"))
             self.assertAddMessageCalledWith(NO_LONGER_IMPERSONATING_MESSAGE)
 
             # fail re-stop_impersonating
@@ -166,7 +166,7 @@ class ImpersonateTest(SingleCoursePageTestMixin, MockAddMessageMixing, TestCase)
             self.assertEqual(resp.status_code, 200)
             self.assertFormError(resp, 'form', 'user',
                                  IMPERSONATE_FORM_ERROR_NOT_VALID_USER_MSG)
-            self.assertIsNone(self.c.session.get("impersonate_id"))
+            self.assertIsNone(self.client.session.get("impersonate_id"))
 
             # not allowed to impersonate self
             resp = self.post_impersonate_view(
@@ -174,7 +174,7 @@ class ImpersonateTest(SingleCoursePageTestMixin, MockAddMessageMixing, TestCase)
             self.assertEqual(resp.status_code, 200)
             self.assertFormError(resp, 'form', 'user',
                                  IMPERSONATE_FORM_ERROR_NOT_VALID_USER_MSG)
-            self.assertIsNone(self.c.session.get("impersonate_id"))
+            self.assertIsNone(self.client.session.get("impersonate_id"))
 
     def test_impersonate_by_superuser(self):
         user = self.superuser
@@ -185,7 +185,7 @@ class ImpersonateTest(SingleCoursePageTestMixin, MockAddMessageMixing, TestCase)
             resp = self.post_impersonate_view(
                 impersonatee=self.instructor_participation.user)
             self.assertEqual(resp.status_code, 200)
-            self.assertEqual(self.c.session["impersonate_id"],
+            self.assertEqual(self.client.session["impersonate_id"],
                              self.instructor_participation.user.pk)
 
     def test_impersonate_by_instructor(self):
@@ -201,7 +201,7 @@ class ImpersonateTest(SingleCoursePageTestMixin, MockAddMessageMixing, TestCase)
             resp = self.post_impersonate_view(
                 impersonatee=self.ta_participation.user)
             self.assertEqual(resp.status_code, 200)
-            self.assertEqual(self.c.session["impersonate_id"],
+            self.assertEqual(self.client.session["impersonate_id"],
                              self.ta_participation.user.pk)
 
             # then impersonate student without stop_impersonating,
@@ -210,7 +210,7 @@ class ImpersonateTest(SingleCoursePageTestMixin, MockAddMessageMixing, TestCase)
                 impersonatee=self.student_participation.user)
             self.assertEqual(resp.status_code, 200)
             self.assertAddMessageCalledWith(ALREADY_IMPERSONATING_SOMEONE_MESSAGE)
-            self.assertEqual(self.c.session["impersonate_id"],
+            self.assertEqual(self.client.session["impersonate_id"],
                              self.ta_participation.user.pk)
 
             # stop_impersonating
@@ -227,11 +227,11 @@ class ImpersonateTest(SingleCoursePageTestMixin, MockAddMessageMixing, TestCase)
         with self.temporarily_switch_to_user(self.ta_participation.user):
             self.post_impersonate_view(
                 impersonatee=self.student_participation.user)
-            session = self.c.session
+            session = self.client.session
             session["impersonate_id"] = None
             session.save()
 
-            resp = self.c.get(self.get_course_page_url())
+            resp = self.client.get(self.get_course_page_url())
             self.assertEqual(resp.status_code, 200)
             self.assertAddMessageCalledWith(ERROR_WHILE_IMPERSONATING_MESSAGE)
 
@@ -239,11 +239,11 @@ class ImpersonateTest(SingleCoursePageTestMixin, MockAddMessageMixing, TestCase)
         with self.temporarily_switch_to_user(self.ta_participation.user):
             self.post_impersonate_view(
                 impersonatee=self.student_participation.user)
-            session = self.c.session
+            session = self.client.session
             session["impersonate_id"] = 100
             session.save()
 
-            resp = self.c.get(self.get_course_page_url())
+            resp = self.client.get(self.get_course_page_url())
             self.assertEqual(resp.status_code, 200)
             self.assertAddMessageCalledWith(ERROR_WHILE_IMPERSONATING_MESSAGE)
 
@@ -257,7 +257,7 @@ class ImpersonateTest(SingleCoursePageTestMixin, MockAddMessageMixing, TestCase)
             self.student_participation.status = participation_status.dropped
             self.student_participation.save()
 
-            resp = self.c.get(self.get_course_page_url())
+            resp = self.client.get(self.get_course_page_url())
             self.assertEqual(resp.status_code, 200)
             self.assertAddMessageCalledWith(ERROR_WHILE_IMPERSONATING_MESSAGE)
 
@@ -268,7 +268,7 @@ class ImpersonateTest(SingleCoursePageTestMixin, MockAddMessageMixing, TestCase)
         factories.FlowPageVisitFactory(page_data=page_data)
 
         with self.temporarily_switch_to_user(self.ta_participation.user):
-            resp = self.c.get(self.get_page_url_by_ordinal(page_ordinal=0))
+            resp = self.client.get(self.get_page_url_by_ordinal(page_ordinal=0))
             self.assertEqual(resp.status_code, 200)
             self.assertEqual(FlowPageVisit.objects.count(), 2)
             second_visit = FlowPageVisit.objects.all().order_by('-pk')[0]
@@ -279,7 +279,7 @@ class ImpersonateTest(SingleCoursePageTestMixin, MockAddMessageMixing, TestCase)
 
             # this visit is not impersonated
             self.post_impersonate_view(impersonatee=self.student_participation.user)
-            resp = self.c.get(self.get_page_url_by_ordinal(page_ordinal=0))
+            resp = self.client.get(self.get_page_url_by_ordinal(page_ordinal=0))
             self.assertEqual(resp.status_code, 200)
             self.assertEqual(FlowPageVisit.objects.count(), 3)
             second_visit = FlowPageVisit.objects.all().order_by('-pk')[0]
@@ -306,12 +306,12 @@ class ImpersonateTest(SingleCoursePageTestMixin, MockAddMessageMixing, TestCase)
             # request by get
             resp = self.get_stop_impersonate()
             self.assertEqual(resp.status_code, 403)
-            self.assertIsNotNone(self.c.session.get("impersonate_id"))
+            self.assertIsNotNone(self.client.session.get("impersonate_id"))
 
             # post not using ajax
             resp = self.post_stop_impersonate(using_ajax=False)
             self.assertEqual(resp.status_code, 403)
-            self.assertIsNotNone(self.c.session.get("impersonate_id"))
+            self.assertIsNotNone(self.client.session.get("impersonate_id"))
 
     def test_stop_impersonate_suspicious_post(self):
         with self.temporarily_switch_to_user(self.instructor_participation.user):
@@ -321,7 +321,7 @@ class ImpersonateTest(SingleCoursePageTestMixin, MockAddMessageMixing, TestCase)
 
             resp = self.post_stop_impersonate(data={"foo": "bar"})
             self.assertEqual(resp.status_code, 400)
-            self.assertIsNotNone(self.c.session.get("impersonate_id"))
+            self.assertIsNotNone(self.client.session.get("impersonate_id"))
 
     # {{{ ImpersonateForm select2 result test
 
@@ -537,7 +537,7 @@ class AuthTestMixin:
                 with self.temporarily_switch_to_user(None):
                     with self.subTest(bad_url=bad_url):
                         nasty_url = self.concatenate_redirect_url(url, bad_url)
-                        response = self.c.post(nasty_url, self.get_sign_in_data())
+                        response = self.client.post(nasty_url, self.get_sign_in_data())
                         self.assertEqual(response.status_code, 302)
                         self.assertNotIn(bad_url, response.url,
                                          '%s should be blocked' % bad_url)
@@ -557,16 +557,16 @@ class AuthTestMixin:
                 with self.temporarily_switch_to_user(None):
                     with self.subTest(good_url=good_url):
                         safe_url = self.concatenate_redirect_url(url, good_url)
-                        response = self.c.post(safe_url, self.get_sign_in_data())
+                        response = self.client.post(safe_url, self.get_sign_in_data())
                         self.assertEqual(response.status_code, 302)
                         self.assertIn(good_url, response.url,
                                       '%s should be allowed' % good_url)
 
     def assertSessionHasUserLoggedIn(self):  # noqa
-        self.assertIn(SESSION_KEY, self.c.session)
+        self.assertIn(SESSION_KEY, self.client.session)
 
     def assertSessionHasNoUserLoggedIn(self):  # noqa
-        self.assertNotIn(SESSION_KEY, self.c.session)
+        self.assertNotIn(SESSION_KEY, self.client.session)
 
     def concatenate_redirect_url(self, url, redirect_to=None):
         if not redirect_to:
@@ -583,11 +583,11 @@ class AuthTestMixin:
         )
 
     def get_sign_up(self, redirect_to=None, follow=False):
-        return self.c.get(self.get_sign_up_view_url(redirect_to),
+        return self.client.get(self.get_sign_up_view_url(redirect_to),
                           follow=follow)
 
     def post_sign_up(self, data, redirect_to=None, follow=False):
-        return self.c.post(self.get_sign_up_view_url(redirect_to), data,
+        return self.client.post(self.get_sign_up_view_url(redirect_to), data,
                            follow=follow)
 
     def get_sign_in_choice_url(self, redirect_to=None):
@@ -599,11 +599,11 @@ class AuthTestMixin:
             reverse("relate-sign_in_by_user_pw"), redirect_to)
 
     def get_sign_in_by_user_pw(self, redirect_to=None, follow=False):
-        return self.c.get(self.get_sign_in_by_user_pw_url(redirect_to),
+        return self.client.get(self.get_sign_in_by_user_pw_url(redirect_to),
                           follow=follow)
 
     def post_sign_in_by_user_pw(self, data, redirect_to=None, follow=False):
-        return self.c.post(self.get_sign_in_by_user_pw_url(redirect_to), data,
+        return self.client.post(self.get_sign_in_by_user_pw_url(redirect_to), data,
                            follow=follow)
 
     def get_sign_in_by_email_url(self, redirect_to=None):
@@ -611,11 +611,11 @@ class AuthTestMixin:
             reverse("relate-sign_in_by_email"), redirect_to)
 
     def get_sign_in_by_email(self, redirect_to=None, follow=False):
-        return self.c.get(self.get_sign_in_by_email_url(redirect_to),
+        return self.client.get(self.get_sign_in_by_email_url(redirect_to),
                           follow=follow)
 
     def post_sign_in_by_email(self, data, redirect_to=None, follow=False):
-        return self.c.post(self.get_sign_in_by_email_url(redirect_to), data,
+        return self.client.post(self.get_sign_in_by_email_url(redirect_to), data,
                            follow=follow)
 
     def get_sign_out_view_url(self, redirect_to=None):
@@ -623,12 +623,12 @@ class AuthTestMixin:
             reverse("relate-logout"), redirect_to)
 
     def get_sign_out(self, redirect_to=None, follow=False):
-        return self.c.get(self.get_sign_out_view_url(redirect_to),
+        return self.client.get(self.get_sign_out_view_url(redirect_to),
                           follow=follow)
 
     def post_sign_out(self, data, redirect_to=None, follow=False):
         # Though RELATE and django are using GET to sign out
-        return self.c.post(self.get_sign_out_view_url(redirect_to), data,
+        return self.client.post(self.get_sign_out_view_url(redirect_to), data,
                            follow=follow)
 
     def get_sign_out_confirmation_view_url(self, redirect_to=None):
@@ -637,11 +637,11 @@ class AuthTestMixin:
         )
 
     def get_sign_out_confirmation(self, redirect_to=None, follow=False):
-        return self.c.get(self.get_sign_out_confirmation_view_url(redirect_to),
+        return self.client.get(self.get_sign_out_confirmation_view_url(redirect_to),
                           follow=follow)
 
     def post_sign_out_confirmation(self, data, redirect_to=None, follow=False):
-        return self.c.post(self.get_sign_out_confirmation_view_url(redirect_to),
+        return self.client.post(self.get_sign_out_confirmation_view_url(redirect_to),
                            data,
                            follow=follow)
 
@@ -650,11 +650,11 @@ class AuthTestMixin:
             reverse("relate-user_profile"), redirect_to)
 
     def get_user_profile(self, redirect_to=None, follow=False):
-        return self.c.get(self.get_user_profile_url(redirect_to),
+        return self.client.get(self.get_user_profile_url(redirect_to),
                           follow=follow)
 
     def post_user_profile(self, data, redirect_to=None, follow=False):
-        return self.c.post(self.get_user_profile_url(redirect_to),
+        return self.client.post(self.get_user_profile_url(redirect_to),
                            data=data, follow=follow)
 
 
@@ -897,7 +897,7 @@ class SignInByEmailTest(CoursesTestMixinBase, MockAddMessageMixing,
         settings.RELATE_SIGN_IN_BY_EMAIL_ENABLED = False
         expected_msg = "Email-based sign-in is not being used"
         with self.temporarily_switch_to_user(None):
-            resp = self.c.get(self.second_sign_in_url)
+            resp = self.client.get(self.second_sign_in_url)
             self.assertAddMessageCalledWith(expected_msg)
             self.assertEqual(resp.status_code, 302)
             self.assertRedirects(resp, self.get_sign_in_choice_url(),
@@ -908,7 +908,7 @@ class SignInByEmailTest(CoursesTestMixinBase, MockAddMessageMixing,
         with self.temporarily_switch_to_user(None):
             expected_msg = ("Invalid sign-in token. Perhaps you've used "
                             "an old token email?")
-            resp = self.c.get(self.first_sign_in_url)
+            resp = self.client.get(self.first_sign_in_url)
             self.assertAddMessageCalledWith(expected_msg)
             self.assertEqual(resp.status_code, 403)
             self.assertSessionHasNoUserLoggedIn()
@@ -920,7 +920,7 @@ class SignInByEmailTest(CoursesTestMixinBase, MockAddMessageMixing,
 
         with self.temporarily_switch_to_user(None):
             expected_msg = ("Account disabled.")
-            resp = self.c.get(self.second_sign_in_url)
+            resp = self.client.get(self.second_sign_in_url)
             self.assertAddMessageCalledWith(expected_msg)
             self.assertEqual(resp.status_code, 403)
             self.assertSessionHasNoUserLoggedIn()
@@ -930,7 +930,7 @@ class SignInByEmailTest(CoursesTestMixinBase, MockAddMessageMixing,
             expected_msg = (
                 "Successfully signed in. "
                 "Please complete your registration information below.")
-            resp = self.c.get(self.second_sign_in_url)
+            resp = self.client.get(self.second_sign_in_url)
             self.assertAddMessageCalledWith(expected_msg)
             self.assertEqual(resp.status_code, 302)
 
@@ -959,7 +959,7 @@ class SignInByEmailTest(CoursesTestMixinBase, MockAddMessageMixing,
         with self.temporarily_switch_to_user(None):
             expected_msg = (
                 "Successfully signed in.")
-            resp = self.c.get(self.second_sign_in_url)
+            resp = self.client.get(self.second_sign_in_url)
             self.assertAddMessageCalledWith(expected_msg)
             self.assertEqual(resp.status_code, 302)
 
@@ -973,7 +973,7 @@ class SignInByEmailTest(CoursesTestMixinBase, MockAddMessageMixing,
         expected_msg = (
             "Account does not exist.")
         with self.temporarily_switch_to_user(None):
-            resp = self.c.get(self.second_sign_in_url)
+            resp = self.client.get(self.second_sign_in_url)
             self.assertAddMessageCalledWith(expected_msg)
             self.assertEqual(resp.status_code, 403)
 
@@ -988,7 +988,7 @@ class SignUpTest(CoursesTestMixinBase, MockAddMessageMixing,
 
     def setUp(self):
         super().setUp()
-        self.c.logout()
+        self.client.logout()
 
     @override_settings()
     def test_signup_registeration_not_enabled(self):
@@ -1146,7 +1146,7 @@ class SignOutTest(CoursesTestMixinBase, AuthTestMixin,
 
     @override_settings(RELATE_SIGN_IN_BY_SAML2_ENABLED=True)
     def test_sign_out_with_saml2_enabled_with_subject_id(self):
-        self.c.force_login(self.test_user)
+        self.client.force_login(self.test_user)
         with mock.patch("djangosaml2.views._get_subject_id") \
                 as mock_get_subject_id, \
                 mock.patch("djangosaml2.views.LogoutInitView.get") \
@@ -1264,7 +1264,7 @@ class UserProfileTest(CoursesTestMixinBase, AuthTestMixin,
             data = self.generate_profile_form_data(first_name="foo")
 
             # No 'submit_user' in POST
-            resp = self.c.post(self.get_profile_view_url(), data)
+            resp = self.client.post(self.get_profile_view_url(), data)
             self.test_user.refresh_from_db()
             self.assertEqual(self.test_user.first_name, "")
 
@@ -1614,7 +1614,7 @@ class ResetPasswordStageOneTest(CoursesTestMixinBase, MockAddMessageMixing,
         self.registration_override_setting.enable()
         self.addCleanup(self.registration_override_setting.disable)
         self.user.refresh_from_db()
-        self.c.logout()
+        self.client.logout()
 
     def test_reset_get(self):
         resp = self.get_reset_password()
@@ -1751,7 +1751,7 @@ class ResetPasswordStageTwoTest(CoursesTestMixinBase, MockAddMessageMixing,
             RELATE_REGISTRATION_ENABLED=True)
         self.registration_override_setting.enable()
         self.addCleanup(self.registration_override_setting.disable)
-        self.c.logout()
+        self.client.logout()
         self.user.refresh_from_db()
 
     def assertHasUserLoggedIn(self, user):  # noqa
@@ -1911,7 +1911,7 @@ class ResetPasswordStageTwoTest(CoursesTestMixinBase, MockAddMessageMixing,
 class EmailedTokenBackendTest(CoursesTestMixinBase, TestCase):
     def test_authenticate(self):
         user = factories.UserFactory()
-        self.c.logout()
+        self.client.logout()
 
         with override_settings(RELATE_REGISTRATION_ENABLED=True):
             self.post_reset_password(data={"email": user.email})
@@ -1928,7 +1928,7 @@ class EmailedTokenBackendTest(CoursesTestMixinBase, TestCase):
 
     def test_get_user(self):
         user = factories.UserFactory()
-        self.c.logout()
+        self.client.logout()
 
         backend = EmailedTokenBackend()
         self.assertEqual(backend.get_user(user.pk), user)
@@ -2085,7 +2085,7 @@ class AuthCourseWithTokenTest(APITestMixin, TestCase):
 
     def setUp(self):
         super().setUp()
-        self.c.force_login(self.instructor_participation.user)
+        self.client.force_login(self.instructor_participation.user)
 
     def get_test_token_url(self, course_identifier=None):
         course_identifier = (
@@ -2116,11 +2116,11 @@ class AuthCourseWithTokenTest(APITestMixin, TestCase):
         return reverse("test_api_with_api_error", kwargs=kwargs)
 
     def test_no_auth_headers(self):
-        resp = self.c.get(
+        resp = self.client.get(
             self.get_test_token_url())
         self.assertEqual(resp.status_code, 403)
 
-        resp = self.c.get(
+        resp = self.client.get(
             self.get_test_basic_url())
         self.assertEqual(resp.status_code, 401)
         self.assertEqual(resp["WWW-Authenticate"],
@@ -2130,7 +2130,7 @@ class AuthCourseWithTokenTest(APITestMixin, TestCase):
 
     def test_invalid_token_case_not_matched(self):
         token = self.create_token()
-        resp = self.c.get(
+        resp = self.client.get(
             self.get_test_token_url(),
 
             # case not matched
@@ -2140,7 +2140,7 @@ class AuthCourseWithTokenTest(APITestMixin, TestCase):
 
     def test_invalid_token_no_space_in_auth_str(self):
         token = self.create_token()
-        resp = self.c.get(
+        resp = self.client.get(
             self.get_test_token_url(),
 
             # no space between 'Token' and auth_data
@@ -2151,14 +2151,14 @@ class AuthCourseWithTokenTest(APITestMixin, TestCase):
     def test_invalid_token_wrong_format(self):
         # underscores are not allowed
         token = self.create_token(token_hash_str="an_invalid_token")
-        resp = self.c.get(
+        resp = self.client.get(
             self.get_test_token_url(),
             HTTP_AUTHORIZATION="Token %i_%s" % (
                 token.id, self.default_token_hash_str))
         self.assertEqual(resp.status_code, 403)
 
     def test_none_exist_token(self):
-        resp = self.c.get(
+        resp = self.client.get(
             self.get_test_token_url(),
             HTTP_AUTHORIZATION="Token %i_%s" % (
                 1, "nonexisttokenstr"))
@@ -2167,7 +2167,7 @@ class AuthCourseWithTokenTest(APITestMixin, TestCase):
     def test_revoked_token(self):
         token = self.create_token(
             revocation_time=now() - timedelta(minutes=1))
-        resp = self.c.get(
+        resp = self.client.get(
             self.get_test_token_url(),
             HTTP_AUTHORIZATION="Token %i_%s" % (
                 token.id, self.default_token_hash_str))
@@ -2176,7 +2176,7 @@ class AuthCourseWithTokenTest(APITestMixin, TestCase):
     def test_expired_token(self):
         token = self.create_token(
             valid_until=now() - timedelta(minutes=1))
-        resp = self.c.get(
+        resp = self.client.get(
             self.get_test_token_url(),
             HTTP_AUTHORIZATION="Token %i_%s" % (
                 token.id, self.default_token_hash_str))
@@ -2184,7 +2184,7 @@ class AuthCourseWithTokenTest(APITestMixin, TestCase):
 
     def test_token_auth_success(self):
         token = self.create_token()
-        resp = self.c.get(
+        resp = self.client.get(
             self.get_test_token_url(),
             HTTP_AUTHORIZATION="Token %i_%s" % (
                 token.id, self.default_token_hash_str))
@@ -2195,13 +2195,13 @@ class AuthCourseWithTokenTest(APITestMixin, TestCase):
     # {{{ method = "Basic"
 
     def test_basic_auth_success(self):
-        resp = self.c.get(
+        resp = self.client.get(
             self.get_test_basic_url(),
             HTTP_AUTHORIZATION="Basic %s" % self.create_basic_auth())
         self.assertEqual(resp.status_code, 200)
 
     def test_basic_auth_ill_formed(self):
-        resp = self.c.get(
+        resp = self.client.get(
             self.get_test_basic_url(),
             HTTP_AUTHORIZATION="Basic %s" % "foo:barbar")
         self.assertEqual(resp.status_code, 401)
@@ -2210,7 +2210,7 @@ class AuthCourseWithTokenTest(APITestMixin, TestCase):
         from base64 import b64encode
         bad_auth_data = b64encode(b"foobar").decode()
 
-        resp = self.c.get(
+        resp = self.client.get(
             self.get_test_basic_url(),
             HTTP_AUTHORIZATION="Basic %s" % bad_auth_data)
         self.assertEqual(resp.status_code, 401)
@@ -2221,7 +2221,7 @@ class AuthCourseWithTokenTest(APITestMixin, TestCase):
             user=self.ta_participation.user
         )
 
-        resp = self.c.get(
+        resp = self.client.get(
             self.get_test_basic_url(),
             HTTP_AUTHORIZATION="Basic %s" % basic_auth_user_not_matched)
         self.assertEqual(resp.status_code, 401)
@@ -2232,14 +2232,14 @@ class AuthCourseWithTokenTest(APITestMixin, TestCase):
 
     def test_auth_method_not_allowed(self):
         with self.assertRaises(AssertionError):
-            self.c.get(
+            self.client.get(
                 self.get_test_not_allowed_method_url(),
                 HTTP_AUTHORIZATION="Not_allowed_method blabla")
 
     def test_auth_method_not_allowed_method_not_matched(self):
         token = self.create_token()
         with self.assertRaises(AssertionError):
-            self.c.get(
+            self.client.get(
                 self.get_test_not_allowed_method_url(),
                 HTTP_AUTHORIZATION="Token %i_%s" % (
                     token.id, self.default_token_hash_str))
@@ -2248,7 +2248,7 @@ class AuthCourseWithTokenTest(APITestMixin, TestCase):
 
     def test_raise_api_error(self):
         token = self.create_token()
-        resp = self.c.get(
+        resp = self.client.get(
             self.get_test_api_error_url(),
             HTTP_AUTHORIZATION="Token %i_%s" % (
                 token.id, self.default_token_hash_str))
@@ -2261,20 +2261,20 @@ class ManageAuthenticationTokensTest(
 
     def setUp(self):
         super().setUp()
-        self.c.force_login(self.instructor_participation.user)
+        self.client.force_login(self.instructor_participation.user)
 
     def test_not_authenticated(self):
         with self.temporarily_switch_to_user(None):
-            resp = self.c.get(self.get_manage_authentication_token_url())
+            resp = self.client.get(self.get_manage_authentication_token_url())
         self.assertEqual(resp.status_code, 403)
 
     def test_no_permission_authenticated(self):
         with self.temporarily_switch_to_user(self.student_participation.user):
-            resp = self.c.get(self.get_manage_authentication_token_url())
+            resp = self.client.get(self.get_manage_authentication_token_url())
         self.assertEqual(resp.status_code, 403)
 
     def test_get_success(self):
-        resp = self.c.get(self.get_manage_authentication_token_url())
+        resp = self.client.get(self.get_manage_authentication_token_url())
         self.assertEqual(resp.status_code, 200)
 
         tokens = self.get_response_context_value_by_name(resp, "tokens")
@@ -2338,7 +2338,7 @@ class ManageAuthenticationTokensTest(
             participation=self.instructor_participation,
         )
 
-        resp = self.c.get(self.get_manage_authentication_token_url())
+        resp = self.client.get(self.get_manage_authentication_token_url())
         self.assertEqual(resp.status_code, 200)
 
         tokens = self.get_response_context_value_by_name(resp, "tokens")
@@ -2353,7 +2353,7 @@ class ManageAuthenticationTokensTest(
             participation=self.instructor_participation,
         )
 
-        resp = self.c.post(
+        resp = self.client.post(
             self.get_manage_authentication_token_url(),
             data=self.get_manage_authentication_tokens_post_data()
         )
@@ -2375,7 +2375,7 @@ class ManageAuthenticationTokensTest(
         self.assertTrue(check_password(token_hash_str, added_token.token_hash))
 
     def test_post_create_form_invalid(self):
-        resp = self.c.post(
+        resp = self.client.post(
             self.get_manage_authentication_token_url(),
             data=self.get_manage_authentication_tokens_post_data(
                 description=""
@@ -2395,7 +2395,7 @@ class ManageAuthenticationTokensTest(
             participation=self.instructor_participation,
         )
 
-        resp = self.c.post(
+        resp = self.client.post(
             self.get_manage_authentication_token_url(),
             data=self.get_manage_authentication_tokens_post_data(
                 create=False,
@@ -2408,7 +2408,7 @@ class ManageAuthenticationTokensTest(
         self.assertEqual(active_tokens.count(), n_exist_tokens - 1)
 
     def test_post_create_unknown_button_pressed(self):
-        resp = self.c.post(
+        resp = self.client.post(
             self.get_manage_authentication_token_url(),
             data=self.get_manage_authentication_tokens_post_data(
                 create=False
@@ -2424,7 +2424,7 @@ class APIBearerTokenBackendTest(APITestMixin, TestCase):
 
     def test_authenticate_success(self):
         token = self.create_token()
-        self.c.logout()
+        self.client.logout()
 
         backend = APIBearerTokenBackend()
         self.assertEqual(
@@ -2434,7 +2434,7 @@ class APIBearerTokenBackendTest(APITestMixin, TestCase):
         )
 
     def test_authenticate_fail_no_matching_token(self):
-        self.c.logout()
+        self.client.logout()
 
         backend = APIBearerTokenBackend()
         self.assertIsNone(
@@ -2442,7 +2442,7 @@ class APIBearerTokenBackendTest(APITestMixin, TestCase):
                 None, self.course.identifier, 1, "foobar"))
 
     def test_get_user(self):
-        self.c.logout()
+        self.client.logout()
 
         backend = APIBearerTokenBackend()
         self.assertEqual(

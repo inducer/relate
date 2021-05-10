@@ -93,7 +93,7 @@ class VersioningTestMixin(CoursesTestMixinBase, MockAddMessageMixing):
 class CourseCreationTest(VersioningTestMixin, TestCase):
     def test_get_set_up_new_course_view(self):
         with self.temporarily_switch_to_user(self.instructor):
-            resp = self.c.get(self.get_set_up_new_course_url(),
+            resp = self.client.get(self.get_set_up_new_course_url(),
                               data=SINGLE_COURSE_SETUP_LIST[0]["course"])
             self.assertEqual(resp.status_code, 200)
 
@@ -1195,7 +1195,7 @@ class GetCommitMessageAsHtmlTest(VersioningRepoMixin, SingleCourseTestMixin,
 class UpdateCourseTest(SingleCourseTestMixin, MockAddMessageMixing, TestCase):
     def test_no_permission(self):
         with self.temporarily_switch_to_user(self.student_participation.user):
-            resp = self.c.get(self.get_update_course_url())
+            resp = self.client.get(self.get_update_course_url())
             self.assertEqual(resp.status_code, 403)
 
             for command in versioning.ALLOWED_COURSE_REVISIOIN_COMMANDS:
@@ -1238,7 +1238,7 @@ class UpdateCourseTest(SingleCourseTestMixin, MockAddMessageMixing, TestCase):
 
     def test_get(self):
         with self.temporarily_switch_to_user(self.instructor_participation.user):
-            resp = self.c.get(self.get_update_course_url())
+            resp = self.client.get(self.get_update_course_url())
             self.assertEqual(resp.status_code, 200)
 
     def test_unknown_command(self):

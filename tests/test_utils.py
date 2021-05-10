@@ -295,7 +295,7 @@ class LanguageOverrideTest(SingleCoursePageTestMixin,
 
         for page_id, v in self.page_id_literal_dict.items():
             with self.subTest(page_id=page_id, course_force_lang=course_force_lang):
-                resp = self.c.get(self.get_page_url_by_page_id(page_id))
+                resp = self.client.get(self.get_page_url_by_page_id(page_id))
                 for literal in v["literals"]:
                     if not course_force_lang:
                         self.assertContains(resp, literal)

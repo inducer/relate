@@ -54,7 +54,7 @@ class FlowListTest(SingleCourseTestMixin, TestCase):
             user = self.instructor_participation.user
 
         with self.temporarily_switch_to_user(user):
-            return self.c.get(
+            return self.client.get(
                 self.get_flow_list_url(course_identifier))
 
     def test_not_authenticated(self):

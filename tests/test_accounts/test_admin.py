@@ -75,54 +75,54 @@ class AccountsAdminTest(AdminTestMixin, TestCase):
                           "accounts.user"):
             with self.temporarily_switch_to_user(self.superuser):
                 # list view
-                resp = self.c.get(self.user_change_list_url)
+                resp = self.client.get(self.user_change_list_url)
                 self.assertEqual(resp.status_code, 200)
 
                 # change view
-                resp = self.c.get(self.superuser_change_url)
+                resp = self.client.get(self.superuser_change_url)
                 self.assertEqual(resp.status_code, 200)
 
-                resp = self.c.get(self.instructor1_change_url)
+                resp = self.client.get(self.instructor1_change_url)
                 self.assertEqual(resp.status_code, 200)
 
         with self.subTest("staff 1 admin change/changelist for "
                           "accounts.user"):
             with self.temporarily_switch_to_user(self.instructor1):
-                resp = self.c.get(self.user_change_list_url)
+                resp = self.client.get(self.user_change_list_url)
                 self.assertEqual(resp.status_code, 200)
 
-                resp = self.c.get(self.superuser_change_url)
+                resp = self.client.get(self.superuser_change_url)
                 self.assertEqual(resp.status_code, 200)
 
-                resp = self.c.get(self.instructor1_change_url)
+                resp = self.client.get(self.instructor1_change_url)
                 self.assertEqual(resp.status_code, 200)
 
-                resp = self.c.get(self.student2_change_url)
+                resp = self.client.get(self.student2_change_url)
                 self.assertEqual(resp.status_code, 200)
 
                 # because that student joined 2 courses
-                resp = self.c.get(self.student1_change_url)
+                resp = self.client.get(self.student1_change_url)
                 self.assertEqual(resp.status_code, 200)
 
         with self.subTest("staff 2 admin change/changelist for "
                           "accounts.user"):
             with self.temporarily_switch_to_user(self.instructor2):
-                resp = self.c.get(self.user_change_list_url)
+                resp = self.client.get(self.user_change_list_url)
                 self.assertEqual(resp.status_code, 200)
 
-                resp = self.c.get(self.superuser_change_url)
+                resp = self.client.get(self.superuser_change_url)
                 self.assertEqual(resp.status_code, 200)
 
                 # Because instructor 1 is also a staff
-                resp = self.c.get(self.instructor1_change_url)
+                resp = self.client.get(self.instructor1_change_url)
                 self.assertEqual(resp.status_code, 200)
 
                 # because that student joined 2 courses
-                resp = self.c.get(self.student1_change_url)
+                resp = self.client.get(self.student1_change_url)
                 self.assertEqual(resp.status_code, 200)
 
                 # because that student didn't join this course
-                resp = self.c.get(self.student2_change_url)
+                resp = self.client.get(self.student2_change_url)
                 self.assertEqual(resp.status_code, 200)
 
     def test_admin_add_user(self):
@@ -130,7 +130,7 @@ class AccountsAdminTest(AdminTestMixin, TestCase):
         # Make sure https://github.com/inducer/relate/issues/447 is fixed
         with self.temporarily_switch_to_user(self.instructor1):
             user_count = get_user_model().objects.count()
-            resp = self.c.post(reverse('admin:accounts_user_add'), {
+            resp = self.client.post(reverse('admin:accounts_user_add'), {
                 'username': 'newuser',
                 'password1': 'newpassword',
                 'password2': 'newpassword',
@@ -179,7 +179,7 @@ class AccountsAdminTest(AdminTestMixin, TestCase):
         for td in test_dicts:
             with self.subTest(user=td["user"]):
                 with self.temporarily_switch_to_user(td["user"]):
-                    resp = self.c.get(change_url)
+                    resp = self.client.get(change_url)
                     self.assertEqual(resp.status_code, 200)
                     field_names = self.get_admin_form_fields_names(resp)
 
@@ -343,7 +343,7 @@ class AccountsAdminTest(AdminTestMixin, TestCase):
             superuser_count = User.objects.filter(is_superuser=True).count()
             data = self.get_user_data(user)
             data["is_staff"] = True
-            resp = self.c.post(self.student2_change_url, data)
+            resp = self.client.post(self.student2_change_url, data)
             self.assertEqual(resp.status_code, 302)
             self.assertEqual(User.objects.filter(is_staff=True).count(),
                              staff_count + 1)
@@ -353,7 +353,7 @@ class AccountsAdminTest(AdminTestMixin, TestCase):
 
             data = self.get_user_data(user)
             data["is_superuser"] = True
-            self.c.post(self.student2_change_url, data)
+            self.client.post(self.student2_change_url, data)
             self.assertEqual(User.objects.filter(is_superuser=True).count(),
                              superuser_count + 1)
             row = LogEntry.objects.latest('id')
@@ -367,7 +367,7 @@ class AccountsAdminTest(AdminTestMixin, TestCase):
             superuser_count = User.objects.filter(is_superuser=True).count()
             data = self.get_user_data(user)
             data["is_staff"] = True
-            resp = self.c.post(self.student2_change_url, data)
+            resp = self.client.post(self.student2_change_url, data)
             self.assertEqual(resp.status_code, 302)
 
             # non-superuser staff can't post create staff
@@ -378,7 +378,7 @@ class AccountsAdminTest(AdminTestMixin, TestCase):
 
             data = self.get_user_data(user)
             data["is_superuser"] = True
-            self.c.post(self.student2_change_url, data)
+            self.client.post(self.student2_change_url, data)
 
             # non-superuser staff can't post create superuser
             self.assertEqual(User.objects.filter(is_superuser=True).count(),
@@ -393,7 +393,7 @@ class AccountsAdminTest(AdminTestMixin, TestCase):
             # add a permission in post data
             data["user_permissions"] = [1, ]
 
-            self.c.post(self.student2_change_url, data)
+            self.client.post(self.student2_change_url, data)
 
             row = LogEntry.objects.latest('id')
             self.assertIn("Changed", row.get_change_message())
@@ -406,7 +406,7 @@ class AccountsAdminTest(AdminTestMixin, TestCase):
             # try to add a permission in post data
             data["user_permissions"] = [1, ]
 
-            self.c.post(self.student2_change_url, data)
+            self.client.post(self.student2_change_url, data)
 
             row = LogEntry.objects.latest('id')
             self.assertIn("Changed", row.get_change_message())
