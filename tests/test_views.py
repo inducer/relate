@@ -59,8 +59,8 @@ class SetFakeTimeTest(SingleCourseTestMixin, TestCase):
     # test views.set_fake_time
     fake_time = datetime.datetime(2038, 12, 31, 0, 0, 0, 0)
     set_fake_time_data = {"time": fake_time.strftime(DATE_TIME_PICKER_TIME_FORMAT),
-                          "set": ['']}
-    unset_fake_time_data = {"time": set_fake_time_data["time"], "unset": ['']}
+                          "set": [""]}
+    unset_fake_time_data = {"time": set_fake_time_data["time"], "unset": [""]}
 
     def test_set_fake_time_by_anonymous(self):
         with self.temporarily_switch_to_user(None):
@@ -175,10 +175,10 @@ class TestSetPretendFacilities(SingleCourseTestMixin, TestCase):
         "facilities": ["test_center1"],
         "custom_facilities": [],
         "add_pretend_facilities_header": ["on"],
-        "set": ['']}
+        "set": [""]}
     unset_pretend_facilities_data = set_pretend_facilities_data.copy()
     unset_pretend_facilities_data.pop("set")
-    unset_pretend_facilities_data["unset"] = ['']
+    unset_pretend_facilities_data["unset"] = [""]
 
     def test_pretend_facilities_by_anonymous(self):
         with self.temporarily_switch_to_user(None):
@@ -311,8 +311,8 @@ class TestEditCourse(SingleCourseTestMixin, MockAddMessageMixing, TestCase):
     def test_instructor_edit_post_unchanged(self):
         # test when form data is the same with current instance,
         # the message shows "no change"
-        with mock.patch('course.views.EditCourseForm.is_valid') as mock_is_valid, \
-            mock.patch('course.views.EditCourseForm.has_changed') as mock_changed, \
+        with mock.patch("course.views.EditCourseForm.is_valid") as mock_is_valid, \
+            mock.patch("course.views.EditCourseForm.has_changed") as mock_changed, \
             mock.patch("course.views.render_course_page"),\
                 mock.patch("course.views._") as mock_gettext:
 
@@ -332,9 +332,9 @@ class TestEditCourse(SingleCourseTestMixin, MockAddMessageMixing, TestCase):
     def test_instructor_edit_post_saved(self):
         # test when form data is_valid and different with the current instance,
         # the message shows "success"
-        with mock.patch('course.views.EditCourseForm.is_valid') as mock_is_valid, \
-            mock.patch('course.views.EditCourseForm.has_changed') as mock_changed, \
-            mock.patch('course.views.EditCourseForm.save')as mock_save, \
+        with mock.patch("course.views.EditCourseForm.is_valid") as mock_is_valid, \
+            mock.patch("course.views.EditCourseForm.has_changed") as mock_changed, \
+            mock.patch("course.views.EditCourseForm.save")as mock_save, \
             mock.patch("course.views.render_course_page"),\
                 mock.patch("course.views._") as mock_gettext:
 
@@ -358,7 +358,7 @@ class TestEditCourse(SingleCourseTestMixin, MockAddMessageMixing, TestCase):
         self.course.force_lang = "en-us"
         self.course.save()
         data = self.copy_course_dict_and_set_attrs_for_post({"force_lang": ""})
-        with mock.patch('course.views.EditCourseForm.save') as mock_save, \
+        with mock.patch("course.views.EditCourseForm.save") as mock_save, \
             mock.patch("course.views.render_course_page"),\
                 mock.patch("course.views._") as mock_gettext:
 
@@ -388,7 +388,7 @@ class TestEditCourse(SingleCourseTestMixin, MockAddMessageMixing, TestCase):
     def test_instructor_post_save_spaces_as_force_lang(self):
         # current force_lang is "", testing that the save won't occur
         data = self.copy_course_dict_and_set_attrs_for_post({"force_lang": "   "})
-        with mock.patch('course.views.EditCourseForm.save') as mock_form_save, \
+        with mock.patch("course.views.EditCourseForm.save") as mock_form_save, \
             mock.patch("course.views.render_course_page"),\
                 mock.patch("course.views._") as mock_gettext:
 
@@ -412,7 +412,7 @@ class TestEditCourse(SingleCourseTestMixin, MockAddMessageMixing, TestCase):
         self.assertEqual(len(self.course.force_lang), 0)
 
     def test_instructor_edit_post_form_invalid(self):
-        with mock.patch('course.views.EditCourseForm.is_valid') as mock_is_valid, \
+        with mock.patch("course.views.EditCourseForm.is_valid") as mock_is_valid, \
             mock.patch("course.views.render_course_page"),\
                 mock.patch("course.views._") as mock_gettext:
 
@@ -536,15 +536,16 @@ class StaticPageTest(SingleCourseTestMixin, TestCase):
                                "page_path": page_path})
 
     def get_static_page(self, page_path, course_identifier=None):
-        return self.client.get(self.get_static_page_url(page_path, course_identifier))
+        return self.client.get(
+                self.get_static_page_url(page_path, course_identifier))
 
     def test_success(self):
         resp = self.get_static_page("test")
         self.assertEqual(resp.status_code, 200)
         self.assertContains(
-            resp, '<h1>Demo page</h1>', html=True)
+            resp, "<h1>Demo page</h1>", html=True)
         self.assertContains(
-            resp, 'I am just a simple demo page. Go back to the '
+            resp, "I am just a simple demo page. Go back to the "
                   '<a href="/course/test-course/">course page</a>?')
 
     def test_404(self):
@@ -891,7 +892,7 @@ class ManageInstantFlowRequestsTest(SingleCoursePageTestMixin, TestCase):
         data = {
             "flow_id": self.flow_id,
             "duration_in_minutes": 20,
-            action: ''
+            action: ""
         }
         data.update(kwargs)
         return data
@@ -1057,7 +1058,7 @@ class TestFlowTest(SingleCoursePageTestMixin, TestCase):
     def get_default_post_data(self, action="test", **kwargs):
         data = {
             "flow_id": self.flow_id,
-            action: ''
+            action: ""
         }
         data.update(kwargs)
         return data
@@ -1251,7 +1252,7 @@ class GrantExceptionStage1Test(GrantExceptionTestMixin, TestCase):
         data = {
             "participation": self.student_participation.pk,
             "flow_id": self.flow_id,
-            action: ''
+            action: ""
         }
         data.update(kwargs)
         return data
@@ -1302,7 +1303,7 @@ class GrantExceptionStage2Test(GrantExceptionTestMixin, TestCase):
     def get_default_post_data(self, action="next", **kwargs):
         data = {
             "session": self.fs.pk,
-            action: ''
+            action: ""
         }
         data.update(kwargs)
         return data
@@ -1563,7 +1564,7 @@ class GrantExceptionStage3Test(GrantExceptionTestMixin, TestCase):
     def get_default_post_data(self, action="submit", **kwargs):
         data = {
             "session": self.fs.pk,
-            action: '',
+            action: "",
             "comment": "my_comment"
         }
         data.update(kwargs)
@@ -2168,7 +2169,7 @@ class GrantExceptionStage3Test(GrantExceptionTestMixin, TestCase):
                     kind=constants.flow_rule_kind.grading).count(), 1)
 
             self.assertAddMessageCallCount(1)
-            self.assertAddMessageCalledWith("'Grading' exception granted to ")
+            self.assertAddMessageCalledWith('"Grading" exception granted to ')
             another_fs.refresh_from_db()
             self.assertEqual(another_fs.access_rules_tag, another_fs_tag)
 
@@ -2206,30 +2207,30 @@ class MonitorTaskTest(SingleCourseTestMixin, TestCase):
     # test views.monitor_task
     def mock_task(self, name, state, result, traceback=None):
         return {
-            'id': uuid(), 'name': name, 'state': state,
-            'result': result, 'traceback': traceback,
+            "id": uuid(), "name": name, "state": state,
+            "result": result, "traceback": traceback,
         }
 
     def save_result(self, app, task):
-        traceback = task.get('traceback') or 'Some traceback'
-        state = task['state']
+        traceback = task.get("traceback") or "Some traceback"
+        state = task["state"]
         if state == states.SUCCESS:
-            app.backend.mark_as_done(task['id'], task['result'])
+            app.backend.mark_as_done(task["id"], task["result"])
         elif state == states.RETRY:
             app.backend.mark_as_retry(
-                task['id'], task['result'], traceback=traceback,
+                task["id"], task["result"], traceback=traceback,
             )
         elif state == states.FAILURE:
             app.backend.mark_as_failure(
-                task['id'], task['result'], traceback=traceback)
+                task["id"], task["result"], traceback=traceback)
         elif state == states.REVOKED:
             app.backend.mark_as_revoked(
-                task_id=task['id'], reason="blabla", state=state)
+                task_id=task["id"], reason="blabla", state=state)
         elif state == states.STARTED:
-            app.backend.mark_as_started(task['id'], **task['result'])
+            app.backend.mark_as_started(task["id"], **task["result"])
         else:
             app.backend.store_result(
-                task['id'], task['result'], state,
+                task["id"], task["result"], state,
             )
 
     def get_monitor_url(self, task_id):
@@ -2241,50 +2242,50 @@ class MonitorTaskTest(SingleCourseTestMixin, TestCase):
 
     def test_user_not_authenticated(self):
         message = "This is good!"
-        task = self.mock_task('task', states.SUCCESS, {"message": message})
+        task = self.mock_task("task", states.SUCCESS, {"message": message})
         self.save_result(app, task)
         with self.temporarily_switch_to_user(None):
-            resp = self.get_monitor_view(task['id'])
+            resp = self.get_monitor_view(task["id"])
         self.assertEqual(resp.status_code, 302)
 
     def test_state_success(self):
         message = "This is good!"
-        task = self.mock_task('task', states.SUCCESS, {"message": message})
+        task = self.mock_task("task", states.SUCCESS, {"message": message})
         self.save_result(app, task)
-        resp = self.get_monitor_view(task['id'])
+        resp = self.get_monitor_view(task["id"])
         self.assertEqual(resp.status_code, 200)
-        self.assertResponseContextEqual(resp, "state", task['state'])
+        self.assertResponseContextEqual(resp, "state", task["state"])
         self.assertResponseContextEqual(resp, "progress_statement", message)
         self.assertResponseContextIsNone(resp, "progress_percent")
         self.assertResponseContextIsNone(resp, "traceback")
 
     def test_state_success_result_not_dict(self):
-        task = self.mock_task('task', states.SUCCESS, "This is good!")
+        task = self.mock_task("task", states.SUCCESS, "This is good!")
         self.save_result(app, task)
-        resp = self.get_monitor_view(task['id'])
+        resp = self.get_monitor_view(task["id"])
         self.assertEqual(resp.status_code, 200)
-        self.assertResponseContextEqual(resp, "state", task['state'])
+        self.assertResponseContextEqual(resp, "state", task["state"])
         self.assertResponseContextIsNone(resp, "progress_percent")
         self.assertResponseContextIsNone(resp, "progress_statement")
         self.assertResponseContextIsNone(resp, "traceback")
 
     def test_state_success_result_contains_no_message(self):
-        task = self.mock_task('task', states.SUCCESS, {"log": "This is good!"})
+        task = self.mock_task("task", states.SUCCESS, {"log": "This is good!"})
         self.save_result(app, task)
-        resp = self.get_monitor_view(task['id'])
+        resp = self.get_monitor_view(task["id"])
         self.assertEqual(resp.status_code, 200)
-        self.assertResponseContextEqual(resp, "state", task['state'])
+        self.assertResponseContextEqual(resp, "state", task["state"])
         self.assertResponseContextIsNone(resp, "progress_percent")
         self.assertResponseContextIsNone(resp, "progress_statement")
         self.assertResponseContextIsNone(resp, "traceback")
 
     def test_state_progress(self):
         task = self.mock_task("progressing", "PROGRESS",
-                         {'current': 20, 'total': 40})
+                         {"current": 20, "total": 40})
         self.save_result(app, task)
-        resp = self.get_monitor_view(task['id'])
+        resp = self.get_monitor_view(task["id"])
         self.assertEqual(resp.status_code, 200)
-        self.assertResponseContextEqual(resp, "state", task['state'])
+        self.assertResponseContextEqual(resp, "state", task["state"])
         self.assertResponseContextEqual(resp, "progress_percent", 50)
         self.assertResponseContextEqual(
             resp, "progress_statement", "20 out of 40 items processed.")
@@ -2292,11 +2293,11 @@ class MonitorTaskTest(SingleCourseTestMixin, TestCase):
 
     def test_state_progress_total_zero(self):
         task = self.mock_task("progressing", "PROGRESS",
-                         {'current': 0, 'total': 0})
+                         {"current": 0, "total": 0})
         self.save_result(app, task)
-        resp = self.get_monitor_view(task['id'])
+        resp = self.get_monitor_view(task["id"])
         self.assertEqual(resp.status_code, 200)
-        self.assertResponseContextEqual(resp, "state", task['state'])
+        self.assertResponseContextEqual(resp, "state", task["state"])
         self.assertResponseContextIsNone(resp, "progress_percent")
         self.assertResponseContextEqual(
             resp, "progress_statement", "0 out of 0 items processed.")
@@ -2310,9 +2311,9 @@ class MonitorTaskTest(SingleCourseTestMixin, TestCase):
                               PYTRACEBACK)
         self.save_result(app, task)
         with self.temporarily_switch_to_user(self.superuser):
-            resp = self.get_monitor_view(task['id'])
+            resp = self.get_monitor_view(task["id"])
         self.assertEqual(resp.status_code, 200)
-        self.assertResponseContextEqual(resp, "state", task['state'])
+        self.assertResponseContextEqual(resp, "state", task["state"])
         self.assertResponseContextIsNone(resp, "progress_percent")
         self.assertResponseContextIsNone(resp, "progress_statement")
         self.assertResponseContextEqual(resp, "traceback", PYTRACEBACK)
@@ -2322,10 +2323,10 @@ class MonitorTaskTest(SingleCourseTestMixin, TestCase):
                               KeyError("foo"),
                               PYTRACEBACK)
         self.save_result(app, task)
-        resp = self.get_monitor_view(task['id'])
+        resp = self.get_monitor_view(task["id"])
 
         self.assertEqual(resp.status_code, 200)
-        self.assertResponseContextEqual(resp, "state", task['state'])
+        self.assertResponseContextEqual(resp, "state", task["state"])
         self.assertResponseContextIsNone(resp, "progress_percent")
         self.assertResponseContextIsNone(resp, "progress_statement")
         self.assertResponseContextIsNone(resp, "traceback")
@@ -2333,9 +2334,9 @@ class MonitorTaskTest(SingleCourseTestMixin, TestCase):
     def test_pending(self):
         state = states.PENDING
         task = self.mock_task("task", state,
-                              {'current': 20, 'total': 40})
+                              {"current": 20, "total": 40})
         self.save_result(app, task)
-        resp = self.get_monitor_view(task['id'])
+        resp = self.get_monitor_view(task["id"])
         self.assertEqual(resp.status_code, 200)
         self.assertResponseContextEqual(resp, "state", state)
         self.assertResponseContextIsNone(resp, "progress_percent")
@@ -2345,9 +2346,9 @@ class MonitorTaskTest(SingleCourseTestMixin, TestCase):
     def test_received(self):
         state = states.RECEIVED
         task = self.mock_task("task", state,
-                              {'current': 20, 'total': 40})
+                              {"current": 20, "total": 40})
         self.save_result(app, task)
-        resp = self.get_monitor_view(task['id'])
+        resp = self.get_monitor_view(task["id"])
         self.assertEqual(resp.status_code, 200)
         self.assertResponseContextEqual(resp, "state", state)
         self.assertResponseContextIsNone(resp, "progress_percent")
@@ -2357,9 +2358,9 @@ class MonitorTaskTest(SingleCourseTestMixin, TestCase):
     def test_started(self):
         state = states.STARTED
         task = self.mock_task("task", state,
-                              {'foo': "foo", 'bar': "bar"})
+                              {"foo": "foo", "bar": "bar"})
         self.save_result(app, task)
-        resp = self.get_monitor_view(task['id'])
+        resp = self.get_monitor_view(task["id"])
         self.assertEqual(resp.status_code, 200)
         self.assertResponseContextEqual(resp, "state", state)
         self.assertResponseContextIsNone(resp, "progress_percent")
@@ -2371,7 +2372,7 @@ class MonitorTaskTest(SingleCourseTestMixin, TestCase):
         task = self.mock_task("task", state,
                               KeyError())
         self.save_result(app, task)
-        resp = self.get_monitor_view(task['id'])
+        resp = self.get_monitor_view(task["id"])
         self.assertEqual(resp.status_code, 200)
         self.assertResponseContextEqual(resp, "state", state)
         self.assertResponseContextIsNone(resp, "progress_percent")
@@ -2382,7 +2383,7 @@ class MonitorTaskTest(SingleCourseTestMixin, TestCase):
         state = states.REVOKED
         task = self.mock_task("task", state, {})
         self.save_result(app, task)
-        resp = self.get_monitor_view(task['id'])
+        resp = self.get_monitor_view(task["id"])
         self.assertEqual(resp.status_code, 200)
         self.assertResponseContextEqual(resp, "state", state)
         self.assertResponseContextIsNone(resp, "progress_percent")

@@ -483,7 +483,7 @@ class AssemblePageGradesTest(HackRepoMixin,
 
         self.assertSessionScoreEqual(2)
 
-        self.assertListEqual(list(self.get_grades_of_opps()), ['28.6% (/2)'])
+        self.assertListEqual(list(self.get_grades_of_opps()), ["28.6% (/2)"])
         self.assertListEqual(
             self.get_page_grades_of_opp("la_quiz")[self.student.username],
             [None, 0, 100, 100])
@@ -501,7 +501,7 @@ class AssemblePageGradesTest(HackRepoMixin,
                 page_id, answer_data=answer_data)
         self.end_flow()
 
-        self.assertListEqual(list(self.get_grades_of_opps()), ['28.6%'])
+        self.assertListEqual(list(self.get_grades_of_opps()), ["28.6%"])
         self.assertListEqual(
             self.get_page_grades_of_opp("la_quiz")[self.student.username],
             [None, 0, 100, 100])
@@ -518,7 +518,7 @@ class AssemblePageGradesTest(HackRepoMixin,
 
         self.assertSessionScoreEqual(2)
 
-        self.assertListEqual(list(self.get_grades_of_opps()), ['100.0% (/2)'])
+        self.assertListEqual(list(self.get_grades_of_opps()), ["100.0% (/2)"])
         self.assertListEqual(
             self.get_page_grades_of_opp("la_quiz")[self.student.username],
             [None, 100, 100, None])
@@ -536,7 +536,7 @@ class AssemblePageGradesTest(HackRepoMixin,
                 page_id, answer_data=answer_data)
         self.end_flow()
 
-        self.assertListEqual(list(self.get_grades_of_opps()), ['28.6%'])
+        self.assertListEqual(list(self.get_grades_of_opps()), ["28.6%"])
         self.assertListEqual(
             self.get_page_grades_of_opp("la_quiz")[self.student.username],
             [None, 0, 100, 100])
@@ -556,7 +556,7 @@ class AssemblePageGradesTest(HackRepoMixin,
 
         self.assertSessionScoreEqual(2)
 
-        self.assertListEqual(list(self.get_grades_of_opps()), ['100.0% (/2)'])
+        self.assertListEqual(list(self.get_grades_of_opps()), ["100.0% (/2)"])
         self.assertListEqual(
             self.get_page_grades_of_opp("la_quiz")[self.student.username],
             [None, 100, 100])
@@ -574,7 +574,7 @@ class AssemblePageGradesTest(HackRepoMixin,
                 page_id, answer_data=answer_data)
         self.end_flow()
 
-        self.assertListEqual(list(self.get_grades_of_opps()), ['28.6%'])
+        self.assertListEqual(list(self.get_grades_of_opps()), ["28.6%"])
         self.assertListEqual(
             self.get_page_grades_of_opp("la_quiz")[self.student.username],
             [None, 0, 100, 100])
@@ -600,7 +600,7 @@ class AssemblePageGradesTest(HackRepoMixin,
 
         # This should fail after fixing Issue # 263 and #417, or there will
         # be inconsistencies
-        self.assertListEqual(list(self.get_grades_of_opps()), ['100.0% (/2)'])
+        self.assertListEqual(list(self.get_grades_of_opps()), ["100.0% (/2)"])
         self.assertListEqual(
             self.get_page_grades_of_opp("la_quiz")[self.student.username],
             [None, 100, 100])
@@ -1020,11 +1020,11 @@ class FinishFlowSessionViewTest(HackRepoMixin,
                 self.submit_page_answer_by_page_id_and_test(page_id)
 
         self.submit_page_answer_by_page_id_and_test(
-            "matrix_props", answer_data={"choice": ['0']}, expected_grades=0.5
+            "matrix_props", answer_data={"choice": ["0"]}, expected_grades=0.5
         )
 
         self.submit_page_answer_by_page_id_and_test(
-            "half", answer_data={"answer": ['1']}, expected_grades=0
+            "half", answer_data={"answer": ["1"]}, expected_grades=0
         )
 
         resp = self.end_flow()
@@ -1089,12 +1089,12 @@ class FinishFlowSessionViewTest(HackRepoMixin,
                     self.submit_page_answer_by_page_id_and_test(page_id)
 
             self.submit_page_answer_by_page_id_and_test(
-                "matrix_props", answer_data={"choice": ['0']},
+                "matrix_props", answer_data={"choice": ["0"]},
                 expected_grades=0.5
             )
 
             self.submit_page_answer_by_page_id_and_test(
-                "half", answer_data={"answer": ['1']}, expected_grades=0
+                "half", answer_data={"answer": ["1"]}, expected_grades=0
             )
 
             self.end_flow()
@@ -2086,7 +2086,7 @@ class GradeFlowSessionTest(SingleCourseQuizPageTestMixin,
         self.assertEqual(flow_session.points, 5.5)
         self.assertEqual(flow_session.max_points, 10)
         self.assertEqual(
-            flow_session.result_comment, 'Counted at 110.0% of 5.0 points')
+            flow_session.result_comment, "Counted at 110.0% of 5.0 points")
 
         # it should return the grade_info calculated
         self.assertEqual(result, grade_info)
@@ -3922,10 +3922,10 @@ class GetPageBehaviorTest(unittest.TestCase):
         from collections import namedtuple
         Conf = namedtuple(
             "Conf", [
-                'extra_fperms',
-                'answer_was_graded',
-                'generates_grade',
-                'is_unenrolled_session',
+                "extra_fperms",
+                "answer_was_graded",
+                "generates_grade",
+                "is_unenrolled_session",
             ]
         )
 
@@ -4326,12 +4326,14 @@ class ViewFlowPageTest(SingleCourseQuizPageTestMixin, HackRepoMixin, TestCase):
             start_time=start_time,
             completion_time=completion_time, in_progress=False)
 
-        resp = self.client.get(self.get_page_url_by_ordinal(0, flow_session_id=fs.id))
+        resp = self.client.get(
+                self.get_page_url_by_ordinal(0, flow_session_id=fs.id))
         self.assertResponseContextEqual(resp, "session_minutes", None)
         self.assertResponseContextEqual(resp, "time_factor", 1)
 
         self.switch_to_fake_commit_sha()
-        resp = self.client.get(self.get_page_url_by_ordinal(0, flow_session_id=fs.id))
+        resp = self.client.get(
+                self.get_page_url_by_ordinal(0, flow_session_id=fs.id))
         self.assertResponseContextEqual(resp, "session_minutes", 60)
         self.assertResponseContextEqual(resp, "time_factor", 1.11)
 
@@ -4346,7 +4348,8 @@ class ViewFlowPageTest(SingleCourseQuizPageTestMixin, HackRepoMixin, TestCase):
             start_time=start_time,
             in_progress=True)
 
-        resp = self.client.get(self.get_page_url_by_ordinal(0, flow_session_id=fs.id))
+        resp = self.client.get(
+                self.get_page_url_by_ordinal(0, flow_session_id=fs.id))
         self.assertTrue(resp.context["session_minutes"] > 61)
         self.assertResponseContextEqual(resp, "time_factor", 1)
 

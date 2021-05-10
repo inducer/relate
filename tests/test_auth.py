@@ -164,7 +164,7 @@ class ImpersonateTest(SingleCoursePageTestMixin, MockAddMessageMixing, TestCase)
                 impersonatee=self.instructor_participation.user)
 
             self.assertEqual(resp.status_code, 200)
-            self.assertFormError(resp, 'form', 'user',
+            self.assertFormError(resp, "form", "user",
                                  IMPERSONATE_FORM_ERROR_NOT_VALID_USER_MSG)
             self.assertIsNone(self.client.session.get("impersonate_id"))
 
@@ -172,7 +172,7 @@ class ImpersonateTest(SingleCoursePageTestMixin, MockAddMessageMixing, TestCase)
             resp = self.post_impersonate_view(
                 impersonatee=user)
             self.assertEqual(resp.status_code, 200)
-            self.assertFormError(resp, 'form', 'user',
+            self.assertFormError(resp, "form", "user",
                                  IMPERSONATE_FORM_ERROR_NOT_VALID_USER_MSG)
             self.assertIsNone(self.client.session.get("impersonate_id"))
 
@@ -271,7 +271,7 @@ class ImpersonateTest(SingleCoursePageTestMixin, MockAddMessageMixing, TestCase)
             resp = self.client.get(self.get_page_url_by_ordinal(page_ordinal=0))
             self.assertEqual(resp.status_code, 200)
             self.assertEqual(FlowPageVisit.objects.count(), 2)
-            second_visit = FlowPageVisit.objects.all().order_by('-pk')[0]
+            second_visit = FlowPageVisit.objects.all().order_by("-pk")[0]
 
             # this visit is not impersonated
             self.assertFalse(second_visit.is_impersonated())
@@ -282,7 +282,7 @@ class ImpersonateTest(SingleCoursePageTestMixin, MockAddMessageMixing, TestCase)
             resp = self.client.get(self.get_page_url_by_ordinal(page_ordinal=0))
             self.assertEqual(resp.status_code, 200)
             self.assertEqual(FlowPageVisit.objects.count(), 3)
-            second_visit = FlowPageVisit.objects.all().order_by('-pk')[0]
+            second_visit = FlowPageVisit.objects.all().order_by("-pk")[0]
             self.assertTrue(second_visit.is_impersonated())
             self.assertEqual(second_visit.impersonated_by,
                              self.ta_participation.user)
@@ -348,7 +348,7 @@ class ImpersonateTest(SingleCoursePageTestMixin, MockAddMessageMixing, TestCase)
             self.assertEqual(resp.status_code, 200)
             result = self.get_select2_response_data(resp)
             self.assertEqual(len(result), impersonatable.count())
-            all_ids = [int(r['id']) for r in result]
+            all_ids = [int(r["id"]) for r in result]
 
             # impersonator and superuser not in result
             self.assertNotIn(user.pk, all_ids)
@@ -357,7 +357,7 @@ class ImpersonateTest(SingleCoursePageTestMixin, MockAddMessageMixing, TestCase)
             impersonatable_pks = list(impersonatable.values_list("pk", flat=True))
             self.assertSetEqual(set(impersonatable_pks), set(all_ids))
 
-            all_text = [r['text'] for r in result]
+            all_text = [r["text"] for r in result]
             for s in all_text:
                 for bad_string in ["(), None, none"]:
                     if bad_string in s:
@@ -399,7 +399,7 @@ class ImpersonateTest(SingleCoursePageTestMixin, MockAddMessageMixing, TestCase)
             self.assertEqual(resp.status_code, 200)
             result = self.get_select2_response_data(resp)
             self.assertEqual(len(result), impersonatable.count())
-            all_ids = [int(r['id']) for r in result]
+            all_ids = [int(r["id"]) for r in result]
 
             # impersonator and superuser not in result
             self.assertNotIn(user.pk, all_ids)
@@ -408,7 +408,7 @@ class ImpersonateTest(SingleCoursePageTestMixin, MockAddMessageMixing, TestCase)
             impersonatable_pks = list(impersonatable.values_list("pk", flat=True))
             self.assertSetEqual(set(impersonatable_pks), set(all_ids))
 
-            all_text = [r['text'] for r in result]
+            all_text = [r["text"] for r in result]
             for s in all_text:
                 for bad_string in ["(), None, none"]:
                     if bad_string in s:
@@ -514,7 +514,7 @@ class AuthTestMixin:
         fields = ParseResult._fields
 
         for attr, x, y in zip(fields, urlparse(url), urlparse(expected)):
-            if parse_qs and attr == 'query':
+            if parse_qs and attr == "query":
                 x, y = QueryDict(x), QueryDict(y)
             if x and y and x != y:
                 self.fail(f"{url!r} != {expected!r} ({attr} doesn't match)")
@@ -525,42 +525,44 @@ class AuthTestMixin:
         with override_settings(ALLOWED_HOSTS=["testserver"]):
             # These URLs should not pass the security check.
             bad_urls = (
-                'http://example.com',
-                'http:///example.com',
-                'https://example.com',
-                'ftp://example.com',
-                '///example.com',
-                '//example.com',
+                "http://example.com",
+                "http:///example.com",
+                "https://example.com",
+                "ftp://example.com",
+                "///example.com",
+                "//example.com",
                 'javascript:alert("XSS")',
             )
             for bad_url in bad_urls:
                 with self.temporarily_switch_to_user(None):
                     with self.subTest(bad_url=bad_url):
                         nasty_url = self.concatenate_redirect_url(url, bad_url)
-                        response = self.client.post(nasty_url, self.get_sign_in_data())
+                        response = self.client.post(
+                                nasty_url, self.get_sign_in_data())
                         self.assertEqual(response.status_code, 302)
                         self.assertNotIn(bad_url, response.url,
-                                         '%s should be blocked' % bad_url)
+                                         "%s should be blocked" % bad_url)
 
             # These URLs should pass the security check.
             good_urls = (
-                '/view/?param=http://example.com',
-                '/view/?param=https://example.com',
-                '/view?param=ftp://example.com',
-                'view/?param=//example.com',
-                'https://testserver/',
-                'HTTPS://testserver/',
-                '//testserver/',
-                '/url%20with%20spaces/',
+                "/view/?param=http://example.com",
+                "/view/?param=https://example.com",
+                "/view?param=ftp://example.com",
+                "view/?param=//example.com",
+                "https://testserver/",
+                "HTTPS://testserver/",
+                "//testserver/",
+                "/url%20with%20spaces/",
             )
             for good_url in good_urls:
                 with self.temporarily_switch_to_user(None):
                     with self.subTest(good_url=good_url):
                         safe_url = self.concatenate_redirect_url(url, good_url)
-                        response = self.client.post(safe_url, self.get_sign_in_data())
+                        response = self.client.post(
+                                safe_url, self.get_sign_in_data())
                         self.assertEqual(response.status_code, 302)
                         self.assertIn(good_url, response.url,
-                                      '%s should be allowed' % good_url)
+                                      "%s should be allowed" % good_url)
 
     def assertSessionHasUserLoggedIn(self):  # noqa
         self.assertIn(SESSION_KEY, self.client.session)
@@ -571,7 +573,7 @@ class AuthTestMixin:
     def concatenate_redirect_url(self, url, redirect_to=None):
         if not redirect_to:
             return url
-        return ('{url}?{next}={bad_url}'.format(
+        return ("{url}?{next}={bad_url}".format(
             url=url,
             next=REDIRECT_FIELD_NAME,
             bad_url=quote(redirect_to),
@@ -660,15 +662,15 @@ class AuthTestMixin:
 
 class AuthViewNamedURLTests(AuthTestMixin, TestCase):
     need_logout_confirmation_named_urls = [
-        ('relate-sign_in_choice', [], {}),
-        ('relate-sign_in_by_user_pw', [], {}),
-        ('relate-sign_in_by_email', [], {}),
-        ('relate-sign_up', [], {}),
-        ('relate-reset_password', [], {}),
-        ('relate-reset_password', [], {"field": "instid"}),
-        ('relate-reset_password_stage2',
+        ("relate-sign_in_choice", [], {}),
+        ("relate-sign_in_by_user_pw", [], {}),
+        ("relate-sign_in_by_email", [], {}),
+        ("relate-sign_up", [], {}),
+        ("relate-reset_password", [], {}),
+        ("relate-reset_password", [], {"field": "instid"}),
+        ("relate-reset_password_stage2",
          [], {"user_id": 0, "sign_in_key": "abcd"}),
-        ('relate-sign_in_stage2_with_token',
+        ("relate-sign_in_stage2_with_token",
          [], {"user_id": 0, "sign_in_key": "abcd"})]
 
     djsaml2_urls = [
@@ -677,10 +679,10 @@ class AuthViewNamedURLTests(AuthTestMixin, TestCase):
     ]
 
     need_login_named_urls = [
-        ('relate-logout', [], {}),
-        ('relate-logout-confirmation', [], {}),
-        ('relate-user_profile', [], {}),
-        ('relate-manage_authentication_tokens', [],
+        ("relate-logout", [], {}),
+        ("relate-logout-confirmation", [], {}),
+        ("relate-user_profile", [], {}),
+        ("relate-manage_authentication_tokens", [],
          {"course_identifier": "test-course"}),
     ]
 
@@ -889,7 +891,7 @@ class SignInByEmailTest(CoursesTestMixinBase, MockAddMessageMixing,
             resp = self.post_sign_in_by_email(data=data,
                                               follow=False)
             self.assertEqual(resp.status_code, 200)
-            self.assertFormErrorLoose(resp, 'Enter a valid email address.')
+            self.assertFormErrorLoose(resp, "Enter a valid email address.")
             self.assertSessionHasNoUserLoggedIn()
             self.assertEqual(len(mail.outbox), 0)
 
@@ -1018,7 +1020,7 @@ class SignUpTest(CoursesTestMixinBase, MockAddMessageMixing,
             resp = self.post_sign_up(data=data,
                                      follow=False)
             self.assertEqual(resp.status_code, 200)
-            self.assertFormErrorLoose(resp, 'Enter a valid email address.')
+            self.assertFormErrorLoose(resp, "Enter a valid email address.")
             self.assertNoNewUserCreated()
             self.assertEqual(len(mail.outbox), 0)
 
@@ -1258,13 +1260,13 @@ class UserProfileTest(CoursesTestMixinBase, AuthTestMixin,
             self.assertTrue(resp.status_code, 200)
 
     def test_post_profile_without_submit_user(self):
-        # Only POST with 'submit_user' works
+        # Only POST with "submit_user" works
         with self.temporarily_switch_to_user(self.test_user):
             resp = self.get_profile()
             self.assertTrue(resp.status_code, 200)
             data = self.generate_profile_form_data(first_name="foo")
 
-            # No 'submit_user' in POST
+            # No "submit_user" in POST
             resp = self.client.post(self.get_profile_view_url(), data)
             self.test_user.refresh_from_db()
             self.assertEqual(self.test_user.first_name, "")
@@ -1303,14 +1305,14 @@ class UserProfileTest(CoursesTestMixinBase, AuthTestMixin,
         expected_unchanged_msg = "No change was made on your profile."
         from collections import namedtuple
         Conf = namedtuple(
-            'Conf', [
-                'id',
-                'override_settings_dict',
-                'user_profile_dict',
-                'update_profile_dict',
-                'expected_result_dict',
-                'assert_in_html_kwargs_list',
-                'expected_msg',
+            "Conf", [
+                "id",
+                "override_settings_dict",
+                "user_profile_dict",
+                "update_profile_dict",
+                "expected_result_dict",
+                "assert_in_html_kwargs_list",
+                "expected_msg",
             ])
 
         test_confs = (
@@ -1962,16 +1964,16 @@ class TestSaml2AttributeMapping(TestCase):
         backend = RelateSaml2Backend()
 
         saml_attribute_mapping = {
-            'PrincipalName': ('username',),
-            'iTrustUIN': ('institutional_id',),
-            'mail': ('email',),
-            'givenName': ('first_name',),
-            'sn': ('last_name',),
+            "PrincipalName": ("username",),
+            "iTrustUIN": ("institutional_id",),
+            "mail": ("email",),
+            "givenName": ("first_name",),
+            "sn": ("last_name",),
         }
 
         with override_settings(SAML_ATTRIBUTE_MAPPING=saml_attribute_mapping):
             user_attribute = {
-                'PrincipalName': (user.username,),
+                "PrincipalName": (user.username,),
             }
 
             with mock.patch("accounts.models.User.save") as mock_save:
@@ -1993,10 +1995,10 @@ class TestSaml2AttributeMapping(TestCase):
             expected_email = "yoink@illinois.edu"
 
             user_attribute = {
-                'PrincipalName': (user.username,),
-                'iTrustUIN': (expected_inst_id,),
-                'givenName': (expected_first,),
-                'sn': (expected_last,),
+                "PrincipalName": (user.username,),
+                "iTrustUIN": (expected_inst_id,),
+                "givenName": (expected_first,),
+                "sn": (expected_last,),
             }
 
             with mock.patch("accounts.models.User.save") as mock_save:
@@ -2014,11 +2016,11 @@ class TestSaml2AttributeMapping(TestCase):
             self.assertTrue(user.institutional_id_verified)
 
             user_attribute = {
-                'PrincipalName': (user.username,),
-                'iTrustUIN': (expected_inst_id,),
-                'mail': (expected_email),
-                'givenName': (expected_first,),
-                'sn': (expected_last,),
+                "PrincipalName": (user.username,),
+                "iTrustUIN": (expected_inst_id,),
+                "mail": (expected_email),
+                "givenName": (expected_first,),
+                "sn": (expected_last,),
             }
             user = backend._rl_update_user(
                     user, user_attribute, saml_attribute_mapping)
@@ -2144,7 +2146,7 @@ class AuthCourseWithTokenTest(APITestMixin, TestCase):
         resp = self.client.get(
             self.get_test_token_url(),
 
-            # no space between 'Token' and auth_data
+            # no space between "Token" and auth_data
             HTTP_AUTHORIZATION="Token%i_%s" % (
                 token.id, self.default_token_hash_str))
         self.assertEqual(resp.status_code, 403)

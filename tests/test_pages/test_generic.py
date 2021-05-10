@@ -81,7 +81,8 @@ class SingleCourseQuizPageTest(SingleCourseQuizPageTestMixin,
                 page_id, group_id = (
                     self.get_page_id_via_page_oridnal(i, with_group_id=True))
                 with self.subTest(page_id=page_id, name="no answer page view"):
-                    resp = self.client.get(self.get_page_url_by_page_id(page_id=page_id))
+                    resp = self.client.get(
+                            self.get_page_url_by_page_id(page_id=page_id))
                     self.assertEqual(resp.status_code, 200)
                     if page_id not in ["age_group", "fear", "welcome"]:
                         self.assertContains(resp, "No answer provided.")
@@ -102,9 +103,9 @@ class SingleCourseQuizPageTest(SingleCourseQuizPageTestMixin,
                     resp = self.post_download_all_submissions_by_group_page_id(
                         group_page_id=group_page_id, flow_id=self.flow_id)
                     self.assertEqual(resp.status_code, 200)
-                    prefix, zip_file = resp["Content-Disposition"].split('=')
+                    prefix, zip_file = resp["Content-Disposition"].split("=")
                     self.assertEqual(prefix, "attachment; filename")
-                    self.assertEqual(resp.get('Content-Type'), "application/zip")
+                    self.assertEqual(resp.get("Content-Type"), "application/zip")
 
     def test_quiz_text(self):
         page_id = "half"
@@ -153,7 +154,7 @@ class SingleCourseQuizPageTest(SingleCourseQuizPageTestMixin,
         page_id = "ice_cream_toppings"
         submit_answer_response, post_grade_response = (
             self.default_submit_page_answer_by_page_id_and_test(
-                page_id, answer_data={"choice": ['0', '1']}, do_grading=False)
+                page_id, answer_data={"choice": ["0", "1"]}, do_grading=False)
         )
         self.assertAddMessageCalledWith(MESSAGE_ANSWER_SAVED_TEXT)
 
@@ -177,7 +178,7 @@ class SingleCourseQuizPageTest(SingleCourseQuizPageTestMixin,
         page_id = "matrix_props"
         submit_answer_response, post_grade_response = (
             self.default_submit_page_answer_by_page_id_and_test(
-                page_id, answer_data={"choice": ['0']}, expected_grade=0.8)
+                page_id, answer_data={"choice": ["0"]}, expected_grade=0.8)
         )
         self.assertAddMessageCalledWith(MESSAGE_ANSWER_SAVED_TEXT)
 
@@ -190,8 +191,8 @@ class SingleCourseQuizPageTest(SingleCourseQuizPageTestMixin,
     def test_quiz_inline_wrong_answer(self):
         page_id = "inlinemulti"
         answer_data = {
-            'blank1': 'Bar', 'blank_2': '0.2', 'blank3': '1',
-            'blank4': '5', 'blank5': 'Bar', 'choice_a': '0'}
+            "blank1": "Bar", "blank_2": "0.2", "blank3": "1",
+            "blank4": "5", "blank5": "Bar", "choice_a": "0"}
         submit_answer_response, post_grade_response = (
             self.default_submit_page_answer_by_page_id_and_test(
                 page_id, answer_data=answer_data, expected_grade=8.57))
@@ -274,7 +275,7 @@ class SingleCourseQuizPageTest(SingleCourseQuizPageTestMixin,
                 page_id, do_grading=False))
         self.assertAddMessageCalledWith(MESSAGE_ANSWER_SAVED_TEXT)
 
-        with open(TEST_TEXT_FILE_PATH, 'rb') as fp:
+        with open(TEST_TEXT_FILE_PATH, "rb") as fp:
             expected_result1 = fp.read()
 
         # change answer
@@ -285,7 +286,7 @@ class SingleCourseQuizPageTest(SingleCourseQuizPageTestMixin,
 
         self.assertAddMessageCalledWith(MESSAGE_ANSWER_SAVED_TEXT)
 
-        with open(TEST_PDF_FILE_PATH, 'rb') as fp:
+        with open(TEST_PDF_FILE_PATH, "rb") as fp:
             expected_result2 = fp.read()
 
         page_ordinal = self.get_page_ordinal_via_page_id(page_id)
@@ -332,7 +333,7 @@ class SingleCourseQuizPageTest(SingleCourseQuizPageTestMixin,
             self.default_submit_page_answer_by_page_id_and_test(page_id))
         self.assertAddMessageCalledWith(MESSAGE_ANSWER_SAVED_TEXT)
 
-        with open(TEST_PDF_FILE_PATH, 'rb') as fp:
+        with open(TEST_PDF_FILE_PATH, "rb") as fp:
             expected_result = fp.read()
 
         from course.page.upload import FileUploadQuestion
@@ -356,7 +357,7 @@ class SingleCourseQuizPageTest(SingleCourseQuizPageTestMixin,
         page_id = "quarter"
         submit_answer_response, post_grade_response = (
             self.default_submit_page_answer_by_page_id_and_test(
-                page_id, answer_data={"answer": ['0.15']}, expected_grade=0))
+                page_id, answer_data={"answer": ["0.15"]}, expected_grade=0))
         self.assertAddMessageCalledWith(MESSAGE_ANSWER_SAVED_TEXT)
 
         # Make sure the page is rendered with 0 max_points
@@ -369,19 +370,19 @@ class SingleCourseQuizPageTest(SingleCourseQuizPageTestMixin,
 
     # {{{ tests on submission history dropdown
     def test_submit_history_failure_not_ajax(self):
-        self.post_answer_by_ordinal(1, {"answer": ['0.5']})
+        self.post_answer_by_ordinal(1, {"answer": ["0.5"]})
         resp = self.client.get(
             self.get_page_submit_history_url_by_ordinal(page_ordinal=1))
         self.assertEqual(resp.status_code, 403)
 
     def test_submit_history_failure_not_get(self):
-        self.post_answer_by_ordinal(1, {"answer": ['0.5']})
+        self.post_answer_by_ordinal(1, {"answer": ["0.5"]})
         resp = self.client.post(
             self.get_page_submit_history_url_by_ordinal(page_ordinal=1))
         self.assertEqual(resp.status_code, 403)
 
     def test_submit_history_failure_not_authenticated(self):
-        self.post_answer_by_ordinal(1, {"answer": ['0.5']})
+        self.post_answer_by_ordinal(1, {"answer": ["0.5"]})
 
         # anonymous user has not pperm to view submit history
         with self.temporarily_switch_to_user(None):

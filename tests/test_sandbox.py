@@ -101,8 +101,8 @@ class SingleCoursePageSandboxTestBaseMixin(SingleCourseTestMixin):
         :param markup_content: :class:`String`, RELATE flavored page markdown
         :return: :class: `http.HttpResponse`
         """
-        data = {'content': [markup_content]}
-        return cls.get_page_sandbox_post_response(client, data, action='preview')
+        data = {"content": [markup_content]}
+        return cls.get_page_sandbox_post_response(client, data, action="preview")
 
     @classmethod_with_client
     def get_page_sandbox_submit_answer_response(cls, client,  # noqa: N805
@@ -115,7 +115,8 @@ class SingleCoursePageSandboxTestBaseMixin(SingleCourseTestMixin):
         """
 
         cls.get_page_sandbox_preview_response(client, markup_content)
-        return cls.get_page_sandbox_post_response(client, answer_data, action='submit')
+        return cls.get_page_sandbox_post_response(
+                client, answer_data, action="submit")
 
     def get_sandbox_data_by_key(self, key):
         return self.client.session.get(
@@ -189,13 +190,13 @@ class SingleCoursePageSandboxTest(SingleCoursePageSandboxTestBaseMixin, TestCase
 
     def test_page_sandbox_submit_answer(self):
         # Try to answer the rendered question
-        answer_data = {'answer': ['a half']}
+        answer_data = {"answer": ["a half"]}
         resp = self.get_page_sandbox_submit_answer_response(
             markup_content=QUESTION_MARKUP, answer_data=answer_data)
         self.assertEqual(resp.status_code, 200)
         self.assertResponseContextAnswerFeedbackCorrectnessEquals(resp, 1)
 
-        answer_data = {'answer': ['0.6']}
+        answer_data = {"answer": ["0.6"]}
         resp = self.get_page_sandbox_submit_answer_response(
             markup_content=QUESTION_MARKUP, answer_data=answer_data)
         self.assertResponseContextAnswerFeedbackCorrectnessEquals(resp, 0)
@@ -240,28 +241,28 @@ class ViewPageSandboxTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
             "list marker ('-') or some stray indentation?")
 
     def test_is_clear_post(self):
-        answer_data = {'answer': ['a half']}
+        answer_data = {"answer": ["a half"]}
         self.get_page_sandbox_submit_answer_response(
             markup_content=QUESTION_MARKUP, answer_data=answer_data)
         self.assertIsNotNone(self.get_sandbox_page_data())
         self.assertIsNotNone(self.get_sandbox_answer_data())
 
-        data = {'content': [QUESTION_MARKUP]}
-        resp = self.get_page_sandbox_post_response(data, action='clear')
+        data = {"content": [QUESTION_MARKUP]}
+        resp = self.get_page_sandbox_post_response(data, action="clear")
         self.assertEqual(resp.status_code, 200)
         self.assertIsNone(self.get_sandbox_page_data())
         self.assertIsNone(self.get_sandbox_answer_data())
         self.assertResponseContextIsNone(resp, "page_form_html")
 
     def test_is_clear_response_post(self):
-        answer_data = {'answer': ['a half']}
+        answer_data = {"answer": ["a half"]}
         self.get_page_sandbox_submit_answer_response(
             markup_content=QUESTION_MARKUP, answer_data=answer_data)
         self.assertIsNotNone(self.get_sandbox_page_data())
         self.assertIsNotNone(self.get_sandbox_answer_data())
 
-        data = {'content': [QUESTION_MARKUP]}
-        resp = self.get_page_sandbox_post_response(data, action='clear_response')
+        data = {"content": [QUESTION_MARKUP]}
+        resp = self.get_page_sandbox_post_response(data, action="clear_response")
         self.assertEqual(resp.status_code, 200)
 
         self.assertIsNone(self.get_sandbox_page_data())

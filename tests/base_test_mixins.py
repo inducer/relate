@@ -2202,7 +2202,7 @@ class SingleCourseQuizPageTestMixin(SingleCoursePageTestMixin):
 
     @classmethod_with_client
     def submit_page_answer_by_ordinal_and_test(
-            cls, client, page_ordinal, *,
+            cls, client, page_ordinal, *,  # noqa: N805
             use_correct_answer=True, answer_data=None,
             skip_code_question=True,
             expected_grades=None, expected_post_answer_status_code=200,
@@ -2250,7 +2250,7 @@ class SingleCourseQuizPageTestMixin(SingleCoursePageTestMixin):
 
     @classmethod_with_client
     def submit_page_answer_by_page_id_and_test(
-            cls, client, page_id, *,
+            cls, client, page_id, *,  # noqa: N805
             use_correct_answer=True, answer_data=None,
             skip_code_question=True,
             expected_grades=None, expected_post_answer_status_code=200,
