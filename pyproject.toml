@@ -82,10 +82,22 @@ future = "^0.18.2"
 # Try to avoid https://github.com/Julian/jsonschema/issues/449
 attrs = ">=19"
 python-memcached = "^1.59"
+
+# {{{ celery and related
+
 # A task queue, used to execute long-running tasks
-celery = "^5.0.5"
+#
+# 5.1.0 exclusion:
+# https://github.com/celery/celery/issues/6797
+# https://github.com/celery/celery/commit/8a4056087aeac6a5be79a2db4d6f06975f754609
+celery = "^5.0.5,!=5.1.0"
 kombu = "*"
 django-celery-results = "^2.0.1"
+
+# }}}
+
+
+
 # For searchable select widgets
 django_select2 = "^7.4.2"
 
