@@ -174,11 +174,11 @@ RELATE markup
 All bulk text in RELATE is written in Markdown, with a few extensions.
 Here are a few resources on Markdown:
 
-*   `The basics <https://help.github.com/articles/markdown-basics/>`_ as
+*   `The basics <https://help.github.com/articles/markdown-basics/>`__ as
     described by Github.com
-*   `A 10-minute tutorial <http://markdowntutorial.com/>`_
-*   `John Gruber's original definition <http://daringfireball.net/projects/markdown/>`_
-*   `Markdown extensions used by RELATE <https://pythonhosted.org/Markdown/extensions/extra.html>`_
+*   `A 10-minute tutorial <http://markdowntutorial.com/>`__
+*   `John Gruber's original definition <http://daringfireball.net/projects/markdown/>`__
+*   `Markdown extensions used by RELATE <https://python-markdown.github.io/extensions/extra/>`__
 
 To allow easy experimentation with markup, RELATE has a "markup sandbox" in
 the "Content" menu where the rendered form of any RELATE markup can
@@ -186,6 +186,35 @@ be previewed.
 
 In addition to standard Markdown, the following extensions are
 supported:
+
+Tables
+^^^^^^
+
+Using the following syntax::
+
+    First Header  | Second Header
+    ------------- | -------------
+    Content Cell  | Content Cell
+    Content Cell  | Content Cell
+
+Markdown nested in HTML
+^^^^^^^^^^^^^^^^^^^^^^^
+
+Using the following syntax::
+
+    <div markdown="1">
+    This is a *Markdown* Paragraph.
+    </div>
+
+"Fenced" code blocks
+^^^^^^^^^^^^^^^^^^^^
+
+Using the following syntax::
+
+    ```python
+    def f(x):
+        return 5+x
+    ```
 
 Custom URLs
 ^^^^^^^^^^^
