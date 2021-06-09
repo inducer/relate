@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import division
+from __future__ import annotations
 
 __copyright__ = "Copyright (C) 2014 Andreas Kloeckner"
 
@@ -56,14 +56,12 @@ from course.page.base import (  # noqa
         PageBase,
         PageContext,
         )
-
 # {{{ mypy
 
 from typing import (  # noqa
     Tuple, List, Iterable, Any, Optional, Union, Dict, FrozenSet, Text,
     TYPE_CHECKING)
 if TYPE_CHECKING:
-    from relate.utils import Repo_ish  # noqa
     from course.models import (  # noqa
             Course,
             Participation,
@@ -71,6 +69,8 @@ if TYPE_CHECKING:
             FlowSession,
             FlowPageData,
             )
+
+    from relate.utils import Repo_ish  # noqa
     from course.content import Repo_ish  # noqa
     from codemirror import CodeMirrorTextarea  # noqa
 
@@ -131,16 +131,16 @@ class FlowSessionAccessRule(FlowSessionRuleBase):
 class FlowSessionGradingRule(FlowSessionRuleBase):
     def __init__(
             self,
-            grade_identifier,  # type: Optional[Text]
-            grade_aggregation_strategy,  # type: Text
-            due,  # type: Optional[datetime.datetime]
-            generates_grade,  # type: bool
-            description=None,  # type: Optional[Text]
-            credit_percent=None,  # type: Optional[float]
-            use_last_activity_as_completion_time=None,  # type: Optional[bool]
-            max_points=None,  # type: Optional[float]
-            max_points_enforced_cap=None,  # type: Optional[float]
-            bonus_points=None,  # type: Optional[float]
+            grade_identifier: Optional[Text],
+            grade_aggregation_strategy: str,
+            due: Optional[datetime.datetime],
+            generates_grade: bool,
+            description: Optional[Text] = None,
+            credit_percent: Optional[float] = None,
+            use_last_activity_as_completion_time: Optional[bool] = None,
+            max_points: Optional[float] = None,
+            max_points_enforced_cap: Optional[float] = None,
+            bonus_points: float = 0,
             ):
         # type: (...) -> None
 
@@ -158,14 +158,13 @@ class FlowSessionGradingRule(FlowSessionRuleBase):
 
 
 def _eval_generic_conditions(
-        rule,  # type: Any
-        course,  # type: Course
-        participation,  # type: Optional[Participation]
-        now_datetime,  # type: datetime.datetime
-        flow_id,  # type: Text
-        login_exam_ticket,  # type: Optional[ExamTicket]
-        ):
-    # type: (...) -> bool
+        rule: Any,
+        course: Course,
+        participation: Optional[Participation],
+        now_datetime: datetime.datetime,
+        flow_id: str,
+        login_exam_ticket: Optional[ExamTicket],
+        ) -> bool:
 
     if hasattr(rule, "if_before"):
         ds = parse_date_spec(course, rule.if_before)
@@ -194,11 +193,10 @@ def _eval_generic_conditions(
 
 
 def _eval_generic_session_conditions(
-        rule,  # type: Any
-        session,  # type: FlowSession
-        now_datetime,  # type: datetime.datetime
-        ):
-    # type: (...) -> bool
+        rule: Any,
+        session: FlowSession,
+        now_datetime: datetime.datetime,
+        ) -> bool:
 
     if hasattr(rule, "if_has_tag"):
         if session.access_rules_tag != rule.if_has_tag:
@@ -213,10 +211,9 @@ def _eval_generic_session_conditions(
 
 
 def _eval_participation_tags_conditions(
-        rule,  # type: Any
-        participation,  # type: Optional[Participation]
-        ):
-    # type: (...) -> bool
+        rule: Any,
+        participation: Optional[Participation],
+        ) -> bool:
 
     participation_tags_any_set = (
         set(getattr(rule, "if_has_participation_tags_any", [])))
@@ -245,15 +242,14 @@ def _eval_participation_tags_conditions(
 
 
 def get_flow_rules(
-        flow_desc,  # type: FlowDesc
-        kind,  # type: Text
-        participation,  # type: Optional[Participation]
-        flow_id,  # type: Text
-        now_datetime,  # type: datetime.datetime
-        consider_exceptions=True,  # type: bool
-        default_rules_desc=[]  # type: List[Any]
-        ):
-    # type: (...) -> List[Any]
+        flow_desc: FlowDesc,
+        kind: Text,
+        participation: Optional[Participation],
+        flow_id: str,
+        now_datetime: datetime.datetime,
+        consider_exceptions: bool = True,
+        default_rules_desc: List[Any] = []
+        ) -> List[Any]:
 
     if (not hasattr(flow_desc, "rules")
             or not hasattr(flow_desc.rules, kind)):
@@ -283,16 +279,15 @@ def get_flow_rules(
 
 
 def get_session_start_rule(
-        course,  # type: Course
-        participation,  # type: Optional[Participation]
-        flow_id,  # type: Text
-        flow_desc,  # type: FlowDesc
-        now_datetime,  # type: datetime.datetime
-        facilities=None,  # type: Optional[FrozenSet[Text]]
-        for_rollover=False,  # type: bool
-        login_exam_ticket=None,  # type: Optional[ExamTicket]
-        ):
-    # type: (...) -> FlowSessionStartRule
+        course: Course,
+        participation: Optional[Participation],
+        flow_id: str,
+        flow_desc: FlowDesc,
+        now_datetime: datetime.datetime,
+        facilities: Optional[FrozenSet[Text]] = None,
+        for_rollover: bool = False,
+        login_exam_ticket: Optional[ExamTicket] = None,
+        ) -> FlowSessionStartRule:
 
     """Return a :class:`FlowSessionStartRule` if a new session is
     permitted or *None* if no new session is allowed.
@@ -379,16 +374,12 @@ def get_session_start_rule(
 
 
 def get_session_access_rule(
-        session,  # type: FlowSession
-        flow_desc,  # type: FlowDesc
-        now_datetime,  # type: datetime.datetime
-        facilities=None,  # type: Optional[FrozenSet[Text]]
-        login_exam_ticket=None,  # type: Optional[ExamTicket]
-        ):
-    # type: (...) -> FlowSessionAccessRule
-    """Return a :class:`ExistingFlowSessionRule`` to describe
-    how a flow may be accessed.
-    """
+        session: FlowSession,
+        flow_desc: FlowDesc,
+        now_datetime: datetime.datetime,
+        facilities: Optional[FrozenSet[Text]] = None,
+        login_exam_ticket: Optional[ExamTicket] = None,
+        ) -> FlowSessionAccessRule:
 
     if facilities is None:
         facilities = frozenset()
@@ -471,11 +462,10 @@ def get_session_access_rule(
 
 
 def get_session_grading_rule(
-        session,  # type: FlowSession
-        flow_desc,  # type: FlowDesc
-        now_datetime  # type: datetime.datetime
-        ):
-    # type: (...) -> FlowSessionGradingRule
+        session: FlowSession,
+        flow_desc: FlowDesc,
+        now_datetime: datetime.datetime
+        ) -> FlowSessionGradingRule:
 
     flow_desc_rules = getattr(flow_desc, "rules", None)
 

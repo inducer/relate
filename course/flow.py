@@ -800,20 +800,15 @@ class GradeInfo(object):
 
 
 def gather_grade_info(
-        fctx,  # type: FlowContext
-        flow_session,  # type: FlowSession
-        grading_rule,  # type: FlowSessionGradingRule
-        answer_visits,  # type: List[Optional[FlowPageVisit]]
-        ):
-    # type: (...) -> GradeInfo
-    """
-    :returns: a :class:`GradeInfo`
-    """
-
+        fctx: FlowContext,
+        flow_session: FlowSession,
+        grading_rule: FlowSessionGradingRule,
+        answer_visits: List[Optional[FlowPageVisit]],
+        ) -> GradeInfo:
     all_page_data = get_all_page_data(flow_session)
 
     bonus_points = grading_rule.bonus_points
-    points = bonus_points
+    points: Optional[float] = bonus_points
     provisional_points = bonus_points
     max_points = bonus_points
     max_reachable_points = bonus_points

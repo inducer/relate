@@ -1450,7 +1450,7 @@ def markup_to_html(
     from course.utils import NBConvertExtension
     import markdown
 
-    extensions = [
+    extensions: List[Union[markdown.Extension, str]] = [
         LinkFixerExtension(course, commit_sha, reverse_func=reverse_func),
         MathJaxExtension(),
         NBConvertExtension(),
@@ -1469,7 +1469,7 @@ def markup_to_html(
 
     result = markdown.markdown(text,
         extensions=extensions,
-        output_format="html5")
+        output_format="html")
 
     if course is None or not course.trusted_for_markup:
         import bleach
