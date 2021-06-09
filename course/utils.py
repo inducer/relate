@@ -56,6 +56,13 @@ from course.page.base import (  # noqa
         PageBase,
         PageContext,
         )
+from course.models import (  # noqa
+        Course,
+        Participation,
+        ExamTicket,
+        FlowSession,
+        FlowPageData,
+        )
 
 # {{{ mypy
 
@@ -64,13 +71,6 @@ from typing import (  # noqa
     TYPE_CHECKING)
 if TYPE_CHECKING:
     from relate.utils import Repo_ish  # noqa
-    from course.models import (  # noqa
-            Course,
-            Participation,
-            ExamTicket,
-            FlowSession,
-            FlowPageData,
-            )
     from course.content import Repo_ish  # noqa
     from codemirror import CodeMirrorTextarea  # noqa
 
