@@ -4,7 +4,7 @@ import markdown
 from markdown.postprocessors import Postprocessor
 
 
-class MathJaxPattern(markdown.inlinepatterns.Pattern):
+class MathJaxPattern(markdown.inlinepatterns.Pattern):  # type: ignore
     def __init__(self):
         markdown.inlinepatterns.Pattern.__init__(self, r'(?<!\\)(\$\$?)(.+?)\2')
 
