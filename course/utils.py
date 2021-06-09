@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import division
+from __future__ import annotations
 
 __copyright__ = "Copyright (C) 2014 Andreas Kloeckner"
 
@@ -56,20 +56,20 @@ from course.page.base import (  # noqa
         PageBase,
         PageContext,
         )
-from course.models import (  # noqa
-        Course,
-        Participation,
-        ExamTicket,
-        FlowSession,
-        FlowPageData,
-        )
-
 # {{{ mypy
 
 from typing import (  # noqa
     Tuple, List, Iterable, Any, Optional, Union, Dict, FrozenSet, Text,
     TYPE_CHECKING)
 if TYPE_CHECKING:
+    from course.models import (  # noqa
+            Course,
+            Participation,
+            ExamTicket,
+            FlowSession,
+            FlowPageData,
+            )
+
     from relate.utils import Repo_ish  # noqa
     from course.content import Repo_ish  # noqa
     from codemirror import CodeMirrorTextarea  # noqa
