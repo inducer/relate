@@ -29,6 +29,10 @@ Stub Docs
 
 .. class:: FlowPageContext
 
+.. currentmodule:: relate.utils
+
+.. class:: StyledForm
+
 Canonicalization of Django Names
 --------------------------------
 
