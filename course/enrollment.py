@@ -1,6 +1,4 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import division
+from __future__ import annotations
 
 __copyright__ = "Copyright (C) 2014 Andreas Kloeckner"
 
@@ -79,9 +77,9 @@ if TYPE_CHECKING:
 
 # {{{ get_participation_for_{user,request}
 
-def get_participation_for_user(user, course):
-    # type: (accounts.models.User, Course) -> Optional[Participation]
-
+def get_participation_for_user(
+        user: accounts.models.User, course: Course
+        ) -> Optional[Participation]:
     # "wake up" lazy object
     # http://stackoverflow.com/questions/20534577/int-argument-must-be-a-string-or-a-number-not-simplelazyobject  # noqa
     try:
@@ -110,9 +108,8 @@ def get_participation_for_user(user, course):
     return participations[0]
 
 
-def get_participation_for_request(request, course):
-    # type: (http.HttpRequest, Course) -> Optional[Participation]
-
+def get_participation_for_request(
+        request: http.HttpRequest, course: Course) -> Optional[Participation]:
     return get_participation_for_user(request.user, course)
 
 # }}}
@@ -120,9 +117,8 @@ def get_participation_for_request(request, course):
 
 # {{{ get_participation_role_identifiers
 
-def get_participation_role_identifiers(course, participation):
-    # type: (Course, Optional[Participation]) -> List[Text]
-
+def get_participation_role_identifiers(
+        course: Course, participation: Optional[Participation]) -> List[str]:
     if participation is None:
         return (
                 ParticipationRole.objects.filter(
@@ -139,10 +135,9 @@ def get_participation_role_identifiers(course, participation):
 # {{{ get_permissions
 
 def get_participation_permissions(
-        course,  # type: Course
-        participation,  # type: Optional[Participation]
-        ):
-    # type: (...) -> FrozenSet[Tuple[Text, Optional[Text]]]
+        course: Course,
+        participation: Optional[Participation],
+        ) -> FrozenSet[Tuple[str, Optional[str]]]:
 
     if participation is not None:
         return participation.permissions()
@@ -167,9 +162,8 @@ def get_participation_permissions(
 
 @login_required
 @transaction.atomic
-def enroll_view(request, course_identifier):
-    # type: (http.HttpRequest, str) -> http.HttpResponse
-
+def enroll_view(
+        request: http.HttpRequest, course_identifier: str) -> http.HttpResponse:
     course = get_object_or_404(Course, identifier=course_identifier)
     user = request.user
     participations = Participation.objects.filter(course=course, user=user)
@@ -238,8 +232,7 @@ def enroll_view(request, course_identifier):
                 except ParticipationPreapproval.DoesNotExist:
                     pass
 
-    def email_suffix_matches(email, suffix):
-        # type: (Text, Text) -> bool
+    def email_suffix_matches(email: str, suffix: str) -> bool:
         if suffix.startswith("@"):
             return email.endswith(suffix)
         else:
@@ -317,8 +310,13 @@ def enroll_view(request, course_identifier):
 
 
 @transaction.atomic
-def handle_enrollment_request(course, user, status, roles, request=None):
-    # type: (Course, Any, Text, Optional[List[ParticipationRole]], Optional[http.HttpRequest]) -> Participation  # noqa
+def handle_enrollment_request(
+        course: Course,
+        user: Any,
+        status: str,
+        roles: Optional[List[ParticipationRole]],
+        request: Optional[http.HttpRequest] = None
+        ) -> Participation:
     participations = Participation.objects.filter(course=course, user=user)
 
     assert participations.count() <= 1
@@ -371,9 +369,10 @@ def decide_enrollment(approved, modeladmin, request, queryset):
             _("%d requests processed.") % count)
 
 
-def send_enrollment_decision(participation, approved, request=None):
-    # type: (Participation, bool, http.HttpRequest) -> None
-
+def send_enrollment_decision(
+        participation: Participation,
+        approved: bool,
+        request: Optional[http.HttpRequest] = None) -> None:
     course = participation.course
     with LanguageOverride(course=course):
         if request:
@@ -438,7 +437,7 @@ deny_enrollment.short_description = _("Deny enrollment")  # type:ignore  # noqa
 
 class BulkPreapprovalsForm(StyledForm):
     def __init__(self, course, *args, **kwargs):
-        super(BulkPreapprovalsForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         self.fields["roles"] = forms.ModelMultipleChoiceField(
                 queryset=(
@@ -586,10 +585,9 @@ _whitespace = intern("whitespace")
 
 
 class RE(REBase):
-    def __init__(self, s):
-        # type: (str) -> None
+    def __init__(self, s: str) -> None:
         import re
-        super(RE, self).__init__(s, re.UNICODE)
+        super().__init__(s, re.UNICODE)
 
 
 _LEX_TABLE = [
@@ -821,7 +819,7 @@ class ParticipationQueryForm(StyledForm):
             required=False)
 
     def __init__(self, *args, **kwargs):
-        super(ParticipationQueryForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         self.helper.add_input(
                 Submit("list", _("List")))
@@ -924,9 +922,9 @@ def query_participations(pctx):
 # {{{ edit_participation
 
 class EditParticipationForm(StyledModelForm):
-    def __init__(self, add_new, pctx, *args, **kwargs):
-        # type: (bool, CoursePageContext, *Any, **Any) -> None
-        super(EditParticipationForm, self).__init__(*args, **kwargs)
+    def __init__(self, add_new: bool, pctx: CoursePageContext,
+            *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
 
         participation = self.instance
 
@@ -988,10 +986,9 @@ class EditParticipationForm(StyledModelForm):
         raise forms.ValidationError(
             _("This user has not confirmed his/her email."))
 
-    def save(self):
-        # type: () -> Participation
+    def save(self) -> Participation:
 
-        inst = super(EditParticipationForm, self).save()
+        inst = super().save()
 
         (ParticipationPermission.objects
                 .filter(participation=self.instance)
@@ -1021,8 +1018,8 @@ class EditParticipationForm(StyledModelForm):
 
 
 @course_view
-def edit_participation(pctx, participation_id):
-    # type: (CoursePageContext, int) -> http.HttpResponse
+def edit_participation(
+        pctx: CoursePageContext, participation_id: int) -> http.HttpResponse:
     if not pctx.has_permission(pperm.edit_participation):
         raise PermissionDenied()
 

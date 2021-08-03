@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import os
 
 from celery import Celery
@@ -19,4 +17,4 @@ app.autodiscover_tasks(lambda: settings.INSTALLED_APPS)
 
 @app.task(bind=True)
 def debug_task(self):  # pragma: no cover
-    print("Request: {0!r}".format(self.request))
+    print(f"Request: {self.request!r}")

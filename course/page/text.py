@@ -1,7 +1,3 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import division
-
 __copyright__ = "Copyright (C) 2014 Andreas Kloeckner"
 
 __license__ = """
@@ -92,7 +88,7 @@ class TextAnswerForm(StyledForm):
         widget_type = kwargs.pop("widget_type", "text_input")
         initial_text = kwargs.pop("initial_text", None)
 
-        super(TextAnswerForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         widget, help_text = self.get_text_widget(
                     widget_type, read_only,
                     interaction_mode=interaction_mode)
@@ -107,7 +103,7 @@ class TextAnswerForm(StyledForm):
         self.style_codemirror_widget()
 
     def clean(self):
-        cleaned_data = super(TextAnswerForm, self).clean()
+        cleaned_data = super().clean()
 
         answer = cleaned_data.get("answer", "")
         for i, validator in enumerate(self.validators):
@@ -124,7 +120,7 @@ class TextAnswerForm(StyledForm):
 
 # {{{ validators
 
-class RELATEPageValidator(object):
+class RELATEPageValidator:
     type = "relate_page"
 
     def __init__(self, vctx, location, validator_desc):
@@ -210,7 +206,7 @@ def parse_validator(vctx, location, validator_desc):
 
 # {{{ matchers
 
-class TextAnswerMatcher(object):
+class TextAnswerMatcher:
     """Abstract interface for matching text answers.
 
     .. attribute:: type
@@ -703,7 +699,7 @@ class TextQuestionBase(PageBaseWithTitle):
         Text with which to prepopulate the input widget.
     """
     def __init__(self, vctx, location, page_desc):
-        super(TextQuestionBase, self).__init__(vctx, location, page_desc)
+        super().__init__(vctx, location, page_desc)
 
         widget = TextAnswerForm.get_text_widget(
                 getattr(page_desc, "widget", None),
@@ -720,12 +716,12 @@ class TextQuestionBase(PageBaseWithTitle):
                         "type": getattr(page_desc, "widget")})
 
     def required_attrs(self):
-        return super(TextQuestionBase, self).required_attrs() + (
+        return super().required_attrs() + (
                 ("prompt", "markup"),
                 )
 
     def allowed_attrs(self):
-        return super(TextQuestionBase, self).allowed_attrs() + (
+        return super().allowed_attrs() + (
                 ("widget", str),
                 ("initial_text", str),
                 )
@@ -837,7 +833,7 @@ class SurveyTextQuestion(TextQuestionBase):
         return []
 
     def allowed_attrs(self):
-        return super(SurveyTextQuestion, self).allowed_attrs() + (
+        return super().allowed_attrs() + (
                 ("answer_comment", "markup"),
                 )
 
@@ -991,7 +987,7 @@ class TextQuestion(TextQuestionBase, PageBaseWithValue):
     """
 
     def __init__(self, vctx, location, page_desc):
-        super(TextQuestion, self).__init__(vctx, location, page_desc)
+        super().__init__(vctx, location, page_desc)
 
         if len(page_desc.answers) == 0:
             raise ValidationError(
@@ -1017,12 +1013,12 @@ class TextQuestion(TextQuestionBase, PageBaseWithValue):
                     % location)
 
     def required_attrs(self):
-        return super(TextQuestion, self).required_attrs() + (
+        return super().required_attrs() + (
                 ("answers", list),
                 )
 
     def allowed_attrs(self):
-        return super(TextQuestion, self).allowed_attrs() + (
+        return super().allowed_attrs() + (
                 ("answer_explanation", "markup"),
                 )
 
@@ -1143,7 +1139,7 @@ class HumanGradedTextQuestion(TextQuestionBase, PageBaseWithValue,
     """
 
     def __init__(self, vctx, location, page_desc):
-        super(HumanGradedTextQuestion, self).__init__(vctx, location, page_desc)
+        super().__init__(vctx, location, page_desc)
 
         self.validators = [
                 parse_validator(
@@ -1154,7 +1150,7 @@ class HumanGradedTextQuestion(TextQuestionBase, PageBaseWithValue,
                     getattr(page_desc, "validators", []))]
 
     def allowed_attrs(self):
-        return super(HumanGradedTextQuestion, self).allowed_attrs() + (
+        return super().allowed_attrs() + (
                 ("validators", list),
                 )
 

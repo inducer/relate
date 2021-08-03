@@ -1,7 +1,3 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import division
-
 __copyright__ = "Copyright (C) 2014 Andreas Kloeckner"
 
 __license__ = """
@@ -49,17 +45,17 @@ from course.models import Event
 class ListTextWidget(forms.TextInput):
     # Widget which allow free text and choices for CharField
     def __init__(self, data_list, name, *args, **kwargs):
-        super(ListTextWidget, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self._name = name
         self._list = data_list
         self.attrs.update({"list": "list__%s" % self._name})
 
     def render(self, name, value, attrs=None, renderer=None):
-        text_html = super(ListTextWidget, self).render(
+        text_html = super().render(
             name, value, attrs=attrs, renderer=renderer)
         data_list = '<datalist id="list__%s">' % self._name
         for item in self._list:
-            data_list += '<option value="%s">%s</option>' % (item[0], item[1])
+            data_list += '<option value="{}">{}</option>'.format(item[0], item[1])
         data_list += "</datalist>"
 
         return (text_html + data_list)
@@ -103,7 +99,7 @@ class RecurringEventForm(StyledForm):
             label=pgettext_lazy("Count of recurring events", "Count"))
 
     def __init__(self, course_identifier, *args, **kwargs):
-        super(RecurringEventForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.course_identifier = course_identifier
 
         exist_event_choices = [(choice, choice) for choice in set(
@@ -227,7 +223,7 @@ def create_recurring_events(pctx):
                                 # raised for fields which don't exist in
                                 # RecurringEventForm
                                 form.add_error(
-                                    "__all__", "'%s': %s" % (field, error))
+                                    "__all__", f"'{field}': {error}")
                     else:
                         message = (
                                 string_concat(
@@ -266,7 +262,7 @@ class RenumberEventsForm(StyledForm):
             label=_("Preserve ordinal order"))
 
     def __init__(self, course_identifier, *args, **kwargs):
-        super(RenumberEventsForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.course_identifier = course_identifier
 
         renumberable_event_kinds = set(Event.objects.filter(
@@ -350,7 +346,7 @@ def renumber_events(pctx):
 
 # {{{ calendar
 
-class EventInfo(object):
+class EventInfo:
     def __init__(self, id, human_title, start_time, end_time, description):
         self.id = id
         self.human_title = human_title

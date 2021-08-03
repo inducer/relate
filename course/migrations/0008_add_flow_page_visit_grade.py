@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-from __future__ import unicode_literals
-
 from django.db import models, migrations
 import jsonfield.fields
 from django.conf import settings
@@ -70,7 +67,7 @@ class Migration(migrations.Migration):
         ),
         migrations.AlterUniqueTogether(
             name='flowpagevisitgrade',
-            unique_together=set([('visit', 'grade_time')]),
+            unique_together={('visit', 'grade_time')},
         ),
         migrations.RunPython(store_grading_results),
         migrations.RemoveField(

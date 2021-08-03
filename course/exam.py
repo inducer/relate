@@ -1,6 +1,4 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import division
+from __future__ import annotations
 
 __copyright__ = "Copyright (C) 2015 Andreas Kloeckner"
 
@@ -80,7 +78,7 @@ class IssueTicketForm(StyledForm):
     def __init__(self, now_datetime, *args, **kwargs):
         initial_exam = kwargs.pop("initial_exam", None)
 
-        super(IssueTicketForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         from course.auth import UserSearchWidget
 
@@ -272,7 +270,7 @@ class BatchIssueTicketsForm(StyledForm):
     use_required_attribute = False
 
     def __init__(self, course, editor_mode, *args, **kwargs):
-        super(BatchIssueTicketsForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         from course.utils import get_codemirror_widget
         cm_widget, cm_help_text = get_codemirror_widget(
@@ -429,12 +427,11 @@ def batch_issue_exam_tickets(pctx):
 # {{{ check in
 
 def check_exam_ticket(
-        username,  # type: Optional[Text]
-        code,  # type: Optional[Text]
-        now_datetime,  # type: datetime.datetime
-        facilities  # type: Optional[FrozenSet[Text]]
-        ):
-    # type: (...) -> Tuple[bool, Text]
+        username: Optional[str],
+        code: Optional[str],
+        now_datetime: datetime.datetime,
+        facilities: Optional[FrozenSet[str]]
+        ) -> Tuple[bool, str]:
     """
     :returns: (is_valid, msg)
     """
@@ -495,7 +492,7 @@ def check_exam_ticket(
     return True, _("Ticket is valid.")
 
 
-class ExamTicketBackend(object):
+class ExamTicketBackend:
     def authenticate(self, request, username=None, code=None, now_datetime=None,
             facilities=None):
         is_valid, msg = check_exam_ticket(username, code, now_datetime, facilities)
@@ -527,7 +524,7 @@ class ExamCheckInForm(StyledForm):
                 "please follow the link above to log in."))
 
     def __init__(self, *args, **kwargs):
-        super(ExamCheckInForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         self.helper.add_input(
                 Submit("submit", _("Check in")))
@@ -615,8 +612,7 @@ def is_from_exams_only_facility(request):
     return False
 
 
-def get_login_exam_ticket(request):
-    # type: (http.HttpRequest) -> Optional[ExamTicket]
+def get_login_exam_ticket(request: http.HttpRequest) -> Optional[ExamTicket]:
     exam_ticket_pk = request.session.get("relate_exam_ticket_pk_used_for_login")
 
     if exam_ticket_pk is None:
@@ -627,7 +623,7 @@ def get_login_exam_ticket(request):
 
 # {{{ lockdown middleware
 
-class ExamFacilityMiddleware(object):
+class ExamFacilityMiddleware:
     def __init__(self, get_response):
         self.get_response = get_response
 
@@ -700,7 +696,7 @@ class ExamFacilityMiddleware(object):
         return self.get_response(request)
 
 
-class ExamLockdownMiddleware(object):
+class ExamLockdownMiddleware:
     def __init__(self, get_response):
         self.get_response = get_response
 

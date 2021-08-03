@@ -1,7 +1,3 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import division
-
 __copyright__ = "Copyright (C) 2014 Andreas Kloeckner"
 
 __license__ = """
@@ -73,7 +69,7 @@ def flow_list(pctx):
 
 # {{{ histogram tool
 
-class BinInfo(object):
+class BinInfo:
     def __init__(self, title, raw_weight, percentage, url=None):
         self.title = title
         self.raw_weight = raw_weight
@@ -81,7 +77,7 @@ class BinInfo(object):
         self.url = url
 
 
-class Histogram(object):
+class Histogram:
     def __init__(self, num_bin_count=10, num_bin_starts=None,
             num_min_value=None, num_max_value=None,
             num_enforce_bounds=False, num_log_bins=False,
@@ -281,7 +277,7 @@ def make_grade_histogram(pctx, flow_id):
     return hist
 
 
-class PageAnswerStats(object):
+class PageAnswerStats:
     def __init__(self, group_id, page_id, title, average_correctness,
             average_emptiness, answer_count, total_count, url=None):
         self.group_id = group_id
@@ -478,7 +474,7 @@ def flow_analytics(pctx, flow_id):
 
 # {{{ page analytics
 
-class AnswerStats(object):
+class AnswerStats:
     def __init__(self, normalized_answer, correctness, count,
             percentage):
         self.normalized_answer = normalized_answer

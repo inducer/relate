@@ -1,6 +1,4 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import division
+from __future__ import annotations
 
 __copyright__ = "Copyright (C) 2014 Andreas Kloeckner"
 
@@ -67,11 +65,11 @@ class InstantMessageForm(forms.Form):
                     # the instant messaging function.
                     pgettext_lazy("Send instant messages", "Send")))
 
-        super(InstantMessageForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
 
-_xmpp_connections = {}  # type: Dict[int, CourseXMPP]
-_disconnectors = []  # type: List[Disconnector]
+_xmpp_connections: dict[int, CourseXMPP] = {}
+_disconnectors: list[Disconnector] = []
 
 
 class CourseXMPP(sleekxmpp.ClientXMPP):
@@ -114,9 +112,8 @@ class CourseXMPP(sleekxmpp.ClientXMPP):
             self.presences_received.clear()
 
 
-class Disconnector(object):
-    def __init__(self, xmpp, course):
-        # type: (CourseXMPP, Course) -> None
+class Disconnector:
+    def __init__(self, xmpp: CourseXMPP, course: Course) -> None:
         self.timer = None
         self.xmpp = xmpp
         self.course = course
@@ -124,8 +121,7 @@ class Disconnector(object):
         self.timer = threading.Timer(60, self)  # type: ignore
         self.timer.start()
 
-    def __call__(self):
-        # type: () -> None
+    def __call__(self) -> None:
         # print "EXPIRING XMPP", self.course.pk
         del _xmpp_connections[self.course.pk]
         self.xmpp.disconnect(wait=True)

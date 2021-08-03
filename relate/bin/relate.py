@@ -28,7 +28,7 @@ def expand_yaml(yml_file, repo_root):
     if yml_file == "-":
         data = sys.stdin.read()
     else:
-        with open(yml_file, "r") as inf:
+        with open(yml_file) as inf:
             data = inf.read()
 
     from course.content import (

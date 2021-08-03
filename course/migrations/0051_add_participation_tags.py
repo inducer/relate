@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-from __future__ import unicode_literals
-
 from django.db import models, migrations
 
 
@@ -25,7 +22,7 @@ class Migration(migrations.Migration):
         ),
         migrations.AlterUniqueTogether(
             name='participationtag',
-            unique_together=set([('course', 'name')]),
+            unique_together={('course', 'name')},
         ),
         migrations.AddField(
             model_name='participation',

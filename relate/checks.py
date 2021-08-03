@@ -1,7 +1,3 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import division
-
 __copyright__ = "Copyright (C) 2017 Dong Zhuang"
 
 __license__ = """
@@ -62,7 +58,7 @@ RELATE_CUSTOM_PAGE_TYPES_REMOVED_DEADLINE = (
 
 class RelateCriticalCheckMessage(Critical):
     def __init__(self, *args, **kwargs):
-        super(RelateCriticalCheckMessage, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.obj = self.obj or ImproperlyConfigured.__name__
 
 
@@ -452,7 +448,7 @@ def check_relate_settings(app_configs, **kwargs):
             if not isinstance(site_name, str):
                 errors.append(RelateCriticalCheckMessage(
                     msg=(INSTANCE_ERROR_PATTERN
-                         % {"location": "%s/%s" % (RELATE_SITE_NAME,
+                         % {"location": "{}/{}".format(RELATE_SITE_NAME,
                                                    RELATE_CUTOMIZED_SITE_NAME),
                             "types": "string"}),
                     id="relate_site_name.E003"))

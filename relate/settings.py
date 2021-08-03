@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 """
 Django settings for RELATE.
 """
@@ -263,7 +261,7 @@ SESSION_COOKIE_AGE = 12096000  # 20 weeks
 
 # {{{ app defaults
 
-RELATE_FACILITIES = {}  # type: Union[None,Dict[str, Dict[str, Any]], Callable[..., Dict[str, Dict[str, Any]]], ]  # noqa
+RELATE_FACILITIES: Union[None,Dict[str, Dict[str, Any]], Callable[..., Dict[str, Dict[str, Any]]], ] = {}  # noqa
 
 RELATE_TICKET_MINUTES_VALID_AFTER_USE = 0
 

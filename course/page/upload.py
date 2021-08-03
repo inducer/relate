@@ -1,7 +1,3 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import division
-
 __copyright__ = "Copyright (C) 2014 Andreas Kloeckner"
 
 __license__ = """
@@ -47,7 +43,7 @@ class FileUploadForm(StyledForm):
             label=gettext_lazy("Uploaded file"))
 
     def __init__(self, maximum_megabytes, mime_types, *args, **kwargs):
-        super(FileUploadForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         self.max_file_size = maximum_megabytes * 1024**2
         self.mime_types = mime_types
@@ -156,7 +152,7 @@ class FileUploadQuestion(PageBaseWithTitle, PageBaseWithValue,
             ]
 
     def __init__(self, vctx, location, page_desc):
-        super(FileUploadQuestion, self).__init__(vctx, location, page_desc)
+        super().__init__(vctx, location, page_desc)
 
         if not (set(page_desc.mime_types) <= set(self.ALLOWED_MIME_TYPES)):
             raise ValidationError(
@@ -183,14 +179,14 @@ class FileUploadQuestion(PageBaseWithTitle, PageBaseWithValue,
                         "assigned point value"))
 
     def required_attrs(self):
-        return super(FileUploadQuestion, self).required_attrs() + (
+        return super().required_attrs() + (
                 ("prompt", "markup"),
                 ("mime_types", list),
                 ("maximum_megabytes", (int, float)),
                 )
 
     def allowed_attrs(self):
-        return super(FileUploadQuestion, self).allowed_attrs() + (
+        return super().allowed_attrs() + (
                 ("correct_answer", "markup"),
                 )
 
@@ -278,7 +274,7 @@ class FileUploadQuestion(PageBaseWithTitle, PageBaseWithValue,
             from base64 import b64encode
             subm_data, subm_mime = self.get_content_from_answer_data(answer_data)
             ctx["mime_type"] = subm_mime
-            ctx["data_url"] = "data:%s;base64,%s" % (
+            ctx["data_url"] = "data:{};base64,{}".format(
                 subm_mime,
                 b64encode(subm_data).decode())
 

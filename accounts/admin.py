@@ -1,7 +1,3 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import division
-
 __copyright__ = "Copyright (C) 2014 Andreas Kloeckner"
 
 __license__ = """
@@ -95,7 +91,7 @@ class UserAdmin(UserAdminBase):
     ordering = ["-date_joined"]
 
     def get_fieldsets(self, request, obj=None):
-        fieldsets = super(UserAdmin, self).get_fieldsets(request, obj)
+        fieldsets = super().get_fieldsets(request, obj)
         if request is not None and request.user.is_superuser:
             return fieldsets
         return tuple(
@@ -105,13 +101,13 @@ class UserAdmin(UserAdminBase):
              and "user_permissions" not in fields[1]["fields"]])
 
     def get_list_display(self, request):
-        list_display = super(UserAdmin, self).get_list_display(request)
+        list_display = super().get_list_display(request)
         if request is not None and request.user.is_superuser:
             return list_display
         return tuple([f for f in list_display if f != "is_staff"])
 
     def get_list_filter(self, request):
-        list_filter = super(UserAdmin, self).get_list_filter(request)
+        list_filter = super().get_list_filter(request)
         if request is not None and request.user.is_superuser:
             return list_filter
         return tuple([f for f in list_filter if f != "is_staff"])

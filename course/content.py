@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+from __future__ import annotations
 
 __copyright__ = "Copyright (C) 2014 Andreas Kloeckner"
 
@@ -49,10 +49,7 @@ from course.constants import ATTRIBUTES_FILENAME
 
 from yaml import safe_load as load_yaml
 
-if sys.version_info >= (3,):
-    CACHE_KEY_ROOT = "py3"
-else:
-    CACHE_KEY_ROOT = "py2"
+CACHE_KEY_ROOT = "py3"
 
 
 # {{{ mypy
@@ -68,17 +65,17 @@ if TYPE_CHECKING:
     from relate.utils import Repo_ish  # noqa
 
 Date_ish = Union[datetime.datetime, datetime.date]
-Datespec = Union[datetime.datetime, datetime.date, Text]
+Datespec = Union[datetime.datetime, datetime.date, str]
 
 
 class ChunkRulesDesc(Struct):
-    if_has_role: List[Text]
+    if_has_role: list[str]
     if_before: Datespec
     if_after: Datespec
-    if_in_facility: Text
-    if_has_participation_tags_any: List[Text]
-    if_has_participation_tags_all: List[Text]
-    roles: List[Text]
+    if_in_facility: str
+    if_has_participation_tags_any: list[str]
+    if_has_participation_tags_all: list[str]
+    roles: list[str]
     start: Datespec
     end: Datespec
     shown: bool
@@ -88,16 +85,16 @@ class ChunkRulesDesc(Struct):
 class ChunkDesc(Struct):
     weight: float
     shown: bool
-    title: Optional[Text]
-    content: Text
-    rules: List[ChunkRulesDesc]
+    title: str | None
+    content: str
+    rules: list[ChunkRulesDesc]
 
-    html_content: Text
+    html_content: str
 
 
 class StaticPageDesc(Struct):
-    chunks = None  # type: List[ChunkDesc]
-    content = None  # type: Text
+    chunks: list[ChunkDesc]
+    content: str
 
 
 class CourseDesc(StaticPageDesc):
@@ -202,22 +199,22 @@ class FlowSessionStartRuleDesc(Struct):
     # conditions
     if_after: Date_ish
     if_before: Date_ish
-    if_has_role: List[Text]
-    if_has_participation_tags_any: List[Text]
-    if_has_participation_tags_all: List[Text]
-    if_in_facility: Text
+    if_has_role: list[str]
+    if_has_participation_tags_any: list[str]
+    if_has_participation_tags_all: list[str]
+    if_in_facility: str
     if_has_in_progress_session: bool
-    if_has_session_tagged: Optional[Text]
+    if_has_session_tagged: str | None
     if_has_fewer_sessions_than: int
     if_has_fewer_tagged_sessions_than: int
     if_signed_in_with_matching_exam_ticket: bool
 
     # rules specified
-    tag_session: Optional[Text]
+    tag_session: str | None
     may_start_new_session: bool
     may_list_existing_sessions: bool
     lock_down_as_exam_session: bool
-    default_expiration_mode: Text
+    default_expiration_mode: str
 
 # }}}
 
@@ -320,20 +317,20 @@ class FlowSessionAccessRuleDesc(Struct):
     if_after: Date_ish
     if_before: Date_ish
     if_started_before: Date_ish
-    if_has_role: List[Text]
-    if_has_participation_tags_any: List[Text]
-    if_has_participation_tags_all: List[Text]
-    if_in_facility: Text
-    if_has_tag: Optional[Text]
+    if_has_role: list[str]
+    if_has_participation_tags_any: list[str]
+    if_has_participation_tags_all: list[str]
+    if_in_facility: str
+    if_has_tag: str | None
     if_in_progress: bool
     if_completed_before: Date_ish
-    if_expiration_mode: Text
+    if_expiration_mode: str
     if_session_duration_shorter_than_minutes: float
     if_signed_in_with_matching_exam_ticket: bool
 
     # rules specified
     permissions: list
-    message: Text
+    message: str
 
 # }}}
 
@@ -442,22 +439,22 @@ class FlowSessionGradingRuleDesc(Struct):
 
     """
     # conditions
-    if_has_role: List[Text]
-    if_has_participation_tags_any: List[Text]
-    if_has_participation_tags_all: List[Text]
+    if_has_role: list[str]
+    if_has_participation_tags_any: list[str]
+    if_has_participation_tags_all: list[str]
     if_started_after: Date_ish
-    if_has_tag: Optional[Text]
+    if_has_tag: str | None
     if_completed_before: Date_ish
 
     # rules specified
-    credit_percent: Optional[Union[int, float]]
+    credit_percent: int | float | None
     due: Date_ish
-    generates_grade: Optional[bool]
+    generates_grade: bool | None
     use_last_activity_as_completion_time: bool
-    description: Text
-    max_points: Optional[Union[int, float]]
-    max_points_enforced_cap: Optional[Union[int, float]]
-    bonus_points: Optional[Union[int, float]]
+    description: str
+    max_points: int | float | None
+    max_points_enforced_cap: int | float | None
+    bonus_points: int | float | None
 
 # }}}
 
@@ -513,11 +510,11 @@ class FlowRulesDesc(Struct):
         Rules are tested from top to bottom. The first rule
         whose conditions apply determines the access.
     """
-    start: List[FlowSessionStartRuleDesc]
-    access: List[FlowSessionAccessRuleDesc]
-    grading: List[FlowSessionGradingRuleDesc]
-    grade_identifier: Optional[Text]
-    grade_aggregation_strategy: Optional[Text]
+    start: list[FlowSessionStartRuleDesc]
+    access: list[FlowSessionAccessRuleDesc]
+    grading: list[FlowSessionGradingRuleDesc]
+    grade_identifier: str | None
+    grade_aggregation_strategy: str | None
 
 # }}}
 
@@ -525,8 +522,8 @@ class FlowRulesDesc(Struct):
 # {{{ mypy: flow
 
 class FlowPageDesc(Struct):
-    id: Text
-    type: Text
+    id: str
+    type: str
 
 
 class FlowPageGroupDesc(Struct):
@@ -552,8 +549,8 @@ class FlowPageGroupDesc(Struct):
         with :attr:`shuffle`.
     """
 
-    id: Text
-    pages: List[FlowPageDesc]
+    id: str
+    pages: list[FlowPageDesc]
 
 
 class FlowDesc(Struct):
@@ -593,19 +590,18 @@ class FlowDesc(Struct):
         :attr:`groups` or :class:`pages` must be given.
     """
 
-    title: Text
+    title: str
     rules: FlowRulesDesc
-    pages: List[FlowPageDesc]
-    groups: List[FlowPageGroupDesc]
-    notify_on_submit: Optional[List[Text]]
+    pages: list[FlowPageDesc]
+    groups: list[FlowPageGroupDesc]
+    notify_on_submit: list[str] | None
 
 # }}}
 
 
 # {{{ repo blob getting
 
-def get_true_repo_and_path(repo, path):
-    # type: (Repo_ish, Text) -> Tuple[dulwich.Repo, Text]
+def get_true_repo_and_path(repo: Repo_ish, path: str) -> tuple[dulwich.Repo, str]:
 
     if isinstance(repo, SubdirRepoWrapper):
         if path:
@@ -619,14 +615,12 @@ def get_true_repo_and_path(repo, path):
         return repo, path
 
 
-def get_course_repo_path(course):
-    # type: (Course) -> Text
+def get_course_repo_path(course: Course) -> str:
 
     return os.path.join(settings.GIT_ROOT, course.identifier)
 
 
-def get_course_repo(course):
-    # type: (Course) -> Repo_ish
+def get_course_repo(course: Course) -> Repo_ish:
 
     from dulwich.repo import Repo
     repo = Repo(get_course_repo_path(course))
@@ -637,9 +631,9 @@ def get_course_repo(course):
         return repo
 
 
-def look_up_git_object(repo: "dulwich.Repo",
-        root_tree: "Union[dulwich.objects.Tree, FileSystemFakeRepoTree]",
-        full_name: str, _max_symlink_depth: Optional[int] = None):
+def look_up_git_object(repo: dulwich.Repo,
+        root_tree: Union[dulwich.objects.Tree, FileSystemFakeRepoTree],
+        full_name: str, _max_symlink_depth: int | None = None):
     """Traverse git directory tree from *root_tree*, respecting symlinks."""
 
     if _max_symlink_depth is None:
@@ -652,7 +646,7 @@ def look_up_git_object(repo: "dulwich.Repo",
     # FIXME: https://github.com/inducer/relate/issues/767
     name_parts = os.path.normpath(full_name).split(os.sep)
 
-    processed_name_parts: List[str] = []
+    processed_name_parts: list[str] = []
 
     from dulwich.objects import Tree
     from course.validation import FileSystemFakeRepoTree
@@ -694,8 +688,8 @@ def look_up_git_object(repo: "dulwich.Repo",
     return cur_lookup
 
 
-def get_repo_blob(repo: "Repo_ish", full_name: Text, commit_sha: bytes,
-        allow_tree: bool = True) -> "dulwich.Blob":
+def get_repo_blob(repo: Repo_ish, full_name: str, commit_sha: bytes,
+        allow_tree: bool = True) -> dulwich.Blob:
     """
     :arg full_name: A Unicode string indicating the file name.
     :arg commit_sha: A byte string containing the commit hash
@@ -731,21 +725,21 @@ def get_repo_blob(repo: "Repo_ish", full_name: Text, commit_sha: bytes,
         raise ObjectDoesNotExist(_("resource '%s' is not a file") % msg_full_name)
 
 
-def get_repo_blob_data_cached(repo, full_name, commit_sha):
-    # type: (Repo_ish, Text, bytes) -> bytes
+def get_repo_blob_data_cached(
+        repo: Repo_ish, full_name: str, commit_sha: bytes) -> bytes:
     """
     :arg commit_sha: A byte string containing the commit hash
     """
 
     if isinstance(commit_sha, bytes):
         from urllib.parse import quote_plus
-        cache_key = "%s%R%1".join((
+        cache_key: str | None = "%s%R%1".join((
             CACHE_KEY_ROOT,
             quote_plus(repo.controldir()),
             quote_plus(full_name),
             commit_sha.decode(),
             ".".join(str(s) for s in sys.version_info[:2]),
-            ))  # type: Optional[Text]
+            ))
     else:
         cache_key = None
 
@@ -754,7 +748,7 @@ def get_repo_blob_data_cached(repo, full_name, commit_sha):
     except ImproperlyConfigured:
         cache_key = None
 
-    result = None  # type: Optional[bytes]
+    result: bytes | None = None
     if cache_key is None:
         result = get_repo_blob(repo, full_name, commit_sha,
                 allow_tree=False).data
@@ -788,8 +782,9 @@ def get_repo_blob_data_cached(repo, full_name, commit_sha):
     return result
 
 
-def is_repo_file_accessible_as(access_kinds, repo, commit_sha, path):
-    # type: (List[Text], Repo_ish, bytes, Text) -> bool
+def is_repo_file_accessible_as(
+        access_kinds: list[str], repo: Repo_ish, commit_sha: bytes, path: str
+        ) -> bool:
     """
     Check of a file in a repo directory is accessible.  For example,
     'instructor' can access anything listed in the attributes.
@@ -814,7 +809,7 @@ def is_repo_file_accessible_as(access_kinds, repo, commit_sha, path):
 
     # "public" is a deprecated alias for "unenrolled".
 
-    access_patterns = []  # type: List[Text]
+    access_patterns: list[str] = []
     for kind in access_kinds:
         access_patterns += attributes.get(kind, [])
 
@@ -847,8 +842,7 @@ GROUP_COMMENT_START = re.compile(r"^\s*#\s*\{\{\{")
 LEADING_SPACES_RE = re.compile(r"^( *)")
 
 
-def process_yaml_for_expansion(yaml_str):
-    # type: (Text) -> Text
+def process_yaml_for_expansion(yaml_str: str) -> str:
 
     lines = yaml_str.split("\n")
     jinja_lines = []
@@ -912,8 +906,7 @@ def process_yaml_for_expansion(yaml_str):
 
 
 class GitTemplateLoader(BaseTemplateLoader):
-    def __init__(self, repo, commit_sha):
-        # type: (Repo_ish, bytes) -> None
+    def __init__(self, repo: Repo_ish, commit_sha: bytes) -> None:
         self.repo = repo
         self.commit_sha = commit_sha
 
@@ -938,7 +931,7 @@ class YamlBlockEscapingGitTemplateLoader(GitTemplateLoader):
 
     def get_source(self, environment, template):
         source, path, is_up_to_date = \
-                super(YamlBlockEscapingGitTemplateLoader, self).get_source(
+                super().get_source(
                         environment, template)
 
         _, ext = os.path.splitext(template)
@@ -955,7 +948,7 @@ class YamlBlockEscapingFileSystemLoader(FileSystemLoader):
 
     def get_source(self, environment, template):
         source, path, is_up_to_date = \
-                super(YamlBlockEscapingFileSystemLoader, self).get_source(
+                super().get_source(
                         environment, template)
 
         _, ext = os.path.splitext(template)
@@ -967,8 +960,7 @@ class YamlBlockEscapingFileSystemLoader(FileSystemLoader):
         return source, path, is_up_to_date
 
 
-def expand_yaml_macros(repo, commit_sha, yaml_str):
-    # type: (Repo_ish, bytes, Text) -> Text
+def expand_yaml_macros(repo: Repo_ish, commit_sha: bytes, yaml_str: str) -> str:
 
     if isinstance(yaml_str, bytes):
         yaml_str = yaml_str.decode("utf-8")
@@ -1004,8 +996,8 @@ def expand_yaml_macros(repo, commit_sha, yaml_str):
 
 # {{{ repo yaml getting
 
-def get_raw_yaml_from_repo(repo, full_name, commit_sha):
-    # type: (Repo_ish, Text, bytes) -> Any
+def get_raw_yaml_from_repo(
+        repo: Repo_ish, full_name: str, commit_sha: bytes) -> Any:
     """Return decoded YAML data structure from
     the given file in *repo* at *commit_sha*.
 
@@ -1021,7 +1013,7 @@ def get_raw_yaml_from_repo(repo, full_name, commit_sha):
     import django.core.cache as cache
     def_cache = cache.caches["default"]
 
-    result = None  # type: Optional[Any]
+    result: Any | None = None
     # Memcache is apparently limited to 250 characters.
     if len(cache_key) < 240:
         result = def_cache.get(cache_key)
@@ -1043,10 +1035,9 @@ def get_raw_yaml_from_repo(repo, full_name, commit_sha):
 LINE_HAS_INDENTING_TABS_RE = re.compile(r"^\s*\t\s*", re.MULTILINE)
 
 
-def get_yaml_from_repo(repo, full_name, commit_sha, cached=True,
-        tolerate_tabs=False):
-    # type: (Repo_ish, Text, bytes, bool, bool) -> Any
-
+def get_yaml_from_repo(
+        repo: Repo_ish, full_name: str, commit_sha: bytes, cached: bool = True,
+        tolerate_tabs: bool = False) -> Any:
     """Return decoded, struct-ified YAML data structure from
     the given file in *repo* at *commit_sha*.
 
@@ -1107,9 +1098,9 @@ def _attr_to_string(key, val):
     if val is None:
         return key
     elif '"' in val:
-        return "%s='%s'" % (key, val)
+        return f"{key}='{val}'"
     else:
-        return '%s="%s"' % (key, val)
+        return f'{key}="{val}"'
 
 
 class TagProcessingHTMLParser(html_parser.HTMLParser):
@@ -1123,7 +1114,7 @@ class TagProcessingHTMLParser(html_parser.HTMLParser):
         attrs = dict(attrs)
         attrs.update(self.process_tag_func(tag, attrs))
 
-        self.out_file.write("<%s %s>" % (tag, " ".join(
+        self.out_file.write("<{} {}>".format(tag, " ".join(
             _attr_to_string(k, v) for k, v in attrs.items())))
 
     def handle_endtag(self, tag):
@@ -1133,7 +1124,7 @@ class TagProcessingHTMLParser(html_parser.HTMLParser):
         attrs = dict(attrs)
         attrs.update(self.process_tag_func(tag, attrs))
 
-        self.out_file.write("<%s %s/>" % (tag, " ".join(
+        self.out_file.write("<{} {}/>".format(tag, " ".join(
             _attr_to_string(k, v) for k, v in attrs.items())))
 
     def handle_data(self, data):
@@ -1159,7 +1150,7 @@ class TagProcessingHTMLParser(html_parser.HTMLParser):
         self.out_file.write("<![%s]>" % data)
 
 
-class PreserveFragment(object):
+class PreserveFragment:
     def __init__(self, s):
         self.s = s
 
@@ -1312,9 +1303,9 @@ class LinkFixerTreeprocessor(Treeprocessor):
 
 
 class LinkFixerExtension(Extension):
-    def __init__(self, course, commit_sha, reverse_func):
-        # type: (Optional[Course], bytes, Optional[Callable]) -> None
-
+    def __init__(
+            self, course: Course | None,
+            commit_sha: bytes, reverse_func: Callable | None) -> None:
         Extension.__init__(self)
         self.course = course
         self.commit_sha = commit_sha
@@ -1326,8 +1317,7 @@ class LinkFixerExtension(Extension):
                         reverse_func=self.reverse_func)
 
 
-def remove_prefix(prefix, s):
-    # type: (Text, Text) -> Text
+def remove_prefix(prefix: str, s: str) -> str:
     if s.startswith(prefix):
         return s[len(prefix):]
     else:
@@ -1338,14 +1328,13 @@ JINJA_PREFIX = "[JINJA]"
 
 
 def expand_markup(
-        course,  # type: Optional[Course]
-        repo,  # type: Repo_ish
-        commit_sha,  # type: bytes
-        text,  # type: Text
-        use_jinja=True,  # type: bool
-        jinja_env={},  # type: Dict
-        ):
-    # type: (...) -> Text
+        course: Course | None,
+        repo: Repo_ish,
+        commit_sha: bytes,
+        text: str,
+        use_jinja: bool = True,
+        jinja_env: dict = {},
+        ) -> str:
 
     if not isinstance(text, str):
         text = str(text)
@@ -1396,16 +1385,15 @@ def filter_html_attributes(tag, name, value):
 
 
 def markup_to_html(
-        course,  # type: Optional[Course]
-        repo,  # type: Repo_ish
-        commit_sha,  # type: bytes
-        text,  # type: Text
-        reverse_func=None,  # type: Callable
-        validate_only=False,  # type: bool
-        use_jinja=True,  # type: bool
-        jinja_env={},  # type: Dict
-        ):
-    # type: (...) -> Text
+        course: Course | None,
+        repo: Repo_ish,
+        commit_sha: bytes,
+        text: str,
+        reverse_func: Callable = None,
+        validate_only: bool = False,
+        use_jinja: bool = True,
+        jinja_env: dict = {},
+        ) -> str:
 
     disable_codehilite = bool(
         getattr(settings,
@@ -1450,7 +1438,7 @@ def markup_to_html(
     from course.utils import NBConvertExtension
     import markdown
 
-    extensions: List[Union[markdown.Extension, str]] = [
+    extensions: list[markdown.Extension | str] = [
         LinkFixerExtension(course, commit_sha, reverse_func=reverse_func),
         MathJaxExtension(),
         NBConvertExtension(),
@@ -1491,8 +1479,7 @@ def markup_to_html(
 TITLE_RE = re.compile(r"^\#+\s*(.+)", re.UNICODE)
 
 
-def extract_title_from_markup(markup_text):
-    # type: (Text) -> Optional[Text]
+def extract_title_from_markup(markup_text: str) -> str | None:
     lines = markup_text.split("\n")
 
     for ln in lines[:10]:
@@ -1519,14 +1506,12 @@ class InvalidDatespec(ValueError):
         self.datespec = datespec
 
 
-class DatespecPostprocessor(object):
+class DatespecPostprocessor:
     @classmethod
-    def parse(cls, s):
-        # type: (Text) -> Tuple[Text, Optional[DatespecPostprocessor]]
+    def parse(cls, s: str) -> tuple[str, DatespecPostprocessor | None]:
         raise NotImplementedError()
 
-    def apply(self, dtm):
-        # type: (datetime.datetime) -> datetime.datetime
+    def apply(self, dtm: datetime.datetime) -> datetime.datetime:
         raise NotImplementedError()
 
 
@@ -1534,8 +1519,7 @@ AT_TIME_RE = re.compile(r"^(.*)\s*@\s*([0-2]?[0-9])\:([0-9][0-9])\s*$")
 
 
 class AtTimePostprocessor(DatespecPostprocessor):
-    def __init__(self, hour, minute, second=0):
-        # type: (int, int, int) -> None
+    def __init__(self, hour: int, minute: int, second: int = 0) -> None:
         self.hour = hour
         self.minute = minute
         self.second = second
@@ -1572,8 +1556,7 @@ PLUS_DELTA_RE = re.compile(r"^(.*)\s*([+-])\s*([0-9]+)\s+"
 
 
 class PlusDeltaPostprocessor(DatespecPostprocessor):
-    def __init__(self, count, period):
-        # type: (int, Text) -> None
+    def __init__(self, count: int, period: str) -> None:
 
         self.count = count
         self.period = period
@@ -1604,27 +1587,25 @@ class PlusDeltaPostprocessor(DatespecPostprocessor):
         return dtm + d
 
 
-DATESPEC_POSTPROCESSORS = [
+DATESPEC_POSTPROCESSORS: list[Any] = [
         AtTimePostprocessor,
         PlusDeltaPostprocessor,
-        ]  # type: List[Any]
+        ]
 
 
 def parse_date_spec(
-        course,  # type: Optional[Course]
-        datespec,  # type: Union[Text, datetime.date, datetime.datetime]
-        vctx=None,  # type: Optional[ValidationContext]
-        location=None,  # type: Optional[Text]
-        ):
-    # type: (...)  -> datetime.datetime
+        course: Course | None,
+        datespec: str | datetime.date | datetime.datetime,
+        vctx: ValidationContext | None = None,
+        location: str | None = None,
+        ) -> datetime.datetime:
 
     if datespec is None:
         return None
 
     orig_datespec = datespec
 
-    def localize_if_needed(d):
-        # type: (datetime.datetime) -> datetime.datetime
+    def localize_if_needed(d: datetime.datetime) -> datetime.datetime:
         if d.tzinfo is None:
             from relate.utils import localize_datetime
             return localize_datetime(d)
@@ -1637,11 +1618,11 @@ def parse_date_spec(
         return localize_if_needed(
                 datetime.datetime.combine(datespec, datetime.time.min))
 
-    datespec_str = cast(Text, datespec).strip()
+    datespec_str = cast(str, datespec).strip()
 
     # {{{ parse postprocessors
 
-    postprocs = []  # type: List[DatespecPostprocessor]
+    postprocs: list[DatespecPostprocessor] = []
     while True:
         parsed_one = False
         for pp_class in DATESPEC_POSTPROCESSORS:
@@ -1658,8 +1639,7 @@ def parse_date_spec(
 
     # }}}
 
-    def apply_postprocs(dtime):
-        # type: (datetime.datetime) -> datetime.datetime
+    def apply_postprocs(dtime: datetime.datetime) -> datetime.datetime:
         for postproc in postprocs:
             dtime = postproc.apply(dtime)
 
@@ -1684,7 +1664,7 @@ def parse_date_spec(
         # event with numeral
 
         event_kind = match.group(1)
-        ordinal = int(match.group(2))  # type: Optional[int]
+        ordinal: int | None = int(match.group(2))
 
     else:
         # event without numeral
@@ -1740,13 +1720,12 @@ def parse_date_spec(
 # {{{ page chunks
 
 def compute_chunk_weight_and_shown(
-        course,  # type:  Course
-        chunk,  # type: ChunkDesc
-        roles,  # type: List[Text]
-        now_datetime,  # type: datetime.datetime
-        facilities,  # type: FrozenSet[Text]
-        ):
-    # type: (...) -> Tuple[float, bool]
+        course: Course,
+        chunk: ChunkDesc,
+        roles: list[str],
+        now_datetime: datetime.datetime,
+        facilities: frozenset[str],
+        ) -> tuple[float, bool]:
     if not hasattr(chunk, "rules"):
         return 0, True
 
@@ -1797,15 +1776,14 @@ def compute_chunk_weight_and_shown(
 
 
 def get_processed_page_chunks(
-        course,  # type: Course
-        repo,  # type: Repo_ish
-        commit_sha,  # type: bytes
-        page_desc,  # type: StaticPageDesc
-        roles,  # type: List[Text]
-        now_datetime,  # type: datetime.datetime
-        facilities,  # type: FrozenSet[Text]
-        ):
-    # type: (...) -> List[ChunkDesc]
+        course: Course,
+        repo: Repo_ish,
+        commit_sha: bytes,
+        page_desc: StaticPageDesc,
+        roles: list[str],
+        now_datetime: datetime.datetime,
+        facilities: frozenset[str],
+        ) -> list[ChunkDesc]:
     for chunk in page_desc.chunks:
         chunk.weight, chunk.shown = \
                 compute_chunk_weight_and_shown(
@@ -1826,8 +1804,7 @@ def get_processed_page_chunks(
 
 # {{{ repo desc getting
 
-def normalize_page_desc(page_desc):
-    # type: (StaticPageDesc) -> StaticPageDesc
+def normalize_page_desc(page_desc: StaticPageDesc) -> StaticPageDesc:
     if hasattr(page_desc, "content"):
         content = page_desc.content
         from relate.utils import struct_to_dict, Struct
@@ -1839,24 +1816,23 @@ def normalize_page_desc(page_desc):
     return page_desc
 
 
-def get_staticpage_desc(repo, course, commit_sha, filename):
-    # type: (Repo_ish, Course, bytes, Text) -> StaticPageDesc
+def get_staticpage_desc(
+        repo: Repo_ish, course: Course, commit_sha: bytes, filename: str
+        ) -> StaticPageDesc:
 
     page_desc = get_yaml_from_repo(repo, filename, commit_sha)
     page_desc = normalize_page_desc(page_desc)
     return page_desc
 
 
-def get_course_desc(repo, course, commit_sha):
-    # type: (Repo_ish, Course, bytes) -> CourseDesc
+def get_course_desc(repo: Repo_ish, course: Course, commit_sha: bytes) -> CourseDesc:
 
     return cast(
             CourseDesc,
             get_staticpage_desc(repo, course, commit_sha, course.course_file))
 
 
-def normalize_flow_desc(flow_desc):
-    # type: (FlowDesc) -> FlowDesc
+def normalize_flow_desc(flow_desc: FlowDesc) -> FlowDesc:
 
     if hasattr(flow_desc, "pages"):
         pages = flow_desc.pages
@@ -1885,8 +1861,9 @@ def normalize_flow_desc(flow_desc):
     return flow_desc
 
 
-def get_flow_desc(repo, course, flow_id, commit_sha, tolerate_tabs=False):
-    # type: (Repo_ish, Course, Text, bytes, bool) -> FlowDesc
+def get_flow_desc(
+        repo: Repo_ish, course: Course, flow_id: str,
+        commit_sha: bytes, tolerate_tabs: bool = False) -> FlowDesc:
     """
     :arg tolerate_tabs: At one point, Relate accepted tabs
         in indentation, but it no longer does. In places where legacy
@@ -1904,9 +1881,8 @@ def get_flow_desc(repo, course, flow_id, commit_sha, tolerate_tabs=False):
     return flow_desc
 
 
-def get_flow_page_desc(flow_id, flow_desc, group_id, page_id):
-    # type: (Text, FlowDesc, Text, Text) -> FlowPageDesc
-
+def get_flow_page_desc(flow_id: str, flow_desc: FlowDesc,
+        group_id: str, page_id: str) -> FlowPageDesc:
     for grp in flow_desc.groups:
         if grp.id == group_id:
             for page in grp.pages:
@@ -1929,8 +1905,7 @@ class ClassNotFoundError(RuntimeError):
     pass
 
 
-def import_class(name):
-    # type: (Text) -> type
+def import_class(name: str) -> type:
     components = name.split(".")
 
     if len(components) < 2:
@@ -1952,8 +1927,7 @@ def import_class(name):
     return mod
 
 
-def get_flow_page_class(repo, typename, commit_sha):
-    # type: (Repo_ish, Text, bytes) -> type
+def get_flow_page_class(repo: Repo_ish, typename: str, commit_sha: bytes) -> type:
 
     # look among default page types
     import course.page
@@ -1971,8 +1945,9 @@ def get_flow_page_class(repo, typename, commit_sha):
     raise ClassNotFoundError(typename)
 
 
-def instantiate_flow_page(location, repo, page_desc, commit_sha):
-    # type: (Text, Repo_ish, FlowPageDesc, bytes) -> PageBase
+def instantiate_flow_page(
+        location: str, repo: Repo_ish, page_desc: FlowPageDesc, commit_sha: bytes
+        ) -> PageBase:
     class_ = get_flow_page_class(repo, page_desc.type, commit_sha)
 
     return class_(None, location, page_desc)
@@ -1984,14 +1959,15 @@ class CourseCommitSHADoesNotExist(Exception):
     pass
 
 
-def get_course_commit_sha(course, participation, repo=None,
-                          raise_on_nonexistent_preview_commit=False):
-    # type: (Course, Optional[Participation], Optional[Repo_ish], Optional[bool]) -> bytes  # noqa
-
+def get_course_commit_sha(
+        course: Course,
+        participation: Participation | None,
+        repo: Repo_ish | None = None,
+        raise_on_nonexistent_preview_commit: bool | None = False
+        ) -> bytes:
     sha = course.active_git_commit_sha
 
-    def is_commit_sha_valid(repo, commit_sha):
-        # type: (Repo_ish, Text) -> bool
+    def is_commit_sha_valid(repo: Repo_ish, commit_sha: str) -> bool:
         if isinstance(repo, SubdirRepoWrapper):
             repo = repo.repo
         try:
@@ -2025,8 +2001,7 @@ def get_course_commit_sha(course, participation, repo=None,
     return sha.encode()
 
 
-def list_flow_ids(repo, commit_sha):
-    # type: (Repo_ish, bytes) -> List[Text]
+def list_flow_ids(repo: Repo_ish, commit_sha: bytes) -> list[str]:
     flow_ids = []
     try:
         flows_tree = get_repo_blob(repo, "flows", commit_sha)

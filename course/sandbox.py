@@ -1,7 +1,3 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import division
-
 __copyright__ = "Copyright (C) 2014 Andreas Kloeckner"
 
 __license__ = """
@@ -63,10 +59,10 @@ class SandboxForm(forms.Form):
     # prevents form submission with codemirror's empty textarea
     use_required_attribute = False
 
-    def __init__(self, initial_text,
-            language_mode, interaction_mode, help_text, *args, **kwargs):
-        # type: (Text, Text, Text, Text, *Any, **Any) -> None
-        super(SandboxForm, self).__init__(*args, **kwargs)
+    def __init__(self, initial_text: str,
+            language_mode: str, interaction_mode: str, help_text: str,
+            *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
 
         from crispy_forms.helper import FormHelper
         self.helper = FormHelper()
@@ -138,8 +134,8 @@ def view_markup_sandbox(pctx):
                 messages.add_message(pctx.request, messages.ERROR,
                         gettext("Markup failed to render")
                         + ": "
-                        + "%(err_type)s: %(err_str)s" % {
-                            "err_type": tp.__name__, "err_str": e})
+                        + "{err_type}: {err_str}".format(
+                            err_type=tp.__name__, err_str=e))
 
         form = make_form(request.POST)
 
@@ -156,8 +152,8 @@ def view_markup_sandbox(pctx):
 
 # {{{ page sandbox data retriever
 
-def get_sandbox_data_for_page(pctx, page_desc, key):
-    # type: (CoursePageContext, Any, Text) -> Any
+def get_sandbox_data_for_page(
+        pctx: CoursePageContext, page_desc: Any, key: str) -> Any:
     stored_data_tuple = pctx.request.session.get(key)
 
     # Session storage uses JSON and may turn tuples into lists.
@@ -179,10 +175,10 @@ def get_sandbox_data_for_page(pctx, page_desc, key):
 # {{{ page sandbox form
 
 class PageSandboxForm(SandboxForm):
-    def __init__(self, initial_text,
-            language_mode, interaction_mode, help_text, *args, **kwargs):
-        # type: (Text, Text, Text, Text, *Any, **Any) -> None
-        super(PageSandboxForm, self).__init__(
+    def __init__(self, initial_text: str,
+            language_mode: str, interaction_mode: str, help_text: str,
+            *args: Any, **kwargs: Any) -> None:
+        super().__init__(
                 initial_text, language_mode, interaction_mode, help_text,
                 *args, **kwargs)
 
@@ -196,14 +192,12 @@ class PageSandboxForm(SandboxForm):
 
 # {{{ page sandbox
 
-def make_sandbox_session_key(prefix, course_identifier):
-    # type: (Text, Text) -> Text
-    return "%s:%s" % (prefix, course_identifier)
+def make_sandbox_session_key(prefix: str, course_identifier: str) -> str:
+    return f"{prefix}:{course_identifier}"
 
 
 @course_view
-def view_page_sandbox(pctx):
-    # type: (CoursePageContext) -> http.HttpResponse
+def view_page_sandbox(pctx: CoursePageContext) -> http.HttpResponse:
 
     if not pctx.has_permission(pperm.use_page_sandbox):
         raise PermissionDenied()
@@ -230,8 +224,7 @@ def view_page_sandbox(pctx):
             and "clear_response" in request.POST)
     is_preview_post = (request.method == "POST" and "preview" in request.POST)
 
-    def make_form(data=None):
-        # type: (Optional[Text]) -> PageSandboxForm
+    def make_form(data: Optional[str] = None) -> PageSandboxForm:
         return PageSandboxForm(
                 page_source, "yaml", request.user.editor_mode,
                 gettext("Enter YAML markup for a flow page."),
@@ -275,8 +268,8 @@ def view_page_sandbox(pctx):
                 page_errors = (
                         gettext("Page failed to load/validate")
                         + ": "
-                        + "%(err_type)s: %(err_str)s" % {
-                            "err_type": tp.__name__, "err_str": e})  # type: ignore
+                        + "{err_type}: {err_str}".format(
+                            err_type=tp.__name__, err_str=e))  # type: ignore
 
             else:
                 # Yay, it did validate.
@@ -322,8 +315,8 @@ def view_page_sandbox(pctx):
             page_errors = (
                     gettext("Page failed to load/validate")
                     + ": "
-                    + "%(err_type)s: %(err_str)s" % {
-                        "err_type": tp.__name__, "err_str": e})  # type: ignore
+                    + "{err_type}: {err_str}".format(
+                        err_type=tp.__name__, err_str=e))  # type: ignore
             have_valid_page = False
 
     if have_valid_page:
@@ -397,8 +390,8 @@ def view_page_sandbox(pctx):
                             gettext("Page failed to load/validate "
                                 "(change page ID to clear faults)")
                             + ": "
-                            + "%(err_type)s: %(err_str)s" % {
-                                "err_type": tp.__name__, "err_str": e})  # type: ignore  # noqa: E501
+                            + "{err_type}: {err_str}".format(
+                                err_type=tp.__name__, err_str=e))  # type: ignore  # noqa: E501
 
                     page_form = None
 

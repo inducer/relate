@@ -1,7 +1,3 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import division
-
 __copyright__ = "Copyright (C) 2014 Andreas Kloeckner"
 
 __license__ = """
@@ -37,7 +33,7 @@ from course.validation import validate_markup, ValidationError
 
 class ChoiceAnswerForm(StyledForm):
     def __init__(self, field, *args, **kwargs):
-        super(ChoiceAnswerForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         self.fields["choice"] = field
         # Translators: "choice" in Choice Answer Form in a single-choice question.
@@ -46,7 +42,7 @@ class ChoiceAnswerForm(StyledForm):
 
 class MultipleChoiceAnswerForm(StyledForm):
     def __init__(self, field, *args, **kwargs):
-        super(MultipleChoiceAnswerForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         self.fields["choice"] = field
 
@@ -73,7 +69,7 @@ class ChoiceModes:
     values = [INCORRECT, CORRECT, DISREGARD, ALWAYS_CORRECT]
 
 
-class ChoiceInfo(object):
+class ChoiceInfo:
     CORRECT_TAG = "~CORRECT~"
     DISREGARD_TAG = "~DISREGARD~"
     ALWAYS_CORRECT_TAG = "~ALWAYS_CORRECT~"
@@ -156,7 +152,7 @@ class ChoiceQuestionBase(PageBaseWithTitle, PageBaseWithValue):
         return s
 
     def __init__(self, vctx, location, page_desc):
-        super(ChoiceQuestionBase, self).__init__(vctx, location, page_desc)
+        super().__init__(vctx, location, page_desc)
 
         self.correct_choice_count = 0
         self.disregard_choice_count = 0
@@ -183,13 +179,13 @@ class ChoiceQuestionBase(PageBaseWithTitle, PageBaseWithValue):
                 self.always_correct_choice_count += 1
 
     def required_attrs(self):
-        return super(ChoiceQuestionBase, self).required_attrs() + (
+        return super().required_attrs() + (
                 ("prompt", "markup"),
                 ("choices", list),
                 )
 
     def allowed_attrs(self):
-        return super(ChoiceQuestionBase, self).allowed_attrs() + (
+        return super().allowed_attrs() + (
                 ("shuffle", bool),
                 )
 
@@ -324,7 +320,7 @@ class ChoiceQuestion(ChoiceQuestionBase):
     """
 
     def __init__(self, vctx, location, page_desc):
-        super(ChoiceQuestion, self).__init__(vctx, location, page_desc)
+        super().__init__(vctx, location, page_desc)
 
         if self.correct_choice_count < 1:
             raise ValidationError(
@@ -353,7 +349,7 @@ class ChoiceQuestion(ChoiceQuestionBase):
                     % {"location": location})
 
     def allowed_attrs(self):
-        return super(ChoiceQuestion, self).allowed_attrs() + (
+        return super().allowed_attrs() + (
                 ("answer_explanation", "markup"),
                 )
 
@@ -517,7 +513,7 @@ class MultipleChoiceQuestion(ChoiceQuestionBase):
     """
 
     def __init__(self, vctx, location, page_desc):
-        super(MultipleChoiceQuestion, self).__init__(vctx, location, page_desc)
+        super().__init__(vctx, location, page_desc)
 
         pd = self.page_desc
 
@@ -576,7 +572,7 @@ class MultipleChoiceQuestion(ChoiceQuestionBase):
         self.credit_mode = credit_mode
 
     def allowed_attrs(self):
-        return super(MultipleChoiceQuestion, self).allowed_attrs() + (
+        return super().allowed_attrs() + (
                 ("allow_partial_credit", bool),
                 ("allow_partial_credit_subset_only", bool),
                 ("credit_mode", str),
@@ -619,7 +615,7 @@ class MultipleChoiceQuestion(ChoiceQuestionBase):
         disregard_idx_set = set(self.unpermuted_disregard_indices())
         always_correct_idx_set = set(self.unpermuted_always_correct_indices())
         unpermed_idx_set = (
-                set([permutation[idx] for idx in choice]) - disregard_idx_set
+                {permutation[idx] for idx in choice} - disregard_idx_set
                 - always_correct_idx_set)
         correct_idx_set = (
                 set(self.unpermuted_correct_indices()) - disregard_idx_set
@@ -769,7 +765,7 @@ class SurveyChoiceQuestion(PageBaseWithTitle):
         return s
 
     def __init__(self, vctx, location, page_desc):
-        super(SurveyChoiceQuestion, self).__init__(vctx, location, page_desc)
+        super().__init__(vctx, location, page_desc)
 
         for choice_idx, choice in enumerate(page_desc.choices):
             try:
@@ -786,13 +782,13 @@ class SurveyChoiceQuestion(PageBaseWithTitle):
                 validate_markup(vctx, location, choice)
 
     def required_attrs(self):
-        return super(SurveyChoiceQuestion, self).required_attrs() + (
+        return super().required_attrs() + (
                 ("prompt", "markup"),
                 ("choices", list),
                 )
 
     def allowed_attrs(self):
-        return super(SurveyChoiceQuestion, self).allowed_attrs() + (
+        return super().allowed_attrs() + (
                 ("answer_comment", "markup"),
                 )
 

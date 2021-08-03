@@ -1,6 +1,4 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import division
+from __future__ import annotations
 
 __copyright__ = """
 Copyright (C) 2014 Andreas Kloeckner
@@ -90,16 +88,15 @@ if TYPE_CHECKING:
 # }}}
 
 
-def _remove_prefix(prefix, s):
-    # type: (bytes, bytes) -> bytes
+def _remove_prefix(prefix: bytes, s: bytes) -> bytes:
 
     assert s.startswith(prefix)
 
     return s[len(prefix):]
 
 
-def transfer_remote_refs(repo, fetch_pack_result):
-    # type: (Repo, dulwich.client.FetchPackResult) -> None
+def transfer_remote_refs(
+        repo: Repo, fetch_pack_result: dulwich.client.FetchPackResult) -> None:
 
     valid_refs = []
 
@@ -115,8 +112,10 @@ def transfer_remote_refs(repo, fetch_pack_result):
             del repo[ref]
 
 
-def get_dulwich_client_and_remote_path_from_course(course):
-    # type: (Course) -> Tuple[Union[dulwich.client.GitClient, dulwich.client.SSHGitClient], bytes]  # noqa
+def get_dulwich_client_and_remote_path_from_course(
+        course: Course) -> Tuple[
+                Union[dulwich.client.GitClient, dulwich.client.SSHGitClient], bytes]:
+    # noqa
     ssh_kwargs = {}
     if course.ssh_private_key:
         from io import StringIO
@@ -169,18 +168,16 @@ class CourseCreationForm(StyledModelForm):
                     choices=get_course_specific_language_choices()),
                 }
 
-    def __init__(self, *args, **kwargs):
-        # type: (*Any, **Any) -> None
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
 
-        super(CourseCreationForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         self.helper.add_input(
                 Submit("submit", _("Validate and create")))
 
 
 @permission_required("course.add_course")
-def set_up_new_course(request):
-    # type: (http.HttpRequest) -> http.HttpResponse
+def set_up_new_course(request: http.HttpRequest) -> http.HttpResponse:
     if request.method == "POST":
         form = CourseCreationForm(request.POST)
 
@@ -305,8 +302,9 @@ def set_up_new_course(request):
 
 # {{{ update
 
-def is_ancestor_commit(repo, potential_ancestor, child, max_history_check_size=None):
-    # type: (Repo, Commit, Commit, Optional[int]) -> bool
+def is_ancestor_commit(
+        repo: Repo, potential_ancestor: Commit, child: Commit,
+        max_history_check_size: Optional[int] = None) -> bool:
 
     queue = [repo[parent] for parent in child.parents]
 
@@ -431,13 +429,13 @@ def run_course_update_command(
 class GitUpdateForm(StyledForm):
 
     def __init__(self, may_update, previewing, repo, *args, **kwargs):
-        super(GitUpdateForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         repo_refs = repo.get_refs()
         commit_iter = repo.get_walker(list(repo_refs.values()))
 
         def format_commit(commit):
-            return "%s - %s" % (
+            return "{} - {}".format(
                     commit.id[:8].decode(),
                     "".join(
                         commit.message
@@ -451,7 +449,7 @@ class GitUpdateForm(StyledForm):
         self.fields["new_sha"] = forms.ChoiceField(
                 choices=([
                     (repo_refs[ref].decode(),
-                        "[%s] %s" % (
+                        "[{}] {}".format(
                             ref.decode("utf-8", errors="replace"),
                             format_sha(repo_refs[ref])))
                     for ref in repo_refs
@@ -609,11 +607,10 @@ def update_course(pctx):
 # (BSD-licensed)
 
 def call_wsgi_app(
-        application,  # type: dulwich.web.LimitedInputFilter
-        request,      # type: http.HttpRequest
-        prefix,       # type: Text
-        ):
-    # type: (...) -> http.HttpResponse
+        application: dulwich.web.LimitedInputFilter,
+        request: http.HttpRequest,
+        prefix: str,
+        ) -> http.HttpResponse:
 
     response = http.HttpResponse()
 
@@ -626,11 +623,10 @@ def call_wsgi_app(
     environ["SCRIPT_NAME"] += prefix
     environ["PATH_INFO"] = environ["PATH_INFO"][len(prefix):]
 
-    headers_set: List[Tuple[Text, Text]] = []
+    headers_set: List[Tuple[str, str]] = []
     headers_sent: List[bool] = []
 
-    def write(data):
-        # type: (Text) -> None
+    def write(data: str) -> None:
         if not headers_set:
             raise AssertionError("write() called before start_response()")
         if not headers_sent:
@@ -674,8 +670,8 @@ GIT_AUTH_DATA_RE = re.compile(r"^(\w+):([0-9]+)_([a-z0-9]+)$")
 
 @csrf_exempt
 @with_course_api_auth("Basic")
-def git_endpoint(api_ctx, course_identifier, git_path):
-    # type: (APIContext, Text, Text) -> http.HttpResponse
+def git_endpoint(api_ctx: APIContext, course_identifier: str,
+        git_path: str) -> http.HttpResponse:
 
     course = api_ctx.course
     request = api_ctx.request

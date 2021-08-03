@@ -1,6 +1,4 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import division
+from __future__ import annotations
 
 __copyright__ = "Copyright (C) 2014 Andreas Kloeckner"
 
@@ -68,13 +66,12 @@ if TYPE_CHECKING:
 
 
 def get_prev_visit_grades(
-            course_identifier,  # type: Text
-            flow_session_id,  # type: int
-            page_ordinal,  # type: int
-            reversed_on_visit_time_and_grade_time=False  # type: Optional[bool]
-        ):
-    # type: (...) -> query.QuerySet
-    order_by_args = []  # type: List[Text]
+            course_identifier: str,
+            flow_session_id: int,
+            page_ordinal: int,
+            reversed_on_visit_time_and_grade_time: Optional[bool] = False
+        ) -> query.QuerySet:
+    order_by_args: List[str] = []
     if reversed_on_visit_time_and_grade_time:
         order_by_args = ["-visit__visit_time", "-grade_time"]
     return (FlowPageVisitGrade.objects
@@ -123,8 +120,11 @@ def get_prev_grades_dropdown_content(pctx, flow_session_id, page_ordinal):
 # {{{ grading driver
 
 @course_view
-def grade_flow_page(pctx, flow_session_id, page_ordinal):
-    # type: (CoursePageContext, int, int) -> http.HttpResponse
+def grade_flow_page(
+        pctx: CoursePageContext,
+        flow_session_id: int,
+        page_ordinal: int
+        ) -> http.HttpResponse:
     now_datetime = get_now_or_fake_time(pctx.request)
 
     page_ordinal = int(page_ordinal)
@@ -293,8 +293,8 @@ def grade_flow_page(pctx, flow_session_id, page_ordinal):
                 else:
                     correctness = None
 
-                feedback_json = None  # type: Optional[Dict[Text, Any]]
-                bulk_feedback_json = None  # type: Optional[Dict[Text, Any]]
+                feedback_json: Optional[Dict[str, Any]] = None
+                bulk_feedback_json: Optional[Dict[str, Any]] = None
 
                 if feedback is not None:
                     feedback_json, bulk_feedback_json = feedback.as_json()
@@ -321,7 +321,7 @@ def grade_flow_page(pctx, flow_session_id, page_ordinal):
     else:
         grading_form = None
 
-    grading_form_html = None  # type: Optional[Text]
+    grading_form_html: Optional[str] = None
 
     if grading_form is not None:
         from crispy_forms.layout import Submit
@@ -353,11 +353,11 @@ def grade_flow_page(pctx, flow_session_id, page_ordinal):
             flow_session, fpctx.flow_desc, get_now_or_fake_time(pctx.request))
 
     if grading_rule.grade_identifier is not None:
-        grading_opportunity = get_flow_grading_opportunity(
-                pctx.course, flow_session.flow_id, fpctx.flow_desc,
-                grading_rule.grade_identifier,
-                grading_rule.grade_aggregation_strategy
-                )  # type: Optional[GradingOpportunity]
+        grading_opportunity: Optional[GradingOpportunity] = \
+                get_flow_grading_opportunity(
+                        pctx.course, flow_session.flow_id, fpctx.flow_desc,
+                        grading_rule.grade_identifier,
+                        grading_rule.grade_aggregation_strategy)
     else:
         grading_opportunity = None
 
@@ -403,13 +403,12 @@ def grade_flow_page(pctx, flow_session_id, page_ordinal):
 
 @retry_transaction_decorator()
 def _save_grade(
-        fpctx,  # type: FlowPageContext
-        flow_session,  # type: FlowSession
-        most_recent_grade,  # type: FlowPageVisitGrade
-        bulk_feedback_json,  # type: Any
-        now_datetime,  # type: datetime.datetime
-        ):
-    # type: (...) -> int
+        fpctx: FlowPageContext,
+        flow_session: FlowSession,
+        most_recent_grade: FlowPageVisitGrade,
+        bulk_feedback_json: Any,
+        now_datetime: datetime.datetime,
+        ) -> int:
     most_recent_grade.save()
     most_recent_grade_id = most_recent_grade.id
 

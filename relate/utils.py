@@ -1,6 +1,4 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import division
+from __future__ import annotations
 
 __copyright__ = "Copyright (C) 2014 Andreas Kloeckner"
 
@@ -39,22 +37,19 @@ if TYPE_CHECKING:
     from django.http import HttpRequest  # noqa
 
 
-def string_concat(*strings):
-    # type: (Any) -> Text
+def string_concat(*strings: Any) -> str:
     return format_lazy("{}" * len(strings), *strings)
 
 
 class StyledForm(forms.Form):
-    def __init__(self, *args, **kwargs):
-        # type: (...) -> None
+    def __init__(self, *args, **kwargs) -> None:
         from crispy_forms.helper import FormHelper
         self.helper = FormHelper()
         self._configure_helper()
 
-        super(StyledForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
-    def _configure_helper(self):
-        # type: () -> None
+    def _configure_helper(self) -> None:
         self.helper.form_class = "form-horizontal"
         self.helper.label_class = "col-lg-2"
         self.helper.field_class = "col-lg-8"
@@ -73,20 +68,18 @@ class StyledForm(forms.Form):
 
 
 class StyledInlineForm(forms.Form):
-    def __init__(self, *args, **kwargs):
-        # type: (...) -> None
+    def __init__(self, *args, **kwargs) -> None:
 
         from crispy_forms.helper import FormHelper
         self.helper = FormHelper()
         self.helper.form_class = "form-inline"
         self.helper.label_class = "sr-only"
 
-        super(StyledInlineForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
 
 class StyledModelForm(forms.ModelForm):
-    def __init__(self, *args, **kwargs):
-        # type: (...) -> None
+    def __init__(self, *args, **kwargs) -> None:
 
         from crispy_forms.helper import FormHelper
         self.helper = FormHelper()
@@ -94,14 +87,13 @@ class StyledModelForm(forms.ModelForm):
         self.helper.label_class = "col-lg-2"
         self.helper.field_class = "col-lg-8"
 
-        super(StyledModelForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
 
 # {{{ repo-ish types
 
-class SubdirRepoWrapper(object):
-    def __init__(self, repo, subdir):
-        # type: (dulwich.Repo, Text) -> None
+class SubdirRepoWrapper:
+    def __init__(self, repo: dulwich.Repo, subdir: str) -> None:
         self.repo = repo
 
         # This wrapper should only get used if there is a subdir to be had.
@@ -148,7 +140,7 @@ def is_maintenance_mode(request):
     return maintenance_mode
 
 
-class MaintenanceMiddleware(object):
+class MaintenanceMiddleware:
     def __init__(self, get_response):
         self.get_response = get_response
 
@@ -162,14 +154,13 @@ class MaintenanceMiddleware(object):
 # }}}
 
 
-def get_site_name():
-    # type: () -> Text
+def get_site_name() -> str:
     from django.conf import settings
     return getattr(settings, "RELATE_SITE_NAME", "RELATE")
 
 
-def render_email_template(template_name, context=None, request=None, using=None):
-    # type: (Text, Optional[Dict], Optional[HttpRequest], Optional[bool]) -> Text
+def render_email_template(template_name: str, context: Optional[Dict] = None,
+        request: Optional[HttpRequest] = None, using: Optional[bool] = None) -> str:
     if context is None:
         context = {}
     context.update({"relate_site_name": _(get_site_name())})
@@ -197,8 +188,7 @@ def settings_context_processor(request):
         }
 
 
-def as_local_time(dtm):
-    # type: (datetime.datetime) -> datetime.datetime
+def as_local_time(dtm: datetime.datetime) -> datetime.datetime:
     """Takes a timezone-aware datetime and applies the server timezone."""
 
     from django.conf import settings
@@ -207,8 +197,7 @@ def as_local_time(dtm):
     return dtm.astimezone(tz)
 
 
-def localize_datetime(dtm):
-    # type: (datetime.datetime) -> datetime.datetime
+def localize_datetime(dtm: datetime.datetime) -> datetime.datetime:
     """Takes an timezone-naive datetime and applies the server timezone."""
 
     from django.conf import settings
@@ -217,8 +206,7 @@ def localize_datetime(dtm):
     return tz.localize(dtm)  # type: ignore
 
 
-def local_now():
-    # type: () -> datetime.datetime
+def local_now() -> datetime.datetime:
 
     from django.conf import settings
     from pytz import timezone
@@ -226,8 +214,8 @@ def local_now():
     return tz.localize(datetime.datetime.now())  # type: ignore
 
 
-def format_datetime_local(datetime, format="DATETIME_FORMAT"):
-    # type: (datetime.datetime, str) -> str
+def format_datetime_local(
+        datetime: datetime.datetime, format: str = "DATETIME_FORMAT") -> str:
     """
     Format a datetime object to a localized string via python.
 
@@ -251,9 +239,8 @@ def format_datetime_local(datetime, format="DATETIME_FORMAT"):
 
 # {{{ dict_to_struct
 
-class Struct(object):
-    def __init__(self, entries):
-        # type: (Dict) -> None
+class Struct:
+    def __init__(self, entries: Dict) -> None:
         for name, val in entries.items():
             setattr(self, name, val)
 
@@ -263,8 +250,7 @@ class Struct(object):
         return repr(self.__dict__)
 
 
-def dict_to_struct(data):
-    # type: (Dict) -> Struct
+def dict_to_struct(data: Dict) -> Struct:
     if isinstance(data, list):
         return [dict_to_struct(d) for d in data]
     elif isinstance(data, dict):
@@ -273,19 +259,17 @@ def dict_to_struct(data):
         return data
 
 
-def struct_to_dict(data):
-    # type: (Struct) -> Dict
-    return dict(
-            (name, val)
+def struct_to_dict(data: Struct) -> Dict:
+    return {
+            name: val
             for name, val in data.__dict__.items()
-            if not name.startswith("_"))
+            if not name.startswith("_")}
 
 # }}}
 
 
-def retry_transaction(f, args, kwargs={}, max_tries=None, serializable=None):
-    # type: (Any, Tuple, Dict, Optional[int], Optional[bool]) -> Any
-
+def retry_transaction(f: Any, args: Tuple, kwargs: Dict = {},
+        max_tries: Optional[int] = None, serializable: Optional[bool] = None) -> Any:
     from django.db import transaction
     from django.db.utils import OperationalError
 
@@ -317,14 +301,13 @@ def retry_transaction(f, args, kwargs={}, max_tries=None, serializable=None):
         sleep(uniform(0.05, 0.2))
 
 
-class retry_transaction_decorator(object):  # noqa
-    def __init__(self, max_tries=None, serializable=None):
-        # type: (Optional[int], Optional[bool]) -> None
+class retry_transaction_decorator:  # noqa
+    def __init__(self, max_tries: Optional[int] = None,
+            serializable: Optional[bool] = None) -> None:
         self.max_tries = max_tries
         self.serializable = serializable
 
-    def __call__(self, f):
-        # type: (Any) -> Any
+    def __call__(self, f: Any) -> Any:
         from functools import update_wrapper
 
         def wrapper(*args, **kwargs):
@@ -343,7 +326,7 @@ def dumpstacks(signal, frame):  # pragma: no cover
     import sys
     import traceback
 
-    id2name = dict([(th.ident, th.name) for th in threading.enumerate()])
+    id2name = {th.ident: th.name for th in threading.enumerate()}
     code = []
     for thread_id, stack in sys._current_frames().items():
         code.append("\n# Thread: %s(%d)" % (id2name.get(thread_id, ""), thread_id))
@@ -367,8 +350,7 @@ if 0:
 #{{{ Allow multiple email connections
 # https://gist.github.com/niran/840999
 
-def get_outbound_mail_connection(label=None, **kwargs):
-    # type: (Optional[Text], **Any) -> Any
+def get_outbound_mail_connection(label: Optional[str] = None, **kwargs: Any) -> Any:
     from django.conf import settings
     if label is None:
         label = getattr(settings, "EMAIL_CONNECTION_DEFAULT", None)
@@ -429,8 +411,7 @@ def ignore_no_such_table(f, *args):
             raise
 
 
-def force_remove_path(path):
-    # type: (Text) -> None
+def force_remove_path(path: str) -> None:
     """
     Work around deleting read-only path on Windows.
     Ref: https://docs.python.org/3.5/library/shutil.html#rmtree-example

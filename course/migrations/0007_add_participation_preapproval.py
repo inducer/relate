@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-from __future__ import unicode_literals
-
 from django.db import models, migrations
 import django.utils.timezone
 from django.conf import settings
@@ -31,6 +28,6 @@ class Migration(migrations.Migration):
         ),
         migrations.AlterUniqueTogether(
             name='participationpreapproval',
-            unique_together=set([('course', 'email')]),
+            unique_together={('course', 'email')},
         ),
     ]

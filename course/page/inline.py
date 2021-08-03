@@ -1,7 +1,3 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import division
-
 __copyright__ = "Copyright (C) 2015 Andreas Kloeckner, Dong Zhuang"
 
 __license__ = """
@@ -56,7 +52,7 @@ class InlineMultiQuestionForm(StyledInlineForm):
     no_offset_labels = True
 
     def __init__(self, read_only, dict_for_form, page_context, *args, **kwargs):
-        super(InlineMultiQuestionForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         html_list = dict_for_form["html_list"]
         self.answer_instance_list = answer_instance_list = \
                 dict_for_form["answer_instance_list"]
@@ -106,7 +102,7 @@ class InlineMultiQuestionForm(StyledInlineForm):
         self.helper.layout.extend([HTML("<br/><br/>")])
 
     def clean(self):
-        cleaned_data = super(InlineMultiQuestionForm, self).clean()
+        cleaned_data = super().clean()
         answer_name_list = [answer_instance.name
                 for answer_instance in self.answer_instance_list]
 
@@ -155,7 +151,7 @@ def parse_question(vctx, location, name, answers_desc):
                 % location)
 
 
-class AnswerBase(object):
+class AnswerBase:
     """Abstract interface for answer class of different type.
     .. attribute:: type
     .. attribute:: form_field_class
@@ -221,8 +217,7 @@ class ShortAnswer(AnswerBase):
     form_field_class = forms.CharField
 
     @staticmethod
-    def get_length_attr_em(location, width_attr):
-        # type: (Text, Text) -> Optional[float]
+    def get_length_attr_em(location: str, width_attr: str) -> Optional[float]:
         """
         generate the length for input box, the unit is 'em'
         """
@@ -269,7 +264,7 @@ class ShortAnswer(AnswerBase):
             return float(length_value)/cast(float, EM_LEN_DICT[length_unit])
 
     def __init__(self, vctx, location, name, answers_desc):
-        super(ShortAnswer, self).__init__(
+        super().__init__(
                 vctx, location, name, answers_desc)
 
         validate_struct(
@@ -312,7 +307,7 @@ class ShortAnswer(AnswerBase):
         width = getattr(self.answers_desc, "width", None)
 
         parsed_length = self.get_length_attr_em(
-            "%s: %s: 'width'" % (location, self.name), width)
+            f"{location}: {self.name}: 'width'", width)
 
         self.width = 0
         if parsed_length is not None:
@@ -408,7 +403,7 @@ class ChoicesAnswer(AnswerBase):
         return s
 
     def __init__(self, vctx, location, name, answers_desc):
-        super(ChoicesAnswer, self).__init__(
+        super().__init__(
             vctx, location, name, answers_desc)
 
         validate_struct(
@@ -667,7 +662,7 @@ class InlineMultiQuestion(TextQuestionBase, PageBaseWithValue):
     """
 
     def __init__(self, vctx, location, page_desc):
-        super(InlineMultiQuestion, self).__init__(
+        super().__init__(
                 vctx, location, page_desc)
 
         expanded_question = page_desc.question
@@ -719,8 +714,8 @@ class InlineMultiQuestion(TextQuestionBase, PageBaseWithValue):
 
         if len(set(self.embedded_name_list)) < len(self.embedded_name_list):
             duplicated = list(
-                 set([x for x in self.embedded_name_list
-                      if self.embedded_name_list.count(x) > 1]))
+                 {x for x in self.embedded_name_list
+                      if self.embedded_name_list.count(x) > 1})
             raise ValidationError(
                  string_concat(
                      "%s: ",
@@ -768,12 +763,12 @@ class InlineMultiQuestion(TextQuestionBase, PageBaseWithValue):
                 parse_question(vctx, location, name, answers_desc)
 
     def required_attrs(self):
-        return super(InlineMultiQuestion, self).required_attrs() + (
+        return super().required_attrs() + (
                 ("question", "markup"), ("answers", Struct),
                 )
 
     def allowed_attrs(self):
-        return super(InlineMultiQuestion, self).allowed_attrs() + (
+        return super().allowed_attrs() + (
                 ("answer_explanation", "markup"),
                 )
 

@@ -1,6 +1,4 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import division
+from __future__ import annotations
 
 __copyright__ = "Copyright (C) 2014 Andreas Kloeckner"
 
@@ -244,11 +242,11 @@ def _adjust_flow_session_page_data_inner(repo, flow_session,
 
         else:
             # reorder pages to order in flow
-            id_to_fpd = dict(
-                    ((fpd.group_id, fpd.page_id), fpd)
+            id_to_fpd = {
+                    (fpd.group_id, fpd.page_id): fpd
                     for fpd in FlowPageData.objects.filter(
                         flow_session=flow_session,
-                        group_id=grp.id))
+                        group_id=grp.id)}
 
             for page_desc in grp.pages:
                 key = (grp.id, page_desc.id)
@@ -280,9 +278,9 @@ def _adjust_flow_session_page_data_inner(repo, flow_session,
     return ordinal[0]  # new page count
 
 
-def adjust_flow_session_page_data(repo, flow_session,
-        course_identifier, flow_desc=None, respect_preview=True):
-    # type: (Repo_ish, FlowSession, Text, Optional[FlowDesc], bool) -> None
+def adjust_flow_session_page_data(repo: Repo_ish, flow_session: FlowSession,
+        course_identifier: str, flow_desc: Optional[FlowDesc] = None,
+        respect_preview: bool = True) -> None:
 
     """
     The caller may *not* be in a transaction that has a weaker isolation
@@ -317,9 +315,9 @@ def adjust_flow_session_page_data(repo, flow_session,
 
 # {{{ grade page visit
 
-def grade_page_visit(visit, visit_grade_model=FlowPageVisitGrade,
-        grade_data=None, respect_preview=True):
-    # type: (FlowPageVisit, type, Any, bool) -> None
+def grade_page_visit(visit: FlowPageVisit,
+        visit_grade_model: type = FlowPageVisitGrade,
+        grade_data: Any = None, respect_preview: bool = True) -> None:
     if not visit.is_submitted_answer:
         raise RuntimeError(_("cannot grade ungraded answer"))
 
@@ -327,7 +325,7 @@ def grade_page_visit(visit, visit_grade_model=FlowPageVisitGrade,
     course = flow_session.course
     page_data = visit.page_data
 
-    most_recent_grade = visit.get_most_recent_grade()  # type: Optional[FlowPageVisitGrade]  # noqa
+    most_recent_grade: Optional[FlowPageVisitGrade] = visit.get_most_recent_grade()  # noqa
     if most_recent_grade is not None and grade_data is None:
         grade_data = most_recent_grade.grade_data
 
@@ -393,16 +391,15 @@ def grade_page_visit(visit, visit_grade_model=FlowPageVisitGrade,
 # {{{ start flow
 
 def start_flow(
-        repo,  # type: Repo_ish
-        course,  # type: Course
-        participation,  # type: Optional[Participation]
-        user,  # type: Any
-        flow_id,  # type: Text
-        flow_desc,  # type: FlowDesc
-        session_start_rule,  # type: FlowSessionStartRule
-        now_datetime,  # type: datetime.datetime
-        ):
-    # type: (...) -> FlowSession
+        repo: Repo_ish,
+        course: Course,
+        participation: Optional[Participation],
+        user: Any,
+        flow_id: str,
+        flow_desc: FlowDesc,
+        session_start_rule: FlowSessionStartRule,
+        now_datetime: datetime.datetime,
+        ) -> FlowSession:
 
     # This function does not need to be transactionally atomic.
     # The only essential part is the creation of the session.
@@ -459,8 +456,8 @@ def start_flow(
 
 # {{{ finish flow
 
-def get_multiple_flow_session_graded_answers_qset(flow_sessions):
-    # type: (List[FlowSession]) -> query.QuerySet
+def get_multiple_flow_session_graded_answers_qset(
+        flow_sessions: List[FlowSession]) -> query.QuerySet:
 
     from django.db.models import Q
     qset = (FlowPageVisit.objects
@@ -478,22 +475,20 @@ def get_multiple_flow_session_graded_answers_qset(flow_sessions):
     return qset
 
 
-def get_flow_session_graded_answers_qset(flow_session):
-    # type: (FlowSession) -> query.QuerySet
+def get_flow_session_graded_answers_qset(
+        flow_session: FlowSession) -> query.QuerySet:
 
     return get_multiple_flow_session_graded_answers_qset([flow_session])
 
 
-def get_prev_answer_visits_qset(page_data):
-    # type: (FlowPageData) -> query.QuerySet
+def get_prev_answer_visits_qset(page_data: FlowPageData) -> query.QuerySet:
     return (
             get_flow_session_graded_answers_qset(page_data.flow_session)
             .filter(page_data=page_data)
             .order_by("-visit_time"))
 
 
-def get_first_from_qset(qset):
-    # type: (query.QuerySet) -> Optional[Any]
+def get_first_from_qset(qset: query.QuerySet) -> Optional[Any]:
     for item in qset[:1]:
         return item
 
@@ -504,8 +499,9 @@ def get_prev_answer_visit(page_data):
     return get_first_from_qset(get_prev_answer_visits_qset(page_data))
 
 
-def assemble_page_grades(flow_sessions):
-    # type: (List[FlowSession]) -> List[List[Optional[FlowPageVisitGrade]]]
+def assemble_page_grades(
+        flow_sessions: List[FlowSession]
+        ) -> List[List[Optional[FlowPageVisitGrade]]]:
     """
     Given a list of flow sessions, return a list of lists of FlowPageVisitGrade
     objects corresponding to the most recent page grades for each page of the
@@ -515,9 +511,9 @@ def assemble_page_grades(flow_sessions):
     of the lists may vary since the flow page count may vary per session.
     """
     id_to_fsess_idx = {fsess.id: i for i, fsess in enumerate(flow_sessions)}
-    answer_visit_ids = [
+    answer_visit_ids: List[List[Optional[int]]] = [
             [None] * fsess.page_count for fsess in flow_sessions
-            ]  # type: List[List[Optional[int]]]
+            ]
 
     # Get all answer visits corresponding to the sessions. The query result is
     # typically very large.
@@ -552,8 +548,9 @@ def assemble_page_grades(flow_sessions):
     for grade in grades:
         grades_by_answer_visit[grade.visit_id] = grade
 
-    def get_grades_for_visit_group(visit_group):
-        # type: (List[Optional[int]]) -> List[Optional[FlowPageVisit]]
+    def get_grades_for_visit_group(
+            visit_group: List[Optional[int]]
+            ) -> List[Optional[FlowPageVisit]]:
 
         return [grades_by_answer_visit.get(visit_id)
             for visit_id in visit_group]
@@ -561,10 +558,10 @@ def assemble_page_grades(flow_sessions):
     return [get_grades_for_visit_group(group) for group in answer_visit_ids]
 
 
-def assemble_answer_visits(flow_session):
-    # type: (FlowSession) -> List[Optional[FlowPageVisit]]
+def assemble_answer_visits(
+        flow_session: FlowSession) -> List[Optional[FlowPageVisit]]:
 
-    answer_visits = [None] * flow_session.page_count  # type: List[Optional[FlowPageVisit]]  # noqa
+    answer_visits: List[Optional[FlowPageVisit]] = [None] * flow_session.page_count  # noqa
 
     answer_page_visits = (
             get_flow_session_graded_answers_qset(flow_session)
@@ -580,8 +577,7 @@ def assemble_answer_visits(flow_session):
     return answer_visits
 
 
-def get_all_page_data(flow_session):
-    # type: (FlowSession) -> Iterable[FlowPageData]
+def get_all_page_data(flow_session: FlowSession) -> Iterable[FlowPageData]:
 
     return (FlowPageData.objects
             .filter(
@@ -591,12 +587,11 @@ def get_all_page_data(flow_session):
 
 
 def get_interaction_kind(
-        fctx,  # type: FlowContext
-        flow_session,  # type: FlowSession
-        flow_generates_grade,  # type: bool
-        all_page_data,  # type: Iterable[FlowPageData]
-        ):
-    # type: (...) -> Text
+        fctx: FlowContext,
+        flow_session: FlowSession,
+        flow_generates_grade: bool,
+        all_page_data: Iterable[FlowPageData],
+        ) -> str:
 
     has_interactive = False
     has_gradable = False
@@ -623,16 +618,15 @@ def get_interaction_kind(
 
 
 def get_session_answered_page_data(
-        fctx,  # type: FlowContext
-        flow_session,  # type: FlowSession
-        answer_visits  # type: List[Optional[FlowPageVisit]]
-        ):
-    # type: (...) -> Tuple[List[FlowPageData], List[FlowPageData], bool]
+        fctx: FlowContext,
+        flow_session: FlowSession,
+        answer_visits: List[Optional[FlowPageVisit]]
+        ) -> Tuple[List[FlowPageData], List[FlowPageData], bool]:
     all_page_data = get_all_page_data(flow_session)
 
-    answered_page_data_list = []  # type: List[FlowPageData]
-    unanswered_page_data_list = []  # type: List[FlowPageData]
-    is_interactive_flow = False  # type: bool
+    answered_page_data_list: List[FlowPageData] = []
+    unanswered_page_data_list: List[FlowPageData] = []
+    is_interactive_flow: bool = False
 
     for i, page_data in enumerate(all_page_data):
         assert i == page_data.page_ordinal
@@ -655,7 +649,7 @@ def get_session_answered_page_data(
     return (answered_page_data_list, unanswered_page_data_list, is_interactive_flow)
 
 
-class GradeInfo(object):
+class GradeInfo:
     """An object to hold a tally of points and page counts of various types in a flow.
 
     .. attribute:: points
@@ -676,20 +670,19 @@ class GradeInfo(object):
 
     def __init__(
             self,
-            points,  # type: Optional[float]
-            provisional_points,  # type: Optional[float]
-            max_points,  # type: Optional[float]
-            max_reachable_points,  # type: Optional[float]
-            fully_correct_count,  # type: int
-            partially_correct_count,  # type: int
-            incorrect_count,  # type: int
-            unknown_count,  # type: int
-            optional_fully_correct_count=0,  # type: int
-            optional_partially_correct_count=0,  # type: int
-            optional_incorrect_count=0,  # type: int
-            optional_unknown_count=0,  # type: int
-            ):
-        # type: (...) -> None
+            points: Optional[float],
+            provisional_points: Optional[float],
+            max_points: Optional[float],
+            max_reachable_points: Optional[float],
+            fully_correct_count: int,
+            partially_correct_count: int,
+            incorrect_count: int,
+            unknown_count: int,
+            optional_fully_correct_count: int = 0,
+            optional_partially_correct_count: int = 0,
+            optional_incorrect_count: int = 0,
+            optional_unknown_count: int = 0,
+            ) -> None:
         self.points = points
         self.provisional_points = provisional_points
         self.max_points = max_points
@@ -923,13 +916,12 @@ def gather_grade_info(
 
 @transaction.atomic
 def grade_page_visits(
-        fctx,  # type: FlowContext
-        flow_session,  # type: FlowSession
-        answer_visits,  # type: List[Optional[FlowPageVisit]]
-        force_regrade=False,  # type: bool
-        respect_preview=True,  # type: bool
-        ):
-    # type: (...) -> None
+        fctx: FlowContext,
+        flow_session: FlowSession,
+        answer_visits: List[Optional[FlowPageVisit]],
+        force_regrade: bool = False,
+        respect_preview: bool = True,
+        ) -> None:
     for i in range(len(answer_visits)):
         answer_visit = answer_visits[i]
 
@@ -1010,13 +1002,12 @@ def finish_flow_session(fctx, flow_session, grading_rule,
 
 
 def expire_flow_session(
-        fctx,  # type: FlowContext
-        flow_session,  # type: FlowSession
-        grading_rule,  # type: FlowSessionGradingRule
-        now_datetime,  # type: datetime.datetime
-        past_due_only=False,  # type:bool
-        ):
-    # type: (...) -> bool
+        fctx: FlowContext,
+        flow_session: FlowSession,
+        grading_rule: FlowSessionGradingRule,
+        now_datetime: datetime.datetime,
+        past_due_only: bool = False,
+        ) -> bool:
 
     # This function does not need to be transactionally atomic.
     # It only does one atomic 'thing' in each execution path.
@@ -1084,18 +1075,16 @@ def expire_flow_session(
                     "session_id": flow_session.id})
 
 
-def get_flow_session_attempt_id(flow_session):
-    # type: (FlowSession) -> Text
+def get_flow_session_attempt_id(flow_session: FlowSession) -> str:
     return "flow-session-%d" % flow_session.id
 
 
 def grade_flow_session(
-        fctx,  # type: FlowContext
-        flow_session,  # type: FlowSession
-        grading_rule,  # type: FlowSessionGradingRule
-        answer_visits=None,  # type: Optional[List[Optional[FlowPageVisit]]]
-        ):
-    # type: (...) -> GradeInfo
+        fctx: FlowContext,
+        flow_session: FlowSession,
+        grading_rule: FlowSessionGradingRule,
+        answer_visits: Optional[List[Optional[FlowPageVisit]]] = None,
+        ) -> GradeInfo:
 
     """Updates the grade on an existing flow session and logs a
     grade change with the grade records subsystem.
@@ -1179,8 +1168,8 @@ def grade_flow_session(
     return grade_info
 
 
-def unsubmit_page(prev_answer_visit, now_datetime):
-    # type: (FlowPageVisit, datetime.datetime) -> None
+def unsubmit_page(
+        prev_answer_visit: FlowPageVisit, now_datetime: datetime.datetime) -> None:
 
     prev_answer_visit.id = None
     prev_answer_visit.visit_time = now_datetime
@@ -1195,13 +1184,12 @@ def unsubmit_page(prev_answer_visit, now_datetime):
 
 
 def reopen_session(
-        now_datetime,  # type: datetime.datetime
-        session,  # type: FlowSession
-        force=False,  # type: bool
-        suppress_log=False,  # type: bool
-        unsubmit_pages=False,  # type: bool
-        ):
-    # type: (...) -> None
+        now_datetime: datetime.datetime,
+        session: FlowSession,
+        force: bool = False,
+        suppress_log: bool = False,
+        unsubmit_pages: bool = False,
+        ) -> None:
 
     with transaction.atomic():
         if session.in_progress:
@@ -1236,15 +1224,14 @@ def reopen_session(
 
 
 def finish_flow_session_standalone(
-        repo,  # type: Repo_ish
-        course,  # type: Course
-        session,  # type: FlowSession
-        force_regrade=False,  # type: bool
-        now_datetime=None,  # type: Optional[datetime.datetime]
-        past_due_only=False,  # type: bool
-        respect_preview=True,  # type:bool
-        ):
-    # type: (...) -> bool
+        repo: Repo_ish,
+        course: Course,
+        session: FlowSession,
+        force_regrade: bool = False,
+        now_datetime: Optional[datetime.datetime] = None,
+        past_due_only: bool = False,
+        respect_preview: bool = True,
+        ) -> bool:
 
     # Do not be tempted to call adjust_flow_session_page_data in here.
     # This function may be called from within a transaction.
@@ -1277,13 +1264,12 @@ def finish_flow_session_standalone(
 
 
 def expire_flow_session_standalone(
-        repo,  # type: Any
-        course,  # type: Course
-        session,  # type: FlowSession
-        now_datetime,  # type: datetime.datetime
-        past_due_only=False,  # type: bool
-        ):
-    # type: (...) -> bool
+        repo: Any,
+        course: Course,
+        session: FlowSession,
+        now_datetime: datetime.datetime,
+        past_due_only: bool = False,
+        ) -> bool:
     assert session.participation is not None
 
     fctx = FlowContext(repo, course, session.flow_id)
@@ -1295,17 +1281,16 @@ def expire_flow_session_standalone(
 
 
 def regrade_session(
-        repo,  # type: Repo_ish
-        course,  # type: Course
-        session,  # type: FlowSession
-        ):
-    # type: (...) -> None
+        repo: Repo_ish,
+        course: Course,
+        session: FlowSession,
+        ) -> None:
     adjust_flow_session_page_data(repo, session, course.identifier,
             respect_preview=False)
 
     if session.in_progress:
         with transaction.atomic():
-            answer_visits = assemble_answer_visits(session)  # type: List[Optional[FlowPageVisit]]  # noqa
+            answer_visits: List[Optional[FlowPageVisit]] = assemble_answer_visits(session)  # noqa
 
             for i in range(len(answer_visits)):
                 answer_visit = answer_visits[i]
@@ -1332,9 +1317,8 @@ def regrade_session(
                     respect_preview=False)
 
 
-def recalculate_session_grade(repo, course, session):
-    # type: (Repo_ish, Course, FlowSession) -> None
-
+def recalculate_session_grade(
+        repo: Repo_ish, course: Course, session: FlowSession) -> None:
     """Only redoes the final grade determination without regrading
     individual pages.
     """
@@ -1365,11 +1349,10 @@ def recalculate_session_grade(repo, course, session):
 
 
 def lock_down_if_needed(
-        request,  # type: http.HttpRequest
-        permissions,  # type: FrozenSet[Text]
-        flow_session,  # type: FlowSession
-        ):
-    # type: (...) -> None
+        request: http.HttpRequest,
+        permissions: FrozenSet[str],
+        flow_session: FlowSession,
+        ) -> None:
 
     if flow_permission.lock_down_as_exam_session in permissions:
         request.session[
@@ -1380,8 +1363,7 @@ def lock_down_if_needed(
 # {{{ view: start flow
 
 @course_view
-def view_start_flow(pctx, flow_id):
-    # type: (CoursePageContext, Text) -> http.HttpResponse
+def view_start_flow(pctx: CoursePageContext, flow_id: str) -> http.HttpResponse:
     request = pctx.request
 
     fctx = FlowContext(pctx.repo, pctx.course, flow_id,
@@ -1483,9 +1465,9 @@ def view_start_flow(pctx, flow_id):
 
 
 @retry_transaction_decorator(serializable=True)
-def post_start_flow(pctx, fctx, flow_id):
-    # type: (CoursePageContext, FlowContext, Text) -> http.HttpResponse
-
+def post_start_flow(
+        pctx: CoursePageContext, fctx: FlowContext, flow_id: str
+        ) -> http.HttpResponse:
     now_datetime = get_now_or_fake_time(pctx.request)
     login_exam_ticket = get_login_exam_ticket(pctx.request)
 
@@ -1550,9 +1532,8 @@ def post_start_flow(pctx, fctx, flow_id):
 # middleware will refuse access to flow pages in a locked-down facility.
 
 @course_view
-def view_resume_flow(pctx, flow_session_id):
-    # type: (CoursePageContext, int) -> http.HttpResponse
-
+def view_resume_flow(
+        pctx: CoursePageContext, flow_session_id: int) -> http.HttpResponse:
     now_datetime = get_now_or_fake_time(pctx.request)
 
     flow_session = get_and_check_flow_session(pctx, int(flow_session_id))
@@ -1579,9 +1560,8 @@ def view_resume_flow(pctx, flow_session_id):
 
 # {{{ view: flow page
 
-def get_and_check_flow_session(pctx, flow_session_id):
-    # type: (CoursePageContext, int) -> FlowSession
-
+def get_and_check_flow_session(
+        pctx: CoursePageContext, flow_session_id: int) -> FlowSession:
     try:
         flow_session = (FlowSession.objects
                 .select_related("participation")
@@ -1628,17 +1608,15 @@ def get_and_check_flow_session(pctx, flow_session_id):
     return flow_session
 
 
-def will_receive_feedback(permissions):
-    # type: (FrozenSet[Text]) -> bool
+def will_receive_feedback(permissions: FrozenSet[str]) -> bool:
 
     return (
             flow_permission.see_correctness in permissions
             or flow_permission.see_answer_after_submission in permissions)
 
 
-def may_send_email_about_flow_page(flow_session, permissions):
-    # type: (FlowSession, FrozenSet[Text]) -> bool
-
+def may_send_email_about_flow_page(
+        flow_session: FlowSession, permissions: FrozenSet[str]) -> bool:
     return (
         flow_session.participation is not None
         and flow_session.user is not None
@@ -1646,15 +1624,14 @@ def may_send_email_about_flow_page(flow_session, permissions):
 
 
 def get_page_behavior(
-        page,  # type: PageBase
-        permissions,  # type: FrozenSet[Text]
-        session_in_progress,  # type: bool
-        answer_was_graded,  # type: bool
-        generates_grade,  # type: bool
-        is_unenrolled_session,  # type: bool
-        viewing_prior_version=False,  # type: bool
-        ):
-    # type: (...) -> PageBehavior
+        page: PageBase,
+        permissions: FrozenSet[str],
+        session_in_progress: bool,
+        answer_was_graded: bool,
+        generates_grade: bool,
+        is_unenrolled_session: bool,
+        viewing_prior_version: bool = False,
+        ) -> PageBehavior:
     show_correctness = False
 
     if page.expects_answer():
@@ -1702,9 +1679,11 @@ def get_page_behavior(
             )
 
 
-def add_buttons_to_form(form, fpctx, flow_session, permissions):
-    # type: (StyledForm, FlowPageContext, FlowSession, FrozenSet[Text]) -> StyledForm
-
+def add_buttons_to_form(
+        form: StyledForm,
+        fpctx: FlowPageContext,
+        flow_session: FlowSession,
+        permissions: FrozenSet[str]) -> StyledForm:
     from crispy_forms.layout import Submit
     show_save_button = getattr(form, "show_save_button", True)
     if show_save_button:
@@ -1745,9 +1724,10 @@ def add_buttons_to_form(form, fpctx, flow_session, permissions):
     return form
 
 
-def create_flow_page_visit(request, flow_session, page_data):
-    # type: (http.HttpRequest, FlowSession, FlowPageData) -> None
-
+def create_flow_page_visit(
+        request: http.HttpRequest,
+        flow_session: FlowSession,
+        page_data: FlowPageData) -> None:
     if request.user.is_authenticated:
         # The access to 'is_authenticated' ought to wake up SimpleLazyObject.
         user = request.user
@@ -1768,9 +1748,10 @@ def create_flow_page_visit(request, flow_session, page_data):
 
 
 @course_view
-def view_flow_page(pctx, flow_session_id, page_ordinal):
-    # type: (CoursePageContext, int, int) -> http.HttpResponse
-
+def view_flow_page(
+        pctx: CoursePageContext,
+        flow_session_id: int,
+        page_ordinal: int) -> http.HttpResponse:
     request = pctx.request
     login_exam_ticket = get_login_exam_ticket(request)
 
@@ -2037,7 +2018,7 @@ def view_flow_page(pctx, flow_session_id, page_ordinal):
                 "ORDER BY course_flowpagedata.page_ordinal",
                 [flow_session.id])
 
-        flow_page_ordinals_with_answers = set(row[0] for row in c.fetchall())
+        flow_page_ordinals_with_answers = {row[0] for row in c.fetchall()}
 
     args = {
         "flow_identifier": fpctx.flow_id,
@@ -2133,8 +2114,7 @@ def get_prev_answer_visits_dropdown_content(pctx, flow_session_id, page_ordinal)
         {"result": [serialize(visit) for visit in prev_answer_visits]})
 
 
-def get_pressed_button(form):
-    # type: (StyledForm) -> Text
+def get_pressed_button(form: StyledForm) -> str:
 
     buttons = ["save", "save_and_next", "save_and_finish", "submit"]
     for button in buttons:
@@ -2146,13 +2126,13 @@ def get_pressed_button(form):
 
 @retry_transaction_decorator()
 def post_flow_page(
-        flow_session,  # type: FlowSession
-        fpctx,  # type: FlowPageContext
-        request,  # type: http.HttpRequest
-        permissions,  # type: FrozenSet[Text]
-        generates_grade,  # type: bool
-        ):
-    # type: (...) -> Tuple[PageBehavior, List[FlowPageVisit], forms.Form, Optional[AnswerFeedback], Any, bool]  # noqa
+        flow_session: FlowSession,
+        fpctx: FlowPageContext,
+        request: http.HttpRequest,
+        permissions: FrozenSet[str],
+        generates_grade: bool,
+        ) -> Tuple[PageBehavior, List[FlowPageVisit],
+                forms.Form, Optional[AnswerFeedback], Any, bool]:
     page_context = fpctx.page_context
     page_data = fpctx.page_data
 
@@ -2229,9 +2209,9 @@ def post_flow_page(
 
         if fpctx.page.is_answer_gradable():
             with LanguageOverride(course=fpctx.course):
-                feedback = fpctx.page.grade(
+                feedback: Optional[AnswerFeedback] = fpctx.page.grade(
                         page_context, page_data.data, answer_visit.answer,
-                        grade_data=None)  # type: Optional[AnswerFeedback]
+                        grade_data=None)
 
             if answer_visit.is_submitted_answer:
                 grade = FlowPageVisitGrade()
@@ -2451,7 +2431,7 @@ def send_email_about_flow_page(pctx, flow_session_id, page_ordinal):
 
 class FlowPageInteractionEmailForm(StyledForm):
     def __init__(self, review_uri, *args, **kwargs):
-        super(FlowPageInteractionEmailForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.fields["message"] = forms.CharField(
                 required=True,
                 widget=forms.Textarea,
@@ -2467,7 +2447,7 @@ class FlowPageInteractionEmailForm(StyledForm):
                 css_class="relate-submit-button"))
 
     def clean_message(self):
-        cleaned_data = super(FlowPageInteractionEmailForm, self).clean()
+        cleaned_data = super().clean()
         message = cleaned_data.get("message")
         if len(message) < 20:
             raise forms.ValidationError(
@@ -2511,9 +2491,8 @@ def update_page_bookmark_state(pctx, flow_session_id, page_ordinal):
 # {{{ view: update expiration mode
 
 @course_view
-def update_expiration_mode(pctx, flow_session_id):
-    # type: (CoursePageContext, int) -> http.HttpResponse
-
+def update_expiration_mode(
+        pctx: CoursePageContext, flow_session_id: int) -> http.HttpResponse:
     if pctx.request.method != "POST":
         raise SuspiciousOperation(_("only POST allowed"))
 
@@ -2556,9 +2535,8 @@ def update_expiration_mode(pctx, flow_session_id):
 # {{{ view: finish flow
 
 @course_view
-def finish_flow_session_view(pctx, flow_session_id):
-    # type: (CoursePageContext, int) -> http.HttpResponse
-
+def finish_flow_session_view(
+        pctx: CoursePageContext, flow_session_id: int) -> http.HttpResponse:
     # Does not need to be atomic: All writing to the db
     # is done in 'finish_flow_session' below.
 
@@ -2588,7 +2566,7 @@ def finish_flow_session_view(pctx, flow_session_id):
     adjust_flow_session_page_data(pctx.repo, flow_session, pctx.course.identifier,
             fctx.flow_desc, respect_preview=True)
 
-    answer_visits = assemble_answer_visits(flow_session)  # type: List[Optional[FlowPageVisit]]  # noqa
+    answer_visits: List[Optional[FlowPageVisit]] = assemble_answer_visits(flow_session)  # noqa
 
     (answered_page_data_list, unanswered_page_data_list, is_interactive_flow) =\
         get_session_answered_page_data(
@@ -2597,8 +2575,7 @@ def finish_flow_session_view(pctx, flow_session_id):
     if flow_permission.view not in access_rule.permissions:
         raise PermissionDenied()
 
-    def render_finish_response(template, **kwargs):
-        # type: (...) -> http.HttpResponse
+    def render_finish_response(template, **kwargs) -> http.HttpResponse:
         render_args = {
             "flow_identifier": fctx.flow_id,
             "flow_desc": fctx.flow_desc,
@@ -2766,9 +2743,8 @@ def finish_flow_session_view(pctx, flow_session_id):
 # {{{ view: regrade flow
 
 class RegradeFlowForm(StyledForm):
-    def __init__(self, flow_ids, *args, **kwargs):
-        # type: (List[Text], *Any, **Any) -> None
-        super(RegradeFlowForm, self).__init__(*args, **kwargs)
+    def __init__(self, flow_ids: List[str], *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
 
         self.fields["flow_id"] = forms.ChoiceField(
                 choices=[(fid, fid) for fid in flow_ids],
@@ -2796,8 +2772,7 @@ class RegradeFlowForm(StyledForm):
 
 
 @course_view
-def regrade_flows_view(pctx):
-    # type: (CoursePageContext) -> http.HttpResponse
+def regrade_flows_view(pctx: CoursePageContext) -> http.HttpResponse:
     if not pctx.has_permission(pperm.batch_regrade_flow_session):
         raise PermissionDenied(_("may not batch-regrade flows"))
 
@@ -2844,19 +2819,18 @@ def regrade_flows_view(pctx):
 # {{{ view: unsubmit flow page
 
 class UnsubmitFlowPageForm(forms.Form):
-    def __init__(self, *args, **kwargs):
-        # type: (*Any, **Any) -> None
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         self.helper = FormHelper()
-        super(UnsubmitFlowPageForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         self.helper.add_input(Submit("submit", _("Re-allow changes")))
         self.helper.add_input(Submit("cancel", _("Cancel")))
 
 
 @course_view
-def view_unsubmit_flow_page(pctx, flow_session_id, page_ordinal):
-    # type: (CoursePageContext, int, int) -> http.HttpResponse
-
+def view_unsubmit_flow_page(
+        pctx: CoursePageContext, flow_session_id: int, page_ordinal: int
+        ) -> http.HttpResponse:
     if pctx.participation is None:
         raise PermissionDenied()
 
@@ -2910,8 +2884,7 @@ def view_unsubmit_flow_page(pctx, flow_session_id, page_ordinal):
 
 # {{{ purge page view data
 
-def get_pv_purgeable_courses_for_user_qs(user):
-    # type: (User) -> query.QuerySet
+def get_pv_purgeable_courses_for_user_qs(user: User) -> query.QuerySet:
     course_qs = Course.objects.all()
     if user.is_superuser:
         # do not filter queryset
@@ -2926,10 +2899,9 @@ def get_pv_purgeable_courses_for_user_qs(user):
 
 
 class PurgePageViewData(StyledForm):
-    def __init__(self, user, *args, **kwargs):
-        # type: (User, *Any, **Any) -> None
+    def __init__(self, user: User, *args: Any, **kwargs: Any) -> None:
         self.helper = FormHelper()
-        super(PurgePageViewData, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         self.fields["course"] = forms.ModelChoiceField(
                 queryset=get_pv_purgeable_courses_for_user_qs(user),
