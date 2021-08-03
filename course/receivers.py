@@ -1,7 +1,3 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import division
-
 __copyright__ = "Copyright (C) 2016 Dong Zhuang, Andreas Kloeckner"
 
 __license__ = """
@@ -42,10 +38,11 @@ from typing import List, Union, Text, Optional, Tuple, Any  # noqa
 @receiver(post_save, sender=User)
 @receiver(post_save, sender=Course)
 @transaction.atomic
-def update_requested_participation_status(sender, created, instance,
-        **kwargs):
-    # type: (Any, bool, Union[Course, User], **Any) -> None
-
+def update_requested_participation_status(
+        sender: Any,
+        created: bool,
+        instance: Union[Course, User],
+        **kwargs: Any) -> None:
     if created:
         return
 
@@ -80,9 +77,8 @@ def update_requested_participation_status(sender, created, instance,
                 course, user, participation_status.active, roles)
 
 
-def may_preapprove_role(course, user):
-    # type: (Course, User) -> Tuple[bool, Optional[List[Text]]]
-
+def may_preapprove_role(
+        course: Course, user: User) -> Tuple[bool, Optional[List[str]]]:
     if not user.is_active:
         return False, None
 

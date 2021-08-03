@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 __copyright__ = "Copyright (C) 2014 Andreas Kloeckner"
 
 __license__ = """
@@ -84,8 +82,7 @@ def _filter_participation_linked_obj_for_user(queryset, user):
 
 # {{{ list filter helper
 
-def _filter_related_only(filter_arg):
-    # type: (Text) -> Tuple[Text, Any]
+def _filter_related_only(filter_arg: str) -> Tuple[str, Any]:
     return (filter_arg, admin.RelatedOnlyFieldListFilter)
 
 # }}}
@@ -153,7 +150,7 @@ class CourseAdmin(admin.ModelAdmin):
         return False
 
     def get_queryset(self, request):
-        qs = super(CourseAdmin, self).get_queryset(request)
+        qs = super().get_queryset(request)
         return _filter_courses_for_user(qs, request.user)
 
     # }}}
@@ -184,7 +181,7 @@ class EventAdmin(admin.ModelAdmin):
             )
 
     def __unicode__(self):  # pragma: no cover  # not used
-        return u"%s%s in %s" % (
+        return "{}{} in {}".format(
             self.kind,
             " (%s)" % str(self.ordinal) if self.ordinal is not None else "",
             self.course)
@@ -196,14 +193,14 @@ class EventAdmin(admin.ModelAdmin):
     # {{{ permissions
 
     def get_queryset(self, request):
-        qs = super(EventAdmin, self).get_queryset(request)
+        qs = super().get_queryset(request)
         return _filter_course_linked_obj_for_user(qs, request.user)
 
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
         if db_field.name == "course":
             kwargs["queryset"] = _filter_courses_for_user(
                     Course.objects, request.user)
-        return super(EventAdmin, self).formfield_for_foreignkey(
+        return super().formfield_for_foreignkey(
                 db_field, request, **kwargs)
 
     # }}}
@@ -222,14 +219,14 @@ class ParticipationTagAdmin(admin.ModelAdmin):
     # {{{ permissions
 
     def get_queryset(self, request):
-        qs = super(ParticipationTagAdmin, self).get_queryset(request)
+        qs = super().get_queryset(request)
         return _filter_course_linked_obj_for_user(qs, request.user)
 
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
         if db_field.name == "course":
             kwargs["queryset"] = _filter_courses_for_user(
                     Course.objects, request.user)
-        return super(ParticipationTagAdmin, self).formfield_for_foreignkey(
+        return super().formfield_for_foreignkey(
                 db_field, request, **kwargs)
 
     # }}}
@@ -253,7 +250,7 @@ class ParticipationRoleAdmin(admin.ModelAdmin):
     list_filter = (_filter_related_only("course"), "identifier")
 
     def get_queryset(self, request):
-        qs = super(ParticipationRoleAdmin, self).get_queryset(request)
+        qs = super().get_queryset(request)
         if request.user.is_superuser:
             return qs
         return _filter_course_linked_obj_for_user(qs, request.user)
@@ -273,7 +270,7 @@ class ParticipationForm(forms.ModelForm):
         exclude = ("role",)
 
     def clean(self):
-        super(ParticipationForm, self).clean()
+        super().clean()
 
         for tag in self.cleaned_data.get("tags", []):
             if tag.course != self.cleaned_data.get("course"):
@@ -367,7 +364,7 @@ class ParticipationAdmin(admin.ModelAdmin):
     # {{{ permissions
 
     def get_queryset(self, request):
-        qs = super(ParticipationAdmin, self).get_queryset(request)
+        qs = super().get_queryset(request)
         return _filter_course_linked_obj_for_user(qs, request.user)
 
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
@@ -379,7 +376,7 @@ class ParticipationAdmin(admin.ModelAdmin):
         if db_field.name == "tags":
             kwargs["queryset"] = _filter_course_linked_obj_for_user(
                     ParticipationTag.objects, request.user)
-        return super(ParticipationAdmin, self).formfield_for_foreignkey(
+        return super().formfield_for_foreignkey(
                 db_field, request, **kwargs)
 
     # }}}
@@ -405,7 +402,7 @@ class ParticipationPreapprovalAdmin(admin.ModelAdmin):
     # {{{ permissions
 
     def get_queryset(self, request):
-        qs = super(ParticipationPreapprovalAdmin, self).get_queryset(request)
+        qs = super().get_queryset(request)
         if request.user.is_superuser:
             return qs
         return _filter_course_linked_obj_for_user(qs, request.user)
@@ -420,7 +417,7 @@ class ParticipationPreapprovalAdmin(admin.ModelAdmin):
         if db_field.name == "course":
             kwargs["queryset"] = _filter_courses_for_user(
                     Course.objects, request.user)
-        return super(ParticipationPreapprovalAdmin, self).formfield_for_foreignkey(
+        return super().formfield_for_foreignkey(
                 db_field, request, **kwargs)
 
     # }}}
@@ -527,14 +524,14 @@ class FlowSessionAdmin(admin.ModelAdmin):
         return False
 
     def get_queryset(self, request):
-        qs = super(FlowSessionAdmin, self).get_queryset(request)
+        qs = super().get_queryset(request)
         return _filter_course_linked_obj_for_user(qs, request.user)
 
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
         if db_field.name == "course":
             kwargs["queryset"] = _filter_courses_for_user(
                     Course.objects, request.user)
-        return super(FlowSessionAdmin, self).formfield_for_foreignkey(
+        return super().formfield_for_foreignkey(
                 db_field, request, **kwargs)
 
     # }}}
@@ -612,7 +609,7 @@ class FlowPageVisitAdmin(admin.ModelAdmin):
                     obj.page_data.group_id,
                     obj.page_data.page_id)
         else:
-            return "%s/%s (%s)" % (
+            return "{}/{} ({})".format(
                     obj.page_data.group_id,
                     obj.page_data.page_id,
                     obj.page_data.page_ordinal)
@@ -689,7 +686,7 @@ class FlowPageVisitAdmin(admin.ModelAdmin):
         return False
 
     def get_queryset(self, request):
-        qs = super(FlowPageVisitAdmin, self).get_queryset(request)
+        qs = super().get_queryset(request)
         if request.user.is_superuser:
             return qs
         return qs.filter(
@@ -757,7 +754,7 @@ class FlowRuleExceptionAdmin(admin.ModelAdmin):
         return False
 
     def get_queryset(self, request):
-        qs = super(FlowRuleExceptionAdmin, self).get_queryset(request)
+        qs = super().get_queryset(request)
         return _filter_participation_linked_obj_for_user(qs, request.user)
 
     exclude = ("creator", "creation_time")
@@ -801,14 +798,14 @@ class GradingOpportunityAdmin(admin.ModelAdmin):
     exclude = ("creation_time",)
 
     def get_queryset(self, request):
-        qs = super(GradingOpportunityAdmin, self).get_queryset(request)
+        qs = super().get_queryset(request)
         return _filter_course_linked_obj_for_user(qs, request.user)
 
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
         if db_field.name == "course":
             kwargs["queryset"] = _filter_courses_for_user(
                     Course.objects, request.user)
-        return super(GradingOpportunityAdmin, self).formfield_for_foreignkey(
+        return super().formfield_for_foreignkey(
                 db_field, request, **kwargs)
 
     # }}}
@@ -879,7 +876,7 @@ class GradeChangeAdmin(admin.ModelAdmin):
     # {{{ permission
 
     def get_queryset(self, request):
-        qs = super(GradeChangeAdmin, self).get_queryset(request)
+        qs = super().get_queryset(request)
         return _filter_participation_linked_obj_for_user(qs, request.user)
 
     exclude = ("creator", "grade_time")
@@ -935,7 +932,7 @@ class InstantMessageAdmin(admin.ModelAdmin):
         return False
 
     def get_queryset(self, request):
-        qs = super(InstantMessageAdmin, self).get_queryset(request)
+        qs = super().get_queryset(request)
         return _filter_participation_linked_obj_for_user(qs, request.user)
 
     # }}}
@@ -972,14 +969,14 @@ class ExamAdmin(admin.ModelAdmin):
     # {{{ permissions
 
     def get_queryset(self, request):
-        qs = super(ExamAdmin, self).get_queryset(request)
+        qs = super().get_queryset(request)
         return _filter_course_linked_obj_for_user(qs, request.user)
 
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
         if db_field.name == "course":
             kwargs["queryset"] = _filter_courses_for_user(
                     Course.objects, request.user)
-        return super(ExamAdmin, self).formfield_for_foreignkey(
+        return super().formfield_for_foreignkey(
                 db_field, request, **kwargs)
 
     # }}}
@@ -1025,7 +1022,7 @@ class ExamTicketAdmin(admin.ModelAdmin):
     # {{{ permissions
 
     def get_queryset(self, request):
-        qs = super(ExamTicketAdmin, self).get_queryset(request)
+        qs = super().get_queryset(request)
         return _filter_participation_linked_obj_for_user(qs, request.user)
 
     exclude = ("creator",)

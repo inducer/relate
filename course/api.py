@@ -1,6 +1,4 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import division
+from __future__ import annotations
 
 __copyright__ = "Copyright (C) 2017 Andreas Kloeckner"
 
@@ -44,8 +42,7 @@ if TYPE_CHECKING:
 # }}}
 
 
-def flow_session_to_json(sess):
-    # type: (FlowSession) -> Any
+def flow_session_to_json(sess: FlowSession) -> Any:
     last_activity = sess.last_activity()
     return dict(
             id=sess.id,
@@ -78,9 +75,8 @@ def flow_session_to_json(sess):
 
 
 @with_course_api_auth("Token")
-def get_flow_sessions(api_ctx, course_identifier):
-    # type: (APIContext, Text) -> http.HttpResponse
-
+def get_flow_sessions(
+        api_ctx: APIContext, course_identifier: str) -> http.HttpResponse:
     if not api_ctx.has_permission(pperm.view_gradebook):
         raise PermissionDenied("token role does not have required permissions")
 
@@ -99,9 +95,8 @@ def get_flow_sessions(api_ctx, course_identifier):
 
 
 @with_course_api_auth("Token")
-def get_flow_session_content(api_ctx, course_identifier):
-    # type: (APIContext, Text) -> http.HttpResponse
-
+def get_flow_session_content(
+        api_ctx: APIContext, course_identifier: str) -> http.HttpResponse:
     if not api_ctx.has_permission(pperm.view_gradebook):
         raise PermissionDenied("token role does not have required permissions")
 
@@ -159,7 +154,7 @@ def get_flow_session_content(api_ctx, course_identifier):
                         pctx, page_data.data, visit.answer)
 
                 # norm_answer needs to be JSON-encodable
-                norm_answer = None  # type: Any
+                norm_answer: Any = None
 
                 if norm_bytes_answer_tup is not None:
                     answer_file_ext, norm_bytes_answer = norm_bytes_answer_tup

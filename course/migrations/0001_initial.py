@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-from __future__ import unicode_literals
-
 from django.db import models, migrations
 import jsonfield.fields
 import django.utils.timezone
@@ -116,7 +113,7 @@ class Migration(migrations.Migration):
         ),
         migrations.AlterUniqueTogether(
             name='flowpagevisit',
-            unique_together=set([('page_data', 'visit_time')]),
+            unique_together={('page_data', 'visit_time')},
         ),
         migrations.AddField(
             model_name='flowpagedata',
@@ -126,7 +123,7 @@ class Migration(migrations.Migration):
         ),
         migrations.AlterUniqueTogether(
             name='flowpagedata',
-            unique_together=set([('flow_session', 'ordinal')]),
+            unique_together={('flow_session', 'ordinal')},
         ),
         migrations.CreateModel(
             name='GradeChange',
@@ -171,7 +168,7 @@ class Migration(migrations.Migration):
         ),
         migrations.AlterUniqueTogether(
             name='gradingopportunity',
-            unique_together=set([('course', 'identifier')]),
+            unique_together={('course', 'identifier')},
         ),
         migrations.CreateModel(
             name='InstantFlowRequest',
@@ -240,7 +237,7 @@ class Migration(migrations.Migration):
         ),
         migrations.AlterUniqueTogether(
             name='participation',
-            unique_together=set([('user', 'course')]),
+            unique_together={('user', 'course')},
         ),
         migrations.CreateModel(
             name='TimeLabel',
@@ -258,7 +255,7 @@ class Migration(migrations.Migration):
         ),
         migrations.AlterUniqueTogether(
             name='timelabel',
-            unique_together=set([('course', 'kind', 'ordinal')]),
+            unique_together={('course', 'kind', 'ordinal')},
         ),
         migrations.CreateModel(
             name='UserStatus',

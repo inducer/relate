@@ -1,7 +1,3 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import division, unicode_literals
-
 __copyright__ = "Copyright (C) 2014 Andreas Kloeckner"
 
 __license__ = """
@@ -147,7 +143,7 @@ class User(AbstractBaseUser, PermissionsMixin):
             Returns the first_name plus the last_name, with a space in
             between.
             """
-            return "%s %s" % (
+            return "{} {}".format(
                 verbose_blank(first_name), verbose_blank(last_name))
 
         from accounts.utils import relate_user_method_settings
@@ -170,7 +166,7 @@ class User(AbstractBaseUser, PermissionsMixin):
         """
 
         def default_mask_method(user):
-            return "%s%s" % (_("User"), str(user.pk))
+            return "{}{}".format(_("User"), str(user.pk))
 
         from accounts.utils import relate_user_method_settings
         mask_method = relate_user_method_settings.custom_profile_mask_method
@@ -213,7 +209,7 @@ class User(AbstractBaseUser, PermissionsMixin):
         return _("user")
 
     def clean(self):
-        super(User, self).clean()
+        super().clean()
 
         # email can be None in Django admin when create new user
         if self.email is not None:
@@ -244,7 +240,7 @@ class User(AbstractBaseUser, PermissionsMixin):
 
         # works around https://code.djangoproject.com/ticket/4136#comment:33
         self.institutional_id = self.institutional_id or None
-        super(User, self).save(*args, **kwargs)
+        super().save(*args, **kwargs)
 
 # }}}
 

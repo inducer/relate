@@ -1,7 +1,3 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import division, print_function
-
 __copyright__ = "Copyright (C) 2014 Andreas Kloeckner"
 
 __license__ = """
@@ -149,7 +145,7 @@ class CodeForm(StyledForm):
 
     def __init__(self, read_only, interaction_mode, initial_code,
             language_mode, data=None, *args, **kwargs):
-        super(CodeForm, self).__init__(data, *args, **kwargs)
+        super().__init__(data, *args, **kwargs)
 
         from course.utils import get_codemirror_widget
         cm_widget, cm_help_text = get_codemirror_widget(
@@ -297,7 +293,7 @@ def request_run(run_req, run_timeout, image=None):
                 if ct_res is not None:
                     return ct_res
 
-            except socket.error as e:
+            except OSError as e:
                 if e.errno in [errno.ECONNRESET, errno.ECONNREFUSED]:
                     ct_res = check_timeout()
                     if ct_res is not None:
@@ -555,7 +551,7 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
     """
 
     def __init__(self, vctx, location, page_desc, language_mode):
-        super(CodeQuestion, self).__init__(vctx, location, page_desc)
+        super().__init__(vctx, location, page_desc)
 
         if vctx is not None and hasattr(page_desc, "data_files"):
             for data_file in page_desc.data_files:
@@ -594,13 +590,13 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
                     "access_rules/add_permssions/see_correctness."))
 
     def required_attrs(self):
-        return super(CodeQuestion, self).required_attrs() + (
+        return super().required_attrs() + (
                 ("prompt", "markup"),
                 ("timeout", (int, float)),
                 )
 
     def allowed_attrs(self):
-        return super(CodeQuestion, self).allowed_attrs() + (
+        return super().allowed_attrs() + (
                 ("setup_code", str),
                 ("show_setup_code", bool),
                 ("names_for_user", list),
@@ -794,7 +790,7 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
                 correctness = None
                 response_dict["result"] = "setup_error"
                 response_dict["message"] = (
-                    "%s: %s" % (type(e).__name__, str(e))
+                    "{}: {}".format(type(e).__name__, str(e))
                 )
 
         # {{{ send email if the grading code broke
@@ -975,7 +971,7 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
             try:
                 exec_host_name, dummy, dummy = socket.gethostbyaddr(
                         response.exec_host)
-            except socket.error:
+            except OSError:
                 exec_host_name = response.exec_host
 
             feedback_bits.append("".join([
@@ -1295,7 +1291,7 @@ class PythonCodeQuestion(CodeQuestion):
         return ".py"
 
     def __init__(self, vctx, location, page_desc, language_mode="python"):
-        super(PythonCodeQuestion, self).__init__(vctx, location, page_desc,
+        super().__init__(vctx, location, page_desc,
         language_mode)
 
 # }}}
@@ -1351,7 +1347,7 @@ class PythonCodeQuestionWithHumanTextFeedback(
     """
 
     def __init__(self, vctx, location, page_desc):
-        super(PythonCodeQuestionWithHumanTextFeedback, self).__init__(
+        super().__init__(
                 vctx, location, page_desc)
 
         if vctx is not None:
@@ -1410,15 +1406,13 @@ class PythonCodeQuestionWithHumanTextFeedback(
                 self.page_desc.human_feedback_percentage)
 
     def required_attrs(self):
-        return super(
-                PythonCodeQuestionWithHumanTextFeedback, self).required_attrs() + (
+        return super().required_attrs() + (
                         # value is otherwise optional, but we require it here
                         ("value", (int, float)),
                         )
 
     def allowed_attrs(self):
-        return super(
-                PythonCodeQuestionWithHumanTextFeedback, self).allowed_attrs() + (
+        return super().allowed_attrs() + (
                         ("human_feedback_value", (int, float)),
                         ("human_feedback_percentage", (int, float)),
                         )

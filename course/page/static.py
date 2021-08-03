@@ -1,7 +1,3 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import division
-
 __copyright__ = "Copyright (C) 2014 Andreas Kloeckner"
 
 __license__ = """
@@ -61,7 +57,7 @@ class Page(PageBaseWithCorrectAnswer, PageBaseWithTitle):
     """
 
     def required_attrs(self):
-        return super(Page, self).required_attrs() + (
+        return super().required_attrs() + (
             ("content", "markup"),
             )
 

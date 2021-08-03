@@ -1,7 +1,3 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import unicode_literals
-
 from django.db import migrations
 
 def add_use_git_endpoint_permission(apps, schema_editor):

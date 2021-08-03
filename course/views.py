@@ -1,6 +1,4 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import division
+from __future__ import annotations
 
 __copyright__ = "Copyright (C) 2014 Andreas Kloeckner"
 
@@ -101,8 +99,7 @@ NONE_SESSION_TAG = string_concat("<<<", _("NONE"), ">>>")  # noqa
 
 # {{{ home
 
-def home(request):
-    # type: (http.HttpRequest) -> http.HttpResponse
+def home(request: http.HttpRequest) -> http.HttpResponse:
     now_datetime = get_now_or_fake_time(request)
 
     current_courses = []
@@ -145,8 +142,8 @@ def home(request):
 
 # {{{ pages
 
-def check_course_state(course, participation):
-    # type: (Course, Optional[Participation]) -> None
+def check_course_state(
+        course: Course, participation: Participation | None) -> None:
     """
     Check to see if the course is hidden.
 
@@ -160,8 +157,7 @@ def check_course_state(course, participation):
 
 
 @course_view
-def course_page(pctx):
-    # type: (CoursePageContext) -> http.HttpResponse
+def course_page(pctx: CoursePageContext) -> http.HttpResponse:
     from course.content import get_processed_page_chunks, get_course_desc
     page_desc = get_course_desc(pctx.repo, pctx.course, pctx.course_commit_sha)
 
@@ -218,8 +214,7 @@ def course_page(pctx):
 
 
 @course_view
-def static_page(pctx, page_path):
-    # type: (CoursePageContext, Text) -> http.HttpResponse
+def static_page(pctx: CoursePageContext, page_path: str) -> http.HttpResponse:
     from course.content import get_staticpage_desc, get_processed_page_chunks
     try:
         page_desc = get_staticpage_desc(pctx.repo, pctx.course,
@@ -273,8 +268,8 @@ def get_repo_file(request, course_identifier, commit_sha, path):
             request, course, participation, commit_sha, path)
 
 
-def current_repo_file_etag_func(request, course_identifier, path):
-    # type: (http.HttpRequest, str, str) -> str
+def current_repo_file_etag_func(
+        request: http.HttpRequest, course_identifier: str, path: str) -> str:
     course = get_object_or_404(Course, identifier=course_identifier)
     participation = get_participation_for_request(request, course)
 
@@ -287,9 +282,9 @@ def current_repo_file_etag_func(request, course_identifier, path):
 
 
 @http_dec.condition(etag_func=current_repo_file_etag_func)
-def get_current_repo_file(request, course_identifier, path):
-    # type: (http.HttpRequest, str, str) -> http.HttpResponse
-
+def get_current_repo_file(
+        request: http.HttpRequest, course_identifier: str, path: str
+        ) -> http.HttpResponse:
     course = get_object_or_404(Course, identifier=course_identifier)
     participation = get_participation_for_request(request, course)
 
@@ -301,13 +296,13 @@ def get_current_repo_file(request, course_identifier, path):
 
 
 def get_repo_file_backend(
-        request,  # type: http.HttpRequest
-        course,  # type: Course
-        participation,  # type: Optional[Participation]
-        commit_sha,  # type: bytes
-        path,  # type: str
-        ):
-    # type: (...) -> http.HttpResponse  # noqa
+        request: http.HttpRequest,
+        course: Course,
+        participation: Participation | None,
+        commit_sha: bytes,
+        path: str,
+        ) -> http.HttpResponse:
+    # noqa
     """
     Check if a file should be accessible.  Then call for it if
     the permission is not denied.
@@ -341,8 +336,9 @@ def get_repo_file_backend(
         return get_repo_file_response(repo, path, commit_sha)
 
 
-def get_repo_file_response(repo, path, commit_sha):
-    # type: (Any, str, bytes) -> http.HttpResponse
+def get_repo_file_response(
+        repo: Any, path: str, commit_sha: bytes
+        ) -> http.HttpResponse:
 
     from course.content import get_repo_blob_data_cached
 
@@ -371,7 +367,7 @@ class FakeTimeForm(StyledForm):
             label=_("Time"))
 
     def __init__(self, *args, **kwargs):
-        super(FakeTimeForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         self.helper.add_input(
                 # Translators: "set" fake time.
@@ -381,8 +377,7 @@ class FakeTimeForm(StyledForm):
                 Submit("unset", _("Unset")))
 
 
-def get_fake_time(request):
-    # type: (http.HttpRequest) -> Optional[datetime.datetime]
+def get_fake_time(request: http.HttpRequest) -> datetime.datetime | None:
 
     if request is not None and "relate_fake_time" in request.session:
         from django.conf import settings
@@ -395,8 +390,7 @@ def get_fake_time(request):
         return None
 
 
-def get_now_or_fake_time(request):
-    # type: (http.HttpRequest) -> datetime.datetime
+def get_now_or_fake_time(request: http.HttpRequest) -> datetime.datetime:
 
     fake_time = get_fake_time(request)
     if fake_time is None:
@@ -406,8 +400,7 @@ def get_now_or_fake_time(request):
         return fake_time
 
 
-def may_set_fake_time(user):
-    # type: (Optional[User]) -> bool
+def may_set_fake_time(user: User | None) -> bool:
 
     if user is None:
         return False
@@ -466,7 +459,7 @@ def fake_time_context_processor(request):
 
 class FakeFacilityForm(StyledForm):
     def __init__(self, *args, **kwargs):
-        super(FakeFacilityForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         from course.utils import get_facilities_config
         self.fields["facilities"] = forms.MultipleChoiceField(
@@ -500,8 +493,7 @@ class FakeFacilityForm(StyledForm):
                 Submit("unset", _("Unset")))
 
 
-def may_set_pretend_facility(user):
-    # type: (Optional[User]) -> bool
+def may_set_pretend_facility(user: User | None) -> bool:
 
     if user is None:
         return False
@@ -573,7 +565,7 @@ def pretend_facilities_context_processor(request):
 
 class InstantFlowRequestForm(StyledForm):
     def __init__(self, flow_ids, *args, **kwargs):
-        super(InstantFlowRequestForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         self.fields["flow_id"] = forms.ChoiceField(
                 choices=[(fid, fid) for fid in flow_ids],
@@ -654,7 +646,7 @@ def manage_instant_flow_requests(pctx):
 
 class FlowTestForm(StyledForm):
     def __init__(self, flow_ids, *args, **kwargs):
-        super(FlowTestForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         self.fields["flow_id"] = forms.ChoiceField(
                 choices=[(fid, fid) for fid in flow_ids],
@@ -717,7 +709,7 @@ class ParticipationChoiceField(forms.ModelChoiceField):
 
 class ExceptionStage1Form(StyledForm):
     def __init__(self, course, flow_ids, *args, **kwargs):
-        super(ExceptionStage1Form, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         self.fields["participation"] = ParticipationChoiceField(
                 queryset=(Participation.objects
@@ -772,8 +764,7 @@ def grant_exception(pctx):
     })
 
 
-def strify_session_for_exception(session):
-    # type: (FlowSession) -> str
+def strify_session_for_exception(session: FlowSession) -> str:
 
     from relate.utils import as_local_time, format_datetime_local
     # Translators: %s is the string of the start time of a session.
@@ -787,11 +778,13 @@ def strify_session_for_exception(session):
 
 
 class CreateSessionForm(StyledForm):
-    def __init__(self, session_tag_choices, default_tag, create_session_is_override,
-            *args, **kwargs):
-        # type: (List[Tuple[Text, Text]], Optional[Text], bool, *Any, **Any) -> None
-
-        super(CreateSessionForm, self).__init__(*args, **kwargs)
+    def __init__(
+            self,
+            session_tag_choices: list[tuple[str, str]],
+            default_tag: str | None,
+            create_session_is_override: bool,
+            *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
 
         self.fields["access_rules_tag_for_new_session"] = forms.ChoiceField(
                 choices=session_tag_choices,
@@ -813,10 +806,9 @@ class CreateSessionForm(StyledForm):
 
 
 class ExceptionStage2Form(StyledForm):
-    def __init__(self, sessions, *args, **kwargs):
-        # type: (List[FlowSession], *Any, **Any) -> None
-
-        super(ExceptionStage2Form, self).__init__(*args, **kwargs)
+    def __init__(
+            self, sessions: list[FlowSession], *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
 
         self.fields["session"] = forms.ChoiceField(
                 choices=(
@@ -837,8 +829,9 @@ class ExceptionStage2Form(StyledForm):
 
 
 @course_view
-def grant_exception_stage_2(pctx, participation_id, flow_id):
-    # type: (CoursePageContext, Text, Text) -> http.HttpResponse
+def grant_exception_stage_2(
+        pctx: CoursePageContext, participation_id: str, flow_id: str
+        ) -> http.HttpResponse:
 
     if not pctx.has_permission(pperm.grant_exception):
         raise PermissionDenied(_("may not grant exceptions"))
@@ -898,8 +891,7 @@ def grant_exception_stage_2(pctx, participation_id, flow_id):
 
     # }}}
 
-    def find_sessions():
-        # type: () -> List[FlowSession]
+    def find_sessions() -> list[FlowSession]:
 
         return list(FlowSession.objects
                 .filter(
@@ -974,9 +966,13 @@ def grant_exception_stage_2(pctx, participation_id, flow_id):
 
 
 class ExceptionStage3Form(StyledForm):
-    def __init__(self, default_data, flow_desc, base_session_tag, *args, **kwargs):
-        # type: (Dict, FlowDesc, str, *Any, **Any) -> None
-        super(ExceptionStage3Form, self).__init__(*args, **kwargs)
+    def __init__(
+            self,
+            default_data: dict,
+            flow_desc: FlowDesc,
+            base_session_tag: str,
+            *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
 
         rules = getattr(flow_desc, "rules", object())
         tags = getattr(rules, "tags", [])
@@ -1102,9 +1098,11 @@ class ExceptionStage3Form(StyledForm):
 
 @course_view
 @transaction.atomic
-def grant_exception_stage_3(pctx, participation_id, flow_id, session_id):
-    # type: (CoursePageContext, int, Text, int) -> http.HttpResponse
-
+def grant_exception_stage_3(
+        pctx: CoursePageContext,
+        participation_id: int,
+        flow_id: str,
+        session_id: int) -> http.HttpResponse:
     if not pctx.has_permission(pperm.grant_exception):
         raise PermissionDenied(_("may not grant exceptions"))
 
@@ -1150,9 +1148,9 @@ def grant_exception_stage_3(pctx, participation_id, flow_id, session_id):
                     pctx.course,
                     flow_id, pctx.course_commit_sha)
 
-            tags = []  # type: List[Text]
+            tags: list[str] = []
             if hasattr(flow_desc, "rules"):
-                tags = cast(List[Text], getattr(flow_desc.rules, "tags", []))
+                tags = cast(List[str], getattr(flow_desc.rules, "tags", []))
 
             exceptions_created = []
 
@@ -1345,7 +1343,7 @@ def generate_ssh_keypair(request):
     pub = key_class.from_private_key(prv_bio_read)
 
     pub_bio = io.StringIO()
-    pub_bio.write("%s %s relate-course-key" % (pub.get_name(), pub.get_base64()))
+    pub_bio.write(f"{pub.get_name()} {pub.get_base64()} relate-course-key")
 
     return render(request, "course/keypair.html", {
         "public_key": prv_bio.getvalue(),
@@ -1400,7 +1398,7 @@ def monitor_task(request, task_id):
 
 class EditCourseForm(StyledModelForm):
     def __init__(self, *args, **kwargs):
-        super(EditCourseForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.fields["identifier"].disabled = True
         self.fields["active_git_commit_sha"].disabled = True
 

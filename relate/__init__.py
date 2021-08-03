@@ -1,4 +1,3 @@
-from __future__ import absolute_import
 import os
 
 if "RELATE_COMMAND_LINE" not in os.environ:

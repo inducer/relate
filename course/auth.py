@@ -1,6 +1,4 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import division
+from __future__ import annotations
 
 __copyright__ = "Copyright (C) 2014 Andreas Kloeckner"
 
@@ -83,8 +81,7 @@ def get_pre_impersonation_user(request):
     return None
 
 
-def get_impersonable_user_qset(impersonator):
-    # type: (User) -> query.QuerySet
+def get_impersonable_user_qset(impersonator: User) -> query.QuerySet:
     if impersonator.is_superuser:
         return User.objects.exclude(pk=impersonator.pk)
 
@@ -121,7 +118,7 @@ def get_impersonable_user_qset(impersonator):
     return impersonable_user_qset
 
 
-class ImpersonateMiddleware(object):
+class ImpersonateMiddleware:
     def __init__(self, get_response):
         self.get_response = get_response
 
@@ -167,30 +164,27 @@ class UserSearchWidget(ModelSelect2Widget):
     def label_from_instance(self, u):
         if u.first_name and u.last_name:
             return (
-                (
                     "%(full_name)s (%(username)s - %(email)s)"
                     % {
                         "full_name": u.get_full_name(),
                         "email": u.email,
                         "username": u.username
-                        }))
+                        })
         else:
             # for users with "None" fullname
             return (
-                (
                     "%(username)s (%(email)s)"
                     % {
                         "email": u.email,
                         "username": u.username
-                        }))
+                        })
 
 
 class ImpersonateForm(StyledForm):
-    def __init__(self, *args, **kwargs):
-        # type:(*Any, **Any) -> None
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
 
         qset = kwargs.pop("impersonable_qset")
-        super(ImpersonateForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         self.fields["user"] = forms.ModelChoiceField(
                 queryset=qset,
@@ -213,8 +207,7 @@ class ImpersonateForm(StyledForm):
         self.helper.add_input(Submit("submit", _("Impersonate")))
 
 
-def impersonate(request):
-    # type: (http.HttpRequest) -> http.HttpResponse
+def impersonate(request: http.HttpRequest) -> http.HttpResponse:
     if not request.user.is_authenticated:
         raise PermissionDenied()
 
@@ -253,8 +246,7 @@ def impersonate(request):
         })
 
 
-def stop_impersonating(request):
-    # type: (http.HttpRequest) -> http.JsonResponse
+def stop_impersonating(request: http.HttpRequest) -> http.JsonResponse:
     if not request.is_ajax() or request.method != "POST":
         raise PermissionDenied(_("only AJAX POST is allowed"))
 
@@ -304,8 +296,7 @@ def impersonation_context_processor(request):
 # }}}
 
 
-def make_sign_in_key(user):
-    # type: (User) -> Text
+def make_sign_in_key(user: User) -> str:
     # Try to ensure these hashes aren't guessable.
     import random
     import hashlib
@@ -335,7 +326,7 @@ def logout_confirmation_required(
     return actual_decorator
 
 
-class EmailedTokenBackend(object):
+class EmailedTokenBackend:
     def authenticate(self, request, user_id=None, token=None):
         users = get_user_model().objects.filter(
                 id=user_id, sign_in_key=token)
@@ -367,7 +358,7 @@ def sign_in_choice(request, redirect_field_name=REDIRECT_FIELD_NAME):
                                    request.GET.get(redirect_field_name, ""))
     next_uri = ""
     if redirect_to:
-        next_uri = "?%s=%s" % (redirect_field_name, redirect_to)
+        next_uri = f"?{redirect_field_name}={redirect_to}"
 
     return render(request, "sign-in-choice.html", {
         "next_uri": next_uri,
@@ -393,7 +384,7 @@ class LoginForm(AuthenticationFormBase):
 
         self.helper.add_input(Submit("submit", _("Sign in")))
 
-        super(LoginForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
 
 @sensitive_post_parameters()
@@ -419,7 +410,7 @@ def sign_in_by_user_pw(request, redirect_field_name=REDIRECT_FIELD_NAME):
             # Ensure the user-originating redirection url is safe.
             if not url_has_allowed_host_and_scheme(
                     url=redirect_to,
-                    allowed_hosts=set([request.get_host()]),
+                    allowed_hosts={request.get_host()},
                     require_https=request.is_secure()):
                 redirect_to = resolve_url("relate-home")
 
@@ -434,7 +425,7 @@ def sign_in_by_user_pw(request, redirect_field_name=REDIRECT_FIELD_NAME):
 
     next_uri = ""
     if redirect_to:
-        next_uri = "?%s=%s" % (redirect_field_name, redirect_to)
+        next_uri = f"?{redirect_field_name}={redirect_to}"
 
     context = {
         "form": form,
@@ -455,7 +446,7 @@ class SignUpForm(StyledModelForm):
         fields = ("email",)
 
     def __init__(self, *args, **kwargs):
-        super(SignUpForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         self.fields["email"].required = True
 
@@ -546,7 +537,7 @@ class ResetPasswordFormByEmail(StyledForm):
                              max_length=User._meta.get_field("email").max_length)
 
     def __init__(self, *args, **kwargs):
-        super(ResetPasswordFormByEmail, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         self.helper.add_input(
                 Submit("submit", _("Send email")))
@@ -558,7 +549,7 @@ class ResetPasswordFormByInstid(StyledForm):
                               label=_("Institutional ID"))
 
     def __init__(self, *args, **kwargs):
-        super(ResetPasswordFormByInstid, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         self.helper.add_input(
                 Submit("submit", _("Send email")))
@@ -685,13 +676,13 @@ class ResetPasswordStage2Form(StyledForm):
                               label=_("Password confirmation"))
 
     def __init__(self, *args, **kwargs):
-        super(ResetPasswordStage2Form, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         self.helper.add_input(
                 Submit("submit_user", _("Update")))
 
     def clean(self):
-        cleaned_data = super(ResetPasswordStage2Form, self).clean()
+        cleaned_data = super().clean()
         password = cleaned_data.get("password")
         password_repeat = cleaned_data.get("password_repeat")
         if password and password != password_repeat:
@@ -774,7 +765,7 @@ class SignInByEmailForm(StyledForm):
             max_length=User._meta.get_field("email").max_length)
 
     def __init__(self, *args, **kwargs):
-        super(SignInByEmailForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         self.helper.add_input(
                 Submit("submit", _("Send sign-in email")))
@@ -884,8 +875,7 @@ def sign_in_stage2_with_token(request, user_id, sign_in_key):
 
 # {{{ user profile
 
-def is_inst_id_editable_before_validation():
-    # type: () -> bool
+def is_inst_id_editable_before_validation() -> bool:
     return getattr(
         settings, "RELATE_EDITABLE_INST_ID_BEFORE_VERIFICATION", True)
 
@@ -903,7 +893,7 @@ class UserForm(StyledModelForm):
 
     def __init__(self, *args, **kwargs):
         self.is_inst_id_locked = kwargs.pop("is_inst_id_locked")
-        super(UserForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         if self.instance.name_verified:
             self.fields["first_name"].disabled = True
@@ -1145,7 +1135,7 @@ def sign_out_confirmation(request, redirect_field_name=REDIRECT_FIELD_NAME):
 
     next_uri = ""
     if redirect_to:
-        next_uri = "?%s=%s" % (redirect_field_name, redirect_to)
+        next_uri = f"?{redirect_field_name}={redirect_to}"
 
     return render(request, "sign-out-confirmation.html",
                   {"next_uri": next_uri})
@@ -1187,9 +1177,10 @@ class APIError(Exception):
 
 
 def find_matching_token(
-        course_identifier=None, token_id=None, token_hash_str=None,
-        now_datetime=None):
-    # type: (Text, int, Text, datetime.datetime) -> Optional[AuthenticationToken]
+        course_identifier: str = None,
+        token_id: int = None,
+        token_hash_str: str = None,
+        now_datetime: datetime.datetime = None) -> Optional[AuthenticationToken]:
     try:
         token = AuthenticationToken.objects.get(
                 id=token_id,
@@ -1209,7 +1200,7 @@ def find_matching_token(
     return token
 
 
-class APIBearerTokenBackend(object):
+class APIBearerTokenBackend:
     def authenticate(self, request, course_identifier=None, token_id=None,
             token_hash_str=None, now_datetime=None):
         token = find_matching_token(course_identifier, token_id, token_hash_str,
@@ -1229,7 +1220,7 @@ class APIBearerTokenBackend(object):
             return None
 
 
-class APIContext(object):
+class APIContext:
     def __init__(self, request, token):
         self.request = request
 
@@ -1254,8 +1245,7 @@ class APIContext(object):
 
         self.restrict_to_role = restrict_to_role
 
-    def has_permission(self, perm, argument=None):
-        # type: (Text, Optional[Text]) -> bool
+    def has_permission(self, perm: str, argument: Optional[str] = None) -> bool:
         if self.restrict_to_role is None:
             return self.participation.has_permission(perm, argument)
         else:
@@ -1333,7 +1323,7 @@ def auth_course_with_token(method, func, request,
 
     except PermissionDenied as e:
         if method == "Basic":
-            realm = _("Relate direct git access for {}".format(course_identifier))
+            realm = _(f"Relate direct git access for {course_identifier}")
             response = http.HttpResponse("Forbidden: " + str(e),
                         content_type="text/plain")
             response["WWW-Authenticate"] = 'Basic realm="%s"' % (realm)
@@ -1354,7 +1344,7 @@ def auth_course_with_token(method, func, request,
     return response
 
 
-def with_course_api_auth(method: Text) -> Any:
+def with_course_api_auth(method: str) -> Any:
     def wrapper_with_method(func):
         def wrapper(*args, **kwargs):
             return auth_course_with_token(method, func, *args, **kwargs)
@@ -1383,19 +1373,19 @@ class AuthenticationTokenForm(StyledModelForm):
                 "valid_until": DateTimePicker(options={"format": "YYYY-MM-DD"})
                 }
 
-    def __init__(self, participation, *args, **kwargs):
-        # type: (Participation, *Any, **Any) -> None
-        super(AuthenticationTokenForm, self).__init__(*args, **kwargs)
+    def __init__(
+            self, participation: Participation, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
         self.participation = participation
 
         allowable_role_ids = (
-                set(role.id for role in participation.roles.all())
-                | set(
+                {role.id for role in participation.roles.all()}
+                | {
                         prole.id
                         for prole in ParticipationRole.objects.filter(
                             course=participation.course)
                         if participation.has_permission(
-                            pperm.impersonate_role, prole.identifier))
+                            pperm.impersonate_role, prole.identifier)}
                 )
 
         self.fields["restrict_to_participation_role"].queryset = (
@@ -1407,8 +1397,7 @@ class AuthenticationTokenForm(StyledModelForm):
 
 
 @course_view
-def manage_authentication_tokens(pctx):
-    # type: (http.HttpRequest) -> http.HttpResponse
+def manage_authentication_tokens(pctx: http.HttpRequest) -> http.HttpResponse:
 
     request = pctx.request
 

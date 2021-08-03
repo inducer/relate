@@ -3,7 +3,7 @@ from django.core.management.commands.test import Command as DjangoTestCommand
 
 class Command(DjangoTestCommand):
     def add_arguments(self, parser):
-        super(Command, self).add_arguments(parser)
+        super().add_arguments(parser)
         parser.add_argument(
             "--local_test_settings", action="store",
             dest="local_test_settings",
@@ -16,4 +16,4 @@ class Command(DjangoTestCommand):
 
     def handle(self, *test_labels, **options):
         del options["local_test_settings"]
-        super(Command, self).handle(*test_labels, **options)
+        super().handle(*test_labels, **options)

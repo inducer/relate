@@ -1,6 +1,4 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import division
+from __future__ import annotations
 
 __copyright__ = "Copyright (C) 2014 Andreas Kloeckner"
 
@@ -94,13 +92,13 @@ def view_participant_grades(pctx, participation_id=None):
     if not is_privileged_view:
         gopp_extra_filter_kwargs = {"shown_in_participant_grade_book": True}
 
-    grading_opps = list((GradingOpportunity.objects
+    grading_opps = list(GradingOpportunity.objects
             .filter(
                 course=pctx.course,
                 shown_in_grade_book=True,
                 **gopp_extra_filter_kwargs
                 )
-            .order_by("identifier")))
+            .order_by("identifier"))
 
     grade_changes = list(GradeChange.objects
             .filter(
@@ -186,11 +184,11 @@ def view_grading_opportunity_list(pctx):
     if not pctx.has_permission(pperm.view_gradebook):
         raise PermissionDenied(_("may not view grade book"))
 
-    grading_opps = list((GradingOpportunity.objects
+    grading_opps = list(GradingOpportunity.objects
             .filter(
                 course=pctx.course,
                 )
-            .order_by("identifier")))
+            .order_by("identifier"))
 
     return render_course_page(pctx, "course/gradebook-opp-list.html", {
         "grading_opps": grading_opps,
@@ -202,23 +200,24 @@ def view_grading_opportunity_list(pctx):
 # {{{ teacher grade book
 
 class GradeInfo:
-    def __init__(self, opportunity, grade_state_machine):
-        # type: (GradingOpportunity, GradeStateMachine) -> None
+    def __init__(self, opportunity: GradingOpportunity,
+            grade_state_machine: GradeStateMachine) -> None:
         self.opportunity = opportunity
         self.grade_state_machine = grade_state_machine
 
 
-def get_grade_table(course):
-    # type: (Course) -> Tuple[List[Participation], List[GradingOpportunity], List[List[GradeInfo]]]  # noqa
+def get_grade_table(course: Course) -> Tuple[
+        List[Participation], List[GradingOpportunity], List[List[GradeInfo]]]:
+    # noqa
 
     # NOTE: It's important that these queries are sorted consistently,
     # also consistently with the code below.
-    grading_opps = list((GradingOpportunity.objects
+    grading_opps = list(GradingOpportunity.objects
             .filter(
                 course=course,
                 shown_in_grade_book=True,
                 )
-            .order_by("identifier")))
+            .order_by("identifier"))
 
     participations = list(Participation.objects
             .filter(
@@ -340,15 +339,14 @@ def export_gradebook_csv(pctx):
 
 # {{{ grades by grading opportunity
 
-class OpportunitySessionGradeInfo(object):
+class OpportunitySessionGradeInfo:
     def __init__(self,
                  grade_state_machine,  # Optional[GradeStateMachine]
                  flow_session,  # Optional[FlowSession]
                  flow_id=None,  # Optional[Text]
                  grades=None,  # Optional[Any]
                  has_finished_session=False,  # bool
-                 ):
-        # type: (...) ->  None
+                 ) -> None:
         """
         :param grade_state_machine: a :class:`GradeStateMachine:` or None.
         :param flow_session: a :class:`FlowSession:` or None.
@@ -370,10 +368,10 @@ class OpportunitySessionGradeInfo(object):
 
 
 class ModifySessionsForm(StyledForm):
-    def __init__(self, session_rule_tags, *args, **kwargs):
-        # type: (List[Text], *Any, **Any) -> None
+    def __init__(self, session_rule_tags: List[str],
+            *args: Any, **kwargs: Any) -> None:
 
-        super(ModifySessionsForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         self.fields["rule_tag"] = forms.ChoiceField(
                 choices=tuple(
@@ -401,8 +399,7 @@ class ModifySessionsForm(StyledForm):
 RULE_TAG_NONE_STRING = "<<<NONE>>>"
 
 
-def mangle_session_access_rule_tag(rule_tag):
-    # type: (Optional[Text]) -> Text
+def mangle_session_access_rule_tag(rule_tag: Optional[str]) -> str:
     if rule_tag is None:
         return RULE_TAG_NONE_STRING
     else:
@@ -410,8 +407,8 @@ def mangle_session_access_rule_tag(rule_tag):
 
 
 @course_view
-def view_grades_by_opportunity(pctx, opp_id):
-    # type: (CoursePageContext, Text) -> http.HttpResponse
+def view_grades_by_opportunity(
+        pctx: CoursePageContext, opp_id: str) -> http.HttpResponse:
 
     from course.views import get_now_or_fake_time
     now_datetime = get_now_or_fake_time(pctx.request)
@@ -433,7 +430,7 @@ def view_grades_by_opportunity(pctx, opp_id):
             or pctx.has_permission(pperm.batch_recalculate_flow_session_grade)
             )
 
-    batch_session_ops_form = None  # type: Optional[ModifySessionsForm]
+    batch_session_ops_form: Optional[ModifySessionsForm] = None
     if batch_ops_allowed and opportunity.flow_id:
         cursor = connection.cursor()
         cursor.execute("select distinct access_rules_tag from course_flowsession "
@@ -542,14 +539,14 @@ def view_grades_by_opportunity(pctx, opp_id):
             .select_related("opportunity"))
 
     if opportunity.flow_id:
-        flow_sessions = list(FlowSession.objects
+        flow_sessions: Optional[List[FlowSession]] = list(FlowSession.objects
                 .filter(
                     flow_id=opportunity.flow_id,
                     )
                 .order_by(
                     "participation__id",
                     "start_time"
-                    ))  # type: Optional[List[FlowSession]]
+                    ))
     else:
         flow_sessions = None
 
@@ -561,7 +558,7 @@ def view_grades_by_opportunity(pctx, opp_id):
     finished_sessions = 0
     total_sessions = 0
 
-    grade_table = []  # type: List[Tuple[Participation, OpportunitySessionGradeInfo]]
+    grade_table: List[Tuple[Participation, OpportunitySessionGradeInfo]] = []
     for idx, participation in enumerate(participations):
         # Advance in grade change list
         while (
@@ -641,11 +638,11 @@ def view_grades_by_opportunity(pctx, opp_id):
         page_numbers = list(range(1, 1 + max_page_count))
 
         from course.flow import assemble_page_grades
-        page_grades = assemble_page_grades(all_flow_sessions)  # type: List[List[Optional[FlowPageVisitGrade]]]  # noqa
+        page_grades: List[List[Optional[FlowPageVisitGrade]]] = assemble_page_grades(all_flow_sessions)  # noqa
 
         for (_dummy2, grade_info), grade_list in zip(grade_table, page_grades):  # type: ignore  # noqa
             # Not all pages exist in all sessions
-            grades = list(enumerate(grade_list))  # type: List[Tuple[Optional[int], Optional[FlowPageVisitGrade]]]  # noqa
+            grades: List[Tuple[Optional[int], Optional[FlowPageVisitGrade]]] = list(enumerate(grade_list))  # noqa
             if len(grades) < max_page_count:
                 grades.extend([(None, None)] * (max_page_count - len(grades)))
             grade_info.grades = grades
@@ -676,10 +673,10 @@ NONE_SESSION_TAG = "<<<NONE>>>"  # noqa
 
 
 class ReopenSessionForm(StyledForm):
-    def __init__(self, flow_desc, current_tag, *args, **kwargs):
-        # type: (FlowDesc, Text, *Any, **Any) -> None
+    def __init__(self, flow_desc: FlowDesc, current_tag: str,
+            *args: Any, **kwargs: Any) -> None:
 
-        super(ReopenSessionForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         rules = getattr(flow_desc, "rules", object())
         tags = getattr(rules, "tags", [])
@@ -708,8 +705,8 @@ class ReopenSessionForm(StyledForm):
 
 @course_view
 @transaction.atomic
-def view_reopen_session(pctx, flow_session_id, opportunity_id):
-    # type: (CoursePageContext, Text, Text) -> http.HttpResponse
+def view_reopen_session(pctx: CoursePageContext, flow_session_id: str,
+        opportunity_id: str) -> http.HttpResponse:
 
     if not pctx.has_permission(pperm.reopen_flow_session):
         raise PermissionDenied(_("may not reopen session"))
@@ -781,8 +778,7 @@ def view_reopen_session(pctx, flow_session_id, opportunity_id):
 
 # {{{ view single grade
 
-def average_grade(opportunity):
-    # type: (GradingOpportunity) -> Tuple[Optional[float], int]
+def average_grade(opportunity: GradingOpportunity) -> Tuple[Optional[float], int]:
 
     grade_changes = (GradeChange.objects
             .filter(
@@ -796,10 +792,9 @@ def average_grade(opportunity):
             .select_related("opportunity"))
 
     grades = []
-    my_grade_changes = []  # type: List[GradeChange]
+    my_grade_changes: List[GradeChange] = []
 
-    def finalize():
-        # type: () -> None
+    def finalize() -> None:
 
         if not my_grade_changes:
             return
@@ -829,8 +824,9 @@ def average_grade(opportunity):
         return None, 0
 
 
-def get_single_grade_changes_and_state_machine(opportunity, participation):
-    # type: (GradingOpportunity, Participation) -> Tuple[List[GradeChange], GradeStateMachine]  # noqa
+def get_single_grade_changes_and_state_machine(opportunity: GradingOpportunity,
+        participation: Participation) -> Tuple[List[GradeChange], GradeStateMachine]:
+    # noqa
 
     grade_changes = list(
         GradeChange.objects.filter(
@@ -850,8 +846,8 @@ def get_single_grade_changes_and_state_machine(opportunity, participation):
 
 
 @course_view
-def view_single_grade(pctx, participation_id, opportunity_id):
-    # type: (CoursePageContext, Text, Text) -> http.HttpResponse
+def view_single_grade(pctx: CoursePageContext, participation_id: str,
+        opportunity_id: str) -> http.HttpResponse:
 
     now_datetime = get_now_or_fake_time(pctx.request)
 
@@ -992,7 +988,7 @@ def view_single_grade(pctx, participation_id, opportunity_id):
             flow_desc = get_flow_desc(pctx.repo, pctx.course,
                     opportunity.flow_id, pctx.course_commit_sha)
         except ObjectDoesNotExist:
-            flow_sessions_and_session_properties = None  # type: Optional[List[Tuple[Any, SessionProperties]]]  # noqa
+            flow_sessions_and_session_properties: Optional[List[Tuple[Any, SessionProperties]]] = None  # noqa
         else:
             flow_sessions_and_session_properties = []
             for session in flow_sessions:
@@ -1056,7 +1052,7 @@ def view_single_grade(pctx, participation_id, opportunity_id):
 
 class ImportGradesForm(StyledForm):
     def __init__(self, course, *args, **kwargs):
-        super(ImportGradesForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         self.fields["grading_opportunity"] = forms.ModelChoiceField(
             queryset=(GradingOpportunity.objects
@@ -1114,7 +1110,7 @@ class ImportGradesForm(StyledForm):
         self.helper.add_input(Submit("import", _("Import")))
 
     def clean(self):
-        data = super(ImportGradesForm, self).clean()
+        data = super().clean()
         attempt_id = data.get("attempt_id")
         if attempt_id:
             attempt_id = attempt_id.strip()
@@ -1157,7 +1153,7 @@ def find_participant_from_user_attr(course, attr_type, attr_str):
     exact_mode = "exact"
     if attr_type == "institutional_id":
         exact_mode = "iexact"
-    kwargs = {"user__%s__%s" % (attr_type, exact_mode): attr_str}
+    kwargs = {f"user__{attr_type}__{exact_mode}": attr_str}
 
     matches = (Participation.objects
             .filter(
@@ -1236,8 +1232,7 @@ def fix_decimal(s):
         return s
 
 
-def points_equal(num, other):
-    # type: (Optional[Decimal], Optional[Decimal]) -> bool
+def points_equal(num: Optional[Decimal], other: Optional[Decimal]) -> bool:
     if num is None and other is None:
         return True
     if ((num is None and other is not None)
@@ -1426,7 +1421,7 @@ def import_grades(pctx):
 
 class DownloadAllSubmissionsForm(StyledForm):
     def __init__(self, page_ids, session_tag_choices, *args, **kwargs):
-        super(DownloadAllSubmissionsForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         self.fields["page_id"] = forms.ChoiceField(
                 choices=tuple(
@@ -1497,7 +1492,7 @@ def download_all_submissions(pctx, flow_id):
     # }}}
 
     page_ids = [
-            "%s/%s" % (group_desc.id, page_desc.id)
+            f"{group_desc.id}/{page_desc.id}"
             for group_desc in flow_desc.groups
             for page_desc in group_desc.pages]
 
@@ -1636,9 +1631,8 @@ def download_all_submissions(pctx, flow_id):
 # {{{ edit_grading_opportunity
 
 class EditGradingOpportunityForm(StyledModelForm):
-    def __init__(self, add_new, *args, **kwargs):
-        # type: (bool, *Any, **Any) -> None
-        super(EditGradingOpportunityForm, self).__init__(*args, **kwargs)
+    def __init__(self, add_new: bool, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
 
         if not add_new:
             self.fields["identifier"].disabled = True
@@ -1665,8 +1659,8 @@ class EditGradingOpportunityForm(StyledModelForm):
 
 
 @course_view
-def edit_grading_opportunity(pctx, opportunity_id):
-    # type: (CoursePageContext, int) -> http.HttpResponse
+def edit_grading_opportunity(pctx: CoursePageContext,
+        opportunity_id: int) -> http.HttpResponse:
     if not pctx.has_permission(pperm.edit_grading_opportunity):
         raise PermissionDenied()
 

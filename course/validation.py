@@ -1,6 +1,4 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import division, print_function
+from __future__ import annotations
 
 __copyright__ = "Copyright (C) 2014 Andreas Kloeckner"
 
@@ -72,9 +70,9 @@ class ValidationError(RuntimeError):
 ID_RE = re.compile(r"^[\w]+$")
 
 
-def validate_identifier(vctx, location, s, warning_only=False):
-    # type: (ValidationContext, Text, Text, bool) -> None
-
+def validate_identifier(
+        vctx: ValidationContext, location: str, s: str, warning_only: bool = False
+        ) -> None:
     if not ID_RE.match(s):
 
         if warning_only:
@@ -94,8 +92,7 @@ def validate_identifier(vctx, location, s, warning_only=False):
             raise ValidationError(msg)
 
 
-def validate_role(vctx, location, role):
-    # type: (ValidationContext, Text, Text) -> None
+def validate_role(vctx: ValidationContext, location: str, role: str) -> None:
 
     if vctx.course is not None:
         from course.models import ParticipationRole
@@ -109,9 +106,8 @@ def validate_role(vctx, location, role):
                     % {"location": location, "role": role})
 
 
-def validate_facility(vctx, location, facility):
-    # type: (ValidationContext, Text, Text) -> None
-
+def validate_facility(
+        vctx: ValidationContext, location: str, facility: str) -> None:
     from course.utils import get_facilities_config
     facilities = get_facilities_config()
     if facilities is None:
@@ -127,15 +123,13 @@ def validate_facility(vctx, location, facility):
                 })
 
 
-def validate_participationtag(vctx, location, participationtag):
-    # type: (ValidationContext, Text, Text) -> None
-
+def validate_participationtag(
+        vctx: ValidationContext, location: str, participationtag: str) -> None:
     if vctx.course is not None:
         from pytools import memoize_in
 
         @memoize_in(vctx, "available_participation_tags")
-        def get_ptag_list(vctx):
-            # type: (ValidationContext) -> List[str]
+        def get_ptag_list(vctx: ValidationContext) -> list[str]:
             from course.models import ParticipationTag
             return list(
                 ParticipationTag.objects.filter(course=vctx.course)
@@ -155,13 +149,12 @@ def validate_participationtag(vctx, location, participationtag):
 
 
 def validate_struct(
-        vctx,  # type: ValidationContext
-        location,  # type: Text
-        obj,  # type: Any
-        required_attrs,  # type: List[Tuple[Text, Any]]
-        allowed_attrs,  # type: List[Tuple[Text, Any]]
-        ):
-    # type: (...) -> None
+        vctx: ValidationContext,
+        location: str,
+        obj: Any,
+        required_attrs: list[tuple[str, Any]],
+        allowed_attrs: list[tuple[str, Any]],
+        ) -> None:
 
     """
     :arg required_attrs: an attribute validation list (see below)
@@ -177,7 +170,7 @@ def validate_struct(
         raise ValidationError(
                 "%s: not a key-value map" % location)
 
-    present_attrs = set(name for name in dir(obj) if not name.startswith("_"))
+    present_attrs = {name for name in dir(obj) if not name.startswith("_")}
 
     for required, attr_list in [
             (True, required_attrs),
@@ -218,7 +211,7 @@ def validate_struct(
                                 "allowed": escape(str(allowed_types))})
 
                 if is_markup:
-                    validate_markup(vctx, "%s: attribute %s" % (location, attr), val)
+                    validate_markup(vctx, f"{location}: attribute {attr}", val)
 
     if present_attrs:
         raise ValidationError(
@@ -232,14 +225,13 @@ datespec_types = (datetime.date, str, datetime.datetime)
 # }}}
 
 
-class ValidationWarning(object):
-    def __init__(self, location, text):
-        # type: (Optional[Text], Text) -> None
+class ValidationWarning:
+    def __init__(self, location: str | None, text: str) -> None:
         self.location = location
         self.text = text
 
 
-class ValidationContext(object):
+class ValidationContext:
     """
     .. attribute:: repo
     .. attribute:: commit_sha
@@ -249,33 +241,30 @@ class ValidationContext(object):
         is currently available.
     """
 
-    course = None  # type: Optional[Course]
+    course: Course | None = None
 
-    def __init__(self, repo, commit_sha, course=None):
-        # type: (Repo_ish, bytes, Optional[Course]) -> None
-
+    def __init__(
+            self, repo: Repo_ish, commit_sha: bytes, course: Course | None = None
+            ) -> None:
         self.repo = repo
         self.commit_sha = commit_sha
         self.course = course
 
-        self.warnings = []  # type: List[ValidationWarning]
+        self.warnings: list[ValidationWarning] = []
 
-    def encounter_datespec(self, location, datespec):
-        # type: (Text, Text) -> None
+    def encounter_datespec(self, location: str, datespec: str) -> None:
 
         from course.content import parse_date_spec
         parse_date_spec(self.course, datespec, vctx=self, location=location)
 
-    def add_warning(self, location, text):
-        # type: (Optional[Text], Text) -> None
+    def add_warning(self, location: str | None, text: str) -> None:
         self.warnings.append(ValidationWarning(location, text))
 
 
 # {{{ markup validation
 
-def validate_markup(vctx, location, markup_str):
-    # type: (ValidationContext, Text, Text) -> None
-
+def validate_markup(
+        vctx: ValidationContext, location: str, markup_str: str) -> None:
     def reverse_func(*args, **kwargs):
         pass
 
@@ -297,10 +286,10 @@ def validate_markup(vctx, location, markup_str):
         assert tp is not None
 
         raise ValidationError(
-                "%(location)s: %(err_type)s: %(err_str)s" % {
-                    "location": location,
-                    "err_type": tp.__name__,
-                    "err_str": str(e)})
+                "{location}: {err_type}: {err_str}".format(
+                    location=location,
+                    err_type=tp.__name__,
+                    err_str=str(e)))
 
 # }}}
 
@@ -469,8 +458,8 @@ def validate_staticpage_desc(vctx, location, page_desc):
 
 # {{{ flow validation
 
-def validate_flow_page(vctx, location, page_desc):
-    # type: (ValidationContext, Text, Any) -> None
+def validate_flow_page(
+        vctx: ValidationContext, location: str, page_desc: Any) -> None:
     if not hasattr(page_desc, "id"):
         raise ValidationError(
                 string_concat(
@@ -569,8 +558,9 @@ def validate_flow_group(vctx, location, grp):
 
 # {{{ flow rules
 
-def validate_session_start_rule(vctx, location, nrule, tags):
-    # type: (ValidationContext, Text, Any, List[Text]) -> None
+def validate_session_start_rule(
+        vctx: ValidationContext, location: str, nrule: Any, tags: list[str]
+        ) -> None:
     validate_struct(
             vctx, location, nrule,
             required_attrs=[],
@@ -661,8 +651,9 @@ def validate_session_start_rule(vctx, location, nrule, tags):
                         "expiremode": nrule.default_expiration_mode})
 
 
-def validate_session_access_rule(vctx, location, arule, tags):
-    # type: (ValidationContext, Text, Any, List[Text]) -> None
+def validate_session_access_rule(
+        vctx: ValidationContext, location: str, arule: Any, tags: list[str]
+        ) -> None:
     validate_struct(
             vctx, location, arule,
             required_attrs=[
@@ -752,13 +743,12 @@ def validate_session_access_rule(vctx, location, arule, tags):
 
 
 def validate_session_grading_rule(
-        vctx,  # type: ValidationContext
-        location,  # type: Text
-        grule,  # type: Any
-        tags,  # type: List[Text]
-        grade_identifier,  # type: Optional[Text]
-        ):
-    # type: (...) -> bool
+        vctx: ValidationContext,
+        location: str,
+        grule: Any,
+        tags: list[str],
+        grade_identifier: str | None,
+        ) -> bool:
 
     """
     :returns: whether the rule only applies conditionally
@@ -994,9 +984,8 @@ def validate_flow_rules(vctx, location, rules):
     # }}}
 
 
-def validate_flow_permission(vctx, location, permission):
-    # type: (ValidationContext, Text, Text) -> None
-
+def validate_flow_permission(
+        vctx: ValidationContext, location: str, permission: str) -> None:
     from course.constants import FLOW_PERMISSION_CHOICES
     if permission == "modify":
         vctx.add_warning(location, _("Uses deprecated 'modify' permission--"
@@ -1165,7 +1154,7 @@ def validate_calendar_desc_struct(vctx, location, events_desc):
 
             validate_struct(
                     vctx,
-                    "%s, event kind '%s'" % (location, event_kind_name),
+                    f"{location}, event kind '{event_kind_name}'",
                     event_kind,
                     required_attrs=[
                         ],
@@ -1181,7 +1170,7 @@ def validate_calendar_desc_struct(vctx, location, events_desc):
 
             validate_struct(
                     vctx,
-                    "%s, event '%s'" % (location, event_name),
+                    f"{location}, event '{event_name}'",
                     event_desc,
                     required_attrs=[
                         ],
@@ -1216,14 +1205,17 @@ def get_yaml_from_repo_safely(repo, full_name, commit_sha):
         tp, e, _ = sys.exc_info()
 
         raise ValidationError(
-                "%(fullname)s: %(err_type)s: %(err_str)s" % {
-                    "fullname": full_name,
-                    "err_type": tp.__name__,
-                    "err_str": str(e)})
+                "{fullname}: {err_type}: {err_str}".format(
+                    fullname=full_name,
+                    err_type=tp.__name__,
+                    err_str=str(e)))
 
 
-def check_attributes_yml(vctx, repo, path, tree, access_kinds):
-    # type: (ValidationContext, Repo_ish, Text, Any, List[Text]) -> None
+def check_attributes_yml(
+        vctx: ValidationContext,
+        repo: Repo_ish,
+        path: str, tree: Any,
+        access_kinds: list[str]) -> None:
     """
     This function reads the .attributes.yml file and checks
     that each item for each header is a string
@@ -1295,7 +1287,7 @@ def check_attributes_yml(vctx, repo, path, tree, access_kinds):
 
     # {{{ analyze gitignore
 
-    gitignore_lines = []  # type: List[Text]
+    gitignore_lines: list[str] = []
 
     try:
         dummy, gitignore_sha = tree[b".gitignore"]
@@ -1395,8 +1387,7 @@ def check_for_page_type_changes(vctx, location, course, flow_id, flow_desc):
 # }}}
 
 
-def validate_flow_id(vctx, location, flow_id):
-    # type: (ValidationContext, Text, Text) -> None
+def validate_flow_id(vctx: ValidationContext, location: str, flow_id: str) -> None:
 
     from course.constants import FLOW_ID_REGEX
     match = re.match("^" + FLOW_ID_REGEX + "$", flow_id)
@@ -1410,9 +1401,8 @@ def validate_flow_id(vctx, location, flow_id):
             % location)
 
 
-def validate_static_page_name(vctx, location, page_name):
-    # type: (ValidationContext, Text, Text) -> None
-
+def validate_static_page_name(
+        vctx: ValidationContext, location: str, page_name: str) -> None:
     from course.constants import STATICPAGE_PATH_REGEX
     match = re.match("^" + STATICPAGE_PATH_REGEX + "$", page_name)
     if match is None:
@@ -1530,7 +1520,7 @@ def validate_course_content(repo, course_file, events_file,
 
             if (
                     flow_grade_identifier is not None
-                    and set([flow_grade_identifier]) & used_grade_identifiers):
+                    and {flow_grade_identifier} & used_grade_identifiers):
                 raise ValidationError(
                         string_concat("%s: ",
                                       _("flow uses the same grade_identifier "
@@ -1582,7 +1572,7 @@ def validate_course_content(repo, course_file, events_file,
 
 # {{{ validation script support
 
-class FileSystemFakeRepo(object):  # pragma: no cover
+class FileSystemFakeRepo:  # pragma: no cover
     def __init__(self, root):
         self.root = root
         assert isinstance(self.root, bytes)
@@ -1604,13 +1594,13 @@ class FileSystemFakeRepo(object):  # pragma: no cover
         return FileSystemFakeRepoTree(self.root)
 
 
-class FileSystemFakeRepoTreeEntry(object):  # pragma: no cover
+class FileSystemFakeRepoTreeEntry:  # pragma: no cover
     def __init__(self, path, mode):
         self.path = path
         self.mode = mode
 
 
-class FileSystemFakeRepoTree(object):  # pragma: no cover
+class FileSystemFakeRepoTree:  # pragma: no cover
     def __init__(self, root):
         self.root = root
         assert isinstance(self.root, bytes)
@@ -1643,7 +1633,7 @@ class FileSystemFakeRepoTree(object):  # pragma: no cover
                 for n in os.listdir(self.root)]
 
 
-class FileSystemFakeRepoFile(object):  # pragma: no cover
+class FileSystemFakeRepoFile:  # pragma: no cover
     def __init__(self, name):
         self.name = name
 

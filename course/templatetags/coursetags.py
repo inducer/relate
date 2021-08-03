@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 __copyright__ = "Copyright (C) 2016 Dong Zhuang, Andreas Kloeckner"
 
 __license__ = """

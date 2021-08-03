@@ -1,7 +1,3 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import division, unicode_literals
-
 __copyright__ = "Copyright (C) 2018 Dong Zhuang"
 
 __license__ = """
@@ -37,7 +33,7 @@ RELATE_EMAIL_APPELLATION_PRIORITY_LIST = (
 RELATE_USER_PROFILE_MASK_METHOD = "RELATE_USER_PROFILE_MASK_METHOD"
 
 
-class RelateUserMethodSettingsInitializer(object):
+class RelateUserMethodSettingsInitializer:
     """
     This is used to check (validate) settings.RELATE_CSV_SETTINGS (optional)
     and initialize the settings for csv export for csv-related forms.
@@ -149,7 +145,7 @@ class RelateUserMethodSettingsInitializer(object):
 
         if not isinstance(custom_email_appellation_priority_list, (list, tuple)):
             errors.append(Warning(
-                msg=("%s, %s" % (
+                msg=("{}, {}".format(
                         INSTANCE_ERROR_PATTERN
                         % {"location": RELATE_EMAIL_APPELLATION_PRIORITY_LIST,
                            "types": "list or tuple"},

@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-from __future__ import unicode_literals, print_function
-
 from django.db import models, migrations
 from relate.utils import ignore_no_such_table
 
@@ -51,7 +48,7 @@ def populate_table(apps, schema_editor, from_app, from_model, to_app, to_model):
         stop = start + BATCH_SIZE
         ops = schema_editor.connection.ops
         old_rows, old_cols = fetch_with_column_names(schema_editor,
-                                                     "SELECT * FROM {0} WHERE id >= %s AND id < %s;".format(
+                                                     "SELECT * FROM {} WHERE id >= %s AND id < %s;".format(
                                                          ops.quote_name(from_table_name)),
                                                      [start, stop])
 
@@ -60,13 +57,13 @@ def populate_table(apps, schema_editor, from_app, from_model, to_app, to_model):
         # We have to map them, and this seems to be good enough for our needs:
         base_from_model = from_model.split("_")[0]
         base_to_model = to_model.split("_")[0]
-        map_fk_col = lambda c: "{0}_id".format(base_to_model).lower() if c == "{0}_id".format(base_from_model).lower() else c
+        map_fk_col = lambda c: f"{base_to_model}_id".lower() if c == f"{base_from_model}_id".lower() else c
         new_cols = list(map(map_fk_col, old_cols))
 
         for row in old_rows:
             values_sql = ", ".join(["%s"] * len(new_cols))
             columns_sql = ", ".join(ops.quote_name(col_name) for col_name in new_cols)
-            sql = "INSERT INTO {0} ({1}) VALUES ({2});".format(ops.quote_name(to_table_name),
+            sql = "INSERT INTO {} ({}) VALUES ({});".format(ops.quote_name(to_table_name),
                                                                columns_sql,
                                                                values_sql)
 
@@ -79,7 +76,7 @@ def populate_table(apps, schema_editor, from_app, from_model, to_app, to_model):
 def empty_table(apps, schema_editor, from_app, from_model):
     from_table_name = make_table_name(apps, from_app, from_model)
     ops = schema_editor.connection.ops
-    schema_editor.execute("DELETE FROM {0};".format(ops.quote_name(from_table_name)))
+    schema_editor.execute("DELETE FROM {};".format(ops.quote_name(from_table_name)))
 
 
 def make_table_name(apps, app, model):
@@ -89,7 +86,7 @@ def make_table_name(apps, app, model):
             return m._meta.db_table
     except LookupError:
         pass  # for M2M fields
-    return "{0}_{1}".format(app, model).lower()
+    return f"{app}_{model}".lower()
 
 
 def fetch_with_column_names(schema_editor, sql, params):
@@ -100,7 +97,7 @@ def fetch_with_column_names(schema_editor, sql, params):
 
 
 def get_max_id(schema_editor, table_name):
-    max_id = fetch_with_column_names(schema_editor, "SELECT MAX(id) FROM {0};".format(table_name), [])[0][0][0]
+    max_id = fetch_with_column_names(schema_editor, f"SELECT MAX(id) FROM {table_name};", [])[0][0][0]
     if max_id is None:
         max_id = 0
     return max_id
@@ -109,7 +106,7 @@ def get_max_id(schema_editor, table_name):
 def reset_sequence(apps, schema_editor, app, model):
     if schema_editor.connection.vendor == 'postgresql':
         table_name = make_table_name(apps, app, model)
-        sequence_name = "{0}_id_seq".format(table_name)
+        sequence_name = f"{table_name}_id_seq"
         schema_editor.execute("SELECT setval(%s, %s, false);", [sequence_name, get_max_id(schema_editor, table_name) + 1])
 
 

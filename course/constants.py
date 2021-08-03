@@ -1,7 +1,3 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import division, unicode_literals
-
 __copyright__ = "Copyright (C) 2014 Andreas Kloeckner"
 
 __license__ = """
@@ -297,8 +293,9 @@ FLOW_SESSION_EXPIRATION_MODE_CHOICES = (
         )
 
 
-def is_expiration_mode_allowed(expmode, permissions):
-    # type: (str, typing.FrozenSet[str]) -> bool
+def is_expiration_mode_allowed(
+        expmode: str, permissions: typing.FrozenSet[str]
+        ) -> bool:
     if expmode == flow_session_expiration_mode.roll_over:
         if (flow_permission.set_roll_over_expiration_mode
                 in permissions):

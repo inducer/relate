@@ -1,7 +1,3 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import absolute_import
-
 __copyright__ = "Copyright (C) 2014 Andreas Kloeckner"
 
 __license__ = """
@@ -127,7 +123,7 @@ PROTOCOL
 
 # {{{ tools
 
-class Struct(object):
+class Struct:
     def __init__(self, entries):
         for name, val in entries.items():
             self.__dict__[name] = val
@@ -158,7 +154,7 @@ def substitute_correct_code_into_test_code(test_code, correct_code):
 def package_exception(result, what):
     tp, val, tb = sys.exc_info()
     result["result"] = what
-    result["message"] = "%s: %s" % (tp.__name__, str(val))
+    result["message"] = "{}: {}".format(tp.__name__, str(val))
     result["traceback"] = "".join(
             traceback.format_exception(tp, val, tb))
 

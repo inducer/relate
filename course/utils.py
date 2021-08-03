@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from __future__ import annotations
 
 __copyright__ = "Copyright (C) 2014 Andreas Kloeckner"
@@ -81,8 +79,8 @@ import re
 CODE_CELL_DIV_ATTRS_RE = re.compile('(<div class="[^>]*code_cell[^>"]*")(>)')
 
 
-def getattr_with_fallback(aggregates, attr_name, default=None):
-    # type: (Iterable[Any], Text, Any) -> Any
+def getattr_with_fallback(
+        aggregates: Iterable[Any], attr_name: str, default: Any = None) -> Any:
     for agg in aggregates:
         result = getattr(agg, attr_name, None)
         if result is not None:
@@ -93,19 +91,18 @@ def getattr_with_fallback(aggregates, attr_name, default=None):
 
 # {{{ flow permissions
 
-class FlowSessionRuleBase(object):
+class FlowSessionRuleBase:
     pass
 
 
 class FlowSessionStartRule(FlowSessionRuleBase):
     def __init__(
             self,
-            tag_session=None,  # type: Optional[Text]
-            may_start_new_session=None,  # type: Optional[bool]
-            may_list_existing_sessions=None,  # type: Optional[bool]
-            default_expiration_mode=None,  # type: Optional[Text]
-            ):
-        # type: (...) -> None
+            tag_session: str | None = None,
+            may_start_new_session: bool | None = None,
+            may_list_existing_sessions: bool | None = None,
+            default_expiration_mode: str | None = None,
+            ) -> None:
         self.tag_session = tag_session
         self.may_start_new_session = may_start_new_session
         self.may_list_existing_sessions = may_list_existing_sessions
@@ -115,10 +112,9 @@ class FlowSessionStartRule(FlowSessionRuleBase):
 class FlowSessionAccessRule(FlowSessionRuleBase):
     def __init__(
             self,
-            permissions,  # type: FrozenSet[Text]
-            message=None,  # type: Optional[Text]
-            ):
-        # type: (...) -> None
+            permissions: frozenset[str],
+            message: str | None = None,
+            ) -> None:
         self.permissions = permissions
         self.message = message
 
@@ -131,18 +127,17 @@ class FlowSessionAccessRule(FlowSessionRuleBase):
 class FlowSessionGradingRule(FlowSessionRuleBase):
     def __init__(
             self,
-            grade_identifier: Optional[Text],
+            grade_identifier: str | None,
             grade_aggregation_strategy: str,
-            due: Optional[datetime.datetime],
+            due: datetime.datetime | None,
             generates_grade: bool,
-            description: Optional[Text] = None,
-            credit_percent: Optional[float] = None,
-            use_last_activity_as_completion_time: Optional[bool] = None,
-            max_points: Optional[float] = None,
-            max_points_enforced_cap: Optional[float] = None,
+            description: str | None = None,
+            credit_percent: float | None = None,
+            use_last_activity_as_completion_time: bool | None = None,
+            max_points: float | None = None,
+            max_points_enforced_cap: float | None = None,
             bonus_points: float = 0,
-            ):
-        # type: (...) -> None
+            ) -> None:
 
         self.grade_identifier = grade_identifier
         self.grade_aggregation_strategy = grade_aggregation_strategy
@@ -160,10 +155,10 @@ class FlowSessionGradingRule(FlowSessionRuleBase):
 def _eval_generic_conditions(
         rule: Any,
         course: Course,
-        participation: Optional[Participation],
+        participation: Participation | None,
         now_datetime: datetime.datetime,
         flow_id: str,
-        login_exam_ticket: Optional[ExamTicket],
+        login_exam_ticket: ExamTicket | None,
         ) -> bool:
 
     if hasattr(rule, "if_before"):
@@ -212,7 +207,7 @@ def _eval_generic_session_conditions(
 
 def _eval_participation_tags_conditions(
         rule: Any,
-        participation: Optional[Participation],
+        participation: Participation | None,
         ) -> bool:
 
     participation_tags_any_set = (
@@ -243,13 +238,13 @@ def _eval_participation_tags_conditions(
 
 def get_flow_rules(
         flow_desc: FlowDesc,
-        kind: Text,
-        participation: Optional[Participation],
+        kind: str,
+        participation: Participation | None,
         flow_id: str,
         now_datetime: datetime.datetime,
         consider_exceptions: bool = True,
-        default_rules_desc: List[Any] = []
-        ) -> List[Any]:
+        default_rules_desc: list[Any] = []
+        ) -> list[Any]:
 
     if (not hasattr(flow_desc, "rules")
             or not hasattr(flow_desc.rules, kind)):
@@ -280,13 +275,13 @@ def get_flow_rules(
 
 def get_session_start_rule(
         course: Course,
-        participation: Optional[Participation],
+        participation: Participation | None,
         flow_id: str,
         flow_desc: FlowDesc,
         now_datetime: datetime.datetime,
-        facilities: Optional[FrozenSet[Text]] = None,
+        facilities: frozenset[str] | None = None,
         for_rollover: bool = False,
-        login_exam_ticket: Optional[ExamTicket] = None,
+        login_exam_ticket: ExamTicket | None = None,
         ) -> FlowSessionStartRule:
 
     """Return a :class:`FlowSessionStartRule` if a new session is
@@ -297,7 +292,7 @@ def get_session_start_rule(
         facilities = frozenset()
 
     from relate.utils import dict_to_struct
-    rules: List[FlowSessionStartRuleDesc] = get_flow_rules(
+    rules: list[FlowSessionStartRuleDesc] = get_flow_rules(
             flow_desc, flow_rule_kind.start,
             participation, flow_id, now_datetime,
             default_rules_desc=[
@@ -377,15 +372,15 @@ def get_session_access_rule(
         session: FlowSession,
         flow_desc: FlowDesc,
         now_datetime: datetime.datetime,
-        facilities: Optional[FrozenSet[Text]] = None,
-        login_exam_ticket: Optional[ExamTicket] = None,
+        facilities: frozenset[str] | None = None,
+        login_exam_ticket: ExamTicket | None = None,
         ) -> FlowSessionAccessRule:
 
     if facilities is None:
         facilities = frozenset()
 
     from relate.utils import dict_to_struct
-    rules: List[FlowSessionAccessRuleDesc] = get_flow_rules(
+    rules: list[FlowSessionAccessRuleDesc] = get_flow_rules(
             flow_desc, flow_rule_kind.access,
             session.participation, session.flow_id, now_datetime,
             default_rules_desc=[
@@ -470,7 +465,7 @@ def get_session_grading_rule(
     flow_desc_rules = getattr(flow_desc, "rules", None)
 
     from relate.utils import dict_to_struct
-    rules: List[FlowSessionGradingRuleDesc] = get_flow_rules(
+    rules: list[FlowSessionGradingRuleDesc] = get_flow_rules(
             flow_desc, flow_rule_kind.grading,
             session.participation, session.flow_id, now_datetime,
             default_rules_desc=[
@@ -533,7 +528,7 @@ def get_session_grading_rule(
         max_points_enforced_cap = getattr_with_fallback(
                 (rule, flow_desc), "max_points_enforced_cap", None)
 
-        grade_aggregation_strategy = cast(Text, grade_aggregation_strategy)
+        grade_aggregation_strategy = cast(str, grade_aggregation_strategy)
 
         return FlowSessionGradingRule(
                 grade_identifier=grade_identifier,
@@ -565,14 +560,13 @@ class AnyArgumentType:  # noqa
 ANY_ARGUMENT = AnyArgumentType()
 
 
-class CoursePageContext(object):
-    def __init__(self, request, course_identifier):
-        # type: (http.HttpRequest, Text) -> None
+class CoursePageContext:
+    def __init__(self, request: http.HttpRequest, course_identifier: str) -> None:
 
         self.request = request
         self.course_identifier = course_identifier
-        self._permissions_cache = None  # type: Optional[FrozenSet[Tuple[Text, Optional[Text]]]]  # noqa
-        self._role_identifiers_cache = None  # type: Optional[List[Text]]
+        self._permissions_cache: frozenset[tuple[str, str | None]] | None = None  # noqa
+        self._role_identifiers_cache: list[str] | None = None
         self.old_language = None
 
         # using this to prevent nested using as context manager
@@ -603,8 +597,7 @@ class CoursePageContext(object):
 
         self.course_commit_sha = sha
 
-    def role_identifiers(self):
-        # type: () -> List[Text]
+    def role_identifiers(self) -> list[str]:
         if self._role_identifiers_cache is not None:
             return self._role_identifiers_cache
 
@@ -613,8 +606,7 @@ class CoursePageContext(object):
                 self.course, self.participation)
         return self._role_identifiers_cache
 
-    def permissions(self):
-        # type: () -> FrozenSet[Tuple[Text, Optional[Text]]]
+    def permissions(self) -> frozenset[tuple[str, str | None]]:
         if self.participation is None:
             if self._permissions_cache is not None:
                 return self._permissions_cache
@@ -628,16 +620,16 @@ class CoursePageContext(object):
         else:
             return self.participation.permissions()
 
-    def has_permission(self, perm, argument=None):
-        # type: (Text, Union[Text, AnyArgumentType, None]) -> bool
+    def has_permission(
+            self, perm: str, argument: str | AnyArgumentType | None = None
+            ) -> bool:
         if argument is ANY_ARGUMENT:
             return any(perm == p
                     for p, arg in self.permissions())
         else:
             return (perm, argument) in self.permissions()
 
-    def _set_course_lang(self, action):
-        # type: (Text) -> None
+    def _set_course_lang(self, action: str) -> None:
         if self.course.force_lang and self.course.force_lang.strip():
             if action == "activate":
                 self.old_language = translation.get_language()
@@ -665,10 +657,13 @@ class CoursePageContext(object):
         self.repo.close()
 
 
-class FlowContext(object):
-    def __init__(self, repo, course, flow_id, participation=None):
-        # type: (Repo_ish, Course, Text, Optional[Participation]) -> None
-
+class FlowContext:
+    def __init__(
+            self,
+            repo: Repo_ish,
+            course: Course,
+            flow_id: str,
+            participation: Participation | None = None) -> None:
         """*participation* and *flow_session* are not stored and only used
         to figure out versioning of the flow content.
         """
@@ -703,16 +698,15 @@ class FlowPageContext(FlowContext):
 
     def __init__(
             self,
-            repo,  # type: Repo_ish
-            course,  # type: Course
-            flow_id,  # type: Text
-            page_ordinal,  # type: int
-            participation,  # type: Optional[Participation]
-            flow_session,  # type: FlowSession
-            request=None,  # type: Optional[http.HttpRequest]
-            ):
-        # type: (...) -> None
-        super(FlowPageContext, self).__init__(repo, course, flow_id, participation)
+            repo: Repo_ish,
+            course: Course,
+            flow_id: str,
+            page_ordinal: int,
+            participation: Participation | None,
+            flow_session: FlowSession,
+            request: http.HttpRequest | None = None,
+            ) -> None:
+        super().__init__(repo, course, flow_id, participation)
 
         if page_ordinal >= flow_session.page_count:
             raise PageOrdinalOutOfRange()
@@ -723,13 +717,13 @@ class FlowPageContext(FlowContext):
 
         from course.content import get_flow_page_desc
         try:
-            self.page_desc = get_flow_page_desc(
+            self.page_desc: FlowPageDesc | None = get_flow_page_desc(
                     flow_session.flow_id, self.flow_desc, page_data.group_id,
-                    page_data.page_id)  # type: Optional[FlowPageDesc]
+                    page_data.page_id)
         except ObjectDoesNotExist:
             self.page_desc = None
-            self.page = None  # type: Optional[PageBase]
-            self.page_context = None  # type: Optional[PageContext]
+            self.page: PageBase | None = None
+            self.page_context: PageContext | None = None
         else:
             self.page = instantiate_flow_page_with_ctx(self, page_data)
 
@@ -762,8 +756,8 @@ class FlowPageContext(FlowContext):
         return self.page_data.page_ordinal
 
 
-def instantiate_flow_page_with_ctx(fctx, page_data):
-    # type: (FlowContext, FlowPageData) -> PageBase
+def instantiate_flow_page_with_ctx(
+        fctx: FlowContext, page_data: FlowPageData) -> PageBase:
 
     from course.content import get_flow_page_desc
     page_desc = get_flow_page_desc(
@@ -794,13 +788,11 @@ def course_view(f):
     return wrapper
 
 
-class ParticipationPermissionWrapper(object):
-    def __init__(self, pctx):
-        # type: (CoursePageContext) -> None
+class ParticipationPermissionWrapper:
+    def __init__(self, pctx: CoursePageContext) -> None:
         self.pctx = pctx
 
-    def __getitem__(self, perm):
-        # type: (Text) -> bool
+    def __getitem__(self, perm: str) -> bool:
 
         from course.constants import participation_permission
         try:
@@ -814,9 +806,9 @@ class ParticipationPermissionWrapper(object):
         raise TypeError("ParticipationPermissionWrapper is not iterable.")
 
 
-def render_course_page(pctx, template_name, args,
-        allow_instant_flow_requests=True):
-    # type: (CoursePageContext, Text, Dict[Text, Any], bool) -> http.HttpResponse
+def render_course_page(
+        pctx: CoursePageContext, template_name: str, args: dict[str, Any],
+        allow_instant_flow_requests: bool = True) -> http.HttpResponse:
 
     args = args.copy()
 
@@ -825,13 +817,13 @@ def render_course_page(pctx, template_name, args,
 
     if allow_instant_flow_requests:
         from course.models import InstantFlowRequest
-        instant_flow_requests = list((InstantFlowRequest.objects
+        instant_flow_requests = list(InstantFlowRequest.objects
                 .filter(
                     course=pctx.course,
                     start_time__lte=now_datetime,
                     end_time__gte=now_datetime,
                     cancelled=False)
-                .order_by("start_time")))
+                .order_by("start_time"))
     else:
         instant_flow_requests = []
 
@@ -851,7 +843,7 @@ def render_course_page(pctx, template_name, args,
 
 # {{{ page cache
 
-class PageInstanceCache(object):
+class PageInstanceCache:
     """Caches instances of :class:`course.page.Page`."""
 
     def __init__(self, repo, course, flow_id):
@@ -897,17 +889,15 @@ class PageInstanceCache(object):
 # {{{ codemirror config
 
 def get_codemirror_widget(
-        language_mode,  # type: Text
-        interaction_mode,  # type: Text
-        config=None,  # type: Optional[Dict]
-        addon_css=(),  # type: Tuple
-        addon_js=(),  # type: Tuple
-        dependencies=(),  # type: Tuple
-        read_only=False,  # type: bool
-        autofocus=False,  # type: bool
-        ):
-    # type: (...) ->  Tuple[CodeMirrorTextarea,Text]
-
+        language_mode: str,
+        interaction_mode: str,
+        config: dict | None = None,
+        addon_css: tuple = (),
+        addon_js: tuple = (),
+        dependencies: tuple = (),
+        read_only: bool = False,
+        autofocus: bool = False,
+        ) -> tuple[CodeMirrorTextarea, str]:
     from codemirror import CodeMirrorTextarea, CodeMirrorJavascript  # noqa
 
     theme = "default"
@@ -1002,8 +992,9 @@ def get_codemirror_widget(
 
 # {{{ facility processing
 
-def get_facilities_config(request=None):
-    # type: (Optional[http.HttpRequest]) -> Optional[Dict[Text, Dict[Text, Any]]]
+def get_facilities_config(
+        request: http.HttpRequest | None = None
+        ) -> dict[str, dict[str, Any]] | None:
     from django.conf import settings
 
     # This is called during offline validation, where Django isn't really set up.
@@ -1025,7 +1016,7 @@ def get_facilities_config(request=None):
         return facilities
 
 
-class FacilityFindingMiddleware(object):
+class FacilityFindingMiddleware:
     def __init__(self, get_response):
         self.get_response = get_response
 
@@ -1122,8 +1113,8 @@ def csv_data_importable(file_contents, column_idx_list, header_count):
     return True, ""
 
 
-def will_use_masked_profile_for_email(recipient_email):
-    # type: (Union[None, Text, List[Text]]) -> bool
+def will_use_masked_profile_for_email(
+        recipient_email: None | str | list[str]) -> bool:
     if not recipient_email:
         return False
     if not isinstance(recipient_email, list):
@@ -1140,8 +1131,7 @@ def will_use_masked_profile_for_email(recipient_email):
     return False
 
 
-def get_course_specific_language_choices():
-    # type: () -> Tuple[Tuple[str, Any], ...]
+def get_course_specific_language_choices() -> tuple[tuple[str, Any], ...]:
 
     from django.conf import settings
     from collections import OrderedDict
@@ -1149,8 +1139,7 @@ def get_course_specific_language_choices():
     all_options = ((settings.LANGUAGE_CODE, None),) + tuple(settings.LANGUAGES)
     filtered_options_dict = OrderedDict(all_options)
 
-    def get_default_option():
-        # type: () -> Tuple[Text, Text]
+    def get_default_option() -> tuple[str, str]:
         # For the default language used, if USE_I18N is True, display
         # "Disabled". Otherwise display its lang info.
         if not settings.USE_I18N:
@@ -1161,8 +1150,8 @@ def get_course_specific_language_choices():
                                 "determined by user's browser preference)")
         return "", string_concat("%s: " % _("Default"), formatted_descr)
 
-    def get_formatted_options(lang_code, lang_descr):
-        # type: (Text, Optional[Text]) -> Tuple[Text, Text]
+    def get_formatted_options(
+            lang_code: str, lang_descr: str | None) -> tuple[str, str]:
         if lang_descr is None:
             lang_descr = OrderedDict(settings.LANGUAGES).get(lang_code)
             if lang_descr is None:
@@ -1189,8 +1178,7 @@ def get_course_specific_language_choices():
 
 
 class LanguageOverride(ContextDecorator):
-    def __init__(self, course, deactivate=False):
-        # type: (Course, bool) -> None
+    def __init__(self, course: Course, deactivate: bool = False) -> None:
         self.course = course
         self.deactivate = deactivate
 
@@ -1200,16 +1188,14 @@ class LanguageOverride(ContextDecorator):
             from django.conf import settings
             self.language = settings.RELATE_ADMIN_EMAIL_LOCALE
 
-    def __enter__(self):
-        # type: () -> None
+    def __enter__(self) -> None:
         self.old_language = translation.get_language()
         if self.language is not None:
             translation.activate(self.language)
         else:
             translation.deactivate_all()
 
-    def __exit__(self, exc_type, exc_value, traceback):
-        # type: (Any, Any, Any) -> None
+    def __exit__(self, exc_type: Any, exc_value: Any, traceback: Any) -> None:
         if self.old_language is None:
             translation.deactivate_all()
         elif self.deactivate:
@@ -1218,9 +1204,12 @@ class LanguageOverride(ContextDecorator):
             translation.activate(self.old_language)
 
 
-class RelateJinjaMacroBase(object):
-    def __init__(self, course, repo, commit_sha):
-        # type: (Optional[Course], Repo_ish, bytes) -> None
+class RelateJinjaMacroBase:
+    def __init__(
+            self,
+            course: Course | None,
+            repo: Repo_ish,
+            commit_sha: bytes) -> None:
         self.course = course
         self.repo = repo
         self.commit_sha = commit_sha
@@ -1230,8 +1219,7 @@ class RelateJinjaMacroBase(object):
         # The name of the method used in the template
         raise NotImplementedError()
 
-    def __call__(self, *args, **kwargs):
-        # type: (*Any, **Any) -> Text
+    def __call__(self, *args: Any, **kwargs: Any) -> str:
         raise NotImplementedError()
 
 
@@ -1240,9 +1228,12 @@ class RelateJinjaMacroBase(object):
 class IpynbJinjaMacro(RelateJinjaMacroBase):
     name = "render_notebook_cells"
 
-    def _render_notebook_cells(self, ipynb_path, indices=None, clear_output=False,
-                 clear_markdown=False, **kwargs):
-        # type: (Text, Optional[Any], Optional[bool], Optional[bool], **Any) -> Text
+    def _render_notebook_cells(self,
+            ipynb_path: str,
+            indices: Any | None = None,
+            clear_output: bool | None = False,
+            clear_markdown: bool | None = False,
+            **kwargs: Any) -> str:
         from course.content import get_repo_blob_data_cached
         try:
             ipynb_source = get_repo_blob_data_cached(self.repo, ipynb_path,
@@ -1261,9 +1252,9 @@ class IpynbJinjaMacro(RelateJinjaMacroBase):
     __call__ = _render_notebook_cells  # type: ignore
 
     def _render_notebook_from_source(
-            self, ipynb_source, indices=None,
-            clear_output=False, clear_markdown=False, **kwargs):
-        # type: (Text, Optional[Any], Optional[bool], Optional[bool], **Any) -> Text
+            self, ipynb_source: str, indices: Any | None = None,
+            clear_output: bool | None = False,
+            clear_markdown: bool | None = False, **kwargs: Any) -> str:
         """
         Get HTML format of ipython notebook so as to be rendered in RELATE flow
         pages.
