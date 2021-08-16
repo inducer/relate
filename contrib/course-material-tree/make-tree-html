@@ -272,7 +272,10 @@ def main():
 
     parser.add_argument("--binder-urlroot", metavar="URL",
             help="(without the trailing slash)")
-    parser.add_argument("--ipynb-main-link", choices=["static", "binder"],
+    parser.add_argument("--binder-cleared-urlroot", metavar="URL",
+            help="(without the trailing slash)")
+    parser.add_argument("--ipynb-main-link",
+            choices=["static", "binder", "binder-cleared"],
             default="static")
 
     parser.add_argument("--source-dir", metavar="DIRECTORY")
@@ -354,11 +357,22 @@ def main():
                 binder_url = args.binder_urlroot + trunk
 
                 sub_nodes.append({
-                    "text": "Run interactively (on mybinder.org)",
+                    "text": "Run interactively",
                     "link": binder_url,
                     "icon": "fa fa-keyboard-o",
                     })
                 if args.ipynb_main_link == "binder":
+                    main_link = binder_url
+
+            if args.binder_cleared_urlroot:
+                binder_url = args.binder_cleared_urlroot + trunk
+
+                sub_nodes.append({
+                    "text": "Run interactively with cleared input",
+                    "link": binder_url,
+                    "icon": "fa fa-keyboard-o",
+                    })
+                if args.ipynb_main_link == "binder-cleared":
                     main_link = binder_url
 
             if args.ipynb_as_py:
