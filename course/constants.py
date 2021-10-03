@@ -371,13 +371,18 @@ class flow_permission:  # noqa
 
     .. attribute:: lock_down_as_exam_session
 
-        (Optional) Once any page of the flow has been viewed, access to all content
+        Once any page of the flow has been viewed, access to all content
         except for this session on this RELATE instance will be denied.
 
     .. attribute:: send_email_about_flow_page
 
-        (Optional) If present, the participant can send interaction emails to
-        course staffs for questions for each page with that permission.
+        If present, the participant can send interaction emails to
+        course staff for questions for each page with that permission.
+
+    .. attribute:: hide_point_count
+
+        If present, the point count for the page will not be shown to
+        the participant.
     """
     view = "view"
     end_session = "end_session"
@@ -391,6 +396,7 @@ class flow_permission:  # noqa
     see_session_time = "see_session_time"
     lock_down_as_exam_session = "lock_down_as_exam_session"
     send_email_about_flow_page = "send_email_about_flow_page"
+    hide_point_count = "hide_point_count"
 
 
 FLOW_PERMISSION_CHOICES = (
@@ -424,6 +430,9 @@ FLOW_PERMISSION_CHOICES = (
         (flow_permission.send_email_about_flow_page,
          pgettext_lazy("Flow permission",
                        "Send emails about the flow page to course staff")),
+        (flow_permission.hide_point_count,
+         pgettext_lazy("Flow permission",
+                       "Hide point count")),
         )
 
 # }}}
