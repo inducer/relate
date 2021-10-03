@@ -323,18 +323,20 @@
 
   {# {{{ points #}
 
-  {% if max_points %}
-    <div style="float:right" class="well">
-    {% blocktrans trimmed count counter=max_points %}
-      {{ max_points }} point
-    {% plural %}
-      {{ max_points }} points
-    {% endblocktrans %}
-    </div>
-  {% elif is_optional_page %}
-    <div style="float:right" class="well">
-    {% trans "Optional question" %}
-    </div>
+  {% if not hide_point_count %}
+    {% if max_points %}
+      <div style="float:right" class="well">
+      {% blocktrans trimmed count counter=max_points %}
+        {{ max_points }} point
+      {% plural %}
+        {{ max_points }} points
+      {% endblocktrans %}
+      </div>
+    {% elif is_optional_page %}
+      <div style="float:right" class="well">
+      {% trans "Optional question" %}
+      </div>
+    {% endif %}
   {% endif %}
 
   {# }}} #}
