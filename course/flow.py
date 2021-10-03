@@ -2046,6 +2046,7 @@ def view_flow_page(
         "show_answer": page_behavior.show_answer,
         "may_send_email_about_flow_page":
             may_send_email_about_flow_page(flow_session, permissions),
+        "hide_point_count": flow_permission.hide_point_count in permissions,
         "expects_answer": fpctx.page.expects_answer(),
 
         "session_minutes": session_minutes,
