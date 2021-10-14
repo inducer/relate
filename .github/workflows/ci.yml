@@ -22,9 +22,9 @@ jobs:
         with:
           python-version: '3.x'
       - name: Install Poetry
-        uses: snok/install-poetry@v1.1.1
+        uses: snok/install-poetry@v1.2.1
         with:
-          version: "1.1.0"
+          version: "1.1.11"
           virtualenvs-create: true
 
       #- name: Cache python dependencies
@@ -78,7 +78,7 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install Poetry
-        uses: snok/install-poetry@v1.1.1
+        uses: snok/install-poetry@v1.2.1
         with:
           version: "1.1.0"
           virtualenvs-create: true
@@ -123,9 +123,9 @@ jobs:
         with:
           python-version: '3.x'
       - name: Install Poetry
-        uses: snok/install-poetry@v1.1.1
+        uses: snok/install-poetry@v1.2.1
         with:
-          version: "1.1.0"
+          version: "1.1.11"
           virtualenvs-create: true
       - name: Configure Poetry
         run: |
