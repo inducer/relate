@@ -1182,7 +1182,7 @@ class PageBaseWithHumanTextFeedback(PageBase):
         is desired, a subclass would likely override this.
         """
 
-        if answer_data is None:
+        if answer_data is None and grade_data is None:
             return AnswerFeedback(correctness=0,
                     feedback=gettext_noop("No answer provided."))
 
