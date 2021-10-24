@@ -1471,11 +1471,18 @@ python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*"
 
 [[package]]
 name = "sleekxmpp"
-version = "1.3.3"
+version = "1.4.0"
 description = "SleekXMPP is an elegant Python library for XMPP (aka Jabber, Google Talk, etc)."
 category = "main"
 optional = false
 python-versions = "*"
+develop = false
+
+[package.source]
+type = "git"
+url = "https://github.com/inducer/SleekXMPP.git"
+reference = "87c5b4d65f6cba4d5d7be01b26e2cdf1bd5f2299"
+resolved_reference = "87c5b4d65f6cba4d5d7be01b26e2cdf1bd5f2299"
 
 [[package]]
 name = "snowballstemmer"
@@ -1896,7 +1903,7 @@ testing = ["pytest (>=4.6)", "pytest-checkdocs (>=2.4)", "pytest-flake8", "pytes
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.7"
-content-hash = "5cc7d36cc97c5beb51bdf7a1c53ec03700963d025106f538cf1bfad21b2fdf75"
+content-hash = "9cdd640f520cc97be0ac0243eb4257a6959706a91e9882e057fbd4b0ba4a1c9f"
 
 [metadata.files]
 alabaster = [
@@ -2665,9 +2672,7 @@ six = [
     {file = "six-1.16.0-py2.py3-none-any.whl", hash = "sha256:8abb2f1d86890a2dfb989f9a77cfcfd3e47c2a354b01111771326f8aa26e0254"},
     {file = "six-1.16.0.tar.gz", hash = "sha256:1e61c37477a1626458e36f7b1d82aa5c9b094fa4802892072e49de9c60c4c926"},
 ]
-sleekxmpp = [
-    {file = "sleekxmpp-1.3.3.tar.gz", hash = "sha256:d213c1de71d92505f95ced0460ee0f84fdc4ddcacb7d7dd343739ed4028e5569"},
-]
+sleekxmpp = []
 snowballstemmer = [
     {file = "snowballstemmer-2.1.0-py2.py3-none-any.whl", hash = "sha256:b51b447bea85f9968c13b650126a888aabd4cb4463fca868ec596826325dedc2"},
     {file = "snowballstemmer-2.1.0.tar.gz", hash = "sha256:e997baa4f2e9139951b6f4c631bad912dfd3c792467e2f03d7239464af90e914"},
