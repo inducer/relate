@@ -856,7 +856,8 @@ class YamlBlockEscapingGitTemplateLoaderTest(SingleCourseTestMixin, TestCase):
             with self.pctx.repo as repo:
                 loader = content.YamlBlockEscapingGitTemplateLoader(
                     repo, self.course.active_git_commit_sha.encode())
-                result = loader.get_source(environment, "content-macros.jinja")
+                result = loader.get_source(environment,
+                                           "macros/content-macros.jinja")
                 source, _, _ = result
                 self.assertIsNotNone(source)
                 self.assertTrue(source.startswith(

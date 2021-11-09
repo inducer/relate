@@ -381,3 +381,15 @@ class ViewMarkupSandboxTest(SingleCoursePageSandboxTestBaseMixin,
             self.assertEqual(resp.status_code, 200)
             self.assertAddMessageCallCount(1)
             self.assertAddMessageCalledWith(error_msg)
+
+    def test_subdir_macro_render(self):
+        # Test https://github.com/inducer/relate/pull/556
+        # Also see https://github.com/inducer/relate/issues/767
+        markup_content = """
+{% from "macros/test/test-macro.jinja" import button %}
+{{ button("flow:exam-1") }}"""
+        resp = self.post_markup_sandbox_view(markup_content=markup_content)
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(
+            resp, "/course/%s/flow/exam-1/start" % self.course.identifier,
+            status_code=200)
