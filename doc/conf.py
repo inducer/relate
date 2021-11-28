@@ -23,7 +23,10 @@ intersphinx_mapping = {
         "https://docs.djangoproject.com/en/dev/_objects/",
     ),
     "https://docs.sympy.org/latest": None,
-    "https://www.dulwich.io/docs/": None,
+
+    # https://github.com/dulwich/dulwich/issues/913
+    # "https://www.dulwich.io/docs/": None,
+    "https://tiker.net/pub/dulwich-docs-stopgap/": None,
 }
 
 copyright = u"2014-21, Andreas Kloeckner"
