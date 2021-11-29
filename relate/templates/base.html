@@ -11,53 +11,21 @@
 
     <title>{% block title %}{{ relate_site_name }}{% endblock %}</title>
 
-    {% block head_assets %}
-      {% block head_assets_before_form_media %}
-        <link href="{% static 'bootstrap/dist/css/bootstrap.min.css' %}" rel="stylesheet">
-        <link href="{% static 'jquery-ui-dist/jquery-ui.theme.min.css' %}" rel="stylesheet">
-
-        <link rel="stylesheet" href="{% static 'font-awesome/css/font-awesome.min.css' %}">
-        <link rel="stylesheet" href="{% static 'jstree/dist/themes/default/style.min.css' %}"/>
-
-        {# Don't be tempted to move all this JS stuff down to the end. #}
-        <script src="{% static 'jquery/dist/jquery.min.js' %}"></script>
-        <script src="{% static 'jquery-ui-dist/jquery-ui.min.js' %}"></script>
-        <script src="{% static 'bootstrap/dist/js/bootstrap.min.js' %}"></script>
-        <script src="{% static 'jstree/dist/jstree.min.js' %}"></script>
-      {% endblock %}
-
-      {% block head_assets_local %}
-        <link rel="stylesheet" href="{% static 'css/style.css' %}?rev=2020.05.26">
-        <link rel="stylesheet" href="{% static "css/ipynb.style.min.css" %}?rev=2020.05.26" >
-      {% endblock %}
-
-      {% block head_assets_form_media %}
-        {{ form.media }}
-      {% endblock %}
-
-      {% block header_extra %}{% endblock %}
-
-      {% block head_assets_after_form_media %}
-        <link href="{% static 'video.js/dist/video-js.min.css' %}" rel="stylesheet">
-        <script src="{% static 'video.js/dist/video.min.js' %}"></script>
-        <script type="text/javascript">
-            videojs.options.flash.swf = "{% static 'videojs/dist/video-js/video-js.swf' %}"
-        </script>
-      {% endblock %}
-
-      {% block head_assets_extra %}{% endblock %}
+    {% block bundle_loads %}
+      <script src="{% static 'bundle-base.js' %}"></script>
+      <script type="text/javascript">
+        const rlUtils = rlBase.rlUtils;
+      </script>
     {% endblock %}
 
+    {% block head_assets_form_media %}
+      {{ form.media }}
+    {% endblock %}
+
+    {% block header_extra %}{% endblock %}
   </head>
 
   <body>
-    {% block lte_ie9_warning %}
-      <!--[if lte IE 9]>
-        <div class="browser alert alert-danger warning"><i class="fa fa-warning"></i>
-          {% trans "This website may not be compatible with your outdated Internet Explorer version. If you want use Internet Explorer, please install one with version 10 or higher." %}
-        </div>
-      <![endif]-->
-    {% endblock %}
     {% block fixed_navbar %}
       <!-- Fixed navbar -->
       <div class="navbar navbar-default" role="navigation">
@@ -106,7 +74,7 @@
                             <li role="presentation" class="divider"></li>
                             <li role="presentation" class="dropdown-header">{% trans "Test/Troubleshoot" %}</li>
                             {% if currently_impersonating %}
-                              <li><a onclick=stop_impersonate()>{% trans "Stop impersonating" %}</a></li>
+                              <li><a onclick="stopImpersonate()">{% trans "Stop impersonating" %}</a></li>
                             {% else %}
                               <li><a href="{% url 'relate-impersonate' %}" target="_blank">{% trans "Impersonate user" %}</a></li>
                             {% endif %}
@@ -165,8 +133,6 @@
         {% endblock %}
 
         {% block content %}
-          {% block cover %}{% endblock %}
-          {% block course_list %}{% endblock %}
         {% endblock %}
 
       </div>
@@ -179,12 +145,9 @@
     {% block page_bottom_javascript_extra %}{% endblock %}
 
     {% block page_bottom_javascript %}
-      <!-- JavaScript
-      ================================================== -->
-      <!-- Placed at the end of the document so the pages load faster -->
       {% if currently_impersonating and add_impersonation_header %}
         <script type="text/javascript">
-          function stop_impersonate() {
+          function stopImpersonate() {
             $("#stop-impersonate")
                 .html(
                     '<img src="{% static "images/busy.gif" %}" alt="Busy indicator">')
@@ -195,7 +158,7 @@
                       type: "POST",
                       data: {"stop_impersonating": true},
                       beforeSend: function (xhr, settings) {
-                          var csrftoken = get_cookie('csrftoken');
+                          var csrftoken = rlUtils.getCookie('relate_csrftoken');
                           xhr.setRequestHeader("X-CSRFToken", csrftoken);
                       }
                   })
@@ -206,39 +169,6 @@
         </script>
       {% endif %}
 
-      <script>
-          function get_cookie(name) {
-              var cookieValue = null;
-              if (document.cookie && document.cookie != '') {
-                  var cookies = document.cookie.split(';');
-                  for (var i = 0; i < cookies.length; i++) {
-                      var cookie = jQuery.trim(cookies[i]);
-                      // Does this cookie string begin with the name we want?
-                      if (cookie.substring(0, name.length + 1) == (name + '=')) {
-                          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                          break;
-                      }
-                  }
-              }
-              return cookieValue;
-          }
-      </script>
-
-      <script type="text/javascript"
-              src="{% static "mathjax/MathJax.js" %}?config=TeX-AMS-MML_HTMLorMML">
-      </script>
-      <script type="text/x-mathjax-config">
-          MathJax.Hub.Config({
-            extensions: ["tex2jax.js", "TeX/boldsymbol.js"],
-            messageStyle: "none",
-            // jax: ["input/TeX", "output/HTML-CSS"],
-            tex2jax: {
-              inlineMath: [ ['$','$'], ["\\(","\\)"] ],
-              displayMath: [ ['$$','$$'], ["\\[","\\]"] ],
-              processEscapes: true
-            },
-          });
-      </script>
     {% endblock %}
   </body>
 </html>

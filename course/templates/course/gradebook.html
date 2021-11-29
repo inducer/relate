@@ -1,12 +1,8 @@
-{% extends "course/course-base.html" %}
+{% extends "course/course-datatables.html" %}
 {% load i18n %}
 
 {% block title %}
   {% trans "Grade book" %} - {{ relate_site_name }}
-{% endblock %}
-
-{% block header_extra %}
-  {% include "datatables-header.html" %}
 {% endblock %}
 
 {% block content %}

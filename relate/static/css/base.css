@@ -1,0 +1,6 @@
+@import "bootstrap/dist/css/bootstrap";
+@import "font-awesome/css/font-awesome";
+@import "select2/dist/css/select2";
+@import "jquery-ui-dist/jquery-ui.theme";
+
+@import "./style";

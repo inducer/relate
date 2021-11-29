@@ -321,49 +321,6 @@ class GetCurrentLanguageJsLangNameTest(TestCase):
             self.engines["django"].from_string(
                 "{% get_current_js_lang_name AS LANG %}{{LANG}}")
 
-    def test_js_lang_fallback(self):
-        with override_settings(LANGUAGE_CODE="en-us"):
-            template = self.engines["django"].from_string(
-                "{% get_current_js_lang_name as LANG %}"
-                "{{LANG|js_lang_fallback}}")
-            text = template.render()
-            self.assertEqual(text, "en-US")
-
-        with override_settings(LANGUAGE_CODE="en-us"):
-            template = self.engines["django"].from_string(
-                "{% get_current_js_lang_name as LANG %}"
-                "{{LANG|js_lang_fallback:'fullcalendar'}}")
-            text = template.render()
-            self.assertEqual(text, "en-us")
-
-        with override_settings(LANGUAGE_CODE="zh-cn"):
-            template = self.engines["django"].from_string(
-                "{% get_current_js_lang_name as LANG %}"
-                "{{LANG|js_lang_fallback:'fullcalendar'}}")
-            text = template.render()
-            self.assertEqual(text, "zh-cn")
-
-        with override_settings(LANGUAGE_CODE="zh-cn"):
-            template = self.engines["django"].from_string(
-                "{% get_current_js_lang_name as LANG %}"
-                "{{LANG|js_lang_fallback}}")
-            text = template.render()
-            self.assertEqual(text, "zh-CN")
-
-        with override_settings(LANGUAGE_CODE="zh-hans"):
-            template = self.engines["django"].from_string(
-                "{% get_current_js_lang_name as LANG %}"
-                "{{LANG|js_lang_fallback}}")
-            text = template.render()
-            self.assertEqual(text, "zh-Hans")
-
-        with override_settings(LANGUAGE_CODE="zh-hans"):
-            template = self.engines["django"].from_string(
-                "{% get_current_js_lang_name as LANG %}"
-                "{{LANG|js_lang_fallback:'fullcalendar'}}")
-            text = template.render()
-            self.assertEqual(text, "zh-cn")
-
 
 class HasPermissionTemplateFilterTest(SingleCourseTestMixin, TestCase):
     def setUp(self):

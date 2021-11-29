@@ -23,8 +23,7 @@ use the ``relate`` comand, you need to activate the virtualenv that was created:
 Installation for Relate Development
 -----------------------------------
 
-Install `Node.js <https://nodejs.org>`__ and NPM, or `Yarn <https://yarnpkg.com>`__
-(version 1, an alternative package manager) at your option.
+Install `Node.js <https://nodejs.org>`__ and NPM.
 
 Install `poetry <https://python-poetry.org>`__ to manage dependencies and virtual
 environments::
@@ -62,13 +61,10 @@ Initialize the database::
     python manage.py migrate
     python manage.py createsuperuser --username=$(whoami)
 
-Retrieve static (JS/CSS) dependencies::
+Retrieve frontend (JS/CSS) dependencies and build::
 
     npm install
-
-or::
-
-    yarn
+    npm run build
 
 Run the server::
 
