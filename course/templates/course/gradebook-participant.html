@@ -1,14 +1,10 @@
-{% extends "course/course-base.html" %}
+{% extends "course/course-datatables.html" %}
 {% load i18n %}
 
 {% load static %}
 
 {% block title %}
   {% trans "My Grades" %} - {{ relate_site_name }}
-{% endblock %}
-
-{% block header_extra %}
-  {% include "datatables-header.html" %}
 {% endblock %}
 
 {% block content %}

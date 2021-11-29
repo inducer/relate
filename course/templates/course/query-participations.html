@@ -1,14 +1,10 @@
-{% extends "course/course-base.html" %}
+{% extends "course/course-datatables.html" %}
 {% load i18n %}
 {% load static %}
 {% load crispy_forms_tags %}
 
 {% block title %}
   {% trans "Query Participations" %} - {{ relate_site_name }}
-{% endblock %}
-
-{% block header_extra %}
-  {% include "datatables-header.html" %}
 {% endblock %}
 
 {% block content %}

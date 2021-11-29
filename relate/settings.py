@@ -91,6 +91,8 @@ if local_settings.get("RELATE_SIGN_IN_BY_SAML2_ENABLED"):
     MIDDLEWARE = MIDDLEWARE + (  # type: ignore
         "djangosaml2.middleware.SamlSessionMiddleware",)
 
+CSRF_COOKIE_NAME = "relate_csrftoken"
+
 # }}}
 
 # {{{ django: auth
@@ -243,16 +245,16 @@ LOGIN_REDIRECT_URL = "/"
 
 STATICFILES_DIRS = (
         join(BASE_DIR, "relate", "static"),
+        join(BASE_DIR, "frontend-dist"),
         )
 
 STATIC_URL = "/static/"
 
 STATIC_ROOT = join(BASE_DIR, "static")
 
-# local select2 "static" resources instead of from CDN
-# https://goo.gl/dY6xf7
-SELECT2_JS = "select2/dist/js/select2.min.js"
-SELECT2_CSS = "select2/dist/css/select2.css"
+# bundled select2 "static" resources instead of from CDN
+SELECT2_JS = ""
+SELECT2_CSS = ""
 
 # }}}
 

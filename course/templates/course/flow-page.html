@@ -1,4 +1,4 @@
-{% extends "course/course-base.html" %}
+{% extends "course/course-base-with-markup.html" %}
 {% load i18n %}
 
 {% load crispy_forms_tags %}
@@ -484,7 +484,7 @@
               expiration_mode: $("#id_expiration_mode").val()
             },
             beforeSend: function(xhr, settings) {
-              var csrftoken = get_cookie('csrftoken');
+              var csrftoken = rlUtils.getCookie('relate_csrftoken');
               xhr.setRequestHeader("X-CSRFToken", csrftoken);
             }
           })
@@ -545,7 +545,7 @@
                     bookmark_state: new_bookmarked ? "1": "0"
                   },
                   beforeSend: function(xhr, settings) {
-                    var csrftoken = get_cookie('csrftoken');
+                    var csrftoken = rlUtils.getCookie('relate_csrftoken');
                     xhr.setRequestHeader("X-CSRFToken", csrftoken);
                   }
                 })
@@ -594,7 +594,6 @@
 {% block page_bottom_javascript_extra %}
 
   {% if expects_answer %}
-    <script src="{{ STATIC_URL }}blueimp-tmpl/js/tmpl.min.js"></script>
     <script>
       function generate_past_submission_dropdown_content(){
         var jqxhr = $.ajax({

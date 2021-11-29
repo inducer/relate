@@ -1,6 +1,5 @@
-{% extends "course/course-base.html" %}
+{% extends "course/course-base-with-markup.html" %}
 {% load i18n %}
-
 {% load static %}
 
 {% block title %}
@@ -8,15 +7,9 @@
   {% trans "Calendar" %} - {{ relate_site_name }}
 {% endblock %}
 
-{%block head_assets_extra %}
-  <link rel='stylesheet' href='{% static "fullcalendar/dist/fullcalendar.css" %}' />
-  <script src='{% static "moment/moment.js" %}'></script>
-  <script src='{% static "fullcalendar/dist/fullcalendar.js" %}'></script>
-  {# load calendar with local language #}
-  {% get_current_language as LANGUAGE_CODE %}
-  {% if LANGUAGE_CODE != "en" %}
-    <script src='{% static "fullcalendar/dist/lang/" %}{{ LANGUAGE_CODE |js_lang_fallback:"fullcalendar" }}.js'></script>
-  {% endif %}
+{% block bundle_loads %}
+  {{ block.super }}
+  <script src="{% static 'bundle-fullcalendar.js' %}"></script>
 {% endblock %}
 
 {% block content %}
@@ -24,21 +17,14 @@
 
   <div id="coursecal" style="margin-top:3em"></div>
 
-
   <script type="text/javascript">
-    $(document).ready(function() {
-        $('#coursecal').fullCalendar({
-          header: {
-            left: 'prev,next today',
-            center: 'title',
-            right: 'month,agendaWeek,agendaDay'
-          },
-          defaultDate: '{{ default_date }}',
-          timezone: "local",
-
-          events: {{ events_json|safe }}
-        })
-    });
+      $(document).ready(function() {
+            rlFullCalendar.setupCalendar(
+                  document.getElementById("coursecal"),
+                  {{ events_json|safe }},
+                  '{{ default_date }}'
+                )
+          });
   </script>
 
 {% blocktrans trimmed %}

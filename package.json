@@ -1,5 +1,9 @@
 {
   "dependencies": {
+    "@fullcalendar/core": "^5.10.1",
+    "@fullcalendar/daygrid": "^5.10.1",
+    "@fullcalendar/list": "^5.10.1",
+    "@fullcalendar/timegrid": "^5.10.1",
     "blueimp-tmpl": "^3.11.0",
     "bootstrap": "^3.4.1",
     "codemirror": "^5.58.2",
@@ -10,15 +14,31 @@
     "datatables.net-fixedcolumns-bs": "^3.2.4",
     "eonasdan-bootstrap-datetimepicker": "^4.17.47",
     "font-awesome": "^4.7.0",
-    "fullcalendar": "^2.9.1",
     "jquery": "^3.5.1",
     "jquery-ui-dist": "^1.12.1",
     "jstree": "^3.3.5",
-    "mathjax": "^2.7.4",
-    "moment": "^2.10",
-    "moment-timezone": "^0.4.0",
+    "mathjax": "^3.2.0",
     "select2": "^4.0.5",
     "select2-bootstrap-theme": "^0.1.0-beta.10",
     "video.js": "^7.14.3"
+  },
+  "devDependencies": {
+    "@rollup/plugin-commonjs": "^17.1.0",
+    "@rollup/plugin-node-resolve": "^11.1.0",
+    "autoprefixer": "^10.4.0",
+    "eslint": "^8.3.0",
+    "eslint-config-airbnb-base": "^15.0.0",
+    "eslint-plugin-import": "^2.25.3",
+    "less": "^4.1.2",
+    "node-sass": "^6.0.1",
+    "npm-run-all": "^4.1.5",
+    "rollup": "^2.60.1",
+    "rollup-plugin-styles": "^3.14.1",
+    "rollup-plugin-terser": "^7.0.2",
+    "sass": "^1.43.5",
+    "serve": "^11.3.2"
+  },
+  "scripts": {
+    "build": "rollup --config"
   }
 }

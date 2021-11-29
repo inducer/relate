@@ -64,25 +64,6 @@ def do_get_current_js_lang_name(parser, token):
                 "'as variable' (got %r)" % args)
     return GetCurrentLanguageJsFmtNode(args[2])
 
-
-@register.filter(name="js_lang_fallback")
-def js_lang_fallback(lang_name, js_name=None):
-    """
-    Return the fallback lang name for js files.
-    :param a :class:`str:`
-    :param js_name: a :class:`str:`, optional.
-    :return: a :class:`str:`
-    """
-
-    # The mapping is crap, we use a special case table to fix it.
-    if js_name == "fullcalendar":
-        known_fallback_mapping = {
-            "zh-hans": "zh-cn",
-            "zh-hant": "zh-tw"}
-        return known_fallback_mapping.get(lang_name.lower(), lang_name).lower()
-
-    return lang_name
-
 # }}}
 
 

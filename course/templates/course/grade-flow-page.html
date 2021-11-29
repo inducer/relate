@@ -1,4 +1,4 @@
-{% extends "course/course-base.html" %}
+{% extends "course/course-base-with-markup.html" %}
 {% load i18n %}
 
 {% load crispy_forms_tags %}
@@ -407,7 +407,6 @@
 {% block page_bottom_javascript_extra %}
 
   {% if expects_answer %}
-    <script src="{{ STATIC_URL }}blueimp-tmpl/js/tmpl.min.js"></script>
     <script>
 
       function generate_past_submission_and_grades_dropdown_content(){
