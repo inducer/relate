@@ -7,7 +7,7 @@
     "blueimp-tmpl": "^3.11.0",
     "bootstrap": "^3.4.1",
     "codemirror": "^5.58.2",
-    "datatables-i18n": "git+https://github.com/dzhuang/datatables-i18n.git",
+    "datatables-i18n": "github:dzhuang/datatables-i18n",
     "datatables.net": "^1.11.3",
     "datatables.net-bs": "^1.10.16",
     "datatables.net-fixedcolumns": "^3.2.4",
