@@ -14,7 +14,7 @@ defaults:
 
 jobs:
   lint:
-    name: Lint and typecheck
+    name: Lint and typecheck Python
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -51,6 +51,25 @@ jobs:
             cp local_settings_example.py local_settings.py
             (cd doc; poetry run make html SPHINXOPTS="-W --keep-going -n")
 
+  frontend:
+    name: Lint JS/build frontend (Node ${{ matrix.node-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: ['12', '14', '16']
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/setup-node@v2
+      with:
+          node-version: ${{ matrix.node-version }}
+    - name: Install
+      run: npm install
+
+    - name: ESLint
+      run: npx eslint relate/static/js/*.js
+
+    - name: Rollup build
+      run: npm run build
 
   pytest:
     name: Python ${{ matrix.python-version }} - ${{ matrix.suite }}
