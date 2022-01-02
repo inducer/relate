@@ -150,6 +150,8 @@ jobs:
         run: |
           poetry config virtualenvs.in-project true
       - name: Install Dependencies
+        env:
+          SETUPTOOLS_USE_DISTUTILS: stdlib
         run: poetry install
       - name: Run test suite
         env:
