@@ -90,7 +90,7 @@ python-memcached = "^1.59"
 
 # A task queue, used to execute long-running tasks
 #
-celery = "^5.2.0"
+celery = "^5.2.2"
 kombu = "*"
 django-celery-results = "^2.0.1"
 
