@@ -51,8 +51,9 @@ pyyaml = "*"
 # Dulwich git integration
 dulwich = "^0.20.3"
 ecdsa = "^0.15"
-# FIXME: 2.7.1 gives bogus 'incorrect padding' error on PEM parsing
-paramiko = "<2.7"
+
+paramiko = "*"
+
 # A date picker widget - https://github.com/tutorcruncher/django-bootstrap3-datetimepicker
 django-bootstrap3-datetimepicker-2 = "^2.8.2"
 # For in-class instant messaging
