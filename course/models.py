@@ -139,7 +139,7 @@ class Course(models.Model):
     git_source = models.CharField(max_length=200, blank=False,
             help_text=_("A Git URL from which to pull course updates. "
             "If you're just starting out, enter "
-            "<tt>git://github.com/inducer/relate-sample</tt> "
+            "<tt>https://github.com/inducer/relate-sample.git</tt> "
             "to get some sample content."),
             verbose_name=_("git source"))
     ssh_private_key = models.TextField(blank=True,
