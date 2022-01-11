@@ -36,7 +36,7 @@ Note that this will put poetry in ``$HOME/.poetry/bin`` and modify your
 
 To install, clone the repository::
 
-    git clone git://github.com/inducer/relate
+    git clone https://github.com/inducer/relate.git
 
 Enter the relate directory::
 
