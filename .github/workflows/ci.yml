@@ -76,7 +76,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ['3.6', '3.9', '3.x']
+        python-version: ['3.7', '3.9', '3.x']
         suite: ['base', 'postgres', 'expensive']
     services:
         postgres:
