@@ -40,7 +40,7 @@ from tests.base_test_mixins import (
 from tests.utils import suppress_stdout_decorator, mock
 from tests import factories
 
-TEST_PRIVATE_KEY = """
+TEST_PRIVATE_KEY = """\
 -----BEGIN RSA PRIVATE KEY-----
 MIIEowIBAAKCAQEA7A1rTpbRpCek4tZZKa8QH14/pYzraN7hDnx3BKrqRxghP/0Q
 uc98qeQkA5T3EYjHsConAAArLzbo6PMGwM9353dFixGUHegZe3jUmszX7G2veZx5
