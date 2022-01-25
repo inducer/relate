@@ -56,11 +56,8 @@ paramiko = "*"
 
 # A date picker widget - https://github.com/tutorcruncher/django-bootstrap3-datetimepicker
 django-bootstrap3-datetimepicker-2 = "^2.8.2"
-# For in-class instant messaging
-dnspython = "^1.16.0"
 
-# FIXME: Deprecated, should switch to slixmpp or matrix
-SleekXMPP = {git = "https://github.com/inducer/SleekXMPP.git", rev = "87c5b4d65f6cba4d5d7be01b26e2cdf1bd5f2299"}
+slixmpp = "^1.7.1"
 
 # To manage web dependencies
 django-npm = "^1.0.0"

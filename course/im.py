@@ -40,11 +40,10 @@ from course.constants import (
 from course.models import Course  # noqa
 from course.utils import course_view, render_course_page
 
-import sleekxmpp
-
-import threading
+import slixmpp
 
 from typing import List, Dict  # noqa
+from asgiref.sync import async_to_sync
 
 
 # {{{ instant message
@@ -68,93 +67,67 @@ class InstantMessageForm(forms.Form):
         super().__init__(*args, **kwargs)
 
 
-_xmpp_connections: dict[int, CourseXMPP] = {}
-_disconnectors: list[Disconnector] = []
+# based on https://slixmpp.readthedocs.io/en/latest/getting_started/sendlogout.html
+class SendMsgBot(slixmpp.ClientXMPP):
+    """
+    A basic Slixmpp bot that will log in, send a message,
+    and then log out.
+    """
 
+    def __init__(self, jid, password, recipient, message):
+        slixmpp.ClientXMPP.__init__(self, jid, password)
 
-class CourseXMPP(sleekxmpp.ClientXMPP):
-    def __init__(self, jid, password, recipient_jid):
-        sleekxmpp.ClientXMPP.__init__(self, jid, password)
-        self.recipient_jid = recipient_jid
+        # The message we wish to send, and the JID that
+        # will receive it.
+        self.recipient = recipient
+        self.msg = message
 
+        # The session_start event will be triggered when
+        # the bot establishes its connection with the server
+        # and the XML streams are ready for use. We want to
+        # listen for this event so that we we can initialize
+        # our roster.
         self.add_event_handler("session_start", self.start)
-        self.add_event_handler("changed_status", self.wait_for_presences)
 
-        self.received = set()
+    async def start(self, event):
+        """
+        Process the session_start event.
 
-        self.presences_received = threading.Event()
+        Typical actions for the session_start event are
+        requesting the roster and broadcasting an initial
+        presence stanza.
 
-    def start(self, event):
+        Arguments:
+            event -- An empty dictionary. The session_start
+                     event does not provide any additional
+                     data.
+        """
         self.send_presence()
-        self.get_roster()
+        await self.get_roster()
 
-    def is_recipient_online(self):
-        groups = self.client_roster.groups()
-        for group in groups:
-            for jid in groups[group]:
-                if jid != self.recipient_jid:
-                    continue
+        self.send_message(mto=self.recipient,
+                          mbody=self.msg,
+                          mtype="chat")
 
-                connections = self.client_roster.presence(jid)
-                for res, pres in connections.items():
-                    return True
-
-        return False
-
-    def wait_for_presences(self, pres):
-        """
-        Track how many roster entries have received presence updates.
-        """
-        self.received.add(pres["from"].bare)
-        if len(self.received) >= len(self.client_roster.keys()):
-            self.presences_received.set()
-        else:
-            self.presences_received.clear()
+        self.disconnect()
 
 
-class Disconnector:
-    def __init__(self, xmpp: CourseXMPP, course: Course) -> None:
-        self.timer = None
-        self.xmpp = xmpp
-        self.course = course
+@async_to_sync
+async def _send_xmpp_msg(xmpp_id, password, recipient_xmpp_id, message):
+    xmpp = SendMsgBot(
+            xmpp_id, password, recipient_xmpp_id, message)
+    xmpp.register_plugin("xep_0030")  # Service Discovery
+    xmpp.register_plugin("xep_0199")  # XMPP Ping
 
-        self.timer = threading.Timer(60, self)  # type: ignore
-        self.timer.start()
-
-    def __call__(self) -> None:
-        # print "EXPIRING XMPP", self.course.pk
-        del _xmpp_connections[self.course.pk]
-        self.xmpp.disconnect(wait=True)
-        _disconnectors.remove(self)
-
-
-def get_xmpp_connection(course):
-    try:
-        return _xmpp_connections[course.pk]
-    except KeyError:
-        xmpp = CourseXMPP(
-                course.course_xmpp_id,
-                course.course_xmpp_password,
-                course.recipient_xmpp_id)
-        if xmpp.connect():
-            xmpp.process()
-        else:
-            raise RuntimeError(_("unable to connect"))
-
-        _xmpp_connections[course.pk] = xmpp
-
-        xmpp.presences_received.wait(5)
-        xmpp.is_recipient_online()
-
-        _disconnectors.append(Disconnector(xmpp, course))
-
-        return xmpp
+    # Connect to the XMPP server and start processing XMPP stanzas.
+    xmpp.connect()
+    await xmpp.disconnected
 
 
 @course_view
 def send_instant_message(pctx):
     if not pctx.has_permission(pperm.send_instant_message):
-        raise PermissionDenied(_("may not batch-download submissions"))
+        raise PermissionDenied(_("may not send instant message"))
 
     request = pctx.request
     course = pctx.course
@@ -164,15 +137,6 @@ def send_instant_message(pctx):
                 _("Instant messaging is not enabled for this course."))
 
         return redirect("relate-course_page", pctx.course_identifier)
-
-    xmpp = get_xmpp_connection(pctx.course)
-    if xmpp.is_recipient_online():
-        form_text = _("Recipient is <span class='label label-success'>"
-                      "Online</span>.")
-    else:
-        form_text = _("Recipient is <span class='label label-danger'>"
-                      "Offline</span>.")
-    form_text = "<div class='well'>%s</div>" % form_text
 
     if request.method == "POST":
         form = InstantMessageForm(request.POST, request.FILES)
@@ -189,11 +153,11 @@ def send_instant_message(pctx):
                 if not course.course_xmpp_password:
                     raise RuntimeError(_("no XMPP password"))
 
-                xmpp.send_message(
-                        mto=course.recipient_xmpp_id,
-                        mbody=form.cleaned_data["message"],
-                        mtype="chat")
-
+                _send_xmpp_msg(
+                    xmpp_id=course.course_xmpp_id,
+                    password=course.course_xmpp_password,
+                    recipient_xmpp_id=course.recipient_xmpp_id,
+                    message=form.cleaned_data["message"])
             except Exception:
                 from traceback import print_exc
                 print_exc()
@@ -211,7 +175,6 @@ def send_instant_message(pctx):
 
     return render_course_page(pctx, "course/generic-course-form.html", {
         "form": form,
-        "form_text": form_text,
         "form_description": _("Send instant message"),
     })
 
