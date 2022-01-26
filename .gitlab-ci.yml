@@ -59,9 +59,9 @@ mypy:
   <<: *quality
   script: poetry run mypy relate course
 
-safety:
+security-lint:
   <<: *quality
-  script: bash ./.ci/run-safety.sh
+  script: bash ./.ci/run-security-linters.sh
 
 Python 3:
   <<: *test

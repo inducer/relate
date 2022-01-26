@@ -29,6 +29,9 @@ packages = [
 relate = "relate.bin.relate:main"
 
 [tool.poetry.dependencies]
+
+# {{{ dependencies
+
 python = "^3.7"
 django = "^3.2.10,<3.3"
 # Automatically renders Django forms in a pretty, Bootstrap-compatible way.
@@ -120,7 +123,12 @@ cryptography = "^3.2.1"
 
 social-auth-app-django = "^4.0.0"
 
+# }}}
+
 [tool.poetry.dev-dependencies]
+
+# {{{ dev dependencies
+
 factory_boy = "^2.12.0"
 flake8-quotes = "^3.2.0"
 flake8 = "^3.8.3"
@@ -141,5 +149,15 @@ types-Jinja2 = "^0.1.3"
 types-paramiko = "^0.1.3"
 types-Markdown = "^0.1.2"
 types-PyYAML = "^0.1.5"
+
+semgrep = "*"
+bandit = "*"
+
+# }}}
+
+[tool.bandit]
+# tests = ["B201", "B301"]
+skips = ["B101"]
+exclude = ["course/page/code_run_backend.py"]
 
 # vim: foldmethod=marker

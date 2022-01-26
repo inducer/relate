@@ -44,8 +44,8 @@ jobs:
           poetry run flake8 --extend-ignore Q000 tests
       - name: "Mypy"
         run: poetry run mypy relate course
-      - name: "Safety"
-        run: bash ./.ci/run-safety.sh
+      - name: "Security linters"
+        run: bash ./.ci/run-security-linters.sh
       - name: "Sphinx"
         run: |
             cp local_settings_example.py local_settings.py
