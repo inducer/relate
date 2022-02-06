@@ -8,10 +8,14 @@
 # 40291: affects pip, not related to relate's safety
 # code not used
 # 41002: coverage doesn't affect Relate's security as a web app
+# 4471{5,6,7}: We're not using numpy in a user-exposed-manner.
 poetry run safety check \
         -i 38678 \
         -i 39253 \
         -i 39535 \
         -i 40291 \
         -i 41002 \
+        -i 44715 \
+        -i 44716 \
+        -i 44717 \
         --full-report
