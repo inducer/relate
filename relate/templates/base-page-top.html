@@ -63,6 +63,6 @@
   <div class="alert alert-info">
     <i class="fa fa-info-circle"></i>
     {% trans "Now impersonating" %} {{ user.get_full_name }} ({{ user.username }} - {{ user.email }}).
-    <a class="btn btn-default btn-sm" onclick=stop_impersonate() role="button" target="_blank">{% trans "Stop impersonating" %} &raquo;</a>
+    <a class="btn btn-default btn-sm" onclick=stopImpersonate() role="button" target="_blank">{% trans "Stop impersonating" %} &raquo;</a>
   </div>
 {% endif %}

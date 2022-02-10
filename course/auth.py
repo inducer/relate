@@ -70,8 +70,8 @@ if TYPE_CHECKING:
     from django.db.models import query  # noqa
     import datetime # noqa
 
-# {{{ impersonation
 
+# {{{ impersonation
 
 def get_pre_impersonation_user(request):
     is_impersonating = hasattr(
