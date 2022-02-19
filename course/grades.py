@@ -1247,16 +1247,32 @@ def csv_to_grade_changes(
         log_lines,
         course, grading_opportunity, attempt_id, file_contents,
         attr_type, attr_column, points_column, feedback_column,
-        max_points, creator, grade_time, has_header):
+        max_points, creator, grade_time, has_header,
+
+        # Row count limited to avoid out-of-memory situation.
+        # https://github.com/inducer/relate/issues/849
+        max_rows=10_000):
     result = []
 
     import csv
 
     from course.utils import get_col_contents_or_empty
 
-    total_count = 0
-    spamreader = csv.reader(file_contents)
-    for row in spamreader:
+    gchange_count = 0
+    row_count = 0
+
+    for row in csv.reader(file_contents):
+        row_count += 1
+        if row_count % 30 == 0:
+            print(row_count)
+
+        if row_count >= max_rows:
+            raise ValueError(_(
+                "Too many rows. "
+                "Aborted processing after %d rows. "
+                "Please split your file into smaller pieces.")
+                % max_rows)
+
         if has_header:
             has_header = False
             continue
@@ -1329,9 +1345,9 @@ def csv_to_grade_changes(
         else:
             result.append(gchange)
 
-        total_count += 1
+        gchange_count += 1
 
-    return total_count, result
+    return gchange_count, result
 
 
 @course_view
