@@ -27,7 +27,8 @@ from typing import cast
 from django.db import models
 from django.utils.timezone import now
 from django.urls import reverse
-from django.core.exceptions import ValidationError, ObjectDoesNotExist
+from django.core.exceptions import (
+        ValidationError, ObjectDoesNotExist)
 from django.utils.translation import (
         gettext_lazy as _, pgettext_lazy)
 from django.core.validators import RegexValidator
@@ -325,8 +326,15 @@ class Event(models.Model):
         else:
             return self.kind
 
-    def clean(self, *args, **kwargs):
+    def clean(self):
         super().clean()
+
+        try:
+            self.course
+        except ObjectDoesNotExist:
+            raise ValidationError(
+                {"course":
+                     _("Course must be given.")})
 
         if self.end_time:
             if self.end_time < self.time:
@@ -348,8 +356,6 @@ class Event(models.Model):
                         _("May not create multiple ordinal-less events "
                             "of kind '{evt_kind}' in course '{course}'")
                         .format(evt_kind=self.kind, course=self.course))
-
-        return super().clean(*args, **kwargs)
 
     def save(self, *args, **kwargs):
         self.full_clean()
