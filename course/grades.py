@@ -42,7 +42,7 @@ from django import http
 from django.urls import reverse
 from relate.utils import StyledForm, StyledModelForm, string_concat
 from crispy_forms.layout import Submit
-from bootstrap3_datetime.widgets import DateTimePicker
+from bootstrap_datepicker_plus.widgets import DateTimePickerInput
 
 from course.utils import course_view, render_course_page
 from course.models import (
@@ -1669,7 +1669,7 @@ class EditGradingOpportunityForm(StyledModelForm):
                 )
         widgets = {
                 "hide_superseded_grade_history_before":
-                DateTimePicker(
+                DateTimePickerInput(
                     options={"format": "YYYY-MM-DD HH:mm", "sideBySide": True}),
                 }
 

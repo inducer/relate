@@ -90,7 +90,7 @@ def get_prev_grades_dropdown_content(pctx, flow_session_id, page_ordinal):
     :return: serialized prev_grades items for rendering past-grades-dropdown
     """
     request = pctx.request
-    if not request.is_ajax() or request.method != "GET":
+    if request.method != "GET":
         raise PermissionDenied()
 
     if not pctx.participation:

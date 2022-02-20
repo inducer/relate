@@ -11,11 +11,6 @@
 {# keep this in sync with course/templates/course/generic-course-form.html #}
 {# keep this in sync with course/templates/course/manage-auth-tokens.html #}
 {% block head_assets_form_media %}
-  <link href="{% static 'eonasdan-bootstrap-datetimepicker/build/css/bootstrap-datetimepicker.min.css' %}" rel="stylesheet">
-
-  <script src="{% static 'moment/min/moment-with-locales.min.js' %}"></script>
-  <script src="{% static 'moment-timezone/builds/moment-timezone.min.js' %}"></script>
-  <script src="{% static 'eonasdan-bootstrap-datetimepicker/build/js/bootstrap-datetimepicker.min.js' %}"></script>
   {{ form.media }}
 {% endblock %}
 

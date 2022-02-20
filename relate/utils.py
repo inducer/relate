@@ -192,8 +192,8 @@ def as_local_time(dtm: datetime.datetime) -> datetime.datetime:
     """Takes a timezone-aware datetime and applies the server timezone."""
 
     from django.conf import settings
-    from pytz import timezone
-    tz = timezone(settings.TIME_ZONE)
+    import pytz_deprecation_shim as pds
+    tz = pds.timezone(settings.TIME_ZONE)
     return dtm.astimezone(tz)
 
 
@@ -201,16 +201,16 @@ def localize_datetime(dtm: datetime.datetime) -> datetime.datetime:
     """Takes an timezone-naive datetime and applies the server timezone."""
 
     from django.conf import settings
-    from pytz import timezone
-    tz = timezone(settings.TIME_ZONE)
+    import pytz_deprecation_shim as pds
+    tz = pds.timezone(settings.TIME_ZONE)
     return tz.localize(dtm)  # type: ignore
 
 
 def local_now() -> datetime.datetime:
 
     from django.conf import settings
-    from pytz import timezone
-    tz = timezone(settings.TIME_ZONE)
+    import pytz_deprecation_shim as pds
+    tz = pds.timezone(settings.TIME_ZONE)
     return tz.localize(datetime.datetime.now())  # type: ignore
 
 

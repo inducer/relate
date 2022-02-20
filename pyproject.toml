@@ -11,7 +11,7 @@ build-backend = "poetry.masonry.api"
 
 [tool.poetry]
 name = "relate-courseware"
-version = "2020.1"
+version = "2022.1"
 description = "RELATE courseware"
 readme = "README.rst"
 repository = "https://github.com/inducer/relate"
@@ -29,10 +29,10 @@ packages = [
 relate = "relate.bin.relate:main"
 
 [tool.poetry.dependencies]
-python = "^3.7"
-django = "^3.2.12"
+python = "^3.8"
+django = "^4.0.2"
 # Automatically renders Django forms in a pretty, Bootstrap-compatible way.
-django-crispy-forms = ">=1.5.1"
+django-crispy-forms = ">=1.13.0"
 # Page data, answer data, ... all represented in JSON. This makes that editable in the Django admin.
 jsonfield = ">=1.4.0"
 # /!\ Upstream is dead, using branch for Django 3.0 support
@@ -40,12 +40,13 @@ django-yamlfield = {git = "https://github.com/bakatrouble/django-yamlfield.git",
 # For easy content formatting:
 markdown = "^2.6.3"
 # For rendering macros in content:
-jinja2 = "^2.11.2"
+jinja2 = "^3.0.3"
 # For math/symbolic questions
 pymbolic = "*"
 sympy = "*"
-# Django timezone support
-pytz = "^2020.1"
+
+pytz_deprecation_shim = "^0.1.0"
+
 # Course content is stored in YAML.
 pyyaml = "*"
 # Dulwich git integration
@@ -54,8 +55,8 @@ ecdsa = "^0.15"
 
 paramiko = "*"
 
-# A date picker widget - https://github.com/tutorcruncher/django-bootstrap3-datetimepicker
-django-bootstrap3-datetimepicker-2 = "^2.8.2"
+# A date picker widget - https://github.com/monim67/django-bootstrap-datepicker-plus
+django-bootstrap-datepicker-plus = "^4.0.0"
 
 slixmpp = "^1.7.1"
 
@@ -118,7 +119,7 @@ colorama = "*"
 # version constraint is here because of CVE-2020-25659
 cryptography = "^3.2.1"
 
-social-auth-app-django = "^4.0.0"
+social-auth-app-django = "^5.0.0"
 
 [tool.poetry.dev-dependencies]
 factory_boy = "^2.12.0"

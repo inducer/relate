@@ -42,7 +42,7 @@ from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_protect
 
 from crispy_forms.layout import Submit
-from bootstrap3_datetime.widgets import DateTimePicker
+from bootstrap_datepicker_plus.widgets import DateTimePickerInput
 
 from course.models import (Exam, ExamTicket, Participation,
         FlowSession)
@@ -108,12 +108,12 @@ class IssueTicketForm(StyledForm):
 
         self.fields["valid_start_time"] = forms.DateTimeField(
                 label=_("Start validity"),
-                widget=DateTimePicker(
+                widget=DateTimePickerInput(
                     options={"format": "YYYY-MM-DD HH:mm", "sideBySide": True}),
                 required=False)
         self.fields["valid_end_time"] = forms.DateTimeField(
                 label=_("End validity"),
-                widget=DateTimePicker(
+                widget=DateTimePickerInput(
                     options={"format": "YYYY-MM-DD HH:mm", "sideBySide": True}),
                 required=False)
         self.fields["restrict_to_facility"] = forms.CharField(
@@ -301,12 +301,12 @@ class BatchIssueTicketsForm(StyledForm):
 
         self.fields["valid_start_time"] = forms.DateTimeField(
                 label=_("Start validity"),
-                widget=DateTimePicker(
+                widget=DateTimePickerInput(
                     options={"format": "YYYY-MM-DD HH:mm", "sideBySide": True}),
                 required=False)
         self.fields["valid_end_time"] = forms.DateTimeField(
                 label=_("End validity"),
-                widget=DateTimePicker(
+                widget=DateTimePickerInput(
                     options={"format": "YYYY-MM-DD HH:mm", "sideBySide": True}),
                 required=False)
         self.fields["restrict_to_facility"] = forms.CharField(

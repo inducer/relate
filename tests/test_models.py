@@ -27,7 +27,7 @@ THE SOFTWARE.
 from datetime import datetime, timedelta
 import pytest
 import unittest
-import pytz
+import pytz_deprecation_shim as pytz
 
 from django.conf import settings
 from django.test import TestCase, override_settings

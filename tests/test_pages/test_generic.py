@@ -369,11 +369,6 @@ class SingleCourseQuizPageTest(SingleCourseQuizPageTestMixin,
     # }}}
 
     # {{{ tests on submission history dropdown
-    def test_submit_history_failure_not_ajax(self):
-        self.post_answer_by_ordinal(1, {"answer": ["0.5"]})
-        resp = self.client.get(
-            self.get_page_submit_history_url_by_ordinal(page_ordinal=1))
-        self.assertEqual(resp.status_code, 403)
 
     def test_submit_history_failure_not_get(self):
         self.post_answer_by_ordinal(1, {"answer": ["0.5"]})

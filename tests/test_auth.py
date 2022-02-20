@@ -38,7 +38,7 @@ from django.contrib.auth.hashers import check_password
 
 from django.http import QueryDict, HttpResponse, JsonResponse
 from django.urls import NoReverseMatch, reverse
-from django.conf.urls import url
+from django.urls import re_path
 from django.core.exceptions import PermissionDenied
 
 from relate.urls import urlpatterns as base_urlpatterns, COURSE_ID_REGEX
@@ -293,10 +293,6 @@ class ImpersonateTest(SingleCoursePageTestMixin, MockAddMessageMixing, TestCase)
             resp = self.get_stop_impersonate()
             self.assertEqual(resp.status_code, 403)
 
-            # post not using ajax
-            resp = self.post_stop_impersonate(using_ajax=False)
-            self.assertEqual(resp.status_code, 403)
-
     def test_stop_impersonate_by_get_or_non_ajax_post_while_impersonating(self):
         with self.temporarily_switch_to_user(self.instructor_participation.user):
             # first impersonate a user
@@ -305,11 +301,6 @@ class ImpersonateTest(SingleCoursePageTestMixin, MockAddMessageMixing, TestCase)
 
             # request by get
             resp = self.get_stop_impersonate()
-            self.assertEqual(resp.status_code, 403)
-            self.assertIsNotNone(self.client.session.get("impersonate_id"))
-
-            # post not using ajax
-            resp = self.post_stop_impersonate(using_ajax=False)
             self.assertEqual(resp.status_code, 403)
             self.assertIsNotNone(self.client.session.get("impersonate_id"))
 
@@ -2058,22 +2049,22 @@ def api_test_func_not_allowed(api_ctx, course_identifier):
 
 
 urlpatterns = base_urlpatterns + [
-    url(r"^course"
+    re_path(r"^course"
         "/" + COURSE_ID_REGEX
         + "/api/test_token$",
         api_test_func_token,
         name="test_api_token_method"),
-    url(r"^course"
+    re_path(r"^course"
         "/" + COURSE_ID_REGEX
         + "/api/test_basic$",
         api_test_func_basic,
         name="test_api_basic_method"),
-    url(r"^course"
+    re_path(r"^course"
         "/" + COURSE_ID_REGEX
         + "/api/test_not_allowed$",
         api_test_func_not_allowed,
         name="test_api_not_allowed_method"),
-    url(r"^course"
+    re_path(r"^course"
         "/" + COURSE_ID_REGEX
         + "/api/test_api_error$",
         api_test_func_raise_api_error,

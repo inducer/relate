@@ -51,7 +51,7 @@ from django import http  # noqa
 
 from djangosaml2.backends import Saml2Backend
 
-from bootstrap3_datetime.widgets import DateTimePicker
+from bootstrap_datepicker_plus.widgets import DateTimePickerInput
 
 from course.constants import (
         user_status,
@@ -247,7 +247,7 @@ def impersonate(request: http.HttpRequest) -> http.HttpResponse:
 
 
 def stop_impersonating(request: http.HttpRequest) -> http.JsonResponse:
-    if not request.is_ajax() or request.method != "POST":
+    if request.method != "POST":
         raise PermissionDenied(_("only AJAX POST is allowed"))
 
     if not request.user.is_authenticated:
@@ -1370,7 +1370,7 @@ class AuthenticationTokenForm(StyledModelForm):
                 )
 
         widgets = {
-                "valid_until": DateTimePicker(options={"format": "YYYY-MM-DD"})
+                "valid_until": DateTimePickerInput(options={"format": "YYYY-MM-DD"})
                 }
 
     def __init__(

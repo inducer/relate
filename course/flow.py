@@ -2091,7 +2091,7 @@ def get_prev_answer_visits_dropdown_content(pctx, flow_session_id, page_ordinal)
     :return: serialized prev_answer_visits items for past-submission-dropdown
     """
     request = pctx.request
-    if not request.is_ajax() or request.method != "GET":
+    if request.method != "GET":
         raise PermissionDenied()
 
     page_ordinal = int(page_ordinal)

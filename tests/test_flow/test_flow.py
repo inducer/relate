@@ -4126,8 +4126,12 @@ class CreateFlowPageVisitTest(SingleCourseTestMixin, TestCase):
             course=self.course, participation=self.student_participation)
         page_data = factories.FlowPageDataFactory(flow_session=fs)
 
+        def dummy_get_response(*args):
+            raise AssertionError("never called")
+
         self.request.user = self.student_participation.user
-        middleware = SessionMiddleware()
+        middleware = SessionMiddleware(dummy_get_response)
+
         middleware.process_request(self.request)
         self.request.session.save()
 
@@ -4428,7 +4432,11 @@ class PostFlowPageTest(HackRepoMixin, SingleCourseQuizPageTestMixin, TestCase):
         rf = RequestFactory()
         self.request = rf.get(self.get_course_page_url())
         self.request.user = self.student_participation.user
-        middleware = SessionMiddleware()
+
+        def dummy_get_response(*args):
+            raise AssertionError("never called")
+
+        middleware = SessionMiddleware(dummy_get_response)
         middleware.process_request(self.request)
         self.request.session.save()
 
