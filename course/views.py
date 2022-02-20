@@ -54,7 +54,7 @@ from django.views.decorators.cache import cache_control
 from crispy_forms.layout import Submit, Layout, Div
 
 from relate.utils import StyledForm, StyledModelForm, string_concat
-from bootstrap3_datetime.widgets import DateTimePicker
+from bootstrap_datepicker_plus.widgets import DateTimePickerInput
 
 from course.auth import get_pre_impersonation_user
 from course.enrollment import (
@@ -362,7 +362,7 @@ def get_repo_file_response(
 
 class FakeTimeForm(StyledForm):
     time = forms.DateTimeField(
-            widget=DateTimePicker(
+            widget=DateTimePickerInput(
                 options={"format": "YYYY-MM-DD HH:mm", "sideBySide": True}),
             label=_("Time"))
 
@@ -1008,7 +1008,7 @@ class ExceptionStage3Form(StyledForm):
             label=_("Create access rule exception"))
 
         self.fields["access_expires"] = forms.DateTimeField(
-            widget=DateTimePicker(
+            widget=DateTimePickerInput(
                 options={"format": "YYYY-MM-DD HH:mm", "sideBySide": True,
                     "showClear": True}),
             required=False,
@@ -1040,7 +1040,7 @@ class ExceptionStage3Form(StyledForm):
                 initial=default_data.get("due_same_as_access_expiration") or False,
                 label=_("Due same as access expiration"))
         self.fields["due"] = forms.DateTimeField(
-                widget=DateTimePicker(
+                widget=DateTimePickerInput(
                     options={"format": "YYYY-MM-DD HH:mm", "sideBySide": True}),
                 required=False,
                 help_text=_("The due time shown to the student. Also, the "
@@ -1412,8 +1412,8 @@ class EditCourseForm(StyledModelForm):
                 "trusted_for_markup",
                 )
         widgets = {
-                "start_date": DateTimePicker(options={"format": "YYYY-MM-DD"}),
-                "end_date": DateTimePicker(options={"format": "YYYY-MM-DD"}),
+                "start_date": DateTimePickerInput(options={"format": "YYYY-MM-DD"}),
+                "end_date": DateTimePickerInput(options={"format": "YYYY-MM-DD"}),
                 "force_lang": forms.Select(
                     choices=get_course_specific_language_choices()),
                 }

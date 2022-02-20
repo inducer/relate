@@ -21,7 +21,7 @@ THE SOFTWARE.
 """
 
 import datetime
-import pytz
+import pytz_deprecation_shim as pytz
 
 import unittest
 from django.test import Client, TestCase, override_settings

@@ -487,13 +487,9 @@ class SuperuserCreateMixin(ResponseContextMixin):
 
     @classmethod_with_client
     def post_stop_impersonate(cls, client, *,  # noqa: N805
-            data=None, follow=True, using_ajax=True):
+            data=None, follow=True):
         if not data:
             data = {"stop_impersonating": ""}
-        if using_ajax:
-            return client.post(
-                cls.get_stop_impersonate_view_url(),
-                data, HTTP_X_REQUESTED_WITH="XMLHttpRequest")
         return client.post(
             cls.get_stop_impersonate_view_url(), data, follow=follow)
 
@@ -2719,7 +2715,8 @@ class AdminTestMixin(TwoCourseTestMixin):
             model_admin.list_select_related, model_admin.list_per_page,
             model_admin.list_max_show_all, model_admin.list_editable,
             model_admin=model_admin,
-            sortable_by=model_admin.sortable_by
+            sortable_by=model_admin.sortable_by,
+            search_help_text="(no help text)",
         )
 
     def get_filterspec_list(self, request, changelist=None, model=None,
