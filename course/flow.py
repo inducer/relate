@@ -1877,7 +1877,7 @@ def view_flow_page(
                             as_local_time(answer_visit.visit_time),
                             "DATETIME_FORMAT"),
                     }
-                    + '<a class="btn btn-default btn-sm" href="?" '
+                    + '<a class="btn btn-secondary btn-sm" href="?" '
                     'role="button">&laquo; %s</a>'
                     % _("Go back")))
 

@@ -5,6 +5,7 @@ import commonjs from '@rollup/plugin-commonjs';
 import { terser } from 'rollup-plugin-terser';
 import styles from 'rollup-plugin-styles';
 import gzipPlugin from 'rollup-plugin-gzip';
+import replace from '@rollup/plugin-replace';
 
 // `npm run build` -> `production` is true
 // `npm run dev` -> `production` is false
@@ -21,6 +22,12 @@ const defaultPlugins = [
   production && gzipPlugin({
     customCompression: (content) => brotliPromise(Buffer.from(content)),
     fileName: '.br',
+  }),
+  replace({
+    values: {
+      'process.env.NODE_ENV': JSON.stringify('production'),
+    },
+    preventAssignment: true,
   }),
 ];
 

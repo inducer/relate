@@ -93,7 +93,7 @@ class SandboxForm(forms.Form):
                 Submit("preview", _("Preview"), accesskey="p"),
                 )
         self.helper.add_input(
-                Submit("clear", _("Clear"), css_class="btn-default"),
+                Submit("clear", _("Clear"), css_class="btn-secondary"),
                 )
 
 # }}}
@@ -184,7 +184,7 @@ class PageSandboxForm(SandboxForm):
 
         self.helper.add_input(
                 Submit("clear_response", _("Clear Response Data"),
-                    css_class="btn-default"),
+                    css_class="btn-secondary"),
                 )
 
 # }}}
