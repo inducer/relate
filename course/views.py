@@ -842,7 +842,7 @@ def grant_exception_stage_2(
 
     form_text = (
             string_concat(
-                "<div class='well'>",
+                "<div class='relate-well'>",
                 _("Granting exception to '%(participation)s' for "
                 "'%(flow_id)s'."),
                 "</div>")
@@ -998,7 +998,7 @@ class ExceptionStage3Form(StyledForm):
 
             layout.append(
                     Div("set_access_rules_tag", "restrict_to_same_tag",
-                        css_class="well"))
+                        css_class="relate-well"))
 
         access_fields = ["create_access_exception", "access_expires"]
 
@@ -1028,7 +1028,7 @@ class ExceptionStage3Form(StyledForm):
 
             access_fields.append(key)
 
-        layout.append(Div(*access_fields, css_class="well"))
+        layout.append(Div(*access_fields, css_class="relate-well"))
 
         self.fields["create_grading_exception"] = forms.BooleanField(
                 required=False, help_text=_("If set, an exception for the "
@@ -1070,7 +1070,7 @@ class ExceptionStage3Form(StyledForm):
             "generates_grade",
             "credit_percent", "bonus_points", "max_points",
             "max_points_enforced_cap",
-            css_class="well"))
+            css_class="relate-well"))
 
         self.fields["comment"] = forms.CharField(
                 widget=forms.Textarea, required=True,
@@ -1310,7 +1310,7 @@ def grant_exception_stage_3(
         "form": form,
         "form_description": _("Grant Exception"),
         "form_text": string_concat(
-            "<div class='well'>",
+            "<div class='relate-well'>",
             _("Granting exception to '%(participation)s' "
             "for '%(flow_id)s' (session %(session)s)."),
             "</div>")

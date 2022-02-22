@@ -39,7 +39,7 @@
     would look like at {{ fake_time }}.
     {% endblocktrans %}
     {% if user.is_staff %}
-    <a class="btn btn-default btn-sm" href="{% url "relate-set_fake_time" %}" role="button" target="_blank">
+    <a class="btn btn-secondary btn-sm" href="{% url "relate-set_fake_time" %}" role="button" target="_blank">
         {% trans "Set fake time" %} &raquo;</a>
     {% endif %}
   </div>
@@ -53,7 +53,7 @@
     would look like from inside the facilities  <b>{{ facilities }}</b>.
     {% endblocktrans %}
     {% if user.is_staff %}
-    <a class="btn btn-default btn-sm" href="{% url "relate-set_pretend_facilities" %}" role="button" target="_blank">
+    <a class="btn btn-secondary btn-sm" href="{% url "relate-set_pretend_facilities" %}" role="button" target="_blank">
         {% trans "Pretend to be in facilities" %} &raquo;</a>
     {% endif %}
   </div>
@@ -63,6 +63,6 @@
   <div class="alert alert-info">
     <i class="fa fa-info-circle"></i>
     {% trans "Now impersonating" %} {{ user.get_full_name }} ({{ user.username }} - {{ user.email }}).
-    <a class="btn btn-default btn-sm" onclick=stopImpersonate() role="button" target="_blank">{% trans "Stop impersonating" %} &raquo;</a>
+    <a class="btn btn-secondary btn-sm" onclick=stopImpersonate() role="button" target="_blank">{% trans "Stop impersonating" %} &raquo;</a>
   </div>
 {% endif %}

@@ -329,9 +329,9 @@ present arbitrary HTML to participants" enabled. This setting is available
 in the admin functionality.
 
 When enabled, Markdown and HTML may also be mixed. For example, the
-following creates a box with a recessed appearance around the content::
+following creates a box with a border around the content::
 
-    <div class="well" markdown="1">
+    <div style="border: 1px solid black" markdown="1">
       Exam 2 takes place **next week**. Make sure to [prepare early](flow:exam2-prep).
     </div>
 

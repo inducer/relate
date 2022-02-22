@@ -25,14 +25,14 @@
   {{ form_text|safe }}
 
   {% if form %}
-    <div class="well">
+    <div class="relate-well">
       {% crispy form %}
     </div>
   {% endif %}
 
   {% if forms %}
     {% for sub_form in forms %}
-      <div class="well">
+      <div class="relate-well">
         {% crispy sub_form %}
       </div>
     {% endfor %}

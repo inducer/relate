@@ -900,14 +900,14 @@ class TextInputWithButtons(forms.TextInput):
         # Add buttons.
         for button_value in self.button_values:
             buttons.append(format_html(
-                "<button class='btn btn-xs btn-default' "
+                "<button class='btn btn-xs btn-secondary' "
                 "type='button' onclick={func}>{val}</button>",
                 func=mark_safe(make_feedback_func(button_value)),
                 val=button_value))
 
         # Add a clear button.
         buttons.append(format_html(
-            "<button class='btn btn-xs btn-default' "
+            "<button class='btn btn-xs btn-secondary' "
             "type='button' onclick={func}>Clear</button>",
             func=mark_safe(make_feedback_func(""))))
 

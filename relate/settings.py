@@ -49,7 +49,10 @@ INSTALLED_APPS = (
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "social_django",
+
     "crispy_forms",
+    "crispy_bootstrap5",
+
     "jsonfield",
     "django_select2",
 
@@ -177,7 +180,8 @@ RELATE_EXTRA_CONTEXT_PROCESSORS = (
 
 # {{{ templates
 
-CRISPY_TEMPLATE_PACK = "bootstrap3"
+CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"
+CRISPY_TEMPLATE_PACK = "bootstrap5"
 
 TEMPLATES = [
     {
