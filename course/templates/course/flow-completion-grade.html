@@ -11,7 +11,7 @@
   {% if grade_info != None %}
       {% if grade_info.total_count or grade_info.optional_total_count %}
           <h1>{% trans "Results" %}: {{flow_desc.title}}</h1>
-          <div class="well flow-well">
+          <div class="relate-well flow-well">
               {% if grade_info.total_count %}
                   <p>
                       {# Translators: the following 5 blocks of literals make a sentence. PartI #}
@@ -105,8 +105,8 @@
 
   {{ completion_text|safe }}
 
-  <div class="well flow-well">
-    <a class="btn btn-default"
+  <div class="relate-well flow-well">
+    <a class="btn btn-secondary"
       href="{% url "relate-view_start_flow" course.identifier flow_identifier %}"
       role="button">&laquo; {% trans "Back to start page" %}</a>
   </div>

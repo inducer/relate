@@ -10,7 +10,7 @@
 {% block content %}
   <h1>{% trans "List of Participants" %}</h1>
 
-  <a href="{% url "relate-edit_participation" course.identifier -1 %}" class="btn btn-default">{% trans "Add participant" %}</a>
+  <a href="{% url "relate-edit_participation" course.identifier -1 %}" class="btn btn-secondary">{% trans "Add participant" %}</a>
 
   {% include "course/participation-table.html" with participations=participations %}
 

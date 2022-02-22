@@ -11,7 +11,7 @@
 {% block content %}
   <h1>{% trans "List of Grading Opportunities" %}</h1>
 
-  <a href="{% url "relate-edit_grading_opportunity" course.identifier -1 %}" class="btn btn-default">{% trans "Add grading opportunity" %}</a>
+  <a href="{% url "relate-edit_grading_opportunity" course.identifier -1 %}" class="btn btn-secondary">{% trans "Add grading opportunity" %}</a>
 
   <table class="table table-striped gradebook-opportunities">
     <thead>
@@ -38,7 +38,7 @@
         </td>
         {% if pperm.edit_participation %}
           <td class="datacol">
-            <a href="{% url "relate-edit_grading_opportunity" course.identifier opp.id %}" class="btn btn-default btn-xs">{% trans "Edit" %}</a>
+            <a href="{% url "relate-edit_grading_opportunity" course.identifier opp.id %}" class="btn btn-secondary btn-xs">{% trans "Edit" %}</a>
           </td>
         {% endif %}
         <td class="datacol">

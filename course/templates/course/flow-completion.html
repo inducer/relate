@@ -9,8 +9,8 @@
 {% block content %}
   {{ completion_text|safe }}
 
-  <div class="well flow-well">
-    <a class="btn btn-default"
+  <div class="relate-well flow-well">
+    <a class="btn btn-secondary"
       href="{% url "relate-view_start_flow" course.identifier flow_identifier %}"
       role="button">&laquo; {% trans "Back to start page" %}</a>
   </div>

@@ -24,7 +24,7 @@
   {{ new_token_message }}
 
   {% if not tokens %}
-    <div class="well">
+    <div class="relate-well">
       {% trans "(No tokens have been created yet.)" %}
     </div>
   {% else %}
@@ -87,7 +87,7 @@
     </table>
   {% endif %}
 
-  <div class="well">
+  <div class="relate-well">
     {% crispy form %}
   </div>
 {% endblock %}

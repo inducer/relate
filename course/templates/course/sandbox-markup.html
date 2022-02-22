@@ -11,13 +11,13 @@
 {% block content %}
   <h1>{% trans "Markup Sandbox" %}</h1>
   {% if preview_text %}
-  <div class="well">
+  <div class="relate-well">
     <div style="max-height:700px; overflow-y:scroll">
       {{ preview_text|safe }}
     </div>
   </div>
   {% endif %}
-  <div class="well">
+  <div class="relate-well">
     {% crispy form %}
   </div>
 {% endblock %}

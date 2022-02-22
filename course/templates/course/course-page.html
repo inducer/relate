@@ -6,12 +6,12 @@
     <div class="alert alert-info">
       <i class="fa fa-info-circle"></i>
       {% trans "This course is only visible to course staff at the moment." %}
-      <a class="btn btn-default" href="{% url "relate-edit_course" course.identifier %}"
+      <a class="btn btn-secondary" href="{% url "relate-edit_course" course.identifier %}"
         role="button" target="_blank">{% trans "Change" context "change the visibility of a course" %}&nbsp;&raquo;</a>
     </div>
   {% endif %}
   {% if not user.is_authenticated %}
-    <div class="well">
+    <div class="relate-well">
       {% trans "You're not currently signed in." %}
       <a class="btn-lg btn-primary" href="{% url student_sign_in_view %}?next={{ request.path }}"
         role="button">{% trans "Sign in" %}&nbsp;&raquo;</a>
@@ -19,7 +19,7 @@
   {% else %}
 
     {% if show_enroll_button %}
-      <div class="well">
+      <div class="relate-well">
         <form method="POST" action="{% url "relate-enroll" course.identifier %}">
           {% csrf_token %}
           <button type="submit" name="enroll" class="btn-lg btn-primary">

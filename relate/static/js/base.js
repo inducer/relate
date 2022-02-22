@@ -7,7 +7,7 @@ import 'jquery-ui-dist/jquery-ui';
 
 import * as rlUtils from './rlUtils';
 
-import '../css/base.css';
+import '../css/base.scss';
 
 select2(jQuery);
 
