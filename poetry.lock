@@ -290,6 +290,7 @@ description = "Bootstrap5 template pack for django-crispy-forms"
 category = "main"
 optional = false
 python-versions = ">=3.6"
+develop = false
 
 [package.dependencies]
 django = ">=2.2"
@@ -297,6 +298,12 @@ django-crispy-forms = ">=1.13.0"
 
 [package.extras]
 test = ["pytest", "pytest-django"]
+
+[package.source]
+type = "git"
+url = "https://github.com/django-crispy-forms/crispy-bootstrap5.git"
+reference = "2b1a014d1630dc958c7b9ea72605580e14684693"
+resolved_reference = "2b1a014d1630dc958c7b9ea72605580e14684693"
 
 [[package]]
 name = "cryptography"
@@ -353,17 +360,6 @@ python-versions = ">=3.6"
 
 [package.dependencies]
 django = "*"
-
-[[package]]
-name = "django-bootstrap-datepicker-plus"
-version = "4.0.0"
-description = "Bootstrap3/Bootstrap4/Bootstrap5 DatePickerInput, TimePickerInput, DateTimePickerInput, MonthPickerInput, YearPickerInput with date-range-picker functionality for django >= 2.0"
-category = "main"
-optional = false
-python-versions = ">=3.6"
-
-[package.dependencies]
-django = ">=2,<5"
 
 [[package]]
 name = "django-celery-results"
@@ -1885,7 +1881,7 @@ testing = ["func-timeout", "jaraco.itertools", "pytest (>=6)", "pytest-black (>=
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.8"
-content-hash = "2a4ceebf2326f2de8bff817243e2262d8a477c679aa7836f189ee2e9a6f062ad"
+content-hash = "8864ef258af024bcdc2b41a9881ab875623f5fbeed3b766cd4fac65b2e0b2626"
 
 [metadata.files]
 aiodns = [
@@ -2109,10 +2105,7 @@ coverage = [
     {file = "coverage-6.4.4-pp36.pp37.pp38-none-any.whl", hash = "sha256:f67cf9f406cf0d2f08a3515ce2db5b82625a7257f88aad87904674def6ddaec1"},
     {file = "coverage-6.4.4.tar.gz", hash = "sha256:e16c45b726acb780e1e6f88b286d3c10b3914ab03438f32117c4aa52d7f30d58"},
 ]
-crispy-bootstrap5 = [
-    {file = "crispy-bootstrap5-0.6.tar.gz", hash = "sha256:e8c50daaf266d6127c7414f5669d5f2467b640d08b045ed9dd57e351d30609ae"},
-    {file = "crispy_bootstrap5-0.6-py3-none-any.whl", hash = "sha256:ca5d2afc2a5d1cf12b8d057886a81002cdf7793afcbe0ce006c2294069c1f387"},
-]
+crispy-bootstrap5 = []
 cryptography = [
     {file = "cryptography-3.4.8-cp36-abi3-macosx_10_10_x86_64.whl", hash = "sha256:a00cf305f07b26c351d8d4e1af84ad7501eca8a342dedf24a7acb0e7b7406e14"},
     {file = "cryptography-3.4.8-cp36-abi3-macosx_11_0_arm64.whl", hash = "sha256:f44d141b8c4ea5eb4dbc9b3ad992d45580c1d22bf5e24363f2fbf50c2d7ae8a7"},
@@ -2145,10 +2138,6 @@ Django = [
 django-appconf = [
     {file = "django-appconf-1.0.5.tar.gz", hash = "sha256:be3db0be6c81fa84742000b89a81c016d70ae66a7ccb620cdef592b1f1a6aaa4"},
     {file = "django_appconf-1.0.5-py3-none-any.whl", hash = "sha256:ae9f864ee1958c815a965ed63b3fba4874eec13de10236ba063a788f9a17389d"},
-]
-django-bootstrap-datepicker-plus = [
-    {file = "django-bootstrap-datepicker-plus-4.0.0.tar.gz", hash = "sha256:2ce1eb7d0d45ac01fcef6fc5e9823b01e0727088b781b16c1be642bf76514ada"},
-    {file = "django_bootstrap_datepicker_plus-4.0.0-py3-none-any.whl", hash = "sha256:c5dce41585c2b57cda52e3f698f44544090ccf2eed1d1c5bb9e828f36951b3fc"},
 ]
 django-celery-results = [
     {file = "django_celery_results-2.4.0-py3-none-any.whl", hash = "sha256:be91307c02fbbf0dda21993c3001c60edb74595444ccd6ad696552fe3689e85b"},
