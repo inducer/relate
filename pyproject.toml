@@ -64,9 +64,6 @@ ecdsa = "^0.15"
 
 paramiko = "*"
 
-# A date picker widget - https://github.com/monim67/django-bootstrap-datepicker-plus
-django-bootstrap-datepicker-plus = "^4.0.0"
-
 # https://github.com/poezio/slixmpp/commit/53dc9847e2a4110be85ad16af9b427f9a280aaee#commitcomment-69121492
 slixmpp = "^1.8.1"
 

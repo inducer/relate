@@ -51,8 +51,6 @@ from django import http  # noqa
 
 from djangosaml2.backends import Saml2Backend
 
-from bootstrap_datepicker_plus.widgets import DateTimePickerInput
-
 from course.constants import (
         user_status,
         participation_status,
@@ -1370,7 +1368,7 @@ class AuthenticationTokenForm(StyledModelForm):
                 )
 
         widgets = {
-                "valid_until": DateTimePickerInput(options={"format": "YYYY-MM-DD"})
+                "valid_until": forms.DateTimeInput(attrs={"type": "datetime-local"})
                 }
 
     def __init__(

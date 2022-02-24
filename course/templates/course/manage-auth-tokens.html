@@ -8,16 +8,6 @@
   {% trans "Manage Authentication Tokens" %}: - {{ relate_site_name }}
 {% endblock %}
 
-{# keep this in sync with relate/templates/generic-form.html #}
-{% block head_assets_form_media %}
-  <link href="{% static 'eonasdan-bootstrap-datetimepicker/build/css/bootstrap-datetimepicker.min.css' %}" rel="stylesheet">
-
-  <script src="{% static 'moment/min/moment-with-locales.min.js' %}"></script>
-  <script src="{% static 'moment-timezone/builds/moment-timezone.min.js' %}"></script>
-  <script src="{% static 'eonasdan-bootstrap-datetimepicker/build/js/bootstrap-datetimepicker.min.js' %}"></script>
-  {{ form.media }}
-{% endblock %}
-
 {% block content %}
   <h1>{% trans "Manage Authentication Tokens" %}</h1>
 

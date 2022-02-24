@@ -33,7 +33,6 @@ import django.forms as forms
 from crispy_forms.layout import Submit
 
 import datetime
-from bootstrap_datepicker_plus.widgets import DateTimePickerInput
 
 from relate.utils import StyledForm, as_local_time, string_concat
 from course.constants import (
@@ -69,9 +68,7 @@ class RecurringEventForm(StyledForm):
                         "allowed."),
             label=pgettext_lazy("Kind of event", "Kind of event"))
     time = forms.DateTimeField(
-            widget=DateTimePickerInput(
-                options={"format": "YYYY-MM-DD HH:mm", "sideBySide": True}),
-            label=pgettext_lazy("Starting time of event", "Starting time"))
+            widget=forms.DateTimeInput(attrs={"type": "datetime-local"})),
     duration_in_minutes = forms.FloatField(required=False,
             min_value=0,
             label=_("Duration in minutes"))

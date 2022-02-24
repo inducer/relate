@@ -56,8 +56,6 @@ INSTALLED_APPS = (
     "jsonfield",
     "django_select2",
 
-    "bootstrap_datepicker_plus",
-
     # message queue
     "django_celery_results",
 
