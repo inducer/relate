@@ -42,7 +42,6 @@ from django.utils.translation import (
         )
 
 from django_select2.forms import Select2Widget
-from bootstrap_datepicker_plus.widgets import DateTimePickerInput
 from django.urls import reverse
 from django.views.decorators.csrf import csrf_exempt
 
@@ -162,8 +161,8 @@ class CourseCreationForm(StyledModelForm):
             "force_lang",
             )
         widgets = {
-                "start_date": DateTimePickerInput(options={"format": "YYYY-MM-DD"}),
-                "end_date": DateTimePickerInput(options={"format": "YYYY-MM-DD"}),
+                "start_date": forms.DateInput(attrs={"type": "date"}),
+                "end_date": forms.DateInput(attrs={"type": "date"}),
                 "force_lang": forms.Select(
                     choices=get_course_specific_language_choices()),
                 }

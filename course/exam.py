@@ -42,7 +42,6 @@ from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_protect
 
 from crispy_forms.layout import Submit
-from bootstrap_datepicker_plus.widgets import DateTimePickerInput
 
 from course.models import (Exam, ExamTicket, Participation,
         FlowSession)
@@ -108,13 +107,11 @@ class IssueTicketForm(StyledForm):
 
         self.fields["valid_start_time"] = forms.DateTimeField(
                 label=_("Start validity"),
-                widget=DateTimePickerInput(
-                    options={"format": "YYYY-MM-DD HH:mm", "sideBySide": True}),
+                widget=forms.DateTimeInput(attrs={"type": "datetime-local"}),
                 required=False)
         self.fields["valid_end_time"] = forms.DateTimeField(
                 label=_("End validity"),
-                widget=DateTimePickerInput(
-                    options={"format": "YYYY-MM-DD HH:mm", "sideBySide": True}),
+                widget=forms.DateInput(attrs={"type": "datetime-local"}),
                 required=False)
         self.fields["restrict_to_facility"] = forms.CharField(
                 label=_("Restrict to facility"),
@@ -301,13 +298,11 @@ class BatchIssueTicketsForm(StyledForm):
 
         self.fields["valid_start_time"] = forms.DateTimeField(
                 label=_("Start validity"),
-                widget=DateTimePickerInput(
-                    options={"format": "YYYY-MM-DD HH:mm", "sideBySide": True}),
+                widget=forms.DateTimeInput(attrs={"type": "datetime-local"}),
                 required=False)
         self.fields["valid_end_time"] = forms.DateTimeField(
                 label=_("End validity"),
-                widget=DateTimePickerInput(
-                    options={"format": "YYYY-MM-DD HH:mm", "sideBySide": True}),
+                widget=forms.DateTimeInput(attrs={"type": "datetime-local"}),
                 required=False)
         self.fields["restrict_to_facility"] = forms.CharField(
                 label=_("Restrict to facility"),
