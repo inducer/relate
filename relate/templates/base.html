@@ -37,33 +37,33 @@
           {% block navbar %}{% endblock %}
 
           {% if not maintenance_mode %}
-            <div class="relate-dropdown-menu">
-              <a href="#" id="dropdownStaffMenu" data-bs-toggle="dropdown" aria-expanded="false">
-                {% trans "Staff" %}
-              </a>
-              <ul class="dropdown-menu" aria-labelledby="dropdownStaffMenu">
-                {% block navbar_dropdown_staff_menu_admin %}
-                  {% if user.is_staff %}
-                    <li><a class="dropdown-item" href="{% url 'admin:index' %}" target="_blank">{% trans "Admin site" %}</a></li>
-                  {% endif %}
-                {% endblock %}
-                {% block navbar_dropdown_staff_menu_purge_page_view_data %}
-                  {% if user.is_superuser or pperm.use_admin_interface %}
-                    <li><hr class="dropdown-divider"></li>
-                    <li><a class="dropdown-item" href="{% url 'relate-purge_page_view_data' %}" target="_blank">{% trans "Purge page view data" %}</a></li>
-                  {% endif %}
-                {% endblock %}
-                {% block navbar_dropdown_staff_menu_exam %}
-                  {% if perms.course.can_issue_exam_tickets %}
-                    <li><hr class="dropdown-divider"></li>
-                    <li><h6 class="dropdown-header">{% trans "Exams" %}</h6></li>
-                    <li><a class="dropdown-item" href="{% url 'relate-issue_exam_ticket' %}">{% trans "Issue exam tickets" %}</a></li>
-                    <li><a class="dropdown-item" href="{% url 'relate-check_in_for_exam' %}">{% trans "Exam check-in" %}</a></li>
-                  {% endif %}
-                {% endblock %}
+            {% block navbar_dropdown_staff %}
+              {% if user.is_staff or currently_impersonating or perms.course.can_issue_exam_tickets or pperm.impersonate_role or pperm.set_fake_time or pperm.set_pretend_facility or request.relate_impersonate_original_user|may_set_fake_time or request.relate_impersonate_original_user|may_set_pretend_facility %}
+                <div class="relate-dropdown-menu">
+                  <a href="#" id="dropdownStaffMenu" data-bs-toggle="dropdown" aria-expanded="false">
+                    {% trans "Staff" %}
+                  </a>
+                  <ul class="dropdown-menu" aria-labelledby="dropdownStaffMenu">
+                    {% block navbar_dropdown_staff_menu_admin %}
+                      {% if user.is_staff %}
+                        <li><a class="dropdown-item" href="{% url 'admin:index' %}" target="_blank">{% trans "Admin site" %}</a></li>
+                      {% endif %}
+                    {% endblock %}
+                    {% block navbar_dropdown_staff_menu_purge_page_view_data %}
+                      {% if user.is_superuser or pperm.use_admin_interface %}
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="{% url 'relate-purge_page_view_data' %}" target="_blank">{% trans "Purge page view data" %}</a></li>
+                      {% endif %}
+                    {% endblock %}
+                    {% block navbar_dropdown_staff_menu_exam %}
+                      {% if perms.course.can_issue_exam_tickets %}
+                        <li><hr class="dropdown-divider"></li>
+                        <li><h6 class="dropdown-header">{% trans "Exams" %}</h6></li>
+                        <li><a class="dropdown-item" href="{% url 'relate-issue_exam_ticket' %}">{% trans "Issue exam tickets" %}</a></li>
+                        <li><a class="dropdown-item" href="{% url 'relate-check_in_for_exam' %}">{% trans "Exam check-in" %}</a></li>
+                      {% endif %}
+                    {% endblock %}
 
-                {% block navbar_dropdown_staff %}
-                  {% if user.is_staff or currently_impersonating or perms.course.can_issue_exam_tickets or pperm.impersonate_role or pperm.set_fake_time or pperm.set_pretend_facility or request.relate_impersonate_original_user|may_set_fake_time or request.relate_impersonate_original_user|may_set_pretend_facility %}
                     {% block navbar_dropdown_staff_menu_trouble_shoot %}
                       {% if currently_impersonating or pperm.impersonate_role or pperm.set_fake_time or request.relate_impersonate_original_user|may_set_fake_time  or request.relate_impersonate_original_user|may_set_pretend_facility %}
                         <li class="dropdown-divider"></li>
@@ -81,10 +81,10 @@
                         {% endif %}
                       {% endif %}
                     {% endblock %}
-                  {% endif %}
-                {% endblock %}
-              </ul>
-            </div>
+                  </ul>
+                </div>
+              {% endif %}
+            {% endblock %}
 
             <div class="ms-auto">
               {% block preview_status %}
