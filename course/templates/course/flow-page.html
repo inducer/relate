@@ -101,16 +101,14 @@
       <div class="navbar-right relate-flow-page-menu"
         style="padding-right: 0.4em;">
         <div class="dropdown">
-          <button class="btn btn-secondary dropdown-toggle" type="button" id="menu_dropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true"
+          <button class="btn btn-secondary dropdown-toggle" type="button" id="FlowPageMenuDropdown" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="true"
             title='{% trans "Page Menu" %}'>
             <i class="fa fa-bars"></i>
           </button>
-          <ul class="dropdown-menu" aria-labelledby="menu_dropdown">
-            <li class="dropdown-header">
-              <b>{{ flow_desc.title }}</b>
-            </li>
+          <ul class="dropdown-menu shadow" aria-labelledby="FlowPageMenuDropdown">
+            <li><h6 class="dropdown-header">{{ flow_desc.title }}</h6></li>
             <li>
-              <a href='{% url "relate-view_start_flow" course.identifier flow_session.flow_id %}'
+              <a class="dropdown-item" href='{% url "relate-view_start_flow" course.identifier flow_session.flow_id %}'
                 >{% trans "Return to flow start page" %}</a>
             </li>
             {% if page_expect_answer_and_gradable %}
@@ -125,7 +123,7 @@
               {% endif %}
               {% if page_expect_answer_and_gradable and pperm.grant_exception and flow_session.participation.id != None %}
                 <li>
-                  <a href="{% url 'relate-grant_exception_stage_3' course.identifier flow_session.participation.id flow_session.flow_id flow_session.id %}"
+                  <a class="dropdown-item" href="{% url 'relate-grant_exception_stage_3' course.identifier flow_session.participation.id flow_session.flow_id flow_session.id %}"
                     target="_blank">
                       {% trans "Grant exception" %} <i class="fa fa-unlock" aria-hidden="true"></i>
                   </a>
@@ -133,7 +131,7 @@
               {% endif %}
               {% if pperm.view_gradebook %}
                 <li>
-                  <a href="{% url 'relate-grade_flow_page' course.identifier flow_session.id page_ordinal %}"
+                  <a class="dropdown-item" href="{% url 'relate-grade_flow_page' course.identifier flow_session.id page_ordinal %}"
                      target="_blank">
                       {% trans "View in grading interface" %} <i class="fa fa-unlock" aria-hidden="true"></i>
                   </a>
@@ -143,7 +141,7 @@
             {% if pperm.reopen_flow_session and flow_session.in_progress and expects_answer and not may_change_answer %}
               <li role="separator" class="divider"></li>
               <li>
-                <a href="{% url 'relate-unsubmit_flow_page' course.identifier flow_session.id page_ordinal %}">
+                <a class="dropdown-item" href="{% url 'relate-unsubmit_flow_page' course.identifier flow_session.id page_ordinal %}">
                     {% trans "Re-allow changes to page" %} <i class="fa fa-unlock" aria-hidden="true"></i>
                 </a>
               </li>
@@ -155,16 +153,16 @@
       {# }}} #}
 
       {# {{{ past submissions #}
+
       {% if expects_answer %}
         <div class="navbar-right relate-flow-page-past-submissions"
           style="padding-right: 0.4em; margin-right:0;">
-          <div class="dropdown" id="past-submission_dropdown">
-            <button class="btn btn-secondary dropdown-toggle" type="button" id="past-submission_dropdown_button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true"
+          <div class="dropdown shadown" id="past-submission_dropdown">
+            <button class="btn btn-secondary dropdown-toggle" type="button" id="past-submission_dropdown_button" data-bs-toggle="dropdown"
               title='{% trans "Submission history for this page" %}'>
               <i class="fa fa-history"></i>
-              <span class="caret"></span>
             </button>
-            <ul class="dropdown-menu" aria-labelledby="past-submission_dropdown_button" id="past-submission_dropdown_content">
+            <ul class="dropdown-menu shadow" aria-labelledby="past-submission_dropdown_button" id="past-submission_dropdown_content">
               <li style="list-style:none; position:relative; left:50%;">
                 <i class="fa fa-spinner fa-spin relate-icon-busy"></i>
               </li>
@@ -172,6 +170,7 @@
           </div>
         </div>
       {% endif %}
+
       {# }}} #}
 
       {# {{{ 'finish' button #}
@@ -277,14 +276,12 @@
 
         {% if flow_session.page_count >= 4 %}
           <span class="dropdown">
-            <span class="btn btn-secondary btn-sm dropdown-toggle relate-flow-page-toc-item " id="toc-dropdown" data-toggle="dropdown"
-              aria-haspopup="true" aria-expanded="true">
-              <span class="caret"></span>
+            <span class="btn btn-secondary btn-sm dropdown-toggle relate-flow-page-toc-item " id="toc-dropdown" data-bs-toggle="dropdown">
             </span>
-            <ul class="dropdown-menu" aria-labelledby="toc-dropdown">
+            <ul class="dropdown-menu shadow" aria-labelledby="toc-dropdown">
               {% for other_page_data in all_page_data %}
               <li>
-                <a href="{% url "relate-view_flow_page" course.identifier flow_session.id other_page_data.page_ordinal %}">
+                <a class="dropdown-item" href="{% url "relate-view_flow_page" course.identifier flow_session.id other_page_data.page_ordinal %}">
                   {{ other_page_data.human_readable_ordinal }}: {{ other_page_data.title|safe }}
                   {% if other_page_data.bookmarked %}
                     <i class="fa fa-star" aria-hidden="true"></i>
@@ -612,18 +609,14 @@
     {# https://github.com/blueimp/JavaScript-Templates #}
     <script type="text/x-tmpl" id="tmpl-prev-answer-visits">
       {{ JQ_OPEN }} if (o.length==0) { {{ JQ_CLOSE }}
-        <li>
-          <a href="#" style="pointer-events: none; display: inline-block;">
-            {% trans 'No submission history' %}
-          </a>
-        </li>
+        <li><h6 class="dropdown-header">{% trans 'No submission history' %}</h6> </li>
       {{ JQ_OPEN }} } else { {{ JQ_CLOSE }}
         {{ JQ_OPEN }} for (var i=0; i<o.length; i++) { {{ JQ_CLOSE }}
           <li>
             {{ JQ_OPEN }} if (i==0) { {{ JQ_CLOSE }}
               <a href="?">
             {{ JQ_OPEN }} } else { {{ JQ_CLOSE }}
-              <a href="?visit_id={{ JQ_OPEN }}=o[i].id{{ JQ_CLOSE }}">
+              <a class="dropdown-item" href="?visit_id={{ JQ_OPEN }}=o[i].id{{ JQ_CLOSE }}">
             {{ JQ_OPEN }} } {{ JQ_CLOSE }}
               {{ JQ_OPEN }} if (o[i].id=={{ prev_visit_id }}) { {{ JQ_CLOSE }}<b>{{ JQ_OPEN }} } {{ JQ_CLOSE }}
                 {{ JQ_OPEN }}=o[i].visit_time{{ JQ_CLOSE }}
