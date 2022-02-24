@@ -317,7 +317,7 @@
       for (var i = 0; i < items.length; ++i)
       {
         var fb = items[i];
-        buttons += ("<button class='btn btn-xs btn-secondary' type='button' "
+        buttons += ("<button class='btn btn-sm btn-secondary' type='button' "
             + "onclick='add_feedback(" + i + ")'>"
             + truncate_text(encode_entities(fb), 25)
             + "</button>"
@@ -329,9 +329,9 @@
       buttons += "</p>";
 
       buttons += "<p>";
-      buttons += ("<button class='btn btn-xs btn-secondary' type='button' "
+      buttons += ("<button class='btn btn-sm btn-secondary' type='button' "
           + "onclick='add_feedback_item()'><i class='fa fa-plus'></i> {% trans "Add phrase" %}</button>");
-      buttons += ("<button class='btn btn-xs btn-secondary' type='button' "
+      buttons += ("<button class='btn btn-sm btn-secondary' type='button' "
           + "onclick='set_feedback(\"\")'>{% trans "Clear" %}</button>");
       buttons += "</p>";
 
