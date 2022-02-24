@@ -65,7 +65,7 @@
               {% if token.revocation_time == None %}
                 <form method="POST">
                   {% csrf_token %}
-                  <button type="submit" class="btn btn-danger btn-xs" name="revoke_{{ token.id }}">
+                  <button type="submit" class="btn btn-danger btn-sm" name="revoke_{{ token.id }}">
                     Revoke
                   </button>
                 </form>

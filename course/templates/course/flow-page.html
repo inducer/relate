@@ -249,7 +249,7 @@
       <div class="relate-flow-page-toc">
         {% for other_page_data in all_page_data %}
           {% if other_page_data.page_ordinal == page_data.page_ordinal %}
-            <span class="relate-flow-page-toc-item btn btn-secondary btn-xs disabled
+            <span class="relate-flow-page-toc-item btn btn-secondary btn-sm disabled
               relate-current
               {% if other_page_data.bookmarked %}
                 relate-bookmarked
@@ -258,7 +258,7 @@
           {% else %}
             <a href="{% url "relate-view_flow_page" course.identifier flow_session.id other_page_data.page_ordinal %}"
                title="{{ other_page_data.title|safe }}">
-            <span class="relate-flow-page-toc-item btn btn-secondary btn-xs
+            <span class="relate-flow-page-toc-item btn btn-secondary btn-sm
               {% if page_nr < page_data.page_ordinal %}
                 relate-prior
               {% else %}
@@ -277,7 +277,7 @@
 
         {% if flow_session.page_count >= 4 %}
           <span class="dropdown">
-            <span class="btn btn-secondary btn-xs dropdown-toggle relate-flow-page-toc-item " id="toc-dropdown" data-toggle="dropdown"
+            <span class="btn btn-secondary btn-sm dropdown-toggle relate-flow-page-toc-item " id="toc-dropdown" data-toggle="dropdown"
               aria-haspopup="true" aria-expanded="true">
               <span class="caret"></span>
             </span>
