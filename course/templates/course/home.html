@@ -20,12 +20,14 @@
     {% if current_courses or past_courses %}
       {% block current_course_list %}
         {% if current_courses %}
-          <div class="row">
+          <div class="d-flex mb-1 flex-wrap">
             {% for course in current_courses %}
-              <div class="col-md-4">
-                <h3>{{course.number}} {{course.time_period}}</h3>
-                <p>{{course.name}}</p>
-                <p><a class="btn btn-primary" href="{% url 'relate-course_page' course.identifier %}" role="button">{% trans "View" %} &raquo;</a></p>
+              <div class="card me-3 mb-3" style="width: 18rem;">
+                <h5 class="card-header">{{course.name}}</h3>
+                <div class="card-body">
+                  <p class="text-muted card-text">{{course.number}} {{course.time_period}}</p>
+                  <a class="btn btn-primary" href="{% url 'relate-course_page' course.identifier %}" role="button">{% trans "View" %} &raquo;</a>
+                </div>
               </div>
             {% endfor %}
           </div>
