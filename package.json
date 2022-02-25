@@ -41,6 +41,7 @@
     "serve": "^11.3.2"
   },
   "scripts": {
-    "build": "NODE_ENV=production rollup --config"
+    "build": "rollup --config",
+    "dev": "rollup --config --watch"
   }
 }
