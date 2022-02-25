@@ -25,45 +25,25 @@ table.past-flow-session-table {
 
 /* bootstrap padding of well is 19px == (13+6)px */
 
-.flow-well {
-  padding-top: 13px;
-}
-
 .flow-nav {
-  float:left;
-  margin-top: 6px;
 }
 
 .relate-flow-submit {
-  float: right;
-  margin-top: 6px;
 }
 
 .relate-flow-page-menu {
-  float: right;
-  margin-top: 6px;
 }
 
 .relate-flow-page-send-email {
-  float: right;
-  margin-top: 6px;
 }
 
 .relate-flow-page-past-submissions {
-  float: right;
-  margin-top: 6px;
 }
 
 .flow-session-expiration-panel {
-  float:right;
-  white-space: nowrap;
-  margin-right: 1em;
-  margin-top: 6px;
 }
 
 .flow-session-expiration-panel .form-control {
-  width: auto;
-  display: inline;
 }
 
 /* styling tooltip arrow for inline question validation errors */
@@ -83,13 +63,18 @@ code {
 }
 
 .relate-flow-page-toc {
-  margin-top: 6px;
-  padding-left: 15px;
-  padding-right: 15px;
-  float: left;
-  text-align: center;
+  @extend .px-2;
 }
 
+@include media-breakpoint-down(md) {
+  .relate-flow-page-toc {
+    clear: both;
+  }
+}
+
+.relate-flow-page-bookmark-button {
+  @extend .btn-outline-secondary;
+}
 .relate-flow-page-bookmark-button.relate-bookmarked {
   background-color: #ff8;
 }
@@ -364,9 +349,8 @@ div.rendered_html div.highlight > pre {
 }
 
 .relate-dropdown-menu {
+  @extend .mx-2;
   @extend .dropdown;
-  @extend .ms-2;
-  @extend .me-2;
   > a {
     @extend .link-dark;
     @extend .text-decoration-none;
