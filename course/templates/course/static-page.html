@@ -2,7 +2,7 @@
 {% load i18n %}
 
 {% block page_navbar %}
-  <div class="relate-dropdown-menu">
+  <li class="nav-item relate-dropdown-menu">
     <a href="#" id="dropdownJumpToMenu" data-bs-toggle="dropdown" aria-expanded="false">
       {% trans "Jump to" %}
     </a>
@@ -13,7 +13,7 @@
         {% endif %}
       {% endfor %}
     </ul>
-  </div>
+  </li>
 {% endblock %}
 
 {% block content %}

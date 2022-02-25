@@ -27,89 +27,102 @@
 
   <body>
     {% block fixed_navbar %}
-      <div class="container">
-        <header class="d-flex align-items-baseline py-3 mb-4 border-bottom">
-          <a class="text-decoration-none text-dark me-3"
+      <nav class="navbar navbar-expand-lg navbar-light bg-light mb-4 border-bottom shadow-sm">
+        <div class="container">
+          <a class="navbar-brand"
              href="{% block brand_link %}{% url 'relate-home' %}{% endblock %}" >
-            <span class="fs-4">{%block brand %}{{ relate_site_name }}{% endblock %}</span>
+            {%block brand %}{{ relate_site_name }}{% endblock %}
           </a>
 
-          {% block navbar %}{% endblock %}
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+                                                       data-bs-target="#navbarSupportedContent"
+                                                       aria-controls="navbarSupportedContent"
+                                                       aria-expanded="false"
+                                                       aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+          </button>
 
-          {% if not maintenance_mode %}
-            {% block navbar_dropdown_staff %}
-              {% if user.is_staff or currently_impersonating or perms.course.can_issue_exam_tickets or pperm.impersonate_role or pperm.set_fake_time or pperm.set_pretend_facility or request.relate_impersonate_original_user|may_set_fake_time or request.relate_impersonate_original_user|may_set_pretend_facility %}
-                <div class="relate-dropdown-menu">
-                  <a href="#" id="dropdownStaffMenu" data-bs-toggle="dropdown" aria-expanded="false">
-                    {% trans "Staff" %}
-                  </a>
-                  <ul class="dropdown-menu" aria-labelledby="dropdownStaffMenu">
-                    {% block navbar_dropdown_staff_menu_admin %}
-                      {% if user.is_staff %}
-                        <li><a class="dropdown-item" href="{% url 'admin:index' %}" target="_blank">{% trans "Admin site" %}</a></li>
-                      {% endif %}
-                    {% endblock %}
-                    {% block navbar_dropdown_staff_menu_purge_page_view_data %}
-                      {% if user.is_superuser or pperm.use_admin_interface %}
-                        <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item" href="{% url 'relate-purge_page_view_data' %}">{% trans "Purge page view data" %}</a></li>
-                      {% endif %}
-                    {% endblock %}
-                    {% block navbar_dropdown_staff_menu_exam %}
-                      {% if perms.course.can_issue_exam_tickets %}
-                        <li><hr class="dropdown-divider"></li>
-                        <li><h6 class="dropdown-header">{% trans "Exams" %}</h6></li>
-                        <li><a class="dropdown-item" href="{% url 'relate-issue_exam_ticket' %}">{% trans "Issue exam tickets" %}</a></li>
-                        <li><a class="dropdown-item" href="{% url 'relate-check_in_for_exam' %}">{% trans "Exam check-in" %}</a></li>
-                      {% endif %}
-                    {% endblock %}
+          <div class="collapse navbar-collapse" id="navbarSupportedContent">
+            <ul class="navbar-nav flex-grow-1">
+              {% if not maintenance_mode %}
+                {% block navbar %}{% endblock %}
 
-                    {% block navbar_dropdown_staff_menu_trouble_shoot %}
-                      {% if currently_impersonating or pperm.impersonate_role or pperm.set_fake_time or request.relate_impersonate_original_user|may_set_fake_time  or request.relate_impersonate_original_user|may_set_pretend_facility %}
-                        <li class="dropdown-divider"></li>
-                        <li><h6 class="dropdown-header">{% trans "Test/Troubleshoot" %}</h6></li>
-                        {% if currently_impersonating %}
-                          <li><a class="dropdown-item" onclick="stopImpersonate()">{% trans "Stop impersonating" %}</a></li>
-                        {% else %}
-                          <li><a class="dropdown-item" href="{% url 'relate-impersonate' %}">{% trans "Impersonate user" %}</a></li>
-                        {% endif %}
-                        {% if pperm.set_fake_time or request.relate_impersonate_original_user|may_set_fake_time %}
-                          <li><a class="dropdown-item" href="{% url 'relate-set_fake_time' %}">{% trans "Set fake time" %}</a></li>
-                        {% endif %}
-                        {% if pperm.set_pretend_facility  or request.relate_impersonate_original_user|may_set_pretend_facility %}
-                          <li><a class="dropdown-item" href="{% url 'relate-set_pretend_facilities' %}">{% trans "Pretend to be in facilities" %}</a></li>
-                        {% endif %}
-                      {% endif %}
-                    {% endblock %}
-                  </ul>
-                </div>
-              {% endif %}
-            {% endblock %}
+                {% block navbar_dropdown_staff %}
+                  {% if user.is_staff or currently_impersonating or perms.course.can_issue_exam_tickets or pperm.impersonate_role or pperm.set_fake_time or pperm.set_pretend_facility or request.relate_impersonate_original_user|may_set_fake_time or request.relate_impersonate_original_user|may_set_pretend_facility %}
+                    <li class="nav-item relate-dropdown-menu">
+                      <a href="#" id="dropdownStaffMenu" data-bs-toggle="dropdown" aria-expanded="false">
+                        {% trans "Staff" %}
+                      </a>
+                      <ul class="dropdown-menu" aria-labelledby="dropdownStaffMenu">
+                        {% block navbar_dropdown_staff_menu_admin %}
+                          {% if user.is_staff %}
+                            <li><a class="dropdown-item" href="{% url 'admin:index' %}" target="_blank">{% trans "Admin site" %}</a></li>
+                          {% endif %}
+                        {% endblock %}
+                        {% block navbar_dropdown_staff_menu_purge_page_view_data %}
+                          {% if user.is_superuser or pperm.use_admin_interface %}
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{% url 'relate-purge_page_view_data' %}">{% trans "Purge page view data" %}</a></li>
+                          {% endif %}
+                        {% endblock %}
+                        {% block navbar_dropdown_staff_menu_exam %}
+                          {% if perms.course.can_issue_exam_tickets %}
+                            <li><hr class="dropdown-divider"></li>
+                            <li><h6 class="dropdown-header">{% trans "Exams" %}</h6></li>
+                            <li><a class="dropdown-item" href="{% url 'relate-issue_exam_ticket' %}">{% trans "Issue exam tickets" %}</a></li>
+                            <li><a class="dropdown-item" href="{% url 'relate-check_in_for_exam' %}">{% trans "Exam check-in" %}</a></li>
+                          {% endif %}
+                        {% endblock %}
 
-            <div class="ms-auto">
-              {% block preview_status %}
-              {% endblock %}
+                        {% block navbar_dropdown_staff_menu_trouble_shoot %}
+                          {% if currently_impersonating or pperm.impersonate_role or pperm.set_fake_time or request.relate_impersonate_original_user|may_set_fake_time  or request.relate_impersonate_original_user|may_set_pretend_facility %}
+                            <li class="dropdown-divider"></li>
+                            <li><h6 class="dropdown-header">{% trans "Test/Troubleshoot" %}</h6></li>
+                            {% if currently_impersonating %}
+                              <li><a class="dropdown-item" onclick="stopImpersonate()">{% trans "Stop impersonating" %}</a></li>
+                            {% else %}
+                              <li><a class="dropdown-item" href="{% url 'relate-impersonate' %}">{% trans "Impersonate user" %}</a></li>
+                            {% endif %}
+                            {% if pperm.set_fake_time or request.relate_impersonate_original_user|may_set_fake_time %}
+                              <li><a class="dropdown-item" href="{% url 'relate-set_fake_time' %}">{% trans "Set fake time" %}</a></li>
+                            {% endif %}
+                            {% if pperm.set_pretend_facility  or request.relate_impersonate_original_user|may_set_pretend_facility %}
+                              <li><a class="dropdown-item" href="{% url 'relate-set_pretend_facilities' %}">{% trans "Pretend to be in facilities" %}</a></li>
+                            {% endif %}
+                          {% endif %}
+                        {% endblock %}
+                      </ul>
+                    </li>
+                  {% endif %}
+                {% endblock %}
 
-              {% if user.is_authenticated %}
-                <a class="link-secondary" href="{% url 'relate-user_profile' %}">
-                  {% blocktrans trimmed with username=user.username %}
-                    Signed in as {{ username }}
-                  {% endblocktrans %}</a>
-                {% if currently_impersonating %}
-                  {% trans "(impersonated)" %}
-                {% endif %}
-              {% else %}
-                {# Error pages don't seem to run template context processors, so #}
-                {# this variable might not be available... #}
-                {% if student_sign_in_view %}
-                  <a class="link-secondary" href="{% url student_sign_in_view %}">{% trans "Sign in" %}</a>
-                {% endif %}
-              {% endif %}
-            </div>
+                <li class="ms-auto">
+                  {% block preview_status %}
+                  {% endblock %}
 
-          {% endif %} {# not maintenance_mode #}
-        </header>
-      </div>
+                  {% if user.is_authenticated %}
+                    <a class="link-secondary" href="{% url 'relate-user_profile' %}">
+                      {% blocktrans trimmed with username=user.username %}
+                        Signed in as {{ username }}
+                      {% endblocktrans %}</a>
+                    {% if currently_impersonating %}
+                      {% trans "(impersonated)" %}
+                    {% endif %}
+                  {% else %}
+                    {# Error pages don't seem to run template context processors, so #}
+                    {# this variable might not be available... #}
+                    {% if student_sign_in_view %}
+                      <a class="link-secondary" href="{% url student_sign_in_view %}">{% trans "Sign in" %}</a>
+                    {% endif %}
+                  {% endif %}
+                </li>
+
+              {% endif %} {# not maintenance_mode #}
+
+            </ul>
+          </div>
+        </div>
+      </nav>
     {% endblock %}
 
     {% block pre_root_container %}{% endblock %}

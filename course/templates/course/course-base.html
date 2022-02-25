@@ -26,7 +26,7 @@
   {% endblock %}
 
   {% if not relate_exam_lockdown %}
-    <div class="relate-dropdown-menu">
+    <li class="nav-item relate-dropdown-menu">
       <a href="#" id="dropdownParticipantMenu" data-bs-toggle="dropdown" aria-expanded="false">
         {% trans "Participant" context "menu item" %}
       </a>
@@ -46,11 +46,11 @@
           <li><a class="dropdown-item" href="{% url "relate-manage_authentication_tokens" course.identifier %}">{% trans "Manage Authentication Tokens" %}</a></li>
         {% endif %}
       </ul>
-    </div>
+    </li>
   {% endif %}
 
   {% if pperm.view_gradebook %}
-    <div class="relate-dropdown-menu">
+    <li class="nav-item relate-dropdown-menu">
       <a href="#" id="dropdownGradingMenu" data-bs-toggle="dropdown" aria-expanded="false">
         {% trans "Grading" context "menu item" %}
       </a>
@@ -97,11 +97,11 @@
           {% endif %}
         {% endif %}
       </ul>
-    </div>
+    </li>
   {% endif %}
 
   {% if pperm.preview_content or pperm.use_markup_sandbox or pperm.use_page_sandbox %}
-    <div class="relate-dropdown-menu">
+    <li class="nav-item relate-dropdown-menu">
       <a href="#" id="dropdownContentMenu" data-bs-toggle="dropdown" aria-expanded="false">
         {% trans "Content" context "menu item" %}
       </a>
@@ -139,12 +139,12 @@
         {% endif %}
 
       </ul>
-    </div>
+    </li>
   {% endif %}
 
   {% if pperm.query_participation or pperm.manage_instant_flow_requests or pperm.preapprove_participation %}
     {% if not pperm.view_participant_masked_profile %}
-      <div class="relate-dropdown-menu">
+      <li class="nav-item relate-dropdown-menu">
         <a href="#" id="dropdownInstructorMenu" data-bs-toggle="dropdown" aria-expanded="false">
           {% trans "Instructor" context "menu item" %}
         </a>
@@ -163,7 +163,7 @@
             <li><a class="dropdown-item" href="{% url "relate-manage_instant_flow_requests" course.identifier %}">{% trans "Manage instant flow requests" %}</a></li>
           {% endif %}
         </ul>
-      </div>
+      </li>
     {% endif %}
   {% endif %}
 {% endblock %}
