@@ -1,11 +1,6 @@
 - Narrow form rendering
-
-- MOSS submission
-
 - Custom matcher classes
-
 - Enter single grades
-
 - Show human/robot grader point parts
 
 Ideas
@@ -21,11 +16,7 @@ Ideas
 
 - Page URL endpoints (see page-url-endpoints branch)
 
-- 'Save and next' for grading
-
 - Fixed grading panel?
-
-- Change "end session" link for sessions that don't actually end.
 
 - Manual grade entry/override
 
