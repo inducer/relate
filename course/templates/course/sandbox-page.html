@@ -24,14 +24,14 @@
 
       {% if page_errors %}
         <div class="alert alert-danger">
-          <i class="fa fa-ban"></i>
+          <i class="bi bi-x-circle"></i>
           {{ page_errors }}
         </div>
       {% endif %}
 
       {% if page_warnings %}
         <div class="alert alert-warning">
-          <i class="fa fa-warning"></i>
+          <i class="bi bi-exclamation-triangle"></i>
           {% blocktrans  trimmed %} Warnings were encountered when validating the page: {% endblocktrans %}
 
           <ul>

@@ -14,11 +14,11 @@
     <div id="other-user-alert" class="alert alert-info">
       <div style="float:right">
         <a onclick='$("#other-user-alert").hide()'>
-          <i class="fa fa-times-circle" aria-hidden="true"></i><Paste>
+          <i class="bi bi-x-circle" aria-hidden="true"></i><Paste>
         </a>
       </div>
 
-      <i class="fa fa-user" aria-hidden="true"></i>
+      <i class="bi bi-person" aria-hidden="true"></i>
       {% trans "Viewing session for participant" %}
       {% if flow_session.participation != None %}
         <a href="{% url "relate-view_participant_grades" course.identifier flow_session.participation.id %}">{% if not pperm.view_participant_masked_profile %}{{ flow_session.participation.user.username }}{% else %}{{ flow_session.participation.user.get_masked_profile }}{% endif %}</a>.
@@ -47,23 +47,23 @@
             <a class="btn btn-secondary relate-nav-button"
                href="{% url "relate-view_flow_page" course.identifier flow_session.id page_data.previous_ordinal %}"
                title='{% trans "Previous page" context "Previous page/item in a flow" %}'
-               role="button"><i class="fa fa-chevron-left"></i></a>
+               role="button"><i class="bi bi-chevron-left"></i></a>
           {% else %}
             <a class="btn btn-secondary relate-nav-button disabled"
                href="#"
                title='{% trans "Previous page" context "Previous page/item in a flow" %}'
-               role="button"><i class="fa fa-chevron-left"></i></a>
+               role="button"><i class="bi bi-chevron-left"></i></a>
           {% endif %}
           {% if page_data.next_ordinal < flow_session.page_count %}
             <a class="btn btn-secondary relate-nav-button"
                href="{% url "relate-view_flow_page" course.identifier flow_session.id page_data.next_ordinal %}"
                title='{% trans "Next page" context "Next page/item in a flow" %}'
-               role="button"><i class="fa fa-chevron-right"></i></a>
+               role="button"><i class="bi bi-chevron-right"></i></a>
           {% else %}
             <a class="btn btn-secondary relate-nav-button disabled"
                href="#"
                title='{% trans "Next page" context "Next page/item in a flow" %}'
-               role="button"><i class="fa fa-chevron-right"></i></a>
+               role="button"><i class="bi bi-chevron-right"></i></a>
           {% endif %}
           <button id="btn_bookmark"
                   class="btn relate-flow-page-bookmark-button
@@ -74,9 +74,9 @@
                   title="{% trans "Boomark this page" %}">
             <i id="label_bookmark_indicator" class="fa
                    {% if page_data.bookmarked %}
-                     fa-star
+                     bi-star-fill
                    {% else %}
-                     fa-star-o
+                     bi-star
                    {% endif %}
                    " aria-hidden="true"></i>
           </button>
@@ -119,7 +119,7 @@
                 title="{% trans 'Send an email about this page to course staff' %}"
                 target="_blank"
                 >
-                <i class="fa fa-envelope-o" aria-hidden="true"></i>
+                <i class="bi bi-envelope" aria-hidden="true"></i>
               </a>
             </div>
           {% endif %}
@@ -132,11 +132,11 @@
               <div class="dropdown" id="past-submission_dropdown">
                 <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="past-submission_dropdown_button" data-bs-toggle="dropdown"
                   title='{% trans "Submission history for this page" %}'>
-                  <i class="fa fa-history"></i>
+                  <i class="bi bi-clock-history"></i>
                 </button>
                 <ul class="dropdown-menu dropdown-menu-end shadow" aria-labelledby="past-submission_dropdown_button" id="past-submission_dropdown_content">
                   <li style="list-style:none; position:relative; left:50%;">
-                    <i class="fa fa-spinner fa-spin relate-icon-busy"></i>
+                    <i class="bi bi-hourglass"></i>
                   </li>
                 </ul>
               </div>
@@ -151,7 +151,7 @@
             <div class="dropdown">
               <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="FlowPageMenuDropdown" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="true"
                 title='{% trans "Page Menu" %}'>
-                <i class="fa fa-bars"></i>
+                <i class="bi bi-list"></i>
               </button>
               <ul class="dropdown-menu dropdown-menu-end shadow" aria-labelledby="FlowPageMenuDropdown">
                 <li><h6 class="dropdown-header">{{ flow_desc.title }}</h6></li>
@@ -165,7 +165,7 @@
                     <li>
                       <a href="{% url 'relate-view_reopen_session' course.identifier flow_session.id opportunity.id %}"
                         target="_blank">
-                        {% trans "Reopen" %} <i class="fa fa-unlock" aria-hidden="true"></i>
+                        {% trans "Reopen" %} <i class="bi bi-unlock" aria-hidden="true"></i>
                       </a>
                     </li>
                   {% endif %}
@@ -173,7 +173,7 @@
                     <li>
                       <a class="dropdown-item" href="{% url 'relate-grant_exception_stage_3' course.identifier flow_session.participation.id flow_session.flow_id flow_session.id %}"
                         target="_blank">
-                        {% trans "Grant exception" %} <i class="fa fa-unlock" aria-hidden="true"></i>
+                        {% trans "Grant exception" %} <i class="bi bi-unlock" aria-hidden="true"></i>
                       </a>
                     </li>
                   {% endif %}
@@ -181,7 +181,7 @@
                     <li>
                       <a class="dropdown-item" href="{% url 'relate-grade_flow_page' course.identifier flow_session.id page_ordinal %}"
                         target="_blank">
-                        {% trans "View in grading interface" %} <i class="fa fa-unlock" aria-hidden="true"></i>
+                        {% trans "View in grading interface" %} <i class="bi bi-unlock" aria-hidden="true"></i>
                       </a>
                     </li>
                   {% endif %}
@@ -190,7 +190,7 @@
                   <li role="separator" class="divider"></li>
                   <li>
                     <a class="dropdown-item" href="{% url 'relate-unsubmit_flow_page' course.identifier flow_session.id page_ordinal %}">
-                      {% trans "Re-allow changes to page" %} <i class="fa fa-unlock" aria-hidden="true"></i>
+                      {% trans "Re-allow changes to page" %} <i class="bi bi-unlock" aria-hidden="true"></i>
                     </a>
                   </li>
                 {% endif %}
@@ -231,12 +231,12 @@
                 '>
                 {% if interaction_kind == flow_session_interaction_kind.permanent_grade or interaction_kind == flow_session_interaction_kind.ungraded %}
                   {% if flow_session.in_progress %}
-                    <i class="fa fa-check" aria-hidden="true"></i>
+                    <i class="bi bi-check" aria-hidden="true"></i>
                   {% else %}
-                    <i class="fa fa-bar-chart" aria-hidden="true"></i>
+                    <i class="bi bi-bar-chart" aria-hidden="true"></i>
                   {% endif %}
                 {% else %}
-                  <i class="fa fa-sign-out" aria-hidden="true"></i>
+                  <i class="bi bi-box-arrow-right" aria-hidden="true"></i>
                 {% endif %}
               </button>
             {% endif %}
@@ -287,7 +287,7 @@
                       <a class="dropdown-item" href="{% url "relate-view_flow_page" course.identifier flow_session.id other_page_data.page_ordinal %}">
                         {{ other_page_data.human_readable_ordinal }}: {{ other_page_data.title|safe }}
                         {% if other_page_data.bookmarked %}
-                          <i class="fa fa-star" aria-hidden="true"></i>
+                          <i class="bi bi-star-fill" aria-hidden="true"></i>
                         {% endif %}
                       </a>
                     </li>
@@ -521,19 +521,19 @@
             evt.preventDefault();
 
             var ind = $("#label_bookmark_indicator");
-            var prev_bookmarked = ind.hasClass("fa-star");
+            var prev_bookmarked = ind.hasClass("bi-star-fill");
             var new_bookmarked = !prev_bookmarked;
 
             if (new_bookmarked)
             {
-              ind.removeClass("fa-star-o");
-              ind.addClass("fa-star");
+              ind.removeClass("bi-star");
+              ind.addClass("bi-star-fill");
               btn_bookmark.addClass("relate-bookmarked");
             }
             else
             {
-              ind.removeClass("fa-star");
-              ind.addClass("fa-star-o");
+              ind.removeClass("bi-star-fill");
+              ind.addClass("bi-star");
               btn_bookmark.removeClass("relate-bookmarked");
             }
 

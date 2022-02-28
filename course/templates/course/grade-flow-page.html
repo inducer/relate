@@ -23,7 +23,7 @@
             </button>
             <ul class="dropdown-menu shadow" aria-labelledby="past-submission-and-grades_dropdown_button" id="past-submission-and-grades_dropdown_content">
               <li style="list-style:none; position:relative; left:50%;">
-                <i class="fa fa-spinner fa-spin relate-icon-busy"></i>
+                <i class="bi bi-hourglass"></i>
               </li>
             </ul>
           </div>
@@ -77,7 +77,7 @@
           <tr>
             <td>{% trans "Flow session" %}</td>
             <td>
-              <tt><a href="{% url "relate-view_single_grade" course.identifier flow_session.participation.id grading_opportunity.id %}"><i class="fa fa-level-up"></i> {{ flow_identifier }}</a></tt>
+              <tt><a href="{% url "relate-view_single_grade" course.identifier flow_session.participation.id grading_opportunity.id %}"><i class="bi bi-arrow-90deg-up"></i> {{ flow_identifier }}</a></tt>
               <span class="sensitive">
               {% if not pperm.view_participant_masked_profile %}
                   {# Translators: the grade information "for" a participant #}
@@ -145,15 +145,15 @@
           <td>
             {% if prev_flow_session_id != None %}
               <a href="{% url "relate-grade_flow_page" course.identifier prev_flow_session_id page_data.page_ordinal %}"
-                 accesskey="p" class="btn btn-secondary" title="Alt/Cmd(+Shift+)p"><i class="fa fa-chevron-left"></i></a>
+                 accesskey="p" class="btn btn-secondary" title="Alt/Cmd(+Shift+)p"><i class="bi bi-chevron-left"></i></a>
             {% else %}
-              <a href="#" class="btn btn-secondary disabled"><i class="fa fa-chevron-left"></i></a>
+              <a href="#" class="btn btn-secondary disabled"><i class="bi bi-chevron-left"></i></a>
             {% endif %}
             {% if next_flow_session_id %}
               <a href="{% url "relate-grade_flow_page" course.identifier next_flow_session_id page_data.page_ordinal %}"
-                 accesskey="n" class="btn btn-secondary" title="Alt/Cmd+(Shift+)n"><i class="fa fa-chevron-right"></i></a>
+                 accesskey="n" class="btn btn-secondary" title="Alt/Cmd+(Shift+)n"><i class="bi bi-chevron-right"></i></a>
             {% else %}
-              <a href="#" class="btn btn-secondary disabled"><i class="fa fa-chevron-right"></i></a>
+              <a href="#" class="btn btn-secondary disabled"><i class="bi bi-chevron-right"></i></a>
             {% endif %}
             {% trans "Session" %}
           </td>
@@ -168,15 +168,15 @@
           <td>
             {% if page_data.page_ordinal > 0 %}
               <a href="{% url "relate-grade_flow_page" course.identifier flow_session.id page_data.previous_ordinal %}"
-                  class="btn btn-secondary"><i class="fa fa-chevron-left"></i></a>
+                  class="btn btn-secondary"><i class="bi bi-chevron-left"></i></a>
             {% else %}
-              <a href="#" class="btn btn-secondary disabled"><i class="fa fa-chevron-left"></i></a>
+              <a href="#" class="btn btn-secondary disabled"><i class="bi bi-chevron-left"></i></a>
             {% endif %}
             {% if page_data.next_ordinal < flow_session.page_count %}
               <a href="{% url "relate-grade_flow_page" course.identifier flow_session.id page_data.next_ordinal %}"
-                  class="btn btn-secondary"><i class="fa fa-chevron-right"></i></a>
+                  class="btn btn-secondary"><i class="bi bi-chevron-right"></i></a>
             {% else %}
-              <a href="#" class="btn btn-secondary disabled"><i class="fa fa-chevron-right"></i></a>
+              <a href="#" class="btn btn-secondary disabled"><i class="bi bi-chevron-right"></i></a>
             {% endif %}
             {% trans "Page number" %}
           </td>
@@ -323,16 +323,16 @@
             + truncate_text(encode_entities(fb), 25)
             + "</button>"
             + " <a class='remove_fb_button' id='remove_fb_"+i+"' href='#'>"
-            +   "<i class='fa fa-times-circle'></i>"
+            +   "<i class='bi bi-x-circle'></i>"
             + "</a> "
             );
       }
       buttons += "</p>";
 
       buttons += "<p>";
-      buttons += ("<button class='btn btn-sm btn-secondary' type='button' "
-          + "onclick='add_feedback_item()'><i class='fa fa-plus'></i> {% trans "Add phrase" %}</button>");
-      buttons += ("<button class='btn btn-sm btn-secondary' type='button' "
+      buttons += ("<button class='btn btn-sm btn-secondary me-1' type='button' "
+          + "onclick='add_feedback_item()'><i class='bi bi-plus'></i> {% trans "Add phrase" %}</button>");
+      buttons += ("<button class='btn btn-sm btn-secondary me-1' type='button' "
           + "onclick='set_feedback(\"\")'>{% trans "Clear" %}</button>");
       buttons += "</p>";
 
