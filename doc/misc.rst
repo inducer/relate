@@ -453,6 +453,13 @@ Version 2022.1
     in-line form elements. Review questions of this type, and potentially reword
     them to allow for line breaks before and after form elements.
 
+  * Relate has also dropped "Font Awesome" (which is no longer maintained in
+    open-source form) in favor of `Bootstrap Icons
+    <https://icons.getbootstrap.com/>`__, which provides a similar icons with a
+    look consistent with Bootstrap. In many cases, all that is required is
+    to switch ``fa fa-key`` CSS classes to ``bi bi-key`` (or similar).
+    See the full list of available icons `here <https://icons.getbootstrap.com/>`__.
+
 Version 2015.1
 --------------
 

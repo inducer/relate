@@ -10,7 +10,7 @@
         <a
           class="btn btn-primary"
           href="{% url 'saml2_login' %}{{next_uri}}"
-          role="button"><i class="fa fa-institution"></i>
+          role="button"><i class="bi bi-building"></i>
           {% trans "Sign in using your institution's login" %} &raquo;</a>
       </li>
     {% endif %}
@@ -19,7 +19,7 @@
         <a
           class="btn btn-primary"
           href="{% url 'relate-sign_in_by_email' %}{{next_uri}}"
-          role="button"><i class="fa fa-envelope-o"></i>
+          role="button"><i class="bi bi-envelope"></i>
           {% trans "Sign in using your email" %} &raquo;</a>
       </li>
     {% endif %}
@@ -28,7 +28,7 @@
         <a
           class="btn btn-primary"
           href="{% url 'relate-sign_up' %}"
-          role="button"><i class="fa fa-user-plus"></i>
+          role="button"><i class="bi bi-person-plus"></i>
           {% trans "Sign up for an account" %} &raquo;</a>
       </li>
     {% endif %}
@@ -37,7 +37,7 @@
         <a
           class="btn btn-primary"
           href="{% url 'relate-check_in_for_exam' %}"
-          role="button"><i class="fa fa-ticket"></i>
+          role="button"><i class="bi bi-ticket-perforated"></i>
           {% trans "Sign in using an exam ticket" %} &raquo;</a>
       </li>
     {% endif %}
@@ -46,7 +46,7 @@
       <a
         class="btn btn-primary"
         href="{% url 'relate-sign_in_by_user_pw' %}{{next_uri}}"
-        role="button"><i class="fa fa-key"></i>
+        role="button"><i class="bi bi-key"></i>
         {% blocktrans %}Sign in with a {{ relate_site_name }}-specific user name and password{% endblocktrans %} &raquo;</a>
     </li>
     {% endif %}
@@ -55,7 +55,7 @@
       <a
         class="btn btn-primary"
         href="{% url "social:begin" backend %}{{next_uri}}"
-        role="button"><i class="fa fa-{{ social_provider_to_logo|get_item_or_key:backend }}"></i>
+        role="button"><i class="bi bi-{{ social_provider_to_logo|get_item_or_key:backend }}"></i>
         {% blocktrans with bkend=social_provider_to_human_name|get_item_or_key:backend %}Sign in with {{ bkend }}{% endblocktrans %} &raquo;</a>
     </li>
     {% endfor %}

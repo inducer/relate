@@ -1380,7 +1380,7 @@ def filter_html_attributes(tag, name, value):
     elif tag == "div":
         result = result or (name == "class" and value == "well")
     elif tag == "i":
-        result = result or (name == "class" and value.startswith("fa fa-"))
+        result = result or (name == "class" and value.startswith("bi bi-"))
     elif tag == "table":
         result = (result or (name == "class") or (name == "bootstrap"))
 

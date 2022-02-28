@@ -871,7 +871,7 @@ def grant_exception_stage_2(
         create_session_is_override = True
         form_text += ("<div class='alert alert-info'>%s</div>" % (
             string_concat(
-                "<i class='fa fa-info-circle'></i> ",
+                "<i class='bi bi-info-circle'></i> ",
                 _("Creating a new session is (technically) not allowed "
                 "by course rules. Clicking 'Create Session' anyway will "
                 "override this rule."))))
