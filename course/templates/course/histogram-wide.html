@@ -13,7 +13,7 @@
         <td class="histogram-bar-cell">
           {% if bin.percentage != None %}
             <div class="progress">
-              <div class="progress-bar progress-bar-info" role="progressbar"
+              <div class="progress-bar bg-info" role="progressbar"
                 aria-valuenow="{{ bin.percentage }}" aria-valuemin="0" aria-valuemax="100"
                 style="width: {{ bin.percentage|stringformat:".4f" }}%">
                 <span class="stats-percentage">{{ bin.percentage|floatformat:1 }}%</span>
