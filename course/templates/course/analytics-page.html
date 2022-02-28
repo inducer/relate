@@ -48,13 +48,13 @@
       <div class="progress">
         <div class="progress-bar
           {% if astats.correctness == 0 %}
-            progress-bar-danger
+            bg-danger
           {% elif astats.correctness == 1 %}
-            progress-bar-success
+            bg-success
           {% elif astats.correctness == None %}
-            progress-bar-info
+            bg-info
           {% else %}
-            progress-bar-warning
+            bg-warning
           {% endif %}"
           role="progressbar"
           aria-valuenow="{{ astats.percentage }}" aria-valuemin="0" aria-valuemax="100"

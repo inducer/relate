@@ -42,11 +42,11 @@
                   {% if grade_info.total_points_percent < 100.001 %}
                       {# otherwise we'll have trouble drawing the bar #}
                       <div class="progress">
-                          <div class="progress-bar progress-bar-success"
+                          <div class="progress-bar bg-success"
                                style="width: {{ grade_info.points_percent|stringformat:".8f" }}%"></div>
-                          <div class="progress-bar progress-bar-danger"
+                          <div class="progress-bar bg-danger"
                                style="width: {{ grade_info.missed_points_percent|stringformat:".8f" }}%"></div>
-                          <div class="progress-bar progress-bar-info"
+                          <div class="progress-bar bg-info"
                                style="width: {{ grade_info.unreachable_points_percent|stringformat:".8f" }}%"></div>
                       </div>
                   {% endif %}
@@ -64,13 +64,13 @@
                       {% endif %}
                   </p>
                   <div class="progress">
-                      <div class="progress-bar progress-bar-success"
+                      <div class="progress-bar bg-success"
                            style="width: {{ grade_info.fully_correct_percent|stringformat:".8f" }}%"></div>
-                      <div class="progress-bar progress-bar-warning"
+                      <div class="progress-bar bg-warning"
                            style="width: {{ grade_info.partially_correct_percent|stringformat:".8f" }}%"></div>
-                      <div class="progress-bar progress-bar-danger"
+                      <div class="progress-bar bg-danger"
                            style="width: {{ grade_info.incorrect_percent|stringformat:".8f" }}%"></div>
-                      <div class="progress-bar progress-bar-info"
+                      <div class="progress-bar bg-info"
                            style="width: {{ grade_info.unknown_percent|stringformat:".8f" }}%"></div>
                   </div>
               {% endif %}
@@ -89,13 +89,13 @@
                       {% endif %}
                   </p>
                   <div class="progress">
-                      <div class="progress-bar progress-bar-success"
+                      <div class="progress-bar bg-success"
                            style="width: {{ grade_info.optional_fully_correct_percent|stringformat:".8f" }}%"></div>
-                      <div class="progress-bar progress-bar-warning"
+                      <div class="progress-bar bg-warning"
                            style="width: {{ grade_info.optional_partially_correct_percent|stringformat:".8f" }}%"></div>
-                      <div class="progress-bar progress-bar-danger"
+                      <div class="progress-bar bg-danger"
                            style="width: {{ grade_info.optional_incorrect_percent|stringformat:".8f" }}%"></div>
-                      <div class="progress-bar progress-bar-info"
+                      <div class="progress-bar bg-info"
                            style="width: {{ grade_info.optional_unknown_percent|stringformat:".8f" }}%"></div>
                   </div>
               {% endif %}
