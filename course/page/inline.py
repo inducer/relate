@@ -377,7 +377,7 @@ class ShortAnswer(AnswerBase):
                     required=self.required or force_required,
                     widget=None,
                     help_text=None,
-                    label=self.name
+                    label=""
                 )
 
 
