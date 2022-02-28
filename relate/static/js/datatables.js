@@ -5,11 +5,12 @@ import jQuery from 'jquery';
 
 import datatables from 'datatables.net';
 
-import datatablesBs from 'datatables.net-bs/js/dataTables.bootstrap';
-import 'datatables.net-bs/css/dataTables.bootstrap.css';
+import datatablesBs from 'datatables.net-bs5/js/dataTables.bootstrap5';
+import 'datatables.net-bs5/css/dataTables.bootstrap5.css';
 
 import datatablesFixedColumns from 'datatables.net-fixedcolumns/js/dataTables.fixedColumns';
-import 'datatables.net-fixedcolumns-bs/css/fixedColumns.bootstrap.css';
+import 'datatables.net-fixedcolumns-bs5/css/fixedColumns.bootstrap5.css';
+import 'datatables.net-fixedcolumns-bs5/js/fixedColumns.bootstrap5';
 
 import * as rlUtils from './rlUtils';
 
