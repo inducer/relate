@@ -86,6 +86,30 @@
 
         <div class="relate-flow-controls float-end d-flex gap-2 mb-2">
 
+          {# {{{ expiration mode #}
+
+          {% if flow_session.in_progress and expiration_mode_choice_count > 1 and not viewing_prior_version %}
+            <div class="flow-session-expiration-panel d-flex text-nowrap align-items-baseline gap-1">
+              <span id="expiration_mode_change_progress">
+              </span>
+              <label class="form-label" for="id_expiration_mode">
+                {# Translators: the string is followed by "what will happen" at deadline. #}
+                {% trans "At deadline:" %}
+              </label>
+              <select class="form-select" id="id_expiration_mode"
+                name="expiration_mode">
+                {% for key, val in expiration_mode_choices %}
+                  <option value="{{ key }}"
+                  {% if key == expiration_mode %}
+                    selected
+                  {% endif %}
+                  >{{ val }}</option>
+                {% endfor %}
+              </select>
+            </div>
+          {% endif %}
+
+          {# }}} #}
           {# {{{ send email button #}
 
           {% if may_send_email_about_flow_page %}
@@ -175,32 +199,6 @@
           </div>
 
           {# }}} #}
-
-          {# {{{ expiration mode #}
-
-          {% if flow_session.in_progress and expiration_mode_choice_count > 1 and not viewing_prior_version %}
-            <div class="flow-session-expiration-panel">
-              <span id="expiration_mode_change_progress">
-              </span>
-              <label for="id_expiration_mode">
-                {# Translators: the string is followed by "what will happen" at deadline. #}
-                {% trans "At deadline:" %}
-              </label>
-              <select class="select form-control" id="id_expiration_mode"
-                name="expiration_mode">
-                {% for key, val in expiration_mode_choices %}
-                  <option value="{{ key }}"
-                  {% if key == expiration_mode %}
-                    selected
-                  {% endif %}
-                  >{{ val }}</option>
-                {% endfor %}
-              </select>
-            </div>
-          {% endif %}
-
-          {# }}} #}
-
 
           {# {{{ 'finish' button #}
 
