@@ -17,15 +17,15 @@
     {% endif %}
     ">
     {% if message.tags == "error" %}
-        <i class="fa fa-ban"></i>
+        <i class="bi bi-x-circle"></i>
     {% elif message.tags == "success" %}
-        <i class="fa fa-check"></i>
+        <i class="bi bi-check"></i>
     {% elif message.tags == "info" %}
-        <i class="fa fa-info-circle"></i>
+        <i class="bi bi-info-circle"></i>
     {% elif message.tags == "warning" %}
-        <i class="fa fa-warning"></i>
+        <i class="bi bi-exclamation-triangle"></i>
     {% elif message.tags == "danger warning" %}
-        <i class="fa fa-warning"></i>
+        <i class="bi bi-exclamation-triangle"></i>
     {% endif %}
     {{ message|safe }}
   </div>
@@ -33,7 +33,7 @@
 
 {% if fake_time %}
   <div class="alert alert-info">
-    <i class="fa fa-info-circle"></i>
+    <i class="bi bi-info-circle"></i>
     {% blocktrans trimmed %}
     You are currently seeing a preview of what the site
     would look like at {{ fake_time }}.
@@ -47,7 +47,7 @@
 
 {% if pretend_facilities and add_pretend_facilities_header %}
   <div class="alert alert-info">
-    <i class="fa fa-info-circle"></i>
+    <i class="bi bi-info-circle"></i>
     {% blocktrans trimmed with facilities=pretend_facilities|join:", "  %}
     You are currently seeing a preview of what the site
     would look like from inside the facilities  <b>{{ facilities }}</b>.
@@ -61,7 +61,7 @@
 
 {% if currently_impersonating and add_impersonation_header %}
   <div class="alert alert-info">
-    <i class="fa fa-info-circle"></i>
+    <i class="bi bi-info-circle"></i>
     {% trans "Now impersonating" %} {{ user.get_full_name }} ({{ user.username }} - {{ user.email }}).
     <a class="btn btn-secondary btn-sm" onclick=stopImpersonate() role="button" target="_blank">{% trans "Stop impersonating" %} &raquo;</a>
   </div>

@@ -313,11 +313,10 @@ in ``$$...$$``::
 Symbols and Icons
 ^^^^^^^^^^^^^^^^^
 
-RELATE includes `FontAwesome <http://fontawesome.io/>`_,
-a comprehensive symbol set by Dave Gandy.
-Symbols from `that set <http://fontawesome.io/icons/>`_ can be included as follows::
+RELATE includes `Bootstrap Icons <https://icons.getbootstrap.com/>`_,
+a comprehensive symbol set.  Symbols from that set can be included as follows::
 
-      <i class="fa fa-heart"></i>
+      <i class="bi bi-heart"></i>
 
 In-line HTML
 ^^^^^^^^^^^^
