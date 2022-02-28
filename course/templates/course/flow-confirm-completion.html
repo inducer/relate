@@ -68,12 +68,12 @@
         </a>
         <button id="submit" type="submit" name="submit" class="btn btn-danger"
                 style="display:none"
-                data-content='<p>{% trans "Are you sure you will submit this session with questions unanswered?" %}</p>
-                        <button id="cancel-button" type="reset" name="cancel" class="btn btn-primary btn-sm" style="float: right;">
+                data-bs-content='<p>{% trans "Are you sure you would like to submit this session with questions unanswered?" %}</p>
+                        <a href="#" id="cancel-button" class="btn btn-primary btn-sm">
                         {% trans "Cancel" %}</button>'
-                data-html="true"
-                data-container="body"
-                data-placement="right"
+                data-bs-html="true"
+                data-bs-container="body"
+                data-bs-placement="right"
           >
             {% trans "I am sure" %} &raquo;
         </button>
