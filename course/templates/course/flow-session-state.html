@@ -1,8 +1,8 @@
 {% load i18n %}
 {% if not flow_session %}
-  <span class="label label-danger">{% trans "not started" %}</span>
+  <span class="badge bg-danger">{% trans "not started" %}</span>
 {% elif flow_session.in_progress %}
-  <span class="label label-warning">{% trans "unfinished" %}</span>
+  <span class="badge bg-warning">{% trans "unfinished" %}</span>
 {% else %}
-  <span class="label label-success">{% trans "finished" %}</span>
+  <span class="badge bg-success">{% trans "finished" %}</span>
 {% endif %}
