@@ -408,6 +408,51 @@ also available from the ``relate`` command.
 User-visible Changes
 ====================
 
+Version 2022.1
+--------------
+
+* In March 2022 (specifically, with
+  `this pull request <https://github.com/inducer/relate/pull/892>`__),
+  Relate adopted Bootstrap 5, which brought with it some changes that might
+  affect courses that relied on CSS or other markup features specific to
+  Bootstrap 3. For comprehensive advice on how to port your content to
+  the upgraded CSS framework, see the `official porting guide
+  <https://getbootstrap.com/docs/4.6/migration/>`__.  Here are some specific
+  tips on migrating your course content that may suffice for simple cases:
+
+  * The CSS class ``btn-default`` was removed. Use ``btn-secondary`` instead.
+    Potentially consider the new ``btn-outline-{primary,secondary}``.
+
+  * If you have collapsing panels in your course content, you may use markup
+    like the following instead:
+
+    .. code:: html
+
+        <div class="card mb-3" markdown="block">
+          <div class="card-header">
+            <h5 class="card-title dropdown-toggle">
+              <a class="text-decoration-none link-dark"
+                data-bs-toggle="collapse" href="#starter-code" aria-expanded="false" aria-controls="starter-code">
+                  Header
+              </a>
+            </h5>
+          </div>
+          <div id="starter-code" class="collapse">
+           <div class="card-body">
+             Content
+           </div>
+          </div>
+        </div>
+
+    If you are looking for an updated version of the ``collapsible`` macro from
+    the sample content, you may find it `here
+    <https://github.com/inducer/relate-sample/blob/0a7019584fda7ea0b91cc3fd370b799df249460a/content-macros.jinja#L18-L34>`__.
+
+  * Bootstrap 5 applies ``display: block`` and ``width: 100%`` CSS styles to form
+    elements. This changes how `InlineMultiQuestion`\ s look, in that it prevents
+    in-line form elements. Review questions of this type, and potentially reword
+    them to allow for line breaks before and after form elements.
+
 Version 2015.1
 --------------
 
