@@ -135,12 +135,12 @@
         </a>
         <button id="start-button" type="submit" name="start" class="btn btn-danger"
           style="display:none"
-          data-content='<p>{% trans "I understand that starting a new session could lower my overall grade." %}</p>
-                        <button id="cancel-button" type="reset" name="cancel" class="btn btn-primary btn-sm" style="float: right;">
-                        {% trans "Cancel" %}</button>'
-          data-html="true"
-          data-container="body"
-          data-placement="right"
+          data-bs-content='<p>{% trans "I understand that starting a new session could lower my overall grade." %}</p>
+                        <a href="#" id="cancel-button" name="cancel" class="btn btn-primary btn-sm">
+                        {% trans "Cancel" %}</a>'
+          data-bs-html="true"
+          data-bs-container="body"
+          data-bs-placement="right"
           >
             {# Translators: student should confirm to start another session. #}
             {% trans "I am sure" %} &raquo;
