@@ -438,14 +438,14 @@ HTML5_DATETIME_FORMAT = "%Y-%m-%dT%H:%M"
 
 
 class HTML5DateInput(forms.DateInput):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(
                 attrs={"type": "date"},
                 format=HTML5_DATE_FORMAT)
 
 
 class HTML5DateTimeInput(forms.DateTimeInput):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(
                 attrs={"type": "datetime-local"},
                 format=HTML5_DATETIME_FORMAT)
