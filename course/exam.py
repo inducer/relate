@@ -52,7 +52,7 @@ from course.constants import (
         participation_permission as pperm)
 
 from relate.utils import (
-        StyledForm, string_concat, HTML5DateTimeInput, HTML5DateInput)
+        StyledForm, string_concat, HTML5DateTimeInput)
 
 
 # {{{ mypy
