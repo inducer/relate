@@ -2261,8 +2261,6 @@ fieldset[disabled] .notification_widget.danger.focus {
   box-shadow: 0px 0px 12px 1px rgba(87, 87, 87, 0.2);
   /* Display over codemirror */
   z-index: 100;
-  /* Hack which prevents jquery ui resizable from changing top. */
-  top: auto !important;
 }
 .relate-notebook-container div#pager pre {
   line-height: 1.21429em;
@@ -2294,7 +2292,7 @@ fieldset[disabled] .notification_widget.danger.focus {
   background: #f7f7f7;
   border-top: 1px solid #cfcfcf;
   border-bottom: 1px solid #cfcfcf;
-  /* This injects handle bars (a short, wide = symbol) for 
+  /* This injects handle bars (a short, wide = symbol) for
         the resize handle. */
 }
 .relate-notebook-container div#pager .ui-resizable-handle::after {
