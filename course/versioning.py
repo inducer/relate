@@ -49,7 +49,7 @@ from django.db import transaction
 
 from django import http
 
-from relate.utils import StyledForm, StyledModelForm, string_concat
+from relate.utils import StyledForm, StyledModelForm, string_concat, HTML5DateInput
 from crispy_forms.layout import Submit
 
 from course.models import (
@@ -161,8 +161,8 @@ class CourseCreationForm(StyledModelForm):
             "force_lang",
             )
         widgets = {
-                "start_date": forms.DateInput(attrs={"type": "date"}),
-                "end_date": forms.DateInput(attrs={"type": "date"}),
+                "start_date": HTML5DateInput(),
+                "end_date": HTML5DateInput(),
                 "force_lang": forms.Select(
                     choices=get_course_specific_language_choices()),
                 }

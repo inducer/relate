@@ -51,7 +51,8 @@ from course.constants import (
         participation_status,
         participation_permission as pperm)
 
-from relate.utils import StyledForm, string_concat
+from relate.utils import (
+        StyledForm, string_concat, HTML5DateTimeInput, HTML5DateInput)
 
 
 # {{{ mypy
@@ -107,11 +108,11 @@ class IssueTicketForm(StyledForm):
 
         self.fields["valid_start_time"] = forms.DateTimeField(
                 label=_("Start validity"),
-                widget=forms.DateTimeInput(attrs={"type": "datetime-local"}),
+                widget=HTML5DateTimeInput(),
                 required=False)
         self.fields["valid_end_time"] = forms.DateTimeField(
                 label=_("End validity"),
-                widget=forms.DateInput(attrs={"type": "datetime-local"}),
+                widget=HTML5DateTimeInput(),
                 required=False)
         self.fields["restrict_to_facility"] = forms.CharField(
                 label=_("Restrict to facility"),
@@ -298,11 +299,11 @@ class BatchIssueTicketsForm(StyledForm):
 
         self.fields["valid_start_time"] = forms.DateTimeField(
                 label=_("Start validity"),
-                widget=forms.DateTimeInput(attrs={"type": "datetime-local"}),
+                widget=HTML5DateTimeInput(),
                 required=False)
         self.fields["valid_end_time"] = forms.DateTimeField(
                 label=_("End validity"),
-                widget=forms.DateTimeInput(attrs={"type": "datetime-local"}),
+                widget=HTML5DateTimeInput(),
                 required=False)
         self.fields["restrict_to_facility"] = forms.CharField(
                 label=_("Restrict to facility"),
