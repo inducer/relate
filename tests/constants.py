@@ -1,7 +1,7 @@
 import os
 from collections import namedtuple
+from relate.utils import HTML5_DATETIME_FORMAT as DATE_TIME_PICKER_TIME_FORMAT
 
-DATE_TIME_PICKER_TIME_FORMAT = "%Y-%m-%d %H:%M"
 
 QUIZ_FLOW_ID = "quiz-test"
 MESSAGE_ANSWER_SAVED_TEXT = "Answer saved."

@@ -34,7 +34,8 @@ from crispy_forms.layout import Submit
 
 import datetime
 
-from relate.utils import StyledForm, as_local_time, string_concat
+from relate.utils import (StyledForm, as_local_time, string_concat,
+        HTML5DateTimeInput)
 from course.constants import (
         participation_permission as pperm,
         )
@@ -68,7 +69,8 @@ class RecurringEventForm(StyledForm):
                         "allowed."),
             label=pgettext_lazy("Kind of event", "Kind of event"))
     time = forms.DateTimeField(
-            widget=forms.DateTimeInput(attrs={"type": "datetime-local"})),
+            widget=HTML5DateTimeInput(),
+            label=pgettext_lazy("Starting time of event", "Starting time"))
     duration_in_minutes = forms.FloatField(required=False,
             min_value=0,
             label=_("Duration in minutes"))

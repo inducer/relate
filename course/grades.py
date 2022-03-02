@@ -40,7 +40,8 @@ from django.utils.timezone import now
 from django import http
 
 from django.urls import reverse
-from relate.utils import StyledForm, StyledModelForm, string_concat
+from relate.utils import (
+        StyledForm, StyledModelForm, string_concat, HTML5DateTimeInput)
 from crispy_forms.layout import Submit
 
 from course.utils import course_view, render_course_page
@@ -1667,8 +1668,7 @@ class EditGradingOpportunityForm(StyledModelForm):
                 "due_time",
                 )
         widgets = {
-                "hide_superseded_grade_history_before":
-                forms.DateTimeInput(attrs={"type": "datetime-local"}),
+                "hide_superseded_grade_history_before": HTML5DateTimeInput(),
                 }
 
 
