@@ -23,7 +23,7 @@
           <div class="d-flex mb-1 flex-wrap">
             {% for course in current_courses %}
               <div class="card me-3 mb-3" style="width: 18rem;">
-                <h5 class="card-header">{{course.name}}</h3>
+                <h5 class="card-header">{{course.name}}</h5>
                 <div class="card-body">
                   <p class="text-muted card-text">{{course.number}} {{course.time_period}}</p>
                   <a class="btn btn-primary" href="{% url 'relate-course_page' course.identifier %}" role="button">{% trans "View" %} &raquo;</a>
