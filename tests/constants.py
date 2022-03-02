@@ -1,6 +1,7 @@
 import os
 from collections import namedtuple
-from relate.utils import HTML5_DATETIME_FORMAT as DATE_TIME_PICKER_TIME_FORMAT
+from relate.utils import HTML5_DATETIME_FORMAT \
+        as DATE_TIME_PICKER_TIME_FORMAT  # noqa: F401
 
 
 QUIZ_FLOW_ID = "quiz-test"
