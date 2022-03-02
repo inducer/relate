@@ -870,9 +870,9 @@ class ViewGradesByOpportunityTest(GradesTestMixin, TestCase):
         # There're 3 participations, student has 2 finished session,
         # 1 in-progress session
 
-        not_started = '<span class="label label-danger">not started</span>'
-        finished = '<span class="label label-success">finished</span>'
-        unfinished = '<span class="label label-warning">unfinished</span>'
+        not_started = '<span class="badge bg-danger">not started</span>'
+        finished = '<span class="badge bg-success">finished</span>'
+        unfinished = '<span class="badge bg-warning">unfinished</span>'
 
         resp = self.get_gradebook_by_opp_view(self.gopp_id)
         self.assertEqual(resp.status_code, 200)
