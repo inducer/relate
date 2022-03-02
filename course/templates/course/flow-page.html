@@ -563,17 +563,6 @@
 
   <script type="text/javascript">
     $("div.CodeMirror")
-    .resizable({
-          resize: function (event, ui)
-          {
-            $("div.CodeMirror").each(
-              function ()
-              {
-                var cm = this.CodeMirror;
-                cm.refresh();
-              });
-          }
-      })
     .each(
         function ()
         {
