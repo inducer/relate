@@ -53,7 +53,8 @@ from django.views.decorators.cache import cache_control
 
 from crispy_forms.layout import Submit, Layout, Div
 
-from relate.utils import StyledForm, StyledModelForm, string_concat
+from relate.utils import (StyledForm, StyledModelForm, string_concat,
+        HTML5DateTimeInput, HTML5DateInput)
 
 from course.auth import get_pre_impersonation_user
 from course.enrollment import (
@@ -361,7 +362,7 @@ def get_repo_file_response(
 
 class FakeTimeForm(StyledForm):
     time = forms.DateTimeField(
-            widget=forms.DateTimeInput(attrs={"type": "datetime-local"}),
+            widget=HTML5DateTimeInput(),
             label=_("Time"))
 
     def __init__(self, *args, **kwargs):
@@ -1006,7 +1007,7 @@ class ExceptionStage3Form(StyledForm):
             label=_("Create access rule exception"))
 
         self.fields["access_expires"] = forms.DateTimeField(
-            widget=forms.DateTimeInput(attrs={"type": "datetime-local"}),
+            widget=HTML5DateTimeInput(),
             required=False,
             label=pgettext_lazy("Time when access expires", "Access expires"),
             help_text=_("At the specified time, the special access granted below "
@@ -1036,7 +1037,7 @@ class ExceptionStage3Form(StyledForm):
                 initial=default_data.get("due_same_as_access_expiration") or False,
                 label=_("Due same as access expiration"))
         self.fields["due"] = forms.DateTimeField(
-                widget=forms.DateTimeInput(attrs={"type": "datetime-local"}),
+                widget=HTML5DateTimeInput(),
                 required=False,
                 help_text=_("The due time shown to the student. Also, the "
                 "time after which "
@@ -1407,8 +1408,8 @@ class EditCourseForm(StyledModelForm):
                 "trusted_for_markup",
                 )
         widgets = {
-                "start_date": forms.DateInput(attrs={"type": "date"}),
-                "end_date": forms.DateInput(attrs={"type": "date"}),
+                "start_date": HTML5DateInput(),
+                "end_date": HTML5DateInput(),
                 "force_lang": forms.Select(
                     choices=get_course_specific_language_choices()),
                 }

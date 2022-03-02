@@ -60,7 +60,8 @@ from course.models import Participation, ParticipationRole, AuthenticationToken 
 from accounts.models import User
 from course.utils import render_course_page, course_view
 
-from relate.utils import StyledForm, StyledModelForm, string_concat, get_site_name
+from relate.utils import (StyledForm, StyledModelForm, string_concat,
+        get_site_name, HTML5DateTimeInput)
 from django_select2.forms import ModelSelect2Widget
 
 from typing import Any, Text, Optional, Dict, Union, Tuple, TYPE_CHECKING  # noqa
@@ -1368,7 +1369,7 @@ class AuthenticationTokenForm(StyledModelForm):
                 )
 
         widgets = {
-                "valid_until": forms.DateTimeInput(attrs={"type": "datetime-local"})
+                "valid_until": HTML5DateTimeInput()
                 }
 
     def __init__(
