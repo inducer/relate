@@ -383,7 +383,7 @@ def send_enrollment_decision(
             # This will happen when this method is triggered by
             # a model signal which doesn't contain a request object.
             from urllib.parse import urljoin
-            course_uri = urljoin(getattr(settings, "RELATE_BASE_URL"),
+            course_uri = urljoin(settings.RELATE_BASE_URL,
                                  course.get_absolute_url())
 
         from relate.utils import render_email_template
@@ -855,7 +855,8 @@ def query_participations(pctx):
         if form.is_valid():
             parsed_query = None
             try:
-                for lineno, q in enumerate(form.cleaned_data["queries"].split("\n")):
+                for lineno, q in enumerate(  # noqa: B007
+                        form.cleaned_data["queries"].split("\n")):
                     q = q.strip()
 
                     if not q:

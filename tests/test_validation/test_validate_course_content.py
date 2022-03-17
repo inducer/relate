@@ -395,7 +395,7 @@ class ValidateCourseContentTest(CoursesTestMixinBase, TestCase):
             (staticpage1_path, staticpage1_desc),
             (staticpage2_path, staticpage2_desc)}
         args_set = set()
-        for args, kwargs in self.mock_validate_staticpage_desc.call_args_list:
+        for args, _kwargs in self.mock_validate_staticpage_desc.call_args_list:
             args_set.add(args[1:])
 
         self.assertSetEqual(expected_validate_staticpage_desc_call_args,
@@ -420,7 +420,7 @@ class ValidateCourseContentTest(CoursesTestMixinBase, TestCase):
             (flow2_location, flow2_id),
             (flow3_location, flow3_id), }
         args_set = set()
-        for args, kwargs in self.mock_validate_flow_id.call_args_list:
+        for args, _kwargs in self.mock_validate_flow_id.call_args_list:
             args_set.add(args[1:])
 
         self.assertSetEqual(expected_validate_flow_id_call_args, args_set)
@@ -434,7 +434,7 @@ class ValidateCourseContentTest(CoursesTestMixinBase, TestCase):
             (flow2_path, flow2_default_desc),
             (flow3_path, flow3_default_desc), }
         args_set = set()
-        for args, kwargs in self.mock_validate_flow_desc.call_args_list:
+        for args, _kwargs in self.mock_validate_flow_desc.call_args_list:
             args_set.add(args[1:])
 
         self.assertSetEqual(expected_validate_flow_desc_call_args, args_set)
@@ -453,7 +453,7 @@ class ValidateCourseContentTest(CoursesTestMixinBase, TestCase):
             (staticpage1_location, staticpage1_id),
             (staticpage2_location, staticpage2_id)}
         args_set = set()
-        for args, kwargs in self.mock_validate_static_page_name.call_args_list:
+        for args, _kwargs in self.mock_validate_static_page_name.call_args_list:
             args_set.add(args[1:])
 
         self.assertSetEqual(expected_validate_static_page_name_call_args, args_set)
@@ -486,7 +486,7 @@ class ValidateCourseContentTest(CoursesTestMixinBase, TestCase):
             (flow2_path, self.course, flow2_id, flow2_grade_identifier),
             (flow3_path, self.course, flow3_id, flow3_grade_identifier)}
         args_set = set()
-        for args, kwargs in self.mock_check_grade_identifier_link.call_args_list:
+        for args, _kwargs in self.mock_check_grade_identifier_link.call_args_list:
             args_set.add(args[1:])
 
         self.assertSetEqual(

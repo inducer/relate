@@ -672,7 +672,7 @@ class InlineMultiQuestion(TextQuestionBase, PageBaseWithValue):
 
         answer_instance_list = []
 
-        for idx, name in enumerate(self.embedded_name_list):
+        for name in self.embedded_name_list:
             answers_desc = getattr(self.page_desc.answers, name)
 
             parsed_answer = parse_question(
@@ -757,7 +757,7 @@ class InlineMultiQuestion(TextQuestionBase, PageBaseWithValue):
                             _("question has unpaired '%s'."))
                         % (location, sep))
 
-            for idx, name in enumerate(self.embedded_name_list):
+            for name in self.embedded_name_list:
                 answers_desc = getattr(page_desc.answers, name)
 
                 parse_question(vctx, location, name, answers_desc)
@@ -896,7 +896,7 @@ class InlineMultiQuestion(TextQuestionBase, PageBaseWithValue):
 
         total_weight = 0
 
-        for idx, name in enumerate(self.embedded_name_list):
+        for idx in range(len(self.embedded_name_list)):
             total_weight += self.answer_instance_list[idx].weight
 
         if total_weight > 0:

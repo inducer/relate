@@ -643,7 +643,7 @@ class GetGradeTableTest(GradesTestMixin, TestCase):
         self.assertEqual(grade_table[4][2].grade_state_machine.percentage(), None)
 
     def test(self):
-        for i in range(10):
+        for _i in range(10):
             self.run_test()
             factories.UserFactory.reset_sequence(0)
             self.setUp()

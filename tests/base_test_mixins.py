@@ -1910,7 +1910,9 @@ class SingleCourseTestMixin(CoursesTestMixinBase):
     def get_default_course_identifier(cls):
         return cls.get_default_course().identifier
 
-    def copy_course_dict_and_set_attrs_for_post(self, attrs_dict={}):
+    def copy_course_dict_and_set_attrs_for_post(self, attrs_dict=None):
+        if attrs_dict is None:
+            attrs_dict = {}
         from course.models import Course
         kwargs = Course.objects.first().__dict__
         kwargs.update(attrs_dict)

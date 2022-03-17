@@ -824,7 +824,7 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
                 from relate.utils import render_email_template
                 message = render_email_template(
                     "course/broken-code-question-email.txt", {
-                        "site": getattr(settings, "RELATE_BASE_URL"),
+                        "site": settings.RELATE_BASE_URL,
                         "page_id": self.page_desc.id,
                         "course": page_context.course,
                         "error_message": error_msg,
