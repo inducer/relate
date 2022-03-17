@@ -1058,6 +1058,17 @@ def validate_flow_desc(vctx, location, flow_desc):
     for i, grp in enumerate(flow_desc.groups):
         group_has_page = False
 
+        if not hasattr(grp, "pages"):
+            raise ValidationError(
+                    string_concat(
+                        "%(location)s, ",
+                        _("group %(group_index)d ('%(group_id)s'): "
+                            "'pages' attribute is required"))
+                    % {
+                        "location": location,
+                        "group_index": i+1,
+                        "group_id": grp.id})
+
         if not isinstance(grp.pages, list):
             raise ValidationError(
                     string_concat(
