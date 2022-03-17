@@ -322,7 +322,7 @@ class FloatOrSympyEvalfTest(unittest.TestCase):
             float_or_sympy_evalf("")
 
     def test_float_or_sympy_evalf_value_error(self):
-        expected_error_msg = "can't convert expression to float"
+        expected_error_msg = "Cannot convert expression to float"
         with self.assertRaises(TypeError) as cm:
             float_or_sympy_evalf("abcd")
         self.assertIn(expected_error_msg, str(cm.exception))
@@ -410,7 +410,7 @@ class FloatMatcherTest(unittest.TestCase):
                                     }))
         matcher.validate(1.1)
 
-        expected_error_msg = "TypeError: can\'t convert expression to float"
+        expected_error_msg = "TypeError: Cannot convert expression to float"
         with self.assertRaises(forms.ValidationError) as cm:
             matcher.validate("abcd")
         self.assertIn(expected_error_msg, str(cm.exception))

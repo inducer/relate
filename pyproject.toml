@@ -91,7 +91,8 @@ python-memcached = "^1.59"
 #
 celery = "^5.2.2"
 kombu = "*"
-django-celery-results = "^2.0.1"
+# Avoid 2.3.0 because of https://github.com/celery/django-celery-results/issues/293
+django-celery-results = "^2.0.1,!=2.3.0"
 
 # }}}
 
@@ -115,6 +116,9 @@ IPython = "^7.15.0"
 # For relate script
 colorama = "*"
 
+# https://github.com/jupyter/nbconvert/issues/1725
+ipython_genutils = "^0.2.0"
+
 # not a direct dependency
 # version constraint is here because of CVE-2020-25659
 cryptography = "^3.2.1"
@@ -124,6 +128,7 @@ social-auth-app-django = "^5.0.0"
 [tool.poetry.dev-dependencies]
 factory_boy = "^2.12.0"
 flake8-quotes = "^3.2.0"
+flake8-bugbear = "^22.1.11"
 flake8 = "^3.8.3"
 pep8-naming = "^0.10.0"
 mypy = "^0.901"

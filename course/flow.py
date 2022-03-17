@@ -2331,8 +2331,7 @@ def send_email_about_flow_page(pctx, flow_session_id, page_ordinal):
 
     from urllib.parse import urljoin
 
-    review_uri = urljoin(getattr(settings, "RELATE_BASE_URL"),
-                         review_url)
+    review_uri = urljoin(settings.RELATE_BASE_URL, review_url)
 
     if request.method == "POST":
         form = FlowPageInteractionEmailForm(review_uri, request.POST)

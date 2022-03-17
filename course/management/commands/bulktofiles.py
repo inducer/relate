@@ -75,7 +75,7 @@ def convert_flow_page_visit(stderr, fpv):
     else:
         return False
 
-    assert False
+    raise AssertionError()
 
 
 def convert_flow_page_visits(stdout, stderr):
@@ -97,7 +97,7 @@ def convert_flow_page_visits(stdout, stderr):
     total_count = 0
     while not quit:
         with transaction.atomic():
-            for i in range(200):
+            for _i in range(200):
                 try:
                     fpv_pk = next(fpv_pk_qset_iterator)
                 except StopIteration:
@@ -136,7 +136,7 @@ def convert_bulk_feedback(stdout, stderr):
     total_count = 0
     while not quit:
         with transaction.atomic():
-            for i in range(200):
+            for _i in range(200):
                 try:
                     fbf_pk = next(fbf_pk_qset_iterator)
                 except StopIteration:

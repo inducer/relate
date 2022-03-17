@@ -1080,7 +1080,7 @@ def validate_flow_desc(vctx, location, flow_desc):
                         "group_index": i+1,
                         "group_id": grp.id})
 
-        for page in grp.pages:
+        for _page in grp.pages:
             group_has_page = flow_has_page = True
             break
 

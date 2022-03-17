@@ -126,10 +126,13 @@ class RetryTransactionTest(PostgreSQLTestMixin, TestCase):
         username = user.username
         from django.db.utils import OperationalError
 
+        i = 0
+
         @retry_transaction_decorator()
-        def update_object(user, i=[0]):
-            if i[0] < 7:
-                i[0] += 1
+        def update_object(user):
+            nonlocal i
+            if i < 7:
+                i += 1
                 raise OperationalError
             user.username = "foo"
             user.save()
@@ -144,10 +147,13 @@ class RetryTransactionTest(PostgreSQLTestMixin, TestCase):
         user = factories.UserFactory()
         from django.db.utils import OperationalError
 
+        i = 0
+
         @retry_transaction_decorator()
-        def update_object(user, i=[0]):
-            if i[0] < 2:
-                i[0] += 1
+        def update_object(user):
+            nonlocal i
+            if i < 2:
+                i += 1
                 raise OperationalError
             user.username = "foo"
             user.save()

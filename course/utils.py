@@ -243,8 +243,10 @@ def get_flow_rules(
         flow_id: str,
         now_datetime: datetime.datetime,
         consider_exceptions: bool = True,
-        default_rules_desc: list[Any] = []
+        default_rules_desc: Optional[list[Any]] = None
         ) -> list[Any]:
+    if default_rules_desc is None:
+        default_rules_desc = []
 
     if (not hasattr(flow_desc, "rules")
             or not hasattr(flow_desc.rules, kind)):

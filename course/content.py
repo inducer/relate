@@ -1333,8 +1333,11 @@ def expand_markup(
         commit_sha: bytes,
         text: str,
         use_jinja: bool = True,
-        jinja_env: dict = {},
+        jinja_env: Optional[dict] = None,
         ) -> str:
+
+    if jinja_env is None:
+        jinja_env = {}
 
     if not isinstance(text, str):
         text = str(text)
@@ -1389,11 +1392,14 @@ def markup_to_html(
         repo: Repo_ish,
         commit_sha: bytes,
         text: str,
-        reverse_func: Callable = None,
+        reverse_func: Optional[Callable] = None,
         validate_only: bool = False,
         use_jinja: bool = True,
-        jinja_env: dict = {},
+        jinja_env: Optional[dict] = None,
         ) -> str:
+
+    if jinja_env is None:
+        jinja_env = {}
 
     disable_codehilite = bool(
         getattr(settings,

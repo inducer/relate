@@ -92,7 +92,7 @@ class GradesTasksTestSetUpMixin:
         participations = factories.ParticipationFactory.create_batch(
             n_participations_per_course)
 
-        for i, p in enumerate(participations):
+        for p in participations:
             factories.FlowSessionFactory.create_batch(
                 size=n_in_progress_sessions_per_participation,
                 participation=p, in_progress=True)

@@ -125,7 +125,7 @@ def _create_recurring_events_backend(course, time, kind, starting_ordinal, inter
 
     import datetime
 
-    for i in range(count):
+    for _i in range(count):
         evt = Event()
         evt.course = course
         evt.kind = kind

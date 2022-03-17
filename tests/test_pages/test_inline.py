@@ -792,7 +792,7 @@ class InlineMultiQuestionTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
             answer_data={'blank1': 'Bar', 'blank2': 'abc'})
         self.assertEqual(resp.status_code, 200)
         self.assertFormErrorLoose(
-            resp, "TypeError: can't convert expression to float")
+            resp, "TypeError: Cannot convert expression to float")
 
     def test_not_allowed_embedded_question_type(self):
         markdown = INLINE_MULTI_MARKDOWN_NOT_ALLOWED_EMBEDDED_QTYPE

@@ -1290,7 +1290,7 @@ def auth_course_with_token(method, func, request,
             match = BASIC_AUTH_DATA_RE.match(auth_data)
 
         else:
-            assert False
+            raise AssertionError()
 
         if match is None:
             raise PermissionDenied("invalid authentication token")
@@ -1335,7 +1335,7 @@ def auth_course_with_token(method, func, request,
                     "403 Forbidden: " + str(e))
 
         else:
-            assert False
+            raise AssertionError()
 
     except APIError as e:
         return http.HttpResponseBadRequest(

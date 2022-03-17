@@ -559,7 +559,7 @@ def view_grades_by_opportunity(
     total_sessions = 0
 
     grade_table: List[Tuple[Participation, OpportunitySessionGradeInfo]] = []
-    for idx, participation in enumerate(participations):
+    for participation in participations:
         # Advance in grade change list
         while (
                 gchng_idx < len(grade_changes)

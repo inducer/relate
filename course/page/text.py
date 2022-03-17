@@ -713,7 +713,7 @@ class TextQuestionBase(PageBaseWithTitle):
                         "'%(type)s'")
                     % {
                         "location": location,
-                        "type": getattr(page_desc, "widget")})
+                        "type": page_desc.widget})
 
     def required_attrs(self):
         return super().required_attrs() + (

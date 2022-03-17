@@ -4043,7 +4043,7 @@ class AddButtonsToFormTest(unittest.TestCase):
         combinations.append(([], False))
 
         form = StyledForm()
-        for permissions, show in combinations:
+        for permissions, _show in combinations:
             with self.subTest(
                     permissions=permissions):
                 flow.add_buttons_to_form(
@@ -4064,7 +4064,7 @@ class AddButtonsToFormTest(unittest.TestCase):
         self.fake_fpctx_page_data_page_ordinal(1)
 
         form = StyledForm()
-        for permissions, show in combinations:
+        for permissions, _show in combinations:
             with self.subTest(
                     permissions=permissions):
                 flow.add_buttons_to_form(
@@ -4087,7 +4087,7 @@ class AddButtonsToFormTest(unittest.TestCase):
         self.fake_fpctx_page_data_page_ordinal(2)
 
         form = StyledForm()
-        for permissions, show in combinations:
+        for permissions, _show in combinations:
             with self.subTest(
                     permissions=permissions):
                 flow.add_buttons_to_form(
@@ -4135,8 +4135,8 @@ class CreateFlowPageVisitTest(SingleCourseTestMixin, TestCase):
         middleware.process_request(self.request)
         self.request.session.save()
 
-        setattr(self.request, "relate_impersonate_original_user",
-                self.instructor_participation.user)
+        self.request.relate_impersonate_original_user = \
+                self.instructor_participation.user
 
         flow.create_flow_page_visit(self.request, fs, page_data)
 
@@ -4496,8 +4496,8 @@ class PostFlowPageTest(HackRepoMixin, SingleCourseQuizPageTestMixin, TestCase):
                 self.fail("%s is unexpectedly not used in adding message")
 
     def test_impersonated(self):
-        setattr(self.request, "relate_impersonate_original_user",
-                self.instructor_participation.user)
+        self.request.relate_impersonate_original_user = \
+                self.instructor_participation.user
         self.mock_get_pressed_button.return_value = "save"
         flow.post_flow_page(
             self.flow_session, self.fpctx, self.request,

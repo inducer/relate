@@ -497,7 +497,7 @@ class AnswerFeedBackTest(unittest.TestCase):
             mock_validate_point_count.side_effect = lambda x: x
 
             mock_get_auto_feedback.side_effect = lambda x: x
-            for i in range(10):
+            for _i in range(10):
                 correctness = random.uniform(0, 15)
                 feedback = "some feedback"
                 AnswerFeedback(correctness, feedback)
@@ -507,7 +507,7 @@ class AnswerFeedBackTest(unittest.TestCase):
                 self.assertEqual(mock_get_auto_feedback.call_count, 0)
                 mock_validate_point_count.reset_mock()
 
-            for i in range(10):
+            for _i in range(10):
                 correctness = random.uniform(0, 15)
                 AnswerFeedback(correctness)
 
@@ -587,7 +587,7 @@ class GetAutoFeedbackTest(unittest.TestCase):
         with mock.patch("course.page.base.validate_point_count") \
                 as mock_validate_point_count:
             mock_validate_point_count.side_effect = lambda x: x
-            for i in range(10):
+            for _i in range(10):
                 correctness = random.uniform(0, 15)
                 get_auto_feedback(correctness)
                 mock_validate_point_count.assert_called_once_with(correctness)

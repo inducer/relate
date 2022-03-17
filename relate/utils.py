@@ -268,8 +268,11 @@ def struct_to_dict(data: Struct) -> Dict:
 # }}}
 
 
-def retry_transaction(f: Any, args: Tuple, kwargs: Dict = {},
+def retry_transaction(f: Any, args: Tuple, kwargs: Optional[Dict] = None,
         max_tries: Optional[int] = None, serializable: Optional[bool] = None) -> Any:
+    if kwargs is None:
+        kwargs = {}
+
     from django.db import transaction
     from django.db.utils import OperationalError
 
@@ -356,7 +359,7 @@ def get_outbound_mail_connection(label: Optional[str] = None, **kwargs: Any) -> 
         label = getattr(settings, "EMAIL_CONNECTION_DEFAULT", None)
 
     try:
-        connections = getattr(settings, "EMAIL_CONNECTIONS")
+        connections = settings.EMAIL_CONNECTIONS
         options = connections[label]
     except (KeyError, AttributeError):
         # Neither EMAIL_CONNECTIONS nor
