@@ -58,7 +58,9 @@ paramiko = "*"
 # A date picker widget - https://github.com/monim67/django-bootstrap-datepicker-plus
 django-bootstrap-datepicker-plus = "^4.0.0"
 
-slixmpp = "^1.7.1"
+# See https://github.com/inducer/relate/issues/905#issuecomment-1072835917
+# for why not 1.8.0.
+slixmpp = "^1.7.1, <1.8.0"
 
 # To manage web dependencies
 django-npm = "^1.0.0"
