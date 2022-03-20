@@ -522,7 +522,7 @@ pipenv = ["pipenv"]
 
 [[package]]
 name = "dulwich"
-version = "0.20.34"
+version = "0.20.35"
 description = "Python Git Library"
 category = "main"
 optional = false
@@ -609,7 +609,7 @@ pyflakes = ">=2.3.0,<2.4.0"
 
 [[package]]
 name = "flake8-bugbear"
-version = "22.1.11"
+version = "22.3.20"
 description = "A plugin for flake8 finding likely bugs and design problems in your program. Contains warnings that don't belong in pyflakes and pycodestyle."
 category = "dev"
 optional = false
@@ -1439,7 +1439,7 @@ numpy = ">=1.6.0"
 
 [[package]]
 name = "pytz"
-version = "2021.3"
+version = "2022.1"
 description = "World timezone definitions, modern and historical"
 category = "main"
 optional = false
@@ -1530,7 +1530,7 @@ python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*"
 
 [[package]]
 name = "slixmpp"
-version = "1.7.1"
+version = "1.8.1"
 description = "Slixmpp is an elegant Python library for XMPP (aka Jabber)."
 category = "main"
 optional = false
@@ -1542,6 +1542,7 @@ pyasn1 = "*"
 pyasn1_modules = "*"
 
 [package.extras]
+"Safer XML parsing" = ["defusedxml"]
 XEP-0363 = ["aiohttp"]
 "XEP-0444 compliance" = ["emoji"]
 
@@ -1723,7 +1724,7 @@ python-versions = ">=3.5"
 
 [[package]]
 name = "sympy"
-version = "1.10"
+version = "1.10.1"
 description = "Computer algebra system (CAS) in Python"
 category = "main"
 optional = false
@@ -1945,7 +1946,7 @@ testing = ["pytest (>=6)", "pytest-checkdocs (>=2.4)", "pytest-flake8", "pytest-
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.8"
-content-hash = "8c16f52416f4be90e2a1fb3553bb02cb8272a70e340973db4f031910985f35f5"
+content-hash = "9c0a6fb641b58cdc7ac81f8fc22d4622da9b9a05fcb9ce71bd1297dcfd998deb"
 
 [metadata.files]
 aiodns = [
@@ -2234,27 +2235,27 @@ dparse = [
     {file = "dparse-0.5.1.tar.gz", hash = "sha256:a1b5f169102e1c894f9a7d5ccf6f9402a836a5d24be80a986c7ce9eaed78f367"},
 ]
 dulwich = [
-    {file = "dulwich-0.20.34-cp310-cp310-macosx_10_15_x86_64.whl", hash = "sha256:78d47b17eca496a3a969b92751a05c8d56ab7e681e85d1c9b0affab719eb08f4"},
-    {file = "dulwich-0.20.34-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:9606a332ca84cef1011513eb3bcfca300d913da26e0c6d097069ce974053e281"},
-    {file = "dulwich-0.20.34-cp310-cp310-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_12_x86_64.manylinux2010_x86_64.whl", hash = "sha256:8238cf05badd8e2c2cfcac4af6e01b0f1d7575737f8d271f1fca32dd4682149a"},
-    {file = "dulwich-0.20.34-cp310-cp310-win_amd64.whl", hash = "sha256:d84f8b1275e9d2789165a4ede65a5ec79d2e2509fdc81139a5a98219ee6436da"},
-    {file = "dulwich-0.20.34-cp36-cp36m-macosx_10_14_x86_64.whl", hash = "sha256:804c73aac887b4e485b3bc2af600456da6d05cd7b297f3042d8b5d0a4b7bc14b"},
-    {file = "dulwich-0.20.34-cp36-cp36m-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:4e63f2e545ac305f8e5301d85924e5283fed1b43982a914fcfb063bb28b9129a"},
-    {file = "dulwich-0.20.34-cp36-cp36m-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_12_x86_64.manylinux2010_x86_64.whl", hash = "sha256:eba3c6c303d79cc925a9b7921e08202ab482f4a80d9d8feb43bbb32dfab77ce8"},
-    {file = "dulwich-0.20.34-cp36-cp36m-win_amd64.whl", hash = "sha256:8caa18a9ea8605327211b30dbe30996d21ddd7bba9452715ba8fc1a7e00dfd29"},
-    {file = "dulwich-0.20.34-cp37-cp37m-macosx_10_14_x86_64.whl", hash = "sha256:87d769982ed1e58cb9d7d85d3017ec23d05092119b1e175c9579491fea9a0492"},
-    {file = "dulwich-0.20.34-cp37-cp37m-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:46e28902b834cd888592c72fb87f0f3529b82c29bc2356f022aea60cc2405c5b"},
-    {file = "dulwich-0.20.34-cp37-cp37m-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_12_x86_64.manylinux2010_x86_64.whl", hash = "sha256:b1d74d8e4ec00647d8f6e50c8bfbd59eedca16092796cbfbbe21fbb6ddffbd34"},
-    {file = "dulwich-0.20.34-cp37-cp37m-win_amd64.whl", hash = "sha256:5ed2f54d206f94576ccc8509e72ce788ce9e73a90a9737d4989188ef982f63a2"},
-    {file = "dulwich-0.20.34-cp38-cp38-macosx_10_14_x86_64.whl", hash = "sha256:69b200a29aee712ff0da717b4688b52f6ce25cf2752480797ea1a2f5128775f7"},
-    {file = "dulwich-0.20.34-cp38-cp38-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:0cc5d226187e0de59bbd6bf94ddb982ff931d97f7d3cdecd9a44e0a3b4f0c333"},
-    {file = "dulwich-0.20.34-cp38-cp38-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_12_x86_64.manylinux2010_x86_64.whl", hash = "sha256:5f52b55e04f48e9790c75cfd55487c2c709bf97e948363bd3681552aa2850834"},
-    {file = "dulwich-0.20.34-cp38-cp38-win_amd64.whl", hash = "sha256:1de7ba8200ee518407a6f32099174024a8bce37bbb36a6ccce676d34fc4f0b7e"},
-    {file = "dulwich-0.20.34-cp39-cp39-macosx_10_15_x86_64.whl", hash = "sha256:f785d07ecd722ee110b5cca96359012efaa8643408a678d2d03a563eab01ff36"},
-    {file = "dulwich-0.20.34-cp39-cp39-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:cf8186fc7c91b631f694561e256b9437eb6f5d8eab35ae878f0a59a83b3d32f8"},
-    {file = "dulwich-0.20.34-cp39-cp39-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_12_x86_64.manylinux2010_x86_64.whl", hash = "sha256:4ab7f78fd41a6c09b55b943b06490abf9b542d07484dac274d49ebe4060c7cc5"},
-    {file = "dulwich-0.20.34-cp39-cp39-win_amd64.whl", hash = "sha256:0e300ee68985bdfce23ab4f02e8750adbb2f79b75c8728eead363b55c4765ce8"},
-    {file = "dulwich-0.20.34.tar.gz", hash = "sha256:ea18c172990f250b266a86861b2bc15a7ba7cff5959643eeeb7f46a8e6f9713a"},
+    {file = "dulwich-0.20.35-cp310-cp310-macosx_10_15_x86_64.whl", hash = "sha256:428b5fbb79f8cfba2f5ac6826cc813d1903b44b0780e9ec57e54cbd0f44feb61"},
+    {file = "dulwich-0.20.35-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:581c6aa825c9267794747c5cc5ec3831960d96ca7fd9eb0158989e9a4099cbb1"},
+    {file = "dulwich-0.20.35-cp310-cp310-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_12_x86_64.manylinux2010_x86_64.whl", hash = "sha256:e11cc7a30b42dbbe5a0b6ebbfbfbb07138a5ffd6175bab2ddbabc9882a1c0438"},
+    {file = "dulwich-0.20.35-cp310-cp310-win_amd64.whl", hash = "sha256:22c61a24edb699564b49a9701b723a08fa773f5d3322e8a0cabda897ae86816e"},
+    {file = "dulwich-0.20.35-cp36-cp36m-macosx_10_14_x86_64.whl", hash = "sha256:9759cf611503681bcdd2950c9d2db04d1c057ecbb62d6fccd095b13771864f1c"},
+    {file = "dulwich-0.20.35-cp36-cp36m-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:8d683b4f30b1dae6b1668336f62f10ff57ebf2a1252c7cc76ad3eeff973879eb"},
+    {file = "dulwich-0.20.35-cp36-cp36m-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_12_x86_64.manylinux2010_x86_64.whl", hash = "sha256:9d85b6b41c4be6df9ecdc4014d3cbe78a5a44a73c97bccbefac3e5de83bb74be"},
+    {file = "dulwich-0.20.35-cp36-cp36m-win_amd64.whl", hash = "sha256:6dc9b082f6ace9890de572260a575a09a996d617f5930edd2858c6f8fedfd7fb"},
+    {file = "dulwich-0.20.35-cp37-cp37m-macosx_10_14_x86_64.whl", hash = "sha256:28ac2374f09487b02a8cb9b2fad083c358fc927bcfe9803d971614bc00e25076"},
+    {file = "dulwich-0.20.35-cp37-cp37m-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:195b21c7a8f85cb2de8938d54fcc6d589d1ccbceaa63bb117796b531065bb68b"},
+    {file = "dulwich-0.20.35-cp37-cp37m-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_12_x86_64.manylinux2010_x86_64.whl", hash = "sha256:9bdea3a4e8e5e3b1dbd513d9ab8a692f8a9a6f4760633e25c006446bce56fc5e"},
+    {file = "dulwich-0.20.35-cp37-cp37m-win_amd64.whl", hash = "sha256:3d3d07b5aa51e6b7d08707c62932da86adbbaaa62552a0129b37d413735c7786"},
+    {file = "dulwich-0.20.35-cp38-cp38-macosx_10_14_x86_64.whl", hash = "sha256:5d94cd182fb0da4ec2f182be977b27b9cc1d7dbd0ee9bbf991e101a95fdcd3d8"},
+    {file = "dulwich-0.20.35-cp38-cp38-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:f563e9f51e83c47a7df2f3cea79919f700e50d1e5556b6b753730b9cd2be1f47"},
+    {file = "dulwich-0.20.35-cp38-cp38-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_12_x86_64.manylinux2010_x86_64.whl", hash = "sha256:f221c3c2fd10260419905bb673cd00129d491e3ed38c7a8d3ac2c7662682dd9b"},
+    {file = "dulwich-0.20.35-cp38-cp38-win_amd64.whl", hash = "sha256:c4f4c59445dc5c2341e9cb2fe35e51a890e8a5f42178abec0a96044811c558a9"},
+    {file = "dulwich-0.20.35-cp39-cp39-macosx_10_15_x86_64.whl", hash = "sha256:3616a949053eb6bdf34581f57d1f6cb7192a4bb635be1a02c37f6f6dda032277"},
+    {file = "dulwich-0.20.35-cp39-cp39-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:134a2f586847c2c58569959a784d7a875b551df4226b639267302217799e4234"},
+    {file = "dulwich-0.20.35-cp39-cp39-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_12_x86_64.manylinux2010_x86_64.whl", hash = "sha256:c008b6b562af76cf011d3b5450a0d30edc96feeee7856b081d7400bc7cf42653"},
+    {file = "dulwich-0.20.35-cp39-cp39-win_amd64.whl", hash = "sha256:bf228800785754d7a55d52c5f122c26c3ced51f0f3df727fde2c9fefb71d5d76"},
+    {file = "dulwich-0.20.35.tar.gz", hash = "sha256:953f6301a9df8a091fa88d55eed394a88bf9988cde8be341775354910918c196"},
 ]
 ecdsa = [
     {file = "ecdsa-0.15-py2.py3-none-any.whl", hash = "sha256:867ec9cf6df0b03addc8ef66b56359643cb5d0c1dc329df76ba7ecfe256c8061"},
@@ -2281,8 +2282,8 @@ flake8 = [
     {file = "flake8-3.9.2.tar.gz", hash = "sha256:07528381786f2a6237b061f6e96610a4167b226cb926e2aa2b6b1d78057c576b"},
 ]
 flake8-bugbear = [
-    {file = "flake8-bugbear-22.1.11.tar.gz", hash = "sha256:4c2a4136bd4ecb8bf02d5159af302ffc067642784c9d0488b33ce4610da825ee"},
-    {file = "flake8_bugbear-22.1.11-py3-none-any.whl", hash = "sha256:ce7ae44aaaf67ef192b8a6de94a5ac617144e1675ad0654fdea556f48dc18d9b"},
+    {file = "flake8-bugbear-22.3.20.tar.gz", hash = "sha256:152e64a86f6bff6e295d630ccc993f62434c1fd2b20d2fae47547cb1c1b868e0"},
+    {file = "flake8_bugbear-22.3.20-py3-none-any.whl", hash = "sha256:19fe179ee3286e16198603c438788e2949e79f31d653f0bdb56d53fb69217bd0"},
 ]
 flake8-polyfill = [
     {file = "flake8-polyfill-1.0.2.tar.gz", hash = "sha256:e44b087597f6da52ec6393a709e7108b2905317d0c0b744cdca6208e670d8eda"},
@@ -2696,8 +2697,8 @@ pytools = [
     {file = "pytools-2020.4.4.tar.gz", hash = "sha256:3645ed839cf4d79cb4bf030f37ddaeecd7fe5e2d6698438cc36c24a1d5168809"},
 ]
 pytz = [
-    {file = "pytz-2021.3-py2.py3-none-any.whl", hash = "sha256:3672058bc3453457b622aab7a1c3bfd5ab0bdae451512f6cf25f64ed37f5b87c"},
-    {file = "pytz-2021.3.tar.gz", hash = "sha256:acad2d8b20a1af07d4e4c9d2e9285c5ed9104354062f275f3fcd88dcef4f1326"},
+    {file = "pytz-2022.1-py2.py3-none-any.whl", hash = "sha256:e68985985296d9a66a881eb3193b0906246245294a881e7c8afe623866ac6a5c"},
+    {file = "pytz-2022.1.tar.gz", hash = "sha256:1e760e2fe6a8163bc0b3d9a19c4f84342afa0a2affebfaa84b01b978a02ecaa7"},
 ]
 pytz-deprecation-shim = [
     {file = "pytz_deprecation_shim-0.1.0.post0-py2.py3-none-any.whl", hash = "sha256:8314c9692a636c8eb3bda879b9f119e350e93223ae83e70e80c31675a0fdc1a6"},
@@ -2769,7 +2770,7 @@ six = [
     {file = "six-1.16.0.tar.gz", hash = "sha256:1e61c37477a1626458e36f7b1d82aa5c9b094fa4802892072e49de9c60c4c926"},
 ]
 slixmpp = [
-    {file = "slixmpp-1.7.1.tar.gz", hash = "sha256:9af836dc5747259788651726f062d69a6f430d306ddbd8e6b141c1fec99549e7"},
+    {file = "slixmpp-1.8.1.tar.gz", hash = "sha256:4204c80bee09b400fd9e74be7c9299c05d1a24422b1663c791883c70f81799c0"},
 ]
 snowballstemmer = [
     {file = "snowballstemmer-2.2.0-py2.py3-none-any.whl", hash = "sha256:c8e1716e83cc398ae16824e5572ae04e0d9fc2c6b985fb0f900f5f0c96ecba1a"},
@@ -2824,8 +2825,8 @@ sqlparse = [
     {file = "sqlparse-0.4.2.tar.gz", hash = "sha256:0c00730c74263a94e5a9919ade150dfc3b19c574389985446148402998287dae"},
 ]
 sympy = [
-    {file = "sympy-1.10-py3-none-any.whl", hash = "sha256:2009368e862cd29f1b568dc6572786371a2faa1cd8eb4d313e11a90195d6ee36"},
-    {file = "sympy-1.10.tar.gz", hash = "sha256:6cf85a5cfe8fff69553e745b05128de6fc8de8f291965c63871c79701dc6efc9"},
+    {file = "sympy-1.10.1-py3-none-any.whl", hash = "sha256:df75d738930f6fe9ebe7034e59d56698f29e85f443f743e51e47df0caccc2130"},
+    {file = "sympy-1.10.1.tar.gz", hash = "sha256:5939eeffdf9e152172601463626c022a2c27e75cf6278de8d401d50c9d58787b"},
 ]
 testpath = [
     {file = "testpath-0.6.0-py3-none-any.whl", hash = "sha256:8ada9f80a2ac6fb0391aa7cdb1a7d11cfa8429f693eda83f74dde570fe6fa639"},
