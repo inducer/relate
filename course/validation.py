@@ -1052,33 +1052,16 @@ def validate_flow_desc(vctx, location, flow_desc):
         assert not hasattr(flow_desc, "pages")
         assert hasattr(flow_desc, "groups")
 
+    for i, grp in enumerate(flow_desc.groups):
+        validate_flow_group(vctx, "%s, group %d ('%s')"
+                % (location, i+1, getattr(grp, "id", "<unknown id>")),
+                grp)
+
     # {{{ check for non-emptiness
 
     flow_has_page = False
     for i, grp in enumerate(flow_desc.groups):
         group_has_page = False
-
-        if not hasattr(grp, "pages"):
-            raise ValidationError(
-                    string_concat(
-                        "%(location)s, ",
-                        _("group %(group_index)d ('%(group_id)s'): "
-                            "'pages' attribute is required"))
-                    % {
-                        "location": location,
-                        "group_index": i+1,
-                        "group_id": grp.id})
-
-        if not isinstance(grp.pages, list):
-            raise ValidationError(
-                    string_concat(
-                        "%(location)s, ",
-                        _("group %(group_index)d ('%(group_id)s'): "
-                            "'pages' is not a list"))
-                    % {
-                        "location": location,
-                        "group_index": i+1,
-                        "group_id": grp.id})
 
         for _page in grp.pages:
             group_has_page = flow_has_page = True
@@ -1115,11 +1098,6 @@ def validate_flow_desc(vctx, location, flow_desc):
         group_ids.add(grp.id)
 
     # }}}
-
-    for i, grp in enumerate(flow_desc.groups):
-        validate_flow_group(vctx, "%s, group %d ('%s')"
-                % (location, i+1, grp.id),
-                grp)
 
     validate_markup(vctx, location, flow_desc.description)
     if hasattr(flow_desc, "completion_text"):
