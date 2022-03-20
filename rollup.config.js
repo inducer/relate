@@ -26,6 +26,7 @@ const defaultPlugins = [
   replace({
       'zh-cn': 'zh-hans',
       'zh-tw': 'zh-hant',
+      preventAssignment: true,
   })
 ];
 
