@@ -2139,7 +2139,7 @@ class ValidateFlowDescTest(ValidationTestMixin, unittest.TestCase):
             self, no_title=False, no_description=False, no_groups_pages=False,
             use_groups=True, use_pages=False,
             **kwargs):
-        flow_desc = {"access": ["access_rule1", "access_rule2"]}
+        flow_desc = {}
 
         if not no_groups_pages:
             assert not (use_pages and use_groups)
@@ -2322,12 +2322,8 @@ class ValidateFlowDescTest(ValidationTestMixin, unittest.TestCase):
                  })]}
 
         with mock.patch(
-                "course.validation.validate_struct"
-        ) as mock_vs, mock.patch(
             "course.validation.validate_flow_rules"
         ) as mock_vfr, mock.patch(
-            "course.validation.validate_flow_group"
-        ) as mock_vfg, mock.patch(
             "course.content.normalize_flow_desc"
         ) as mock_nfd, mock.patch(
             "course.validation.validate_markup"
@@ -2338,15 +2334,12 @@ class ValidateFlowDescTest(ValidationTestMixin, unittest.TestCase):
                     self.get_updated_flow_desc(**kwargs))
 
             expected_error_msg = (
-                "group 1 ('flow_group1'): "
-                "'pages' is not a list")
+                "'pages' has wrong type")
             self.assertIn(expected_error_msg, str(cm.exception))
 
-        self.assertEqual(mock_vs.call_count, 1)
         self.assertEqual(mock_vfr.call_count, 0)
-        self.assertEqual(mock_vfg.call_count, 0)
         self.assertEqual(mock_nfd.call_count, 0)
-        self.assertEqual(mock_mk.call_count, 0)
+        self.assertEqual(mock_mk.call_count, 1)
 
         # no warnings
         self.assertEqual(vctx.add_warning.call_count, 0)
@@ -2385,7 +2378,7 @@ class ValidateFlowDescTest(ValidationTestMixin, unittest.TestCase):
 
         self.assertEqual(mock_vs.call_count, 1)
         self.assertEqual(mock_vfr.call_count, 0)
-        self.assertEqual(mock_vfg.call_count, 0)
+        self.assertEqual(mock_vfg.call_count, 2)
         self.assertEqual(mock_nfd.call_count, 0)
         self.assertEqual(mock_mk.call_count, 0)
 
@@ -2460,7 +2453,7 @@ class ValidateFlowDescTest(ValidationTestMixin, unittest.TestCase):
 
             self.assertEqual(mock_vs.call_count, 1)
             self.assertEqual(mock_vfr.call_count, 0)
-            self.assertEqual(mock_vfg.call_count, 0)
+            self.assertEqual(mock_vfg.call_count, 3)
             self.assertEqual(mock_nfd.call_count, 0)
             self.assertEqual(mock_mk.call_count, 0)
 
