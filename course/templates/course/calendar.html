@@ -1,6 +1,7 @@
 {% extends "course/course-base-with-markup.html" %}
 {% load i18n %}
 {% load static %}
+{% get_current_language as LANGUAGE_CODE %}
 
 {% block title %}
   {{ course.number}}
@@ -22,7 +23,8 @@
             rlFullCalendar.setupCalendar(
                   document.getElementById("coursecal"),
                   {{ events_json|safe }},
-                  '{{ default_date }}'
+                  '{{ default_date }}',
+                  '{{ LANGUAGE_CODE }}',
                 )
           });
   </script>
