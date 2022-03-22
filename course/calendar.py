@@ -21,7 +21,7 @@ THE SOFTWARE.
 """
 
 from django.utils.translation import (
-        gettext_lazy as _, pgettext_lazy)
+        gettext_lazy as _, pgettext_lazy, get_language)
 from django.contrib.auth.decorators import login_required
 from course.utils import course_view, render_course_page
 from django.core.exceptions import (
@@ -355,6 +355,18 @@ class EventInfo:
         self.description = description
 
 
+def _fullcalendar_lang_code() -> str:
+    """
+    Return the fallback lang name for js files.
+    """
+
+    lang_name = get_language()
+    known_fallback_mapping = {
+        "zh-hans": "zh-cn",
+        "zh-hant": "zh-tw"}
+    return known_fallback_mapping.get(lang_name.lower(), lang_name).lower()
+
+
 @course_view
 def view_calendar(pctx):
     if not pctx.has_permission(pperm.view_calendar):
@@ -475,6 +487,7 @@ def view_calendar(pctx):
         "events_json": dumps(events_json),
         "event_info_list": event_info_list,
         "default_date": default_date.isoformat(),
+        "fullcalendar_lang_code": _fullcalendar_lang_code()
     })
 
 # }}}
