@@ -5,7 +5,7 @@ import listPlugin from '@fullcalendar/list';
 import allLocales from '@fullcalendar/core/locales-all';
 
 /* eslint-disable-next-line import/prefer-default-export */
-export function setupCalendar(domEl, events, initialDate) {
+export function setupCalendar(domEl, events, initialDate, locale) {
   const calendar = new Calendar(domEl, {
     plugins: [
       dayGridPlugin,
@@ -21,6 +21,7 @@ export function setupCalendar(domEl, events, initialDate) {
     },
     initialDate,
     events,
+    locale,
   });
   calendar.render();
 }
