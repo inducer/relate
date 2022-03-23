@@ -637,7 +637,8 @@ def parse_matcher(vctx, location, matcher_desc):
             raise ValidationError(
                     string_concat(
                         "%s: ",
-                        _("matcher string does not have expected format"))
+                        _("matcher string does not have expected format, "
+                            "expecting '<matcher type>matched string'"))
                     % location)
 
     if not isinstance(matcher_desc, Struct):
