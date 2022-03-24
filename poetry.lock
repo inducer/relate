@@ -460,7 +460,7 @@ resolved_reference = "c92d0373d12a02d1e52fb09b44010f156111d7ea"
 
 [[package]]
 name = "djangosaml2"
-version = "1.3.6"
+version = "1.4.0"
 description = "pysaml2 integration for Django"
 category = "main"
 optional = false
@@ -585,7 +585,7 @@ Faker = ">=0.7.0"
 
 [[package]]
 name = "faker"
-version = "13.3.2"
+version = "13.3.3"
 description = "Faker is a Python package that generates fake data for you."
 category = "dev"
 optional = false
@@ -609,7 +609,7 @@ pyflakes = ">=2.3.0,<2.4.0"
 
 [[package]]
 name = "flake8-bugbear"
-version = "22.3.20"
+version = "22.3.23"
 description = "A plugin for flake8 finding likely bugs and design problems in your program. Contains warnings that don't belong in pyflakes and pycodestyle."
 category = "dev"
 optional = false
@@ -1946,7 +1946,7 @@ testing = ["pytest (>=6)", "pytest-checkdocs (>=2.4)", "pytest-flake8", "pytest-
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.8"
-content-hash = "9c0a6fb641b58cdc7ac81f8fc22d4622da9b9a05fcb9ce71bd1297dcfd998deb"
+content-hash = "fc3c3ed7ddf46af720eb803c84ae29e21b674b41ba4a7bf172c573c4168fc048"
 
 [metadata.files]
 aiodns = [
@@ -2216,7 +2216,7 @@ django-select2 = [
 ]
 django-yamlfield = []
 djangosaml2 = [
-    {file = "djangosaml2-1.3.6.tar.gz", hash = "sha256:0c161732a0982984f1659c20fbc07e865f26fc34e002afb280b6541d8986918c"},
+    {file = "djangosaml2-1.4.0.tar.gz", hash = "sha256:0eea12a97527236a7c41543f7b64b75dcfdb5659e1cd77526b2fcac0e3996c78"},
 ]
 docker-py = [
     {file = "docker-py-1.10.6.tar.gz", hash = "sha256:4c2a75875764d38d67f87bc7d03f7443a3895704efc57962bdf6500b8d4bc415"},
@@ -2274,16 +2274,16 @@ factory-boy = [
     {file = "factory_boy-2.12.0.tar.gz", hash = "sha256:faf48d608a1735f0d0a3c9cbf536d64f9132b547dae7ba452c4d99a79e84a370"},
 ]
 faker = [
-    {file = "Faker-13.3.2-py3-none-any.whl", hash = "sha256:66db859b6abe376d02e805ad81eb8dcfce38f0945f17ee7cdf74ed349985ea52"},
-    {file = "Faker-13.3.2.tar.gz", hash = "sha256:fe969607836ce7100e38b88dcb598aacb733d895e6e9401894dd603e35623000"},
+    {file = "Faker-13.3.3-py3-none-any.whl", hash = "sha256:85ed0cb379e3b7414bdb6b484994beaf9bddc74472c8c35f743c16cf5fc0c314"},
+    {file = "Faker-13.3.3.tar.gz", hash = "sha256:5536ceb63380f0d598c026b7c330c17d719a19d1a495e9397ee8f5259420a696"},
 ]
 flake8 = [
     {file = "flake8-3.9.2-py2.py3-none-any.whl", hash = "sha256:bf8fd333346d844f616e8d47905ef3a3384edae6b4e9beb0c5101e25e3110907"},
     {file = "flake8-3.9.2.tar.gz", hash = "sha256:07528381786f2a6237b061f6e96610a4167b226cb926e2aa2b6b1d78057c576b"},
 ]
 flake8-bugbear = [
-    {file = "flake8-bugbear-22.3.20.tar.gz", hash = "sha256:152e64a86f6bff6e295d630ccc993f62434c1fd2b20d2fae47547cb1c1b868e0"},
-    {file = "flake8_bugbear-22.3.20-py3-none-any.whl", hash = "sha256:19fe179ee3286e16198603c438788e2949e79f31d653f0bdb56d53fb69217bd0"},
+    {file = "flake8-bugbear-22.3.23.tar.gz", hash = "sha256:e0dc2a36474490d5b1a2d57f9e4ef570abc09f07cbb712b29802e28a2367ff19"},
+    {file = "flake8_bugbear-22.3.23-py3-none-any.whl", hash = "sha256:ec5ec92195720cee1589315416b844ffa5e82f73a78e65329e8055322df1e939"},
 ]
 flake8-polyfill = [
     {file = "flake8-polyfill-1.0.2.tar.gz", hash = "sha256:e44b087597f6da52ec6393a709e7108b2905317d0c0b744cdca6208e670d8eda"},
