@@ -1367,7 +1367,9 @@ def check_for_page_type_changes(vctx, location, course, flow_id, flow_desc):
                 raise ValidationError(
                         _("%(loc)s, group '%(group)s', page '%(page)s': "
                             "page type ('%(type_new)s') differs from "
-                            "type used in database ('%(type_old)s')")
+                            "type used in database ('%(type_old)s'). "
+                            "You must change the question ID if you change the "
+                            "question type.")
                         % {"loc": location, "group": grp.id,
                             "page": page_desc.id,
                             "type_new": page_desc.type,
