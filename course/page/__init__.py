@@ -33,6 +33,7 @@ from course.page.choice import (
         ChoiceQuestion, MultipleChoiceQuestion, SurveyChoiceQuestion)
 from course.page.code import (
         PythonCodeQuestion, PythonCodeQuestionWithHumanTextFeedback)
+from course.page.code import OctaveCodeQuestion
 from course.page.upload import FileUploadQuestion
 
 __all__ = (
@@ -47,6 +48,7 @@ __all__ = (
 
         "ChoiceQuestion", "SurveyChoiceQuestion", "MultipleChoiceQuestion",
         "PythonCodeQuestion", "PythonCodeQuestionWithHumanTextFeedback",
+        "OctaveCodeQuestion",
         "FileUploadQuestion",
         )
 
