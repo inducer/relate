@@ -22,7 +22,7 @@ THE SOFTWARE.
 
 import io
 import unittest
-from django.test import TestCase, override_settings, RequestFactory, Client
+from django.test import TestCase, override_settings, RequestFactory
 
 from docker.errors import APIError as DockerAPIError
 from socket import error as socket_error, timeout as sock_timeout
@@ -87,11 +87,7 @@ class SingleCourseQuizPageCodeQuestionTest(
     @classmethod
     def setUpTestData(cls):  # noqa
         super().setUpTestData()
-
-        client = Client()
-        client.force_login(cls.student_participation.user)
-
-        cls.start_flow(client, cls.flow_id)
+        cls.start_flow(cls.flow_id)
 
     def test_code_page_correct(self):
         page_id = "addition"
@@ -248,7 +244,8 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
         )
 
     def test_not_multiple_submit_warning2(self):
-        markdown = markdowns.CODE_MARKDWON_NOT_EXPLICITLY_NOT_ALLOW_MULTI_SUBMIT1
+        markdown = \
+            markdowns.CODE_MARKDWON_NOT_EXPLICITLY_NOT_ALLOW_MULTI_SUBMIT1
         resp = self.get_page_sandbox_preview_response(markdown)
         self.assertEqual(resp.status_code, 200)
         self.assertSandboxHasValidPage(resp)
@@ -258,7 +255,8 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
         )
 
     def test_not_multiple_submit_warning3(self):
-        markdown = markdowns.CODE_MARKDWON_NOT_EXPLICITLY_NOT_ALLOW_MULTI_SUBMIT2
+        markdown = \
+            markdowns.CODE_MARKDWON_NOT_EXPLICITLY_NOT_ALLOW_MULTI_SUBMIT2
         resp = self.get_page_sandbox_preview_response(markdown)
         self.assertEqual(resp.status_code, 200)
         self.assertSandboxHasValidPage(resp)
@@ -275,8 +273,8 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
         self.assertSandboxWarningTextContain(resp, None)
 
     def test_explicity_not_allow_multiple_submit(self):
-        markdown = (
-                markdowns.CODE_MARKDWON_PATTERN_EXPLICITLY_NOT_ALLOW_MULTI_SUBMIT
+        markdown = (markdowns.
+                CODE_MARKDWON_PATTERN_EXPLICITLY_NOT_ALLOW_MULTI_SUBMIT
                 % {"extra_data_file": ""}
         )
         resp = self.get_page_sandbox_preview_response(markdown)
@@ -301,6 +299,106 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
 
     def test_question_without_correct_code(self):
         markdown = markdowns.CODE_MARKDWON_PATTERN_WITHOUT_CORRECT_CODE
+        resp = self.get_page_sandbox_preview_response(markdown)
+        self.assertEqual(resp.status_code, 200)
+        self.assertSandboxHasValidPage(resp)
+        self.assertSandboxWarningTextContain(resp, None)
+
+        resp = self.get_page_sandbox_submit_answer_response(
+            markdown,
+            answer_data={"answer": ['c = b + a\r']})
+        self.assertEqual(resp.status_code, 200)
+        self.assertResponseContextAnswerFeedbackCorrectnessEquals(resp, 1)
+
+    def test_data_files_missing_random_question_data_file_octave(self):
+        file_name = "question-data/random-data.m"
+        markdown = (
+                markdowns.OCTAVE_CODE_MARKDWON_PATTERN_WITH_DATAFILES
+                % {"extra_data_file": "- %s" % file_name}
+        )
+        resp = self.get_page_sandbox_preview_response(markdown)
+        self.assertEqual(resp.status_code, 200)
+        self.assertSandboxNotHasValidPage(resp)
+        self.assertResponseContextContains(
+            resp, PAGE_ERRORS, "data file '%s' not found" % file_name)
+
+    def test_data_files_missing_random_question_data_file_bad_format_octave(self):
+        markdown = markdowns.OCTAVE_CODE_MARKDWON_WITH_DATAFILES_BAD_FORMAT
+        resp = self.get_page_sandbox_preview_response(markdown)
+        self.assertEqual(resp.status_code, 200)
+        self.assertSandboxNotHasValidPage(resp)
+        self.assertResponseContextContains(
+            resp, PAGE_ERRORS,
+            "data file '%s' not found" % "question-data/random-data.m")
+
+    def test_not_multiple_submit_warning_octave(self):
+        markdown = (
+                markdowns.OCTAVE_CODE_MARKDWON_PATTERN_WITH_DATAFILES
+                % {"extra_data_file": ""}
+        )
+        resp = self.get_page_sandbox_preview_response(markdown)
+        self.assertEqual(resp.status_code, 200)
+        self.assertSandboxHasValidPage(resp)
+        self.assertSandboxWarningTextContain(
+            resp,
+            NOT_ALLOW_MULTIPLE_SUBMISSION_WARNING
+        )
+
+    def test_not_multiple_submit_warning2_octave(self):
+        markdown = markdowns. \
+            OCTAVE_CODE_MARKDWON_NOT_EXPLICITLY_NOT_ALLOW_MULTI_SUBMIT1
+        resp = self.get_page_sandbox_preview_response(markdown)
+        self.assertEqual(resp.status_code, 200)
+        self.assertSandboxHasValidPage(resp)
+        self.assertSandboxWarningTextContain(
+            resp,
+            NOT_ALLOW_MULTIPLE_SUBMISSION_WARNING
+        )
+
+    def test_not_multiple_submit_warning3_octave(self):
+        markdown = markdowns. \
+            OCTAVE_CODE_MARKDWON_NOT_EXPLICITLY_NOT_ALLOW_MULTI_SUBMIT2
+        resp = self.get_page_sandbox_preview_response(markdown)
+        self.assertEqual(resp.status_code, 200)
+        self.assertSandboxHasValidPage(resp)
+        self.assertSandboxWarningTextContain(
+            resp,
+            NOT_ALLOW_MULTIPLE_SUBMISSION_WARNING
+        )
+
+    def test_allow_multiple_submit_octave(self):
+        markdown = markdowns.OCTAVE_CODE_MARKDWON
+        resp = self.get_page_sandbox_preview_response(markdown)
+        self.assertEqual(resp.status_code, 200)
+        self.assertSandboxHasValidPage(resp)
+        self.assertSandboxWarningTextContain(resp, None)
+
+    def test_explicity_not_allow_multiple_submit_octave(self):
+        markdown = (markdowns.
+                OCTAVE_CODE_MARKDWON_PATTERN_EXPLICITLY_NOT_ALLOW_MULTI_SUBMIT
+                % {"extra_data_file": ""})
+        resp = self.get_page_sandbox_preview_response(markdown)
+        self.assertEqual(resp.status_code, 200)
+        self.assertSandboxHasValidPage(resp)
+        self.assertSandboxWarningTextContain(resp, None)
+
+    def test_question_without_test_code_octave(self):
+        markdown = markdowns.OCTAVE_CODE_MARKDWON_PATTERN_WITHOUT_TEST_CODE
+        resp = self.get_page_sandbox_preview_response(markdown)
+        self.assertEqual(resp.status_code, 200)
+        self.assertSandboxHasValidPage(resp)
+        self.assertSandboxWarningTextContain(resp, None)
+
+        resp = self.get_page_sandbox_submit_answer_response(
+            markdown,
+            answer_data={"answer": ['c = b + a\r']})
+        self.assertEqual(resp.status_code, 200)
+        self.assertResponseContextAnswerFeedbackCorrectnessEquals(resp, None)
+        self.assertResponseContextAnswerFeedbackContainsFeedback(
+            resp, NO_CORRECTNESS_INFO_MSG)
+
+    def test_question_without_correct_code_octave(self):
+        markdown = markdowns.OCTAVE_CODE_MARKDWON_PATTERN_WITHOUT_CORRECT_CODE
         resp = self.get_page_sandbox_preview_response(markdown)
         self.assertEqual(resp.status_code, 200)
         self.assertSandboxHasValidPage(resp)
@@ -542,7 +640,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
 
             self.assertEqual(resp.status_code, 200)
             self.assertResponseContextAnswerFeedbackCorrectnessEquals(resp,
-                                                                      correctness)
+                                                                    correctness)
             self.assertEqual(len(mail.outbox), mail_count)
 
     def test_request_run_with_retries_timed_out(self):
@@ -983,7 +1081,312 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
                 markdown,
                 answer_data={"answer": ['c = b + a\r']})
             self.assertEqual(resp.status_code, 200)
-            self.assertResponseContextAnswerFeedbackCorrectnessEquals(resp, None)
+            self.assertResponseContextAnswerFeedbackCorrectnessEquals(resp,
+                                                                      None)
+            error_msg = (AUTO_FEEDBACK_POINTS_OUT_OF_RANGE_ERROR_MSG_PATTERN
+                         % (MAX_EXTRA_CREDIT_FACTOR, invalid_feedback_points))
+
+            self.assertResponseContextAnswerFeedbackNotContainsFeedback(
+                resp, error_msg)
+
+            self.assertResponseContextAnswerFeedbackContainsFeedback(
+                resp, GRADE_CODE_FAILING_MSG)
+            self.assertEqual(len(mail.outbox), 1)
+
+            self.assertIn(error_msg, mail.outbox[0].body)
+
+    # }}}
+
+    # {{{ Octave code tests patterned after Python tests
+
+    # def test_data_files_missing_random_question_data_file(self):
+    #     file_name = "foo"
+    #     markdown = (
+    #             markdowns.OCTAVE_CODE_MARKDWON_PATTERN_WITH_DATAFILES
+    #             % {"extra_data_file": "- %s" % file_name}
+    #     )
+    #     resp = self.get_page_sandbox_preview_response(markdown)
+    #     self.assertEqual(resp.status_code, 200)
+    #     self.assertSandboxNotHasValidPage(resp)
+    #     self.assertResponseContextContains(
+    #         resp, PAGE_ERRORS, "data file '%s' not found" % file_name)
+
+    # def test_data_files_missing_random_question_data_file_bad_format(self):
+    #     markdown = markdowns.OCTAVE_CODE_MARKDWON_WITH_DATAFILES_BAD_FORMAT
+    #     resp = self.get_page_sandbox_preview_response(markdown)
+    #     self.assertEqual(resp.status_code, 200)
+    #     self.assertSandboxNotHasValidPage(resp)
+    #     self.assertResponseContextContains(
+    #         resp, PAGE_ERRORS, "data file '%s' not found" % "['foo', 'bar']")
+
+    # def test_not_multiple_submit_warning(self):
+    #     markdown = (
+    #             markdowns.OCTAVE_CODE_MARKDWON_PATTERN_WITH_DATAFILES
+    #             % {"extra_data_file": ""}
+    #     )
+    #     resp = self.get_page_sandbox_preview_response(markdown)
+    #     self.assertEqual(resp.status_code, 200)
+    #     self.assertSandboxHasValidPage(resp)
+    #     self.assertSandboxWarningTextContain(
+    #         resp,
+    #         NOT_ALLOW_MULTIPLE_SUBMISSION_WARNING
+    #     )
+
+    # def test_not_multiple_submit_warning2(self):
+    #     markdown = markdowns. \
+    #                OCTAVE_CODE_MARKDWON_NOT_EXPLICITLY_NOT_ALLOW_MULTI_SUBMIT1
+    #     resp = self.get_page_sandbox_preview_response(markdown)
+    #     self.assertEqual(resp.status_code, 200)
+    #     self.assertSandboxHasValidPage(resp)
+    #     self.assertSandboxWarningTextContain(
+    #         resp,
+    #         NOT_ALLOW_MULTIPLE_SUBMISSION_WARNING
+    #     )
+
+    # def test_not_multiple_submit_warning3(self):
+    #     markdown = markdowns. \
+    #                OCTAVE_CODE_MARKDWON_NOT_EXPLICITLY_NOT_ALLOW_MULTI_SUBMIT2
+    #     resp = self.get_page_sandbox_preview_response(markdown)
+    #     self.assertEqual(resp.status_code, 200)
+    #     self.assertSandboxHasValidPage(resp)
+    #     self.assertSandboxWarningTextContain(
+    #         resp,
+    #         NOT_ALLOW_MULTIPLE_SUBMISSION_WARNING
+    #     )
+
+    # def test_allow_multiple_submit(self):
+    #     markdown = markdowns.OCTAVE_CODE_MARKDWON
+    #     resp = self.get_page_sandbox_preview_response(markdown)
+    #     self.assertEqual(resp.status_code, 200)
+    #     self.assertSandboxHasValidPage(resp)
+    #     self.assertSandboxWarningTextContain(resp, None)
+
+    # def test_explicity_not_allow_multiple_submit(self):
+    #     markdown = (markdowns. \
+    #             OCTAVE_CODE_MARKDWON_PATTERN_EXPLICITLY_NOT_ALLOW_MULTI_SUBMIT
+    #             % {"extra_data_file": ""}
+    #     )
+    #     resp = self.get_page_sandbox_preview_response(markdown)
+    #     self.assertEqual(resp.status_code, 200)
+    #     self.assertSandboxHasValidPage(resp)
+    #     self.assertSandboxWarningTextContain(resp, None)
+
+    # def test_question_without_test_code(self):
+    #     markdown = markdowns.OCTAVE_CODE_MARKDWON_PATTERN_WITHOUT_TEST_CODE
+    #     resp = self.get_page_sandbox_preview_response(markdown)
+    #     self.assertEqual(resp.status_code, 200)
+    #     self.assertSandboxHasValidPage(resp)
+    #     self.assertSandboxWarningTextContain(resp, None)
+
+    #     resp = self.get_page_sandbox_submit_answer_response(
+    #         markdown,
+    #         answer_data={"answer": ['c = b + a\r']})
+    #     self.assertEqual(resp.status_code, 200)
+    #     self.assertResponseContextAnswerFeedbackCorrectnessEquals(resp, None)
+    #     self.assertResponseContextAnswerFeedbackContainsFeedback(
+    #         resp, NO_CORRECTNESS_INFO_MSG)
+
+    # def test_question_without_correct_code(self):
+    #     markdown = markdowns.OCTAVE_CODE_MARKDWON_PATTERN_WITHOUT_CORRECT_CODE
+    #     resp = self.get_page_sandbox_preview_response(markdown)
+    #     self.assertEqual(resp.status_code, 200)
+    #     self.assertSandboxHasValidPage(resp)
+    #     self.assertSandboxWarningTextContain(resp, None)
+
+    #     resp = self.get_page_sandbox_submit_answer_response(
+    #         markdown,
+    #         answer_data={"answer": ['c = b + a\r']})
+    #     self.assertEqual(resp.status_code, 200)
+    #     self.assertResponseContextAnswerFeedbackCorrectnessEquals(resp, 1)
+
+    def test_feedback_points_close_to_1_octave(self):
+        markdown = (markdowns.OCTAVE_FEEDBACK_POINTS_CODE_MARKDWON_PATTERN
+                    % {
+                        "full_points": 1.000000000002,
+                        "min_points": 0
+                    })
+        resp = self.get_page_sandbox_preview_response(markdown)
+        self.assertEqual(resp.status_code, 200)
+        self.assertSandboxHasValidPage(resp)
+
+        resp = self.get_page_sandbox_submit_answer_response(
+            markdown,
+            answer_data={"answer": ['c = b + a\r']})
+        self.assertEqual(resp.status_code, 200)
+        self.assertResponseContextAnswerFeedbackCorrectnessEquals(resp, 1)
+
+    def test_feedback_code_exceed_1_octave(self):
+        feedback_points = 1.1
+        markdown = (markdowns.OCTAVE_FEEDBACK_POINTS_CODE_MARKDWON_PATTERN
+                    % {
+                        "full_points": feedback_points,
+                        "min_points": 0
+                    })
+        resp = self.get_page_sandbox_preview_response(markdown)
+        self.assertEqual(resp.status_code, 200)
+        self.assertSandboxHasValidPage(resp)
+
+        resp = self.get_page_sandbox_submit_answer_response(
+            markdown,
+            answer_data={"answer": ['c = b + a\r']})
+        self.assertEqual(resp.status_code, 200)
+        self.assertResponseContextAnswerFeedbackCorrectnessEquals(resp, 1.1)
+
+        expected_feedback = "Your answer is correct and earned bonus points."
+
+        self.assertResponseContextAnswerFeedbackContainsFeedback(
+            resp, expected_feedback)
+
+    def test_feedback_code_positive_close_to_0_octave(self):
+        # https://github.com/inducer/relate/pull/448#issuecomment-363655132
+        markdown = (markdowns.OCTAVE_FEEDBACK_POINTS_CODE_MARKDWON_PATTERN
+                    % {
+                        "full_points": 1,
+                        "min_points": 0.00000000001
+                    })
+        resp = self.get_page_sandbox_preview_response(markdown)
+        self.assertEqual(resp.status_code, 200)
+        self.assertSandboxHasValidPage(resp)
+
+        # Post a wrong answer
+        resp = self.get_page_sandbox_submit_answer_response(
+            markdown,
+            answer_data={"answer": ['c = b - a\r']})
+        self.assertEqual(resp.status_code, 200)
+        self.assertResponseContextAnswerFeedbackCorrectnessEquals(resp, 0)
+
+    def test_feedback_code_negative_close_to_0_octave(self):
+        # https://github.com/inducer/relate/pull/448#issuecomment-363655132
+        markdown = (markdowns.OCTAVE_FEEDBACK_POINTS_CODE_MARKDWON_PATTERN
+                    % {
+                        "full_points": 1,
+                        "min_points": -0.00000000001
+                    })
+        resp = self.get_page_sandbox_preview_response(markdown)
+        self.assertEqual(resp.status_code, 200)
+        self.assertSandboxHasValidPage(resp)
+
+        # Post a wrong answer
+        resp = self.get_page_sandbox_submit_answer_response(
+            markdown,
+            answer_data={"answer": ['c = b - a\r']})
+        self.assertEqual(resp.status_code, 200)
+        self.assertResponseContextAnswerFeedbackCorrectnessEquals(resp, 0)
+
+    def test_feedback_code_error_close_below_max_auto_feedback_points_octave(self):
+        feedback_points = MAX_EXTRA_CREDIT_FACTOR - 1e-6
+        markdown = (markdowns.OCTAVE_FEEDBACK_POINTS_CODE_MARKDWON_PATTERN
+                    % {
+                        "full_points": feedback_points,
+                        "min_points": 0
+                    })
+        resp = self.get_page_sandbox_preview_response(markdown)
+        self.assertEqual(resp.status_code, 200)
+        self.assertSandboxHasValidPage(resp)
+
+        resp = self.get_page_sandbox_submit_answer_response(
+            markdown,
+            answer_data={"answer": ['c = b + a\r']})
+        self.assertEqual(resp.status_code, 200)
+        self.assertResponseContextAnswerFeedbackCorrectnessEquals(
+            resp, MAX_EXTRA_CREDIT_FACTOR)
+
+    def test_feedback_code_error_close_above_max_auto_feedback_points_octave(self):
+        feedback_points = MAX_EXTRA_CREDIT_FACTOR + 1e-6
+        markdown = (markdowns.OCTAVE_FEEDBACK_POINTS_CODE_MARKDWON_PATTERN
+                    % {
+                        "full_points": feedback_points,
+                        "min_points": 0
+                    })
+        resp = self.get_page_sandbox_preview_response(markdown)
+        self.assertEqual(resp.status_code, 200)
+        self.assertSandboxHasValidPage(resp)
+
+        resp = self.get_page_sandbox_submit_answer_response(
+            markdown,
+            answer_data={"answer": ['c = b + a\r']})
+        self.assertEqual(resp.status_code, 200)
+        self.assertResponseContextAnswerFeedbackCorrectnessEquals(
+            resp, MAX_EXTRA_CREDIT_FACTOR)
+
+    def test_feedback_code_error_negative_feedback_points_octave(self):
+        invalid_feedback_points = -0.1
+        markdown = (markdowns.OCTAVE_FEEDBACK_POINTS_CODE_MARKDWON_PATTERN
+                    % {
+                        "full_points": 1,
+                        "min_points": invalid_feedback_points
+                    })
+        resp = self.get_page_sandbox_preview_response(markdown)
+        self.assertEqual(resp.status_code, 200)
+        self.assertSandboxHasValidPage(resp)
+
+        # Post a wrong answer
+        resp = self.get_page_sandbox_submit_answer_response(
+            markdown,
+            answer_data={"answer": ['c = b - a\r']})
+        self.assertEqual(resp.status_code, 200)
+        self.assertResponseContextAnswerFeedbackCorrectnessEquals(resp, None)
+
+        error_msg = (AUTO_FEEDBACK_POINTS_OUT_OF_RANGE_ERROR_MSG_PATTERN
+                     % (MAX_EXTRA_CREDIT_FACTOR, invalid_feedback_points))
+
+        self.assertResponseContextAnswerFeedbackNotContainsFeedback(
+            resp, error_msg)
+
+        self.assertResponseContextAnswerFeedbackContainsFeedback(
+            resp, GRADE_CODE_FAILING_MSG)
+
+    def test_feedback_code_error_exceed_max_extra_credit_factor_octave(self):
+        invalid_feedback_points = 10.1
+        markdown = (markdowns.OCTAVE_FEEDBACK_POINTS_CODE_MARKDWON_PATTERN
+                    % {
+                        "full_points": invalid_feedback_points,
+                        "min_points": 0
+                    })
+        resp = self.get_page_sandbox_preview_response(markdown)
+        self.assertEqual(resp.status_code, 200)
+        self.assertSandboxHasValidPage(resp)
+
+        resp = self.get_page_sandbox_submit_answer_response(
+            markdown,
+            answer_data={"answer": ['c = b + a\r']})
+        self.assertEqual(resp.status_code, 200)
+        self.assertResponseContextAnswerFeedbackCorrectnessEquals(resp, None)
+        error_msg = (AUTO_FEEDBACK_POINTS_OUT_OF_RANGE_ERROR_MSG_PATTERN
+                     % (MAX_EXTRA_CREDIT_FACTOR, invalid_feedback_points))
+
+        self.assertResponseContextAnswerFeedbackNotContainsFeedback(
+            resp, error_msg)
+
+        self.assertResponseContextAnswerFeedbackContainsFeedback(
+            resp, GRADE_CODE_FAILING_MSG)
+
+    def test_feedback_code_error_exceed_max_extra_credit_factor_email_octave(self):
+        invalid_feedback_points = 10.1
+        markdown = (markdowns.OCTAVE_FEEDBACK_POINTS_CODE_MARKDWON_PATTERN
+                    % {
+                        "full_points": invalid_feedback_points,
+                        "min_points": 0
+                    })
+        resp = self.get_page_sandbox_preview_response(markdown)
+        self.assertEqual(resp.status_code, 200)
+        self.assertSandboxHasValidPage(resp)
+
+        with mock.patch("course.page.PageContext") as mock_page_context:
+            mock_page_context.return_value.in_sandbox = False
+            mock_page_context.return_value.course = self.course
+
+            # This remove the warning caused by mocked commit_sha value
+            # "CacheKeyWarning: Cache key contains characters that
+            # will cause errors ..."
+            mock_page_context.return_value.commit_sha = b"1234"
+
+            resp = self.get_page_sandbox_submit_answer_response(
+                markdown,
+                answer_data={"answer": ['c = b + a\r']})
+            self.assertEqual(resp.status_code, 200)
+            self.assertResponseContextAnswerFeedbackCorrectnessEquals(resp,
+                                                                      None)
             error_msg = (AUTO_FEEDBACK_POINTS_OUT_OF_RANGE_ERROR_MSG_PATTERN
                          % (MAX_EXTRA_CREDIT_FACTOR, invalid_feedback_points))
 
@@ -1035,12 +1438,12 @@ class RequestPythonRunWithRetriesTest(unittest.TestCase):
 
     def test_docker_container_ping_failure(self):
         with (
-                mock.patch("docker.client.Client.create_container")) as mock_create_ctn, (  # noqa
-                mock.patch("docker.client.Client.start")) as mock_ctn_start, (
-                mock.patch("docker.client.Client.logs")) as mock_ctn_logs, (
-                mock.patch("docker.client.Client.remove_container")) as mock_remove_ctn, (  # noqa
-                mock.patch("docker.client.Client.inspect_container")) as mock_inpect_ctn, (  # noqa
-                mock.patch("http.client.HTTPConnection.request")) as mock_ctn_request:  # noqa
+            mock.patch("docker.client.Client.create_container")) as mock_create_ctn, (  # noqa
+            mock.patch("docker.client.Client.start")) as mock_ctn_start, (
+            mock.patch("docker.client.Client.logs")) as mock_ctn_logs, (
+            mock.patch("docker.client.Client.remove_container")) as mock_remove_ctn, (  # noqa
+            mock.patch("docker.client.Client.inspect_container")) as mock_inpect_ctn, (  # noqa
+            mock.patch("http.client.HTTPConnection.request")) as mock_ctn_request:  # noqa
 
             mock_create_ctn.return_value = {"Id": "someid"}
             mock_ctn_start.side_effect = lambda x: None
@@ -1181,13 +1584,13 @@ class RequestPythonRunWithRetriesTest(unittest.TestCase):
 
     def test_docker_container_ping_return_not_ok(self):
         with (
-                mock.patch("docker.client.Client.create_container")) as mock_create_ctn, (  # noqa
-                mock.patch("docker.client.Client.start")) as mock_ctn_start, (
-                mock.patch("docker.client.Client.logs")) as mock_ctn_logs, (
-                mock.patch("docker.client.Client.remove_container")) as mock_remove_ctn, (  # noqa
-                mock.patch("docker.client.Client.inspect_container")) as mock_inpect_ctn, (  # noqa
-                mock.patch("http.client.HTTPConnection.request")) as mock_ctn_request, (  # noqa
-                mock.patch("http.client.HTTPConnection.getresponse")) as mock_ctn_get_response:  # noqa
+            mock.patch("docker.client.Client.create_container")) as mock_create_ctn, (  # noqa
+            mock.patch("docker.client.Client.start")) as mock_ctn_start, (
+            mock.patch("docker.client.Client.logs")) as mock_ctn_logs, (
+            mock.patch("docker.client.Client.remove_container")) as mock_remove_ctn, (  # noqa
+            mock.patch("docker.client.Client.inspect_container")) as mock_inpect_ctn, (  # noqa
+            mock.patch("http.client.HTTPConnection.request")) as mock_ctn_request, (  # noqa
+            mock.patch("http.client.HTTPConnection.getresponse")) as mock_ctn_get_response:  # noqa
 
             mock_create_ctn.return_value = {"Id": "someid"}
             mock_ctn_start.side_effect = lambda x: None
@@ -1335,11 +1738,7 @@ class CodeQuestionWithHumanTextFeedbackSpecialCase(
     @classmethod
     def setUpTestData(cls):  # noqa
         super().setUpTestData()
-
-        client = Client()
-        client.force_login(cls.student_participation.user)
-
-        cls.start_flow(client, cls.flow_id)
+        cls.start_flow(cls.flow_id)
 
     def setUp(self):  # noqa
         super().setUp()
