@@ -120,7 +120,7 @@ jobs:
           sudo apt-get install gettext
       - name: Install Docker image for Octave
         run: |
-          docker pull davis68/relate-octave
+          docker pull davis68/relate-runcode-octave
       - name: Run test suite
         env:
           RL_CI_TEST: ${{ matrix.suite }}
