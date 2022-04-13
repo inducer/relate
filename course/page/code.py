@@ -243,7 +243,7 @@ def request_run(run_req, run_timeout, image=None):
             docker_cnx.start(container_id)
 
             container_props = docker_cnx.inspect_container(container_id)
-            (port_info,) = (container_props
+            (port_info, *_) = (container_props
                     ["NetworkSettings"]["Ports"]["%d/tcp" %
                     CODE_QUESTION_CONTAINER_PORT])
             port_host_ip = port_info.get("HostIp")
