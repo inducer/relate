@@ -118,7 +118,7 @@ jobs:
           DEBIAN_FRONTEND: noninteractive
         run: |
           sudo apt-get install gettext
-      - name: Install Docker image for Octave
+      - name: Install Docker image for Octave; retains as necessary
         run: |
           docker pull davis68/relate-runcode-octave
       - name: Run test suite
