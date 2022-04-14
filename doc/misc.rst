@@ -111,9 +111,9 @@ Then add the user that runs Relate to the ``docker`` group in
 :file:`/etc/group`.  For deployment, this may be the ``www-data`` user.
 You should also pull the default container image::
 
-    docker pull inducer/relate-runpy-amd64
+    docker pull inducer/relate-runcode-python
 
-(or `docker pull davis68/relate-octave` if using Octave).
+(or `docker pull davis68/relate-runcode-octave` if using Octave).
 
 Add to kernel command line, if needed::
 
