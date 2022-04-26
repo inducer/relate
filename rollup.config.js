@@ -41,7 +41,6 @@ export default [
       name: 'rlBase',
     },
     plugins: defaultPlugins,
-
   },
   {
     input: 'relate/static/js/base-with-markup.js',
