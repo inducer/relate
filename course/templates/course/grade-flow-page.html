@@ -8,20 +8,20 @@
 {% endblock %}
 
 {% block root_container %}
-  <div class="grading-page-student-work container">
-    <div class="row">
+  <div class="row">
+    <div class="grading-page-student-work container">
       {# {{{ student view #}
 
       {# {{{ past submissions #}
       {% if expects_answer %}
-        <div style="float: right; padding-top:1.5em; margin-right:0 !important;" class="navbar-right">
+        <div class="float-end mt-2">
           <div class="dropdown" id="past-submission-and-grades_dropdown">
-            <button class="btn btn-secondary dropdown-toggle" type="button" id="past-submission-and-grades_dropdown_button"
+            <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="past-submission-and-grades_dropdown_button"
                     data-bs-toggle="dropdown">
               {% trans "Past submissions/grades" %}
               <span class="caret"></span>
             </button>
-            <ul class="dropdown-menu shadow" aria-labelledby="past-submission-and-grades_dropdown_button" id="past-submission-and-grades_dropdown_content">
+            <ul class="dropdown-menu dropdown-menu-end shadow" aria-labelledby="past-submission-and-grades_dropdown_button" id="past-submission-and-grades_dropdown_content">
               <li style="list-style:none; position:relative; left:50%;">
                 <i class="bi bi-hourglass"></i>
               </li>
@@ -60,18 +60,13 @@
       {# }}} #}
 
     </div>
-  </div>
-  <div class="grading-page-grade-entry container">
-    <div class="row">
+    <div class="grading-page-grade-entry container">
       <h1> {% trans "Grading" %}: <tt>{{ flow_identifier}} - {{ page_data.group_id }}/{{ page_data.page_id }}</tt> </h1>
 
       {% include "base-page-top.html" %}
 
       {# {{{ header table #}
       <table class="table table-condensed">
-        <thead>
-          <th>{% trans "Property" %}</th><th>{% trans "Value" %}</th>
-        </thead>
         <tbody>
         {% if grading_opportunity != None %}
           <tr>
@@ -200,9 +195,9 @@
       {# {{{ correct answer #}
 
       {% if correct_answer  %}
-        <div class="panel panel-default">
-          <div class="panel-heading">{% trans "Correct Answer" %}</div>
-          <div class="panel-body">
+        <div class="card mt-3">
+          <div class="card-header">{% trans "Correct Answer" %}</div>
+          <div class="card-body">
             <p>{{ correct_answer|safe }}</p>
           </div>
         </div>
@@ -314,27 +309,27 @@
 
       var items = get_feedback_items();
 
-      buttons += "<p>";
+      buttons += "<div class='lh-lg mt-1'>";
       for (var i = 0; i < items.length; ++i)
       {
         var fb = items[i];
-        buttons += ("<button class='btn btn-sm btn-secondary' type='button' "
+        buttons += ("<button class='btn btn-sm btn-outline-secondary' type='button' "
             + "onclick='add_feedback(" + i + ")'>"
             + truncate_text(encode_entities(fb), 25)
             + "</button>"
-            + " <a class='remove_fb_button' id='remove_fb_"+i+"' href='#'>"
+            + " <a class='remove_fb_button link-secondary' id='remove_fb_"+i+"' href='#'>"
             +   "<i class='bi bi-x-circle'></i>"
             + "</a> "
             );
       }
-      buttons += "</p>";
+      buttons += "</div>";
 
-      buttons += "<p>";
-      buttons += ("<button class='btn btn-sm btn-secondary me-1' type='button' "
+      buttons += "<div class='mt-1'>";
+      buttons += ("<button class='btn btn-sm btn-outline-secondary me-1' type='button' "
           + "onclick='add_feedback_item()'><i class='bi bi-plus'></i> {% trans "Add phrase" %}</button>");
-      buttons += ("<button class='btn btn-sm btn-secondary me-1' type='button' "
+      buttons += ("<button class='btn btn-sm btn-outline-danger me-1' type='button' "
           + "onclick='set_feedback(\"\")'>{% trans "Clear" %}</button>");
-      buttons += "</p>";
+      buttons += "</div>";
 
       $("#canned_feedback_items").html(buttons);
 
@@ -381,13 +376,13 @@
     function add_submit_next()
     {
       if (next_page_url)
-        $(".grading-page-grade-entry .form-group:last .controls:last").append(
-            " <button class='btn btn-primary' id='save_next_page' type='button'>"
+        $(".grading-page-grade-entry .row:last div:last").append(
+            " <button class='btn btn-outline-primary' id='save_next_page' type='button'>"
             + "{% trans "Submit and next page" %} &raquo;"
             + "</button>");
       if (next_session_url)
-        $(".grading-page-grade-entry .form-group:last .controls:last").append(
-            " <button class='btn btn-primary' id='save_next_session' type='button'>"
+        $(".grading-page-grade-entry .row:last div:last").append(
+            " <button class='btn btn-outline-primary' id='save_next_session' type='button'>"
             + "{% trans "Submit and next session" %} &raquo;"
             + "</button>");
 
@@ -395,7 +390,7 @@
       $("#save_next_session").click(save_and_next_session);
 
       {# http://stackoverflow.com/a/9549716/3437454 #}
-      $(".relate-grading-form").prepend($(".form-group:last").clone(true, true));
+      $(".relate-grading-form").prepend($(".row:last").clone(true, true));
     }
 
     $(document).ready(add_submit_next);

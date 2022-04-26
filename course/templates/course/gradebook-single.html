@@ -272,43 +272,43 @@
               {% endif %}
 
               {% if allow_session_actions %}
-                <td>
+                <td class="lh-lg">
                   {% if pperm.regrade_flow_session %}
                     <button type="submit" name="regrade_{{flow_session.id}}"
-                      class="btn btn-primary btn-sm relate-btn-xs-vert-spaced">
+                      class="btn btn-outline-primary btn-sm relate-btn-xs-vert-spaced">
                       {% trans "Regrade" %}
                     </button>
                   {% endif %}
                   {% if flow_session.in_progress %}
                     {% if pperm.impose_flow_session_deadline %}
                       <button type="submit" name="imposedl_{{flow_session.id}}"
-                        class="btn btn-primary btn-sm relate-btn-xs-vert-spaced">
+                        class="btn btn-outline-primary btn-sm relate-btn-xs-vert-spaced">
                         {% trans "Impose deadline" %}
                       </button>
                     {% endif %}
                     {% if pperm.end_flow_session %}
                       <button type="submit" name="end_{{flow_session.id}}"
-                        class="btn btn-primary btn-sm relate-btn-xs-vert-spaced">
+                        class="btn btn-outline-primary btn-sm relate-btn-xs-vert-spaced">
                         {% trans "End and grade" %}
                       </button>
                     {% endif %}
                   {% else %}
                     {% if pperm.reopen_flow_session %}
                       <a href="{% url "relate-view_reopen_session" course.identifier flow_session.id opportunity.id %}"
-                        class="btn btn-primary btn-sm relate-btn-xs-vert-spaced">
+                        class="btn btn-outline-primary btn-sm relate-btn-xs-vert-spaced">
                         {% trans "Reopen" %}
                       </a>
                     {% endif %}
                     {% if pperm.recalculate_flow_session_grade %}
                       <button type="submit" name="recalculate_{{flow_session.id}}"
-                        class="btn btn-primary btn-sm relate-btn-xs-vert-spaced">
+                        class="btn btn-outline-primary btn-sm relate-btn-xs-vert-spaced">
                         {% trans "Recalculate grade" %}
                       </button>
                     {% endif %}
                   {% endif %}
                   {% if pperm.grant_exception %}
                     <a href="{% url "relate-grant_exception_stage_3" course.identifier flow_session.participation.id flow_session.flow_id flow_session.id %}"
-                      class="btn btn-primary btn-sm relate-btn-xs-vert-spaced">
+                      class="btn btn-outline-primary btn-sm relate-btn-xs-vert-spaced">
                       {% trans "Grant exception" %}
                     </a>
                   {% endif %}
@@ -324,7 +324,7 @@
   {% if show_privileged_info and opportunity.flow_id %}
     <div class="relate-well">
       <a href="{% url "relate-grant_exception_stage_2" course.identifier grade_participation.id opportunity.flow_id %}"
-        class="btn btn-primary btn-secondary">
+        class="btn btn-outline-primary">
           {% trans "Grant exception" %}
       </a>
     </div>
