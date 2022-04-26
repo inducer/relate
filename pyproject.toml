@@ -133,6 +133,8 @@ cryptography = "^3.2.1"
 
 social-auth-app-django = "^5.0.0"
 
+psycopg2 = { version = "^2.9.3", optional = true }
+
 [tool.poetry.dev-dependencies]
 factory_boy = "^2.12.0"
 flake8-quotes = "^3.2.0"
@@ -158,5 +160,9 @@ types-PyYAML = "^0.1.5"
 
 # tests for code questions use question code that has numpy
 numpy = "^1.19"
+
+# enable with "-E postgres"
+[tool.poetry.extras]
+postgres = ["psycopg2"]
 
 # vim: foldmethod=marker
