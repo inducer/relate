@@ -182,7 +182,7 @@ Additional Setup Steps for Deploying to Production
     will use and enter the details (database name, user name, password) into
     :file:`local_settings.py`. You will also need to::
 
-        pip install psycopg2
+        poetry install -E postgres
 
 *   The directory specified under ``GIT_ROOT`` must be owned by the user
     running Relate.
