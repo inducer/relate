@@ -225,10 +225,22 @@
 
   {# {{{ grade ui #}
 
+  <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+    <div id="grade-ui-toast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+      <div class="toast-header">
+        <strong class="me-auto">{% trans "Error" %}</strong>
+        <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+      </div>
+      <div id="grade-ui-toast-body" class="toast-body">
+        Hello, world! This is a toast message.
+      </div>
+    </div>
+  </div>
+
   <script>
 
     // http://stackoverflow.com/a/30558011
-    var SURROGATE_PAIR_REGEXP = /[\uD800-\uDBFF][\uDC00-\uDFFF]/g,
+    const SURROGATE_PAIR_REGEXP = /[\uD800-\uDBFF][\uDC00-\uDFFF]/g,
         // Match everything outside of normal chars and " (quote character)
         NON_ALPHANUMERIC_REGEXP = /([^\#-~| |!])/g;
 
@@ -237,8 +249,8 @@
       return value.
         replace(/&/g, '&amp;').
         replace(SURROGATE_PAIR_REGEXP, function(value) {
-          var hi = value.charCodeAt(0);
-          var low = value.charCodeAt(1);
+          const hi = value.charCodeAt(0);
+          const low = value.charCodeAt(1);
           return '&#' + (((hi - 0xD800) * 0x400) + (low - 0xDC00) + 0x10000) + ';';
         }).
         replace(NON_ALPHANUMERIC_REGEXP, function(value) {
@@ -278,7 +290,7 @@
 
     function get_feedback_items()
     {
-      var items = localStorage["relate_grade_feedback_items"];
+      const items = localStorage["relate_grade_feedback_items"];
       if (items)
         return JSON.parse(items);
       else
@@ -287,23 +299,28 @@
 
     function add_feedback(idx)
     {
-      var items = get_feedback_items();
-      var cm = get_feedback_codemirror();
+      const items = get_feedback_items();
+      const cm = get_feedback_codemirror();
 
-      var val = "";
+      let val = "";
       if (cm.getValue())
         val += "\n";
       val += items[idx];
       cm.replaceRange(val, {line: Infinity});
     }
 
+    function copy_rubric()
+    {
+      set_feedback(document.querySelector("#id_rubric_text").value);
+    }
+
     function add_feedback_item(p)
     {
-      var item = prompt("{%trans "Enter new feedback item:" %}");
+      const item = prompt("{%trans "Enter new feedback item:" %}");
       if (!item)
         return;
 
-      var items = get_feedback_items();
+      const items = get_feedback_items();
       items.push(item);
       localStorage["relate_grade_feedback_items"] = JSON.stringify(items);
 
@@ -314,10 +331,10 @@
     {
       evt.stopPropagation();
 
-      var id = evt.target.parentNode.id.substr("remove_fb_".length);
-      var index = parseInt(id);
+      const id = evt.target.parentNode.id.substr("remove_fb_".length);
+      const index = parseInt(id);
 
-      var items = get_feedback_items();
+      const items = get_feedback_items();
       items.splice(index, 1);
       localStorage["relate_grade_feedback_items"] = JSON.stringify(items);
 
@@ -326,9 +343,9 @@
 
     function update_feedback_items()
     {
-      var buttons = "";
+      let buttons = "";
 
-      var items = get_feedback_items();
+      const items = get_feedback_items();
 
       buttons += "<div class='lh-lg mt-1'>";
       for (var i = 0; i < items.length; ++i)
@@ -348,6 +365,8 @@
       buttons += "<div class='mt-1'>";
       buttons += ("<button class='btn btn-sm btn-outline-secondary me-1' type='button' "
           + "onclick='add_feedback_item()'><i class='bi bi-plus'></i> {% trans "Add phrase" %}</button>");
+      buttons += ("<button class='btn btn-sm btn-outline-secondary me-1' type='button' "
+          + "onclick='copy_rubric()'><i class='bi bi-clipboard-check'></i> {% trans "Copy rubric" %}</button>");
       buttons += ("<button class='btn btn-sm btn-outline-danger me-1' type='button' "
           + "onclick='set_feedback(\"\")'>{% trans "Clear" %}</button>");
       buttons += "</div>";
@@ -355,6 +374,70 @@
       $("#canned_feedback_items").html(buttons);
 
       $(".remove_fb_button").click(remove_feedback_item);
+    }
+
+
+    function process_feedback_change()
+    {
+      try {
+        let total = null;
+        let points = null;
+
+        const value = get_feedback_codemirror().getValue();
+        const points_regex = /\[pts:\s*([^\]]*)\s*\]/g;
+        const points_body_regex = /^([-0-9\.]+)\s*((?:\/\s*[-0-9\.]*)?)\s*((?:#[a-zA-Z_]\w*)?)$/;
+
+        function parse_float(s)
+        {
+          const result = Number.parseFloat(s);
+          if (isNaN(result))
+            throw `Numeral not understood: ${s}`;
+          return result;
+        }
+        for (const body_match of value.matchAll(points_regex))
+        {
+          const points_body = body_match[1];
+          const match = points_body.match(points_body_regex);
+          if (match === null)
+            throw `Points spec not understood: '${points_body}'`;
+
+          if (points === null)
+            points = 0;
+          points += parse_float(match[1]);
+
+          let match_total;
+          if (match[2].length)
+          {
+            match_total = parse_float(match[2].substring(1));
+            if (match_total <= 0)
+              throw `Point denominator must be positive: '${points_body}'`;
+            if (total === null)
+              total = 0;
+            total += match_total;
+          }
+        }
+
+        if (points !== null)
+        {
+          if (total === null)
+          {
+            document.getElementById("id_grade_points").value = points;
+            document.getElementById("id_grade_percent").value = "";
+          }
+          else
+          {
+            document.getElementById("id_grade_points").value = "";
+            document.getElementById("id_grade_percent").value = 100*points/total;
+          }
+        }
+      }
+      catch (err)
+      {
+        var error_toast = document.getElementById('grade-ui-toast');
+        document.getElementById("grade-ui-toast-body").innerHTML = err;
+        var toast = new bootstrap.Toast(error_toast);
+        toast.show();
+      }
     }
 
     function add_grade_ui()
@@ -366,6 +449,8 @@
           });
 
       update_feedback_items();
+
+      get_feedback_codemirror().on("change", process_feedback_change);
     }
 
     $(document).ready(add_grade_ui);

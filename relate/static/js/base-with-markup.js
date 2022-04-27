@@ -2,6 +2,7 @@
 import tmpl from 'blueimp-tmpl';
 
 import './base';
+import * as bootstrap from 'bootstrap';
 import * as rlUtils from './rlUtils';
 import 'jstree';
 import 'video.js';
@@ -15,4 +16,4 @@ window.MathJax = {
   },
 };
 
-export { rlUtils, tmpl };
+export { rlUtils, tmpl, bootstrap };

@@ -1323,6 +1323,9 @@ class PythonCodeQuestionWithHumanTextFeedback(
     Besides those defined in :class:`PythonCodeQuestion`, the
     following additional, allowed/required attribute are introduced:
 
+    Supports automatic computation of point values from textual feedback.
+    See :ref:`points-from-feedback`.
+
     .. attribute:: human_feedback_value
 
         Optional (deprecated).
