@@ -386,7 +386,9 @@ class FlowSessionGradingRuleDesc(Struct):
     .. attribute:: credit_percent
 
         (Optional) A number indicating the percentage of credit assigned for
-        this flow.  Defaults to 100 if not present.
+        this flow.  Defaults to 100 if not present. This is applied *after*
+        point modifiers such as :attr:`bonus_points` and
+        :attr:`max_points_enforced_cap`.
 
     .. attribute:: due
 
