@@ -9,30 +9,30 @@
 
 {% block root_container %}
   <div class="row">
-    <div class="grading-page-student-work container">
+    <div class="grading-page-student-work container pt-2">
       {# {{{ student view #}
 
       {# {{{ past submissions #}
-      {% if expects_answer %}
-        <div class="float-end mt-2">
-          <div class="dropdown" id="past-submission-and-grades_dropdown">
-            <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="past-submission-and-grades_dropdown_button"
-                    data-bs-toggle="dropdown">
-              {% trans "Past submissions/grades" %}
-              <span class="caret"></span>
-            </button>
-            <ul class="dropdown-menu dropdown-menu-end shadow" aria-labelledby="past-submission-and-grades_dropdown_button" id="past-submission-and-grades_dropdown_content">
-              <li style="list-style:none; position:relative; left:50%;">
-                <i class="bi bi-hourglass"></i>
-              </li>
-            </ul>
-          </div>
-        </div>
-      {% endif %}
+
 
       {# }}} #}
 
-      {{ body|safe }}
+
+      <div class="card mb-3" markdown="block">
+        <div class="card-header">
+          <h5 class="card-title dropdown-toggle">
+            <a class="text-decoration-none link-dark"
+              data-bs-toggle="collapse" href="#grading-prompt" aria-expanded="false" aria-controls="grading-prompt">
+                {% trans "Prompt" %}
+            </a>
+          </h5>
+        </div>
+        <div id="grading-prompt" class="collapse">
+         <div class="card-body">
+           {{ body|safe }}
+         </div>
+        </div>
+      </div>
 
       {% if form_html %}
         <div class="relate-well relate-interaction-container">
@@ -60,7 +60,7 @@
       {# }}} #}
 
     </div>
-    <div class="grading-page-grade-entry container">
+    <div class="grading-page-grade-entry container pt-2">
       <h1> {% trans "Grading" %}: <tt>{{ flow_identifier}} - {{ page_data.group_id }}/{{ page_data.page_id }}</tt> </h1>
 
       {% include "base-page-top.html" %}
@@ -113,6 +113,21 @@
               </span>
             {% else %}
               {% trans "(n/a)" %}
+            {% endif %}
+
+            {% if expects_answer %}
+              <div class="dropdown" id="past-submission-and-grades_dropdown">
+                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="past-submission-and-grades_dropdown_button"
+                        data-bs-toggle="dropdown">
+                  {% trans "Past submissions/grades" %}
+                  <span class="caret"></span>
+                </button>
+                <ul class="dropdown-menu dropdown-menu shadow" aria-labelledby="past-submission-and-grades_dropdown_button" id="past-submission-and-grades_dropdown_content">
+                  <li style="list-style:none; position:relative; left:50%;">
+                    <i class="bi bi-hourglass"></i>
+                  </li>
+                </ul>
+              </div>
             {% endif %}
           </td>
         </tr>
