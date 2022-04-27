@@ -39,7 +39,7 @@ from django.conf import settings
 
 # {{{ mypy
 
-from typing import (Any, Callable, TYPE_CHECKING)
+from typing import (Optional, Any, Callable, TYPE_CHECKING)
 
 if TYPE_CHECKING:
     # FIXME There seem to be some cyclic imports that prevent importing these
@@ -106,6 +106,7 @@ class PageContext:
         May be None.
 
     .. attribute:: page_uri
+    .. attribute:: request
 
     Note that this is different from :class:`course.utils.FlowPageContext`,
     which is used internally by the flow views.
@@ -119,6 +120,7 @@ class PageContext:
             flow_session: FlowSession,
             in_sandbox: bool = False,
             page_uri: str | None = None,
+            request: Optional[http.Request] = None,
             ) -> None:
 
         self.course = course
@@ -127,6 +129,7 @@ class PageContext:
         self.flow_session = flow_session
         self.in_sandbox = in_sandbox
         self.page_uri = page_uri
+        self.request = request
 
 
 class PageBehavior:
@@ -916,7 +919,7 @@ class TextInputWithButtons(forms.TextInput):
 
 
 class HumanTextFeedbackForm(StyledForm):
-    def __init__(self, point_value, *args, **kwargs):
+    def __init__(self, point_value, interaction_mode, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
         self.point_value = point_value
@@ -946,14 +949,19 @@ class HumanTextFeedbackForm(StyledForm):
                         create_default_point_scale(point_value)),
                     label=_("Grade points"))
 
+        from course.utils import get_codemirror_widget
+        cm_widget, cm_help_text = get_codemirror_widget(
+                    language_mode="markdown",
+                    interaction_mode=interaction_mode)
         self.fields["feedback_text"] = forms.CharField(
-                widget=forms.Textarea(),
+                widget=cm_widget,
                 required=False,
                 help_text=mark_safe_lazy(
                     _("Feedback to be shown to student, using "
                     "<a href='http://documen.tician.de/"
                     "relate/content.html#relate-markup'>"
-                    "RELATE-flavored Markdown</a>")),
+                    "RELATE-flavored Markdown</a>.")
+                    + " " + cm_help_text),
                 label=_("Feedback text"))
         self.fields["notify"] = forms.BooleanField(
                 initial=False, required=False,
@@ -1046,21 +1054,25 @@ class PageBaseWithHumanTextFeedback(PageBase):
         human_feedback_point_value = self.human_feedback_point_value(
                 page_context, page_data)
 
+        interaction_mode = get_editor_interaction_mode(page_context)
         if grade_data is not None:
             form_data = {}
             for k in self.grade_data_attrs:
                 form_data[k] = grade_data[k]
 
-            return HumanTextFeedbackForm(human_feedback_point_value, form_data)
+            return HumanTextFeedbackForm(human_feedback_point_value,
+                    interaction_mode, form_data)
         else:
-            return HumanTextFeedbackForm(human_feedback_point_value)
+            return HumanTextFeedbackForm(human_feedback_point_value,
+                    interaction_mode)
 
     def post_grading_form(self, page_context, page_data, grade_data,
             post_data, files_data):
         human_feedback_point_value = self.human_feedback_point_value(
                 page_context, page_data)
+        interaction_mode = get_editor_interaction_mode(page_context)
         return HumanTextFeedbackForm(
-                human_feedback_point_value, post_data, files_data)
+                human_feedback_point_value, interaction_mode, post_data, files_data)
 
     def update_grade_data_from_grading_form_v2(self, request, page_context,
             page_data, grade_data, grading_form, files_data):
@@ -1235,7 +1247,10 @@ class PageBaseWithCorrectAnswer(PageBase):
 
 
 def get_editor_interaction_mode(page_context):
-    if (page_context.flow_session is not None
+    if (page_context.request is not None
+            and not page_context.request.user.is_anonymous):
+        return page_context.request.user.editor_mode
+    elif (page_context.flow_session is not None
             and page_context.flow_session.participation is not None):
         return page_context.flow_session.participation.user.editor_mode
     else:
