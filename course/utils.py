@@ -741,7 +741,8 @@ class FlowPageContext(FlowContext):
                     course=self.course, repo=self.repo,
                     commit_sha=self.course_commit_sha,
                     flow_session=flow_session,
-                    page_uri=page_uri)
+                    page_uri=page_uri,
+                    request=request)
 
         self._prev_answer_visit = False
 
