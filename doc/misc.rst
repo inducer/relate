@@ -460,6 +460,9 @@ Version 2022.1
     to switch ``fa fa-key`` CSS classes to ``bi bi-key`` (or similar).
     See the full list of available icons `here <https://icons.getbootstrap.com/>`__.
 
+  * Relate can now automatically compute point counts/percentages from
+    human-provided feedback. See :ref:`points-from-feedback`.
+
 Version 2015.1
 --------------
 

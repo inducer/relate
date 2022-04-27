@@ -85,6 +85,9 @@ class FileUploadQuestion(PageBaseWithTitle, PageBaseWithValue,
     A page allowing the submission of a file upload that will be
     graded with text feedback by a human grader.
 
+    Supports automatic computation of point values from textual feedback.
+    See :ref:`points-from-feedback`.
+
     .. attribute:: id
 
         |id-page-attr|

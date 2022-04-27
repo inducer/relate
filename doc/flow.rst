@@ -304,6 +304,39 @@ Life cycle
 
 .. autoclass:: flow_session_expiration_mode
 
+.. _points-from-feedback:
+
+Automatic point computation from textual feedback
+-------------------------------------------------
+
+If you write your textual feedback in a certain way, Relate can help you compute
+the grade (and update it when rubrics change):
+
+    - Crossed all t's [pts:1/1 #cross_t]
+    - Dotted all i's [pts:2/2 #dot_i]
+    - Obeyed the axiom of choice [pts:1.5/1 #ax_choice]
+
+    The hash marks (and arbitrary identifiers after) are optional. If specified,
+    they will permit Relate to automatically update the grade feedback with
+    a new rubric (while maintaining point percentages for each item, as
+    found by the identifier).
+
+    If at least one "denominator" is specified, Relate will automatically
+    compute the total and set the grade percentage. If no denominator
+    is specified anywhere, Relate will compute the sum and set the
+    point count.
+
+    ---
+
+    If there is a line with three or more hyphens on its own, everything
+    after that line is kept unchanged when updating feedback from a rubric.
+
+    - [pts:-1.5] Negative point contributions work, too.
+
+.. note::
+
+    The feedback update facility is not currently implemented (but planned!).
+
 Sample Rule Sets
 ----------------
 

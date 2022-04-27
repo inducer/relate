@@ -960,9 +960,13 @@ class HumanTextFeedbackForm(StyledForm):
                     _("Feedback to be shown to student, using "
                     "<a href='http://documen.tician.de/"
                     "relate/content.html#relate-markup'>"
-                    "RELATE-flavored Markdown</a>.")
+                    "RELATE-flavored Markdown</a>. "
+                    "See RELATE documentation for automatic computation of point "
+                    "count from feedback text.")
                     + " " + cm_help_text),
                 label=_("Feedback text"))
+        self.fields["rubric_text"] = forms.CharField(
+                widget=forms.HiddenInput())
         self.fields["notify"] = forms.BooleanField(
                 initial=False, required=False,
                 help_text=_("Checking this box and submitting the form "
@@ -1036,6 +1040,9 @@ class HumanTextFeedbackForm(StyledForm):
 class PageBaseWithHumanTextFeedback(PageBase):
     """
     .. automethod:: human_feedback_point_value
+
+    Supports automatic computation of point values from textual feedback.
+    See :ref:`points-from-feedback`.
     """
     grade_data_attrs = ["released", "grade_percent", "feedback_text", "notes"]
 
@@ -1055,16 +1062,14 @@ class PageBaseWithHumanTextFeedback(PageBase):
                 page_context, page_data)
 
         interaction_mode = get_editor_interaction_mode(page_context)
+        form_data = {"rubric_text": self.page_desc.rubric}
+
         if grade_data is not None:
-            form_data = {}
             for k in self.grade_data_attrs:
                 form_data[k] = grade_data[k]
 
-            return HumanTextFeedbackForm(human_feedback_point_value,
-                    interaction_mode, form_data)
-        else:
-            return HumanTextFeedbackForm(human_feedback_point_value,
-                    interaction_mode)
+        return HumanTextFeedbackForm(human_feedback_point_value,
+                interaction_mode, form_data)
 
     def post_grading_form(self, page_context, page_data, grade_data,
             post_data, files_data):

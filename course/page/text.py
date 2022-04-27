@@ -1084,7 +1084,10 @@ class TextQuestion(TextQuestionBase, PageBaseWithValue):
 class HumanGradedTextQuestion(TextQuestionBase, PageBaseWithValue,
         PageBaseWithHumanTextFeedback, PageBaseWithCorrectAnswer):
     """
-    A page asking for a textual answer
+    A page asking for a textual answer, with human-graded feedback.
+
+    Supports automatic computation of point values from textual feedback.
+    See :ref:`points-from-feedback`.
 
     .. attribute:: id
 
