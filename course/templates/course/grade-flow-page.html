@@ -266,9 +266,14 @@
       $("#id_grade_points").val(p);
     }
 
+    function get_feedback_codemirror()
+    {
+      return document.querySelector('#div_id_feedback_text .CodeMirror').CodeMirror;
+    }
+
     function set_feedback(p)
     {
-      $("#id_feedback_text").val(p);
+      get_feedback_codemirror().setValue(p);
     }
 
     function get_feedback_items()
@@ -283,12 +288,13 @@
     function add_feedback(idx)
     {
       var items = get_feedback_items();
+      var cm = get_feedback_codemirror();
 
-      var val = $("#id_feedback_text").val();
-      if (val)
+      var val = "";
+      if (cm.getValue())
         val += "\n";
       val += items[idx];
-      $("#id_feedback_text").val(val);
+      cm.replaceRange(val, {line: Infinity});
     }
 
     function add_feedback_item(p)
@@ -353,7 +359,7 @@
 
     function add_grade_ui()
     {
-      $(".grading-page-grade-entry #div_id_feedback_text textarea").each(
+      $(".grading-page-grade-entry #hint_id_feedback_text").each(
           function()
           {
             $(this).after("<div id='canned_feedback_items'></div>");
