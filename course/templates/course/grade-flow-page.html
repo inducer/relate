@@ -440,6 +440,16 @@
       }
     }
 
+    function listenForFocusHotkey(e) {
+      console.log(e);
+      if (e.key === "F" && e.ctrlKey && e.shiftKey && !e.altKey && !e.metaKey
+          && !e.isComposing) {
+        get_feedback_codemirror().focus();
+        e.stopPropagation();
+        e.preventDefault();
+      }
+    }
+
     function add_grade_ui()
     {
       $(".grading-page-grade-entry #hint_id_feedback_text").each(
@@ -451,6 +461,8 @@
       update_feedback_items();
 
       get_feedback_codemirror().on("change", process_feedback_change);
+
+      document.addEventListener("keydown", listenForFocusHotkey);
     }
 
     $(document).ready(add_grade_ui);
