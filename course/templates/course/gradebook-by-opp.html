@@ -65,7 +65,7 @@
               role="button">{% trans "Download submissions" %}</a>
         {% endif %}
         {% if pperm.edit_grading_opportunity %}
-          <a class="btn btn-secondary" href="{% url "relate-edit_grading_opportunity" course.identifier opportunity.id %}"
+          <a class="btn btn-outline-secondary" href="{% url "relate-edit_grading_opportunity" course.identifier opportunity.id %}"
               role="button">{% trans "Edit" %}</a>
         {% endif %}
       </td>
