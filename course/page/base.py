@@ -950,9 +950,16 @@ class HumanTextFeedbackForm(StyledForm):
                     label=_("Grade points"))
 
         from course.utils import get_codemirror_widget
+        from codemirror import CodeMirrorJavascript
         cm_widget, cm_help_text = get_codemirror_widget(
                     language_mode="markdown",
-                    interaction_mode=interaction_mode)
+                    interaction_mode=editor_interaction_mode,
+                    additional_keys={
+                        "Ctrl-P":
+                        CodeMirrorJavascript("rlUtils.goToNextPointsField"),
+                        "Shift-Ctrl-P":
+                        CodeMirrorJavascript("rlUtils.goToPreviousPointsField"),
+                        })
         self.fields["feedback_text"] = forms.CharField(
                 widget=cm_widget,
                 required=False,
@@ -962,8 +969,10 @@ class HumanTextFeedbackForm(StyledForm):
                     "relate/content.html#relate-markup'>"
                     "RELATE-flavored Markdown</a>. "
                     "See RELATE documentation for automatic computation of point "
-                    "count from feedback text.")
-                    + " " + cm_help_text),
+                    "count from <tt>[pts:N/N]</tt> and <tt>[pts:N]</tt>. "
+                    "Use Ctrl-P/Shift-Ctrl-P to move between <tt>[pts:]</tt> "
+                    "fields. ")
+                    + cm_help_text),
                 label=_("Feedback text (Ctrl+Shift+F)"))
         self.fields["rubric_text"] = forms.CharField(
                 widget=forms.HiddenInput())
