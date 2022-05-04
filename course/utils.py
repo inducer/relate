@@ -70,8 +70,8 @@ if TYPE_CHECKING:
 
     from relate.utils import Repo_ish  # noqa
     from course.content import Repo_ish  # noqa
-    from codemirror import CodeMirrorTextarea  # noqa
 
+    from codemirror import CodeMirrorTextarea, CodeMirrorJavascript  # noqa
 
 # }}}
 
@@ -900,8 +900,13 @@ def get_codemirror_widget(
         dependencies: tuple = (),
         read_only: bool = False,
         autofocus: bool = False,
+        additional_keys: Optional[
+            Dict[str, Union[str, CodeMirrorJavascript]]] = None,
+        attrs: Optional[Dict[str, str]] = None,
         ) -> tuple[CodeMirrorTextarea, str]:
     from codemirror import CodeMirrorTextarea, CodeMirrorJavascript  # noqa
+    if additional_keys is None:
+        additional_keys = {}
 
     theme = "default"
     if read_only:
@@ -932,17 +937,9 @@ def get_codemirror_widget(
     else:
         indent_unit = 2
 
-    actual_config = {
-            "fixedGutter": True,
-            "matchBrackets": True,
-            "styleActiveLine": True,
-            "showTrailingSpace": True,
-            "indentUnit": indent_unit,
-            "readOnly": read_only,
-            "extraKeys": CodeMirrorJavascript("""
-                {
-                  "Ctrl-/": "toggleComment",
-                  "Tab": function(cm)
+    extra_keys = {
+            "Ctrl-/": "toggleComment",
+            "Tab": CodeMirrorJavascript("""function(cm)
                   {
                     // from https://github.com/codemirror/CodeMirror/issues/988
 
@@ -955,14 +952,23 @@ def get_codemirror_widget(
                         - (cm.doc.getCursor("start").ch % spacesPerTab));
                     var spaces = Array(spacesToInsert + 1).join(" ");
                     cm.replaceSelection(spaces, "end", "+input");
-                  },
-                  "Shift-Tab": "indentLess",
-                  "F9": function(cm) {
+                  }"""),
+            "Shift-Tab": "indentLess",
+            "F9": CodeMirrorJavascript("""function(cm) {
                       cm.setOption("fullScreen",
                         !cm.getOption("fullScreen"));
-                  }
-                }
-            """)
+                  }"""),
+            }
+    extra_keys.update(additional_keys)
+
+    actual_config = {
+            "fixedGutter": True,
+            "matchBrackets": True,
+            "styleActiveLine": True,
+            "showTrailingSpace": True,
+            "indentUnit": indent_unit,
+            "readOnly": read_only,
+            "extraKeys": extra_keys,
             }
 
     if autofocus:
@@ -982,13 +988,17 @@ def get_codemirror_widget(
     if config is not None:
         actual_config.update(config)
 
+    if attrs is None:
+        attrs = {}
+
     return CodeMirrorTextarea(
                     mode=language_mode,
                     dependencies=dependencies,
                     theme=theme,
                     addon_css=actual_addon_css,
                     addon_js=actual_addon_js,
-                    config=actual_config), help_text
+                    config=actual_config,
+                    attrs=attrs), help_text
 
 # }}}
 
