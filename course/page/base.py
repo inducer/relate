@@ -964,7 +964,7 @@ class HumanTextFeedbackForm(StyledForm):
                     "See RELATE documentation for automatic computation of point "
                     "count from feedback text.")
                     + " " + cm_help_text),
-                label=_("Feedback text"))
+                label=_("Feedback text (Ctrl+Shift+F)"))
         self.fields["rubric_text"] = forms.CharField(
                 widget=forms.HiddenInput())
         self.fields["notify"] = forms.BooleanField(
