@@ -919,8 +919,9 @@ class TextInputWithButtons(forms.TextInput):
 
 
 class HumanTextFeedbackForm(StyledForm):
-    def __init__(self, point_value, interaction_mode, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, point_value, *args,
+            editor_interaction_mode=None, rubric=None):
+        super().__init__(*args)
 
         self.point_value = point_value
 
@@ -963,6 +964,7 @@ class HumanTextFeedbackForm(StyledForm):
         self.fields["feedback_text"] = forms.CharField(
                 widget=cm_widget,
                 required=False,
+                initial=rubric,
                 help_text=mark_safe_lazy(
                     _("Feedback to be shown to student, using "
                     "<a href='http://documen.tician.de/"
@@ -975,7 +977,9 @@ class HumanTextFeedbackForm(StyledForm):
                     + cm_help_text),
                 label=_("Feedback text (Ctrl+Shift+F)"))
         self.fields["rubric_text"] = forms.CharField(
-                widget=forms.HiddenInput())
+                widget=forms.HiddenInput(),
+                initial=rubric,
+                required=False)
         self.fields["notify"] = forms.BooleanField(
                 initial=False, required=False,
                 help_text=_("Checking this box and submitting the form "
@@ -1070,23 +1074,29 @@ class PageBaseWithHumanTextFeedback(PageBase):
         human_feedback_point_value = self.human_feedback_point_value(
                 page_context, page_data)
 
-        interaction_mode = get_editor_interaction_mode(page_context)
-        form_data = {"rubric_text": self.page_desc.rubric}
-
+        editor_interaction_mode = get_editor_interaction_mode(page_context)
         if grade_data is not None:
+            form_data = {}
             for k in self.grade_data_attrs:
                 form_data[k] = grade_data[k]
 
-        return HumanTextFeedbackForm(human_feedback_point_value,
-                interaction_mode, form_data)
+            return HumanTextFeedbackForm(human_feedback_point_value, form_data,
+                    editor_interaction_mode=editor_interaction_mode,
+                    rubric=self.page_desc.rubric)
+        else:
+            return HumanTextFeedbackForm(human_feedback_point_value,
+                    editor_interaction_mode=editor_interaction_mode,
+                    rubric=self.page_desc.rubric)
 
     def post_grading_form(self, page_context, page_data, grade_data,
             post_data, files_data):
         human_feedback_point_value = self.human_feedback_point_value(
                 page_context, page_data)
-        interaction_mode = get_editor_interaction_mode(page_context)
+        editor_interaction_mode = get_editor_interaction_mode(page_context)
         return HumanTextFeedbackForm(
-                human_feedback_point_value, interaction_mode, post_data, files_data)
+                human_feedback_point_value, post_data, files_data,
+                editor_interaction_mode=editor_interaction_mode,
+                rubric=self.page_desc.rubric)
 
     def update_grade_data_from_grading_form_v2(self, request, page_context,
             page_data, grade_data, grading_form, files_data):

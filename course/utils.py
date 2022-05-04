@@ -893,7 +893,7 @@ class PageInstanceCache:
 
 def get_codemirror_widget(
         language_mode: str,
-        interaction_mode: str,
+        interaction_mode: Optional[str],
         config: dict | None = None,
         addon_css: tuple = (),
         addon_js: tuple = (),
