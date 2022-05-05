@@ -23,7 +23,7 @@ THE SOFTWARE.
 """
 
 import django.forms as forms
-from django import http
+import django.http
 
 from course.validation import validate_struct, ValidationError
 from course.constants import MAX_EXTRA_CREDIT_FACTOR
@@ -120,7 +120,7 @@ class PageContext:
             flow_session: FlowSession,
             in_sandbox: bool = False,
             page_uri: str | None = None,
-            request: Optional[http.Request] = None,
+            request: Optional[django.http.HttpRequest] = None,
             ) -> None:
 
         self.course = course
@@ -604,7 +604,7 @@ class PageBase:
 
     def form_to_html(
             self,
-            request: http.HttpRequest,
+            request: django.http.HttpRequest,
             page_context: PageContext,
             form: StyledForm,
             answer_data: Any,
@@ -654,7 +654,7 @@ class PageBase:
 
     def update_grade_data_from_grading_form_v2(
             self,
-            request: http.HttpRequest,
+            request: django.http.HttpRequest,
             page_context: PageContext,
             page_data: Any,
             grade_data: Any,
@@ -688,7 +688,7 @@ class PageBase:
 
     def grading_form_to_html(
             self,
-            request: http.HttpRequest,
+            request: django.http.HttpRequest,
             page_context: PageContext,
             grading_form: Any,
             grade_data: Any
