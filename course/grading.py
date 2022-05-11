@@ -329,7 +329,6 @@ def grade_flow_page(
         grading_form.helper.add_input(
                 Submit(
                     "submit", _("Submit"),
-                    accesskey="s",
                     css_class="relate-grading-save-button"))
 
         grading_form_html = fpctx.page.grading_form_to_html(
