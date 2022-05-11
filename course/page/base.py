@@ -960,6 +960,8 @@ class HumanTextFeedbackForm(StyledForm):
                         CodeMirrorJavascript("rlUtils.goToNextPointsField"),
                         "Shift-Ctrl-P":
                         CodeMirrorJavascript("rlUtils.goToPreviousPointsField"),
+                        "Ctrl-Alt-P":
+                        CodeMirrorJavascript("rlUtils.goToPreviousPointsField"),
                         })
         self.fields["feedback_text"] = forms.CharField(
                 widget=cm_widget,
@@ -972,7 +974,7 @@ class HumanTextFeedbackForm(StyledForm):
                     "RELATE-flavored Markdown</a>. "
                     "See RELATE documentation for automatic computation of point "
                     "count from <tt>[pts:N/N]</tt> and <tt>[pts:N]</tt>. "
-                    "Use Ctrl-P/Shift-Ctrl-P to move between <tt>[pts:]</tt> "
+                    "Use Ctrl-P/(Alt/Shift)-Ctrl-P to move between <tt>[pts:]</tt> "
                     "fields. ")
                     + cm_help_text),
                 label=_("Feedback text (Ctrl+Shift+F)"))
