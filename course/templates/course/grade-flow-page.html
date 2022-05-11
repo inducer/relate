@@ -441,7 +441,6 @@
     }
 
     function listenForFocusHotkey(e) {
-      console.log(e);
       if (e.key === "F" && e.ctrlKey && e.shiftKey && !e.altKey && !e.metaKey
           && !e.isComposing) {
         get_feedback_codemirror().focus();
