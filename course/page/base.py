@@ -979,7 +979,7 @@ class HumanTextFeedbackForm(StyledForm):
                     + cm_help_text),
                 label=_("Feedback text (Ctrl+Shift+F)"))
         self.fields["rubric_text"] = forms.CharField(
-                widget=forms.HiddenInput(),
+                widget=forms.HiddenInput(attrs={"value": rubric}),
                 initial=rubric,
                 required=False)
         self.fields["notify"] = forms.BooleanField(
