@@ -380,46 +380,34 @@
     function process_feedback_change()
     {
       try {
-        let total = null;
+        let maxPoints = null;
         let points = null;
 
-        const value = get_feedback_codemirror().getValue();
-        const points_regex = /\[pts:\s*([^\]]*)\s*\]/g;
-        const points_body_regex = /^([-0-9\.]+)\s*((?:\/\s*[-0-9\.]*)?)\s*((?:#[a-zA-Z_]\w*)?)$/;
+        rlUtils.parsePointsSpecs(get_feedback_codemirror().getValue()).forEach(
+              pspec => {
+                    if (pspec.points !== null) {
+                      if (points === null)
+                        points = 0;
 
-        function parse_float(s)
-        {
-          const result = Number.parseFloat(s);
-          if (isNaN(result))
-            throw `Numeral not understood: ${s}`;
-          return result;
-        }
-        for (const body_match of value.matchAll(points_regex))
-        {
-          const points_body = body_match[1];
-          const match = points_body.match(points_body_regex);
-          if (match === null)
-            throw `Points spec not understood: '${points_body}'`;
+                      points += pspec.points;
+                    }
+                    else {
+                      throw new Error("Not applying points total when a pts spec "
+                            + "is missing a point value.");
+                    }
 
-          if (points === null)
-            points = 0;
-          points += parse_float(match[1]);
 
-          let match_total;
-          if (match[2].length)
-          {
-            match_total = parse_float(match[2].substring(1));
-            if (match_total <= 0)
-              throw `Point denominator must be positive: '${points_body}'`;
-            if (total === null)
-              total = 0;
-            total += match_total;
-          }
-        }
+                    if (pspec.maxPoints !== null)
+                    {
+                          if (maxPoints === null)
+                            maxPoints = 0;
+                          maxPoints += pspec.maxPoints;
+                        }
+                  })
 
         if (points !== null)
         {
-          if (total === null)
+          if (maxPoints === null)
           {
             document.getElementById("id_grade_points").value = points;
             document.getElementById("id_grade_percent").value = "";
@@ -427,7 +415,7 @@
           else
           {
             document.getElementById("id_grade_points").value = "";
-            document.getElementById("id_grade_percent").value = 100*points/total;
+            document.getElementById("id_grade_percent").value = 100*points/maxPoints;
           }
         }
       }
