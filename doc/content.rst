@@ -144,6 +144,7 @@ provided as part of RELATE takes a flow and converts it to a paper-based
 worksheet. To do so, it makes use of `pypandoc
 <https://pypi.python.org/pypi/pypandoc>`_ and `PyYAML <http://pyyaml.org/>`_.
 
+
 Validation
 ----------
 
@@ -156,15 +157,8 @@ These rules are automatically checked as part of setting a new revision of the
 This helps avoid mistakes and ensures that the students always see a working
 site.
 
-RELATE validation is also available as a stand-alone script :command:`relate-validate`.
-This runs independently of git and the web site on the content developer's
-computer and provides validation feedback without having to commit and
-upload the content to a RELATE site. This script can be installed by running::
-
-    sudo pip install -r requirements.txt
-    sudo python setup.py install
-
-in the root directory of the RELATE distribution.
+See :ref:`cli` for how to use validation from the command line while
+developing content.
 
 .. _markup:
 
