@@ -114,10 +114,11 @@ bleach = "^4.1"
 html5lib = "^1.1"
 
 # For query lexing
-pytools = "^2020.2"
+pytools = "^2022.1.8"
+
 # For rendering ipython notebook
 nbconvert = "^5.2.1"
-IPython = "^7.15.0"
+
 # For relate script
 colorama = "*"
 
@@ -152,5 +153,8 @@ types-Jinja2 = "^0.1.3"
 types-paramiko = "^0.1.3"
 types-Markdown = "^0.1.2"
 types-PyYAML = "^0.1.5"
+
+# tests for code questions use question code that has numpy
+numpy = "^1.19"
 
 # vim: foldmethod=marker
