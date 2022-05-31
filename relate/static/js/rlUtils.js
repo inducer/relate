@@ -77,7 +77,7 @@ export function enablePreviewForFileUpload() {
 
 // }}}
 
-// {{{ grading ui
+// {{{ grading ui: next/previous points field
 
 // based on https://codemirror.net/addon/search/searchcursor.js (MIT)
 
@@ -99,7 +99,6 @@ function lastMatchIn(string, regexp, endMargin) {
   let match;
   let from = 0;
   while (from <= string.length) {
-    //
     // eslint-disable-next-line no-param-reassign
     regexp.lastIndex = from;
     const newMatch = regexp.exec(string);
