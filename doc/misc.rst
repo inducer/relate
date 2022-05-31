@@ -17,12 +17,9 @@ Note that this will put poetry in ``$HOME/.poetry/bin`` and modify your
 ``$HOME/.profile``. If you don't like that, see the
 `poetry docs <https://python-poetry.org/docs/>`__ for alternate installation options.
 
-To install, clone the repository::
+To install, clone the repository and enter it::
 
     git clone https://github.com/inducer/relate.git
-
-Enter the relate directory::
-
     cd relate
 
 Install the dependencies. Poetry will automatically create a virtualenv
@@ -373,6 +370,41 @@ language.
 For more instructions, please refer to `Localization: how to create
 language files <https://docs.djangoproject.com/en/dev/topics/i18n/translation/#localization-how-to-create-language-files>`_.
 
+.. _cli:
+
+Installing the Command Line Interface
+-------------------------------------
+
+RELATE validation (and a number of other functionalities) are also via the
+:command:`relate` command. This may be installed as follows.
+
+Install `poetry <https://python-poetry.org>`__ to manage dependencies and virtual
+environments::
+
+    curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python3
+
+Clone the relate repository and enter it::
+
+    git clone https://github.com/inducer/relate.git
+    cd relate
+
+Create a file ``poetry.toml`` containing the lines::
+
+    [virtualenvs]
+    in-project = true
+
+and running::
+
+    poetry install --no-dev
+
+in the root directory of the RELATE distribution. The ``relate`` command is
+then available at ``relate/.venv/bin/relate`` and can be used in a course
+repository by running::
+
+    relate validate .
+
+A number of additional functionalities (such as ``relate test-code``) are
+also available from the ``relate`` command.
 User-visible Changes
 ====================
 
