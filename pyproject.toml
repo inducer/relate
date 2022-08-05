@@ -97,7 +97,7 @@ python-memcached = "^1.59"
 celery = "^5.2.2"
 kombu = "*"
 # Avoid 2.3.0 because of https://github.com/celery/django-celery-results/issues/293
-django-celery-results = "^2.0.1,!=2.3.0"
+django-celery-results = "^2.4.0"
 
 # }}}
 
