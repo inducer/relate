@@ -52,7 +52,8 @@ def expand_yaml(yml_file, repo_root):
 def test_code_question(page_desc, repo_root):
     if page_desc.type not in [
             "PythonCodeQuestion",
-            "PythonCodeQuestionWithHumanTextFeedback"]:
+            "PythonCodeQuestionWithHumanTextFeedback",
+            "OctaveCodeQuestion"]:
         return
 
     print(75*"-")
