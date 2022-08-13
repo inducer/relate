@@ -67,17 +67,6 @@ class StyledForm(forms.Form):
                 Div, css_class="relate-codemirror-container")
 
 
-class StyledInlineForm(forms.Form):
-    def __init__(self, *args, **kwargs) -> None:
-
-        from crispy_forms.helper import FormHelper
-        self.helper = FormHelper()
-        self.helper.form_class = "form-inline"
-        self.helper.label_class = "sr-only"
-
-        super().__init__(*args, **kwargs)
-
-
 class StyledModelForm(forms.ModelForm):
     def __init__(self, *args, **kwargs) -> None:
 

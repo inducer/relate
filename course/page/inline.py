@@ -28,7 +28,7 @@ from course.validation import validate_struct, validate_markup, ValidationError
 from course.content import remove_prefix
 import django.forms as forms
 
-from relate.utils import Struct, StyledInlineForm, string_concat
+from relate.utils import Struct, string_concat
 from course.page.base import (
         AnswerFeedback, PageBaseWithValue, markup_to_html)
 
@@ -48,10 +48,12 @@ from crispy_forms.layout import Layout, HTML
 from crispy_forms.bootstrap import PrependedAppendedText
 
 
-class InlineMultiQuestionForm(StyledInlineForm):
+class InlineMultiQuestionForm(forms.Form):
     no_offset_labels = True
 
     def __init__(self, read_only, dict_for_form, page_context, *args, **kwargs):
+        from crispy_forms.helper import FormHelper
+        self.helper = FormHelper()
         super().__init__(*args, **kwargs)
         html_list = dict_for_form["html_list"]
         self.answer_instance_list = answer_instance_list = \
@@ -99,7 +101,6 @@ class InlineMultiQuestionForm(StyledInlineForm):
                         # Then it should be a TextInput widget
                         self.fields[field_name].widget.attrs["readonly"] \
                             = "readonly"
-        self.helper.layout.extend([HTML("<br/><br/>")])
 
     def clean(self):
         cleaned_data = super().clean()
@@ -178,12 +179,13 @@ class AnswerBase:
         return self.weight * self.get_correctness(answer)
 
     def get_field_layout(self, correctness=None):
-        kwargs = {}
-        kwargs["prepended_text"] = getattr(self.answers_desc, "prepended_text", "")
-        kwargs["appended_text"] = getattr(self.answers_desc, "appended_text", "")
-        kwargs["use_popover"] = "true"
-        kwargs["popover_title"] = getattr(self.answers_desc, "hint_title", "")
-        kwargs["popover_content"] = getattr(self.answers_desc, "hint", "")
+        kwargs = {
+            "template": "course/custom_crispy_inline_prepended_appended_text.html",
+            "prepended_text": getattr(self.answers_desc, "prepended_text", ""),
+            "appended_text": getattr(self.answers_desc, "appended_text", ""),
+            "use_popover": "true",
+            "popover_title": getattr(self.answers_desc, "hint_title", ""),
+            "popover_content": getattr(self.answers_desc, "hint", "")}
         if correctness is None:
             kwargs["style"] = self.get_width_str()
         else:
@@ -777,12 +779,34 @@ class InlineMultiQuestion(TextQuestionBase, PageBaseWithValue):
 
     def get_question(self, page_context, page_data):
         # for correct render of question with more than one
-        # paragraph, remove heading <p> tags and change </p>
-        # to line break.
-        return markup_to_html(
-                page_context,
-                self.page_desc.question,
-                ).replace("<p>", "").replace("</p>", "<br/>")
+        # paragraph, replace <p> tags to new input-group.
+
+        div_start_css_class_list = [
+            "input-group",
+            # ensure spacing between input and text, mathjax and text
+            "gap-1",
+            "align-items-center"
+        ]
+
+        replace_p_start = f"<div class=\"{' '.join(div_start_css_class_list)}\">"
+
+        question_html = markup_to_html(
+            page_context,
+            self.page_desc.question
+        ).replace(
+            "<p>",
+            replace_p_start
+        ).replace("</p>", "</div>")
+
+        # add mb-4 class to the last paragraph so as to add spacing before
+        # submit buttons.
+        last_div_start = (
+            f"<div class=\"{' '.join(div_start_css_class_list + ['mb-4'])}\">")
+
+        # https://stackoverflow.com/a/59082116/3437454
+        question_html = last_div_start.join(question_html.rsplit(replace_p_start, 1))
+
+        return question_html
 
     def get_dict_for_form(self, page_context, page_data):
         remainder_html = self.get_question(page_context, page_data)
