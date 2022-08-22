@@ -2,6 +2,7 @@
 
 import sys
 import io
+from typing import Dict, Any
 
 
 def validate(args):
@@ -49,11 +50,11 @@ def expand_yaml(yml_file, repo_root):
 
 # {{{ code test
 
-def test_code_question(page_desc, repo_root):
+def test_code_question(page_desc, repo_root) -> bool:
     if page_desc.type not in [
             "PythonCodeQuestion",
             "PythonCodeQuestionWithHumanTextFeedback"]:
-        return
+        return True
 
     print(75*"-")
     print("TESTING", page_desc.id, "...", end=" ")
@@ -88,7 +89,7 @@ def test_code_question(page_desc, repo_root):
             "data_files": data_files,
             }
 
-    response = {}
+    response: Dict[str, Any] = {}
 
     prev_stdin = sys.stdin  # noqa
     prev_stdout = sys.stdout  # noqa
@@ -101,12 +102,12 @@ def test_code_question(page_desc, repo_root):
     start = time()
 
     try:
-        sys.stdin = None
+        sys.stdin = None  # type: ignore[assignment]
         sys.stdout = stdout
         sys.stderr = stderr
 
         from relate.utils import Struct
-        run_code(response, Struct(run_req))
+        run_code(response, Struct(run_req))  # type: ignore[no-untyped-call]
 
         response["stdout"] = stdout.getvalue()
         response["stderr"] = stderr.getvalue()
@@ -133,17 +134,21 @@ def test_code_question(page_desc, repo_root):
             print(Fore.RED
                     + "FAIL: no points value recorded"
                     + Style.RESET_ALL)
+            success = False
         elif points < 1:
             print(Fore.RED
                     + "FAIL: code did not pass test"
                     + Style.RESET_ALL)
+            success = False
         else:
             print(Fore.GREEN+response["result"].upper()+Style.RESET_ALL)
+            success = True
     else:
         print(Style.BRIGHT+Fore.RED
                 + response["result"].upper()+Style.RESET_ALL)
+        success = False
 
-    def print_response_aspect(s):
+    def print_response_aspect(s: str) -> None:
         if s not in response:
             return
 
@@ -166,6 +171,8 @@ def test_code_question(page_desc, repo_root):
     print_response_aspect("stderr")
     print_response_aspect("timeout")
 
+    return success
+
 
 def test_code_yml(yml_file, repo_root):
     data = expand_yaml(yml_file, repo_root)
@@ -175,7 +182,7 @@ def test_code_yml(yml_file, repo_root):
     data = dict_to_struct(safe_load(data))
 
     if hasattr(data, "id") and hasattr(data, "type"):
-        test_code_question(data, repo_root)
+        return test_code_question(data, repo_root)
 
     else:
         if hasattr(data, "groups"):
@@ -194,14 +201,19 @@ def test_code_yml(yml_file, repo_root):
             return
 
         for page in pages:
-            test_code_question(page, repo_root)
+            res = test_code_question(page, repo_root)
+            if not res:
+                return False
+
+        return True
 
 
 def test_code(args):
     for yml_file in args.FLOW_OR_PROBLEM_YMLS:
         print(75*"=")
         print("EXAMINING", yml_file)
-        test_code_yml(yml_file, repo_root=args.repo_root)
+        if not test_code_yml(yml_file, repo_root=args.repo_root):
+            return 1
 
     return 0
 
