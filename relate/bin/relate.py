@@ -5,7 +5,9 @@ import io
 from typing import Dict, Any
 
 
-def validate(args):
+# {{{ validate_course
+
+def validate_course(args):
     from django.conf import settings
     settings.configure(DEBUG=True)
 
@@ -21,6 +23,44 @@ def validate(args):
         return 1
     else:
         return 0
+
+# }}}
+
+
+# {{{ validate_pages
+
+def validate_pages(args):
+    from django.conf import settings
+    settings.configure(DEBUG=True)
+
+    import django
+    django.setup()
+
+    from course.validation import (FileSystemFakeRepo, ValidationContext,
+            validate_flow_page, get_yaml_from_repo_safely)
+    fake_repo = FileSystemFakeRepo(args.REPO_ROOT.encode("utf-8"))
+    vctx = ValidationContext(
+            repo=fake_repo,
+            commit_sha=fake_repo,
+            course=None)
+
+    for yaml_filename in args.PROBLEM_YMLS:
+        page_desc = get_yaml_from_repo_safely(fake_repo, yaml_filename,
+                commit_sha=fake_repo)
+
+        validate_flow_page(vctx, yaml_filename, page_desc)
+
+    if vctx.warnings:
+        print("WARNINGS: ")
+        for w in vctx.warnings:
+            print("***", w.location, w.text)
+
+    if vctx.warnings and args.warn_error:
+        return 1
+    else:
+        return 0
+
+# }}}
 
 
 # {{{ expand YAML
@@ -235,13 +275,20 @@ def main() -> None:
             description="RELATE course content command line tool")
     subp = parser.add_subparsers()
 
-    parser_validate = subp.add_parser("validate")
-    parser_validate.add_argument("--course-file", default="course.yml")
-    parser_validate.add_argument("--events-file", default="events.yml")
-    parser_validate.add_argument("--warn-error", action="store_true",
+    parser_validate_course = subp.add_parser("validate")
+    parser_validate_course.add_argument("--course-file", default="course.yml")
+    parser_validate_course.add_argument("--events-file", default="events.yml")
+    parser_validate_course.add_argument("--warn-error", action="store_true",
             help="Treat warnings as errors")
-    parser_validate.add_argument("REPO_ROOT", default=os.getcwd())
-    parser_validate.set_defaults(func=validate)
+    parser_validate_course.add_argument("REPO_ROOT", default=os.getcwd())
+    parser_validate_course.set_defaults(func=validate_course)
+
+    parser_validate_page = subp.add_parser("validate-page")
+    parser_validate_page.add_argument("--warn-error", action="store_true",
+            help="Treat warnings as errors")
+    parser_validate_page.add_argument("REPO_ROOT", default=os.getcwd())
+    parser_validate_page.add_argument("PROBLEM_YMLS", nargs="+")
+    parser_validate_page.set_defaults(func=validate_pages)
 
     parser_test_code = subp.add_parser("test-code")
     parser_test_code.add_argument("--repo-root", default=os.getcwd())
@@ -266,3 +313,5 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
+# vim: foldmethod=marker
