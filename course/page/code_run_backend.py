@@ -22,6 +22,7 @@ THE SOFTWARE.
 
 import sys
 import traceback
+from typing import Dict, Any
 
 try:
     from .code_feedback import Feedback, GradingComplete
@@ -134,7 +135,7 @@ class Struct:
 # }}}
 
 
-def substitute_correct_code_into_test_code(test_code, correct_code):
+def substitute_correct_code_into_test_code(test_code: str, correct_code: str) -> str:
     import re
     CORRECT_CODE_TAG = re.compile(r"^(\s*)###CORRECT_CODE###\s*$")  # noqa
 
@@ -151,8 +152,9 @@ def substitute_correct_code_into_test_code(test_code, correct_code):
     return "\n".join(new_test_code_lines)
 
 
-def package_exception(result, what):
+def package_exception(result: Dict[str, Any], what: str) -> None:
     tp, val, tb = sys.exc_info()
+    assert tp is not None
     result["result"] = what
     result["message"] = "{}: {}".format(tp.__name__, str(val))
     result["traceback"] = "".join(
