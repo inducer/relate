@@ -243,9 +243,14 @@ def request_run(run_req, run_timeout, image=None):
             docker_cnx.start(container_id)
 
             container_props = docker_cnx.inspect_container(container_id)
-            (port_info,) = (container_props
+
+            port_infos = (container_props
                     ["NetworkSettings"]["Ports"]["%d/tcp" %
                     CODE_QUESTION_CONTAINER_PORT])
+            if len(port_infos) < 1:
+                raise ValueError("got empty list of container ports")
+            port_info = port_infos[0]
+
             port_host_ip = port_info.get("HostIp")
 
             if port_host_ip != "0.0.0.0":
