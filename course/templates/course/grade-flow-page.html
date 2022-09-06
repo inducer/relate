@@ -62,21 +62,26 @@
   </div>
   <div class="grading-page-grade-entry container">
     <div class="row">
-      <h1> {% trans "Grading" %}: <tt>{{ flow_identifier}} - {{ page_data.group_id }}/{{ page_data.page_id }}</tt> </h1>
+      <h1> {% trans "Grading" %}: <code>{{ flow_identifier }} - {{ page_data.group_id }}/{{ page_data.page_id }}</code>
+      </h1>
 
       {% include "base-page-top.html" %}
 
       {# {{{ header table #}
       <table class="table table-condensed">
         <thead>
+        <tr>
           <th>{% trans "Property" %}</th><th>{% trans "Value" %}</th>
+        </tr>
         </thead>
         <tbody>
         {% if grading_opportunity != None %}
           <tr>
             <td>{% trans "Flow session" %}</td>
             <td>
-              <tt><a href="{% url "relate-view_single_grade" course.identifier flow_session.participation.id grading_opportunity.id %}"><i class="fa fa-level-up"></i> {{ flow_identifier }}</a></tt>
+              <code><a
+                  href="{% url "relate-view_single_grade" course.identifier flow_session.participation.id grading_opportunity.id %}"><i
+                  class="fa fa-level-up"></i> {{ flow_identifier }}</a></code>
               <span class="sensitive">
               {% if not pperm.view_participant_masked_profile %}
                   {# Translators: the grade information "for" a participant #}
@@ -219,7 +224,7 @@
     // http://stackoverflow.com/a/30558011
     var SURROGATE_PAIR_REGEXP = /[\uD800-\uDBFF][\uDC00-\uDFFF]/g,
         // Match everything outside of normal chars and " (quote character)
-        NON_ALPHANUMERIC_REGEXP = /([^\#-~| |!])/g;
+        NON_ALPHANUMERIC_REGEXP = /([^#-~| !])/g;
 
     function encode_entities(value)
     {
@@ -352,52 +357,6 @@
     }
 
     $(document).ready(add_grade_ui);
-
-    {% if page_data.next_ordinal < flow_session.page_count %}
-      var next_page_url = "{% url "relate-grade_flow_page" course.identifier flow_session.id page_data.next_ordinal %}";
-    {% else %}
-      var next_page_url = null;
-    {% endif %}
-
-    {% if next_flow_session_id %}
-      var next_session_url = "{% url "relate-grade_flow_page" course.identifier next_flow_session_id page_data.page_ordinal %}";
-    {% else %}
-      var next_session_url = null;
-    {% endif %}
-
-    function save_and_next_page()
-    {
-      window.open(next_page_url, "_blank");
-      $("#submit-id-submit").click();
-    }
-
-    function save_and_next_session()
-    {
-      window.open(next_session_url, "_blank");
-      $("#submit-id-submit").click();
-    }
-
-    function add_submit_next()
-    {
-      if (next_page_url)
-        $(".grading-page-grade-entry .form-group:last .controls:last").append(
-            " <button class='btn btn-primary' id='save_next_page' type='button'>"
-            + "{% trans "Submit and next page" %} &raquo;"
-            + "</button>");
-      if (next_session_url)
-        $(".grading-page-grade-entry .form-group:last .controls:last").append(
-            " <button class='btn btn-primary' id='save_next_session' type='button'>"
-            + "{% trans "Submit and next session" %} &raquo;"
-            + "</button>");
-
-      $("#save_next_page").click(save_and_next_page);
-      $("#save_next_session").click(save_and_next_session);
-
-      {# http://stackoverflow.com/a/9549716/3437454 #}
-      $(".relate-grading-form").prepend($(".form-group:last").clone(true, true));
-    }
-
-    $(document).ready(add_submit_next);
   </script>
 
   {# }}} #}
