@@ -1,4 +1,5 @@
 from __future__ import annotations
+from course.content import FlowPageDesc
 
 __copyright__ = "Copyright (C) 2014 Andreas Kloeckner"
 
@@ -111,8 +112,12 @@ if TYPE_CHECKING:
 # {{{ page data wrangling
 
 @retry_transaction_decorator(serializable=True)
-def _adjust_flow_session_page_data_inner(repo, flow_session,
-        course_identifier, flow_desc, commit_sha):
+def _adjust_flow_session_page_data_inner(
+        repo: Repo_ish, flow_session: FlowSession,
+        course_identifier: str, flow_desc, commit_sha: bytes) -> int:
+    """
+    :returns: new page count
+    """
     from course.page.base import PageContext
     pctx = PageContext(
             course=flow_session.course,
@@ -122,12 +127,67 @@ def _adjust_flow_session_page_data_inner(repo, flow_session,
             in_sandbox=False,
             page_uri=None)
 
-    def remove_page(fpd):
+    desc_group_ids = []
+
+    # {{{ helper functions
+
+    def remove_page(fpd: FlowPageData) -> None:
         if fpd.page_ordinal is not None:
             fpd.page_ordinal = None
             fpd.save()
 
-    desc_group_ids = []
+    def find_page_desc(page_id: str) -> FlowPageDesc:
+        new_page_desc = None
+
+        for page_desc in grp.pages:  # pragma: no branch
+            if page_desc.id == page_id:
+                new_page_desc = page_desc
+                break
+
+        assert new_page_desc is not None
+
+        return new_page_desc
+
+    def instantiate_page(page_desc: FlowPageDesc) -> PageBase:
+        from course.content import instantiate_flow_page
+        return instantiate_flow_page(
+                "course '%s', flow '%s', page '%s/%s'"
+                % (course_identifier, flow_session.flow_id,
+                    grp.id, page_desc.id),
+                repo, page_desc, commit_sha)
+
+    def create_fpd(new_page_desc: FlowPageDesc) -> FlowPageData:
+        page = instantiate_page(new_page_desc)
+
+        data = page.initialize_page_data(pctx)
+        return FlowPageData(
+                flow_session=flow_session,
+                page_ordinal=None,
+                page_type=new_page_desc.type,
+                group_id=grp.id,
+                page_id=new_page_desc.id,
+                data=data,
+                title=page.title(pctx, data))
+
+    def add_page(fpd: FlowPageData) -> None:
+        if fpd.page_ordinal != ordinal[0]:
+            fpd.page_ordinal = ordinal[0]
+            fpd.save()
+
+        page_desc = find_page_desc(fpd.page_id)
+        page = instantiate_page(page_desc)
+        title = page.title(pctx, fpd.data)
+
+        if fpd.title != title:
+            fpd.title = title
+            fpd.save()
+
+        ordinal[0] += 1
+        available_page_ids.remove(fpd.page_id)
+
+        group_pages.append(fpd)
+
+    # }}}
 
     ordinal = [0]
     for grp in flow_desc.groups:
@@ -141,65 +201,11 @@ def _adjust_flow_session_page_data_inner(repo, flow_session,
         if max_page_count is None:
             max_page_count = len(available_page_ids)
 
-        group_pages = []
-
-        # {{{ helper functions
-
-        def find_page_desc(page_id):
-            new_page_desc = None
-
-            for page_desc in grp.pages:  # pragma: no branch
-                if page_desc.id == page_id:
-                    new_page_desc = page_desc
-                    break
-
-            assert new_page_desc is not None
-
-            return new_page_desc
-
-        def instantiate_page(page_desc):
-            from course.content import instantiate_flow_page
-            return instantiate_flow_page(
-                    "course '%s', flow '%s', page '%s/%s'"
-                    % (course_identifier, flow_session.flow_id,
-                        grp.id, page_desc.id),
-                    repo, page_desc, commit_sha)
-
-        def create_fpd(new_page_desc):
-            page = instantiate_page(new_page_desc)
-
-            data = page.initialize_page_data(pctx)
-            return FlowPageData(
-                    flow_session=flow_session,
-                    page_ordinal=None,
-                    page_type=new_page_desc.type,
-                    group_id=grp.id,
-                    page_id=new_page_desc.id,
-                    data=data,
-                    title=page.title(pctx, data))
-
-        def add_page(fpd):
-            if fpd.page_ordinal != ordinal[0]:
-                fpd.page_ordinal = ordinal[0]
-                fpd.save()
-
-            page_desc = find_page_desc(fpd.page_id)
-            page = instantiate_page(page_desc)
-            title = page.title(pctx, fpd.data)
-
-            if fpd.title != title:
-                fpd.title = title
-                fpd.save()
-
-            ordinal[0] += 1
-            available_page_ids.remove(fpd.page_id)
-
-            group_pages.append(fpd)
-
-        # }}}
+        group_pages: List[FlowPageData] = []
 
         if shuffle:
-            # maintain order of existing pages as much as possible
+            # {{{ maintain order of existing pages as much as possible
+
             for fpd in (FlowPageData.objects
                     .filter(
                         flow_session=flow_session,
@@ -215,9 +221,12 @@ def _adjust_flow_session_page_data_inner(repo, flow_session,
 
             assert len(group_pages) <= max_page_count
 
+            # }}}
+
+            # {{{ then add randomly chosen new pages
+
             from random import choice
 
-            # then add randomly chosen new pages
             while len(group_pages) < max_page_count and available_page_ids:
                 new_page_id = choice(available_page_ids)
 
@@ -240,8 +249,11 @@ def _adjust_flow_session_page_data_inner(repo, flow_session,
 
                 add_page(new_page_fpd)
 
+            # }}}
+
         else:
-            # reorder pages to order in flow
+            # {{{ reorder pages to order in flow
+
             id_to_fpd = {
                     (fpd.group_id, fpd.page_id): fpd
                     for fpd in FlowPageData.objects.filter(
@@ -261,6 +273,8 @@ def _adjust_flow_session_page_data_inner(repo, flow_session,
 
             for fpd in id_to_fpd.values():
                 remove_page(fpd)
+
+            # }}}
 
     # {{{ remove pages orphaned because of group renames
 
