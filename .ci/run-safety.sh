@@ -9,6 +9,7 @@
 # code not used
 # 41002: coverage doesn't affect Relate's security as a web app
 # 4471{5,6,7}: We're not using numpy in a user-exposed-manner.
+# 50792: We're not using nbconvert on untrusted data.
 poetry run safety check \
         -i 38678 \
         -i 39253 \
@@ -18,4 +19,5 @@ poetry run safety check \
         -i 44715 \
         -i 44716 \
         -i 44717 \
+        -i 50792 \
         --full-report
