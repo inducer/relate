@@ -700,7 +700,7 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
         from django.core.files.base import ContentFile
         saved_name = settings.RELATE_BULK_STORAGE.save(
                 self.get_submission_filename_pattern(page_context),
-                ContentFile(code))
+                ContentFile(code.encode("utf-8")))
 
         return {"storage_filename": saved_name}
 
