@@ -593,6 +593,7 @@ class FlowDesc(Struct):
     """
 
     title: str
+    description: str
     rules: FlowRulesDesc
     pages: list[FlowPageDesc]
     groups: list[FlowPageGroupDesc]
@@ -1884,8 +1885,6 @@ def get_flow_desc(
 
     flow_desc = normalize_flow_desc(flow_desc)
 
-    flow_desc.description_html = markup_to_html(
-            course, repo, commit_sha, getattr(flow_desc, "description", None))
     return flow_desc
 
 
@@ -1920,19 +1919,29 @@ def import_class(name: str) -> type:
         # need at least one module plus class name
         raise ClassNotFoundError(name)
 
-    module_name = ".".join(components[:-1])
-    try:
-        mod = __import__(module_name)
-    except ImportError:
-        raise ClassNotFoundError(name)
-
-    for comp in components[1:]:
+    from importlib import import_module
+    mod_components = len(components) - 1
+    while mod_components:
+        module_name = ".".join(components[:mod_components])
         try:
-            mod = getattr(mod, comp)
-        except AttributeError:
-            raise ClassNotFoundError(name)
+            mod = import_module(module_name)
+        except ImportError:
+            mod_components -= 1
+            continue
 
-    return mod
+        sym = mod
+        for cls_comp in components[mod_components:]:
+            try:
+                sym = getattr(sym, cls_comp)
+            except AttributeError:
+                raise ClassNotFoundError(name)
+
+        if isinstance(sym, type):
+            return sym
+        else:
+            raise ClassNotFoundError(f"'{name}' does not name a type")
+
+    raise ClassNotFoundError(name)
 
 
 def get_flow_page_class(repo: Repo_ish, typename: str, commit_sha: bytes) -> type:

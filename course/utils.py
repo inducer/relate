@@ -512,9 +512,12 @@ def get_session_grading_rule(
             if completion_time > ds:
                 continue
 
-        due = parse_date_spec(session.course, getattr(rule, "due", None))
-        if due is not None:
+        due_str = getattr(rule, "due", None)
+        if due_str is not None:
+            due = parse_date_spec(session.course, due_str)
             assert due.tzinfo is not None
+        else:
+            due = None
 
         generates_grade = getattr(rule, "generates_grade", True)
 

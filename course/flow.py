@@ -87,7 +87,7 @@ from relate.utils import retry_transaction_decorator
 
 # {{{ mypy
 
-from typing import Any, Optional, Iterable, Sequence, Tuple, Text, List, FrozenSet, TYPE_CHECKING  # noqa
+from typing import Any, Optional, Iterable,  Tuple, List, FrozenSet, TYPE_CHECKING
 if TYPE_CHECKING:
     import datetime  # noqa
     from course.models import Course  # noqa
@@ -1464,9 +1464,13 @@ def view_start_flow(pctx: CoursePageContext, flow_id: str) -> http.HttpResponse:
             dict(GRADE_AGGREGATION_STRATEGY_CHOICES).get(
                 new_session_grading_rule.grade_aggregation_strategy))
 
+    from course.content import markup_to_html
     return render_course_page(pctx, "course/flow-start.html", {
         "flow_desc": fctx.flow_desc,
         "flow_identifier": flow_id,
+        "flow_description_html": markup_to_html(
+            fctx.course, fctx.repo, fctx.course_commit_sha,
+            getattr(fctx.flow_desc, "description", "")),
 
         "now": now_datetime,
         "may_start": may_start,

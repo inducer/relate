@@ -7,9 +7,7 @@
 {% endblock %}
 
 {% block content %}
-  {% if flow_desc.description %}
-  {{flow_desc.description_html|safe}}
-  {% endif %}
+  {{ flow_description_html|safe }}
 
   <form method="POST">
     {% csrf_token %}
