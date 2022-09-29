@@ -448,11 +448,6 @@ Version 2022.1
     the sample content, you may find it `here
     <https://github.com/inducer/relate-sample/blob/0a7019584fda7ea0b91cc3fd370b799df249460a/content-macros.jinja#L18-L34>`__.
 
-  * Bootstrap 5 applies ``display: block`` and ``width: 100%`` CSS styles to form
-    elements. This changes how `InlineMultiQuestion`\ s look, in that it prevents
-    in-line form elements. Review questions of this type, and potentially reword
-    them to allow for line breaks before and after form elements.
-
   * Relate has also dropped "Font Awesome" (which is no longer maintained in
     open-source form) in favor of `Bootstrap Icons
     <https://icons.getbootstrap.com/>`__, which provides a similar icons with a
