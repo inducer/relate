@@ -36,7 +36,7 @@ django-crispy-forms = ">=1.13.0"
 
 # 0.6 has broken checkbox rendering
 # https://github.com/django-crispy-forms/crispy-bootstrap5/commit/8bccd516aa9ce336a1069b6c9346e0c4c9e8270f
-crispy-bootstrap5 = { git = "https://github.com/django-crispy-forms/crispy-bootstrap5.git", rev = "2b1a014d1630dc958c7b9ea72605580e14684693" }
+crispy-bootstrap5 = "^0.7"
 
 # Page data, answer data, ... all represented in JSON. This makes that editable in the Django admin.
 jsonfield = ">=1.4.0"
