@@ -285,25 +285,18 @@ toml = ["tomli"]
 
 [[package]]
 name = "crispy-bootstrap5"
-version = "0.6"
-description = ""
+version = "0.7"
+description = "Bootstrap5 template pack for django-crispy-forms"
 category = "main"
 optional = false
-python-versions = ">=3.6"
-develop = false
+python-versions = ">=3.7"
 
 [package.dependencies]
-django = ">=2.2"
+django = ">=3.2"
 django-crispy-forms = ">=1.13.0"
 
 [package.extras]
 test = ["pytest", "pytest-django"]
-
-[package.source]
-type = "git"
-url = "https://github.com/django-crispy-forms/crispy-bootstrap5.git"
-reference = "2b1a014d1630dc958c7b9ea72605580e14684693"
-resolved_reference = "2b1a014d1630dc958c7b9ea72605580e14684693"
 
 [[package]]
 name = "cryptography"
@@ -1901,7 +1894,7 @@ postgres = ["psycopg2"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.8"
-content-hash = "c554a1f76cda88e5d937c38e06ce7571daab294b581e6f693795be380ef8d09a"
+content-hash = "6683a0ce46f35f1b2d4375619e1bcd51f5d5390df84eb218ec7337b90ef80e2d"
 
 [metadata.files]
 aiodns = [
@@ -2125,7 +2118,10 @@ coverage = [
     {file = "coverage-6.5.0-pp36.pp37.pp38-none-any.whl", hash = "sha256:1431986dac3923c5945271f169f59c45b8802a114c8f548d611f2015133df77a"},
     {file = "coverage-6.5.0.tar.gz", hash = "sha256:f642e90754ee3e06b0e7e51bce3379590e76b7f76b708e1a71ff043f87025c84"},
 ]
-crispy-bootstrap5 = []
+crispy-bootstrap5 = [
+    {file = "crispy-bootstrap5-0.7.tar.gz", hash = "sha256:0745a67199619149b7feca87dab7a45664876ed50fb582b38fd2aeb3f8a8d869"},
+    {file = "crispy_bootstrap5-0.7-py3-none-any.whl", hash = "sha256:f3ff1ef5cb379fe80b1b02e245008f276444098a4bdb8d855bed84c623798a85"},
+]
 cryptography = [
     {file = "cryptography-38.0.1-cp36-abi3-macosx_10_10_universal2.whl", hash = "sha256:10d1f29d6292fc95acb597bacefd5b9e812099d75a6469004fd38ba5471a977f"},
     {file = "cryptography-38.0.1-cp36-abi3-macosx_10_10_x86_64.whl", hash = "sha256:3fc26e22840b77326a764ceb5f02ca2d342305fba08f002a8c1f139540cdfaad"},
