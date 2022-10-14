@@ -17,8 +17,8 @@ jobs:
     name: Lint and typecheck Python
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-python@v1
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
         with:
           python-version: '3.x'
       - name: Install Poetry
@@ -58,7 +58,7 @@ jobs:
       matrix:
         node-version: ['12', '14', '16']
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - uses: actions/setup-node@v2
       with:
           node-version: ${{ matrix.node-version }}
@@ -92,8 +92,8 @@ jobs:
           ports:
               - 5432:5432
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-python@v1
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install Poetry
@@ -137,8 +137,8 @@ jobs:
     name: Python - Windows
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-python@v1
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
         with:
           python-version: '3.x'
       - name: Install Poetry
