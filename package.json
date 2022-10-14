@@ -37,7 +37,7 @@
     "rollup-plugin-styles": "^4.0.0",
     "rollup-plugin-terser": "^7.0.2",
     "sass": "^1.43.5",
-    "serve": "^11.3.2"
+    "serve": "^14.0.1"
   },
   "scripts": {
     "build": "rollup --config",
