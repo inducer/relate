@@ -283,23 +283,26 @@ class ParamikoSSHVendorTest(TestCase):
     # A simple integration tests, making sure ParamikoSSHVendor is used
     # for ssh protocol.
 
-    @classmethod
-    def setUpTestData(cls):  # noqa
-        course = factories.CourseFactory.create(**cls.prepare_data())
-        cls.git_client, _ = (
-            versioning.get_dulwich_client_and_remote_path_from_course(course))
-        cls.ssh_vendor = cls.git_client.ssh_vendor
-        assert isinstance(cls.ssh_vendor, ParamikoSSHVendor)
-
-    @classmethod
-    def prepare_data(cls):
+    @staticmethod
+    def prepare_data():
         data = deepcopy(SINGLE_COURSE_SETUP_LIST[0]["course"])
         data["identifier"] = "my-private-course"
         data["git_source"] = "git+ssh://foo.com:1234/bar/baz"
         data["ssh_private_key"] = TEST_PRIVATE_KEY
         return data
 
+    @classmethod
+    def make_ssh_vendor(cls):  # noqa
+        course = factories.CourseFactory.create(**cls.prepare_data())
+        git_client, _ = (
+            versioning.get_dulwich_client_and_remote_path_from_course(course))
+        ssh_vendor = git_client.ssh_vendor
+        assert isinstance(ssh_vendor, ParamikoSSHVendor)
+        return ssh_vendor
+
     def test_invalid(self):
+        ssh_vendor = self.make_ssh_vendor()
+
         from paramiko.ssh_exception import SSHException
 
         expected_error_msgs = [
@@ -312,7 +315,7 @@ class ParamikoSSHVendorTest(TestCase):
         with self.assertRaises(SSHException) as cm:
             # This is also used to ensure paramiko.client.MissingHostKeyPolicy
             # is added to the client
-            self.ssh_vendor.run_command(
+            ssh_vendor.run_command(
                 host="github.com",
                 command="git-upload-pack '/bar/baz'",
                 username=None,
@@ -321,7 +324,7 @@ class ParamikoSSHVendorTest(TestCase):
             msg in str(cm.exception) for msg in expected_error_msgs))
 
         with self.assertRaises(SSHException) as cm:
-            self.ssh_vendor.run_command(
+            ssh_vendor.run_command(
                 host="github.com",
                 command="git-upload-pack '/bar/baz'",
                 username="me",
@@ -334,7 +337,7 @@ class ParamikoSSHVendorTest(TestCase):
         expected_error_msg = "Bad authentication type"
 
         with self.assertRaises(SSHException) as cm:
-            self.ssh_vendor.run_command(
+            ssh_vendor.run_command(
                 host="github.com",
                 command="git-upload-pack '/bar/baz'",
                 password="mypass")
@@ -342,7 +345,7 @@ class ParamikoSSHVendorTest(TestCase):
         self.assertIn(expected_error_msg, str(cm.exception))
 
         with self.assertRaises(FileNotFoundError) as cm:
-            self.ssh_vendor.run_command(
+            ssh_vendor.run_command(
                 host="github.com",
                 command="git-upload-pack '/bar/baz'",
                 key_filename="key_file")
@@ -351,13 +354,15 @@ class ParamikoSSHVendorTest(TestCase):
         self.assertIn(expected_error_msg, str(cm.exception))
 
         with self.assertRaises(AttributeError) as cm:
-            self.ssh_vendor.run_command(
+            ssh_vendor.run_command(
                 host="github.com",
                 command="git-upload-pack '/bar/baz'",
                 pkey="invalid_key")
 
     @suppress_stdout_decorator(suppress_stderr=True)
     def test_set_up_ensure_get_transport_called(self):
+        ssh_vendor = self.make_ssh_vendor()
+
         with mock.patch(
                 "course.versioning.paramiko.SSHClient.connect"
         ) as mock_connect, mock.patch(
@@ -370,7 +375,7 @@ class ParamikoSSHVendorTest(TestCase):
             mock_channel.recv_stderr.side_effect = [b"my custom error", "", ""]
 
             try:
-                self.ssh_vendor.run_command(
+                ssh_vendor.run_command(
                     host="github.com",
                     command="git-upload-pack '/bar/baz'")
             except StopIteration:
