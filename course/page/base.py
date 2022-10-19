@@ -30,7 +30,6 @@ from course.constants import MAX_EXTRA_CREDIT_FACTOR
 from relate.utils import StyledForm, Struct, string_concat
 from django.forms import ValidationError as FormValidationError
 from django.utils.safestring import mark_safe
-from django.utils.functional import lazy
 from django.utils.translation import (
         gettext_lazy as _,
         gettext_noop,
@@ -92,8 +91,6 @@ Automatic Feedback
 
 .. autofunction:: get_auto_feedback
 """
-
-mark_safe_lazy = lazy(mark_safe, str)
 
 
 class PageContext:
@@ -967,7 +964,7 @@ class HumanTextFeedbackForm(StyledForm):
                 widget=cm_widget,
                 required=False,
                 initial=rubric,
-                help_text=mark_safe_lazy(
+                help_text=mark_safe(
                     _("Feedback to be shown to student, using "
                     "<a href='http://documen.tician.de/"
                     "relate/content.html#relate-markup'>"

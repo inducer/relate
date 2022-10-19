@@ -42,12 +42,9 @@ from django.utils.translation import (
         pgettext,
         pgettext_lazy,
         )
-from django.utils.functional import lazy
 from django.contrib.auth.decorators import login_required
 
 from django_select2.forms import Select2Widget
-
-mark_safe_lazy = lazy(mark_safe, str)
 
 from django.views.decorators.cache import cache_control
 
@@ -656,7 +653,7 @@ class FlowTestForm(StyledForm):
         self.helper.add_input(
                 Submit(
                     "test",
-                    mark_safe_lazy(
+                    mark_safe(
                         string_concat(
                             pgettext("Start an activity", "Go"),
                             " &raquo;")),
@@ -730,7 +727,7 @@ class ExceptionStage1Form(StyledForm):
         self.helper.add_input(
                 Submit(
                     "next",
-                    mark_safe_lazy(
+                    mark_safe(
                         string_concat(
                             pgettext("Next step", "Next"),
                             " &raquo;"))))
@@ -821,7 +818,7 @@ class ExceptionStage2Form(StyledForm):
         self.helper.add_input(
                 Submit(
                     "next",
-                    mark_safe_lazy(
+                    mark_safe(
                         string_concat(
                             pgettext("Next step", "Next"),
                             " &raquo;"))))
