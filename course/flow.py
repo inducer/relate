@@ -26,7 +26,6 @@ THE SOFTWARE.
 from django.utils.translation import (
         gettext, gettext_lazy as _)
 from django.contrib.auth.decorators import login_required
-from django.utils.functional import lazy
 from django.shortcuts import (  # noqa
         render, get_object_or_404, redirect)
 from django.contrib import messages
@@ -36,7 +35,6 @@ from django.core.exceptions import (
 from django.db import transaction
 from django.db.models import query  # noqa
 from django.utils.safestring import mark_safe
-mark_safe_lazy = lazy(mark_safe, str)
 from django import forms
 from django import http
 from django.conf import settings
@@ -1725,7 +1723,7 @@ def add_buttons_to_form(
         if fpctx.page_data.page_ordinal + 1 < flow_session.page_count:
             form.helper.add_input(
                     Submit("save_and_next",
-                        mark_safe_lazy(
+                        mark_safe(
                             string_concat(
                                 _("Save answer and move on"),
                                 " &raquo;")),
@@ -1733,7 +1731,7 @@ def add_buttons_to_form(
         else:
             form.helper.add_input(
                     Submit("save_and_finish",
-                        mark_safe_lazy(
+                        mark_safe(
                             string_concat(
                                 _("Save answer and finish"),
                                 " &raquo;")),
