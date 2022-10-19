@@ -923,8 +923,13 @@ def query_participations(pctx):
 # {{{ edit_participation
 
 class EditParticipationForm(StyledModelForm):
+
     def __init__(self, add_new: bool, pctx: CoursePageContext,
             *args: Any, **kwargs: Any) -> None:
+        if not add_new:
+            kwargs.setdefault("initial", {})["individual_permissions"] = (
+                    list(kwargs["instance"].individual_permissions.all()))
+
         super().__init__(*args, **kwargs)
 
         participation = self.instance
@@ -946,7 +951,6 @@ class EditParticipationForm(StyledModelForm):
         may_edit_permissions = pctx.has_permission(pperm.edit_course_permissions)
         if not may_edit_permissions:
             self.fields["roles"].disabled = True
-            # FIXME Add individual permissions
 
         self.fields["roles"].queryset = (
                 ParticipationRole.objects.filter(
@@ -961,8 +965,6 @@ class EditParticipationForm(StyledModelForm):
                 widget=forms.CheckboxSelectMultiple,
                 help_text=_("Permissions for this participant in addition to those "
                     "granted by their role"),
-                initial=self.instance.individual_permissions.values_list(
-                    "permission", flat=True),
                 required=False)
 
         self.helper.add_input(
