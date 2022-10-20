@@ -280,13 +280,11 @@ div.progress:hover  span.stats-percentage{
   background-color: #e8e8e8;
 }
 
-div.relate-codemirror-container label.control-label {
-  text-align: left;
-}
-
-div.relate-codemirror-container div.controls {
-  margin-top: .3ex;
+div.relate-codemirror-container div.col-lg-8 {
   width: 100%;
+}
+div.relate-codemirror-container div.CodeMirror {
+  height: calc(max(40vh, 40ex));
 }
 
 /* }}} */
