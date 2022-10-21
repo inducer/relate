@@ -1,5 +1,5 @@
 def main():
-    from course.page import request_python_run
+    from course.page.code import request_run
 
     req = {
         "setup_code": "a,b=5,2",
@@ -13,7 +13,7 @@ def main():
     while True:
         print(count)
         count += 1
-        res = request_python_run(req, 5, image="inducer/runpy-i386")
+        res = request_run(req, 10)
         if res["result"] != "success":
             print(res)
             break
