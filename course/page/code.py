@@ -279,6 +279,10 @@ def request_run(run_req, run_timeout, image=None):
                         "exec_host": connect_host_ip,
                         }
 
+        if not connect_host_ip:
+            # for compatibility with podman
+            connect_host_ip = "localhost"
+
         while True:
             try:
                 connection = http_client.HTTPConnection(connect_host_ip, port)
