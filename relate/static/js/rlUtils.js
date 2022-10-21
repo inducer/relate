@@ -82,9 +82,8 @@ export function enablePreviewForFileUpload() {
 // based on https://codemirror.net/addon/search/searchcursor.js (MIT)
 
 export function goToNextPointsField(cm) {
-  const cursor = cm.getCursor();
   const regexp = /\[pts:/g;
-  for (let { line, ch } = cursor, last = cm.lastLine(); line <= last; line += 1, ch = 0) {
+  for (let { line, ch } = cm.getCursor(), last = cm.lastLine(); line <= last; line += 1, ch = 0) {
     regexp.lastIndex = ch;
     const string = cm.getLine(line);
     const match = regexp.exec(string);
