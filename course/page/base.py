@@ -953,11 +953,9 @@ class HumanTextFeedbackForm(StyledForm):
                     language_mode="markdown",
                     interaction_mode=editor_interaction_mode,
                     additional_keys={
-                        "Ctrl-P":
+                        "Ctrl-Space":
                         CodeMirrorJavascript("rlUtils.goToNextPointsField"),
-                        "Shift-Ctrl-P":
-                        CodeMirrorJavascript("rlUtils.goToPreviousPointsField"),
-                        "Ctrl-Alt-P":
+                        "Shift-Ctrl-Space":
                         CodeMirrorJavascript("rlUtils.goToPreviousPointsField"),
                         })
         self.fields["feedback_text"] = forms.CharField(
@@ -971,8 +969,8 @@ class HumanTextFeedbackForm(StyledForm):
                     "RELATE-flavored Markdown</a>. "
                     "See RELATE documentation for automatic computation of point "
                     "count from <tt>[pts:N/N]</tt> and <tt>[pts:N]</tt>. "
-                    "Use Ctrl-P/(Alt/Shift)-Ctrl-P to move between <tt>[pts:]</tt> "
-                    "fields. ")
+                    "Use Ctrl-Space/Ctrl-Shift-Space "
+                    "to move between <tt>[pts:]</tt> fields. ")
                     + cm_help_text),
                 label=_("Feedback text (Ctrl+Shift+F)"))
         self.fields["rubric_text"] = forms.CharField(
