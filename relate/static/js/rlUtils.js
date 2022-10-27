@@ -143,8 +143,8 @@ function parseFloatRobust(s) {
 
 export function parsePointsSpecs(feedbackText) {
   const result = [];
-  const pointsRegex = /\[pts:\s*([^\]]*)\s*\]/g;
-  const pointsBodyRegex = /^([-0-9.]*)\s*((?:\/\s*[-0-9.]*)?)\s*((?:#[a-zA-Z_]\w*)?)$/;
+  const pointsRegex = /\[pts:\s*([^\]]*)\]/g;
+  const pointsBodyRegex = /^([-0-9.]*)\s*((?:\/\s*[-0-9.]*)?)\s*((?:#[a-zA-Z_]\w*)?)\s*$/;
 
   // eslint-disable-next-line no-constant-condition
   while (true) {
