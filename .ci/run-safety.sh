@@ -12,6 +12,9 @@
 # 50792: We're not using nbconvert on untrusted data.
 # 50792 requires cryptography 39.x, which is unreleased as of 2022-10-02
 #   to enforce that (unsupported) LibreSSL gets dropped
+# 51549: No call path from relate to mpmathify
+# 51499: Not calling wheel in a safety-related manner
+# 51457: not calling py in a safety-related manner
 poetry run safety check \
         -i 38678 \
         -i 39253 \
@@ -23,4 +26,7 @@ poetry run safety check \
         -i 44717 \
         -i 50792 \
         -i 51159 \
+        -i 51549 \
+        -i 51499 \
+        -i 51457 \
         --full-report
