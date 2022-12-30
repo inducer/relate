@@ -68,7 +68,7 @@ ecdsa = "^0.15"
 paramiko = "*"
 
 # https://github.com/poezio/slixmpp/commit/53dc9847e2a4110be85ad16af9b427f9a280aaee#commitcomment-69121492
-slixmpp = "^1.8.1"
+slixmpp = "^1.8.3"
 
 # To manage web dependencies
 django-npm = "^1.0.0"
