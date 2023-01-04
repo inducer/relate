@@ -139,6 +139,8 @@ class CourseAdmin(admin.ModelAdmin):
             "name",
             "time_period")
 
+    readonly_fields = ("identifier",)
+
     form = CourseAdminForm
 
     save_on_top = True
