@@ -90,7 +90,6 @@ djangosaml2 = "^v1.0.4"
 
 # }}}
 
-future = "^0.18.2"
 # Try to avoid https://github.com/Julian/jsonschema/issues/449
 attrs = ">=19"
 python-memcached = "^1.59"
