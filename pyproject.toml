@@ -156,6 +156,8 @@ sphinx = "^4.0.2"
 furo = "^2020.11.27b19"
 sphinx-copybutton = "^0.3.1"
 django-upgrade = "^1.12.0"
+isort = "^5.11.4"
+flake8-isort = "^6.0"
 
 types-pytz = "^0.1.0"
 types-bleach = "^0.1.2"
@@ -171,5 +173,11 @@ numpy = "^1.19"
 [tool.poetry.extras]
 postgres = ["psycopg2"]
 memcache = ["pylibmc"]
+
+[tool.isort]
+profile = "django"
+line_length = 85
+lines_after_imports = 2
+src_paths = ["relate", "course", "accounts", "test"]
 
 # vim: foldmethod=marker
