@@ -52,8 +52,7 @@ setup:
 flake8:
   <<: *quality
   script: |
-    poetry run flake8 relate course accounts
-    poetry run flake8 --extend-ignore Q000 tests
+    poetry run flake8 relate course accounts tests
 
 mypy:
   <<: *quality
