@@ -20,26 +20,22 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from django.utils.translation import (
-        gettext_lazy as _, pgettext_lazy, get_language)
-from django.contrib.auth.decorators import login_required
-from course.utils import course_view, render_course_page
-from django.core.exceptions import (
-    PermissionDenied, ObjectDoesNotExist, ValidationError)
-from django.db import transaction
-from django.contrib import messages  # noqa
-import django.forms as forms
-
-from crispy_forms.layout import Submit
-
 import datetime
 
-from relate.utils import (StyledForm, as_local_time, string_concat,
-        HTML5DateTimeInput)
-from course.constants import (
-        participation_permission as pperm,
-        )
+import django.forms as forms
+from crispy_forms.layout import Submit
+from django.contrib import messages  # noqa
+from django.contrib.auth.decorators import login_required
+from django.core.exceptions import (
+    ObjectDoesNotExist, PermissionDenied, ValidationError,
+)
+from django.db import transaction
+from django.utils.translation import get_language, gettext_lazy as _, pgettext_lazy
+
+from course.constants import participation_permission as pperm
 from course.models import Event
+from course.utils import course_view, render_course_page
+from relate.utils import HTML5DateTimeInput, StyledForm, as_local_time, string_concat
 
 
 class ListTextWidget(forms.TextInput):
@@ -378,7 +374,8 @@ def view_calendar(pctx):
     events_json = []
 
     from course.content import (
-        get_raw_yaml_from_repo, markup_to_html, parse_date_spec)
+        get_raw_yaml_from_repo, markup_to_html, parse_date_spec,
+    )
     try:
         event_descr = get_raw_yaml_from_repo(pctx.repo,
                 pctx.course.events_file, pctx.course_commit_sha)

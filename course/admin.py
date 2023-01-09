@@ -20,32 +20,22 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from django.utils.translation import (
-        gettext_lazy as _, pgettext)
-from django.contrib import admin
-
-from course.models import (
-        Course, Event,
-        ParticipationTag,
-        Participation, ParticipationPermission,
-        ParticipationRole, ParticipationRolePermission,
-        ParticipationPreapproval,
-        AuthenticationToken,
-        InstantFlowRequest,
-        FlowSession, FlowPageData,
-        FlowPageVisit, FlowPageVisitGrade,
-        FlowRuleException,
-        GradingOpportunity, GradeChange, InstantMessage,
-        Exam, ExamTicket)
-from django import forms
-from relate.utils import string_concat
-from course.enrollment import (approve_enrollment, deny_enrollment)
-from course.constants import (
-        participation_permission as pperm,
-        exam_ticket_states
-        )
-
 from typing import Any, Tuple
+
+from django import forms
+from django.contrib import admin
+from django.utils.translation import gettext_lazy as _, pgettext
+
+from course.constants import exam_ticket_states, participation_permission as pperm
+from course.enrollment import approve_enrollment, deny_enrollment
+from course.models import (
+    AuthenticationToken, Course, Event, Exam, ExamTicket, FlowPageData,
+    FlowPageVisit, FlowPageVisitGrade, FlowRuleException, FlowSession, GradeChange,
+    GradingOpportunity, InstantFlowRequest, InstantMessage, Participation,
+    ParticipationPermission, ParticipationPreapproval, ParticipationRole,
+    ParticipationRolePermission, ParticipationTag,
+)
+from relate.utils import string_concat
 
 
 # {{{ permission helpers
@@ -304,8 +294,8 @@ class ParticipationAdmin(admin.ModelAdmin):
         ordering="user__last_name",
     )
     def get_user(self, obj):
-        from django.urls import reverse
         from django.conf import settings
+        from django.urls import reverse
         from django.utils.html import mark_safe
 
         return mark_safe(string_concat(

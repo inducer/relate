@@ -20,27 +20,23 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from typing import cast, Tuple
+from typing import Any, Dict, Iterable, Optional, Text, Tuple, cast  # noqa
 
 import django.forms as forms
-from django.utils.safestring import mark_safe
+from crispy_forms.layout import Submit
+from django import http  # noqa
 from django.contrib import messages  # noqa
 from django.core.exceptions import PermissionDenied
+from django.utils.safestring import mark_safe
 from django.utils.translation import gettext, gettext_lazy as _
-from django import http  # noqa
-
-from crispy_forms.layout import Submit
-
-from course.utils import course_view, render_course_page
 
 from course.constants import participation_permission as pperm
-from course.utils import (  # noqa
-        CoursePageContext)
 from course.content import FlowPageDesc
+from course.utils import CoursePageContext, course_view, render_course_page  # noqa
+
 
 # {{{ for mypy
 
-from typing import Text, Optional, Any, Iterable, Dict  # noqa
 
 # }}}
 
@@ -202,9 +198,10 @@ def view_page_sandbox(pctx: CoursePageContext) -> http.HttpResponse:
     if not pctx.has_permission(pperm.use_page_sandbox):
         raise PermissionDenied()
 
-    from course.validation import ValidationError
-    from relate.utils import dict_to_struct, Struct
     import yaml
+
+    from course.validation import ValidationError
+    from relate.utils import Struct, dict_to_struct
 
     page_session_key = make_sandbox_session_key(
         PAGE_SESSION_KEY_PREFIX, pctx.course.identifier)
@@ -252,7 +249,7 @@ def view_page_sandbox(pctx: CoursePageContext) -> http.HttpResponse:
                             "a dictionary. Do you need to remove a leading "
                             "list marker ('-') or some stray indentation?")
 
-                from course.validation import validate_flow_page, ValidationContext
+                from course.validation import ValidationContext, validate_flow_page
                 vctx = ValidationContext(
                         repo=pctx.repo,
                         commit_sha=pctx.course_commit_sha)

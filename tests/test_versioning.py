@@ -20,25 +20,26 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-import pytest
-from copy import deepcopy
 import unittest
-from django.test import TestCase, RequestFactory
-from dulwich.contrib.paramiko_vendor import ParamikoSSHVendor
+from copy import deepcopy
+
+import pytest
+from django.test import RequestFactory, TestCase
 from dulwich.client import FetchPackResult
+from dulwich.contrib.paramiko_vendor import ParamikoSSHVendor
 
-from relate.utils import force_remove_path
-
-from course.models import Course, Participation
 from course import versioning
-from course.validation import ValidationWarning
 from course.constants import participation_permission as pperm
-
-from tests.base_test_mixins import (
-    SingleCourseTestMixin, MockAddMessageMixing,
-    CoursesTestMixinBase, SINGLE_COURSE_SETUP_LIST)
-from tests.utils import suppress_stdout_decorator, mock
+from course.models import Course, Participation
+from course.validation import ValidationWarning
+from relate.utils import force_remove_path
 from tests import factories
+from tests.base_test_mixins import (
+    SINGLE_COURSE_SETUP_LIST, CoursesTestMixinBase, MockAddMessageMixing,
+    SingleCourseTestMixin,
+)
+from tests.utils import mock, suppress_stdout_decorator
+
 
 TEST_PRIVATE_KEY = """\
 -----BEGIN RSA PRIVATE KEY-----
@@ -508,8 +509,10 @@ class DirectGitEndpointTest(TestCase):
 
     def test_auth_student(self):
         from base64 import b64encode
-        from course.models import AuthenticationToken
+
         from django.contrib.auth.hashers import make_password
+
+        from course.models import AuthenticationToken
 
         course = factories.CourseFactory()
         student = factories.UserFactory()
@@ -580,9 +583,11 @@ class DirectGitEndpointTest(TestCase):
 
     def test_auth_instructor(self):
         from base64 import b64encode
-        from course.models import ParticipationRolePermission, AuthenticationToken
-        from course.constants import participation_permission as pp
+
         from django.contrib.auth.hashers import make_password
+
+        from course.constants import participation_permission as pp
+        from course.models import AuthenticationToken, ParticipationRolePermission
 
         course = factories.CourseFactory()
         instructor = factories.UserFactory()
@@ -1281,7 +1286,7 @@ class UpdateCourseTest(SingleCourseTestMixin, MockAddMessageMixing, TestCase):
         self.course.course_root_path = "/subdir"
         self.course.save()
 
-        from course.content import get_course_repo, SubdirRepoWrapper
+        from course.content import SubdirRepoWrapper, get_course_repo
         self.assertIsInstance(get_course_repo(self.course), SubdirRepoWrapper)
 
         with mock.patch(
@@ -1292,6 +1297,7 @@ class UpdateCourseTest(SingleCourseTestMixin, MockAddMessageMixing, TestCase):
 
             self.assertEqual(mock_run_update.call_count, 1)
 
-            from course.content import SubdirRepoWrapper
             from dulwich.repo import Repo
+
+            from course.content import SubdirRepoWrapper
             self.assertIsInstance(mock_run_update.call_args[0][1], Repo)

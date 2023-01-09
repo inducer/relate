@@ -1,5 +1,6 @@
 from django.db import migrations
 
+
 def remove_mistakenly_added_individual_pperm(apps, schema_editor):
     from course.constants import participation_permission as pperm
 

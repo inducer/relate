@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+
 __copyright__ = "Copyright (C) 2014 Andreas Kloeckner"
 
 __license__ = """
@@ -23,44 +24,40 @@ THE SOFTWARE.
 """
 
 
-from django.utils.translation import gettext as _
-from django.shortcuts import (  # noqa
-        get_object_or_404, redirect)
-from relate.utils import (
-        retry_transaction_decorator,
-        as_local_time, format_datetime_local)
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Text  # noqa
+
+from django import http
 from django.contrib import messages
 from django.core.exceptions import (  # noqa
-        PermissionDenied, SuspiciousOperation,
-        ObjectDoesNotExist)
-from django import http
+    ObjectDoesNotExist, PermissionDenied, SuspiciousOperation,
+)
+from django.shortcuts import get_object_or_404, redirect  # noqa
+from django.utils.translation import gettext as _
 
+from course.constants import participation_permission as pperm
 from course.models import (
-        FlowSession, FlowPageVisitGrade,
-        get_flow_grading_opportunity,
-        get_feedback_for_grade,
-        update_bulk_feedback)
-from course.utils import (
-        course_view, render_course_page,
-        get_session_grading_rule,
-        FlowPageContext)
-from course.views import get_now_or_fake_time
+    FlowPageVisitGrade, FlowSession, get_feedback_for_grade,
+    get_flow_grading_opportunity, update_bulk_feedback,
+)
 from course.page import InvalidPageData
+from course.utils import (
+    FlowPageContext, course_view, get_session_grading_rule, render_course_page,
+)
+from course.views import get_now_or_fake_time
+from relate.utils import (
+    as_local_time, format_datetime_local, retry_transaction_decorator,
+)
 
-from course.constants import (
-        participation_permission as pperm,
-        )
 
 # {{{ for mypy
 
-from typing import Text, Any, Optional, Dict, List, TYPE_CHECKING  # noqa
 if TYPE_CHECKING:
-    from course.models import (  # noqa
-            GradingOpportunity)
-    from course.utils import (  # noqa
-            CoursePageContext)
     import datetime  # noqa
+
     from django.db.models import query  # noqa
+
+    from course.models import GradingOpportunity  # noqa
+    from course.utils import CoursePageContext  # noqa
 
 # }}}
 

@@ -1,8 +1,8 @@
 #! /usr/bin/env python3
 
-import sys
 import io
-from typing import Dict, Any
+import sys
+from typing import Any, Dict
 
 
 # {{{ validate_course
@@ -36,8 +36,10 @@ def validate_pages(args):
     import django
     django.setup()
 
-    from course.validation import (FileSystemFakeRepo, ValidationContext,
-            validate_flow_page, get_yaml_from_repo_safely)
+    from course.validation import (
+        FileSystemFakeRepo, ValidationContext, get_yaml_from_repo_safely,
+        validate_flow_page,
+    )
     fake_repo = FileSystemFakeRepo(args.REPO_ROOT.encode("utf-8"))
     vctx = ValidationContext(
             repo=fake_repo,
@@ -73,7 +75,8 @@ def expand_yaml(yml_file, repo_root):
             data = inf.read()
 
     from course.content import (
-            process_yaml_for_expansion, YamlBlockEscapingFileSystemLoader)
+        YamlBlockEscapingFileSystemLoader, process_yaml_for_expansion,
+    )
     data = process_yaml_for_expansion(data)
 
     from jinja2 import Environment, StrictUndefined
@@ -105,11 +108,12 @@ def test_code_question(page_desc, repo_root) -> bool:
 
         correct_code = getattr(page_desc, "correct_code", "")
 
-        from course.page.code_run_backend import \
-                substitute_correct_code_into_test_code
+        from course.page.code_run_backend import (
+            substitute_correct_code_into_test_code,
+        )
         test_code = substitute_correct_code_into_test_code(test_code, correct_code)
 
-    from course.page.code_run_backend import run_code, package_exception
+    from course.page.code_run_backend import package_exception, run_code
 
     data_files = {}
 
@@ -218,6 +222,7 @@ def test_code_yml(yml_file, repo_root):
     data = expand_yaml(yml_file, repo_root)
 
     from yaml import safe_load
+
     from relate.utils import dict_to_struct
     data = dict_to_struct(safe_load(data))
 
@@ -266,8 +271,8 @@ def expand_yaml_ui(args):
 
 def main() -> None:
     pass
-    import os
     import argparse
+    import os
 
     os.environ["RELATE_COMMAND_LINE"] = "1"
 

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+
 __copyright__ = "Copyright (C) 2014 Andreas Kloeckner"
 
 __license__ = """
@@ -24,15 +25,16 @@ THE SOFTWARE.
 
 
 import datetime
+from typing import (  # noqa
+    TYPE_CHECKING, Any, Dict, List, Optional, Text, Tuple, Union,
+)
 
 import django.forms as forms
-from django.utils.translation import gettext_lazy as _
-from django.utils.text import format_lazy
 import dulwich.repo
+from django.utils.text import format_lazy
+from django.utils.translation import gettext_lazy as _
 
-from typing import Union
 
-from typing import Text, List, Dict, Tuple, Optional, Any, TYPE_CHECKING  # noqa
 if TYPE_CHECKING:
     from django.http import HttpRequest  # noqa
 
@@ -180,8 +182,8 @@ def settings_context_processor(request):
 def as_local_time(dtm: datetime.datetime) -> datetime.datetime:
     """Takes a timezone-aware datetime and applies the server timezone."""
 
-    from django.conf import settings
     import pytz_deprecation_shim as pds
+    from django.conf import settings
     tz = pds.timezone(settings.TIME_ZONE)
     return dtm.astimezone(tz)
 
@@ -189,16 +191,16 @@ def as_local_time(dtm: datetime.datetime) -> datetime.datetime:
 def localize_datetime(dtm: datetime.datetime) -> datetime.datetime:
     """Takes an timezone-naive datetime and applies the server timezone."""
 
-    from django.conf import settings
     import pytz_deprecation_shim as pds
+    from django.conf import settings
     tz = pds.timezone(settings.TIME_ZONE)
     return tz.localize(dtm)  # type: ignore
 
 
 def local_now() -> datetime.datetime:
 
-    from django.conf import settings
     import pytz_deprecation_shim as pds
+    from django.conf import settings
     tz = pds.timezone(settings.TIME_ZONE)
     return tz.localize(datetime.datetime.now())  # type: ignore
 
@@ -275,7 +277,7 @@ def retry_transaction(f: Any, args: Tuple, kwargs: Optional[Dict] = None,
         try:
             with transaction.atomic():
                 if serializable:
-                    from django.db import connections, DEFAULT_DB_ALIAS
+                    from django.db import DEFAULT_DB_ALIAS, connections
                     conn = connections[DEFAULT_DB_ALIAS]
                     if conn.vendor == "postgresql":
                         cursor = conn.cursor()
@@ -314,8 +316,8 @@ class retry_transaction_decorator:  # noqa
 # {{{ hang debugging
 
 def dumpstacks(signal, frame):  # pragma: no cover
-    import threading
     import sys
+    import threading
     import traceback
 
     id2name = {th.ident: th.name for th in threading.enumerate()}
@@ -330,8 +332,8 @@ def dumpstacks(signal, frame):  # pragma: no cover
 
 
 if 0:
-    import signal
     import os
+    import signal
     print("*** HANG DUMP HANDLER ACTIVATED: 'kill -USR1 %s' to dump stacks"
             % os.getpid())
     signal.signal(signal.SIGUSR1, dumpstacks)
@@ -367,7 +369,7 @@ def get_outbound_mail_connection(label: Optional[str] = None, **kwargs: Any) -> 
 
 
 def ignore_no_such_table(f, *args):
-    from django.db import connections, DEFAULT_DB_ALIAS
+    from django.db import DEFAULT_DB_ALIAS, connections
     conn = connections[DEFAULT_DB_ALIAS]
 
     if conn.vendor == "postgresql":
@@ -409,8 +411,8 @@ def force_remove_path(path: str) -> None:
     Ref: https://docs.python.org/3.5/library/shutil.html#rmtree-example
     """
     import os
-    import stat
     import shutil
+    import stat
 
     def remove_readonly(func, path, _):  # noqa
         """Clear the readonly bit and reattempt the removal"""

@@ -20,18 +20,19 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-import pytest
 from random import shuffle
-from django.utils.timezone import now, timedelta
+
+import pytest
 from django.core import mail
-from django.test import TestCase, override_settings, Client
+from django.test import Client, TestCase, override_settings
+from django.utils.timezone import now, timedelta
 
-from course.models import ParticipationPermission
 from course.constants import participation_permission as pperm
-
-from tests.base_test_mixins import (
-    SingleCourseQuizPageTestMixin, MockAddMessageMixing)
+from course.models import ParticipationPermission
 from tests import factories
+from tests.base_test_mixins import (
+    MockAddMessageMixing, SingleCourseQuizPageTestMixin,
+)
 from tests.utils import mock
 
 
@@ -538,8 +539,7 @@ class SingleCourseQuizPageGradeInterfaceTest(
         }
 
         def get_session_grading_rule_side_effect(session, flow_desc, now_datetime):
-            from course.utils import (
-                get_session_grading_rule, FlowSessionGradingRule)
+            from course.utils import FlowSessionGradingRule, get_session_grading_rule
             true_g_rule = get_session_grading_rule(
                 session, flow_desc, now_datetime)
 

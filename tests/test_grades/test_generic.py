@@ -21,14 +21,12 @@ THE SOFTWARE.
 """
 
 import pytest
-from django.urls import reverse, NoReverseMatch
-from django.test import TestCase, Client
+from django.test import Client, TestCase
+from django.urls import NoReverseMatch, reverse
 
 from course.models import (
-    Participation, GradingOpportunity, FlowSession,
-    FlowRuleException
+    FlowRuleException, FlowSession, GradingOpportunity, Participation,
 )
-
 from tests.base_test_mixins import SingleCoursePageTestMixin, classmethod_with_client
 
 

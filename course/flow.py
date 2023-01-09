@@ -1,5 +1,5 @@
 from __future__ import annotations
-from course.content import FlowPageDesc
+
 
 __copyright__ = "Copyright (C) 2014 Andreas Kloeckner"
 
@@ -23,85 +23,61 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from django.utils.translation import (
-        gettext, gettext_lazy as _)
-from django.contrib.auth.decorators import login_required
-from django.shortcuts import (  # noqa
-        render, get_object_or_404, redirect)
-from django.contrib import messages
-from django.core.exceptions import (
-        PermissionDenied, SuspiciousOperation,
-        ObjectDoesNotExist)
-from django.db import transaction
-from django.db.models import query  # noqa
-from django.utils.safestring import mark_safe
-from django import forms
-from django import http
-from django.conf import settings
-from django.urls import reverse
+from typing import TYPE_CHECKING, Any, FrozenSet, Iterable, List, Optional, Tuple
 
 from crispy_forms.helper import FormHelper
-
-from relate.utils import (
-        StyledForm, local_now, as_local_time,
-        format_datetime_local, string_concat)
 from crispy_forms.layout import Submit
+from django import forms, http
+from django.conf import settings
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from django.core.exceptions import (
+    ObjectDoesNotExist, PermissionDenied, SuspiciousOperation,
+)
+from django.db import transaction
+from django.db.models import query  # noqa
+from django.shortcuts import get_object_or_404, redirect, render  # noqa
+from django.urls import reverse
+from django.utils.safestring import mark_safe
+from django.utils.translation import gettext, gettext_lazy as _
 from django_select2.forms import Select2Widget
 
 from course.constants import (
-        flow_permission,
-        participation_permission as pperm,
-        flow_session_expiration_mode,
-        FLOW_SESSION_EXPIRATION_MODE_CHOICES,
-        is_expiration_mode_allowed,
-        grade_aggregation_strategy,
-        GRADE_AGGREGATION_STRATEGY_CHOICES,
-        flow_session_interaction_kind
-        )
-from course.models import (
-        Participation,
-        Course,
-        FlowSession, FlowPageData, FlowPageVisit,
-        FlowPageVisitGrade,
-        get_feedback_for_grade,
-        GradeChange, update_bulk_feedback)
-
-from course.utils import (
-        FlowContext,
-        FlowPageContext,
-        PageOrdinalOutOfRange,
-        instantiate_flow_page_with_ctx,
-        course_view, render_course_page,
-        get_session_start_rule,
-        get_session_access_rule,
-        get_session_grading_rule,
-        FlowSessionGradingRule,
-        LanguageOverride,
-        )
+    FLOW_SESSION_EXPIRATION_MODE_CHOICES, GRADE_AGGREGATION_STRATEGY_CHOICES,
+    flow_permission, flow_session_expiration_mode, flow_session_interaction_kind,
+    grade_aggregation_strategy, is_expiration_mode_allowed,
+    participation_permission as pperm,
+)
+from course.content import FlowPageDesc
 from course.exam import get_login_exam_ticket
+from course.models import (
+    Course, FlowPageData, FlowPageVisit, FlowPageVisitGrade, FlowSession,
+    GradeChange, Participation, get_feedback_for_grade, update_bulk_feedback,
+)
 from course.page import InvalidPageData
+from course.utils import (
+    FlowContext, FlowPageContext, FlowSessionGradingRule, LanguageOverride,
+    PageOrdinalOutOfRange, course_view, get_session_access_rule,
+    get_session_grading_rule, get_session_start_rule, instantiate_flow_page_with_ctx,
+    render_course_page,
+)
 from course.views import get_now_or_fake_time
-from relate.utils import retry_transaction_decorator
+from relate.utils import (
+    StyledForm, as_local_time, format_datetime_local, local_now,
+    retry_transaction_decorator, string_concat,
+)
+
 
 # {{{ mypy
 
-from typing import Any, Optional, Iterable,  Tuple, List, FrozenSet, TYPE_CHECKING
 if TYPE_CHECKING:
     import datetime  # noqa
-    from course.models import Course  # noqa
+
     from accounts.models import User  # noqa
-    from course.utils import (  # noqa
-            CoursePageContext,
-            FlowSessionStartRule,
-            )
-    from course.content import (  # noqa
-            FlowDesc,
-            )
-    from course.page.base import (  # noqa
-            PageBase,
-            PageBehavior,
-            AnswerFeedback
-            )
+    from course.content import FlowDesc  # noqa
+    from course.models import Course  # noqa
+    from course.page.base import AnswerFeedback, PageBase, PageBehavior  # noqa
+    from course.utils import CoursePageContext, FlowSessionStartRule  # noqa
     from relate.utils import Repo_ish  # noqa
 
 # }}}
@@ -342,11 +318,9 @@ def grade_page_visit(visit: FlowPageVisit,
         grade_data = most_recent_grade.grade_data
 
     from course.content import (
-            get_course_repo,
-            get_course_commit_sha,
-            get_flow_desc,
-            get_flow_page_desc,
-            instantiate_flow_page)
+        get_course_commit_sha, get_course_repo, get_flow_desc, get_flow_page_desc,
+        instantiate_flow_page,
+    )
 
     with get_course_repo(course) as repo:
         course_commit_sha = get_course_commit_sha(

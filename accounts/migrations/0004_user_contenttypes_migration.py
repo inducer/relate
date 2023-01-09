@@ -1,4 +1,4 @@
-from django.db import models, migrations
+from django.db import migrations, models
 
 
 def forwards(apps, schema_editor):

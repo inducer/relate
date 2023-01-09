@@ -1,4 +1,5 @@
-from django.db import models, migrations
+from django.db import migrations, models
+
 from relate.utils import ignore_no_such_table
 
 

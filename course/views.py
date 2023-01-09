@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+
 __copyright__ = "Copyright (C) 2014 Andreas Kloeckner"
 
 __license__ = """
@@ -22,71 +23,55 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from typing import cast, List, Text
-
 import datetime
+from typing import (  # noqa
+    TYPE_CHECKING, Any, Dict, Iterable, List, Optional, Text, Tuple, cast,
+)
 
-from django.shortcuts import (  # noqa
-        render, get_object_or_404, redirect)
-from django.contrib import messages  # noqa
-from django.core.exceptions import (
-        PermissionDenied, ObjectDoesNotExist, SuspiciousOperation)
 import django.forms as forms
 import django.views.decorators.http as http_dec
+from crispy_forms.layout import Div, Layout, Submit
 from django import http
-from django.utils.safestring import mark_safe
-from django.db import transaction
-from django.utils.translation import (
-        gettext_lazy as _,
-        gettext,
-        pgettext,
-        pgettext_lazy,
-        )
+from django.contrib import messages  # noqa
 from django.contrib.auth.decorators import login_required
-
+from django.core.exceptions import (
+    ObjectDoesNotExist, PermissionDenied, SuspiciousOperation,
+)
+from django.db import transaction
+from django.shortcuts import get_object_or_404, redirect, render  # noqa
+from django.utils.safestring import mark_safe
+from django.utils.translation import (
+    gettext, gettext_lazy as _, pgettext, pgettext_lazy,
+)
+from django.views.decorators.cache import cache_control
 from django_select2.forms import Select2Widget
 
-from django.views.decorators.cache import cache_control
-
-from crispy_forms.layout import Submit, Layout, Div
-
-from relate.utils import (StyledForm, StyledModelForm, string_concat,
-        HTML5DateTimeInput, HTML5DateInput)
-
 from course.auth import get_pre_impersonation_user
-from course.enrollment import (
-        get_participation_for_request,
-        get_participation_permissions)
 from course.constants import (
-        participation_permission as pperm,
-        participation_status,
-        FLOW_PERMISSION_CHOICES,
-        flow_rule_kind, FLOW_RULE_KIND_CHOICES
-        )
-from course.models import (
-        Course,
-        InstantFlowRequest,
-        Participation,
-        FlowSession,
-        FlowRuleException)
-
+    FLOW_PERMISSION_CHOICES, FLOW_RULE_KIND_CHOICES, flow_rule_kind,
+    participation_permission as pperm, participation_status,
+)
 from course.content import get_course_repo
-
+from course.enrollment import (
+    get_participation_for_request, get_participation_permissions,
+)
+from course.models import (
+    Course, FlowRuleException, FlowSession, InstantFlowRequest, Participation,
+)
 from course.utils import (  # noqa
-        course_view,
-        render_course_page,
-        CoursePageContext,
-        get_course_specific_language_choices)
+    CoursePageContext, course_view, get_course_specific_language_choices,
+    render_course_page,
+)
+from relate.utils import (
+    HTML5DateInput, HTML5DateTimeInput, StyledForm, StyledModelForm, string_concat,
+)
+
 
 # {{{ for mypy
 
-from typing import Tuple, Text, Any, Iterable, Dict, Optional, TYPE_CHECKING  # noqa
 if TYPE_CHECKING:
-    from course.content import (  # noqa
-        FlowDesc,
-        )
-
     from accounts.models import User  # noqa
+    from course.content import FlowDesc  # noqa
 
 # }}}
 
@@ -155,7 +140,7 @@ def check_course_state(
 
 @course_view
 def course_page(pctx: CoursePageContext) -> http.HttpResponse:
-    from course.content import get_processed_page_chunks, get_course_desc
+    from course.content import get_course_desc, get_processed_page_chunks
     page_desc = get_course_desc(pctx.repo, pctx.course, pctx.course_commit_sha)
 
     chunks = get_processed_page_chunks(
@@ -212,7 +197,7 @@ def course_page(pctx: CoursePageContext) -> http.HttpResponse:
 
 @course_view
 def static_page(pctx: CoursePageContext, page_path: str) -> http.HttpResponse:
-    from course.content import get_staticpage_desc, get_processed_page_chunks
+    from course.content import get_processed_page_chunks, get_staticpage_desc
     try:
         page_desc = get_staticpage_desc(pctx.repo, pctx.course,
                 pctx.course_commit_sha, "staticpages/"+page_path+".yml")
@@ -763,6 +748,7 @@ def grant_exception(pctx):
 def strify_session_for_exception(session: FlowSession) -> str:
 
     from relate.utils import as_local_time, format_datetime_local
+
     # Translators: %s is the string of the start time of a session.
     result = (_("started at %s") % format_datetime_local(
         as_local_time(session.start_time)))
@@ -1111,9 +1097,7 @@ def grant_exception_stage_3(
     session = FlowSession.objects.get(id=int(session_id))
 
     now_datetime = get_now_or_fake_time(pctx.request)
-    from course.utils import (
-            get_session_access_rule,
-            get_session_grading_rule)
+    from course.utils import get_session_access_rule, get_session_grading_rule
     access_rule = get_session_access_rule(session, flow_desc, now_datetime)
     grading_rule = get_session_grading_rule(session, flow_desc, now_datetime)
 
@@ -1129,9 +1113,9 @@ def grant_exception_stage_3(
                     if form.cleaned_data[key]]
 
             from course.validation import (
-                    validate_session_access_rule,
-                    validate_session_grading_rule,
-                    ValidationContext)
+                ValidationContext, validate_session_access_rule,
+                validate_session_grading_rule,
+            )
             from relate.utils import dict_to_struct
             vctx = ValidationContext(
                     repo=pctx.repo,
@@ -1350,8 +1334,8 @@ def generate_ssh_keypair(request):
 
 @login_required
 def monitor_task(request, task_id):
-    from celery.result import AsyncResult
     from celery import states
+    from celery.result import AsyncResult
     async_res = AsyncResult(task_id)
 
     progress_percent = None

@@ -24,10 +24,10 @@ import pytest
 from django.test import TestCase
 
 from course.constants import participation_status
-
 from tests import factories
-from tests.utils import mock
 from tests.base_test_mixins import SingleCourseTestMixin
+from tests.utils import mock
+
 
 HANDLE_ENROLLMENT_PATH = "course.enrollment.handle_enrollment_request"
 

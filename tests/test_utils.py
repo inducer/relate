@@ -20,33 +20,30 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
+import unittest
 from copy import deepcopy
 
-import unittest
-from django.test import SimpleTestCase, TestCase, RequestFactory, Client
-from django.utils.timezone import now, timedelta
-from django.test.utils import override_settings
 from django import VERSION as DJANGO_VERSION
-from django.utils import translation
-from django.utils.translation import gettext_noop
 from django.conf import settings
+from django.test import Client, RequestFactory, SimpleTestCase, TestCase
+from django.test.utils import override_settings
+from django.utils import translation
+from django.utils.timezone import now, timedelta
+from django.utils.translation import gettext_noop
 
-from relate.utils import struct_to_dict, dict_to_struct
-
-from course import utils
-from course.content import parse_date_spec
 from course import constants  # noqa
+from course import utils
 from course.constants import flow_permission as fperm
-
-from tests.constants import QUIZ_FLOW_ID
-from tests.base_test_mixins import (
-    CoursesTestMixinBase,
-    SingleCoursePageTestMixin, SubprocessRunpyContainerMixin,
-    SingleCourseTestMixin,  MockAddMessageMixing,
-    SingleCourseQuizPageTestMixin,
-)
-from tests.utils import mock
+from course.content import parse_date_spec
+from relate.utils import dict_to_struct, struct_to_dict
 from tests import factories
+from tests.base_test_mixins import (
+    CoursesTestMixinBase, MockAddMessageMixing, SingleCoursePageTestMixin,
+    SingleCourseQuizPageTestMixin, SingleCourseTestMixin,
+    SubprocessRunpyContainerMixin,
+)
+from tests.constants import QUIZ_FLOW_ID
+from tests.utils import mock
 
 
 if DJANGO_VERSION < (2, 0):
@@ -1820,8 +1817,8 @@ class WillUseMaskedProfileForEmailTest(SingleCourseTestMixin, TestCase):
                 ["foo@bar.com"]))
 
     def test_any(self):
-        from course.models import ParticipationPermission
         from course.constants import participation_permission as pperm
+        from course.models import ParticipationPermission
 
         pp = ParticipationPermission(
             participation=self.ta_participation,

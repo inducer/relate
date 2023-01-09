@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+
 __copyright__ = "Copyright (C) 2014 Andreas Kloeckner"
 
 __license__ = """
@@ -22,31 +23,27 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
+from typing import TYPE_CHECKING, Any, Callable, Optional
+
 import django.forms as forms
 import django.http
-
-from course.validation import validate_struct, ValidationError
-from course.constants import MAX_EXTRA_CREDIT_FACTOR
-from relate.utils import StyledForm, Struct, string_concat
+from django.conf import settings
 from django.forms import ValidationError as FormValidationError
 from django.utils.safestring import mark_safe
-from django.utils.translation import (
-        gettext_lazy as _,
-        gettext_noop,
-        )
-from django.conf import settings
+from django.utils.translation import gettext_lazy as _, gettext_noop
+
+from course.constants import MAX_EXTRA_CREDIT_FACTOR
+from course.validation import ValidationError, validate_struct
+from relate.utils import Struct, StyledForm, string_concat
+
 
 # {{{ mypy
 
-from typing import (Optional, Any, Callable, TYPE_CHECKING)
 
 if TYPE_CHECKING:
     # FIXME There seem to be some cyclic imports that prevent importing these
     # outright.
-    from course.models import (  # noqa
-            Course,
-            FlowSession
-            )
+    from course.models import Course, FlowSession  # noqa
     from relate.utils import Repo_ish
 
 # }}}
@@ -800,8 +797,8 @@ class PageBaseWithTitle(PageBase):
                         _("no title found in body or title attribute"))
                     % (location))
 
-        from markdown import markdown
         from django.utils.html import strip_tags
+        from markdown import markdown
         title = strip_tags(markdown(title))
 
         if not title and vctx is not None:
@@ -889,7 +886,7 @@ class TextInputWithButtons(forms.TextInput):
     def render(self, name, value, attrs=None, renderer=None):
         html = super().render(name, value, attrs,
                                                         renderer)
-        from django.utils.html import format_html, mark_safe, escapejs
+        from django.utils.html import escapejs, format_html, mark_safe
         id = attrs["id"]
 
         def make_feedback_func(feedback):
@@ -947,8 +944,9 @@ class HumanTextFeedbackForm(StyledForm):
                         create_default_point_scale(point_value)),
                     label=_("Grade points"))
 
-        from course.utils import get_codemirror_widget
         from codemirror import CodeMirrorJavascript
+
+        from course.utils import get_codemirror_widget
         cm_widget, cm_help_text = get_codemirror_widget(
                     language_mode="markdown",
                     interaction_mode=editor_interaction_mode,
@@ -1109,8 +1107,8 @@ class PageBaseWithHumanTextFeedback(PageBase):
         if grading_form.cleaned_data["notify"] and page_context.flow_session:
             from course.utils import LanguageOverride
             with LanguageOverride(page_context.course):
-                from relate.utils import render_email_template
                 from course.utils import will_use_masked_profile_for_email
+                from relate.utils import render_email_template
                 staff_email = [page_context.course.notify_email, request.user.email]
                 message = render_email_template("course/grade-notify.txt", {
                     "page_title": self.title(page_context, page_data),
@@ -1148,8 +1146,8 @@ class PageBaseWithHumanTextFeedback(PageBase):
                 and page_context.flow_session):
             from course.utils import LanguageOverride
             with LanguageOverride(page_context.course):
-                from relate.utils import render_email_template
                 from course.utils import will_use_masked_profile_for_email
+                from relate.utils import render_email_template
                 staff_email = [page_context.course.notify_email, request.user.email]
                 use_masked_profile = will_use_masked_profile_for_email(staff_email)
                 if use_masked_profile:

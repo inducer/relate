@@ -21,20 +21,20 @@ THE SOFTWARE.
 """
 
 import pytest
-from django.test import TestCase, Client
 from django.core.exceptions import ObjectDoesNotExist
+from django.test import Client, TestCase
 from django.urls import reverse
 
-from relate.utils import dict_to_struct
-
-from course.models import FlowSession
 from course import analytics
-
-from tests.base_test_mixins import (  # noqa
-    SingleCourseTestMixin, CoursesTestMixinBase, SingleCoursePageTestMixin,
-    SingleCourseQuizPageTestMixin, MockAddMessageMixing, HackRepoMixin)
-from tests.utils import mock
+from course.models import FlowSession
+from relate.utils import dict_to_struct
 from tests import factories
+from tests.base_test_mixins import CoursesTestMixinBase  # noqa
+from tests.base_test_mixins import (
+    HackRepoMixin, MockAddMessageMixing, SingleCoursePageTestMixin,
+    SingleCourseQuizPageTestMixin, SingleCourseTestMixin,
+)
+from tests.utils import mock
 
 
 def _dummy_histogram(*args):

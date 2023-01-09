@@ -20,33 +20,32 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
+import errno
 import io
 import unittest
-from django.test import TestCase, override_settings, RequestFactory, Client
-
-from docker.errors import APIError as DockerAPIError
 from socket import error as socket_error, timeout as sock_timeout
-import errno
 
-from course.models import FlowSession
-from course.page.code import (
-    CODE_QUESTION_CONTAINER_PORT, request_run_with_retries, InvalidPingResponse,
-    is_nuisance_failure, PythonCodeQuestionWithHumanTextFeedback)
-from course.utils import FlowPageContext, CoursePageContext
+from django.test import Client, RequestFactory, TestCase, override_settings
+from docker.errors import APIError as DockerAPIError
 
 from course.constants import MAX_EXTRA_CREDIT_FACTOR
-
-from tests.constants import MESSAGE_ANSWER_SAVED_TEXT, PAGE_ERRORS
-
-from tests.base_test_mixins import (
-    SubprocessRunpyContainerMixin, SingleCoursePageTestMixin,
-    SingleCourseQuizPageTestMixin, MockAddMessageMixing)
-from tests.test_sandbox import (
-    SingleCoursePageSandboxTestBaseMixin
+from course.models import FlowSession
+from course.page.code import (
+    CODE_QUESTION_CONTAINER_PORT, InvalidPingResponse,
+    PythonCodeQuestionWithHumanTextFeedback, is_nuisance_failure,
+    request_run_with_retries,
 )
-from tests.utils import LocmemBackendTestsMixin, mock, mail
+from course.utils import CoursePageContext, FlowPageContext
+from tests.base_test_mixins import (
+    MockAddMessageMixing, SingleCoursePageTestMixin, SingleCourseQuizPageTestMixin,
+    SubprocessRunpyContainerMixin,
+)
+from tests.constants import MESSAGE_ANSWER_SAVED_TEXT, PAGE_ERRORS
+from tests.test_sandbox import SingleCoursePageSandboxTestBaseMixin
+from tests.utils import LocmemBackendTestsMixin, mail, mock
 
 from . import markdowns
+
 
 NO_CORRECTNESS_INFO_MSG = "No information on correctness of answer."
 

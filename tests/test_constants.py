@@ -21,6 +21,7 @@ THE SOFTWARE.
 """
 
 import unittest
+
 from course import constants
 
 

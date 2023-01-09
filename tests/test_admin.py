@@ -20,15 +20,14 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from django.test import TestCase, RequestFactory
-from django.contrib.admin import site
-from django.utils.timezone import now
 import pytest
+from django.contrib.admin import site
+from django.test import RequestFactory, TestCase
+from django.utils.timezone import now
 
-from course import models, admin, constants
-
-from tests.base_test_mixins import AdminTestMixin
+from course import admin, constants, models
 from tests import factories
+from tests.base_test_mixins import AdminTestMixin
 from tests.constants import QUIZ_FLOW_ID
 
 

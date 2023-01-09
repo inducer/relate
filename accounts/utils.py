@@ -23,9 +23,9 @@ THE SOFTWARE.
 from django.utils.functional import cached_property
 from django.utils.module_loading import import_string
 
-from relate.checks import (
-    INSTANCE_ERROR_PATTERN, Warning, RelateCriticalCheckMessage)
 from course.constants import DEFAULT_EMAIL_APPELLATION_PRIORITY_LIST
+from relate.checks import INSTANCE_ERROR_PATTERN, RelateCriticalCheckMessage, Warning
+
 
 RELATE_USER_FULL_NAME_FORMAT_METHOD = "RELATE_USER_FULL_NAME_FORMAT_METHOD"
 RELATE_EMAIL_APPELLATION_PRIORITY_LIST = (

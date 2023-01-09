@@ -21,28 +21,28 @@ THE SOFTWARE.
 """
 
 import unittest
+
 import pytest
-from django.test import TestCase, RequestFactory
 from django.conf import settings
-from django.test.utils import override_settings  # noqa
-from django.core import mail
 from django.contrib.auth import get_user_model
+from django.core import mail
+from django.test import RequestFactory, TestCase
+from django.test.utils import override_settings  # noqa
 from django.urls import reverse
 
-from relate.utils import string_concat
-
-from course import constants
-from course import enrollment
-from course.models import (
-    Participation, ParticipationRole, ParticipationPreapproval)
+from course import constants, enrollment
 from course.constants import (
-    participation_status as p_status, user_status as u_status)
-
-from tests.base_test_mixins import (
-    CoursesTestMixinBase, SingleCourseTestMixin,
-    SingleCoursePageTestMixin, MockAddMessageMixing)
-from tests.utils import LocmemBackendTestsMixin, mock
+    participation_status as p_status, user_status as u_status,
+)
+from course.models import Participation, ParticipationPreapproval, ParticipationRole
+from relate.utils import string_concat
 from tests import factories
+from tests.base_test_mixins import (
+    CoursesTestMixinBase, MockAddMessageMixing, SingleCoursePageTestMixin,
+    SingleCourseTestMixin,
+)
+from tests.utils import LocmemBackendTestsMixin, mock
+
 
 TEST_EMAIL_SUFFIX1 = "@suffix.com"
 TEST_EMAIL_SUFFIX2 = "suffix.com"

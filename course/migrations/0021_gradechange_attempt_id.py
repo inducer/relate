@@ -1,4 +1,4 @@
-from django.db import models, migrations
+from django.db import migrations, models
 
 
 def add_attempt_id_to_grade_change_from_flow_session(apps, schema_editor):

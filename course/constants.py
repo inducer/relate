@@ -22,7 +22,9 @@ THE SOFTWARE.
 
 import typing  # noqa
 
-from django.utils.translation import pgettext_lazy, gettext
+from django.utils.translation import gettext, pgettext_lazy
+
+
 # Allow 10x extra credit at the very most.
 MAX_EXTRA_CREDIT_FACTOR = 10
 DEFAULT_EMAIL_APPELLATION_PRIORITY_LIST = [

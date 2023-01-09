@@ -20,18 +20,16 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from django.test import TestCase
 import pytest
+from django.test import TestCase
 
 from course.content import get_repo_blob
 from course.flow import get_page_behavior
-
 from tests.base_test_mixins import SingleCourseQuizPageTestMixin
-from tests.test_sandbox import (
-    SingleCoursePageSandboxTestBaseMixin
-)
 from tests.constants import PAGE_ERRORS
+from tests.test_sandbox import SingleCoursePageSandboxTestBaseMixin
 from tests.utils import mock
+
 
 INLINE_MULTI_MARKDOWN_SINGLE = """
 type: InlineMultiQuestion

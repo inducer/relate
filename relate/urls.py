@@ -20,23 +20,23 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from django.urls import include, re_path, path
 from django.contrib import admin
+from django.urls import include, path, re_path
 
-from course.constants import COURSE_ID_REGEX, FLOW_ID_REGEX, STATICPAGE_PATH_REGEX
-
+import course.analytics
+import course.api
 import course.auth
-import course.views
-import course.im
-import course.sandbox
+import course.calendar
+import course.exam
+import course.flow
 import course.grades
 import course.grading
-import course.calendar
+import course.im
+import course.sandbox
 import course.versioning
-import course.flow
-import course.analytics
-import course.exam
-import course.api
+import course.views
+from course.constants import COURSE_ID_REGEX, FLOW_ID_REGEX, STATICPAGE_PATH_REGEX
+
 
 urlpatterns = [
     path("login/",

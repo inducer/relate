@@ -21,24 +21,21 @@ THE SOFTWARE.
 """
 
 import csv
-import sys
 import os
-from io import StringIO
-from django.test import TestCase
+import sys
 import unittest
+from io import StringIO
 
-from course import models, grades, constants
-from course.constants import (
-    grade_state_change_types as g_state)
+from django.test import TestCase
 
-from tests.base_test_mixins import CoursesTestMixinBase
-
-from tests.test_grades.test_grades import GradesTestMixin
-
+from course import constants, grades, models
+from course.constants import grade_state_change_types as g_state
 from tests import factories
-from tests.factories import GradeChangeFactory as gc_factory  # noqa
-from tests.utils import mock
+from tests.base_test_mixins import CoursesTestMixinBase
 from tests.constants import CSV_PATH
+from tests.factories import GradeChangeFactory as gc_factory  # noqa
+from tests.test_grades.test_grades import GradesTestMixin
+from tests.utils import mock
 
 
 class ExportGradebook(GradesTestMixin, TestCase):

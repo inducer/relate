@@ -20,39 +20,40 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-import sys
-import re
-import tempfile
-import os
-import shutil
-import hashlib
 import datetime
-from types import MethodType
-from functools import partial
-
-import memcache
-
+import hashlib
+import os
+import re
+import shutil
+import sys
+import tempfile
 from collections import OrderedDict
 from copy import deepcopy
-from django.test import Client, override_settings, RequestFactory
-from django.urls import reverse, resolve
+from functools import partial
+from types import MethodType
+
+import memcache
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ImproperlyConfigured
+from django.test import Client, RequestFactory, override_settings
+from django.urls import resolve, reverse
 
+from course.constants import (
+    flow_permission as fperm, grade_aggregation_strategy as g_strategy,
+    participation_status, user_status,
+)
+from course.content import get_course_repo_path, get_repo_blob
 from course.flow import GradeInfo
 from course.models import (
-    Course, Participation, ParticipationRole, FlowSession, FlowPageData,
-    FlowPageVisit, GradingOpportunity)
-from course.constants import (
-    participation_status, user_status,
-    grade_aggregation_strategy as g_strategy,
-    flow_permission as fperm)
-from course.content import get_course_repo_path, get_repo_blob
-
+    Course, FlowPageData, FlowPageVisit, FlowSession, GradingOpportunity,
+    Participation, ParticipationRole,
+)
 from tests.constants import (
-    QUIZ_FLOW_ID, TEST_PAGE_TUPLE, FAKED_YAML_PATH, COMMIT_SHA_MAP)
+    COMMIT_SHA_MAP, FAKED_YAML_PATH, QUIZ_FLOW_ID, TEST_PAGE_TUPLE,
+)
 from tests.utils import mock
+
 
 # {{{ data
 
@@ -586,8 +587,8 @@ class SuperuserCreateMixin(ResponseContextMixin):
     def force_remove_all_course_dir(cls):
         # This is only necessary for courses which are created test wise,
         # not class wise.
-        from relate.utils import force_remove_path
         from course.content import get_course_repo_path
+        from relate.utils import force_remove_path
         for c in Course.objects.all():
             force_remove_path(get_course_repo_path(c))
 
@@ -1968,7 +1969,7 @@ class SingleCourseTestMixin(CoursesTestMixinBase):
 
         # }}}
 
-        from relate.utils import struct_to_dict, dict_to_struct
+        from relate.utils import dict_to_struct, struct_to_dict
         flow_desc_dict = struct_to_dict(flow_desc)
 
         if del_rules:
@@ -1983,7 +1984,7 @@ class SingleCourseTestMixin(CoursesTestMixinBase):
 
     def get_hacked_flow_desc_with_access_rule_tags(self, rule_tags):
         assert isinstance(rule_tags, list)
-        from relate.utils import struct_to_dict, dict_to_struct
+        from relate.utils import dict_to_struct, struct_to_dict
         hacked_flow_desc_dict = self.get_hacked_flow_desc(as_dict=True)
         rules = hacked_flow_desc_dict["rules"]
         rules_dict = struct_to_dict(rules)
@@ -2605,6 +2606,7 @@ class SubprocessRunpyContainerMixin:
         super().tearDownClass()
 
         from course.page.code import SPAWN_CONTAINERS
+
         # Make sure SPAWN_CONTAINERS is reset to True
         assert SPAWN_CONTAINERS
         if sys.platform.startswith("win"):

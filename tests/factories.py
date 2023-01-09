@@ -20,23 +20,22 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-import pytz
 from datetime import datetime
 
-from django.utils.timezone import now, timedelta
 import factory
-from factory import fuzzy
+import pytz
 from django.contrib.auth import get_user_model
-from django.utils.translation import gettext_lazy as _
 from django.contrib.auth.hashers import make_password
+from django.utils.timezone import now, timedelta
+from django.utils.translation import gettext_lazy as _
+from factory import fuzzy
 
-from course import models
-from course import constants
-from course.constants import participation_permission as pperm
+from course import constants, models
 from course.auth import make_sign_in_key
-
+from course.constants import participation_permission as pperm
 from tests.base_test_mixins import SINGLE_COURSE_SETUP_LIST
 from tests.constants import QUIZ_FLOW_ID
+
 
 DEFAULT_COURSE_IDENTIFIER = SINGLE_COURSE_SETUP_LIST[0]["course"]["identifier"]
 DEFAULT_FLOW_ID = QUIZ_FLOW_ID

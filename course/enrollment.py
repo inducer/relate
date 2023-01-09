@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+
 __copyright__ = "Copyright (C) 2014 Andreas Kloeckner"
 
 __license__ = """
@@ -23,54 +24,40 @@ THE SOFTWARE.
 """
 
 from sys import intern
-
-from django.utils.translation import (
-        gettext_lazy as _,
-        pgettext)
-from django.shortcuts import (  # noqa
-        render, get_object_or_404, redirect)
-from django.contrib import messages
-from django.contrib.auth.decorators import login_required
-from django.contrib.auth import get_user_model
-from django.core.exceptions import PermissionDenied, SuspiciousOperation
-from django.conf import settings
-from django.urls import reverse
-from django.db import transaction, IntegrityError
-from django import forms
-from django import http  # noqa
-from django.utils.safestring import mark_safe
+from typing import TYPE_CHECKING, Any, FrozenSet, List, Optional, Text, Tuple  # noqa
 
 from crispy_forms.layout import Submit
-
-from course.models import (
-        user_status,
-        Course,
-        Participation,
-        ParticipationPreapproval,
-        ParticipationPermission,
-        ParticipationRole,
-        ParticipationTag,
-        participation_status)
-
-from course.constants import (
-        PARTICIPATION_PERMISSION_CHOICES,
-        participation_permission as pperm,
-        )
+from django import http  # noqa
+from django import forms
+from django.conf import settings
+from django.contrib import messages
+from django.contrib.auth import get_user_model
+from django.contrib.auth.decorators import login_required
+from django.core.exceptions import PermissionDenied, SuspiciousOperation
+from django.db import IntegrityError, transaction
+from django.shortcuts import get_object_or_404, redirect, render  # noqa
+from django.urls import reverse
+from django.utils.safestring import mark_safe
+from django.utils.translation import gettext_lazy as _, pgettext
+from pytools.lex import RE as REBase  # noqa
 
 from course.auth import UserSearchWidget
-
-from course.utils import course_view, render_course_page, LanguageOverride
-
+from course.constants import (
+    PARTICIPATION_PERMISSION_CHOICES, participation_permission as pperm,
+)
+from course.models import (
+    Course, Participation, ParticipationPermission, ParticipationPreapproval,
+    ParticipationRole, ParticipationTag, participation_status, user_status,
+)
+from course.utils import LanguageOverride, course_view, render_course_page
 from relate.utils import StyledForm, StyledModelForm, string_concat
 
-from pytools.lex import RE as REBase  # noqa
 
 # {{{ for mypy
 
-from typing import Any, Tuple, Text, Optional, List, FrozenSet, TYPE_CHECKING  # noqa
 if TYPE_CHECKING:
-    from course.utils import CoursePageContext  # noqa
     import accounts.models  # noqa
+    from course.utils import CoursePageContext  # noqa
 
 # }}}
 

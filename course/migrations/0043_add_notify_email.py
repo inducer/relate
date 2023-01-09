@@ -1,4 +1,4 @@
-from django.db import models, migrations
+from django.db import migrations, models
 
 
 def set_notify_email(apps, schema_editor):

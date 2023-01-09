@@ -22,10 +22,8 @@ THE SOFTWARE.
 
 from django.test import TestCase
 
-from tests.base_test_mixins import (
-    SingleCourseQuizPageTestMixin, APITestMixin
-)
 from tests import factories
+from tests.base_test_mixins import APITestMixin, SingleCourseQuizPageTestMixin
 
 
 class GetFlowSessionsTest(APITestMixin, TestCase):

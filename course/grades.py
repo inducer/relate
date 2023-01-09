@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+
 __copyright__ = "Copyright (C) 2014 Andreas Kloeckner"
 
 __license__ = """
@@ -24,45 +25,41 @@ THE SOFTWARE.
 
 import re
 from decimal import Decimal
-from typing import cast
+from typing import (  # noqa
+    TYPE_CHECKING, Any, Iterable, List, Optional, Text, Tuple, Union, cast,
+)
 
-from django.utils.translation import (
-        gettext_lazy as _, pgettext_lazy, gettext)
-from django.shortcuts import (  # noqa
-        render, redirect, get_object_or_404)
+from crispy_forms.layout import Submit
+from django import forms, http
 from django.contrib import messages  # noqa
 from django.core.exceptions import (
-        PermissionDenied, SuspiciousOperation, ObjectDoesNotExist)
-from django.db import connection
-from django import forms
-from django.db import transaction
-from django.utils.timezone import now
-from django import http
-
+    ObjectDoesNotExist, PermissionDenied, SuspiciousOperation,
+)
+from django.db import connection, transaction
+from django.shortcuts import get_object_or_404, redirect, render  # noqa
 from django.urls import reverse
-from relate.utils import (
-        StyledForm, StyledModelForm, string_concat, HTML5DateTimeInput)
-from crispy_forms.layout import Submit
+from django.utils.timezone import now
+from django.utils.translation import gettext, gettext_lazy as _, pgettext_lazy
 
-from course.utils import course_view, render_course_page
-from course.models import (
-        Participation, participation_status,
-        GradingOpportunity, GradeChange, GradeStateMachine,
-        grade_state_change_types,
-        FlowSession, FlowPageVisit)
+from course.constants import participation_permission as pperm
 from course.flow import adjust_flow_session_page_data
+from course.models import (
+    FlowPageVisit, FlowSession, GradeChange, GradeStateMachine, GradingOpportunity,
+    Participation, grade_state_change_types, participation_status,
+)
+from course.utils import course_view, render_course_page
 from course.views import get_now_or_fake_time
-from course.constants import (
-        participation_permission as pperm,
-        )
+from relate.utils import (
+    HTML5DateTimeInput, StyledForm, StyledModelForm, string_concat,
+)
+
 
 # {{{ for mypy
 
-from typing import Tuple, Text, Optional, Any, Iterable, List, Union, TYPE_CHECKING  # noqa
 if TYPE_CHECKING:
-    from course.utils import CoursePageContext  # noqa
     from course.content import FlowDesc  # noqa
     from course.models import Course, FlowPageVisitGrade  # noqa
+    from course.utils import CoursePageContext  # noqa
 
 # }}}
 
@@ -478,10 +475,9 @@ def view_grades_by_opportunity(
                     rule_tag = None
 
                 from course.tasks import (
-                        expire_in_progress_sessions,
-                        finish_in_progress_sessions,
-                        regrade_flow_sessions,
-                        recalculate_ended_sessions)
+                    expire_in_progress_sessions, finish_in_progress_sessions,
+                    recalculate_ended_sessions, regrade_flow_sessions,
+                )
 
                 if op == "expire":
                     async_res = expire_in_progress_sessions.delay(
@@ -739,9 +735,7 @@ def view_reopen_session(pctx: CoursePageContext, flow_session_id: str,
 
             session.access_rules_tag = new_access_rules_tag
 
-            from relate.utils import (
-                    local_now, as_local_time,
-                    format_datetime_local)
+            from relate.utils import as_local_time, format_datetime_local, local_now
             now_datetime = local_now()
 
             session.append_comment(
@@ -907,10 +901,9 @@ def view_single_grade(pctx: CoursePageContext, participation_id: str,
                 respect_preview=False)
 
         from course.flow import (
-                regrade_session,
-                recalculate_session_grade,
-                expire_flow_session_standalone,
-                finish_flow_session_standalone)
+            expire_flow_session_standalone, finish_flow_session_standalone,
+            recalculate_session_grade, regrade_session,
+        )
 
         try:
             if op == "imposedl":
@@ -981,8 +974,8 @@ def view_single_grade(pctx: CoursePageContext, participation_id: str,
                 "SessionProperties",
                 ["due", "grade_description"])
 
-        from course.utils import get_session_grading_rule
         from course.content import get_flow_desc
+        from course.utils import get_session_grading_rule
 
         try:
             flow_desc = get_flow_desc(pctx.repo, pctx.course,
@@ -1130,9 +1123,9 @@ class ImportGradesForm(StyledForm):
             has_header = data["format"] == "csvhead"
             header_count = 1 if has_header else 0
 
-            from course.utils import csv_data_importable
-
             import io
+
+            from course.utils import csv_data_importable
             importable, err_msg = csv_data_importable(
                     io.StringIO(
                         file_contents.read().decode("utf-8", errors="replace")),

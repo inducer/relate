@@ -25,10 +25,10 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as UserAdminBase
 from django.utils.translation import gettext_lazy as _
 
-from . models import User
+from course.admin import _filter_course_linked_obj_for_user, _filter_courses_for_user
 from course.models import Course, Participation
-from course.admin import (
-    _filter_courses_for_user, _filter_course_linked_obj_for_user)
+
+from .models import User
 
 
 def _get_filter_participations_for_user(user):

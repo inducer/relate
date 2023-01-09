@@ -1,18 +1,18 @@
+from django.core.exceptions import ObjectDoesNotExist
 from django.core.management.base import BaseCommand, CommandError  # noqa
 from django.db import transaction
-from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q
 from django.db.models.functions import Length
 
-from course.models import FlowPageVisit, FlowPageBulkFeedback
+from course.models import FlowPageBulkFeedback, FlowPageVisit
 
 
 def convert_flow_page_visit(stderr, fpv):
     course = fpv.flow_session.course
 
     from course.content import (
-        get_course_repo, get_flow_desc,
-        get_flow_page_desc, instantiate_flow_page)
+        get_course_repo, get_flow_desc, get_flow_page_desc, instantiate_flow_page,
+    )
     repo = get_course_repo(course)
     flow_id = fpv.flow_session.flow_id
     commit_sha = course.active_git_commit_sha.encode()
@@ -50,8 +50,8 @@ def convert_flow_page_visit(stderr, fpv):
             flow_session=fpv.flow_session,
             page_uri=None)
 
-    from course.page.upload import FileUploadQuestion
     from course.page.code import CodeQuestion
+    from course.page.upload import FileUploadQuestion
 
     if isinstance(page, FileUploadQuestion):
         content, mime_type = page.get_content_from_answer_data(

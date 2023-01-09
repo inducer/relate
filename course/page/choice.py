@@ -22,13 +22,13 @@ THE SOFTWARE.
 
 import django.forms as forms
 from django.utils.safestring import mark_safe
-from django.utils.translation import (
-        gettext_lazy as _, gettext)
+from django.utils.translation import gettext, gettext_lazy as _
 
-from relate.utils import StyledForm, string_concat
 from course.page.base import (
-        AnswerFeedback, PageBaseWithTitle, PageBaseWithValue, markup_to_html)
-from course.validation import validate_markup, ValidationError
+    AnswerFeedback, PageBaseWithTitle, PageBaseWithValue, markup_to_html,
+)
+from course.validation import ValidationError, validate_markup
+from relate.utils import StyledForm, string_concat
 
 
 class ChoiceAnswerForm(StyledForm):

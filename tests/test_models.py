@@ -24,23 +24,21 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from datetime import datetime, timedelta
-import pytest
 import unittest
-import pytz_deprecation_shim as pytz
+from datetime import datetime, timedelta
 
+import pytest
+import pytz_deprecation_shim as pytz
 from django.conf import settings
-from django.test import TestCase, override_settings
 from django.core.exceptions import ValidationError
+from django.test import TestCase, override_settings
 from django.utils.timezone import now
 
-from course import models
+from course import constants, models
 from course.constants import participation_permission as pperm
-from course import constants
 from course.content import dict_to_struct
-
-from tests.base_test_mixins import CoursesTestMixinBase
 from tests import factories
+from tests.base_test_mixins import CoursesTestMixinBase
 from tests.utils import mock
 
 

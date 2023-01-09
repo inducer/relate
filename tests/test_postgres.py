@@ -21,16 +21,13 @@ THE SOFTWARE.
 """
 
 import pytest
-
-from django.test import TestCase
 from django.db.backends.signals import connection_created
+from django.test import TestCase
 
 from relate.utils import retry_transaction_decorator
-
-from tests.base_test_mixins import (
-    SingleCourseQuizPageTestMixin, HackRepoMixin)
 from tests import factories
-from tests.utils import mock, is_connection_psql, SKIP_NON_PSQL_REASON  # noqa
+from tests.base_test_mixins import HackRepoMixin, SingleCourseQuizPageTestMixin
+from tests.utils import SKIP_NON_PSQL_REASON, is_connection_psql, mock  # noqa
 
 
 @pytest.mark.postgres

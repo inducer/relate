@@ -20,31 +20,30 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-import pytz_deprecation_shim as pytz
-import os
-import json
-import unittest
-import pytest
 import datetime
+import json
+import os
 import stat
+import unittest
 from copy import deepcopy
+
+import pytest
+import pytz_deprecation_shim as pytz
+from django.conf import settings
+from django.core.exceptions import ObjectDoesNotExist
+from django.test import Client, RequestFactory, TestCase, override_settings
 from dulwich.repo import Tree
 
-from django.test import TestCase, RequestFactory, override_settings, Client
-from django.core.exceptions import ObjectDoesNotExist
-from django.conf import settings
-
+from course import content, page
 from course.models import FlowSession
-from course import content
-from course import page
-
+from tests import factories
 from tests.base_test_mixins import (
-    SingleCourseTestMixin,
-    improperly_configured_cache_patch, SingleCoursePageTestMixin,
-    SingleCourseQuizPageTestMixin, MockAddMessageMixing, HackRepoMixin)
+    HackRepoMixin, MockAddMessageMixing, SingleCoursePageTestMixin,
+    SingleCourseQuizPageTestMixin, SingleCourseTestMixin,
+    improperly_configured_cache_patch,
+)
 from tests.test_sandbox import SingleCoursePageSandboxTestBaseMixin
 from tests.utils import mock
-from tests import factories
 
 
 class SingleCoursePageCacheTest(SingleCoursePageTestMixin, TestCase):

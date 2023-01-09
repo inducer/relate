@@ -90,6 +90,7 @@ GIT_ROOT = path.join(_BASEDIR, "git-roots")
 # {{{ bulk storage
 
 from django.core.files.storage import FileSystemStorage
+
 # This must be a subclass of django.core.storage.Storage.
 # This should *not* be MEDIA_ROOT, and the corresponding directory/storage location
 # should *not* be accessible under a URL.
@@ -482,6 +483,7 @@ RELATE_TICKET_MINUTES_VALID_AFTER_USE = 12*60
 
 if RELATE_SIGN_IN_BY_SAML2_ENABLED:
     from os import path
+
     import saml2.saml
     _BASE_URL = "https://relate.cs.illinois.edu"
 
