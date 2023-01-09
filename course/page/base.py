@@ -1062,8 +1062,8 @@ class PageBaseWithHumanTextFeedback(PageBase):
                 )
 
     def human_feedback_point_value(self, page_context, page_data):
-        """Subclasses can override this to make the point value of the human feedback known,
-        which will enable grade entry in points.
+        """Subclasses can override this to make the point value of the human
+        feedback known, which will enable grade entry in points.
         """
         return None
 

@@ -614,7 +614,7 @@ class DirectGitEndpointTest(TestCase):
                                                 auth_token.id, "spam").encode()
         auth_data = b64encode(auth_data_unencoded).decode("utf-8")
         request = mock.MagicMock()
-        request.META.get.return_value = f"Basic {auth_data}"
+        request.headers.get.return_value = f"Basic {auth_data}"
         request.environ = request.META
         versioning.git_endpoint(request, course.identifier, "")
         self.assertEqual(mock_call_wsgi_app.call_count, 1)
@@ -625,7 +625,7 @@ class DirectGitEndpointTest(TestCase):
         mock_dulwich_web_backend = fake_dulwich_web_backend.start()
         self.addCleanup(fake_dulwich_web_backend.stop)
         request = mock.MagicMock()
-        request.META.get.return_value = f"Basic {auth_data}"
+        request.headers.get.return_value = f"Basic {auth_data}"
         request.environ = request.META
         versioning.git_endpoint(request, course.identifier, "")
         self.assertEqual(mock_dulwich_web_backend.call_count, 1)

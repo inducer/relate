@@ -525,7 +525,7 @@ class RenumberEventsTest(SingleCourseTestMixin,
         self.assertEqual(resp.status_code, 200)
         expected_errors = ["Select a valid choice. foo_kind is "
                            "not one of the available choices."]
-        self.assertFormError(resp, "form", "kind", expected_errors)
+        self.assertFormError(resp.context["form"], "kind", expected_errors)
 
     def test_renumber_preserve_ordinal_order(self):
 

@@ -164,7 +164,7 @@ class ImpersonateTest(SingleCoursePageTestMixin, MockAddMessageMixing, TestCase)
                 impersonatee=self.instructor_participation.user)
 
             self.assertEqual(resp.status_code, 200)
-            self.assertFormError(resp, "form", "user",
+            self.assertFormError(resp.context["form"], "user",
                                  IMPERSONATE_FORM_ERROR_NOT_VALID_USER_MSG)
             self.assertIsNone(self.client.session.get("impersonate_id"))
 
@@ -172,7 +172,7 @@ class ImpersonateTest(SingleCoursePageTestMixin, MockAddMessageMixing, TestCase)
             resp = self.post_impersonate_view(
                 impersonatee=user)
             self.assertEqual(resp.status_code, 200)
-            self.assertFormError(resp, "form", "user",
+            self.assertFormError(resp.context["form"], "user",
                                  IMPERSONATE_FORM_ERROR_NOT_VALID_USER_MSG)
             self.assertIsNone(self.client.session.get("impersonate_id"))
 
@@ -2378,7 +2378,8 @@ class ManageAuthenticationTokensTest(
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(AuthenticationToken.objects.count(), 0)
 
-        self.assertFormError(resp, "form", "description", "This field is required.")
+        self.assertFormError(
+                resp.context["form"], "description", "This field is required.")
 
     def test_post_revoke(self):
         n_exist_tokens = 3

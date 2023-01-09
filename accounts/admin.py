@@ -58,6 +58,7 @@ class CourseListFilter(admin.SimpleListFilter):
             return queryset
 
 
+@admin.register(User)
 class UserAdmin(UserAdminBase):
     save_on_top = True
 
@@ -111,6 +112,3 @@ class UserAdmin(UserAdminBase):
         if request is not None and request.user.is_superuser:
             return list_filter
         return tuple([f for f in list_filter if f != "is_staff"])
-
-
-admin.site.register(User, UserAdmin)

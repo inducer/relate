@@ -662,7 +662,8 @@ def get_session_answered_page_data(
 
 
 class GradeInfo:
-    """An object to hold a tally of points and page counts of various types in a flow.
+    """An object to hold a tally of points and page counts of various types in
+    a flow.
 
     .. attribute:: points
 

@@ -427,7 +427,8 @@ class ImportGradesTest(GradesTestMixin, TestCase):
             resp = self.post_import_grades(csv_file, format="csv")
             self.assertEqual(resp.status_code, 200)
             if sys.version_info < (3, 11):
-                self.assertFormError(resp, "form", "file", expected_file_error_msg)
+                self.assertFormError(resp.context["form"], "file",
+                                     expected_file_error_msg)
             self.assertEqual(models.GradeChange.objects.count(), 0)
 
     def test_import_csv_reader_next_error(self):
@@ -444,7 +445,8 @@ class ImportGradesTest(GradesTestMixin, TestCase):
                 mock_csv_reader.return_value.__next__.side_effect = sf
                 resp = self.post_import_grades(csv_file, format="csv")
                 self.assertEqual(resp.status_code, 200)
-                self.assertFormError(resp, "form", "file", expected_file_error_msg)
+                self.assertFormError(
+                        resp.context["form"], "file", expected_file_error_msg)
                 self.assertEqual(models.GradeChange.objects.count(), 0)
 
     def test_import_csv_unicode_error(self):
@@ -465,7 +467,8 @@ class ImportGradesTest(GradesTestMixin, TestCase):
                 mock_get_col.side_effect = sf
                 resp = self.post_import_grades(csv_file, format="csv")
                 self.assertEqual(resp.status_code, 200)
-                self.assertFormError(resp, "form", "file", expected_file_error_msg)
+                self.assertFormError(
+                        resp.context["form"], "file", expected_file_error_msg)
                 self.assertEqual(models.GradeChange.objects.count(), 0)
 
     def test_import_csv_other_error(self):
@@ -483,7 +486,8 @@ class ImportGradesTest(GradesTestMixin, TestCase):
                 mock_get_col.side_effect = sf
                 resp = self.post_import_grades(csv_file, format="csv")
                 self.assertEqual(resp.status_code, 200)
-                self.assertFormError(resp, "form", "file", expected_file_error_msg)
+                self.assertFormError(
+                        resp.context["form"], "file", expected_file_error_msg)
                 self.assertEqual(models.GradeChange.objects.count(), 0)
 
     def test_used_preserved_attempt_id(self):
@@ -495,7 +499,7 @@ class ImportGradesTest(GradesTestMixin, TestCase):
             resp = self.post_import_grades(csv_file, format="csv",
                                            attempt_id=attempt_id)
             self.assertEqual(resp.status_code, 200)
-            self.assertFormError(resp, "form", "attempt_id", error_msg)
+            self.assertFormError(resp.context["form"], "attempt_id", error_msg)
             self.assertEqual(models.GradeChange.objects.count(), 0)
 
     def test_has_last_grades_points_updated(self):

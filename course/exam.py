@@ -253,7 +253,8 @@ _("Instructions for "  # noqa
 
 """, _("User name"), """: **`{{ ticket.participation.user.username }}`**
 
-""", pgettext("ticket code required to login exam", "Code"), """: **`{{ ticket.code }}`**
+""", pgettext("ticket code required to login exam", "Code"),
+        """: **`{{ ticket.code }}`**
 
 """, _("You have one hour to complete the exam."), """
 
