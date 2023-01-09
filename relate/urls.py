@@ -39,16 +39,16 @@ import course.exam
 import course.api
 
 urlpatterns = [
-    re_path(r"^login/$",
+    path("login/",
         course.auth.sign_in_choice,
         name="relate-sign_in_choice"),
-    re_path(r"^login/user-password/$",
+    path("login/user-password/",
         course.auth.sign_in_by_user_pw,
         name="relate-sign_in_by_user_pw"),
-    re_path(r"^login/sign-up/$",
+    path("login/sign-up/",
         course.auth.sign_up,
         name="relate-sign_up"),
-    re_path(r"^login/reset-password/$",
+    path("login/reset-password/",
         course.auth.reset_password,
         name="relate-reset_password"),
     re_path(r"^login/reset-password/(?P<field>instid)/$",
@@ -59,7 +59,7 @@ urlpatterns = [
         "/(?P<sign_in_key>[a-zA-Z0-9]+)",
         course.auth.reset_password_stage2,
         name="relate-reset_password_stage2"),
-    re_path(r"^login/by-email/$",
+    path("login/by-email/",
         course.auth.sign_in_by_email,
         name="relate-sign_in_by_email"),
     re_path(r"^login/token"
@@ -68,13 +68,13 @@ urlpatterns = [
         "/$",
         course.auth.sign_in_stage2_with_token,
         name="relate-sign_in_stage2_with_token"),
-    re_path(r"^logout/$",
+    path("logout/",
         course.auth.sign_out,
         name="relate-logout"),
-    re_path(r"^logout-confirmation/$",
+    path("logout-confirmation/",
         course.auth.sign_out_confirmation,
         name="relate-logout-confirmation"),
-    re_path(r"^profile/$",
+    path("profile/",
         course.auth.user_profile,
         name="relate-user_profile"),
     re_path(
@@ -84,7 +84,7 @@ urlpatterns = [
         course.auth.manage_authentication_tokens,
         name="relate-manage_authentication_tokens"),
 
-    re_path(r"^generate-ssh-key/$",
+    path("generate-ssh-key/",
         course.views.generate_ssh_keypair,
         name="relate-generate_ssh_keypair"),
 
@@ -96,19 +96,19 @@ urlpatterns = [
 
     # {{{ troubleshooting
 
-    re_path(r"^user/impersonate/$",
+    path("user/impersonate/",
         course.auth.impersonate,
         name="relate-impersonate"),
 
-    re_path(r"^user/stop_impersonating/$",
+    path("user/stop_impersonating/",
         course.auth.stop_impersonating,
         name="relate-stop_impersonating"),
 
-    re_path(r"^time/set-fake-time/$",
+    path("time/set-fake-time/",
         course.views.set_fake_time,
         name="relate-set_fake_time"),
 
-    re_path(r"^time/set-pretend-facilities/$",
+    path("time/set-pretend-facilities/",
         course.views.set_pretend_facilities,
         name="relate-set_pretend_facilities"),
 
@@ -116,7 +116,7 @@ urlpatterns = [
 
     # {{{ course
 
-    re_path(r"^$", course.views.home, name="relate-home"),
+    path("", course.views.home, name="relate-home"),
 
     re_path(r"^course"
         "/" + COURSE_ID_REGEX
@@ -153,7 +153,7 @@ urlpatterns = [
         course.sandbox.view_page_sandbox,
         name="relate-view_page_sandbox"),
 
-    re_path("^purge-pageview-data/$",
+    path("purge-pageview-data/",
         course.flow.purge_page_view_data,
         name="relate-purge_page_view_data"),
 
@@ -347,7 +347,7 @@ urlpatterns = [
 
     # {{{ versioning
 
-    re_path(r"^new-course/$",
+    path("new-course/",
         course.versioning.set_up_new_course,
         name="relate-set_up_new_course"),
     re_path(r"^course"
@@ -519,8 +519,7 @@ urlpatterns = [
 
     # {{{ exams
 
-    re_path(r"^issue-exam-ticket"
-        "/$",
+    path("issue-exam-ticket/",
         course.exam.issue_exam_ticket,
         name="relate-issue_exam_ticket"),
     re_path(r"^course"
@@ -529,10 +528,10 @@ urlpatterns = [
         "/$",
         course.exam.batch_issue_exam_tickets,
         name="relate-batch_issue_exam_tickets"),
-    re_path(r"^exam-check-in/$",
+    path("exam-check-in/",
         course.exam.check_in_for_exam,
         name="relate-check_in_for_exam"),
-    re_path(r"^list-available-exams/$",
+    path("list-available-exams/",
         course.exam.list_available_exams,
         name="relate-list_available_exams"),
 

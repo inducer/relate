@@ -192,5 +192,5 @@ class PurgePageViewDataTest(PurgeViewMixin, TestCase):
                 expected_form_field_error_msg = (
                     "Select a valid choice. That choice is not one of "
                     "the available choices.")
-                self.assertFormError(resp, "form", "course",
+                self.assertFormError(resp.context["form"], "course",
                                      expected_form_field_error_msg)

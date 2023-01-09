@@ -1263,7 +1263,7 @@ def auth_course_with_token(method, func, request,
     now_datetime = now()
 
     try:
-        auth_header = request.META.get("HTTP_AUTHORIZATION", None)
+        auth_header = request.headers.get("authorization", None)
         if auth_header is None:
             raise PermissionDenied("No Authorization header provided")
 

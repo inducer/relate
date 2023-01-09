@@ -874,7 +874,7 @@ class EnrollmentDecisionTest(EnrollmentDecisionTestMixin, TestCase):
         add_post_data = {"submit": [""]}
         add_post_data.update(form_data)
         resp = self.client.post(self.add_new_url, add_post_data, follow=True)
-        self.assertFormError(resp, 'form', 'user',
+        self.assertFormError(resp.context['form'], 'user',
                              VALIDATION_ERROR_USER_NOT_CONFIRMED)
         self.assertEqual(
             self.get_participation_count_by_status(p_status.active),
@@ -939,7 +939,7 @@ class EnrollmentDecisionTest(EnrollmentDecisionTestMixin, TestCase):
 
         from django.forms.models import ModelChoiceField
         self.assertFormError(
-            resp, 'form', 'user',
+            resp.context['form'], 'user',
             ModelChoiceField.default_error_messages['invalid_choice'])
 
     def test_edit_participation_view_enroll_decision_deny_no_permission1(self):
