@@ -469,7 +469,7 @@ class IsFromExamsOnlyFacilityTest(unittest.TestCase):
         self.assertTrue(exam.is_from_exams_only_facility(self.requset))
 
     def test_false(self):
-        self.mock_get_facilities_config.return_value = dict()
+        self.mock_get_facilities_config.return_value = {}
         self.assertFalse(exam.is_from_exams_only_facility(self.requset))
 
     def test_false_2(self):

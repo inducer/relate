@@ -105,10 +105,8 @@ class AdjustFlowSessionPageDataTest(
         page_ids_removed_in_2nd = {"half1", "lsq2"}
         self.assertTrue(
             page_ids_removed_in_2nd
-            < set(list(
-                fpds_2nd.filter(
+            < set(fpds_2nd.filter(
                     page_ordinal=None).values_list("page_id", flat=True)))
-        )
 
         page_ids_introduced_in_2nd = {"half1_id_renamed", "half_again2"}
         self.assertNotIn(page_ids_introduced_in_2nd, fpd_ids_1st)
@@ -133,9 +131,8 @@ class AdjustFlowSessionPageDataTest(
         self.assertSetEqual(set(fpd_ids_2nd), set(fpd_ids_3rd))
         self.assertSetEqual(
             page_ids_introduced_in_2nd,
-            set(list(
-                fpds_3rd.filter(
-                    page_ordinal=None).values_list("page_id", flat=True))))
+            set(fpds_3rd.filter(
+                    page_ordinal=None).values_list("page_id", flat=True)))
         for page_id in page_ids_removed_in_2nd:
             self.assertIsNotNone(
                 models.FlowPageData.objects.get(page_id=page_id).page_ordinal)
@@ -2949,7 +2946,7 @@ class LockDownIfNeededTest(unittest.TestCase):
         self.flow_session.id = 1
         self.flow_session.pk = 1
         self.request = mock.MagicMock()
-        self.request.session = dict()
+        self.request.session = {}
 
         def remove_all_course():
             for course in models.Course.objects.all():

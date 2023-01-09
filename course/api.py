@@ -44,34 +44,34 @@ if TYPE_CHECKING:
 
 def flow_session_to_json(sess: FlowSession) -> Any:
     last_activity = sess.last_activity()
-    return dict(
-            id=sess.id,
-            participation_username=(
+    return {
+            "id": sess.id,
+            "participation_username": (
                 sess.participation.user.username
                 if sess.participation is not None
                 else None),
-            participation_institutional_id=(
+            "participation_institutional_id": (
                 sess.participation.user.institutional_id
                 if sess.participation is not None
                 else None),
-            active_git_commit_sha=sess.active_git_commit_sha,
-            flow_id=sess.flow_id,
+            "active_git_commit_sha": sess.active_git_commit_sha,
+            "flow_id": sess.flow_id,
 
-            start_time=sess.start_time.isoformat(),
-            completion_time=sess.completion_time,
-            last_activity_time=(
+            "start_time": sess.start_time.isoformat(),
+            "completion_time": sess.completion_time,
+            "last_activity_time": (
                 last_activity.isoformat()
                 if last_activity is not None
                 else None),
-            page_count=sess.page_count,
+            "page_count": sess.page_count,
 
-            in_progress=sess.in_progress,
-            access_rules_tag=sess.access_rules_tag,
-            expiration_mode=sess.expiration_mode,
-            points=sess.points,
-            max_points=sess.max_points,
-            result_comment=sess.result_comment,
-            )
+            "in_progress": sess.in_progress,
+            "access_rules_tag": sess.access_rules_tag,
+            "expiration_mode": sess.expiration_mode,
+            "points": sess.points,
+            "max_points": sess.max_points,
+            "result_comment": sess.result_comment,
+            }
 
 
 @with_course_api_auth("Token")
@@ -133,15 +133,15 @@ def get_flow_session_content(
 
             assert i == page_data.page_ordinal
 
-            page_data_json = dict(
-                    ordinal=i,
-                    page_type=page_data.page_type,
-                    group_id=page_data.group_id,
-                    page_id=page_data.page_id,
-                    page_data=page_data.data,
-                    title=page_data.title,
-                    bookmarked=page_data.bookmarked,
-                    )
+            page_data_json = {
+                    "ordinal": i,
+                    "page_type": page_data.page_type,
+                    "group_id": page_data.group_id,
+                    "page_id": page_data.page_id,
+                    "page_data": page_data.data,
+                    "title": page_data.title,
+                    "bookmarked": page_data.bookmarked,
+                    }
             answer_json = None
             grade_json = None
 
@@ -169,27 +169,30 @@ def get_flow_session_content(
                         norm_answer = [answer_file_ext,
                                        b64encode(norm_bytes_answer).decode("utf-8")]
 
-                answer_json = dict(
-                    visit_time=visit.visit_time.isoformat(),
-                    remote_address=repr(visit.remote_address),
-                    user=visit.user.username if visit.user is not None else None,
-                    impersonated_by=(visit.impersonated_by.username
-                        if visit.impersonated_by is not None else None),
-                    is_synthetic_visit=visit.is_synthetic,
-                    answer_data=visit.answer,
-                    answer=norm_answer,
-                    )
+                answer_json = {
+                        "visit_time": visit.visit_time.isoformat(),
+                        "remote_address": repr(visit.remote_address),
+                        "user": (
+                            visit.user.username if visit.user is not None else None),
+                        "impersonated_by": (
+                            visit.impersonated_by.username
+                            if visit.impersonated_by is not None else None),
+                        "is_synthetic_visit": visit.is_synthetic,
+                        "answer_data": visit.answer,
+                        "answer": norm_answer,
+                        }
 
                 grade = visit.get_most_recent_grade()
                 if grade is not None:
-                    grade_json = dict(
-                        grader=(grade.grader.username
+                    grade_json = {
+                            "grader": (grade.grader.username
                                 if grade.grader is not None else None),
-                        grade_time=grade.grade_time.isoformat(),
-                        graded_at_git_commit_sha=grade.graded_at_git_commit_sha,
-                        max_points=grade.max_points,
-                        correctness=grade.correctness,
-                        feedback=grade.feedback)
+                            "grade_time": grade.grade_time.isoformat(),
+                            "graded_at_git_commit_sha": (
+                                grade.graded_at_git_commit_sha),
+                            "max_points": grade.max_points,
+                            "correctness": grade.correctness,
+                            "feedback": grade.feedback}
 
             pages.append({
                 "page": page_data_json,

@@ -298,9 +298,9 @@ def get_session_start_rule(
             flow_desc, flow_rule_kind.start,
             participation, flow_id, now_datetime,
             default_rules_desc=[
-                dict_to_struct(dict(
-                    may_start_new_session=True,
-                    may_list_existing_sessions=False))])
+                dict_to_struct({
+                    "may_start_new_session": True,
+                    "may_list_existing_sessions": False})])
 
     from course.models import FlowSession  # noqa
     for rule in rules:
@@ -386,9 +386,9 @@ def get_session_access_rule(
             flow_desc, flow_rule_kind.access,
             session.participation, session.flow_id, now_datetime,
             default_rules_desc=[
-                dict_to_struct(dict(
-                    permissions=[flow_permission.view],
-                    ))])
+                dict_to_struct({
+                    "permissions": [flow_permission.view],
+                    })])
 
     for rule in rules:
         if not _eval_generic_conditions(
@@ -471,9 +471,9 @@ def get_session_grading_rule(
             flow_desc, flow_rule_kind.grading,
             session.participation, session.flow_id, now_datetime,
             default_rules_desc=[
-                dict_to_struct(dict(
-                    generates_grade=False,
-                    ))])
+                dict_to_struct({
+                    "generates_grade": False,
+                    })])
 
     from course.enrollment import get_participation_role_identifiers
     roles = get_participation_role_identifiers(session.course, session.participation)
