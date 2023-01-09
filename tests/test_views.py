@@ -1470,7 +1470,7 @@ class GrantExceptionStage2Test(GrantExceptionTestMixin, TestCase):
             self.assertSetEqual(
                 set(flow_desc_access_rule_tags
                     + [tag_session, views.NONE_SESSION_TAG]),
-                set(list(dict(field.choices).keys())))
+                set(dict(field.choices).keys()))
 
             resp = self.post_grant_exception_stage_2_view(
                 data=self.get_default_post_data(
@@ -1518,7 +1518,7 @@ class GrantExceptionStage2Test(GrantExceptionTestMixin, TestCase):
 
             self.assertSetEqual(
                 set(flow_desc_access_rule_tags + [views.NONE_SESSION_TAG]),
-                set(list(dict(field.choices).keys())))
+                set(dict(field.choices).keys()))
 
             resp = self.post_grant_exception_stage_2_view(
                 data=self.get_default_post_data(

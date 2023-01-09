@@ -370,8 +370,7 @@ class RelateSiteNameTest(SingleCourseTestMixin, LocmemBackendTestsMixin, TestCas
     def get_translation_count(self, mocked_method, literal):
 
         return len(
-            [arg[0] for arg, kwarg in [
-                args for args in mocked_method.call_args_list]
+            [arg[0] for arg, kwarg in mocked_method.call_args_list
              if arg[0] == literal])
 
     def verify_result_with_configure(self, my_site_name):

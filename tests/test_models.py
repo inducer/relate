@@ -670,7 +670,7 @@ class FlowRuleExceptionTest(RelateModelTestMixin, TestCase):
         self.assertNotEqual(str(fre1), str(fre2))
 
     def test_clean_success_null_exception_rule(self):
-        rule = dict()
+        rule = {}
         fre = models.FlowRuleException(
             flow_id=factories.DEFAULT_FLOW_ID,
             participation=self.participation,
@@ -685,7 +685,7 @@ class FlowRuleExceptionTest(RelateModelTestMixin, TestCase):
         self.assertEqual(self.mock_validate_session_start_rule.call_count, 1)
 
     def test_clean_failure_with_invalid_existing_session_rules(self):
-        rule = dict()
+        rule = {}
         fre = models.FlowRuleException(
             flow_id=factories.DEFAULT_FLOW_ID,
             participation=self.participation,
@@ -710,7 +710,7 @@ class FlowRuleExceptionTest(RelateModelTestMixin, TestCase):
     def test_clean_success_no_existing_rules(self):
         self.mock_get_flow_desc.return_value = dict_to_struct(
             {"id": "no_existing_flow"})
-        rule = dict()
+        rule = {}
         fre = models.FlowRuleException(
             flow_id=factories.DEFAULT_FLOW_ID,
             participation=self.participation,

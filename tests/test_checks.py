@@ -84,15 +84,15 @@ class CheckRelateSettingsBase(SimpleTestCase):
             if expected_ids is not None:
                 assert isinstance(expected_ids, (list, tuple))
                 if ignore_order:
-                    result_ids = tuple(sorted(list(result_ids)))
-                    expected_ids = sorted(list(expected_ids))
+                    result_ids = tuple(sorted(result_ids))
+                    expected_ids = sorted(expected_ids)
                 self.assertEqual(result_ids, tuple(expected_ids))
 
             if expected_msgs is not None:
                 assert isinstance(expected_msgs, (list, tuple))
                 if ignore_order:
-                    result_msgs = tuple(sorted(list(result_msgs)))
-                    expected_msgs = sorted(list(expected_msgs))
+                    result_msgs = tuple(sorted(result_msgs))
+                    expected_msgs = sorted(expected_msgs)
                 self.assertEqual(result_msgs, tuple(expected_msgs))
 
             if length is not None:

@@ -163,7 +163,7 @@ class EnrollmentTestMixin(MockAddMessageMixing, CoursesTestMixinBase):
         d = OrderedDict()
         counts = []
         for status in sorted(
-                list(dict(constants.PARTICIPATION_STATUS_CHOICES).keys())):
+                dict(constants.PARTICIPATION_STATUS_CHOICES).keys()):
             count = Participation.objects.filter(
                 course=self.course, status=status
             ).count()
@@ -556,7 +556,7 @@ class HandleEnrollmentRequestTest(SingleCourseTestMixin,
         self.assertEqual(participation.user, user)
         self.assertEqual(participation.status, status)
         self.assertSetEqual(
-            {role for role in participation.roles.all()}, set(roles))
+            set(participation.roles.all()), set(roles))
         self.assertEqual(self.mock_send_enrollment_decision.call_count, 1)
         self.mock_send_enrollment_decision.assert_called_with(
             participation, True, request)
@@ -572,8 +572,7 @@ class HandleEnrollmentRequestTest(SingleCourseTestMixin,
 
         self.assertEqual(participation.user, user)
         self.assertEqual(participation.status, status)
-        self.assertSetEqual(
-            {role for role in participation.roles.all()}, set())
+        self.assertSetEqual(set(participation.roles.all()), set())
         self.assertEqual(self.mock_send_enrollment_decision.call_count, 1)
         self.mock_send_enrollment_decision.assert_called_with(
             participation, True, request)
@@ -591,8 +590,7 @@ class HandleEnrollmentRequestTest(SingleCourseTestMixin,
 
         self.assertEqual(participation.user, user)
         self.assertEqual(participation.status, status)
-        self.assertSetEqual(
-            {role for role in participation.roles.all()}, set(roles))
+        self.assertSetEqual(set(participation.roles.all()), set(roles))
         self.assertEqual(self.mock_send_enrollment_decision.call_count, 1)
         self.mock_send_enrollment_decision.assert_called_with(
             participation, False, request)
@@ -614,8 +612,8 @@ class HandleEnrollmentRequestTest(SingleCourseTestMixin,
         self.assertEqual(participation.user, user)
         self.assertEqual(participation.status, status)
         self.assertSetEqual(
-            {role for role in participation.roles.all()},
-            {role for role in request_participation.roles.all()})
+            set(participation.roles.all()),
+            set(request_participation.roles.all()))
         self.assertEqual(self.mock_send_enrollment_decision.call_count, 1)
         self.mock_send_enrollment_decision.assert_called_with(
             participation, True, request)
@@ -637,8 +635,8 @@ class HandleEnrollmentRequestTest(SingleCourseTestMixin,
         self.assertEqual(participation.user, user)
         self.assertEqual(participation.status, status)
         self.assertSetEqual(
-            {role for role in participation.roles.all()},
-            {role for role in request_participation.roles.all()})
+            set(participation.roles.all()),
+            set(request_participation.roles.all()))
         self.assertEqual(self.mock_send_enrollment_decision.call_count, 1)
         self.mock_send_enrollment_decision.assert_called_with(
             participation, False, request)

@@ -1891,11 +1891,11 @@ def get_flow_grading_opportunity(
     gopp, created = GradingOpportunity.objects.get_or_create(
             course=course,
             identifier=grade_identifier,
-            defaults=dict(
-                name=default_name,
-                flow_id=flow_id,
-                aggregation_strategy=grade_aggregation_strategy,
-                ))
+            defaults={
+                "name": default_name,
+                "flow_id": flow_id,
+                "aggregation_strategy": grade_aggregation_strategy,
+                })
 
     # update gopp.name when flow_desc.title changed
     if not created:

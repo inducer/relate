@@ -783,7 +783,7 @@ def sign_in_by_email(request):
             email = form.cleaned_data["email"]
             user, created = get_user_model().objects.get_or_create(
                     email__iexact=email,
-                    defaults=dict(username=email, email=email))
+                    defaults={"username": email, "email": email})
 
             if created:
                 user.set_unusable_password()
@@ -1297,9 +1297,11 @@ def auth_course_with_token(method, func, request,
         token_id = int(match.group("token_id"))
         token_hash_str = match.group("token_hash")
 
-        auth_data_dict = dict(course_identifier=course_identifier,
-            token_id=token_id, token_hash_str=token_hash_str,
-            now_datetime=now_datetime)
+        auth_data_dict = {
+                "course_identifier": course_identifier,
+                "token_id": token_id,
+                "token_hash_str": token_hash_str,
+                "now_datetime": now_datetime}
 
         # FIXME: Redundant db roundtrip
         token = find_matching_token(**auth_data_dict)
