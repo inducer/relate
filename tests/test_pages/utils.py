@@ -27,6 +27,7 @@ except ImportError:
 
 from django.test import override_settings
 
+
 # Switch for test locally
 Debug = False
 

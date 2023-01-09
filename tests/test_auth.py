@@ -20,45 +20,39 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-import pytest
-from urllib.parse import ParseResult, quote, urlparse
+import re
 import unittest
 from datetime import timedelta
-import re
+from urllib.parse import ParseResult, quote, urlparse
 
+import pytest
+from django.conf import settings
+from django.contrib.auth import REDIRECT_FIELD_NAME, SESSION_KEY
+from django.contrib.auth.hashers import check_password
+from django.core import mail
+from django.core.exceptions import PermissionDenied
+from django.http import HttpResponse, JsonResponse, QueryDict
+from django.test import Client, RequestFactory, TestCase, override_settings
+from django.urls import NoReverseMatch, re_path, reverse
 from django.utils.timezone import now
 from djangosaml2.urls import urlpatterns as djsaml2_urlpatterns
-from django.test import Client, TestCase, override_settings, RequestFactory
-from django.conf import settings
-from django.core import mail
-from django.contrib.auth import (
-    REDIRECT_FIELD_NAME, SESSION_KEY,
-)
-from django.contrib.auth.hashers import check_password
 
-from django.http import QueryDict, HttpResponse, JsonResponse
-from django.urls import NoReverseMatch, reverse
-from django.urls import re_path
-from django.core.exceptions import PermissionDenied
-
-from relate.urls import urlpatterns as base_urlpatterns, COURSE_ID_REGEX
-
-from course.auth import (
-    get_impersonable_user_qset, get_user_model,
-    EmailedTokenBackend, with_course_api_auth, APIError, APIBearerTokenBackend,
-    APIContext
-)
-from course.models import FlowPageVisit, ParticipationPermission, AuthenticationToken
 from course import constants
-
+from course.auth import (
+    APIBearerTokenBackend, APIContext, APIError, EmailedTokenBackend,
+    get_impersonable_user_qset, get_user_model, with_course_api_auth,
+)
+from course.models import AuthenticationToken, FlowPageVisit, ParticipationPermission
+from relate.urls import COURSE_ID_REGEX, urlpatterns as base_urlpatterns
+from tests import factories
 from tests.base_test_mixins import (
-    CoursesTestMixinBase, SingleCoursePageTestMixin, MockAddMessageMixing,
-    APITestMixin
+    APITestMixin, CoursesTestMixinBase, MockAddMessageMixing,
+    SingleCoursePageTestMixin,
+)
+from tests.utils import (
+    LocmemBackendTestsMixin, load_url_pattern_names, mock, reload_urlconf,
 )
 
-from tests.utils import (
-    LocmemBackendTestsMixin, load_url_pattern_names, reload_urlconf, mock)
-from tests import factories
 
 # settings names
 EDITABLE_INST_ID_BEFORE_VERI = "RELATE_EDITABLE_INST_ID_BEFORE_VERIFICATION"

@@ -20,31 +20,32 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-import pytest
-import io
 import datetime
-from django.test import TestCase, Client
-from django.urls import reverse
-from django.utils.timezone import now, timedelta
+import io
 import unittest
 
-from relate.utils import local_now
+import pytest
+from django.test import Client, TestCase
+from django.urls import reverse
+from django.utils.timezone import now, timedelta
 
-from course import models, grades, constants
+from course import constants, grades, models
 from course.constants import (
-    grade_aggregation_strategy as g_stragety,
-    grade_state_change_types as g_state,
-    participation_permission as pperm)
+    grade_aggregation_strategy as g_stragety, grade_state_change_types as g_state,
+    participation_permission as pperm,
+)
 from course.flow import reopen_session
 from course.grades import (
-    get_single_grade_changes_and_state_machine as get_gc_and_machine)
-
-from tests.utils import mock
-from tests.base_test_mixins import (
-    SingleCoursePageTestMixin, SingleCourseQuizPageTestMixin,
-    HackRepoMixin, MockAddMessageMixing)
+    get_single_grade_changes_and_state_machine as get_gc_and_machine,
+)
+from relate.utils import local_now
 from tests import factories
+from tests.base_test_mixins import (
+    HackRepoMixin, MockAddMessageMixing, SingleCoursePageTestMixin,
+    SingleCourseQuizPageTestMixin,
+)
 from tests.constants import QUIZ_FLOW_ID
+from tests.utils import mock
 
 
 def get_session_grading_rule_use_last_activity_as_cmplt_time_side_effect(

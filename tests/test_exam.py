@@ -21,24 +21,22 @@ THE SOFTWARE.
 """
 
 import datetime
-import pytz_deprecation_shim as pytz
-
 import unittest
-from django.test import Client, TestCase, override_settings
+
+import pytz_deprecation_shim as pytz
 from django import http
+from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 from django.utils.timezone import now, timedelta
 
-from course.models import ExamTicket, FlowSession
 from course import constants, exam
-
-from tests.constants import (
-    DATE_TIME_PICKER_TIME_FORMAT)
-
-from tests.base_test_mixins import (
-    SingleCourseTestMixin, MockAddMessageMixing, SingleCoursePageTestMixin)
-from tests.utils import mock, reload_urlconf
+from course.models import ExamTicket, FlowSession
 from tests import factories
+from tests.base_test_mixins import (
+    MockAddMessageMixing, SingleCoursePageTestMixin, SingleCourseTestMixin,
+)
+from tests.constants import DATE_TIME_PICKER_TIME_FORMAT
+from tests.utils import mock, reload_urlconf
 
 
 class GenTicketCodeTest(unittest.TestCase):

@@ -21,21 +21,21 @@ THE SOFTWARE.
 """
 
 
-from typing import Tuple, Any
-from django.utils.translation import (
-        gettext_lazy as _, gettext)
-from course.validation import validate_struct, ValidationError
-import django.forms as forms
-
-from relate.utils import StyledForm, Struct, string_concat
-from course.page.base import (
-        AnswerFeedback, PageBaseWithTitle, PageBaseWithValue, markup_to_html,
-        PageBaseWithHumanTextFeedback, PageBaseWithCorrectAnswer,
-
-        get_editor_interaction_mode)
-
 import re
 import sys
+from typing import Any, Tuple
+
+import django.forms as forms
+from django.utils.translation import gettext, gettext_lazy as _
+
+from course.page.base import (
+    AnswerFeedback, PageBaseWithCorrectAnswer, PageBaseWithHumanTextFeedback,
+    PageBaseWithTitle, PageBaseWithValue, get_editor_interaction_mode,
+    markup_to_html,
+)
+from course.validation import ValidationError, validate_struct
+from relate.utils import Struct, StyledForm, string_concat
+
 
 CORRECT_ANSWER_PATTERN = string_concat(_("A correct answer is"), ": '%s'.")  # noqa
 
@@ -139,14 +139,14 @@ class RELATEPageValidator:
                 )
 
     def validate(self, new_page_source):
-        from relate.utils import dict_to_struct
         import yaml
+
+        from relate.utils import dict_to_struct
 
         try:
             page_desc = dict_to_struct(yaml.safe_load(new_page_source))
 
-            from course.validation import (
-                    validate_flow_page, ValidationContext)
+            from course.validation import ValidationContext, validate_flow_page
             vctx = ValidationContext(
                     # FIXME
                     repo=None,
@@ -570,7 +570,7 @@ class FloatMatcher(TextAnswerMatcher):
         good_afb = AnswerFeedback(self.correctness, self.feedback)
         bad_afb = AnswerFeedback(0)
 
-        from math import isnan, isinf
+        from math import isinf, isnan
         if isinf(self.matcher_desc.value):
             return good_afb if isinf(answer_float) else bad_afb
         if isnan(self.matcher_desc.value):

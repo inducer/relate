@@ -21,28 +21,19 @@ THE SOFTWARE.
 """
 
 
-from django.utils.translation import gettext as _, pgettext
-from django.shortcuts import (  # noqa
-        render, get_object_or_404, redirect)
-from django.contrib.auth.decorators import login_required
-from django.core.exceptions import PermissionDenied
-from django.db import connection
-from django.urls import reverse
-from django.core.exceptions import ObjectDoesNotExist
 from django import http
 from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from django.core.exceptions import ObjectDoesNotExist, PermissionDenied
+from django.db import connection
+from django.shortcuts import get_object_or_404, redirect, render  # noqa
+from django.urls import reverse
+from django.utils.translation import gettext as _, pgettext
 
-from course.utils import course_view, render_course_page, PageInstanceCache
-from course.models import (
-        FlowSession,
-        FlowPageVisit,
-        flow_permission)
-
-from course.constants import (
-        participation_permission as pperm,
-        )
-
+from course.constants import participation_permission as pperm
 from course.content import get_flow_desc
+from course.models import FlowPageVisit, FlowSession, flow_permission
+from course.utils import PageInstanceCache, course_view, render_course_page
 
 
 # {{{ flow list
@@ -149,7 +140,7 @@ class Histogram:
                 min_value = max(min_value, 1e-15)
                 max_value = max(max_value, 1.01*min_value)
 
-                from math import log, exp
+                from math import exp, log
                 bin_width = (log(max_value) - log(min_value))/self.num_bin_count
                 num_bin_starts = [
                         exp(log(min_value)+bin_width*i)

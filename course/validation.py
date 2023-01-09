@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+
 __copyright__ = "Copyright (C) 2014 Andreas Kloeckner"
 
 __license__ = """
@@ -22,28 +23,28 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-import re
 import datetime
+import re
 import sys
+from typing import TYPE_CHECKING, Any, List, Optional, Text, Tuple  # noqa
 
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.html import escape
-from django.utils.translation import (
-        gettext_lazy as _, gettext)
-from course.constants import (
-        FLOW_SESSION_EXPIRATION_MODE_CHOICES,
-        ATTRIBUTES_FILENAME, DEFAULT_ACCESS_KINDS,
-        participation_permission as pperm)
+from django.utils.translation import gettext, gettext_lazy as _
 
+from course.constants import (
+    ATTRIBUTES_FILENAME, DEFAULT_ACCESS_KINDS, FLOW_SESSION_EXPIRATION_MODE_CHOICES,
+    participation_permission as pperm,
+)
 from course.content import get_repo_blob
 from relate.utils import Struct, string_concat
 
+
 # {{{ mypy
 
-from typing import Any, Tuple, Optional, Text, List, TYPE_CHECKING  # noqa
 if TYPE_CHECKING:
-    from relate.utils import Repo_ish  # noqa
     from course.models import Course  # noqa
+    from relate.utils import Repo_ish  # noqa
 
 # }}}
 
@@ -1238,8 +1239,9 @@ def check_attributes_yml(
         # the path root only contains a directory
         pass
     else:
-        from relate.utils import dict_to_struct
         from yaml import safe_load as load_yaml
+
+        from relate.utils import dict_to_struct
 
         yaml_data = load_yaml(true_repo[attr_blob_sha].data)  # type: ignore
         att_yml = dict_to_struct(yaml_data)
@@ -1439,8 +1441,8 @@ def validate_course_content(repo, course_file, events_file,
 
     if vctx.course is not None:
         from course.models import (
-                ParticipationPermission,
-                ParticipationRolePermission)
+            ParticipationPermission, ParticipationRolePermission,
+        )
         access_kinds = frozenset(
                 ParticipationPermission.objects
                 .filter(
@@ -1600,7 +1602,7 @@ class FileSystemFakeRepoTree:  # pragma: no cover
         if not name:
             raise KeyError("<empty filename>")
 
-        from os.path import join, exists
+        from os.path import exists, join
         name = join(self.root, name)
 
         if not exists(name):

@@ -21,27 +21,24 @@ THE SOFTWARE.
 """
 
 import pytest
-from django.utils.timezone import now, timedelta
 from django.test import TestCase, override_settings
+from django.utils.timezone import now, timedelta
+from pkg_resources import parse_version
 
+import celery
 from course import models
 from course.tasks import (
-    expire_in_progress_sessions,
-    finish_in_progress_sessions,
-    regrade_flow_sessions,
-    recalculate_ended_sessions,
-    purge_page_view_data,
+    expire_in_progress_sessions, finish_in_progress_sessions, purge_page_view_data,
+    recalculate_ended_sessions, regrade_flow_sessions,
 )
-
-from tests.base_test_mixins import SingleCourseTestMixin, TwoCoursePageTestMixin
-from tests.test_flow.test_purge_page_view_data import (
-    PURGE_VIEW_TWO_COURSE_SETUP_LIST)
 from tests import factories
-from tests.utils import mock
+from tests.base_test_mixins import SingleCourseTestMixin, TwoCoursePageTestMixin
 from tests.constants import QUIZ_FLOW_ID
+from tests.test_flow.test_purge_page_view_data import (
+    PURGE_VIEW_TWO_COURSE_SETUP_LIST,
+)
+from tests.utils import mock
 
-from pkg_resources import parse_version
-import celery
 
 is_celery_4_or_higher = parse_version(celery.__version__) >= parse_version("4.0.0")
 

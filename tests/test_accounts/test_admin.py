@@ -21,17 +21,16 @@ THE SOFTWARE.
 """
 
 import pytest
-from django.test import TestCase, RequestFactory
-from django.urls import reverse
-from django.utils.timezone import now
-from django.contrib.auth import get_user_model
 from django.contrib.admin import site
 from django.contrib.admin.models import LogEntry
+from django.contrib.auth import get_user_model
+from django.test import RequestFactory, TestCase
+from django.urls import reverse
+from django.utils.timezone import now
 
-from course.models import Participation
 from accounts.admin import UserAdmin
 from accounts.models import User
-
+from course.models import Participation
 from tests.base_test_mixins import AdminTestMixin
 
 

@@ -20,24 +20,23 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-import pytz_deprecation_shim as pytz
-import json
 import datetime
+import json
 
+import pytz_deprecation_shim as pytz
+from django.core.exceptions import ValidationError
 from django.test import TestCase
 from django.utils.timezone import now, timedelta
-from django.core.exceptions import ValidationError
 
-from relate.utils import as_local_time
-
-from course.models import Event
 from course import calendar
-
-from tests.base_test_mixins import (
-    SingleCourseTestMixin, MockAddMessageMixing, HackRepoMixin)
-from tests.utils import mock
+from course.models import Event
+from relate.utils import as_local_time
 from tests import factories
+from tests.base_test_mixins import (
+    HackRepoMixin, MockAddMessageMixing, SingleCourseTestMixin,
+)
 from tests.constants import DATE_TIME_PICKER_TIME_FORMAT
+from tests.utils import mock
 
 
 class CreateRecurringEventsTest(SingleCourseTestMixin,

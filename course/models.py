@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+
 __copyright__ = "Copyright (C) 2014 Andreas Kloeckner"
 
 __license__ = """
@@ -22,43 +23,40 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from typing import cast
-
-from django.db import models
-from django.utils.timezone import now
-from django.urls import reverse
-from django.core.exceptions import (
-        ValidationError, ObjectDoesNotExist)
-from django.utils.translation import (
-        gettext_lazy as _, pgettext_lazy)
-from django.core.validators import RegexValidator
-from django.db.models.signals import post_save
-from django.dispatch import receiver
+from typing import (  # noqa
+    TYPE_CHECKING, Any, Dict, FrozenSet, Iterable, List, Optional, Text, Tuple, cast,
+)
 
 from django.conf import settings
+from django.core.exceptions import ObjectDoesNotExist, ValidationError
+from django.core.validators import RegexValidator
+from django.db import models
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+from django.urls import reverse
+from django.utils.timezone import now
+from django.utils.translation import gettext_lazy as _, pgettext_lazy
 
-from relate.utils import string_concat
 from course.constants import (  # noqa
-        user_status, USER_STATUS_CHOICES,
-        participation_status, PARTICIPATION_STATUS_CHOICES,
-        flow_permission, FLOW_PERMISSION_CHOICES,
-        flow_session_expiration_mode, FLOW_SESSION_EXPIRATION_MODE_CHOICES,
-        grade_aggregation_strategy, GRADE_AGGREGATION_STRATEGY_CHOICES,
-        grade_state_change_types, GRADE_STATE_CHANGE_CHOICES,
-        flow_rule_kind, FLOW_RULE_KIND_CHOICES,
-        exam_ticket_states, EXAM_TICKET_STATE_CHOICES,
-        participation_permission, PARTICIPATION_PERMISSION_CHOICES,
-
-        COURSE_ID_REGEX, GRADING_OPP_ID_REGEX, EVENT_KIND_REGEX
-        )
+    COURSE_ID_REGEX, EVENT_KIND_REGEX, EXAM_TICKET_STATE_CHOICES,
+    FLOW_PERMISSION_CHOICES, FLOW_RULE_KIND_CHOICES,
+    FLOW_SESSION_EXPIRATION_MODE_CHOICES, GRADE_AGGREGATION_STRATEGY_CHOICES,
+    GRADE_STATE_CHANGE_CHOICES, GRADING_OPP_ID_REGEX,
+    PARTICIPATION_PERMISSION_CHOICES, PARTICIPATION_STATUS_CHOICES,
+    USER_STATUS_CHOICES, exam_ticket_states, flow_permission, flow_rule_kind,
+    flow_session_expiration_mode, grade_aggregation_strategy,
+    grade_state_change_types, participation_permission, participation_status,
+    user_status,
+)
+from relate.utils import string_concat
 
 
 # {{{ mypy
 
-from typing import List, Dict, Any, Optional, Text, Iterable, Tuple, FrozenSet, TYPE_CHECKING  # noqa
 if TYPE_CHECKING:
+    import datetime  # noqa
+
     from course.content import FlowDesc  # noqa
-    import datetime # noqa
     from course.page.base import AnswerFeedback  # noqa: F401
 
 # }}}
@@ -1479,16 +1477,14 @@ class FlowRuleException(models.Model):
                 and self.expiration is not None):
             raise ValidationError(_("grading rules may not expire"))
 
+        from course.content import (
+            get_course_commit_sha, get_course_repo, get_flow_desc,
+        )
         from course.validation import (
-                ValidationError as ContentValidationError,
-                validate_session_start_rule,
-                validate_session_access_rule,
-                validate_session_grading_rule,
-                ValidationContext)
-        from course.content import (get_course_repo,
-                get_course_commit_sha,
-                get_flow_desc)
-
+            ValidationContext, ValidationError as ContentValidationError,
+            validate_session_access_rule, validate_session_grading_rule,
+            validate_session_start_rule,
+        )
         from relate.utils import dict_to_struct
         rule = dict_to_struct(self.rule)
 

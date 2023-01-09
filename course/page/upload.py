@@ -22,17 +22,15 @@ THE SOFTWARE.
 
 
 import django.forms as forms
+from crispy_forms.layout import Field, Layout
 from django.utils.translation import gettext as _, gettext_lazy
 
 from course.page.base import (
-        PageBaseWithTitle, PageBaseWithValue, PageBaseWithHumanTextFeedback,
-        PageBaseWithCorrectAnswer,
-        markup_to_html)
+    PageBaseWithCorrectAnswer, PageBaseWithHumanTextFeedback, PageBaseWithTitle,
+    PageBaseWithValue, markup_to_html,
+)
 from course.validation import ValidationError
-
 from relate.utils import StyledForm, string_concat
-
-from crispy_forms.layout import Layout, Field
 
 
 # {{{ upload question

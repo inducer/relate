@@ -20,23 +20,21 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from django.test import TestCase, Client
 import unittest
 
-from relate.utils import dict_to_struct
+from django.test import Client, TestCase
 
 from course.page.base import (
-    create_default_point_scale, HumanTextFeedbackForm, get_editor_interaction_mode,
-    PageBehavior, PageBase
+    HumanTextFeedbackForm, PageBase, PageBehavior, create_default_point_scale,
+    get_editor_interaction_mode,
 )
-
+from relate.utils import dict_to_struct
 from tests.base_test_mixins import SingleCourseQuizPageTestMixin
-from tests.test_sandbox import (
-    SingleCoursePageSandboxTestBaseMixin
-)
 from tests.constants import PAGE_ERRORS
 from tests.test_grading import SingleCourseQuizPageGradeInterfaceTestMixin
+from tests.test_sandbox import SingleCoursePageSandboxTestBaseMixin
 from tests.utils import mock
+
 
 SANDBOX_TITLE_PATTERN = "<title>[SB] %s - RELATE </title>"
 

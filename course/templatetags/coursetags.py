@@ -23,6 +23,7 @@ THE SOFTWARE.
 from django.template import Library, Node, TemplateSyntaxError
 from django.utils import translation
 
+
 register = Library()
 
 

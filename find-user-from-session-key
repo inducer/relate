@@ -2,14 +2,18 @@
 from __future__ import print_function
 
 import os
+
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "relate.settings")
 
 import django
+
 django.setup()
 
-from django.contrib.sessions.models import Session
-from accounts.models import User
 import sys
+
+from django.contrib.sessions.models import Session
+
+from accounts.models import User
 
 session_key = sys.argv[1]
 

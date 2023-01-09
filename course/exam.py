@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+
 __copyright__ = "Copyright (C) 2015 Andreas Kloeckner"
 
 __license__ = """
@@ -22,42 +23,36 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from django.contrib.auth import get_user_model
+from typing import TYPE_CHECKING, FrozenSet, Optional, Text, Tuple  # noqa
+
 import django.forms as forms
-from django.utils.translation import (
-        gettext, gettext_lazy as _, pgettext)
-from django.shortcuts import (  # noqa
-        render, get_object_or_404, redirect)
-from django.core.exceptions import (  # noqa
-        PermissionDenied, ObjectDoesNotExist, SuspiciousOperation)
-from django.contrib import messages  # noqa
-from django.contrib.auth.decorators import permission_required
+from crispy_forms.layout import Submit
 from django import http  # noqa
+from django.contrib import messages  # noqa
+from django.contrib.auth import get_user_model
+from django.contrib.auth.decorators import permission_required
+from django.core.exceptions import (  # noqa
+    ObjectDoesNotExist, PermissionDenied, SuspiciousOperation,
+)
 from django.db import transaction
 from django.db.models import Q
+from django.shortcuts import get_object_or_404, redirect, render  # noqa
 from django.urls import reverse
-
-from django.views.decorators.debug import sensitive_post_parameters
+from django.utils.translation import gettext, gettext_lazy as _, pgettext
 from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_protect
+from django.views.decorators.debug import sensitive_post_parameters
 
-from crispy_forms.layout import Submit
-
-from course.models import (Exam, ExamTicket, Participation,
-        FlowSession)
-from course.utils import course_view, render_course_page
 from course.constants import (
-        exam_ticket_states,
-        participation_status,
-        participation_permission as pperm)
-
-from relate.utils import (
-        StyledForm, string_concat, HTML5DateTimeInput)
+    exam_ticket_states, participation_permission as pperm, participation_status,
+)
+from course.models import Exam, ExamTicket, FlowSession, Participation
+from course.utils import course_view, render_course_page
+from relate.utils import HTML5DateTimeInput, StyledForm, string_concat
 
 
 # {{{ mypy
 
-from typing import Optional, Text, Tuple, FrozenSet, TYPE_CHECKING  # noqa
 if TYPE_CHECKING:
     import datetime  # noqa
 
@@ -348,6 +343,7 @@ def batch_issue_exam_tickets(pctx):
             exam = form.cleaned_data["exam"]
 
             from jinja2 import TemplateSyntaxError
+
             from course.content import markup_to_html
             try:
                 with transaction.atomic():
@@ -450,8 +446,9 @@ def check_exam_ticket(
             ]:
         return (False, _("Ticket is not in usable state. (Has it been revoked?)"))
 
-    from django.conf import settings
     from datetime import timedelta
+
+    from django.conf import settings
 
     validity_period = timedelta(
             minutes=settings.RELATE_TICKET_MINUTES_VALID_AFTER_USE)
@@ -640,12 +637,13 @@ class ExamFacilityMiddleware:
         from django.urls import resolve
         resolver_match = resolve(request.path)
 
+        from course.auth import (
+            impersonate, sign_in_by_email, sign_in_by_user_pw, sign_in_choice,
+            sign_in_stage2_with_token, sign_out, stop_impersonating, user_profile,
+        )
         from course.exam import check_in_for_exam, issue_exam_ticket
-        from course.auth import (user_profile, sign_in_choice, sign_in_by_email,
-                sign_in_stage2_with_token, sign_in_by_user_pw, sign_out, impersonate,
-                stop_impersonating)
+        from course.flow import view_flow_page, view_resume_flow, view_start_flow
         from course.views import set_pretend_facilities
-        from course.flow import view_start_flow, view_resume_flow, view_flow_page
 
         ok = False
         if resolver_match.func in [
@@ -717,13 +715,16 @@ class ExamLockdownMiddleware:
             from django.urls import resolve
             resolver_match = resolve(request.path)
 
-            from course.views import (get_repo_file, get_current_repo_file)
+            from course.auth import (
+                sign_in_by_email, sign_in_by_user_pw, sign_in_choice,
+                sign_in_stage2_with_token, sign_out, user_profile,
+            )
             from course.flow import (
-                    view_start_flow, view_resume_flow, view_flow_page,
-                    update_expiration_mode, update_page_bookmark_state,
-                    finish_flow_session_view)
-            from course.auth import (user_profile, sign_in_choice, sign_in_by_email,
-                    sign_in_stage2_with_token, sign_in_by_user_pw, sign_out)
+                finish_flow_session_view, update_expiration_mode,
+                update_page_bookmark_state, view_flow_page, view_resume_flow,
+                view_start_flow,
+            )
+            from course.views import get_current_repo_file, get_repo_file
 
             ok = False
             if resolver_match.func in [

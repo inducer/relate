@@ -20,17 +20,16 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from django.db.models.signals import post_save
+from typing import Any, List, Optional, Text, Tuple, Union  # noqa
+
 from django.db import transaction
+from django.db.models.signals import post_save
 from django.dispatch import receiver
 
 from accounts.models import User
 from course.models import (
-        Course, Participation, participation_status,
-        ParticipationPreapproval,
-        )
-
-from typing import List, Union, Text, Optional, Tuple, Any  # noqa
+    Course, Participation, ParticipationPreapproval, participation_status,
+)
 
 
 # {{{ Update enrollment status when a User/Course instance is saved

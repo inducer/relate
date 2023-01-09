@@ -41,11 +41,11 @@ def my_custom_get_masked_profile_method_valid(u):
 my_custom_get_masked_profile_method_invalid_str = "some_string"
 
 
-def my_custom_get_masked_profile_method_valid_but_return_none(u):
+def my_get_masked_profile_method_return_none(u):
     return
 
 
-def my_custom_get_masked_profile_method_valid_but_return_emtpy_string(u):
+def my_get_masked_profile_method_return_emtpy_string(u):
     return "  "
 
 

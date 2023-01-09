@@ -10,7 +10,7 @@ def get_local_test_settings_file(argv):
     local_settings_dir = os.path.split(argv[0])[0]
     assert os.path.isfile(os.path.join(local_settings_dir, "manage.py"))
 
-    from django.core.management import CommandParser, CommandError
+    from django.core.management import CommandError, CommandParser
 
     parser = CommandParser(
             usage="%(prog)s subcommand [options] [args]",

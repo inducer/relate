@@ -1,5 +1,6 @@
 from django.db import migrations
 
+
 def add_use_git_endpoint_permission(apps, schema_editor):
     from course.constants import participation_permission as pperm
 

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+
 __copyright__ = "Copyright (C) 2017 Andreas Kloeckner"
 
 __license__ = """
@@ -22,20 +23,19 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
+from typing import TYPE_CHECKING, Any, Text  # noqa
+
 from django import http
 from django.core.exceptions import PermissionDenied
 from django.shortcuts import get_object_or_404
 
-from course.auth import with_course_api_auth, APIError
-from course.constants import (
-        participation_permission as pperm,
-        )
-
+from course.auth import APIError, with_course_api_auth
+from course.constants import participation_permission as pperm
 from course.models import FlowSession
+
 
 # {{{ mypy
 
-from typing import Text, Any, TYPE_CHECKING  # noqa
 if TYPE_CHECKING:
     from course.auth import APIContext  # noqa
 

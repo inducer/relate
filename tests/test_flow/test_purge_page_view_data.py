@@ -21,16 +21,16 @@ THE SOFTWARE.
 """
 
 import copy
+
 from django.test import TestCase
 from django.urls import reverse
-from tests.utils import mock
-
-from tests.base_test_mixins import (
-    TwoCoursePageTestMixin, TWO_COURSE_SETUP_LIST)
 
 from course import models
 from course.constants import participation_permission as pperm
 from course.flow import get_pv_purgeable_courses_for_user_qs
+from tests.base_test_mixins import TWO_COURSE_SETUP_LIST, TwoCoursePageTestMixin
+from tests.utils import mock
+
 
 # {{{ make sure the second course has a different instructor
 second_course_instructor_dict = {

@@ -1,9 +1,10 @@
-from django.db import models, migrations
-import jsonfield.fields
-import course.models
 import django.utils.timezone
-from django.conf import settings
+import jsonfield.fields
 import yamlfield.fields
+from django.conf import settings
+from django.db import migrations, models
+
+import course.models
 
 
 class Migration(migrations.Migration):

@@ -22,7 +22,8 @@ THE SOFTWARE.
 
 import sys
 import traceback
-from typing import Dict, Any
+from typing import Any, Dict
+
 
 try:
     from .code_feedback import Feedback, GradingComplete
@@ -260,9 +261,10 @@ def run_code(result, run_req):
     # {{{ export plots
 
     if "matplotlib" in sys.modules:
-        import matplotlib.pyplot as pt
-        from io import BytesIO
         from base64 import b64encode
+        from io import BytesIO
+
+        import matplotlib.pyplot as pt
 
         format = "png"
         mime = "image/png"

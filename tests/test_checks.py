@@ -23,16 +23,15 @@ THE SOFTWARE.
 import os
 from datetime import datetime
 
+from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 from django.test import SimpleTestCase
 from django.test.utils import override_settings
 from django.utils.translation import gettext_lazy as _
-from django.conf import settings
 
 from relate.checks import register_startup_checks_extra
-
-from tests.utils import mock
 from tests.factories import UserFactory
+from tests.utils import mock
 
 
 class CheckRelateSettingsBase(SimpleTestCase):
@@ -187,7 +186,8 @@ class CheckRelateUserProfileMaskMethod(CheckRelateSettingsBase):
                         ".my_custom_get_masked_profile_method_valid")):
             self.assertCheckMessages([])
             from tests.resource import (
-                my_custom_get_masked_profile_method_valid as custom_method)
+                my_custom_get_masked_profile_method_valid as custom_method,
+            )
             self.assertEqual(self.user.get_masked_profile(),
                              custom_method(self.user))
 
@@ -230,11 +230,11 @@ class CheckRelateUserProfileMaskMethod(CheckRelateSettingsBase):
         with override_settings(
                 RELATE_USER_PROFILE_MASK_METHOD=(
                         "tests.resource"
-                        ".my_custom_get_masked_profile_method_valid_but_return_none")):  # noqa
+                        ".my_get_masked_profile_method_return_none")):  # noqa
             self.assertCheckMessages([])
             from tests.resource import (
-                my_custom_get_masked_profile_method_valid_but_return_none
-                as custom_method)
+                my_get_masked_profile_method_return_none as custom_method,
+            )
 
             # test method can run
             custom_method(self.user)
@@ -246,11 +246,11 @@ class CheckRelateUserProfileMaskMethod(CheckRelateSettingsBase):
         with override_settings(
                 RELATE_USER_PROFILE_MASK_METHOD=(
                         "tests.resource"
-                        ".my_custom_get_masked_profile_method_valid_but_return_emtpy_string")):  # noqa
+                        ".my_get_masked_profile_method_return_emtpy_string")):  # noqa
             self.assertCheckMessages([])
             from tests.resource import (
-                my_custom_get_masked_profile_method_valid_but_return_emtpy_string
-                as custom_method)
+                my_get_masked_profile_method_return_emtpy_string as custom_method,
+            )
 
             # test method can run
             custom_method(self.user)

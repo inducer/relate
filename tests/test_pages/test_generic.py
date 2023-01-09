@@ -20,27 +20,28 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-import pytest
-
 import unittest
-from django.test import TestCase, Client
+
+import pytest
+from django.test import Client, TestCase
 from django.urls import resolve
 
-from course.models import FlowSession
 from course.constants import MAX_EXTRA_CREDIT_FACTOR
+from course.models import FlowSession
 from course.page.base import (
-    AnswerFeedback, get_auto_feedback,
-    validate_point_count, InvalidFeedbackPointsError)
-
-from tests.constants import (
-    MESSAGE_ANSWER_SAVED_TEXT,
-    MESSAGE_ANSWER_FAILED_SAVE_TEXT, TEST_TEXT_FILE_PATH, TEST_PDF_FILE_PATH,
-    TEST_HGTEXT_MARKDOWN_ANSWER_WRONG, TEST_HGTEXT_MARKDOWN_ANSWER_TYPE_WRONG)
-
-from tests.base_test_mixins import (
-    SingleCourseQuizPageTestMixin, MockAddMessageMixing)
-from tests.utils import mock
+    AnswerFeedback, InvalidFeedbackPointsError, get_auto_feedback,
+    validate_point_count,
+)
 from tests import factories
+from tests.base_test_mixins import (
+    MockAddMessageMixing, SingleCourseQuizPageTestMixin,
+)
+from tests.constants import (
+    MESSAGE_ANSWER_FAILED_SAVE_TEXT, MESSAGE_ANSWER_SAVED_TEXT,
+    TEST_HGTEXT_MARKDOWN_ANSWER_TYPE_WRONG, TEST_HGTEXT_MARKDOWN_ANSWER_WRONG,
+    TEST_PDF_FILE_PATH, TEST_TEXT_FILE_PATH,
+)
+from tests.utils import mock
 
 
 @pytest.mark.slow

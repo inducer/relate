@@ -1,16 +1,20 @@
 import sys
+
+
 try:
     from importlib import reload
 except ImportError:
     pass  # PY2
+from functools import wraps
 from importlib import import_module
 from io import StringIO
-from functools import wraps
 
-from django.urls import clear_url_caches
 from django.conf import settings
-from django.test import override_settings
 from django.core import mail
+from django.test import override_settings
+from django.urls import clear_url_caches
+
+
 try:
     # for Django < 2.0
     from django.test import mock  # noqa

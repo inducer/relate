@@ -21,26 +21,23 @@ THE SOFTWARE.
 """
 
 import sys
-from django.test import TestCase
-from django import forms
 import unittest
 
-from relate.utils import Struct
-
-from course.validation import ValidationError
+from django import forms
+from django.test import TestCase
 
 from course.page.text import (
-    TextAnswerForm, get_validator_class, parse_validator, multiple_to_single_spaces,
-    CaseSensitivePlainMatcher, PlainMatcher, RegexMatcher,
-    CaseSensitiveRegexMatcher, SymbolicExpressionMatcher, float_or_sympy_evalf,
-    FloatMatcher, get_matcher_class, parse_matcher,
+    CaseSensitivePlainMatcher, CaseSensitiveRegexMatcher, FloatMatcher, PlainMatcher,
+    RegexMatcher, SymbolicExpressionMatcher, TextAnswerForm, float_or_sympy_evalf,
+    get_matcher_class, get_validator_class, multiple_to_single_spaces, parse_matcher,
+    parse_validator,
 )
-
-from tests.test_sandbox import (
-    SingleCoursePageSandboxTestBaseMixin
-)
+from course.validation import ValidationError
+from relate.utils import Struct
 from tests.constants import PAGE_ERRORS
+from tests.test_sandbox import SingleCoursePageSandboxTestBaseMixin
 from tests.utils import mock
+
 
 TEXT_QUESTION_WITH_ANSWER_EXPLANATION_MARKDOWN = r"""
 type: TextQuestion

@@ -2,18 +2,20 @@
 Django settings for RELATE.
 """
 
-from typing import Callable, Any, Union, Dict  # noqa
-
-# Do not change this file. All these settings can be overridden in
-# local_settings.py.
+import os
+# Build paths inside the project like this: os.path.join(BASE_DIR, ...)
+import sys
+from os.path import join
+from typing import Any, Callable, Dict, Union  # noqa
 
 from django.conf.global_settings import STATICFILES_FINDERS
 from django.utils.translation import gettext_noop
 
-# Build paths inside the project like this: os.path.join(BASE_DIR, ...)
-import sys
-import os
-from os.path import join
+
+# Do not change this file. All these settings can be overridden in
+# local_settings.py.
+
+
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 
 RELATE_EMAIL_SMTP_ALLOW_NONAUTHORIZED_SENDER = True

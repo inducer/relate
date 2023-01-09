@@ -20,17 +20,16 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from django.test import TestCase, Client
 import unittest
 
-from course.page.choice import markup_to_html_plain
+from django.test import Client, TestCase
 
+from course.page.choice import markup_to_html_plain
 from tests.base_test_mixins import SingleCoursePageTestMixin
-from tests.test_sandbox import (
-    SingleCoursePageSandboxTestBaseMixin
-)
 from tests.constants import PAGE_ERRORS
+from tests.test_sandbox import SingleCoursePageSandboxTestBaseMixin
 from tests.utils import mock
+
 
 # The last item is within a pair of backticks
 # https://github.com/inducer/relate/issues/121

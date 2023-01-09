@@ -21,10 +21,12 @@ THE SOFTWARE.
 """
 
 import os
+
 from django.conf import settings
 from django.core.checks import Critical, Warning, register
 from django.core.exceptions import ImproperlyConfigured
 from django.utils.module_loading import import_string
+
 
 REQUIRED_CONF_ERROR_PATTERN = (
     "You must configure %(location)s for RELATE to run properly.")
@@ -96,6 +98,7 @@ def check_relate_settings(app_configs, **kwargs):
     # }}}
 
     from accounts.utils import relate_user_method_settings
+
     # check RELATE_EMAIL_APPELLATION_PRIORITY_LIST
     errors.extend(
         relate_user_method_settings.check_email_appellation_priority_list())

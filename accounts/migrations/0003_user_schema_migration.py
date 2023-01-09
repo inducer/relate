@@ -1,6 +1,9 @@
-from django.db import models, migrations
-from django import VERSION as DJANGO_VERSION
 import logging
+
+from django import VERSION as DJANGO_VERSION
+from django.db import migrations, models
+
+
 logger = logging.getLogger('django')
 
 

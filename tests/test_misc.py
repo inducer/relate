@@ -20,30 +20,32 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
+import datetime
 import re
 import unittest
-import datetime
-from django.test import TestCase, RequestFactory
-from django.test.utils import override_settings
-from django.utils.formats import date_format, get_format
-from django.utils.dateformat import format
-from django.utils.translation import gettext_lazy as _
+
 from django.core.management import CommandError
-
-from course.models import Course
-from course.views import EditCourseForm
-from course.versioning import CourseCreationForm
-from relate.utils import (
-    is_maintenance_mode, render_email_template, get_outbound_mail_connection,
-    format_datetime_local)
-
+from django.test import RequestFactory, TestCase
+from django.test.utils import override_settings
+from django.utils.dateformat import format
+from django.utils.formats import date_format, get_format
+from django.utils.translation import gettext_lazy as _
 from manage import get_local_test_settings_file
 
+from course.models import Course
+from course.versioning import CourseCreationForm
+from course.views import EditCourseForm
+from relate.utils import (
+    format_datetime_local, get_outbound_mail_connection, is_maintenance_mode,
+    render_email_template,
+)
 from tests.base_test_mixins import SingleCourseTestMixin
-from tests.utils import LocmemBackendTestsMixin, mail, mock
 from tests.constants import DATE_TIME_PICKER_TIME_FORMAT
 from tests.test_utils import (
-    REAL_TRANSLATION_FUNCTION_TO_MOCK, real_trans_side_effect)
+    REAL_TRANSLATION_FUNCTION_TO_MOCK, real_trans_side_effect,
+)
+from tests.utils import LocmemBackendTestsMixin, mail, mock
+
 
 LANGUAGES = [
     ('en', _('English')),

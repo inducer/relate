@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+
 __copyright__ = "Copyright (C) 2014 Andreas Kloeckner"
 
 __license__ = """
@@ -22,32 +23,28 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from typing import cast, Union, Text
-
-from django.conf import settings
-from django.utils.translation import gettext as _
-
+import datetime
+import html.parser as html_parser
 import os
 import re
-import datetime
 import sys
+from typing import Text, Union, cast
 
-from django.utils.timezone import now
-from django.core.exceptions import ObjectDoesNotExist, ImproperlyConfigured
+from django.conf import settings
+from django.core.exceptions import ImproperlyConfigured, ObjectDoesNotExist
 from django.urls import NoReverseMatch
-
+from django.utils.timezone import now
+from django.utils.translation import gettext as _
+from jinja2 import (
+    BaseLoader as BaseTemplateLoader, FileSystemLoader, TemplateNotFound,
+)
 from markdown.extensions import Extension
 from markdown.treeprocessors import Treeprocessor
-
-import html.parser as html_parser
-
-from jinja2 import (
-        BaseLoader as BaseTemplateLoader, TemplateNotFound, FileSystemLoader)
-
-from relate.utils import dict_to_struct, Struct, SubdirRepoWrapper
-from course.constants import ATTRIBUTES_FILENAME
-
 from yaml import safe_load as load_yaml
+
+from course.constants import ATTRIBUTES_FILENAME
+from relate.utils import Struct, SubdirRepoWrapper, dict_to_struct
+
 
 CACHE_KEY_ROOT = "py3"
 
@@ -55,13 +52,17 @@ CACHE_KEY_ROOT = "py3"
 # {{{ mypy
 
 from typing import (  # noqa
-    Any, List, Tuple, Optional, Callable, Text, Dict, FrozenSet, TYPE_CHECKING)
+    TYPE_CHECKING, Any, Callable, Dict, FrozenSet, List, Optional, Text, Tuple,
+)
+
+
 if TYPE_CHECKING:
     # for mypy
-    from course.models import Course, Participation  # noqa
     import dulwich  # noqa
-    from course.validation import ValidationContext, FileSystemFakeRepoTree  # noqa
+
+    from course.models import Course, Participation  # noqa
     from course.page.base import PageBase  # noqa
+    from course.validation import FileSystemFakeRepoTree, ValidationContext  # noqa
     from relate.utils import Repo_ish  # noqa
 
 Date_ish = Union[datetime.datetime, datetime.date]
@@ -652,6 +653,7 @@ def look_up_git_object(repo: dulwich.Repo,
     processed_name_parts: list[str] = []
 
     from dulwich.objects import Tree
+
     from course.validation import FileSystemFakeRepoTree
 
     cur_lookup = root_tree
@@ -710,8 +712,9 @@ def get_repo_blob(repo: Repo_ish, full_name: str, commit_sha: bytes,
     git_obj = look_up_git_object(
             dul_repo, root_tree=dul_repo[tree_sha], full_name=full_name)
 
-    from course.validation import FileSystemFakeRepoTree, FileSystemFakeRepoFile
-    from dulwich.objects import Tree, Blob
+    from dulwich.objects import Blob, Tree
+
+    from course.validation import FileSystemFakeRepoFile, FileSystemFakeRepoTree
 
     msg_full_name = full_name if full_name else _("(repo root)")
 
@@ -1443,9 +1446,10 @@ def markup_to_html(
     if validate_only:
         return ""
 
+    import markdown
+
     from course.mdx_mathjax import MathJaxExtension
     from course.utils import NBConvertExtension
-    import markdown
 
     extensions: list[markdown.Extension | str] = [
         LinkFixerExtension(course, commit_sha, reverse_func=reverse_func),
@@ -1816,7 +1820,7 @@ def get_processed_page_chunks(
 def normalize_page_desc(page_desc: StaticPageDesc) -> StaticPageDesc:
     if hasattr(page_desc, "content"):
         content = page_desc.content
-        from relate.utils import struct_to_dict, Struct
+        from relate.utils import Struct, struct_to_dict
         d = struct_to_dict(page_desc)
         del d["content"]
         d["chunks"] = [Struct({"id": "main", "content": content})]
@@ -1845,7 +1849,7 @@ def normalize_flow_desc(flow_desc: FlowDesc) -> FlowDesc:
 
     if hasattr(flow_desc, "pages"):
         pages = flow_desc.pages
-        from relate.utils import struct_to_dict, Struct
+        from relate.utils import Struct, struct_to_dict
         d = struct_to_dict(flow_desc)
         del d["pages"]
         d["groups"] = [Struct({"id": "main", "pages": pages})]

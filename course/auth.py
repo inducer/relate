@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+
 __copyright__ = "Copyright (C) 2014 Andreas Kloeckner"
 
 __license__ = """
@@ -23,51 +24,55 @@ THE SOFTWARE.
 """
 
 import re
-from typing import cast
-from django.utils.translation import gettext_lazy as _
-from django.shortcuts import (  # noqa
-        render, get_object_or_404, redirect, resolve_url)
-from django.contrib import messages
+from typing import (  # noqa
+    TYPE_CHECKING, Any, Dict, Optional, Text, Tuple, Union, cast,
+)
+
 import django.forms as forms
-from django.core.exceptions import (PermissionDenied, SuspiciousOperation,
-        ObjectDoesNotExist, MultipleObjectsReturned)
 from crispy_forms.helper import FormHelper
-from crispy_forms.layout import Submit, Layout, Div, Button
+from crispy_forms.layout import Button, Div, Layout, Submit
+from django import http  # noqa
 from django.conf import settings
-from django.contrib.auth import (get_user_model, REDIRECT_FIELD_NAME,
-        login as auth_login, logout as auth_logout)
-from django.contrib.auth.forms import \
-        AuthenticationForm as AuthenticationFormBase
-from django.contrib.auth.decorators import user_passes_test, login_required
-from django.urls import reverse
+from django.contrib import messages
+from django.contrib.auth import (
+    REDIRECT_FIELD_NAME, get_user_model, login as auth_login, logout as auth_logout,
+)
+from django.contrib.auth.decorators import login_required, user_passes_test
+from django.contrib.auth.forms import AuthenticationForm as AuthenticationFormBase
 from django.contrib.auth.validators import ASCIIUsernameValidator
-from django.utils.http import url_has_allowed_host_and_scheme
+from django.core.exceptions import (
+    MultipleObjectsReturned, ObjectDoesNotExist, PermissionDenied,
+    SuspiciousOperation,
+)
 from django.http import HttpResponseRedirect
+from django.shortcuts import get_object_or_404, redirect, render, resolve_url  # noqa
 from django.template.response import TemplateResponse
-from django.views.decorators.debug import sensitive_post_parameters
+from django.urls import reverse
+from django.utils.http import url_has_allowed_host_and_scheme
+from django.utils.translation import gettext_lazy as _
 from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_protect
-from django import http  # noqa
-
+from django.views.decorators.debug import sensitive_post_parameters
+from django_select2.forms import ModelSelect2Widget
 from djangosaml2.backends import Saml2Backend
 
-from course.constants import (
-        user_status,
-        participation_status,
-        participation_permission as pperm,
-        )
-from course.models import Participation, ParticipationRole, AuthenticationToken  # noqa
 from accounts.models import User
-from course.utils import render_course_page, course_view
+from course.constants import (
+    participation_permission as pperm, participation_status, user_status,
+)
+from course.models import (  # noqa
+    AuthenticationToken, Participation, ParticipationRole,
+)
+from course.utils import course_view, render_course_page
+from relate.utils import (
+    HTML5DateTimeInput, StyledForm, StyledModelForm, get_site_name, string_concat,
+)
 
-from relate.utils import (StyledForm, StyledModelForm, string_concat,
-        get_site_name, HTML5DateTimeInput)
-from django_select2.forms import ModelSelect2Widget
 
-from typing import Any, Text, Optional, Dict, Union, Tuple, TYPE_CHECKING  # noqa
 if TYPE_CHECKING:
+    import datetime  # noqa
+
     from django.db.models import query  # noqa
-    import datetime # noqa
 
 
 # {{{ impersonation
@@ -297,8 +302,8 @@ def impersonation_context_processor(request):
 
 def make_sign_in_key(user: User) -> str:
     # Try to ensure these hashes aren't guessable.
-    import random
     import hashlib
+    import random
     from time import time
     m = hashlib.sha1()
     m.update(user.email.encode("utf-8"))
@@ -1279,8 +1284,8 @@ def auth_course_with_token(method, func, request,
             match = TOKEN_AUTH_DATA_RE.match(auth_data)
 
         elif method == "Basic":
-            from base64 import b64decode
             import binascii
+            from base64 import b64decode
             try:
                 auth_data = b64decode(auth_data.strip()).decode(
                         "utf-8", errors="replace")
@@ -1458,9 +1463,9 @@ def manage_authentication_tokens(pctx: http.HttpRequest) -> http.HttpResponse:
     else:
         form = AuthenticationTokenForm(pctx.participation)
 
-    from django.db.models import Q
-
     from datetime import timedelta
+
+    from django.db.models import Q
     tokens = AuthenticationToken.objects.filter(
             user=request.user,
             participation__course=pctx.course,

@@ -20,12 +20,13 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from django.test import TestCase
 import pytest
+from django.test import TestCase
 
-from tests.base_test_mixins import SingleCourseQuizPageTestMixin, HackRepoMixin
-from tests.test_sandbox import SingleCoursePageSandboxTestBaseMixin
+from tests.base_test_mixins import HackRepoMixin, SingleCourseQuizPageTestMixin
 from tests.constants import PAGE_ERRORS
+from tests.test_sandbox import SingleCoursePageSandboxTestBaseMixin
+
 
 UPLOAD_WITH_NEGATIVE_MAXIMUM_SIZE_MARKDOWN = """
 type: FileUploadQuestion

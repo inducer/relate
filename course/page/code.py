@@ -20,21 +20,21 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from course.validation import ValidationError
 import django.forms as forms
+from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.html import escape
 from django.utils.translation import gettext as _
-from django.conf import settings
 
-from relate.utils import StyledForm, string_concat
-from course.page.base import (
-        PageBaseWithTitle, markup_to_html, PageBaseWithValue,
-        PageBaseWithHumanTextFeedback,
-        AnswerFeedback, get_auto_feedback,
-
-        get_editor_interaction_mode)
 from course.constants import flow_permission
+from course.page.base import (
+    AnswerFeedback, PageBaseWithHumanTextFeedback, PageBaseWithTitle,
+    PageBaseWithValue, get_auto_feedback, get_editor_interaction_mode,
+    markup_to_html,
+)
+from course.validation import ValidationError
+from relate.utils import StyledForm, string_concat
+
 
 # DEBUGGING SWITCH:
 # True for 'spawn containers' (normal operation)
@@ -181,11 +181,12 @@ class InvalidPingResponse(RuntimeError):
 
 
 def request_run(run_req, run_timeout, image=None):
-    import json
-    import http.client as http_client
-    import docker
-    import socket
     import errno
+    import http.client as http_client
+    import json
+    import socket
+
+    import docker
     from docker.errors import APIError as DockerAPIError
 
     debug = False
@@ -260,7 +261,7 @@ def request_run(run_req, run_timeout, image=None):
         else:
             port = CODE_QUESTION_CONTAINER_PORT
 
-        from time import time, sleep
+        from time import sleep, time
         start_time = time()
 
         # {{{ ping until response received
@@ -827,8 +828,8 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
 
             error_msg = "\n".join(error_msg_parts)
 
-            from relate.utils import local_now, format_datetime_local
             from course.utils import LanguageOverride
+            from relate.utils import format_datetime_local, local_now
             with LanguageOverride(page_context.course):
                 from relate.utils import render_email_template
                 message = render_email_template(

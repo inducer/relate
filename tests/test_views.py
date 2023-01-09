@@ -22,27 +22,26 @@ THE SOFTWARE.
 
 import datetime
 import unittest
-from celery import states, uuid
 
-from django.test import TestCase, RequestFactory
+from django import http
+from django.test import RequestFactory, TestCase
 from django.test.utils import override_settings
 from django.urls import reverse
 from django.utils.timezone import now, timedelta
-from django import http
 
+from celery import states, uuid
+from course import constants, models, views
 from relate.celery import app
 from relate.utils import as_local_time
-
-from course import views, constants, models
-
+from tests import factories
 from tests.base_test_mixins import (
-    CoursesTestMixinBase, SingleCourseTestMixin, HackRepoMixin,
-    SingleCoursePageTestMixin, MockAddMessageMixing
+    CoursesTestMixinBase, HackRepoMixin, MockAddMessageMixing,
+    SingleCoursePageTestMixin, SingleCourseTestMixin,
 )
+from tests.constants import DATE_TIME_PICKER_TIME_FORMAT
 from tests.test_auth import AuthTestMixin
 from tests.utils import mock
-from tests import factories
-from tests.constants import DATE_TIME_PICKER_TIME_FORMAT
+
 
 RELATE_FACILITIES = {
     # intentionally to be different from local_settings_example.py

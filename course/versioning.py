@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+
 __copyright__ = """
 Copyright (C) 2014 Andreas Kloeckner
 Copyright (c) 2016 Polyconseil SAS. (the WSGI wrapping bits)
@@ -27,62 +28,46 @@ THE SOFTWARE.
 """
 
 import re
+from typing import (  # noqa
+    TYPE_CHECKING, Any, Dict, List, Optional, Text, Tuple, Union, cast,
+)
 
-from django.shortcuts import (  # noqa
-        render, get_object_or_404, redirect)
-from django.contrib import messages
 import django.forms as forms
-from django.contrib.auth.decorators import login_required, permission_required
-from django.core.exceptions import (PermissionDenied, SuspiciousOperation)
-from django.utils.translation import (
-        gettext_lazy as _,
-        gettext,
-        pgettext,
-        pgettext_lazy,
-        )
-
-from django_select2.forms import Select2Widget
-from django.urls import reverse
-from django.views.decorators.csrf import csrf_exempt
-
-from django.db import transaction
-
-from django import http
-
-from relate.utils import StyledForm, StyledModelForm, string_concat, HTML5DateInput
-from crispy_forms.layout import Submit
-
-from course.models import (
-        Course,
-        Participation,
-        ParticipationRole)
-
-from course.auth import with_course_api_auth
-
-from course.utils import (
-    course_view, render_course_page,
-    get_course_specific_language_choices)
+import dulwich.client  # noqa
 import paramiko
 import paramiko.client
-
+from crispy_forms.layout import Submit
+from django import http
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required, permission_required
+from django.core.exceptions import PermissionDenied, SuspiciousOperation
+from django.db import transaction
+from django.shortcuts import get_object_or_404, redirect, render  # noqa
+from django.urls import reverse
+from django.utils.translation import (
+    gettext, gettext_lazy as _, pgettext, pgettext_lazy,
+)
+from django.views.decorators.csrf import csrf_exempt
+from django_select2.forms import Select2Widget
 from dulwich.repo import Repo
-import dulwich.client  # noqa
 
-from course.constants import (
-        participation_status,
-        participation_permission as pperm,
-        )
+from course.auth import with_course_api_auth
+from course.constants import participation_permission as pperm, participation_status
+from course.models import Course, Participation, ParticipationRole
+from course.utils import (
+    course_view, get_course_specific_language_choices, render_course_page,
+)
+from relate.utils import HTML5DateInput, StyledForm, StyledModelForm, string_concat
 
-from typing import cast
 
 # {{{ for mypy
 
-from typing import Tuple, List, Text, Any, Dict, Union, Optional, TYPE_CHECKING  # noqa
 if TYPE_CHECKING:
+    import dulwich.web  # noqa
     from dulwich.client import GitClient  # noqa
     from dulwich.objects import Commit  # noqa
-    import dulwich.web # noqa
-    from course.auth import APIContext # noqa
+
+    from course.auth import APIContext  # noqa
 
 # }}}
 
@@ -376,7 +361,7 @@ def run_course_update_command(
 
     # {{{ validate
 
-    from course.validation import validate_course_content, ValidationError
+    from course.validation import ValidationError, validate_course_content
     try:
         warnings = validate_course_content(
                 content_repo, pctx.course.course_file, pctx.course.events_file,

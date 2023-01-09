@@ -21,32 +21,31 @@ THE SOFTWARE.
 """
 
 import itertools
+import unittest
 
 import pytest
-import unittest
 from django import http
-from django.urls import reverse
-from django.contrib.sessions.middleware import SessionMiddleware
 from django.contrib.auth.models import AnonymousUser
-from django.core.exceptions import PermissionDenied
-from django.test import Client, TestCase, RequestFactory
-from django.utils.timezone import now, timedelta
+from django.contrib.sessions.middleware import SessionMiddleware
 from django.core import mail
+from django.core.exceptions import PermissionDenied
+from django.test import Client, RequestFactory, TestCase
+from django.urls import reverse
+from django.utils.timezone import now, timedelta
 
-from relate.utils import dict_to_struct, StyledForm
-
-from course import models, flow
-from course import constants
-from course.constants import grade_aggregation_strategy as g_strategy
-from course.constants import flow_permission as fperm
-from course.utils import FlowSessionStartRule, FlowSessionGradingRule
-
+from course import constants, flow, models
+from course.constants import (
+    flow_permission as fperm, grade_aggregation_strategy as g_strategy,
+)
+from course.utils import FlowSessionGradingRule, FlowSessionStartRule
+from relate.utils import StyledForm, dict_to_struct
+from tests import factories
 from tests.base_test_mixins import (
-    CoursesTestMixinBase, SingleCourseQuizPageTestMixin, SingleCourseTestMixin,
-    HackRepoMixin)
+    CoursesTestMixinBase, HackRepoMixin, SingleCourseQuizPageTestMixin,
+    SingleCourseTestMixin,
+)
 from tests.constants import QUIZ_FLOW_ID
 from tests.utils import mock
-from tests import factories
 
 
 def get_flow_permissions_list(excluded=None):

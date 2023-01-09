@@ -20,33 +20,28 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from typing import cast
-from django.utils.translation import (
-        gettext_lazy as _, gettext)
-from django.utils.safestring import mark_safe
-from course.validation import validate_struct, validate_markup, ValidationError
-from course.content import remove_prefix
-import django.forms as forms
-
-from relate.utils import Struct, string_concat
-from course.page.base import (
-        AnswerFeedback, PageBaseWithValue, markup_to_html)
-
-from course.page.text import TextQuestionBase, parse_matcher
-
 import re
+from typing import Any, Iterable, List, Optional, Text, Tuple, cast  # noqa
+
+import django.forms as forms
+from crispy_forms.bootstrap import PrependedAppendedText
+from crispy_forms.layout import HTML, Layout
+from django.utils.safestring import mark_safe
+from django.utils.translation import gettext, gettext_lazy as _
+
+from course.content import remove_prefix
+from course.page.base import AnswerFeedback, PageBaseWithValue, markup_to_html
+from course.page.text import TextQuestionBase, parse_matcher
+from course.validation import ValidationError, validate_markup, validate_struct
+from relate.utils import Struct, string_concat
+
 
 # {{{ for mypy
 
-from typing import Tuple, Text, Optional, Any, Iterable, List  # noqa
 
 # }}}
 
 # {{{ multiple text question
-
-from crispy_forms.layout import Layout, HTML
-from crispy_forms.bootstrap import PrependedAppendedText
-
 
 class InlineMultiQuestionForm(forms.Form):
     no_offset_labels = True

@@ -20,21 +20,22 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-import unittest
-import stat
 import hashlib
-from dulwich.repo import Tree
+import stat
+import unittest
+
 from django.test import TestCase
+from dulwich.repo import Tree
 
 from course import validation
-from course.validation import ValidationError
-from course.content import dict_to_struct
 from course.constants import (
-    flow_permission, grade_aggregation_strategy, ATTRIBUTES_FILENAME)
-
-from tests.utils import mock, suppress_stdout_decorator
-from tests.base_test_mixins import CoursesTestMixinBase
+    ATTRIBUTES_FILENAME, flow_permission, grade_aggregation_strategy,
+)
+from course.content import dict_to_struct
+from course.validation import ValidationError
 from tests import factories
+from tests.base_test_mixins import CoursesTestMixinBase
+from tests.utils import mock, suppress_stdout_decorator
 
 
 location = "some_where"

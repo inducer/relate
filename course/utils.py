@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+
 __copyright__ = "Copyright (C) 2014 Andreas Kloeckner"
 
 __license__ = """
@@ -22,60 +23,46 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from typing import cast, Text
-
 import datetime  # noqa
-import markdown
+from contextlib import ContextDecorator
+from typing import (  # noqa
+    TYPE_CHECKING, Any, Dict, FrozenSet, Iterable, List, Optional, Text, Tuple,
+    Union, cast,
+)
 
-from django.shortcuts import (  # noqa
-        render, get_object_or_404)
+import markdown
 from django import http
 from django.core.exceptions import ObjectDoesNotExist
+from django.shortcuts import get_object_or_404, render  # noqa
 from django.utils import translation
-from django.utils.translation import (
-        gettext as _, pgettext_lazy)
-from contextlib import ContextDecorator
+from django.utils.translation import gettext as _, pgettext_lazy
 
-from relate.utils import string_concat
-from course.content import (
-    get_course_repo, get_flow_desc,
-    parse_date_spec, get_course_commit_sha,
-    CourseCommitSHADoesNotExist)
-from course.constants import (
-        flow_permission, flow_rule_kind)
+from course.constants import flow_permission, flow_rule_kind
 from course.content import (  # noqa
-        FlowDesc,
-        FlowPageDesc,
-        FlowSessionStartRuleDesc,
-        FlowSessionAccessRuleDesc,
-        FlowSessionGradingRuleDesc,
-        )
-from course.page.base import (  # noqa
-        PageBase,
-        PageContext,
-        )
+    CourseCommitSHADoesNotExist, FlowDesc, FlowPageDesc, FlowSessionAccessRuleDesc,
+    FlowSessionGradingRuleDesc, FlowSessionStartRuleDesc, get_course_commit_sha,
+    get_course_repo, get_flow_desc, parse_date_spec,
+)
+from course.page.base import PageBase, PageContext  # noqa
+from relate.utils import string_concat
+
+
 # {{{ mypy
 
-from typing import (  # noqa
-    Tuple, List, Iterable, Any, Optional, Union, Dict, FrozenSet, Text,
-    TYPE_CHECKING)
 if TYPE_CHECKING:
-    from course.models import (  # noqa
-            Course,
-            Participation,
-            ExamTicket,
-            FlowSession,
-            FlowPageData,
-            )
+    from codemirror import CodeMirrorJavascript, CodeMirrorTextarea  # noqa
 
-    from relate.utils import Repo_ish  # noqa
     from course.content import Repo_ish  # noqa
-
-    from codemirror import CodeMirrorTextarea, CodeMirrorJavascript  # noqa
+    from course.models import (  # noqa
+        Course, ExamTicket, FlowPageData, FlowSession, Participation,
+    )
+    from relate.utils import Repo_ish  # noqa
 
 # }}}
 
 import re
+
+
 CODE_CELL_DIV_ATTRS_RE = re.compile('(<div class="[^>]*code_cell[^>"]*")(>)')
 
 
@@ -907,7 +894,7 @@ def get_codemirror_widget(
             Dict[str, Union[str, CodeMirrorJavascript]]] = None,
         attrs: Optional[Dict[str, str]] = None,
         ) -> tuple[CodeMirrorTextarea, str]:
-    from codemirror import CodeMirrorTextarea, CodeMirrorJavascript  # noqa
+    from codemirror import CodeMirrorJavascript, CodeMirrorTextarea  # noqa
     if additional_keys is None:
         additional_keys = {}
 
@@ -1149,8 +1136,9 @@ def will_use_masked_profile_for_email(
 
 def get_course_specific_language_choices() -> tuple[tuple[str, Any], ...]:
 
-    from django.conf import settings
     from collections import OrderedDict
+
+    from django.conf import settings
 
     all_options = ((settings.LANGUAGE_CODE, None),) + tuple(settings.LANGUAGES)
     filtered_options_dict = OrderedDict(all_options)
