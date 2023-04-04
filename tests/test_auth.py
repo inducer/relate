@@ -1278,13 +1278,13 @@ class UserProfileTest(CoursesTestMixinBase, AuthTestMixin,
     def test_update_profile_with_different_settings(self):
         disabled_inst_id_html_pattern = (
             '<input type="text" name="institutional_id" value="%s" '
-            'class="textinput textInput form-control" id="id_institutional_id" '
-            'maxlength="100" disabled />')
+            'maxlength="100" class="textinput form-control" '
+            'disabled id="id_institutional_id">')
 
         enabled_inst_id_html_pattern = (
             '<input type="text" name="institutional_id" value="%s" '
-            'class="textinput textInput form-control" id="id_institutional_id" '
-            'maxlength="100" />')
+            'maxlength="100" class="textinput form-control" '
+            'id="id_institutional_id">')
 
         expected_success_msg = "Profile data updated."
         expected_unchanged_msg = "No change was made on your profile."
