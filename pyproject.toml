@@ -31,8 +31,7 @@ relate = "relate.bin.relate:main"
 [tool.poetry.dependencies]
 python = "^3.8.1"
 
-# 4.1.3 is needed for Py3.11 compatibility
-django = "^4.1.7"
+django = "^4.2"
 
 # Automatically renders Django forms in a pretty, Bootstrap-compatible way.
 django-crispy-forms = ">=1.13.0"
