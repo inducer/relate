@@ -11,7 +11,7 @@ Install `Node.js <https://nodejs.org>`__ and NPM.
 Install `poetry <https://python-poetry.org>`__ to manage dependencies and virtual
 environments::
 
-    curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python3
+    curl -sSL https://install.python-poetry.org | python3 -
 
 Note that this will put poetry in ``$HOME/.poetry/bin`` and modify your
 ``$HOME/.profile``. If you don't like that, see the
@@ -23,7 +23,7 @@ To install, clone the repository and enter it::
     cd relate
 
 Install the dependencies. Poetry will automatically create a virtualenv
-(somewhere under ``$HOME/.poetry``) for this:
+(somewhere under ``$HOME/.poetry``) for this::
 
     poetry install
 
