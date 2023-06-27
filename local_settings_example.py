@@ -73,6 +73,10 @@ TIME_ZONE = "America/Chicago"
 # apt-get install rabbitmq-server
 CELERY_BROKER_URL = "amqp://"
 
+# Set both of these to true if serving your site exclusively via HTTPS.
+SESSION_COOKIE_SECURE = False
+CSRF_COOKIE_SECURE = False
+
 # }}}
 
 # {{{ git storage
