@@ -400,22 +400,6 @@
     {
       var input_changed = false;
 
-      // {{{ listen for codemirror changes
-
-      function on_cm_change(cm, change_obj)
-      {
-        input_changed = true;
-      }
-
-      $("div.CodeMirror").each(
-          function ()
-          {
-            var cm = this.CodeMirror;
-            cm.on("change", on_cm_change);
-          });
-
-      // }}}
-
       // {{{ listen for other input changes
 
       function on_input_change(evt)
@@ -434,7 +418,7 @@
       $(window).on('beforeunload',
           function()
           {
-            if (input_changed)
+            if (input_changed || (rlCodemirror && rlCodemirror.anyEditorChanged()))
               return "{% trans 'You have unsaved changes on this page.' %}";
           });
 
@@ -555,25 +539,6 @@
           });
     }
     $(document).ready(activate_bookmark_button);
-  </script>
-
-  {# }}} #}
-
-  {# {{{ codemirror resizing, save #}
-
-  <script type="text/javascript">
-    $("div.CodeMirror")
-    .each(
-        function ()
-        {
-          function submit_page_for_feedback()
-          {
-            $(".relate-submit-button").click();
-          }
-
-          var cm = this.CodeMirror;
-          cm.save = submit_page_for_feedback;
-        });
   </script>
 
   {# }}} #}

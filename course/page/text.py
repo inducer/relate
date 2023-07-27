@@ -49,7 +49,7 @@ class TextAnswerForm(StyledForm):
     use_required_attribute = False
 
     @staticmethod
-    def get_text_widget(widget_type, read_only=False, check_only=False,
+    def get_text_widget(widget_type, check_only=False,
             interaction_mode=None, initial_text=None):
         """Returns None if no widget found."""
 
@@ -59,8 +59,6 @@ class TextAnswerForm(StyledForm):
 
             widget = forms.TextInput()
             widget.attrs["autofocus"] = None
-            if read_only:
-                widget.attrs["readonly"] = None
             return widget, None
 
         elif widget_type == "textarea":
@@ -68,9 +66,7 @@ class TextAnswerForm(StyledForm):
                 return True
 
             widget = forms.Textarea()
-            # widget.attrs["autofocus"] = None
-            if read_only:
-                widget.attrs["readonly"] = None
+            widget.attrs["autofocus"] = None
             return widget, None
 
         elif widget_type.startswith("editor:"):
@@ -80,8 +76,7 @@ class TextAnswerForm(StyledForm):
             from course.utils import get_codemirror_widget
             cm_widget, cm_help_text = get_codemirror_widget(
                     language_mode=widget_type[widget_type.find(":")+1:],
-                    interaction_mode=interaction_mode,
-                    read_only=read_only)
+                    interaction_mode=interaction_mode)
 
             return cm_widget, cm_help_text
 
@@ -94,17 +89,16 @@ class TextAnswerForm(StyledForm):
 
         super().__init__(*args, **kwargs)
         widget, help_text = self.get_text_widget(
-                    widget_type, read_only,
+                    widget_type,
                     interaction_mode=interaction_mode)
         self.validators = validators
         self.fields["answer"] = forms.CharField(
                 required=True,
                 initial=initial_text,
+                disabled=read_only,
                 widget=widget,
                 help_text=help_text,
                 label=_("Answer"))
-
-        self.style_codemirror_widget()
 
     def clean(self):
         cleaned_data = super().clean()

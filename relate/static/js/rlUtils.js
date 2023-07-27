@@ -81,52 +81,61 @@ export function enablePreviewForFileUpload() {
 
 // based on https://codemirror.net/addon/search/searchcursor.js (MIT)
 
-export function goToNextPointsField(cm) {
-  const regexp = /\[pts:/g;
-  for (let { line, ch } = cm.getCursor(), last = cm.lastLine(); line <= last; line += 1, ch = 0) {
-    regexp.lastIndex = ch;
-    const string = cm.getLine(line);
-    const match = regexp.exec(string);
-    if (match) {
-      cm.setCursor({ line, ch: match.index + match[0].length });
-      return;
-    }
+const pointsRegexp = /\[pts:/g;
+
+export function goToNextPointsField(view) {
+  pointsRegexp.lastIndex = view.state.selection.main.head;
+  const match = pointsRegexp.exec(view.state.doc.toString());
+  if (match) {
+    view.dispatch({ selection: { anchor: match.index + match[0].length } });
+    return true;
   }
+  return false;
 }
 
-function lastMatchIn(string, regexp, endMargin) {
+// based on https://stackoverflow.com/a/274094
+function regexLastMatch(string, regex, startpos) {
+  if (!regex.global) {
+    throw new Error('Passed regex not global');
+  }
+
+  let start;
+  if (typeof (startpos) === 'undefined') {
+    start = string.length;
+  } else if (startpos < 0) {
+    start = 0;
+  } else {
+    start = startpos;
+  }
+
+  const stringToWorkWith = string.substring(0, start);
   let match;
-  let from = 0;
-  while (from <= string.length) {
+  let lastMatch = null;
+  // eslint-disable-next-line no-param-reassign
+  regex.lastIndex = 0;
+
+  // eslint-disable-next-line no-cond-assign
+  while ((match = regex.exec(stringToWorkWith)) != null) {
+    lastMatch = match;
     // eslint-disable-next-line no-param-reassign
-    regexp.lastIndex = from;
-    const newMatch = regexp.exec(string);
-    if (!newMatch) break;
-    const end = newMatch.index + newMatch[0].length;
-    if (end > string.length - endMargin) break;
-    if (!match || end > match.index + match[0].length) {
-      match = newMatch;
-    }
-    from = newMatch.index + 1;
+    regex.lastIndex = match.index + 1;
   }
-  return match;
+  return lastMatch;
 }
 
-export function goToPreviousPointsField(cm) {
-  const cursor = cm.getCursor();
-  const regexp = /\[pts:/g;
+export function goToPreviousPointsField(view) {
+  const match = regexLastMatch(
+    view.state.doc.toString(),
+    pointsRegexp,
+    // "[pts:" is five characters
+    view.state.selection.main.head - 5,
+  );
 
-  for (let { line, ch } = cursor, first = cm.firstLine(); line >= first; line -= 1, ch = -1) {
-    const string = cm.getLine(line);
-    const match = lastMatchIn(string, regexp, ch < 0 ? 0 : string.length - ch);
-    if (match) {
-      const newCh = match.index + match[0].length;
-      if (line !== cursor.line || ch !== newCh) {
-        cm.setCursor({ line, ch: newCh });
-        return;
-      }
-    }
+  if (match) {
+    view.dispatch({ selection: { anchor: match.index + match[0].length } });
+    return true;
   }
+  return false;
 }
 
 // }}}

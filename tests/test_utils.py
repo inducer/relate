@@ -1746,67 +1746,6 @@ class ParticipationPermissionWrapperTest(SingleCourseTestMixin, TestCase):
         self.assertIn(expected_error_msg, str(cm.exception))
 
 
-class GetCodemirrorWidgetTest(unittest.TestCase):
-    # test utils.get_codemirror_widget (for cases not covered by other tests)
-    def setUp(self):
-        self.language_mode = "python"
-        fake_code_mirror_textarea = mock.patch("codemirror.CodeMirrorTextarea")
-        self.mock_code_mirror_textarea = fake_code_mirror_textarea.start()
-        self.addCleanup(fake_code_mirror_textarea.stop)
-
-    def test_interaction_mode_vim(self):
-        interaction_mode = "vim"
-        utils.get_codemirror_widget(
-            self.language_mode, interaction_mode=interaction_mode)
-
-        addon_js = self.mock_code_mirror_textarea.call_args[1]["addon_js"]
-        self.assertIn("../keymap/vim", addon_js)
-
-        config = self.mock_code_mirror_textarea.call_args[1]["config"]
-        self.assertEqual(config["vimMode"], True)
-
-    def test_interaction_mode_emacs(self):
-        interaction_mode = "emacs"
-        utils.get_codemirror_widget(
-            self.language_mode, interaction_mode=interaction_mode)
-
-        addon_js = self.mock_code_mirror_textarea.call_args[1]["addon_js"]
-        self.assertIn("../keymap/emacs", addon_js)
-
-        config = self.mock_code_mirror_textarea.call_args[1]["config"]
-        self.assertEqual(config["keyMap"], "emacs")
-
-    def test_interaction_mode_sublime(self):
-        interaction_mode = "sublime"
-        utils.get_codemirror_widget(
-            self.language_mode, interaction_mode=interaction_mode)
-
-        addon_js = self.mock_code_mirror_textarea.call_args[1]["addon_js"]
-        self.assertIn("../keymap/sublime", addon_js)
-
-        config = self.mock_code_mirror_textarea.call_args[1]["config"]
-        self.assertEqual(config["keyMap"], "sublime")
-
-    def test_interaction_mode_other(self):
-        # just ensure no errors
-        interaction_mode = "other"
-        utils.get_codemirror_widget(
-            self.language_mode, interaction_mode=interaction_mode)
-
-    def test_update_config(self):
-        interaction_mode = "vim"
-        utils.get_codemirror_widget(
-            self.language_mode, interaction_mode=interaction_mode,
-            config={"foo": "bar"})
-
-        addon_js = self.mock_code_mirror_textarea.call_args[1]["addon_js"]
-        self.assertIn("../keymap/vim", addon_js)
-
-        config = self.mock_code_mirror_textarea.call_args[1]["config"]
-        self.assertEqual(config["vimMode"], True)
-        self.assertEqual(config["foo"], "bar")
-
-
 class WillUseMaskedProfileForEmailTest(SingleCourseTestMixin, TestCase):
     # test utils.will_use_masked_profile_for_email
     def test_no_recipient_email(self):

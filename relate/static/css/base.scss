@@ -9,3 +9,6 @@ $bootstrap-icons-font-file: "./fonts/bootstrap-icons";
 @import 'node_modules/bootstrap-icons/font/bootstrap-icons.scss';
 
 @import "./style.scss";
+
+// ideally, this should be separate, but it uses bootstrap classes
+@import "./codemirror.scss";

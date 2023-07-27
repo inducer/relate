@@ -232,28 +232,25 @@
 
   <script>
 
-    function set_grade_percent(p)
-    {
-      $("#id_grade_percent").val(p);
+    function getFeedbackCodemirror() {
+      return rlCodemirror.EditorView.findFromDOM(
+         document.querySelector('#div_id_feedback_text .cm-editor')
+      );
     }
 
-    function set_grade_points(p)
-    {
-      $("#id_grade_points").val(p);
+    function setFeedback(p) {
+      const view = getFeedbackCodemirror();
+      const transaction = view.state.update({
+        changes: {
+          from: 0,
+          to: view.state.doc.length,
+          insert: p,
+        },
+      });
+      view.dispatch(transaction);
     }
 
-    function get_feedback_codemirror()
-    {
-      return document.querySelector('#div_id_feedback_text .CodeMirror').CodeMirror;
-    }
-
-    function set_feedback(p)
-    {
-      get_feedback_codemirror().setValue(p);
-    }
-
-    function get_feedback_items()
-    {
+    function getFeedbackItems() {
       const items = localStorage["relate_grade_feedback_items"];
       if (items)
         return JSON.parse(items);
@@ -261,62 +258,66 @@
         return [];
     }
 
-    function add_feedback(idx)
-    {
-      const items = get_feedback_items();
-      const cm = get_feedback_codemirror();
+    function addFeedback(idx) {
+      const items = getFeedbackItems();
+      const view = getFeedbackCodemirror();
+      const currentValue = view.state.doc.toString();
 
       let val = "";
-      if (cm.getValue())
+      if (currentValue)
         val += "\n";
       val += items[idx];
-      cm.replaceRange(val, {line: Infinity});
+
+      const transaction = view.state.update({
+        changes: {
+          from: view.state.doc.length,
+          to: view.state.doc.length,
+          insert: val,
+        },
+      });
+      view.dispatch(transaction);
     }
 
-    function copy_rubric()
-    {
-      set_feedback(document.querySelector("#id_rubric_text").value);
+    function copyRubric() {
+      setFeedback(document.querySelector("#id_rubric_text").value);
     }
 
-    function add_feedback_item(p)
-    {
+    function addFeedbackItem(p) {
       const item = prompt("{%trans "Enter new feedback item:" %}");
       if (!item)
         return;
 
-      const items = get_feedback_items();
+      const items = getFeedbackItems();
       items.push(item);
       localStorage["relate_grade_feedback_items"] = JSON.stringify(items);
 
-      update_feedback_items();
+      updateFeedbackItems();
     }
 
-    function remove_feedback_item(evt)
-    {
+    function removeFeedbackItem(evt) {
       evt.stopPropagation();
 
       const id = evt.target.parentNode.id.substr("remove_fb_".length);
       const index = parseInt(id);
 
-      const items = get_feedback_items();
+      const items = getFeedbackItems();
       items.splice(index, 1);
       localStorage["relate_grade_feedback_items"] = JSON.stringify(items);
 
-      update_feedback_items();
+      updateFeedbackItems();
     }
 
-    function update_feedback_items()
-    {
+    function updateFeedbackItems() {
       let buttons = "";
 
-      const items = get_feedback_items();
+      const items = getFeedbackItems();
 
       buttons += "<div class='lh-lg mt-1'>";
       for (var i = 0; i < items.length; ++i)
       {
         var fb = items[i];
         buttons += ("<button class='btn btn-sm btn-outline-secondary' type='button' "
-            + "onclick='add_feedback(" + i + ")'>"
+            + "onclick='addFeedback(" + i + ")'>"
             + rlUtils.truncateText(rlUtils.encodeEntities(fb), 25)
             + "</button>"
             + " <a class='remove_fb_button link-secondary' id='remove_fb_"+i+"' href='#'>"
@@ -328,26 +329,25 @@
 
       buttons += "<div class='mt-1'>";
       buttons += ("<button class='btn btn-sm btn-outline-secondary me-1' type='button' "
-          + "onclick='add_feedback_item()'><i class='bi bi-plus'></i> {% trans "Add phrase" %}</button>");
+          + "onclick='addFeedbackItem()'><i class='bi bi-plus'></i> {% trans "Add phrase" %}</button>");
       buttons += ("<button class='btn btn-sm btn-outline-secondary me-1' type='button' "
-          + "onclick='copy_rubric()'><i class='bi bi-clipboard-check'></i> {% trans "Copy rubric" %}</button>");
+          + "onclick='copyRubric()'><i class='bi bi-clipboard-check'></i> {% trans "Copy rubric" %}</button>");
       buttons += ("<button class='btn btn-sm btn-outline-danger me-1' type='button' "
-          + "onclick='set_feedback(\"\")'>{% trans "Clear" %}</button>");
+          + "onclick='setFeedback(\"\")'>{% trans "Clear" %}</button>");
       buttons += "</div>";
 
       $("#canned_feedback_items").html(buttons);
 
-      $(".remove_fb_button").click(remove_feedback_item);
+      $(".remove_fb_button").click(removeFeedbackItem);
     }
 
 
-    function process_feedback_change()
-    {
+    function processFeedbackChange(feedbackText) {
       try {
         let maxPoints = null;
         let points = null;
 
-        rlUtils.parsePointsSpecs(get_feedback_codemirror().getValue()).forEach(
+        rlUtils.parsePointsSpecs(feedbackText).forEach(
               pspec => {
                     if (pspec.points !== null) {
                       if (points === null)
@@ -395,28 +395,33 @@
     function listenForFocusHotkey(e) {
       if (e.key === "F" && e.ctrlKey && e.shiftKey && !e.altKey && !e.metaKey
           && !e.isComposing) {
-        get_feedback_codemirror().focus();
+        getFeedbackCodemirror().focus();
         e.stopPropagation();
         e.preventDefault();
       }
     }
 
-    function add_grade_ui()
-    {
+    function addGradeUI() {
       $(".grading-page-grade-entry #hint_id_feedback_text").each(
           function()
           {
             $(this).after("<div id='canned_feedback_items'></div>");
           });
 
-      update_feedback_items();
+      updateFeedbackItems();
 
-      get_feedback_codemirror().on("change", process_feedback_change);
+      rlCodemirror.setListener(
+        getFeedbackCodemirror(),
+        (viewUpdate) => {
+          if (viewUpdate.docChanged) {
+            processFeedbackChange(viewUpdate.view.state.doc.toString())
+          }
+        })
 
       document.addEventListener("keydown", listenForFocusHotkey);
     }
 
-    $(document).ready(add_grade_ui);
+    $(document).ready(addGradeUI);
 
     {% if page_data.next_ordinal < flow_session.page_count %}
       var next_page_url = "{% url "relate-grade_flow_page" course.identifier flow_session.id page_data.next_ordinal %}";
@@ -430,19 +435,19 @@
       var next_session_url = null;
     {% endif %}
 
-    function save_and_next_page()
+    function saveAndNextPage()
     {
       window.open(next_page_url, "_blank");
       $("#submit-id-submit").click();
     }
 
-    function save_and_next_session()
+    function saveAndNextSession()
     {
       window.open(next_session_url, "_blank");
       $("#submit-id-submit").click();
     }
 
-    function add_submit_next()
+    function addSubmitNext()
     {
       if (next_page_url)
         $(".grading-page-grade-entry .row:last div:last").append(
@@ -455,17 +460,21 @@
             + "{% trans "Submit and next session (Alt+S)" %} &raquo;"
             + "</button>");
 
-      $("#save_next_page").click(save_and_next_page);
-      $("#save_next_session").click(save_and_next_session);
+      $("#save_next_page").click(saveAndNextPage);
+      $("#save_next_session").click(saveAndNextSession);
 
       {# http://stackoverflow.com/a/9549716/3437454 #}
       $(".relate-grading-form").prepend($(".row:last").clone(true, true));
+
       // Set only on one of the two copies, to avoid Firefox noticing
       // an ambiguity.
-      document.getElementById('save_next_session').accessKey = 's';
+      let saveNext  =document.getElementById('save_next_session');
+      if (saveNext) {
+        saveNext.accessKey = 's';
+      }
     }
 
-    $(document).ready(add_submit_next);
+    $(document).ready(addSubmitNext);
   </script>
 
   {# }}} #}

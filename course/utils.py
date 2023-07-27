@@ -25,11 +25,15 @@ THE SOFTWARE.
 
 import datetime
 from contextlib import ContextDecorator
+from dataclasses import dataclass
 from typing import (
-    TYPE_CHECKING, Any, Iterable, cast,
+    TYPE_CHECKING,
+    Any,
+    Iterable,
+    cast,
 )
 
-from django import http
+from django import forms, http
 from django.core.exceptions import ObjectDoesNotExist
 from django.shortcuts import get_object_or_404, render
 from django.utils import translation
@@ -37,9 +41,16 @@ from django.utils.translation import gettext as _, pgettext_lazy
 
 from course.constants import flow_permission, flow_rule_kind
 from course.content import (
-    CourseCommitSHADoesNotExist, FlowDesc, FlowPageDesc, FlowSessionAccessRuleDesc,
-    FlowSessionGradingRuleDesc, FlowSessionStartRuleDesc, get_course_commit_sha,
-    get_course_repo, get_flow_desc, parse_date_spec,
+    CourseCommitSHADoesNotExist,
+    FlowDesc,
+    FlowPageDesc,
+    FlowSessionAccessRuleDesc,
+    FlowSessionGradingRuleDesc,
+    FlowSessionStartRuleDesc,
+    get_course_commit_sha,
+    get_course_repo,
+    get_flow_desc,
+    parse_date_spec,
 )
 from course.page.base import PageBase, PageContext
 from relate.utils import string_concat
@@ -48,11 +59,13 @@ from relate.utils import string_concat
 # {{{ mypy
 
 if TYPE_CHECKING:
-    from codemirror import CodeMirrorJavascript, CodeMirrorTextarea  # noqa
-
     from course.content import Repo_ish
     from course.models import (
-        Course, ExamTicket, FlowPageData, FlowSession, Participation,
+        Course,
+        ExamTicket,
+        FlowPageData,
+        FlowSession,
+        Participation,
     )
     from relate.utils import Repo_ish  # noqa
 
@@ -880,110 +893,116 @@ class PageInstanceCache:
 
 # {{{ codemirror config
 
+@dataclass(frozen=True)
+class JsLiteral:
+    js: str
+
+
+def repr_js(obj: Any) -> str:
+    if isinstance(obj, list):
+        return "[%s]" % ", ".join(repr_js(ch) for ch in obj)
+    elif isinstance(obj, dict):
+        return "{%s}" % ", ".join(f"{k}: {repr_js(v)}" for k, v in obj.items())
+    elif isinstance(obj, bool):
+        return repr(obj).lower()
+    elif isinstance(obj, (int, float)):
+        return repr(obj)
+    elif isinstance(obj, str):
+        return repr(obj)
+    elif isinstance(obj, JsLiteral):
+        return obj.js
+    else:
+        raise ValueError(f"unsupported object type: {type(obj)}")
+
+
+class CodeMirrorTextarea(forms.Textarea):
+    @property
+    def media(self):
+        return forms.Media(js=["bundle-codemirror.js"])
+
+    def __init__(self, attrs=None,
+                 *,
+                 language_mode=None, interaction_mode,
+                 indent_unit: int,
+                 autofocus: bool,
+                 additional_keys: dict[str, JsLiteral],
+                 **kwargs):
+        super().__init__(attrs, **kwargs)
+        self.language_mode = language_mode
+        self.interaction_mode = interaction_mode
+        self.indent_unit = indent_unit
+        self.autofocus = autofocus
+        self.additional_keys = additional_keys
+
+    # TODO: Maybe add VSCode keymap?
+    # https://github.com/replit/codemirror-vscode-keymap
+    def render(self, name, value, attrs=None, renderer=None):
+        # based on
+        # https://github.com/codemirror/basic-setup/blob/b3be7cd30496ee578005bd11b1fa6a8b21fcbece/src/codemirror.ts
+        extensions = [
+                JsLiteral(f"rlCodemirror.indentUnit.of({' ' * self.indent_unit !r})"),
+                ]
+
+        if self.interaction_mode == "vim":
+            extensions.insert(0, JsLiteral("rlCodemirror.vim()"))
+        elif self.interaction_mode == "emacs":
+            extensions.insert(0, JsLiteral("rlCodemirror.emacs()"))
+        else:
+            pass
+
+        if self.language_mode is not None:
+            extensions.append(JsLiteral(f"rlCodemirror.{self.language_mode}()"))
+
+        additional_keys = [
+            {
+                "key": key,
+                "run": func,
+            }
+            for key, func in self.additional_keys.items()
+        ]
+        output = [super().render(
+                        name, value, attrs, renderer),
+                  f"""
+                  <script type="text/javascript">
+                    rlCodemirror.editorFromTextArea(
+                        document.getElementById('id_{name}'),
+                        {repr_js(extensions)},
+                        {repr_js(self.autofocus)},
+                        {repr_js(additional_keys)}
+                        )
+                  </script>
+                  """]
+
+        return "\n".join(output)
+
+
 def get_codemirror_widget(
         language_mode: str,
         interaction_mode: str | None,
         config: dict | None = None,
-        addon_css: tuple = (),
-        addon_js: tuple = (),
-        dependencies: tuple = (),
-        read_only: bool = False,
         autofocus: bool = False,
-        additional_keys: dict[str, str | CodeMirrorJavascript] | None = None,
-        attrs: dict[str, str] | None = None,
+        additional_keys: dict[str, JsLiteral] | None = None,
         ) -> tuple[CodeMirrorTextarea, str]:
-    from codemirror import CodeMirrorJavascript, CodeMirrorTextarea
     if additional_keys is None:
         additional_keys = {}
 
-    theme = "default"
-    if read_only:
-        theme += " relate-readonly"
-
     from django.urls import reverse
-    help_text = (_("Press F9 to toggle full-screen mode. ")
+    help_text = (_("Press Esc then Tab to leave the editor. ")
             + _("Set editor mode in <a href='%s'>user profile</a>.")
             % reverse("relate-user_profile"))
 
-    actual_addon_css = ("dialog/dialog", "display/fullscreen", *addon_css)
-    actual_addon_js = (
-        "search/searchcursor",
-        "dialog/dialog",
-        "search/search",
-        "comment/comment",
-        "edit/matchbrackets",
-        "display/fullscreen",
-        "selection/active-line",
-        "edit/trailingspace",
-        *addon_js)
-
-    if language_mode == "python":
+    if language_mode in ["python", "yaml"]:
         indent_unit = 4
     else:
         indent_unit = 2
 
-    extra_keys = {
-            "Ctrl-/": "toggleComment",
-            "Tab": CodeMirrorJavascript("""function(cm)
-                  {
-                    // from https://github.com/codemirror/CodeMirror/issues/988
-
-                    if (cm.doc.somethingSelected()) {
-                        return CodeMirror.Pass;
-                    }
-                    var spacesPerTab = cm.getOption("indentUnit");
-                    var spacesToInsert = (
-                        spacesPerTab
-                        - (cm.doc.getCursor("start").ch % spacesPerTab));
-                    var spaces = Array(spacesToInsert + 1).join(" ");
-                    cm.replaceSelection(spaces, "end", "+input");
-                  }"""),
-            "Shift-Tab": "indentLess",
-            "F9": CodeMirrorJavascript("""function(cm) {
-                      cm.setOption("fullScreen",
-                        !cm.getOption("fullScreen"));
-                  }"""),
-            }
-    extra_keys.update(additional_keys)
-
-    actual_config = {
-            "fixedGutter": True,
-            "matchBrackets": True,
-            "styleActiveLine": True,
-            "showTrailingSpace": True,
-            "indentUnit": indent_unit,
-            "readOnly": read_only,
-            "extraKeys": extra_keys,
-            }
-
-    if autofocus:
-        actual_config["autofocus"] = True
-
-    if interaction_mode == "vim":
-        actual_config["vimMode"] = True
-        actual_addon_js += ("../keymap/vim",)
-    elif interaction_mode == "emacs":
-        actual_config["keyMap"] = "emacs"
-        actual_addon_js += ("../keymap/emacs",)
-    elif interaction_mode == "sublime":
-        actual_config["keyMap"] = "sublime"
-        actual_addon_js += ("../keymap/sublime",)
-    # every other interaction mode goes to default
-
-    if config is not None:
-        actual_config.update(config)
-
-    if attrs is None:
-        attrs = {}
-
     return CodeMirrorTextarea(
-                    mode=language_mode,
-                    dependencies=dependencies,
-                    theme=theme,
-                    addon_css=actual_addon_css,
-                    addon_js=actual_addon_js,
-                    config=actual_config,
-                    attrs=attrs), help_text
+                    language_mode=language_mode,
+                    interaction_mode=interaction_mode,
+                    indent_unit=indent_unit,
+                    autofocus=autofocus,
+                    additional_keys=additional_keys,
+                    ), help_text
 
 # }}}
 

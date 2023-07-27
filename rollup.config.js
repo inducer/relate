@@ -75,4 +75,14 @@ export default [
     },
     plugins: defaultPlugins,
   },
+  {
+    input: 'relate/static/js/codemirror.js',
+    output: {
+      file: 'frontend-dist/bundle-codemirror.js',
+      format: 'iife',
+      sourcemap: true,
+      name: 'rlCodemirror',
+    },
+    plugins: defaultPlugins,
+  },
 ];
