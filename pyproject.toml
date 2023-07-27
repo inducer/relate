@@ -71,8 +71,6 @@ slixmpp = "^1.8.3"
 
 # To manage web dependencies
 django-npm = "^1.0.0"
-# For comfortable code entry
-django-codemirror-widget = ">=0.5"
 # For code isolation in code questions
 docker-py = "^1.10.6"
 # For code highlighting, required via the CodeHilite extension to Python-Markdown

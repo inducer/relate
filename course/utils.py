@@ -23,6 +23,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
+from dataclasses import dataclass
 import datetime  # noqa
 from contextlib import ContextDecorator
 from typing import (  # noqa
@@ -32,6 +33,7 @@ from typing import (  # noqa
 
 import markdown
 from django import http
+from django import forms
 from django.core.exceptions import ObjectDoesNotExist
 from django.shortcuts import get_object_or_404, render  # noqa
 from django.utils import translation
@@ -50,8 +52,6 @@ from relate.utils import string_concat
 # {{{ mypy
 
 if TYPE_CHECKING:
-    from codemirror import CodeMirrorJavascript, CodeMirrorTextarea  # noqa
-
     from course.content import Repo_ish  # noqa
     from course.models import (  # noqa
         Course, ExamTicket, FlowPageData, FlowSession, Participation,
@@ -882,6 +882,99 @@ class PageInstanceCache:
 
 # {{{ codemirror config
 
+# FIXME: Remove
+@dataclass(frozen=True)
+class CodeMirrorJavascript:
+    js: str
+
+
+@dataclass(frozen=True)
+class JsLiteral:
+    js: str
+
+
+def repr_js(obj: Any) -> str:
+    if isinstance(obj, list):
+        return "[%s]" % ", ".join(repr_js(ch) for ch in obj)
+    if isinstance(obj, dict):
+        return "{%s}" % ", ".join("{k}: {repr_js(v)}" for k, v in obj.items())
+    elif isinstance(obj, (int, float)):
+        return repr(obj)
+    elif isinstance(obj, str):
+        return repr(obj)
+    elif isinstance(obj, JsLiteral):
+        return obj.js
+    else:
+        raise ValueError(f"unsupported object type: {type(obj)}")
+
+
+class CodeMirrorTextarea(forms.Textarea):
+    @property
+    def media(self):
+        return forms.Media(js=["bundle-codemirror.js"])
+
+    def __init__(self, attrs=None,
+                 language_mode=None, interaction_mode=None, **kwargs):
+        super().__init__(attrs, **kwargs)
+        self.language_mode = language_mode
+        self.interaction_mode = interaction_mode
+
+    # TODO: Revisit styles
+    # TODO: Read-only styling, vs dark mode
+    # TODO: line numbers vs dark mode
+    # TODO: search/replace?
+    # TODO: visual mode in vim binding?
+    def render(self, name, value, attrs=None, renderer=None):
+        # based on
+        # https://github.com/codemirror/basic-setup/blob/b3be7cd30496ee578005bd11b1fa6a8b21fcbece/src/codemirror.ts
+        extensions = [
+                JsLiteral("rlCodemirror.keymap.of(["
+                "rlCodemirror.defaultKeymap, "
+                "rlCodemirror.historyKeymap, "
+                "rlCodemirror.searchKeymap, "
+                "rlCodemirror.completionKeymap, "
+                "rlCodemirror.foldKeymap, "
+                "rlCodemirror.indentWithTab, "
+                "])"),
+                JsLiteral("rlCodemirror.lineNumbers()"),
+                JsLiteral("rlCodemirror.history()"),
+                JsLiteral("rlCodemirror.foldGutter()"),
+                JsLiteral("rlCodemirror.indentOnInput()"),
+                JsLiteral(f"rlCodemirror.indentUnit.of('    ')"),
+                JsLiteral("rlCodemirror.syntaxHighlighting("
+                          "rlCodemirror.highlightStyle, {fallback: true})"),
+                JsLiteral("rlCodemirror.bracketMatching()"),
+                JsLiteral("rlCodemirror.closeBrackets()"),
+                JsLiteral("rlCodemirror.autocompletion()"),
+                JsLiteral("rlCodemirror.highlightActiveLine()"),
+                JsLiteral("rlCodemirror.highlightSelectionMatches()"),
+                ]
+
+        if self.interaction_mode == "vim":
+            extensions.insert(0, JsLiteral("rlCodemirror.vim()"))
+        elif self.interaction_mode == "emacs":
+            extensions.insert(0, JsLiteral("rlCodemirror.emacs()"))
+        else:
+            pass
+
+        if self.language_mode is not None:
+            extensions.append(JsLiteral(f"rlCodemirror.{self.language_mode}()"))
+
+        output = [super().render(
+                        name, value, attrs, renderer),
+                  f"""
+                  <script type="text/javascript">
+                    rlCodemirror.editorFromTextArea(
+                        document.getElementById('id_{name}'),
+                        {repr_js(extensions)}
+                        )
+                  </script>
+                  """]
+
+        from django.utils.safestring import mark_safe
+        return '\n'.join(output)
+
+
 def get_codemirror_widget(
         language_mode: str,
         interaction_mode: Optional[str],
@@ -895,7 +988,6 @@ def get_codemirror_widget(
             Dict[str, Union[str, CodeMirrorJavascript]]] = None,
         attrs: Optional[Dict[str, str]] = None,
         ) -> tuple[CodeMirrorTextarea, str]:
-    from codemirror import CodeMirrorJavascript, CodeMirrorTextarea  # noqa
     if additional_keys is None:
         additional_keys = {}
 
@@ -904,7 +996,7 @@ def get_codemirror_widget(
         theme += " relate-readonly"
 
     from django.urls import reverse
-    help_text = (_("Press F9 to toggle full-screen mode. ")
+    help_text = (_("Press Esc then Tab to leave the editor. ")
             + _("Set editor mode in <a href='%s'>user profile</a>.")
             % reverse("relate-user_profile"))
 
@@ -917,9 +1009,7 @@ def get_codemirror_widget(
         "dialog/dialog",
         "search/search",
         "comment/comment",
-        "edit/matchbrackets",
         "display/fullscreen",
-        "selection/active-line",
         "edit/trailingspace",
         ) + addon_js
 
@@ -945,10 +1035,6 @@ def get_codemirror_widget(
                     cm.replaceSelection(spaces, "end", "+input");
                   }"""),
             "Shift-Tab": "indentLess",
-            "F9": CodeMirrorJavascript("""function(cm) {
-                      cm.setOption("fullScreen",
-                        !cm.getOption("fullScreen"));
-                  }"""),
             }
     extra_keys.update(additional_keys)
 
@@ -965,17 +1051,6 @@ def get_codemirror_widget(
     if autofocus:
         actual_config["autofocus"] = True
 
-    if interaction_mode == "vim":
-        actual_config["vimMode"] = True
-        actual_addon_js += ("../keymap/vim",)
-    elif interaction_mode == "emacs":
-        actual_config["keyMap"] = "emacs"
-        actual_addon_js += ("../keymap/emacs",)
-    elif interaction_mode == "sublime":
-        actual_config["keyMap"] = "sublime"
-        actual_addon_js += ("../keymap/sublime",)
-    # every other interaction mode goes to default
-
     if config is not None:
         actual_config.update(config)
 
@@ -983,12 +1058,13 @@ def get_codemirror_widget(
         attrs = {}
 
     return CodeMirrorTextarea(
-                    mode=language_mode,
-                    dependencies=dependencies,
-                    theme=theme,
-                    addon_css=actual_addon_css,
-                    addon_js=actual_addon_js,
-                    config=actual_config,
+                    language_mode=language_mode,
+                    interaction_mode=interaction_mode,
+                    # dependencies=dependencies,
+                    # theme=theme,
+                    # addon_css=actual_addon_css,
+                    # addon_js=actual_addon_js,
+                    # config=actual_config,
                     attrs=attrs), help_text
 
 # }}}
