@@ -1,3 +1,4 @@
+
 .well .start-well-title {
   margin-top:0;
 }
@@ -55,11 +56,6 @@ table.past-flow-session-table {
 
 [data-placement="bottom"] + .tooltip > .tooltip-danger.tooltip-arrow {
   border-bottom-color: #a94442;
-}
-
-code {
-  /* Bootstrap: Hot pink for code? Really? */
-  color: #333;
 }
 
 .relate-flow-page-toc {
@@ -346,7 +342,7 @@ div.rendered_html div.highlight > pre {
   @extend .mx-2;
   @extend .dropdown;
   > a {
-    @extend .link-dark;
+    @extend .link-secondary;
     @extend .text-decoration-none;
     @extend .dropdown-toggle;
   }
@@ -358,8 +354,10 @@ div.rendered_html div.highlight > pre {
 
 .relate-well {
   @extend .card;
+  /*
   @extend .text-dark;
   @extend .bg-light;
+  */
   @extend .p-3;
   @extend .mb-3;
 }
