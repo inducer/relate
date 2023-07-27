@@ -67,7 +67,8 @@ class SandboxForm(forms.Form):
         from course.utils import get_codemirror_widget
         cm_widget, cm_help_text = get_codemirror_widget(
                 language_mode=language_mode,
-                interaction_mode=interaction_mode)
+                interaction_mode=interaction_mode,
+                autofocus=True)
 
         self.fields["content"] = forms.CharField(
                 required=False,

@@ -941,17 +941,15 @@ class HumanTextFeedbackForm(StyledForm):
                         create_default_point_scale(point_value)),
                     label=_("Grade points"))
 
-        from codemirror import CodeMirrorJavascript
-
-        from course.utils import get_codemirror_widget
+        from course.utils import JsLiteral, get_codemirror_widget
         cm_widget, cm_help_text = get_codemirror_widget(
                     language_mode="markdown",
                     interaction_mode=editor_interaction_mode,
                     additional_keys={
-                        "Ctrl-Space":
-                        CodeMirrorJavascript("rlUtils.goToNextPointsField"),
-                        "Shift-Ctrl-Space":
-                        CodeMirrorJavascript("rlUtils.goToPreviousPointsField"),
+                        "Ctrl-;":
+                        JsLiteral("rlUtils.goToNextPointsField"),
+                        "Shift-Ctrl-;":
+                        JsLiteral("rlUtils.goToPreviousPointsField"),
                         })
         self.fields["feedback_text"] = forms.CharField(
                 widget=cm_widget,
@@ -964,7 +962,7 @@ class HumanTextFeedbackForm(StyledForm):
                     "RELATE-flavored Markdown</a>. "
                     "See RELATE documentation for automatic computation of point "
                     "count from <tt>[pts:N/N]</tt> and <tt>[pts:N]</tt>. "
-                    "Use Ctrl-Space/Ctrl-Shift-Space "
+                    "Use Ctrl-Semicolon/Ctrl-Shift-Semicolon "
                     "to move between <tt>[pts:]</tt> fields. ")
                     + cm_help_text),
                 label=_("Feedback text (Ctrl+Shift+F)"))

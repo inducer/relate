@@ -302,8 +302,7 @@ class BatchIssueTicketsForm(StyledForm):
 
         from course.utils import get_codemirror_widget
         cm_widget, _cm_help_text = get_codemirror_widget(
-                language_mode={"name": "markdown", "xml": True},
-                dependencies=("xml",),
+                language_mode="markdown",
                 interaction_mode=editor_mode)
 
         help_text = (gettext('Enter <a href="http://documen.tician.de/'
@@ -373,8 +372,6 @@ class BatchIssueTicketsForm(StyledForm):
                     "If non-empty, this code will be used for all exam tickets"),
                 required=False,
                 widget=forms.PasswordInput())
-
-        self.style_codemirror_widget()
 
         self.helper.add_input(
                 Submit(

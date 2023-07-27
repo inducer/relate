@@ -113,7 +113,6 @@ class User(AbstractBaseUser, PermissionsMixin):
                         "leave it as 'Default'.)"),
             choices=(
                 ("default", _("Default")),
-                ("sublime", "Sublime text"),
                 ("emacs", "Emacs"),
                 ("vim", "Vim"),
                 ),

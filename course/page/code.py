@@ -155,7 +155,6 @@ class CodeForm(StyledForm):
         cm_widget, cm_help_text = get_codemirror_widget(
                 language_mode=language_mode,
                 interaction_mode=interaction_mode,
-                read_only=read_only,
 
                 # Automatically focus the text field once there has
                 # been some input.
@@ -167,9 +166,8 @@ class CodeForm(StyledForm):
             initial=initial_code,
             help_text=cm_help_text,
             widget=cm_widget,
+            disabled=read_only,
             label=_("Answer"))
-
-        self.style_codemirror_widget()
 
     def clean(self):
         # FIXME Should try compilation
