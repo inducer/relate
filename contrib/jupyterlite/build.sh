@@ -16,7 +16,7 @@ mkdir -p pack
 mkdir -p files/{cs450,cs555}
 
 git clone https://github.com/inducer/numerics-notes pack/numerics-notes
-git clone https://github.com/inducer/numerics-notes pack/numpde-notes
+git clone https://github.com/inducer/numpde-notes pack/numpde-notes
 
 cp -R pack/numerics-notes/demos files/cs450/demos
 cp -R pack/numerics-notes/cleared-demos files/cs450/cleared
