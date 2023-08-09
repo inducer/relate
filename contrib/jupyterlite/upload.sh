@@ -1,2 +1,2 @@
 #! /bin/bash
-rsync --archive -v _output/ rl:jupyterlite/
+rsync --archive --delete -v _output/ rl:jupyterlite/
