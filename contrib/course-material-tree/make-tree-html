@@ -2,6 +2,7 @@
 
 from __future__ import print_function
 from os.path import join, basename
+from urllib.parse import quote_plus
 from glob import glob
 import re
 
@@ -270,12 +271,12 @@ def main():
     parser.add_argument("--ipynb-as-py", action="store_true")
     parser.add_argument("--ipynb-as-ipynb", action="store_true")
 
-    parser.add_argument("--binder-urlroot", metavar="URL",
+    parser.add_argument("--interactive-nb-urlroot", metavar="URL",
             help="(without the trailing slash)")
-    parser.add_argument("--binder-cleared-urlroot", metavar="URL",
+    parser.add_argument("--interactive-nb-cleared-urlroot", metavar="URL",
             help="(without the trailing slash)")
     parser.add_argument("--ipynb-main-link",
-            choices=["static", "binder", "binder-cleared"],
+            choices=["static", "interactive", "interactive-cleared"],
             default="static")
 
     parser.add_argument("--source-dir", metavar="DIRECTORY")
@@ -353,27 +354,28 @@ def main():
                         "icon": "bi bi-newspaper",
                         }]
 
-            if args.binder_urlroot:
-                binder_url = args.binder_urlroot + trunk
+            if args.interactive_nb_urlroot:
+                interactive_nb_url = args.interactive_nb_urlroot + quote_plus(trunk)
 
                 sub_nodes.append({
                     "text": "Run interactively",
-                    "link": binder_url,
+                    "link": interactive_nb_url,
                     "icon": "bi bi-keyboard",
                     })
-                if args.ipynb_main_link == "binder":
-                    main_link = binder_url
+                if args.ipynb_main_link == "interactive":
+                    main_link = interactive_nb_url
 
-            if args.binder_cleared_urlroot:
-                binder_url = args.binder_cleared_urlroot + trunk
+            if args.interactive_nb_cleared_urlroot:
+                interactive_nb_url = (args.interactive_nb_cleared_urlroot
+                                      + quote_plus(trunk))
 
                 sub_nodes.append({
                     "text": "Run interactively with cleared input",
-                    "link": binder_url,
+                    "link": interactive_nb_url,
                     "icon": "bi bi-keyboard",
                     })
-                if args.ipynb_main_link == "binder-cleared":
-                    main_link = binder_url
+                if args.ipynb_main_link == "interactive-cleared":
+                    main_link = interactive_nb_url
 
             if args.ipynb_as_py:
                 link_py = link_ipynb.replace(".ipynb", ".py")
