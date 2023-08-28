@@ -326,13 +326,13 @@ class RegexMatcher(TextAnswerMatcher):
 
         flags = getattr(self.matcher_desc, "flags", None)
         if flags is None:
-            self.is_case_sensitive = type(self) == CaseSensitiveRegexMatcher
+            self.is_case_sensitive = type(self) is CaseSensitiveRegexMatcher
             if self.is_case_sensitive:
                 re_flags = 0
             else:
                 re_flags = re.IGNORECASE
         else:
-            if type(self) == CaseSensitiveRegexMatcher:
+            if type(self) is CaseSensitiveRegexMatcher:
                 raise ValidationError(
                         string_concat("%s: ",
                             _("may not specify flags in CaseSensitiveRegexMatcher"))

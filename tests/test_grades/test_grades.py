@@ -172,7 +172,7 @@ class GradesTestMixin(SingleCoursePageTestMixin, MockAddMessageMixing):
             self.assertTrue(
                 abs(percentage - expected_percentage) < 1e-4, msg=not_equal_msg)
         else:
-            if type(percentage) != type(expected_percentage):
+            if type(percentage) is not type(expected_percentage):
                 self.fail(not_equal_msg)
 
         if percentage is None and expected_percentage is None:

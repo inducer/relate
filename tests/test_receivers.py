@@ -128,7 +128,7 @@ class UpdateCouresOrUserSignalTest(SingleCourseTestMixin, TestCase):
         )
         with mock.patch(
                 "course.models.ParticipationPreapproval.objects.get")\
-                as mock_pprvl_get,\
+                as mock_pprvl_get, \
                 mock.patch(HANDLE_ENROLLMENT_PATH) as mock_handle_enrollment:
             self.course.listed = not self.course.listed
             self.course.save()

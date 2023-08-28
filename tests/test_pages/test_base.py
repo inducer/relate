@@ -680,7 +680,7 @@ class PageBaseWithTitleTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
 
     def test_markup_body_for_title_not_implemented(self):
         with mock.patch("course.page.static.Page.markup_body_for_title")\
-                as mock_markup_body_for_title,\
+                as mock_markup_body_for_title, \
                 mock.patch("warnings.warn") as mock_warn:
             mock_markup_body_for_title.side_effect = NotImplementedError
 

@@ -147,7 +147,7 @@ class PurgePageViewDataTest(PurgeViewMixin, TestCase):
                 resp.context.get("form").fields["course"].queryset.count(), 2)
 
             with mock.patch("celery.app.task.Task.delay") \
-                    as mocked_delay,\
+                    as mocked_delay, \
                     mock.patch("course.views.monitor_task"):
                 # post without "submit"
                 resp = self.post_purget_page_view(self.course1.pk, add_submit=False)
