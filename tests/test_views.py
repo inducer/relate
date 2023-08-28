@@ -312,7 +312,7 @@ class TestEditCourse(SingleCourseTestMixin, MockAddMessageMixing, TestCase):
         # the message shows "no change"
         with mock.patch("course.views.EditCourseForm.is_valid") as mock_is_valid, \
             mock.patch("course.views.EditCourseForm.has_changed") as mock_changed, \
-            mock.patch("course.views.render_course_page"),\
+            mock.patch("course.views.render_course_page"), \
                 mock.patch("course.views._") as mock_gettext:
 
             mock_is_valid.return_value = True
@@ -334,7 +334,7 @@ class TestEditCourse(SingleCourseTestMixin, MockAddMessageMixing, TestCase):
         with mock.patch("course.views.EditCourseForm.is_valid") as mock_is_valid, \
             mock.patch("course.views.EditCourseForm.has_changed") as mock_changed, \
             mock.patch("course.views.EditCourseForm.save")as mock_save, \
-            mock.patch("course.views.render_course_page"),\
+            mock.patch("course.views.render_course_page"), \
                 mock.patch("course.views._") as mock_gettext:
 
             mock_save.return_value = self.course
@@ -358,7 +358,7 @@ class TestEditCourse(SingleCourseTestMixin, MockAddMessageMixing, TestCase):
         self.course.save()
         data = self.copy_course_dict_and_set_attrs_for_post({"force_lang": ""})
         with mock.patch("course.views.EditCourseForm.save") as mock_save, \
-            mock.patch("course.views.render_course_page"),\
+            mock.patch("course.views.render_course_page"), \
                 mock.patch("course.views._") as mock_gettext:
 
             mock_gettext.side_effect = lambda x: x
@@ -388,7 +388,7 @@ class TestEditCourse(SingleCourseTestMixin, MockAddMessageMixing, TestCase):
         # current force_lang is "", testing that the save won't occur
         data = self.copy_course_dict_and_set_attrs_for_post({"force_lang": "   "})
         with mock.patch("course.views.EditCourseForm.save") as mock_form_save, \
-            mock.patch("course.views.render_course_page"),\
+            mock.patch("course.views.render_course_page"), \
                 mock.patch("course.views._") as mock_gettext:
 
             mock_gettext.side_effect = lambda x: x
@@ -412,7 +412,7 @@ class TestEditCourse(SingleCourseTestMixin, MockAddMessageMixing, TestCase):
 
     def test_instructor_edit_post_form_invalid(self):
         with mock.patch("course.views.EditCourseForm.is_valid") as mock_is_valid, \
-            mock.patch("course.views.render_course_page"),\
+            mock.patch("course.views.render_course_page"), \
                 mock.patch("course.views._") as mock_gettext:
 
             mock_is_valid.return_value = False

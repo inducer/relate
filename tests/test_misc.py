@@ -220,7 +220,7 @@ class CourseSpecificLangConfigureTest(CourseSpecificLangTestMixin, TestCase):
     def test_languages_configured_course_has_force_lang_get_language_none(self):
         self.set_course_lang_to_ko()
         with mock.patch("course.utils.translation.get_language")\
-                as mock_get_language,\
+                as mock_get_language, \
                 mock.patch("course.utils.translation.deactivate_all")\
                         as mock_deactivate_all:
             mock_get_language.return_value = None
