@@ -2004,6 +2004,10 @@ class ExamTicket(models.Model):
             help_text=_("If not blank, this exam ticket may only be used in the "
                 "given facility"))
 
+    require_login = models.BooleanField(
+            default=False,
+            help_text=_("If set, the exam ticket can only be used once logged in"))
+
     class Meta:
         verbose_name = _("Exam ticket")
         verbose_name_plural = _("Exam tickets")

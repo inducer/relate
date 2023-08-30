@@ -46,7 +46,9 @@ from django.views.decorators.debug import sensitive_post_parameters
 from course.constants import (
     exam_ticket_states, participation_permission as pperm, participation_status,
 )
-from course.models import Exam, ExamTicket, FlowSession, Participation
+from course.models import (
+    Exam, ExamTicket, FlowSession, Participation, ParticipationTag,
+)
 from course.utils import course_view, render_course_page
 from relate.utils import HTML5DateTimeInput, StyledForm, string_concat
 
@@ -115,6 +117,16 @@ class IssueTicketForm(StyledForm):
                     "given facility"),
                 required=False)
 
+        self.fields["require_login"] = forms.BooleanField(
+                required=False,
+                help_text=_(
+                    "If set, the exam ticket can only be used once logged in"))
+        self.fields["code"] = forms.CharField(
+                help_text=_(
+                    "If non-empty, this code will be used for the exam ticket"),
+                required=False,
+                widget=forms.PasswordInput())
+
         self.fields["revoke_prior"] = forms.BooleanField(
                 label=_("Revoke prior exam tickets for this user"),
                 required=False,
@@ -165,19 +177,29 @@ def issue_exam_ticket(request):
                 ticket.participation = participation
                 ticket.creator = request.user
                 ticket.state = exam_ticket_states.valid
-                ticket.code = gen_ticket_code()
+                if form.cleaned_data["code"]:
+                    ticket.code = form.cleaned_data["code"]
+                else:
+                    ticket.code = gen_ticket_code()
+
                 ticket.valid_start_time = form.cleaned_data["valid_start_time"]
                 ticket.valid_end_time = form.cleaned_data["valid_end_time"]
                 ticket.restrict_to_facility = \
                         form.cleaned_data["restrict_to_facility"]
+                ticket.require_login = form.cleaned_data["require_login"]
                 ticket.save()
 
-                messages.add_message(request, messages.SUCCESS,
-                        _(
-                            "Ticket issued for <b>%(participation)s</b>. "
-                            "The ticket code is <b>%(ticket_code)s</b>."
-                            ) % {"participation": participation,
-                                 "ticket_code": ticket.code})
+                if form.cleaned_data["code"]:
+                    messages.add_message(request, messages.SUCCESS,
+                            _(
+                                f"Ticket issued for <b>{participation}</b>. "
+                                ))
+                else:
+                    messages.add_message(request, messages.SUCCESS,
+                            _(
+                                f"Ticket issued for <b>{participation}</b>. "
+                                f"The ticket code is <b>{ticket.code}</b>."
+                                ))
 
                 form = IssueTicketForm(now_datetime, initial_exam=exam)
 
@@ -329,6 +351,16 @@ class BatchIssueTicketsForm(StyledForm):
                 initial=INITIAL_EXAM_TICKET_TEMPLATE,
                 required=True)
 
+        self.fields["require_login"] = forms.BooleanField(
+                required=False,
+                help_text=_(
+                    "If set, exam tickets can only be used once logged in"))
+        self.fields["code"] = forms.CharField(
+                help_text=_(
+                    "If non-empty, this code will be used for all exam tickets"),
+                required=False,
+                widget=forms.PasswordInput())
+
         self.style_codemirror_widget()
 
         self.helper.add_input(
@@ -382,7 +414,11 @@ def batch_issue_exam_tickets(pctx):
                         ticket.participation = participation
                         ticket.creator = request.user
                         ticket.state = exam_ticket_states.valid
-                        ticket.code = gen_ticket_code()
+                        if form.cleaned_data["code"]:
+                            ticket.code = form.cleaned_data["code"]
+                        else:
+                            ticket.code = gen_ticket_code()
+                        ticket.require_login = form.cleaned_data["require_login"]
                         ticket.valid_start_time = \
                                 form.cleaned_data["valid_start_time"]
                         ticket.valid_end_time = form.cleaned_data["valid_end_time"]
@@ -437,7 +473,8 @@ def check_exam_ticket(
         username: Optional[str],
         code: Optional[str],
         now_datetime: datetime.datetime,
-        facilities: Optional[FrozenSet[str]]
+        facilities: Optional[FrozenSet[str]],
+        logged_in: bool,
         ) -> Tuple[bool, str]:
     """
     :returns: (is_valid, msg)
@@ -497,13 +534,17 @@ def check_exam_ticket(
             and ticket.valid_end_time < now_datetime):
         return (False, _("Exam ticket has expired."))
 
+    if not logged_in and ticket.require_login:
+        return (False, _("Exam ticket can only be used after logging in."))
+
     return True, _("Ticket is valid.")
 
 
 class ExamTicketBackend:
     def authenticate(self, request, username=None, code=None, now_datetime=None,
             facilities=None):
-        is_valid, msg = check_exam_ticket(username, code, now_datetime, facilities)
+        is_valid, msg = check_exam_ticket(username, code, now_datetime, facilities,
+                                          logged_in=False)
 
         if not is_valid:
             return None
@@ -557,7 +598,8 @@ def check_in_for_exam(request):
 
             is_valid, msg = check_exam_ticket(
                     username, code, now_datetime,
-                    request.relate_facilities)
+                    request.relate_facilities,
+                    logged_in=False)
             if not is_valid:
                 messages.add_message(request, messages.ERROR, msg)
             else:

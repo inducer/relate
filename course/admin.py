@@ -996,6 +996,7 @@ class ExamTicketAdmin(admin.ModelAdmin):
             "get_course",
             "exam",
             "participation",
+            "require_login",
             "state",
             "creation_time",
             "usage_time",

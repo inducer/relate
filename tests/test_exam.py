@@ -304,7 +304,8 @@ class CheckExamTicketTest(ExamTestMixin, TestCase):
             username="abcd",
             code=self.ticket.code,
             now_datetime=self.now,
-            facilities=self.facilities)
+            facilities=self.facilities,
+            logged_in=False)
         self.assertFalse(result)
         self.assertEqual(msg, "User name or ticket code not recognized.")
 
@@ -313,7 +314,8 @@ class CheckExamTicketTest(ExamTestMixin, TestCase):
             username=self.student_participation.user.username,
             code=self.ticket.code,
             now_datetime=self.now,
-            facilities=self.facilities)
+            facilities=self.facilities,
+            logged_in=False)
 
         self.assertTrue(result, msg=msg)
 
@@ -324,7 +326,8 @@ class CheckExamTicketTest(ExamTestMixin, TestCase):
             username=self.student_participation.user.username,
             code=self.ticket.code,
             now_datetime=self.now,
-            facilities=self.facilities)
+            facilities=self.facilities,
+            logged_in=False)
         self.assertFalse(result, msg=msg)
         self.assertEqual(
             msg, "Ticket is not in usable state. (Has it been revoked?)")
@@ -337,7 +340,8 @@ class CheckExamTicketTest(ExamTestMixin, TestCase):
             username=self.student_participation.user.username,
             code=self.ticket.code,
             now_datetime=self.now,
-            facilities=self.facilities)
+            facilities=self.facilities,
+            logged_in=False)
 
         self.assertFalse(result, msg=msg)
         self.assertEqual(msg, "Ticket has exceeded its validity period.")
@@ -350,7 +354,8 @@ class CheckExamTicketTest(ExamTestMixin, TestCase):
             username=self.student_participation.user.username,
             code=self.ticket.code,
             now_datetime=self.now,
-            facilities=self.facilities)
+            facilities=self.facilities,
+            logged_in=False)
 
         self.assertFalse(result, msg=msg)
         self.assertEqual(msg, "Exam is not active.")
@@ -360,7 +365,8 @@ class CheckExamTicketTest(ExamTestMixin, TestCase):
             username=self.student_participation.user.username,
             code=self.ticket.code,
             now_datetime=self.now - timedelta(days=5),
-            facilities=self.facilities)
+            facilities=self.facilities,
+            logged_in=False)
         self.assertFalse(result, msg=msg)
         self.assertEqual(msg, "Exam has not started yet.")
 
@@ -369,7 +375,8 @@ class CheckExamTicketTest(ExamTestMixin, TestCase):
             username=self.student_participation.user.username,
             code=self.ticket.code,
             now_datetime=self.now + timedelta(days=5),
-            facilities=self.facilities)
+            facilities=self.facilities,
+            logged_in=False)
         self.assertFalse(result, msg=msg)
         self.assertEqual(msg, "Exam has ended.")
 
@@ -381,7 +388,8 @@ class CheckExamTicketTest(ExamTestMixin, TestCase):
             username=self.student_participation.user.username,
             code=self.ticket.code,
             now_datetime=self.now,
-            facilities=frozenset(["my_fa2"]))
+            facilities=frozenset(["my_fa2"]),
+            logged_in=False)
         self.assertFalse(result, msg=msg)
         self.assertEqual(
             msg, "Exam ticket requires presence in facility 'my_fa1'.")
@@ -390,7 +398,8 @@ class CheckExamTicketTest(ExamTestMixin, TestCase):
             username=self.student_participation.user.username,
             code=self.ticket.code,
             now_datetime=self.now,
-            facilities=None)
+            facilities=None,
+            logged_in=False)
         self.assertFalse(result, msg=msg)
         self.assertEqual(
             msg, "Exam ticket requires presence in facility 'my_fa1'.")
@@ -399,7 +408,8 @@ class CheckExamTicketTest(ExamTestMixin, TestCase):
             username=self.student_participation.user.username,
             code=self.ticket.code,
             now_datetime=self.now,
-            facilities=self.facilities)
+            facilities=self.facilities,
+            logged_in=False)
         self.assertFalse(result, msg=msg)
         self.assertEqual(
             msg, "Exam ticket requires presence in facility 'my_fa1'.")
@@ -408,7 +418,8 @@ class CheckExamTicketTest(ExamTestMixin, TestCase):
             username=self.student_participation.user.username,
             code=self.ticket.code,
             now_datetime=self.now,
-            facilities=frozenset(["my_fa1", "my_fa2"]))
+            facilities=frozenset(["my_fa1", "my_fa2"]),
+            logged_in=False)
         self.assertTrue(result, msg=msg)
 
     def test_not_yet_valid(self):
@@ -416,7 +427,8 @@ class CheckExamTicketTest(ExamTestMixin, TestCase):
             username=self.student_participation.user.username,
             code=self.ticket.code,
             now_datetime=self.ticket.valid_start_time - timedelta(minutes=1),
-            facilities=self.facilities)
+            facilities=self.facilities,
+            logged_in=False)
         self.assertFalse(result, msg=msg)
         self.assertEqual(
             msg, "Exam ticket is not yet valid.")
@@ -426,7 +438,8 @@ class CheckExamTicketTest(ExamTestMixin, TestCase):
             username=self.student_participation.user.username,
             code=self.ticket.code,
             now_datetime=self.ticket.valid_end_time + timedelta(minutes=1),
-            facilities=self.facilities)
+            facilities=self.facilities,
+            logged_in=False)
         self.assertFalse(result, msg=msg)
         self.assertEqual(
             msg, "Exam ticket has expired.")
