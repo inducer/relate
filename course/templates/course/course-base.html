@@ -41,7 +41,7 @@
           <li><a class="dropdown-item" href="{% url "relate-view_calendar" course.identifier %}">{% trans "View calendar" %}</a></li>
         {% endif %}
         <li><a class="dropdown-item" href="{% url "relate-course_page" course.identifier %}">{% trans "Back to course page" %}</a></li>
-        {% if pperm.view_analytics %}
+        {% if pperm.manage_authentication_tokens %}
           <li class="dropdown-divider"></li>
           <li><a class="dropdown-item" href="{% url "relate-manage_authentication_tokens" course.identifier %}">{% trans "Manage Authentication Tokens" %}</a></li>
         {% endif %}
