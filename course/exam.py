@@ -213,7 +213,7 @@ INITIAL_EXAM_TICKET_TEMPLATE = string_concat("""\
         {{ ticket.participation.user.username }}
       </td>
       <td>
-        {{ ticket.participation.user.get_full_name }}
+        {{ ticket.participation.user.get_full_name() }}
       </td>
       <td>
         {{ ticket.code }}
@@ -231,7 +231,7 @@ _("Instructions for "  # noqa
 </h2>
 
 """, _("These are personalized instructions for "
-"{{ ticket.participation.user.get_full_name }}."), """
+"{{ ticket.participation.user.get_full_name() }}."), """
 
 """, _("If this is not you, please let the proctor know "
 "so that you can get the correct set of instructions."), """
