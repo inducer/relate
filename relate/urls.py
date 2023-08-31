@@ -534,6 +534,12 @@ urlpatterns = [
     path("list-available-exams/",
         course.exam.list_available_exams,
         name="relate-list_available_exams"),
+    re_path(r"^course"
+        "/" + COURSE_ID_REGEX
+        + "/access-exam"
+        "/$",
+        course.exam.access_exam,
+        name="relate-access_exam"),
 
     # }}}
 
