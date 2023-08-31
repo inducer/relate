@@ -48,7 +48,7 @@
       {% endif %}
       <td class="datacol">
         {% for ptag in participation.tags.all %}
-          <span class="label label-default">{{ ptag.name }}</span>
+          <span class="badge rounded-pill text-bg-primary">{{ ptag.name }}</span>
         {% endfor %}
       </td>
     </tr>

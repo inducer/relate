@@ -42,7 +42,7 @@
         <td>
           {% for ptag in grade_participation.tags.all %}
             {% if is_privileged_view or ptag.shown_to_participant %}
-              <span class="label label-default">{{ ptag.name }}</span>
+              <span class="badge rounded-pill text-bg-primary">{{ ptag.name }}</span>
             {% endif %}
           {% endfor %}
         </td>
