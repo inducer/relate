@@ -45,6 +45,8 @@
           <li class="dropdown-divider"></li>
           <li><a class="dropdown-item" href="{% url "relate-manage_authentication_tokens" course.identifier %}">{% trans "Manage Authentication Tokens" %}</a></li>
         {% endif %}
+        <li class="dropdown-divider"></li>
+        <li><a class="dropdown-item" href="{% url "relate-access_exam" course.identifier %}">{% trans "Access an exam" %}</a></li>
       </ul>
     </li>
   {% endif %}

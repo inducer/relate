@@ -768,6 +768,7 @@ def instantiate_flow_page_with_ctx(
 
 
 # {{{ utilties for course-based views
+
 def course_view(f):
     def wrapper(request, course_identifier, *args, **kwargs):
         with CoursePageContext(request, course_identifier) as pctx:
