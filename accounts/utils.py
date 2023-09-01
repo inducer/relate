@@ -39,7 +39,7 @@ class RelateUserMethodSettingsInitializer:
     and initialize the settings for csv export for csv-related forms.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._custom_full_name_method = None
         self._email_appellation_priority_list = (
                 DEFAULT_EMAIL_APPELLATION_PRIORITY_LIST)

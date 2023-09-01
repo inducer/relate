@@ -1181,10 +1181,11 @@ class APIError(Exception):
 
 
 def find_matching_token(
-        course_identifier: str = None,
-        token_id: int = None,
-        token_hash_str: str = None,
-        now_datetime: datetime.datetime = None) -> Optional[AuthenticationToken]:
+        course_identifier: Optional[str] = None,
+        token_id: Optional[int] = None,
+        token_hash_str: Optional[str] = None,
+        now_datetime: Optional[datetime.datetime] = None
+        ) -> Optional[AuthenticationToken]:
     try:
         token = AuthenticationToken.objects.get(
                 id=token_id,
