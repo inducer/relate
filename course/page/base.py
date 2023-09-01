@@ -156,7 +156,7 @@ def markup_to_html(
         page_context: PageContext,
         text: str,
         use_jinja: bool = True,
-        reverse_func: Callable = None,
+        reverse_func: Optional[Callable] = None,
         ) -> str:
     from course.content import markup_to_html as mth
 
