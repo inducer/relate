@@ -23,7 +23,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from typing import TYPE_CHECKING, FrozenSet, Optional, Text, Tuple  # noqa
+from typing import TYPE_CHECKING, FrozenSet, Optional, Tuple  # noqa
 
 import django.forms as forms
 from crispy_forms.layout import Submit
