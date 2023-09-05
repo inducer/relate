@@ -293,6 +293,16 @@ class BatchIssueTicketsForm(StyledForm):
                 required=True,
                 label=_("Exam"))
 
+        self.fields["limit_to_tag"] = forms.ModelChoiceField(
+                queryset=(
+                    ParticipationTag.objects.filter(
+                        course=course,
+                        )),
+                label=_("Limit to tag"),
+                required=False,
+                help_text=_("If set, only issue tickets for participants having "
+                            "this tag"))
+
         self.fields["valid_start_time"] = forms.DateTimeField(
                 label=_("Start validity"),
                 widget=HTML5DateTimeInput(),
@@ -357,12 +367,16 @@ def batch_issue_exam_tickets(pctx):
                                 ).update(state=exam_ticket_states.revoked)
 
                     tickets = []
-                    for participation in (
+                    participation_qset = (
                             Participation.objects.filter(
                                 course=pctx.course,
                                 status=participation_status.active)
-                            .order_by("user__last_name")
-                            ):
+                            .order_by("user__last_name"))
+                    if form.cleaned_data["limit_to_tag"]:
+                        participation_qset = participation_qset.filter(
+                                tags__pk=form.cleaned_data["limit_to_tag"].pk)
+
+                    for participation in participation_qset:
                         ticket = ExamTicket()
                         ticket.exam = exam
                         ticket.participation = participation
