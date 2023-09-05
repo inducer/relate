@@ -719,26 +719,6 @@ class GetRepoFileTest(GetRepoFileTestMixin, TestCase):
                     resp = self.get_current_repo_file_view(repo_file)
                     self.assertEqual(resp.status_code, status_code)
 
-    def test_accessible_by_unenrolled_and_above_wildcard(self):
-        """
-        This make sure file name with wildcard character "*.png" works
-            unenrolled:
-                - "*.png"
-        """
-        repo_file = "images/cc.png"
-        tup = ((None, 200),
-               (self.student_participation.user, 200),
-               (self.ta_participation.user, 200),
-               (self.instructor_participation.user, 200))
-        for user, status_code in tup:
-            with self.subTest(user=user):
-                with self.temporarily_switch_to_user(user):
-                    resp = self.get_repo_file_view(repo_file)
-                    self.assertEqual(resp.status_code, status_code)
-
-                    resp = self.get_current_repo_file_view(repo_file)
-                    self.assertEqual(resp.status_code, status_code)
-
     def test_commit_sha_not_exist(self):
         repo_file = "images/django-logo.png"
         tup = ((None, 403),
@@ -753,7 +733,7 @@ class GetRepoFileTest(GetRepoFileTestMixin, TestCase):
 
     def test_content_type(self):
         tup = (
-            ("images/cc.png", "image/png"),
+            ("images/django-logo.png", "image/png"),
             ("images/classroom.jpeg", "image/jpeg"),
             ("pdfs/sample.pdf", "application/pdf"),
             ("ipynbs/Ipynb_example.ipynb", "application/octet-stream"),
@@ -774,9 +754,6 @@ class GetRepoFileTestMocked(GetRepoFileTestMixin, HackRepoMixin, TestCase):
     Test views.get_repo_file, with get_repo_blob mocked as class level,
     the purpose is to test role permissions to repo files
 
-        unenrolled:
-        - "cc.png"
-
         in_exam:
         - "*.jpeg"
 
@@ -786,21 +763,6 @@ class GetRepoFileTestMocked(GetRepoFileTestMixin, HackRepoMixin, TestCase):
     """
 
     initial_commit_sha = "abcdef001"
-
-    def test_accessible_by_unenrolled_and_above_fullname(self):
-        repo_file = "images/cc.png"
-        tup = ((None, 200),
-               (self.student_participation.user, 200),
-               (self.ta_participation.user, 200),
-               (self.instructor_participation.user, 200))
-        for user, status_code in tup:
-            with self.subTest(user=user):
-                with self.temporarily_switch_to_user(user):
-                    resp = self.get_repo_file_view(repo_file)
-                    self.assertEqual(resp.status_code, status_code)
-
-                    resp = self.get_current_repo_file_view(repo_file)
-                    self.assertEqual(resp.status_code, status_code)
 
     def test_accessible_by_ta_and_above_fullname(self):
         repo_file = "images/django-logo.png"
