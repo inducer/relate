@@ -105,7 +105,10 @@ def lint_yaml(args):
         for f in filenames:
             filepath = os.path.join(root, f)
             if not conf.is_file_ignored(f) and conf.is_yaml_file(f):
+                # expanded yaml is missing a newline at the end of the file
+                # which causes the linter to complain, so we add a newline :)
                 expanded_yaml = expand_yaml(filepath, args.repo_root) + "\n"
+
                 problems = linter.run(expanded_yaml, conf)
                 show_problems(problems, filepath, "auto", None)
 
