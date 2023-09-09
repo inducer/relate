@@ -330,7 +330,7 @@ def main() -> None:
 
     parser_lint_yaml = subp.add_parser("lint_yaml")
     parser_lint_yaml.add_argument("--repo-root", default=os.getcwd())
-    parser_lint_yaml.add_argument("--config_file", default="./.yamllint")
+    parser_lint_yaml.add_argument("--config-file", default="./.yamllint")
     parser_lint_yaml.add_argument("DIRECTORY")
     parser_lint_yaml.set_defaults(func=lint_yaml)
 
