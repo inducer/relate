@@ -91,8 +91,28 @@ def expand_yaml(yml_file, repo_root):
 # }}}
 
 
-# {{{ code test
+# {{{ lint YAML
+def lint_yaml(args):
+    import os
 
+    from yamllint import linter
+    from yamllint.cli import show_problems
+    from yamllint.config import YamlLintConfig
+
+    conf = YamlLintConfig(file=args.config_file)
+
+    for root, _, filenames in os.walk(args.DIRECTORY):
+        for f in filenames:
+            filepath = os.path.join(root, f)
+            if not conf.is_file_ignored(f) and conf.is_yaml_file(f):
+                expanded_yaml = expand_yaml(filepath, args.repo_root) + "\n"
+                problems = linter.run(expanded_yaml, conf)
+                show_problems(problems, filepath, "auto", None)
+
+# }}}
+
+
+# {{{ code test
 def test_code_question(page_desc, repo_root) -> bool:
     if page_desc.type not in [
             "PythonCodeQuestion",
@@ -304,6 +324,12 @@ def main() -> None:
     parser_expand_yaml.add_argument("--repo-root", default=os.getcwd())
     parser_expand_yaml.add_argument("YAML_FILE")
     parser_expand_yaml.set_defaults(func=expand_yaml_ui)
+
+    parser_lint_yaml = subp.add_parser("lint_yaml")
+    parser_lint_yaml.add_argument("--repo-root", default=os.getcwd())
+    parser_lint_yaml.add_argument("--config_file", default="./.yamllint")
+    parser_lint_yaml.add_argument("DIRECTORY")
+    parser_lint_yaml.set_defaults(func=lint_yaml)
 
     args = parser.parse_args()
 
