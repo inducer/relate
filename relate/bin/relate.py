@@ -99,14 +99,11 @@ def lint_yaml(args):
     from yamllint.cli import show_problems
     from yamllint.config import YamlLintConfig
 
-    if not args.directories and not args.files:
-        raise Exception("Must specify at least one directory or one file.")
-
     conf = YamlLintConfig(file=args.config_file)
 
-    if args.directories:
-        for directory in args.directories:
-            for root, _, filenames in os.walk(directory):
+    for item in args.files:
+        if os.path.isdir(item):
+            for root, _, filenames in os.walk(item):
                 for f in filenames:
                     filepath = os.path.join(root, f)
                     if not conf.is_file_ignored(f) and conf.is_yaml_file(f):
@@ -118,14 +115,11 @@ def lint_yaml(args):
 
                         problems = linter.run(expanded_yaml, conf)
                         show_problems(problems, filepath, "auto", None)
-
-    if args.files:
-        for file in args.files:
-            # see comment above about missing newline
-            expanded_yaml = expand_yaml(file, args.repo_root) + "\n"
+        else:
+            expanded_yaml = expand_yaml(item, args.repo_root) + "\n"
 
             problems = linter.run(expanded_yaml, conf)
-            show_problems(problems, file, "auto", None)
+            show_problems(problems, item, "auto", None)
 
 # }}}
 
@@ -346,9 +340,9 @@ def main() -> None:
     parser_lint_yaml = subp.add_parser("lint_yaml")
     parser_lint_yaml.add_argument("--repo-root", default=os.getcwd())
     parser_lint_yaml.add_argument("--config-file", default="./.yamllint")
-    parser_lint_yaml.add_argument("--directories", metavar="DIRECTORIES",
-                                  nargs="*")
-    parser_lint_yaml.add_argument("--files", metavar="FILES", nargs="*")
+    parser_lint_yaml.add_argument("files", metavar="DIRECTORIES",
+                                  nargs="+",
+                                  help="List of directories or files to lint")
     parser_lint_yaml.set_defaults(func=lint_yaml)
 
     args = parser.parse_args()
