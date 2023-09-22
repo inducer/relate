@@ -547,7 +547,9 @@ def check_exam_ticket(
         if restrict_to_course is not None:
             ticket_kwargs["participation__course"] = restrict_to_course
 
-        ticket = ExamTicket.objects.get(
+        ticket = ExamTicket.objects.exclude(
+                state=exam_ticket_states.revoked
+                ).get(
                 participation__user=user,
                 code=code,
                 **ticket_kwargs
