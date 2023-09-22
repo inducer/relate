@@ -16,7 +16,8 @@ python -m venv env
 source env/bin/activate
 
 # jupyter-server appears to be needed for indexing contents
-pip install jupyterlite-core jupyterlite-pyodide-kernel jupyter-server libarchive-c
+# update the pyodide kernel and pyodide below in lockstep
+pip install jupyterlite-core 'jupyterlite-pyodide-kernel==0.1.2' jupyter-server libarchive-c
 
 mkdir -p pack
 
@@ -40,4 +41,4 @@ curl -L "https://github.com/mathjax/MathJax/archive/$MATHJAX_VER.zip" \
 jupyter lite init
 jupyter lite build \
         --mathjax-dir "pack/MathJax-$MATHJAX_VER" \
-        --pyodide https://github.com/pyodide/pyodide/releases/download/0.22.1/pyodide-0.22.1.tar.bz2
+        --pyodide https://github.com/pyodide/pyodide/releases/download/0.24.0/pyodide-0.24.0.tar.bz2
