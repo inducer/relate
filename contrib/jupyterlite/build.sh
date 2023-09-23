@@ -10,14 +10,28 @@ fi
 
 MATHJAX_VER=2.7.7
 
-rm -Rf env _output files pack
-python -m venv env
+./cleanup.sh
 
-source env/bin/activate
+EXTRA_BUILD_FLAGS=()
+
+if test "$EXAM" = 0; then
+    python -m venv env
+
+    source env/bin/activate
+    pip install jupyterlite-core
+    # update the pyodide kernel and pyodide in lockstep
+    pip install 'jupyterlite-pyodide-kernel==0.1.2'
+
+    EXTRA_BUILD_FLAGS=(--pyodide https://github.com/pyodide/pyodide/releases/download/0.24.0/pyodide-0.24.0.tar.bz2)
+else
+    curl -Ls https://micro.mamba.pm/api/micromamba/linux-64/latest | tar -xvj --strip=1 bin/micromamba
+    ./micromamba create -y -f build-environment.yml -p ./mamba-root
+    eval "$(./micromamba shell hook --shell bash)"
+    micromamba activate ./mamba-root
+fi
 
 # jupyter-server appears to be needed for indexing contents
-# update the pyodide kernel and pyodide below in lockstep
-pip install jupyterlite-core 'jupyterlite-pyodide-kernel==0.1.2' jupyter-server libarchive-c
+pip install jupyter-server libarchive-c
 
 mkdir -p pack
 
@@ -36,9 +50,11 @@ fi
 curl -L "https://github.com/mathjax/MathJax/archive/$MATHJAX_VER.zip" \
         -o "pack/mathjax-$MATHJAX_VER.zip"
 
-(cd pack; unzip mathjax-$MATHJAX_VER.zip)
+(cd pack; unzip --quiet mathjax-$MATHJAX_VER.zip)
 
 jupyter lite init
 jupyter lite build \
         --mathjax-dir "pack/MathJax-$MATHJAX_VER" \
-        --pyodide https://github.com/pyodide/pyodide/releases/download/0.24.0/pyodide-0.24.0.tar.bz2
+        "${EXTRA_BUILD_FLAGS[@]}"
+
+# vim: sw=4
