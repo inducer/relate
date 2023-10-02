@@ -149,7 +149,11 @@ flake8-bugbear = "^22.1.11"
 flake8-comprehensions = "^3.10.1"
 flake8 = "^6.0"
 pep8-naming = "^0.10.0"
-mypy = "^1"
+
+# These two must be upgraded together
+django-stubs = "^4.2.3"
+mypy = "1.4.*"
+
 pytest = "^6.2.5"
 pytest-django = "^4.4.0"
 pytest-factoryboy = "^2.1.0"
@@ -182,5 +186,19 @@ profile = "django"
 line_length = 85
 lines_after_imports = 2
 src_paths = ["relate", "course", "accounts", "test"]
+
+[tool.mypy]
+plugins = ["mypy_django_plugin.main"]
+strict_optional = true
+ignore_missing_imports = true
+follow_imports = "skip"
+disallow_untyped_calls = true
+
+[tool.django-stubs]
+django_settings_module = "relate.settings"
+
+[[tool.mypy.overrides]]
+module = "course.migrations.*"
+ignore_errors = true
 
 # vim: foldmethod=marker
