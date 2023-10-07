@@ -50,7 +50,7 @@ fi
 curl -L "https://github.com/mathjax/MathJax/archive/$MATHJAX_VER.zip" \
         -o "pack/mathjax-$MATHJAX_VER.zip"
 
-(cd pack; unzip --quiet mathjax-$MATHJAX_VER.zip)
+(cd pack; unzip -q mathjax-$MATHJAX_VER.zip)
 
 jupyter lite init
 jupyter lite build \
