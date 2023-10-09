@@ -37,10 +37,10 @@ from course.constants import USER_STATUS_CHOICES
 class User(AbstractBaseUser, PermissionsMixin):
     username = models.CharField(
         _("username"),
-        max_length=30,
+        max_length=200,
         unique=True,
         help_text=_(
-            "Required. 30 characters or fewer. Letters, digits and @/./+/-/_ only."),
+            "Required. Letters, digits and @/./+/-/_ only."),
         validators=[ASCIIUsernameValidator()],
         error_messages={
             "unique": _("A user with that username already exists."),
@@ -49,7 +49,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     first_name = models.CharField(_("first name"), max_length=100, blank=True)
     last_name = models.CharField(_("last name"), max_length=100, blank=True)
     email = models.EmailField(_("email address"), blank=True,
-            max_length=100)
+            max_length=200)
     name_verified = models.BooleanField(
         _("Name verified"),
         default=False,

@@ -1987,7 +1987,7 @@ class ExamTicket(models.Model):
             choices=EXAM_TICKET_STATE_CHOICES,
             verbose_name=_("Exam ticket state"))
 
-    code = models.CharField(max_length=50, db_index=True, unique=True)
+    code = models.CharField(max_length=50)
 
     valid_start_time = models.DateTimeField(
             verbose_name=_("End valid period"),
