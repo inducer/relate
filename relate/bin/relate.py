@@ -101,25 +101,34 @@ def lint_yaml(args):
 
     conf = YamlLintConfig(file=args.config_file)
 
+    had_problems = False
+
+    def check_file(name):
+        nonlocal had_problems
+
+        # expanded yaml is missing a newline at the end of the
+        # file which causes the linter to complain, so we add a
+        # newline :)
+        expanded_yaml = expand_yaml(name, args.repo_root) + "\n"
+
+        problems = list(linter.run(expanded_yaml, conf))
+        show_problems(problems, name, "auto", None)
+
+        had_problems = had_problems or bool(problems)
+
     for item in args.files:
         if os.path.isdir(item):
             for root, _, filenames in os.walk(item):
                 for f in filenames:
                     filepath = os.path.join(root, f)
                     if not conf.is_file_ignored(f) and conf.is_yaml_file(f):
-                        # expanded yaml is missing a newline at the end of the
-                        # file which causes the linter to complain, so we add a
-                        # newline :)
-                        expanded_yaml = expand_yaml(filepath,
-                                                    args.repo_root) + "\n"
-
-                        problems = linter.run(expanded_yaml, conf)
-                        show_problems(problems, filepath, "auto", None)
+                        check_file(filepath)
         else:
-            expanded_yaml = expand_yaml(item, args.repo_root) + "\n"
+            check_file(item)
 
-            problems = linter.run(expanded_yaml, conf)
-            show_problems(problems, item, "auto", None)
+    print(f"{had_problems=}")
+
+    return int(had_problems)
 
 # }}}
 
@@ -337,7 +346,7 @@ def main() -> None:
     parser_expand_yaml.add_argument("YAML_FILE")
     parser_expand_yaml.set_defaults(func=expand_yaml_ui)
 
-    parser_lint_yaml = subp.add_parser("lint_yaml")
+    parser_lint_yaml = subp.add_parser("lint-yaml")
     parser_lint_yaml.add_argument("--repo-root", default=os.getcwd())
     parser_lint_yaml.add_argument("--config-file", default="./.yamllint")
     parser_lint_yaml.add_argument("files", metavar="FILES",
