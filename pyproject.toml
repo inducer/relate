@@ -172,6 +172,8 @@ types-PyYAML = "^0.1.5"
 # tests for code questions use question code that has numpy
 numpy = "^1.19"
 
+yamllint = "^1.32.0"
+
 # enable with "-E postgres"
 [tool.poetry.extras]
 postgres = ["psycopg2"]
