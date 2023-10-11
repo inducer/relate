@@ -1,8 +1,4 @@
 extends: default
-
-# This isn't the goal state, but there's an unmanageable amount of warnings
-# without some compromises right now.
-
 rules:
   line-length:
     max: 200
