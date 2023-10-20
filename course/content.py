@@ -1383,6 +1383,10 @@ def filter_html_attributes(tag, name, value):
                 or (name == "class" and value.startswith("btn btn-")))
     elif tag == "img":
         result = result or name == "src"
+    elif tag == "iframe":
+        result = (result or (name in ["src", "width", "height"]))
+    elif tag == "object":
+        result = (result or (name in ["data", "width", "height"]))
     elif tag == "div":
         result = result or (name == "class" and value == "well")
     elif tag == "i":
@@ -1479,6 +1483,7 @@ def markup_to_html(
                     "div", "span", "p", "img",
                     "h1", "h2", "h3", "h4", "h5", "h6",
                     "table", "td", "tr", "th", "pre",
+                    "iframe", "object",
                     ],
                 attributes=filter_html_attributes)
 
