@@ -15,7 +15,7 @@ MATHJAX_VER=2.7.7
 EXTRA_BUILD_FLAGS=()
 
 if test "$EXAM" = 0; then
-    python -m venv env
+    python3 -m venv env
 
     source env/bin/activate
     pip install jupyterlite-core
