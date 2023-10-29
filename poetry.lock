@@ -2172,17 +2172,18 @@ postgresql = ["psycopg2"]
 
 [[package]]
 name = "pytools"
-version = "2022.1.14"
+version = "2023.1.1"
 description = "A collection of tools for Python"
 optional = false
 python-versions = "~=3.8"
 files = [
-    {file = "pytools-2022.1.14.tar.gz", hash = "sha256:41017371610bb2a03685597c5285205e6597c7f177383d95c8b871244b12c14e"},
+    {file = "pytools-2023.1.1-py2.py3-none-any.whl", hash = "sha256:53b98e5d6c01a90e343f8be2f5271e94204a210ef3e74fbefa3d47ec7480f150"},
+    {file = "pytools-2023.1.1.tar.gz", hash = "sha256:80637873d206f6bcedf7cdb46ad93e868acb4ea2256db052dfcca872bdd0321f"},
 ]
 
 [package.dependencies]
 platformdirs = ">=2.2.0"
-typing_extensions = {version = ">=4.0", markers = "python_version < \"3.11\""}
+typing-extensions = {version = ">=4.0", markers = "python_version < \"3.11\""}
 
 [package.extras]
 numpy = ["numpy (>=1.6.0)"]
@@ -3137,4 +3138,4 @@ postgres = ["psycopg2"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.9,<3.13"
-content-hash = "0bdfb6ff53d3a99745760269926035051484ce7e9685e21a0ae78e24ef205fb1"
+content-hash = "1c1c4e1d858072dcfa2cd1d802b49c33f6034a66beb91c00d8de65e8e897066d"
