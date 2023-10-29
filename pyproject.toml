@@ -29,7 +29,7 @@ packages = [
 relate = "relate.bin.relate:main"
 
 [tool.poetry.dependencies]
-python = "^3.9"
+python = ">=3.9,<3.13"
 
 django = "^4.2.6"
 
@@ -170,7 +170,7 @@ types-Markdown = "^0.1.2"
 types-PyYAML = "^0.1.5"
 
 # tests for code questions use question code that has numpy
-numpy = "^1.19"
+numpy = "^1.26"
 
 yamllint = "^1.32.0"
 
