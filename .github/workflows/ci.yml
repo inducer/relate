@@ -151,7 +151,14 @@ jobs:
       - name: Install Dependencies
         env:
           SETUPTOOLS_USE_DISTUTILS: stdlib
-        run: poetry install
+        run: |
+          # work around
+          # https://github.com/python-poetry/poetry/issues/7611#issuecomment-1747836233
+          # can be removed when
+          # https://github.com/python-poetry/poetry/pull/8517
+          # is merged and released
+          poetry config installer.max-workers 1
+          poetry install
       - name: Run test suite
         env:
           RELATE_LOCAL_TEST_SETTINGS: "local_settings_example.py"
