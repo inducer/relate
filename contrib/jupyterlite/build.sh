@@ -14,7 +14,8 @@ MATHJAX_VER=2.7.7
 
 EXTRA_BUILD_FLAGS=()
 
-if test "$EXAM" = 0; then
+# if test "$EXAM" = 0; then
+if false; then
     python3 -m venv env
 
     source env/bin/activate
