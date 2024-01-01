@@ -27,6 +27,11 @@ Install the dependencies. Poetry will automatically create a virtualenv
 
     poetry install
 
+If this installation step encounters hangs or errors that implicate access to a
+keyring, setting a keyring backend may help::
+
+    export PYTHON_KEYRING_BACKEND=keyring.backends.fail.Keyring
+
 Activate the virtual environment::
 
     poetry shell
