@@ -36,15 +36,18 @@ pip install jupyter-server libarchive-c
 mkdir -p pack
 
 if [[ "$EXAM" = 0 ]]; then
-    mkdir -p files/{cs450,cs555}
+    mkdir -p files/{cs450,cs555,cs598apk}-kloeckner
 
     git clone https://github.com/inducer/numerics-notes pack/numerics-notes
     git clone https://github.com/inducer/numpde-notes pack/numpde-notes
+    git clone https://github.com/inducer/fast-alg-ie-notes pack/fast-alg-ie-notes
 
-    cp -R pack/numerics-notes/demos files/cs450/demos
-    cp -R pack/numerics-notes/cleared-demos files/cs450/cleared
-    cp -R pack/numpde-notes/demos files/cs555/demos
-    cp -R pack/numpde-notes/cleared-demos files/cs555/cleared
+    cp -R pack/numerics-notes/demos files/cs450-kloeckner/demos
+    cp -R pack/numerics-notes/cleared-demos files/cs450-kloeckner/cleared
+    cp -R pack/numpde-notes/demos files/cs555-kloeckner/demos
+    cp -R pack/numpde-notes/cleared-demos files/cs555-kloeckner/cleared
+    cp -R pack/fast-alg-ie-notes/demos files/cs598apk-kloeckner/demos
+    cp -R pack/fast-alg-ie-notes/cleared-demos files/cs598apk-kloeckner/cleared
 fi
 
 curl -L "https://github.com/mathjax/MathJax/archive/$MATHJAX_VER.zip" \
