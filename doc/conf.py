@@ -16,17 +16,14 @@ import django
 django.setup()
 
 intersphinx_mapping = {
-    "https://docs.python.org/3/": None,
-    "https://numpy.org/doc/stable/": None,
+    "python": ("https://docs.python.org/3/", None),
+    "numpy": ("https://numpy.org/doc/stable/", None),
     "django": (
         "https://docs.djangoproject.com/en/dev/",
         "https://docs.djangoproject.com/en/dev/_objects/",
     ),
-    "https://docs.sympy.org/latest": None,
-
-    # https://github.com/dulwich/dulwich/issues/913
-    # "https://www.dulwich.io/docs/": None,
-    "https://tiker.net/pub/dulwich-docs-stopgap/": None,
+    "sympy": ("https://docs.sympy.org/latest", None),
+    "dulwich": ("https://www.dulwich.io/docs/", None),
 }
 
 copyright = u"2014-21, Andreas Kloeckner"
