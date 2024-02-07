@@ -50,7 +50,7 @@ markdown = "^2.6.3"
 # For rendering macros in content:
 # <3.1 for https://github.com/jupyter/nbconvert/issues/1736
 # Relate itself seems to be OK with 3.1?
-jinja2 = "^3.0.3,<3.1"
+jinja2 = "^3.1.3"
 
 # For math/symbolic questions
 pymbolic = "*"
