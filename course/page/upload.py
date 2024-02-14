@@ -70,9 +70,21 @@ class FileUploadForm(StyledForm):
                     % {"allowedsize": filesizeformat(self.max_file_size),
                         "uploadedsize": filesizeformat(uploaded_file.size)})
 
-        if self.mime_types is not None and self.mime_types == ["application/pdf"]:
-            if uploaded_file.read()[:4] != b"%PDF":
-                raise forms.ValidationError(_("Uploaded file is not a PDF."))
+        if self.mime_types is not None:
+            if self.mime_types == ["application/pdf"]:
+                if uploaded_file.read()[:4] != b"%PDF":
+                    raise forms.ValidationError(_("Uploaded file is not a PDF."))
+            if self.mime_types == ["application/x-ipynb+json"]:
+                try:
+                    # make sure it is loadable json
+                    import json
+                    data = json.load(uploaded_file)
+
+                    # check for a notebook format of at least 4
+                    assert int(data["nbformat"]) >= 4
+                except BaseException as e:
+                    raise forms.ValidationError(_("Uploaded file is not a "
+                                                  "Jupyter notebook.")) as e
 
         return uploaded_file
 
@@ -126,6 +138,7 @@ class FileUploadQuestion(PageBaseWithTitle, PageBaseWithValue,
         * ``application/pdf`` (will check for a PDF header)
         * ``text/plain`` (no check performed)
         * ``application/octet-stream`` (no check performed)
+        * ``application/x-ipynb+json`` (will check for JSON and nbformat>=4)
 
     .. attribute:: maximum_megabytes
 
@@ -150,6 +163,7 @@ class FileUploadQuestion(PageBaseWithTitle, PageBaseWithValue,
             "application/pdf",
             "text/plain",
             "application/octet-stream",
+            "application/x-ipynb+json",
             ]
 
     def __init__(self, vctx, location, page_desc):
@@ -294,7 +308,8 @@ class FileUploadQuestion(PageBaseWithTitle, PageBaseWithValue,
 
         subm_data, subm_mime = self.get_content_from_answer_data(answer_data)
 
-        from mimetypes import guess_extension
+        from mimetypes import add_type, guess_extension
+        add_type('application/x-ipynb+json', '.ipynb')
         ext = guess_extension(subm_mime)
 
         if ext is None:
