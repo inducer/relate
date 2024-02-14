@@ -21,6 +21,8 @@ THE SOFTWARE.
 """
 
 
+from mimetypes import add_type, guess_extension
+
 import django.forms as forms
 from crispy_forms.layout import Field, Layout
 from django.utils.translation import gettext as _, gettext_lazy
@@ -74,15 +76,16 @@ class FileUploadForm(StyledForm):
             if self.mime_types == ["application/pdf"]:
                 if uploaded_file.read()[:4] != b"%PDF":
                     raise forms.ValidationError(_("Uploaded file is not a PDF."))
-            if self.mime_types == ["application/x-ipynb+json"]:
+            elif self.mime_types == ["application/x-ipynb+json"]:
                 try:
                     # make sure it is loadable json
                     import json
                     data = json.load(uploaded_file)
 
                     # check for a notebook format of at least 4
-                    assert int(data["nbformat"]) >= 4
-                except BaseException:
+                    if int(data["nbformat"]) >= 4:
+                        raise
+                except Exception:
                     raise forms.ValidationError(_("Uploaded file is not a "
                                                   "Jupyter notebook."))
 
@@ -215,7 +218,6 @@ class FileUploadQuestion(PageBaseWithTitle, PageBaseWithValue,
         return markup_to_html(page_context, self.page_desc.prompt)
 
     def get_submission_filename_pattern(self, page_context, mime_type):
-        from mimetypes import guess_extension
         if mime_type is not None:
             ext = guess_extension(mime_type)
         else:
@@ -308,7 +310,6 @@ class FileUploadQuestion(PageBaseWithTitle, PageBaseWithValue,
 
         subm_data, subm_mime = self.get_content_from_answer_data(answer_data)
 
-        from mimetypes import add_type, guess_extension
         add_type("application/x-ipynb+json", ".ipynb")
         ext = guess_extension(subm_mime)
 
