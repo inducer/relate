@@ -82,9 +82,9 @@ class FileUploadForm(StyledForm):
 
                     # check for a notebook format of at least 4
                     assert int(data["nbformat"]) >= 4
-                except BaseException as e:
+                except BaseException:
                     raise forms.ValidationError(_("Uploaded file is not a "
-                                                  "Jupyter notebook. {e}"))
+                                                  "Jupyter notebook."))
 
         return uploaded_file
 
@@ -309,7 +309,7 @@ class FileUploadQuestion(PageBaseWithTitle, PageBaseWithValue,
         subm_data, subm_mime = self.get_content_from_answer_data(answer_data)
 
         from mimetypes import add_type, guess_extension
-        add_type('application/x-ipynb+json', '.ipynb')
+        add_type("application/x-ipynb+json", ".ipynb")
         ext = guess_extension(subm_mime)
 
         if ext is None:
