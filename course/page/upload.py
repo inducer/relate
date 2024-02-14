@@ -84,7 +84,7 @@ class FileUploadForm(StyledForm):
                     assert int(data["nbformat"]) >= 4
                 except BaseException as e:
                     raise forms.ValidationError(_("Uploaded file is not a "
-                                                  "Jupyter notebook.")) as e
+                                                  "Jupyter notebook. {e}"))
 
         return uploaded_file
 
