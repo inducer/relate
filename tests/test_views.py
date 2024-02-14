@@ -742,6 +742,7 @@ class GetRepoFileTest(GetRepoFileTestMixin, TestCase):
             ("images/django-logo.png", "image/png"),
             ("images/classroom.jpeg", "image/jpeg"),
             ("pdfs/sample.pdf", "application/pdf"),
+            ("ipynbs/Ipynb_example.ipynb", "application/x-ipynb+json"),
         )
         for repo_file, content_type in tup:
             with self.subTest(repo_file=repo_file):
