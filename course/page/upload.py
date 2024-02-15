@@ -84,7 +84,7 @@ class FileUploadForm(StyledForm):
 
                     # check for a notebook format of at least 4
                     if int(data["nbformat"]) < 4:
-                        raise
+                        raise ValueError(_("Invalid notebook format."))
                 except Exception:
                     raise forms.ValidationError(_("Uploaded file is not a "
                                                   "Jupyter notebook."))
