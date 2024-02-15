@@ -83,7 +83,7 @@ class FileUploadForm(StyledForm):
                     data = json.load(uploaded_file)
 
                     # check for a notebook format of at least 4
-                    if int(data["nbformat"]) >= 4:
+                    if int(data["nbformat"]) < 4:
                         raise
                 except Exception:
                     raise forms.ValidationError(_("Uploaded file is not a "
