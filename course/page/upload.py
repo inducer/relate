@@ -39,6 +39,7 @@ add_type("application/x-ipynb+json", ".ipynb")
 
 # {{{ upload question
 
+
 class FileUploadForm(StyledForm):
     show_save_button = False
     uploaded_file = forms.FileField(required=True,
