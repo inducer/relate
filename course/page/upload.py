@@ -34,6 +34,7 @@ from course.page.base import (
 from course.validation import ValidationError
 from relate.utils import StyledForm, string_concat
 
+add_type("application/x-ipynb+json", ".ipynb")
 
 # {{{ upload question
 
@@ -309,8 +310,6 @@ class FileUploadQuestion(PageBaseWithTitle, PageBaseWithValue,
             return None
 
         subm_data, subm_mime = self.get_content_from_answer_data(answer_data)
-
-        add_type("application/x-ipynb+json", ".ipynb")
         ext = guess_extension(subm_mime)
 
         if ext is None:
