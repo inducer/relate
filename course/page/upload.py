@@ -34,6 +34,7 @@ from course.page.base import (
 from course.validation import ValidationError
 from relate.utils import StyledForm, string_concat
 
+
 add_type("application/x-ipynb+json", ".ipynb")
 
 # {{{ upload question
