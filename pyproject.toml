@@ -118,9 +118,6 @@ html5lib = "^1.1"
 # For query lexing
 pytools = "^2023.1.1"
 
-# For rendering ipython notebook
-nbconvert = "^5.2.1"
-
 # For relate script
 colorama = "*"
 
