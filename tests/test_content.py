@@ -21,7 +21,6 @@ THE SOFTWARE.
 """
 
 import datetime
-import json
 import os
 import stat
 import unittest
@@ -29,7 +28,6 @@ from copy import deepcopy
 
 import pytest
 import pytz_deprecation_shim as pytz
-from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
 from django.test import Client, RequestFactory, TestCase, override_settings
 from dulwich.repo import Tree
@@ -319,48 +317,6 @@ class GetRepoBlobTest(SingleCourseTestMixin, TestCase):
             self.assertIn(expected_error_msg, str(cm.exception))
 
 
-class GitTemplateLoaderTest(SingleCourseTestMixin, TestCase):
-    # test content.GitTemplateLoader
-    def setUp(self):
-        super().setUp()
-        rf = RequestFactory()
-        request = rf.get(self.course_page_url)
-        request.user = self.instructor_participation.user
-        from course.utils import CoursePageContext
-        self.pctx = CoursePageContext(request, self.course.identifier)
-
-    def test_object_not_found(self):
-        environment = mock.MagicMock()
-        template = mock.MagicMock()
-        with self.pctx.repo as repo:
-            loader = content.GitTemplateLoader(
-                repo, self.course.active_git_commit_sha.encode())
-            with mock.patch(
-                    "course.content.get_repo_blob_data_cached",
-                    side_effect=ObjectDoesNotExist):
-                with self.assertRaises(content.TemplateNotFound):
-                    loader.get_source(environment=environment,
-                                      template=template)
-
-    def test_get_source_uptodate(self):
-        environment = mock.MagicMock()
-        template = mock.MagicMock()
-        with self.pctx.repo as repo:
-            with mock.patch(
-                    "course.content.get_repo_blob_data_cached",
-                    return_value=b"blahblah"):
-                loader = content.GitTemplateLoader(
-                    repo, self.course.active_git_commit_sha.encode())
-                _, __, uptodate = loader.get_source(environment=environment,
-                                                    template=template)
-                self.assertFalse(uptodate())
-
-
-class YamlBlockEscapingFileSystemLoaderTest(SingleCourseTestMixin, TestCase):
-    # test content.YamlBlockEscapingFileSystemLoader
-    pass
-
-
 class GetYamlFromRepoTest(SingleCourseTestMixin, TestCase):
     # test content.get_yaml_from_repo
     def setUp(self):
@@ -503,14 +459,12 @@ class YamlBlockEscapingGitTemplateLoaderTest(SingleCourseTestMixin, TestCase):
         self.pctx = CoursePageContext(request, self.course.identifier)
 
     def test_load_not_yaml(self):
-        environment = mock.MagicMock()
         with mock.patch(
                 "course.content.process_yaml_for_expansion") as mock_process_yaml:
             with self.pctx.repo as repo:
                 loader = content.YamlBlockEscapingGitTemplateLoader(
                     repo, self.course.active_git_commit_sha.encode())
-                result = loader.get_source(environment, "content-macros.jinja")
-                source, _, _ = result
+                source = loader("content-macros.jinja")
                 self.assertIsNotNone(source)
                 self.assertTrue(source.startswith(
                     "{# Make sure to avoid 4-spaces-deep (or deeper) "

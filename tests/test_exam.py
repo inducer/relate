@@ -232,17 +232,6 @@ class BatchIssueExamTicketsTest(ExamTestMixin, TestCase):
             self.assertEqual(resp.status_code, 200)
             self.assertEqual(ExamTicket.objects.count(), 0)
 
-    def test_template_syntax_error(self):
-        with mock.patch("course.content.markup_to_html") as mock_mth:
-            from jinja2 import TemplateSyntaxError
-            mock_mth.side_effect = TemplateSyntaxError(
-                lineno=10, message=b"my error")
-            resp = self.post_batch_issue_exam_ticket_view(data=self.get_post_data())
-            self.assertEqual(resp.status_code, 200)
-            self.assertEqual(ExamTicket.objects.count(), 0)
-            self.assertAddMessageCallCount(1)
-            self.assertAddMessageCalledWith("Template rendering failed")
-
     def test_unknown_error(self):
         with mock.patch("course.content.markup_to_html") as mock_mth:
             mock_mth.side_effect = RuntimeError("my error")

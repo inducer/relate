@@ -23,6 +23,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
+from dataclasses import dataclass
 from typing import TYPE_CHECKING, FrozenSet, Optional, Tuple  # noqa
 
 import django.forms as forms
@@ -38,6 +39,8 @@ from django.db import transaction
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render  # noqa
 from django.urls import reverse
+from django.utils.html import escape
+from django.utils.safestring import mark_safe
 from django.utils.translation import gettext, gettext_lazy as _, pgettext
 from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_protect
@@ -232,10 +235,10 @@ INITIAL_EXAM_TICKET_TEMPLATE = string_concat("""\
   {% for ticket in tickets %}
     <tr>
       <td>
-        {{ ticket.participation.user.username }}
+        {{ ticket.user_name }}
       </td>
       <td>
-        {{ ticket.participation.user.get_full_name() }}
+        {{ ticket.full_name }}
       </td>
       <td>
         {{ ticket.code }}
@@ -249,11 +252,11 @@ INITIAL_EXAM_TICKET_TEMPLATE = string_concat("""\
 {% for ticket in tickets %}
 <h2 style="page-break-before: always">""",
 _("Instructions for "  # noqa
-  "{{ ticket.exam.description }}"), """
+  "{{ ticket.exam_description }}"), """
 </h2>
 
 """, _("These are personalized instructions for "
-"{{ ticket.participation.user.get_full_name() }}."), """
+"{{ ticket.full_name }}."), """
 
 """, _("If this is not you, please let the proctor know "
 "so that you can get the correct set of instructions."), """
@@ -268,7 +271,7 @@ _("Instructions for "  # noqa
 
 """, _("Enter the following information"), ":", """
 
-""", _("User name"), """: **`{{ ticket.participation.user.username }}`**
+""", _("User name"), """: **`{{ ticket.user_name }}`**
 
 """, pgettext("ticket code required to login exam", "Code"),
         """: **`{{ ticket.code }}`**
@@ -301,7 +304,8 @@ class BatchIssueTicketsForm(StyledForm):
                 "data structures "
                 "containing ticket information. For each entry <tt>tkt</tt>  "
                 "in this list, "
-                "use <tt>{{ tkt.participation.user.user_name }}</tt>, "
+                "use <tt>{{ tkt.user_name }}</tt>, "
+                "<tt>{{ tkt.full_name }}</tt>, "
                 "<tt>{{ tkt.code }}</tt>, <tt>{{ tkt.exam.description }}</tt>, "
                 "and <tt>{{ checkin_uri }}</tt> as placeholders. "
                 "See the example for how to use this."))
@@ -369,6 +373,14 @@ class BatchIssueTicketsForm(StyledForm):
                     _("Issue tickets")))
 
 
+@dataclass(frozen=True)
+class TicketInfo:
+    user_name: str
+    full_name: str
+    code: str
+    exam_description: str
+
+
 @course_view
 def batch_issue_exam_tickets(pctx):
     if not pctx.has_permission(pperm.batch_issue_exam_ticket):
@@ -384,7 +396,7 @@ def batch_issue_exam_tickets(pctx):
         if form.is_valid():
             exam = form.cleaned_data["exam"]
 
-            from jinja2 import TemplateSyntaxError
+            import minijinja
 
             from course.content import markup_to_html
             try:
@@ -426,7 +438,14 @@ def batch_issue_exam_tickets(pctx):
                                 form.cleaned_data["restrict_to_facility"]
                         ticket.save()
 
-                        tickets.append(ticket)
+                        tickets.append(
+                               TicketInfo(
+                                   user_name=ticket.participation.user.username,
+                                   full_name=(
+                                       ticket.participation.user.get_full_name()),
+                                   code=ticket.code,
+                                   exam_description=ticket.exam.description,
+                               ))
 
                     checkin_uri = pctx.request.build_absolute_uri(
                             reverse("relate-check_in_for_exam"))
@@ -436,21 +455,20 @@ def batch_issue_exam_tickets(pctx):
                                     "tickets": tickets,
                                     "checkin_uri": checkin_uri,
                                     })
-            except TemplateSyntaxError as e:
+            except minijinja.TemplateError as e:
+                print(e)
                 messages.add_message(request, messages.ERROR,
-                    string_concat(
+                    mark_safe(string_concat(
                         _("Template rendering failed"),
-                        ": line %(lineno)d: %(err_str)s")
-                    % {
-                        "lineno": e.lineno,
-                        "err_str": e.message.decode("utf-8")})
+                        ": <pre>%(err_str)s</pre>")
+                        % {"err_str": escape(str(e))}))
             except Exception as e:
                 messages.add_message(request, messages.ERROR,
                     string_concat(
                         _("Template rendering failed"),
                         ": %(err_type)s: %(err_str)s")
                     % {"err_type": type(e).__name__,
-                        "err_str": str(e)})
+                        "err_str": escape(str(e))})
             else:
                 messages.add_message(request, messages.SUCCESS,
                         _("%d tickets issued.") % len(tickets))

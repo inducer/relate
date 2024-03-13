@@ -30,7 +30,6 @@ from typing import (  # noqa
     Union, cast,
 )
 
-import markdown
 from django import http
 from django.core.exceptions import ObjectDoesNotExist
 from django.shortcuts import get_object_or_404, render  # noqa
