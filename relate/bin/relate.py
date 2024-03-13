@@ -79,14 +79,12 @@ def expand_yaml(yml_file, repo_root):
     )
     data = process_yaml_for_expansion(data)
 
-    from jinja2 import Environment, StrictUndefined
+    from minijinja import Environment
     jinja_env = Environment(
             loader=YamlBlockEscapingFileSystemLoader(repo_root),
-            undefined=StrictUndefined)
-    template = jinja_env.from_string(data)
-    data = template.render()
+            undefined_behavior="strict")
 
-    return data
+    return jinja_env.render_str(data)
 
 # }}}
 

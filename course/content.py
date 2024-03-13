@@ -35,9 +35,6 @@ from django.core.exceptions import ImproperlyConfigured, ObjectDoesNotExist
 from django.urls import NoReverseMatch
 from django.utils.timezone import now
 from django.utils.translation import gettext as _
-from jinja2 import (
-    BaseLoader as BaseTemplateLoader, FileSystemLoader, TemplateNotFound,
-)
 from markdown.extensions import Extension
 from markdown.treeprocessors import Treeprocessor
 from yaml import safe_load as load_yaml
@@ -911,34 +908,25 @@ def process_yaml_for_expansion(yaml_str: str) -> str:
     return "\n".join(jinja_lines)
 
 
-class GitTemplateLoader(BaseTemplateLoader):
+class GitTemplateLoader:
     def __init__(self, repo: Repo_ish, commit_sha: bytes) -> None:
         self.repo = repo
         self.commit_sha = commit_sha
 
-    def get_source(self, environment, template):
+    def __call__(self, template):
         try:
             data = get_repo_blob_data_cached(self.repo, template, self.commit_sha)
         except ObjectDoesNotExist:
-            raise TemplateNotFound(template)
+            return None
 
-        source = data.decode("utf-8")
-
-        def is_up_to_date():
-            # There's not much point to caching here, because we create
-            # a new loader for every request anyhow...
-            return False
-
-        return source, None, is_up_to_date
+        return data.decode("utf-8")
 
 
 class YamlBlockEscapingGitTemplateLoader(GitTemplateLoader):
     # https://github.com/inducer/relate/issues/130
 
-    def get_source(self, environment, template):
-        source, path, is_up_to_date = \
-                super().get_source(
-                        environment, template)
+    def __call__(self, template):
+        source = super().__call__(template)
 
         _, ext = os.path.splitext(template)
         ext = ext.lower()
@@ -946,16 +934,21 @@ class YamlBlockEscapingGitTemplateLoader(GitTemplateLoader):
         if ext in [".yml", ".yaml"]:
             source = process_yaml_for_expansion(source)
 
-        return source, path, is_up_to_date
+        return source
 
 
-class YamlBlockEscapingFileSystemLoader(FileSystemLoader):
+class YamlBlockEscapingFileSystemLoader:
     # https://github.com/inducer/relate/issues/130
 
-    def get_source(self, environment, template):
-        source, path, is_up_to_date = \
-                super().get_source(
-                        environment, template)
+    def __init__(self, root):
+        self.root = root
+
+    def __call__(self, template):
+        try:
+            with open(os.path.join(self.root, template)) as inf:
+                source = inf.read()
+        except FileNotFoundError:
+            return None
 
         _, ext = os.path.splitext(template)
         ext = ext.lower()
@@ -963,7 +956,7 @@ class YamlBlockEscapingFileSystemLoader(FileSystemLoader):
         if ext in [".yml", ".yaml"]:
             source = process_yaml_for_expansion(source)
 
-        return source, path, is_up_to_date
+        return source
 
 
 def expand_yaml_macros(repo: Repo_ish, commit_sha: bytes, yaml_str: str) -> str:
@@ -971,16 +964,15 @@ def expand_yaml_macros(repo: Repo_ish, commit_sha: bytes, yaml_str: str) -> str:
     if isinstance(yaml_str, bytes):
         yaml_str = yaml_str.decode("utf-8")
 
-    from jinja2 import Environment, StrictUndefined
+    from minijinja import Environment
     jinja_env = Environment(
             loader=YamlBlockEscapingGitTemplateLoader(repo, commit_sha),
-            undefined=StrictUndefined)
+            undefined_behavior="strict")
 
     # {{{ process explicit [JINJA] tags (deprecated)
 
     def compute_replacement(match):  # pragma: no cover  # deprecated
-        template = jinja_env.from_string(match.group(1))
-        return template.render()
+        return jinja_env.render_str(match.group(1))
 
     yaml_str, count = JINJA_YAML_RE.subn(compute_replacement, yaml_str)
 
@@ -992,8 +984,7 @@ def expand_yaml_macros(repo: Repo_ish, commit_sha: bytes, yaml_str: str) -> str:
     # }}}
 
     jinja_str = process_yaml_for_expansion(yaml_str)
-    template = jinja_env.from_string(jinja_str)
-    yaml_str = template.render()
+    yaml_str = jinja_env.render_str(jinja_str)
 
     return yaml_str
 
@@ -1351,20 +1342,17 @@ def expand_markup(
     # {{{ process through Jinja
 
     if use_jinja:
-        from jinja2 import Environment, StrictUndefined
+        from minijinja import Environment
         env = Environment(
                 loader=GitTemplateLoader(repo, commit_sha),
-                undefined=StrictUndefined)
+                undefined_behavior="strict")
 
-        template = env.from_string(text)
-        kwargs = {}
-        if jinja_env:
-            kwargs.update(jinja_env)
+        def render_notebook_cells(*args, **kwargs):
+            return "[The ability to render notebooks was removed.]"
 
-        from course.utils import IpynbJinjaMacro
-        kwargs[IpynbJinjaMacro.name] = IpynbJinjaMacro(course, repo, commit_sha)
+        env.add_function("render_notebook_cells", render_notebook_cells)
 
-        text = template.render(**kwargs)
+        text = env.render_str(text, **jinja_env)
 
     # }}}
 
@@ -1449,12 +1437,10 @@ def markup_to_html(
     import markdown
 
     from course.mdx_mathjax import MathJaxExtension
-    from course.utils import NBConvertExtension
 
     extensions: list[markdown.Extension | str] = [
         LinkFixerExtension(course, commit_sha, reverse_func=reverse_func),
         MathJaxExtension(),
-        NBConvertExtension(),
         "markdown.extensions.extra",
     ]
 
