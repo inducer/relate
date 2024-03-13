@@ -35,7 +35,7 @@ from django.test import Client, RequestFactory, TestCase, override_settings
 from dulwich.repo import Tree
 
 from course import content, page
-from course.models import FlowSession
+from relate.utils import SubdirRepoWrapper
 from tests import factories
 from tests.base_test_mixins import (
     HackRepoMixin, MockAddMessageMixing, SingleCoursePageTestMixin,
@@ -79,355 +79,6 @@ class SingleCoursePageCacheTest(SingleCoursePageTestMixin, TestCase):
         with improperly_configured_cache_patch():
             resp = self.client.get(self.get_page_url_by_ordinal(0))
             self.assertEqual(resp.status_code, 200)
-
-
-# {{{ Test Nbconvert for rendering ipynb notebook
-
-QUESTION_MARKUP_FULL = """
-type: Page
-id: ipynb
-content: |
-
-  # Ipython notebook Examples
-
-  {{ render_notebook_cells("test.ipynb") }}
-"""
-
-QUESTION_MARKUP_SLICED1 = """
-type: Page
-id: ipynb
-content: |
-
-  # Ipython notebook Examples
-
-  {{ render_notebook_cells("test.ipynb", indices=[0, 1, 2]) }}
-"""
-
-QUESTION_MARKUP_SLICED2 = """
-type: Page
-id: ipynb
-content: |
-
-  # Ipython notebook Examples
-
-  {{ render_notebook_cells("test.ipynb", indices=[1, 2]) }}
-"""
-
-QUESTION_MARKUP_CLEAR_MARKDOWN = """
-type: Page
-id: ipynb
-content: |
-
-  # Ipython notebook Examples
-
-  {{ render_notebook_cells("test.ipynb", clear_markdown=True) }}
-"""
-
-QUESTION_MARKUP_CLEAR_OUTPUT = """
-type: Page
-id: ipynb
-content: |
-
-  # Ipython notebook Examples
-
-  {{ render_notebook_cells("test.ipynb", clear_output=True) }}
-"""
-
-QUESTION_MARKUP_CLEAR_ALL = """
-type: Page
-id: ipynb
-content: |
-
-  # Ipython notebook Examples
-
-  {{ render_notebook_cells("test.ipynb", clear_markdown=True, clear_output=True) }}
-"""
-
-MARKDOWN_PLACEHOLDER = "wzxhzdk"
-
-TEST_IPYNB_BYTES = json.dumps({
-    "cells": [
-        {
-            "cell_type": "markdown",
-            "metadata": {},
-            "source": [
-                "# First Title of Test NoteBook"
-            ]
-        },
-        {
-            "cell_type": "code",
-            "execution_count": 1,
-            "metadata": {
-                "scrolled": True
-            },
-            "outputs": [
-                {
-                    "name": "stdout",
-                    "output_type": "stream",
-                    "text": [
-                        "This is function1\n"
-                    ]
-                }
-            ],
-            "source": [
-                "def function1():\n",
-                '    print("This is function1")\n',
-                "\n",
-                "function1()"
-            ]
-        },
-        {
-            "cell_type": "markdown",
-            "metadata": {},
-            "source": [
-                "# Second Title of Test NoteBook"
-            ]
-        },
-        {
-            "cell_type": "code",
-            "execution_count": 2,
-            "metadata": {
-                "collapsed": True
-            },
-            "outputs": [],
-            "source": [
-                "def function2():\n",
-                '    print("This is function2")'
-            ]
-        },
-        {
-            "cell_type": "code",
-            "execution_count": 3,
-            "metadata": {},
-            "outputs": [
-                {
-                    "name": "stdout",
-                    "output_type": "stream",
-                    "text": [
-                        "This is function2\n"
-                    ]
-                }
-            ],
-            "source": [
-                "function2()"
-            ]
-        },
-        {
-            "cell_type": "code",
-            "execution_count": None,
-            "metadata": {
-                "collapsed": True
-            },
-            "outputs": [],
-            "source": [
-                "print(`5**18`)"
-            ]
-        }
-    ],
-    "metadata": {
-        "kernelspec": {
-            "display_name": "Python 3",
-            "language": "python",
-            "name": "python3"
-        },
-        "language_info": {
-            "codemirror_mode": {
-                "name": "ipython",
-                "version": 3
-            },
-            "file_extension": ".py",
-            "mimetype": "text/x-python",
-            "name": "python",
-            "nbconvert_exporter": "python",
-            "pygments_lexer": "ipython3",
-            "version": "3.5.0"
-        }
-    },
-    "nbformat": 4,
-    "nbformat_minor": 2
-}).encode()
-
-FIRST_TITLE_TEXT = "First Title of Test NoteBook"
-SECOND_TITLE_TEXT = "Second Title of Test NoteBook"
-TEXT_CELL_HTML_CLASS = "text_cell_render"
-CODE_CELL_HTML_CLASS = "code_cell"
-CODE_CELL_IN_STR_PATTERN = '<div class="prompt input_prompt">In[%s]:</div>'
-CODE_CELL_PRINT_STR1 = "This is function1"
-CODE_CELL_PRINT_STR2 = "This is function2"
-RELATE_IPYNB_CONVERT_PRE_WRAPPER_TAG_NAME = "relate_ipynb"
-
-
-def strip_nbsp(s):
-    """
-    Returns the given HTML with '&nbsp;' (introduced by nbconvert) stripped
-    """
-    from django.utils.encoding import force_str
-    return force_str(s).replace('&nbsp;', '').replace('\xa0', '')
-
-
-def get_nb_html_from_response(response):
-    from django.utils.safestring import mark_safe
-    return strip_nbsp(mark_safe(response.context["body"]))
-
-
-class NbconvertRenderTestMixin(SingleCoursePageSandboxTestBaseMixin):
-    courses_setup_list = deepcopy(
-            SingleCoursePageSandboxTestBaseMixin.courses_setup_list)
-    courses_setup_list[0]["course"]["trusted_for_markup"] = True
-
-    def assertIsValidNbConversion(self, response):  # noqa
-        self.assertNotContains(response, MARKDOWN_PLACEHOLDER)
-        self.assertNotContains(response, "```")
-        self.assertNotContains(response, "# First Title of Test NoteBook")
-        self.assertNotContains(response, "# Second Title of Test NoteBook")
-        self.assertNotContains(response, RELATE_IPYNB_CONVERT_PRE_WRAPPER_TAG_NAME)
-
-    def setUp(self):
-        super().setUp()
-        patcher = mock.patch("course.content.get_repo_blob_data_cached")
-        self.mock_func = patcher.start()
-        self.mock_func.return_value = TEST_IPYNB_BYTES
-        self.addCleanup(patcher.stop)
-
-
-class NbconvertRenderTest(NbconvertRenderTestMixin, TestCase):
-    force_login_student_for_each_test = False
-
-    def setUp(self):  # noqa
-        super().setUp()
-        self.client.force_login(self.instructor_participation.user)
-
-    def test_notebook_page_view(self):
-        self.start_flow(flow_id="001-linalg-recap",
-                        course_identifier=self.course.identifier,
-                        assume_success=False)
-        fs = FlowSession.objects.last()
-        resp = self.client.get(
-            self.get_page_url_by_page_id(
-                "ipynb", course_identifier=self.course.identifier,
-                flow_session_id=fs.id))
-        self.assertEqual(resp.status_code, 200)
-
-    def test_notebook_file_not_found(self):
-        self.start_flow(flow_id="001-linalg-recap",
-                        course_identifier=self.course.identifier,
-                        assume_success=False)
-        with mock.patch(
-                "course.content.get_repo_blob_data_cached") as mock_get_blob_cached:
-
-            from django.core.exceptions import ObjectDoesNotExist
-            mock_get_blob_cached.side_effect = ObjectDoesNotExist()
-
-            fs = FlowSession.objects.last()
-            with self.assertRaises(ObjectDoesNotExist):
-                self.client.get(
-                    self.get_page_url_by_page_id(
-                        "ipynb", course_identifier=self.course.identifier,
-                        flow_session_id=fs.id))
-
-    def test_full_notebook_render(self):
-        resp = self.get_page_sandbox_preview_response(QUESTION_MARKUP_FULL)
-
-        self.assertIsValidNbConversion(resp)
-        self.assertContains(resp, TEXT_CELL_HTML_CLASS, count=2)
-        self.assertContains(resp, CODE_CELL_HTML_CLASS, count=4)
-        self.assertContains(resp, FIRST_TITLE_TEXT, count=1)
-        self.assertContains(resp, SECOND_TITLE_TEXT, count=1)
-        self.assertContains(resp, CODE_CELL_PRINT_STR1, count=2)
-        self.assertContains(resp, CODE_CELL_PRINT_STR2, count=2)
-
-        # backtick is properly rendered with highlight
-        # for "`5**18`". though this syntax is not allowed in PY3
-        self.assertContains(
-            resp,
-            '<span class="err">`</span><span class="mi">5</span>')
-
-        nb_html = get_nb_html_from_response(resp)
-        for i in range(1, 4):
-            self.assertInHTML(CODE_CELL_IN_STR_PATTERN % i, nb_html)
-
-    def test_notebook_sliced1(self):
-        resp = self.get_page_sandbox_preview_response(QUESTION_MARKUP_SLICED1)
-        self.assertIsValidNbConversion(resp)
-        self.assertContains(resp, TEXT_CELL_HTML_CLASS, count=2)
-        self.assertContains(resp, CODE_CELL_HTML_CLASS, count=1)
-        self.assertContains(resp, FIRST_TITLE_TEXT, count=1)
-        self.assertContains(resp, SECOND_TITLE_TEXT, count=1)
-        self.assertContains(resp, CODE_CELL_PRINT_STR1, count=2)
-        self.assertNotContains(resp, CODE_CELL_PRINT_STR2)
-
-        nb_html = get_nb_html_from_response(resp)
-        self.assertInHTML(CODE_CELL_IN_STR_PATTERN % 1, nb_html, count=1)
-        self.assertInHTML(CODE_CELL_IN_STR_PATTERN % 2, nb_html, count=0)
-        self.assertInHTML(CODE_CELL_IN_STR_PATTERN % 3, nb_html, count=0)
-
-    def test_notebook_sliced2(self):
-        resp = self.get_page_sandbox_preview_response(QUESTION_MARKUP_SLICED2)
-        self.assertIsValidNbConversion(resp)
-        self.assertContains(resp, TEXT_CELL_HTML_CLASS, count=1)
-        self.assertContains(resp, CODE_CELL_HTML_CLASS, count=1)
-        self.assertNotContains(resp, FIRST_TITLE_TEXT)
-        self.assertContains(resp, SECOND_TITLE_TEXT, count=1)
-        self.assertContains(resp, CODE_CELL_PRINT_STR1, count=2)
-        self.assertNotContains(resp, CODE_CELL_PRINT_STR2)
-
-        # code highlight functions (in terms of rendered ipynb notebook cells only)
-        self.assertRegex(resp.context["body"], r'class="\w*\s*highlight[^\w]')
-        self.assertContains(resp, " highlight hl-ipython3")
-        self.assertContains(resp,
-                            '<span class="nb">print</span>'
-                            '<span class="p">(</span>',
-                            count=1)
-
-        nb_html = get_nb_html_from_response(resp)
-        self.assertInHTML(CODE_CELL_IN_STR_PATTERN % 1, nb_html, count=1)
-        self.assertInHTML(CODE_CELL_IN_STR_PATTERN % 2, nb_html, count=0)
-        self.assertInHTML(CODE_CELL_IN_STR_PATTERN % 3, nb_html, count=0)
-
-    def test_notebook_clear_markdown(self):
-        resp = self.get_page_sandbox_preview_response(QUESTION_MARKUP_CLEAR_MARKDOWN)
-        self.assertIsValidNbConversion(resp)
-        self.assertNotContains(resp, TEXT_CELL_HTML_CLASS)
-        self.assertContains(resp, CODE_CELL_HTML_CLASS, count=4)
-        self.assertNotContains(resp, FIRST_TITLE_TEXT)
-        self.assertNotContains(resp, SECOND_TITLE_TEXT)
-
-        nb_html = get_nb_html_from_response(resp)
-        for i in range(1, 4):
-            self.assertInHTML(CODE_CELL_IN_STR_PATTERN % i, nb_html, count=1)
-
-    def test_notebook_clear_output(self):
-        resp = self.get_page_sandbox_preview_response(QUESTION_MARKUP_CLEAR_OUTPUT)
-        self.assertIsValidNbConversion(resp)
-        self.assertContains(resp, TEXT_CELL_HTML_CLASS, count=2)
-        self.assertContains(resp, CODE_CELL_HTML_CLASS, count=4)
-        self.assertContains(resp, FIRST_TITLE_TEXT, count=1)
-        self.assertContains(resp, SECOND_TITLE_TEXT, count=1)
-        self.assertContains(resp, CODE_CELL_PRINT_STR1, count=1)
-        self.assertContains(resp, CODE_CELL_PRINT_STR2, count=1)
-
-        nb_html = get_nb_html_from_response(resp)
-        for i in range(1, 4):
-            self.assertInHTML(CODE_CELL_IN_STR_PATTERN % i, nb_html, count=0)
-        self.assertInHTML(CODE_CELL_IN_STR_PATTERN % "", nb_html, count=4)
-
-    def test_notebook_clear_markdown_and_output(self):
-        resp = self.get_page_sandbox_preview_response(QUESTION_MARKUP_CLEAR_ALL)
-        self.assertIsValidNbConversion(resp)
-        self.assertNotContains(resp, TEXT_CELL_HTML_CLASS)
-        self.assertContains(resp, CODE_CELL_HTML_CLASS, count=4)
-        self.assertNotContains(resp, FIRST_TITLE_TEXT)
-        self.assertNotContains(resp, SECOND_TITLE_TEXT)
-        self.assertContains(resp, CODE_CELL_PRINT_STR1, count=1)
-        self.assertContains(resp, CODE_CELL_PRINT_STR2, count=1)
-
-        nb_html = get_nb_html_from_response(resp)
-        for i in range(1, 4):
-            self.assertInHTML(CODE_CELL_IN_STR_PATTERN % i, nb_html, count=0)
-        self.assertInHTML(CODE_CELL_IN_STR_PATTERN % "", nb_html, count=4)
-
-
-# }}}
 
 
 TEST_SANDBOX_MARK_DOWN_PATTERN = r"""
@@ -596,28 +247,31 @@ class GetCourseCommitShaTest(SingleCourseTestMixin, TestCase):
 class SubDirRepoTest(SingleCourseQuizPageTestMixin, MockAddMessageMixing, TestCase):
     # test subdir repo (for cases not covered by other tests)
 
-    subdir_branch_commit_sha = "fb3fffe4e88e52a91446a1ecdba502e8ee6a6031"
+    subdir_branch_commit_ref = "refs/remotes/origin/subdir-repo"
 
     @classmethod
     def setUpTestData(cls):  # noqa
         super().setUpTestData()
+
         cls.course.course_root_path = "course_content"
-        cls.course.active_git_commit_sha = cls.subdir_branch_commit_sha
         cls.course.save()
 
-    def test_flowpage(self):
+    def test_validation_and_flow(self):
+        repo = content.get_course_repo(self.course)
+        assert isinstance(repo, SubdirRepoWrapper)
+        sha = repo.repo[self.subdir_branch_commit_ref.encode()].id
+
+        self.post_update_course_content(sha)
+        self.assertAddMessageCallCount(2)
+        self.assertAddMessageCalledWith(
+            ["Course content validated OK", "Update applied."])
+
         self.start_flow(self.flow_id)
         page_id = "half"
         submit_answer_response, _ = (
             self.default_submit_page_answer_by_page_id_and_test(page_id)
         )
         self.assertEqual(submit_answer_response.status_code, 200)
-
-    def test_validation(self):
-        self.post_update_course_content(self.subdir_branch_commit_sha)
-        self.assertAddMessageCallCount(2)
-        self.assertAddMessageCalledWith(
-            ["Course content validated OK", "Update applied."])
 
 
 class GetRepoBlobTest(SingleCourseTestMixin, TestCase):
@@ -1252,57 +906,6 @@ class MarkupToHtmlTest(SingleCoursePageTestMixin, TestCase):
                 self.course, repo,
                 self.course.active_git_commit_sha.encode(), text),
                 '<p><a href="%s">this course</a></p>' % self.course_page_url)
-
-    @override_settings()
-    def test_disable_codehilite_not_configured(self):
-        # if RELATE_DISABLE_CODEHILITE_MARKDOWN_EXTENSION is not configured,
-        # the default value is True
-        del settings.RELATE_DISABLE_CODEHILITE_MARKDOWN_EXTENSION
-        with self.pctx.repo as repo:
-            text = "[this course](course:)"
-            with mock.patch("markdown.markdown") as mock_markdown:
-                mock_markdown.return_value = "some text"
-                content.markup_to_html(
-                    self.course, repo,
-                    self.course.active_git_commit_sha.encode(), text)
-
-                self.assertEqual(mock_markdown.call_count, 1)
-                used_extensions = mock_markdown.call_args[1]["extensions"]
-                self.assertNotIn(
-                    "markdown.extensions.codehilite(css_class=highlight)",
-                    used_extensions)
-
-    @override_settings(RELATE_DISABLE_CODEHILITE_MARKDOWN_EXTENSION=True)
-    def test_disable_codehilite_configured_true(self):
-        with self.pctx.repo as repo:
-            text = "[this course](course:)"
-            with mock.patch("markdown.markdown") as mock_markdown:
-                mock_markdown.return_value = "some text"
-                content.markup_to_html(
-                    self.course, repo,
-                    self.course.active_git_commit_sha.encode(), text)
-
-                self.assertEqual(mock_markdown.call_count, 1)
-                used_extensions = mock_markdown.call_args[1]["extensions"]
-                self.assertNotIn(
-                    "markdown.extensions.codehilite(css_class=highlight)",
-                    used_extensions)
-
-    @override_settings(RELATE_DISABLE_CODEHILITE_MARKDOWN_EXTENSION=False)
-    def test_disable_codehilite_configured_false(self):
-        with self.pctx.repo as repo:
-            text = "[this course](course:)"
-            with mock.patch("markdown.markdown") as mock_markdown:
-                mock_markdown.return_value = "some text"
-                content.markup_to_html(
-                    self.course, repo,
-                    self.course.active_git_commit_sha.encode(), text)
-
-                self.assertEqual(mock_markdown.call_count, 1)
-                used_extensions = mock_markdown.call_args[1]["extensions"]
-                self.assertIn(
-                    "markdown.extensions.codehilite(css_class=highlight)",
-                    used_extensions)
 
 
 class GetFlowPageClassTest(SingleCourseTestMixin, TestCase):

@@ -354,35 +354,6 @@ The following snippet shows an interactive video viewer::
     </video>
 
 
-Ipython notebook to HTML
-^^^^^^^^^^^^^^^^^^^^^^^^
-
-RELATE provides the functionality of rendering `Ipython Notebooks
-<https://ipython.org/ipython-doc/3/notebook/>`_ in course pages, by using
-`nbconvert <http://nbconvert.readthedocs.io>`_.
-
-.. function:: render_notebook_cells(ipynb_path, indices=None, clear_output=False,
-                                  clear_markdown=False)
-
-    :param ipynb_path: :class:`str`, the path of the ipython notebook in
-        the repo.
-    :param indices: :class:`list`, the indices of cells which are expected to
-        be rendered. For example, ``[1, 2, 3, 6]`` or ``range(3, -1)``. If not
-        specified, all cells will be rendered.
-    :param clear_output: :class:`bool`, indicating whether existing execution
-        output of code cells should be removed. Default: `False`.
-    :param clear_markdown: :class:`bool`, indicating whether all text cells
-        will be removed. Default: `False`.
-    :rtype: :class:`str`, rendered markdown which will be consequently
-     converted to HTML.
-
-For example, the following snippet shows the HTML version of ``test.ipynb`` in repo
-folder ``code``, with markdown (``text_cells``) and output (execution result of
-``code_cells``) removed::
-
-    {{ render_notebook_cells("code/test.ipynb", clear_markdown=True, clear_output=True) }}
-
-
 Macros
 ^^^^^^
 
