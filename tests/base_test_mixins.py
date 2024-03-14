@@ -201,7 +201,7 @@ class classmethod_with_client:  # noqa: N801
         This isn't immensely logical, but it helped avoid an expensive
         refactor of the test code to explicitly always pass the client.
         (The prior state was much worse: a class-global client was being
-        used. Almost fortunately, this Django 3.2 broke this usage.)
+        used. Almost fortunately, Django 3.2 broke this usage.)
     """
 
     def __init__(self, f):
@@ -871,11 +871,11 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
     def create_course(cls, client, create_course_kwargs, *,  # noqa: N805
             raise_error=True):
         has_cached_repo = False
-        repo_cache_key, commit_sha_cach_key = (
+        repo_cache_key, commit_sha_cache_key = (
             git_source_url_to_cache_keys(create_course_kwargs["git_source"]))
         try:
             exist_course_repo_path = mc.get(repo_cache_key)
-            exist_commit_sha = mc.get(commit_sha_cach_key)
+            exist_commit_sha = mc.get(commit_sha_cache_key)
             if os.path.isdir(exist_course_repo_path):
                 has_cached_repo = bool(exist_course_repo_path and exist_commit_sha)
             else:
