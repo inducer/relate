@@ -2813,9 +2813,6 @@ class APITestMixin(SingleCoursePageTestMixin):
 
 class HackRepoMixin:
 
-    # This is need to for correctly getting other blobs
-    fallback_commit_sha = b"4124e0c23e369d6709a670398167cb9c2fe52d35"
-
     # This need to be configured when the module tested imported get_repo_blob
     # at module level
     get_repo_blob_patching_path = "course.content.get_repo_blob"
@@ -2839,7 +2836,7 @@ class HackRepoMixin:
                         path = cs_map[commit_sha.decode()]["path"]
                         return Blob(path)
 
-            return get_repo_blob(repo, full_name, cls.fallback_commit_sha,
+            return get_repo_blob(repo, full_name, repo[b"HEAD"].id,
                                  allow_tree=allow_tree)
 
         cls.batch_fake_get_repo_blob = mock.patch(cls.get_repo_blob_patching_path)
