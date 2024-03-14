@@ -28,8 +28,6 @@ def change_foreign_keys(apps, schema_editor, from_app, from_model_name, to_app, 
     # Only one of them will actually have FK fields pointing to them.
 
     import sys
-    logger.warning("\nWarning: This migration seems to only work on Py2, "
-                   "as of Django 1.9")
 
     fields = FromModel._meta.get_fields(include_hidden=True) + ToModel._meta.get_fields(include_hidden=True)
 
