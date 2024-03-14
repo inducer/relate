@@ -17,16 +17,14 @@ jobs:
     name: Lint and typecheck Python
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
-          # limit to 3.11 for not for
-          # https://github.com/zheller/flake8-quotes/issues/117
-          python-version: '3.11'
+          python-version: '3.x'
       - name: Install Poetry
         uses: snok/install-poetry@v1.3.4
         with:
-          version: "1.7.0"
+          version: "1.8.2"
           virtualenvs-create: true
 
       #- name: Cache python dependencies
@@ -57,10 +55,10 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node-version: ['12', '14', '16']
+        node-version: ['16', '18', '20']
     steps:
-    - uses: actions/checkout@v3
-    - uses: actions/setup-node@v2
+    - uses: actions/checkout@v4
+    - uses: actions/setup-node@v4
       with:
           node-version: ${{ matrix.node-version }}
     - name: Install
@@ -93,14 +91,14 @@ jobs:
           ports:
               - 5432:5432
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install Poetry
         uses: snok/install-poetry@v1.3.4
         with:
-          version: "1.7.0"
+          version: "1.8.2"
           virtualenvs-create: true
 
       #- name: Cache python dependencies
@@ -138,8 +136,8 @@ jobs:
     name: Python - Windows
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           # Pinned to 3.11 because of poetry issues with missing setuptools
           # https://github.com/python-poetry/poetry/issues/7611#issuecomment-1793850783
@@ -147,7 +145,7 @@ jobs:
       - name: Install Poetry
         uses: snok/install-poetry@v1.3.4
         with:
-          version: "1.7.0"
+          version: "1.8.2"
           virtualenvs-create: true
       - name: Configure Poetry
         run: |
