@@ -738,7 +738,8 @@ class PageBase:
             answer_data: Any
             ) -> str | None:
         """An HTML-formatted answer to be used for summarization and
-        display in analytics.
+        display in analytics. Since this may include user input, it is
+        expected to be sanitized.
         """
         return None
 
