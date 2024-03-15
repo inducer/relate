@@ -160,7 +160,7 @@ class AnswerBase:
         self.required = getattr(answers_desc, "required", False)
 
     def get_answer_text(self, page_context, answer):
-        return answer
+        raise NotImplementedError()
 
     def get_correct_answer_text(self, page_context):
         raise NotImplementedError()
@@ -337,6 +337,10 @@ class ShortAnswer(AnswerBase):
 
     def get_width_str(self, opt_width=0):
         return "width: " + str(max(self.width, opt_width)) + "em"
+
+    def get_answer_text(self, page_context, answer):
+        from django.utils.html import escape
+        return escape(answer)
 
     def get_correct_answer_text(self, page_context):
 
