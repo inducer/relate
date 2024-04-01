@@ -12,6 +12,8 @@
 # 51549: No call path from relate to mpmathify
 # 51499: Not calling wheel in a safety-related manner
 # 51457: not calling py in a safety-related manner
+# 65213: nonsense according to
+#    https://github.com/pyca/pyopenssl/issues/1300
 poetry run safety check \
         -i 38678 \
         -i 39253 \
@@ -25,4 +27,5 @@ poetry run safety check \
         -i 51549 \
         -i 51499 \
         -i 51457 \
+        -i 65213 \
         --full-report
