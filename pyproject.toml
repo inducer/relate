@@ -11,7 +11,7 @@ build-backend = "poetry.masonry.api"
 
 [tool.poetry]
 name = "relate-courseware"
-version = "2022.1"
+version = "2024.1"
 description = "RELATE courseware"
 readme = "README.rst"
 repository = "https://github.com/inducer/relate"
