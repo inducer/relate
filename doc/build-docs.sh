@@ -18,6 +18,7 @@ Host doc-upload
    IdentitiesOnly yes
    Hostname marten.tiker.net
    StrictHostKeyChecking false
+   Port 2222
 END
 
 make html SPHINXOPTS="-W --keep-going -n"
