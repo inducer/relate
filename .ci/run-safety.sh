@@ -14,6 +14,7 @@
 # 51457: not calling py in a safety-related manner
 # 65213: nonsense according to
 #    https://github.com/pyca/pyopenssl/issues/1300
+# 67599: pip issue, utter nonsense
 poetry run safety check \
         -i 38678 \
         -i 39253 \
@@ -28,4 +29,5 @@ poetry run safety check \
         -i 51499 \
         -i 51457 \
         -i 65213 \
+        -i 67599 \
         --full-report
