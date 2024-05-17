@@ -1844,7 +1844,7 @@ class GradeStateMachine:
                     result += " (/%d)" % len(self.valid_percentages)
                 return result
             else:
-                return "- ∅ -"
+                return "∅"
         else:
             return _("(other state)")
 
