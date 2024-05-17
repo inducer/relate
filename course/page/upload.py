@@ -175,7 +175,9 @@ class FileUploadQuestion(PageBaseWithTitle, PageBaseWithValue,
                     % {"value": str(page_desc.maximum_megabytes)}))
 
         if vctx is not None:
-            if not hasattr(page_desc, "value"):
+            if (
+                    not hasattr(page_desc, "value")
+                    and not getattr(page_desc, "is_optional_page", True)):
                 vctx.add_warning(location, _("upload question does not have "
                         "assigned point value"))
 
