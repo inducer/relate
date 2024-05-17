@@ -50,8 +50,10 @@ The following page types are predefined:
 .. |is-optional-page-attr| replace::
 
     Optional. A Boolean value indicating whether the page is an optional page
-    which does not require answer for full completion of the flow.  If
-    ``true``, the attribute *value* should not present. Defaults to ``false``
+    which does not require answer for full completion of the flow.
+    This also affects grading: Grades will not be computed for flows
+    with non-optional pages, even if those pages have no point value.
+    If ``true``, the attribute *value* should not be present. Defaults to ``false``
     if not present.  Note that ``is_optional_page: true`` differs from ``value:
     0`` in that finishing flows with unanswered page(s) with the latter will be
     warned of "unanswered question(s)", while with the former won't. When using
