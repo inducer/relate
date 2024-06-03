@@ -15,6 +15,8 @@
 # 65213: nonsense according to
 #    https://github.com/pyca/pyopenssl/issues/1300
 # 67599: pip issue, utter nonsense
+# 70612: Jinja2 SSTI, as of https://github.com/inducer/relate/pull/1053
+#   there is no longer a direct Jinja dependency, and no known path to SSTI.
 poetry run safety check \
         -i 38678 \
         -i 39253 \
@@ -30,4 +32,5 @@ poetry run safety check \
         -i 51457 \
         -i 65213 \
         -i 67599 \
+        -i 70612 \
         --full-report
