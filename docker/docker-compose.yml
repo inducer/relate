@@ -1,0 +1,20 @@
+version: '3'
+
+services:
+  app:
+    image: relate:latest
+    command: /run-relate.sh
+    environment:
+      DBHOST: db
+      DBUSER: myuser
+      DBPASS: mypass
+    links: 
+      - db
+    
+  db:
+    image: postgres
+    restart: unless-stopped
+    ports: 
+      - 5432:5432
+    environment:
+      POSTGRES_PASSWORD: LocalPassword
