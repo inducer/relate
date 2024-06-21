@@ -1,0 +1,4 @@
+webservers:
+  hosts:
+    mycontainer:
+      ansible_connection: local
