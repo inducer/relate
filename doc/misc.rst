@@ -437,7 +437,7 @@ Version 2022.1
         <div class="card mb-3" markdown="block">
           <div class="card-header">
             <h5 class="card-title dropdown-toggle">
-              <a class="text-decoration-none link-dark"
+              <a class="text-decoration-none link-secondary"
                 data-bs-toggle="collapse" href="#starter-code" aria-expanded="false" aria-controls="starter-code">
                   Header
               </a>
