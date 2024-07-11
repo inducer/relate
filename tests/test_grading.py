@@ -31,7 +31,8 @@ from course.constants import participation_permission as pperm
 from course.models import ParticipationPermission
 from tests import factories
 from tests.base_test_mixins import (
-    MockAddMessageMixing, SingleCourseQuizPageTestMixin,
+    MockAddMessageMixing,
+    SingleCourseQuizPageTestMixin,
 )
 from tests.utils import mock
 

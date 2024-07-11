@@ -29,7 +29,9 @@ from dulwich.repo import Tree
 
 from course import validation
 from course.constants import (
-    ATTRIBUTES_FILENAME, flow_permission, grade_aggregation_strategy,
+    ATTRIBUTES_FILENAME,
+    flow_permission,
+    grade_aggregation_strategy,
 )
 from course.content import dict_to_struct
 from course.validation import ValidationError

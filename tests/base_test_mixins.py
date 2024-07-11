@@ -40,17 +40,27 @@ from django.test import Client, RequestFactory, override_settings
 from django.urls import resolve, reverse
 
 from course.constants import (
-    flow_permission as fperm, grade_aggregation_strategy as g_strategy,
-    participation_status, user_status,
+    flow_permission as fperm,
+    grade_aggregation_strategy as g_strategy,
+    participation_status,
+    user_status,
 )
 from course.content import get_course_repo_path, get_repo_blob
 from course.flow import GradeInfo
 from course.models import (
-    Course, FlowPageData, FlowPageVisit, FlowSession, GradingOpportunity,
-    Participation, ParticipationRole,
+    Course,
+    FlowPageData,
+    FlowPageVisit,
+    FlowSession,
+    GradingOpportunity,
+    Participation,
+    ParticipationRole,
 )
 from tests.constants import (
-    COMMIT_SHA_MAP, FAKED_YAML_PATH, QUIZ_FLOW_ID, TEST_PAGE_TUPLE,
+    COMMIT_SHA_MAP,
+    FAKED_YAML_PATH,
+    QUIZ_FLOW_ID,
+    TEST_PAGE_TUPLE,
 )
 from tests.utils import mock
 

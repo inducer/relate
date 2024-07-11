@@ -32,13 +32,16 @@ from django.urls import reverse
 
 from course import constants, enrollment
 from course.constants import (
-    participation_status as p_status, user_status as u_status,
+    participation_status as p_status,
+    user_status as u_status,
 )
 from course.models import Participation, ParticipationPreapproval, ParticipationRole
 from relate.utils import string_concat
 from tests import factories
 from tests.base_test_mixins import (
-    CoursesTestMixinBase, MockAddMessageMixing, SingleCoursePageTestMixin,
+    CoursesTestMixinBase,
+    MockAddMessageMixing,
+    SingleCoursePageTestMixin,
     SingleCourseTestMixin,
 )
 from tests.utils import LocmemBackendTestsMixin, mock

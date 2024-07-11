@@ -29,10 +29,13 @@ from course import analytics
 from course.models import FlowSession
 from relate.utils import dict_to_struct
 from tests import factories
-from tests.base_test_mixins import CoursesTestMixinBase  # noqa
 from tests.base_test_mixins import (
-    HackRepoMixin, MockAddMessageMixing, SingleCoursePageTestMixin,
-    SingleCourseQuizPageTestMixin, SingleCourseTestMixin,
+    CoursesTestMixinBase,  # noqa
+    HackRepoMixin,
+    MockAddMessageMixing,
+    SingleCoursePageTestMixin,
+    SingleCourseQuizPageTestMixin,
+    SingleCourseTestMixin,
 )
 from tests.utils import mock
 

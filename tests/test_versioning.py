@@ -35,7 +35,9 @@ from course.validation import ValidationWarning
 from relate.utils import force_remove_path
 from tests import factories
 from tests.base_test_mixins import (
-    SINGLE_COURSE_SETUP_LIST, CoursesTestMixinBase, MockAddMessageMixing,
+    SINGLE_COURSE_SETUP_LIST,
+    CoursesTestMixinBase,
+    MockAddMessageMixing,
     SingleCourseTestMixin,
 )
 from tests.utils import mock, suppress_stdout_decorator

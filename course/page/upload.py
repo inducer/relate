@@ -26,8 +26,11 @@ from crispy_forms.layout import Field, Layout
 from django.utils.translation import gettext as _, gettext_lazy
 
 from course.page.base import (
-    PageBaseWithCorrectAnswer, PageBaseWithHumanTextFeedback, PageBaseWithTitle,
-    PageBaseWithValue, markup_to_html,
+    PageBaseWithCorrectAnswer,
+    PageBaseWithHumanTextFeedback,
+    PageBaseWithTitle,
+    PageBaseWithValue,
+    markup_to_html,
 )
 from course.validation import ValidationError
 from relate.utils import StyledForm, string_concat

@@ -22,7 +22,9 @@ THE SOFTWARE.
 
 
 from course.page.base import (
-    PageBaseWithCorrectAnswer, PageBaseWithTitle, markup_to_html,
+    PageBaseWithCorrectAnswer,
+    PageBaseWithTitle,
+    markup_to_html,
 )
 
 

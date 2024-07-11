@@ -1478,11 +1478,15 @@ class FlowRuleException(models.Model):
             raise ValidationError(_("grading rules may not expire"))
 
         from course.content import (
-            get_course_commit_sha, get_course_repo, get_flow_desc,
+            get_course_commit_sha,
+            get_course_repo,
+            get_flow_desc,
         )
         from course.validation import (
-            ValidationContext, ValidationError as ContentValidationError,
-            validate_session_access_rule, validate_session_grading_rule,
+            ValidationContext,
+            ValidationError as ContentValidationError,
+            validate_session_access_rule,
+            validate_session_grading_rule,
             validate_session_start_rule,
         )
         from relate.utils import dict_to_struct

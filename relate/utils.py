@@ -26,7 +26,15 @@ THE SOFTWARE.
 
 import datetime
 from typing import (  # noqa
-    TYPE_CHECKING, Any, Dict, List, Optional, Text, Tuple, Union, Mapping,
+    TYPE_CHECKING,
+    Any,
+    Dict,
+    List,
+    Mapping,
+    Optional,
+    Text,
+    Tuple,
+    Union,
 )
 
 import django.forms as forms

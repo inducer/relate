@@ -36,8 +36,11 @@ from course import content, page
 from relate.utils import SubdirRepoWrapper
 from tests import factories
 from tests.base_test_mixins import (
-    HackRepoMixin, MockAddMessageMixing, SingleCoursePageTestMixin,
-    SingleCourseQuizPageTestMixin, SingleCourseTestMixin,
+    HackRepoMixin,
+    MockAddMessageMixing,
+    SingleCoursePageTestMixin,
+    SingleCourseQuizPageTestMixin,
+    SingleCourseTestMixin,
     improperly_configured_cache_patch,
 )
 from tests.test_sandbox import SingleCoursePageSandboxTestBaseMixin

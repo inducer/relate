@@ -27,9 +27,18 @@ from django import forms
 from django.test import TestCase
 
 from course.page.text import (
-    CaseSensitivePlainMatcher, CaseSensitiveRegexMatcher, FloatMatcher, PlainMatcher,
-    RegexMatcher, SymbolicExpressionMatcher, TextAnswerForm, float_or_sympy_evalf,
-    get_matcher_class, get_validator_class, multiple_to_single_spaces, parse_matcher,
+    CaseSensitivePlainMatcher,
+    CaseSensitiveRegexMatcher,
+    FloatMatcher,
+    PlainMatcher,
+    RegexMatcher,
+    SymbolicExpressionMatcher,
+    TextAnswerForm,
+    float_or_sympy_evalf,
+    get_matcher_class,
+    get_validator_class,
+    multiple_to_single_spaces,
+    parse_matcher,
     parse_validator,
 )
 from course.validation import ValidationError

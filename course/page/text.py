@@ -29,8 +29,12 @@ import django.forms as forms
 from django.utils.translation import gettext, gettext_lazy as _
 
 from course.page.base import (
-    AnswerFeedback, PageBaseWithCorrectAnswer, PageBaseWithHumanTextFeedback,
-    PageBaseWithTitle, PageBaseWithValue, get_editor_interaction_mode,
+    AnswerFeedback,
+    PageBaseWithCorrectAnswer,
+    PageBaseWithHumanTextFeedback,
+    PageBaseWithTitle,
+    PageBaseWithValue,
+    get_editor_interaction_mode,
     markup_to_html,
 )
 from course.validation import ValidationError, validate_struct

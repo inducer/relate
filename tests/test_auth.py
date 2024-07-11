@@ -39,18 +39,28 @@ from djangosaml2.urls import urlpatterns as djsaml2_urlpatterns
 
 from course import constants
 from course.auth import (
-    APIBearerTokenBackend, APIContext, APIError, EmailedTokenBackend,
-    get_impersonable_user_qset, get_user_model, with_course_api_auth,
+    APIBearerTokenBackend,
+    APIContext,
+    APIError,
+    EmailedTokenBackend,
+    get_impersonable_user_qset,
+    get_user_model,
+    with_course_api_auth,
 )
 from course.models import AuthenticationToken, FlowPageVisit, ParticipationPermission
 from relate.urls import COURSE_ID_REGEX, urlpatterns as base_urlpatterns
 from tests import factories
 from tests.base_test_mixins import (
-    APITestMixin, CoursesTestMixinBase, MockAddMessageMixing,
+    APITestMixin,
+    CoursesTestMixinBase,
+    MockAddMessageMixing,
     SingleCoursePageTestMixin,
 )
 from tests.utils import (
-    LocmemBackendTestsMixin, load_url_pattern_names, mock, reload_urlconf,
+    LocmemBackendTestsMixin,
+    load_url_pattern_names,
+    mock,
+    reload_urlconf,
 )
 
 

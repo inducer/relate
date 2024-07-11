@@ -26,14 +26,24 @@ THE SOFTWARE.
 import re
 from decimal import Decimal
 from typing import (  # noqa
-    TYPE_CHECKING, Any, Iterable, List, Optional, Text, Tuple, Union, cast,
+    TYPE_CHECKING,
+    Any,
+    Iterable,
+    List,
+    Optional,
+    Text,
+    Tuple,
+    Union,
+    cast,
 )
 
 from crispy_forms.layout import Submit
 from django import forms, http
 from django.contrib import messages  # noqa
 from django.core.exceptions import (
-    ObjectDoesNotExist, PermissionDenied, SuspiciousOperation,
+    ObjectDoesNotExist,
+    PermissionDenied,
+    SuspiciousOperation,
 )
 from django.db import connection, transaction
 from django.shortcuts import get_object_or_404, redirect, render  # noqa
@@ -44,13 +54,22 @@ from django.utils.translation import gettext, gettext_lazy as _, pgettext_lazy
 from course.constants import participation_permission as pperm
 from course.flow import adjust_flow_session_page_data
 from course.models import (
-    FlowPageVisit, FlowSession, GradeChange, GradeStateMachine, GradingOpportunity,
-    Participation, grade_state_change_types, participation_status,
+    FlowPageVisit,
+    FlowSession,
+    GradeChange,
+    GradeStateMachine,
+    GradingOpportunity,
+    Participation,
+    grade_state_change_types,
+    participation_status,
 )
 from course.utils import course_view, render_course_page
 from course.views import get_now_or_fake_time
 from relate.utils import (
-    HTML5DateTimeInput, StyledForm, StyledModelForm, string_concat,
+    HTML5DateTimeInput,
+    StyledForm,
+    StyledModelForm,
+    string_concat,
 )
 
 
@@ -475,8 +494,10 @@ def view_grades_by_opportunity(
                     rule_tag = None
 
                 from course.tasks import (
-                    expire_in_progress_sessions, finish_in_progress_sessions,
-                    recalculate_ended_sessions, regrade_flow_sessions,
+                    expire_in_progress_sessions,
+                    finish_in_progress_sessions,
+                    recalculate_ended_sessions,
+                    regrade_flow_sessions,
                 )
 
                 if op == "expire":
@@ -901,8 +922,10 @@ def view_single_grade(pctx: CoursePageContext, participation_id: str,
                 respect_preview=False)
 
         from course.flow import (
-            expire_flow_session_standalone, finish_flow_session_standalone,
-            recalculate_session_grade, regrade_session,
+            expire_flow_session_standalone,
+            finish_flow_session_standalone,
+            recalculate_session_grade,
+            regrade_session,
         )
 
         try:

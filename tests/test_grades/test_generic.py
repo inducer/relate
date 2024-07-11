@@ -25,7 +25,10 @@ from django.test import Client, TestCase
 from django.urls import NoReverseMatch, reverse
 
 from course.models import (
-    FlowRuleException, FlowSession, GradingOpportunity, Participation,
+    FlowRuleException,
+    FlowSession,
+    GradingOpportunity,
+    Participation,
 )
 from tests.base_test_mixins import SingleCoursePageTestMixin, classmethod_with_client
 

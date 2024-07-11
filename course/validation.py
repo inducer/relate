@@ -33,7 +33,9 @@ from django.utils.html import escape
 from django.utils.translation import gettext, gettext_lazy as _
 
 from course.constants import (
-    ATTRIBUTES_FILENAME, DEFAULT_ACCESS_KINDS, FLOW_SESSION_EXPIRATION_MODE_CHOICES,
+    ATTRIBUTES_FILENAME,
+    DEFAULT_ACCESS_KINDS,
+    FLOW_SESSION_EXPIRATION_MODE_CHOICES,
     participation_permission as pperm,
 )
 from course.content import get_repo_blob
@@ -1441,7 +1443,8 @@ def validate_course_content(repo, course_file, events_file,
 
     if vctx.course is not None:
         from course.models import (
-            ParticipationPermission, ParticipationRolePermission,
+            ParticipationPermission,
+            ParticipationRolePermission,
         )
         access_kinds = frozenset(
                 ParticipationPermission.objects

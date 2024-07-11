@@ -33,7 +33,9 @@ from course.models import Event
 from relate.utils import as_local_time
 from tests import factories
 from tests.base_test_mixins import (
-    HackRepoMixin, MockAddMessageMixing, SingleCourseTestMixin,
+    HackRepoMixin,
+    MockAddMessageMixing,
+    SingleCourseTestMixin,
 )
 from tests.constants import DATE_TIME_PICKER_TIME_FORMAT
 from tests.utils import mock

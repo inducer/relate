@@ -25,7 +25,10 @@ from django.utils.safestring import mark_safe
 from django.utils.translation import gettext, gettext_lazy as _
 
 from course.page.base import (
-    AnswerFeedback, PageBaseWithTitle, PageBaseWithValue, markup_to_html,
+    AnswerFeedback,
+    PageBaseWithTitle,
+    PageBaseWithValue,
+    markup_to_html,
 )
 from course.validation import ValidationError, validate_markup
 from relate.utils import StyledForm, string_concat

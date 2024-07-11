@@ -35,13 +35,16 @@ from django.utils.timezone import now, timedelta
 
 from course import constants, flow, models
 from course.constants import (
-    flow_permission as fperm, grade_aggregation_strategy as g_strategy,
+    flow_permission as fperm,
+    grade_aggregation_strategy as g_strategy,
 )
 from course.utils import FlowSessionGradingRule, FlowSessionStartRule
 from relate.utils import StyledForm, dict_to_struct
 from tests import factories
 from tests.base_test_mixins import (
-    CoursesTestMixinBase, HackRepoMixin, SingleCourseQuizPageTestMixin,
+    CoursesTestMixinBase,
+    HackRepoMixin,
+    SingleCourseQuizPageTestMixin,
     SingleCourseTestMixin,
 )
 from tests.constants import QUIZ_FLOW_ID

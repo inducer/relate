@@ -30,19 +30,22 @@ from django.test.utils import override_settings
 from django.utils.dateformat import format
 from django.utils.formats import date_format, get_format
 from django.utils.translation import gettext_lazy as _
-from manage import get_local_test_settings_file
 
 from course.models import Course
 from course.versioning import CourseCreationForm
 from course.views import EditCourseForm
+from manage import get_local_test_settings_file
 from relate.utils import (
-    format_datetime_local, get_outbound_mail_connection, is_maintenance_mode,
+    format_datetime_local,
+    get_outbound_mail_connection,
+    is_maintenance_mode,
     render_email_template,
 )
 from tests.base_test_mixins import SingleCourseTestMixin
 from tests.constants import DATE_TIME_PICKER_TIME_FORMAT
 from tests.test_utils import (
-    REAL_TRANSLATION_FUNCTION_TO_MOCK, real_trans_side_effect,
+    REAL_TRANSLATION_FUNCTION_TO_MOCK,
+    real_trans_side_effect,
 )
 from tests.utils import LocmemBackendTestsMixin, mail, mock
 

@@ -31,7 +31,8 @@ from django.utils.timezone import now, timedelta
 
 from course import constants, grades, models
 from course.constants import (
-    grade_aggregation_strategy as g_stragety, grade_state_change_types as g_state,
+    grade_aggregation_strategy as g_stragety,
+    grade_state_change_types as g_state,
     participation_permission as pperm,
 )
 from course.flow import reopen_session
@@ -41,7 +42,9 @@ from course.grades import (
 from relate.utils import local_now
 from tests import factories
 from tests.base_test_mixins import (
-    HackRepoMixin, MockAddMessageMixing, SingleCoursePageTestMixin,
+    HackRepoMixin,
+    MockAddMessageMixing,
+    SingleCoursePageTestMixin,
     SingleCourseQuizPageTestMixin,
 )
 from tests.constants import QUIZ_FLOW_ID

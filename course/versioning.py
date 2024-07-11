@@ -29,12 +29,20 @@ THE SOFTWARE.
 
 import re
 from typing import (  # noqa
-    TYPE_CHECKING, Any, Dict, List, Optional, Text, Tuple, Union, cast,
+    TYPE_CHECKING,
+    Any,
+    Dict,
+    List,
+    Optional,
+    Text,
+    Tuple,
+    Union,
+    cast,
 )
 
 import django.forms as forms
-import dulwich.client  # noqa
 import dulwich.blob  # noqa
+import dulwich.client  # noqa
 import paramiko
 import paramiko.client
 from crispy_forms.layout import Submit
@@ -46,7 +54,10 @@ from django.db import transaction
 from django.shortcuts import get_object_or_404, redirect, render  # noqa
 from django.urls import reverse
 from django.utils.translation import (
-    gettext, gettext_lazy as _, pgettext, pgettext_lazy,
+    gettext,
+    gettext_lazy as _,
+    pgettext,
+    pgettext_lazy,
 )
 from django.views.decorators.csrf import csrf_exempt
 from django_select2.forms import Select2Widget
@@ -56,10 +67,17 @@ from course.auth import with_course_api_auth
 from course.constants import participation_permission as pperm, participation_status
 from course.models import Course, Participation, ParticipationRole
 from course.utils import (
-    course_view, get_course_specific_language_choices, render_course_page,
+    course_view,
+    get_course_specific_language_choices,
+    render_course_page,
 )
 from relate.utils import (
-    HTML5DateInput, StyledForm, StyledModelForm, string_concat, Repo_ish)
+    HTML5DateInput,
+    Repo_ish,
+    StyledForm,
+    StyledModelForm,
+    string_concat,
+)
 
 
 # {{{ for mypy
