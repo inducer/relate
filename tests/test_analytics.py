@@ -30,7 +30,7 @@ from course.models import FlowSession
 from relate.utils import dict_to_struct
 from tests import factories
 from tests.base_test_mixins import (
-    CoursesTestMixinBase,  # noqa
+    CoursesTestMixinBase,
     HackRepoMixin,
     MockAddMessageMixing,
     SingleCoursePageTestMixin,
@@ -167,7 +167,7 @@ class IsFlowMultipleSubmitTest(SingleCourseTestMixin, TestCase):
 class IsPageMultipleSubmitTest(SingleCoursePageTestMixin, HackRepoMixin, TestCase):
     """test course.analytics.is_page_multiple_submit"""
     @classmethod
-    def setUpTestData(cls):  # noqa
+    def setUpTestData(cls):
         super().setUpTestData()
         cls.course.active_git_commit_sha = "my_fake_commit_sha_for_page_analytics"
         cls.course.save()
@@ -267,7 +267,7 @@ class FlowAnalyticsTest(SingleCourseQuizPageTestMixin, HackRepoMixin,
     """analytics.flow_analytics"""
 
     @classmethod
-    def setUpTestData(cls):  # noqa
+    def setUpTestData(cls):
         super().setUpTestData()
         cls.course.active_git_commit_sha = "my_fake_commit_sha_for_flow_analytics"
         cls.course.save()

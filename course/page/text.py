@@ -41,7 +41,7 @@ from course.validation import ValidationError, validate_struct
 from relate.utils import Struct, StyledForm, string_concat
 
 
-CORRECT_ANSWER_PATTERN = string_concat(_("A correct answer is"), ": '%s'.")  # noqa
+CORRECT_ANSWER_PATTERN = string_concat(_("A correct answer is"), ": '%s'.")
 
 
 class TextAnswerForm(StyledForm):

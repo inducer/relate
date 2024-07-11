@@ -64,7 +64,7 @@ class GradesTestMixin(SingleCoursePageTestMixin, MockAddMessageMixing):
     time = now() - timedelta(days=10)
 
     @classmethod
-    def setUpTestData(cls):  # noqa
+    def setUpTestData(cls):
         super().setUpTestData()
         cls.gopp = factories.GradingOpportunityFactory(
             course=cls.course, aggregation_strategy=g_stragety.use_latest)
@@ -73,7 +73,7 @@ class GradesTestMixin(SingleCoursePageTestMixin, MockAddMessageMixing):
         super().setUp()
         self.gopp.refresh_from_db()
 
-    def use_default_setup(self):  # noqa
+    def use_default_setup(self):
         self.session1 = factories.FlowSessionFactory.create(
             participation=self.student_participation, completion_time=self.time)
         self.time_increment()
@@ -377,7 +377,7 @@ class GetGradeTableTest(GradesTestMixin, TestCase):
     # test grades.get_grade_table
 
     @classmethod
-    def setUpTestData(cls):  # noqa
+    def setUpTestData(cls):
         super().setUpTestData()
         # 2 more participations
         (cls.ptpt1, cls.ptpt2) = factories.ParticipationFactory.create_batch(
@@ -1097,8 +1097,8 @@ class GradesChangeStateMachineTest(GradesTestMixin, TestCase):
         # self.time_increment()
 
         # create a gc without attempt_id
-        gc = factories.GradeChangeFactory.create(  # noqa
-            **(self.gc(points=8.5, null_attempt_id=True)))  # noqa
+        gc = factories.GradeChangeFactory.create(
+            **(self.gc(points=8.5, null_attempt_id=True)))
         # print(gc.grade_time)
 
         machine = self.get_gc_machine()
@@ -1793,7 +1793,7 @@ class DownloadAllSubmissionsTest(SingleCourseQuizPageTestMixin,
     my_access_rule_tag = "my_access_rule_tag"
 
     @classmethod
-    def setUpTestData(cls):  # noqa
+    def setUpTestData(cls):
         super().setUpTestData()
 
         # with this faked commit_sha, we may do multiple submissions
@@ -2039,7 +2039,7 @@ class FixingTest(GradesTestMixin, TestCase):
             with mock.patch("course.flow.get_session_grading_rule") as \
                     mock_get_grading_rule:
                 mock_get_grading_rule.side_effect = (
-                    get_session_grading_rule_use_last_activity_as_cmplt_time_side_effect)  # noqa
+                    get_session_grading_rule_use_last_activity_as_cmplt_time_side_effect)
                 resp = self.end_flow()
                 self.assertEqual(resp.status_code, 200)
 
@@ -2269,7 +2269,7 @@ class FixingTest(GradesTestMixin, TestCase):
             with mock.patch("course.flow.get_session_grading_rule") as \
                     mock_get_grading_rule:
                 mock_get_grading_rule.side_effect = (
-                    get_session_grading_rule_use_last_activity_as_cmplt_time_side_effect)  # noqa
+                    get_session_grading_rule_use_last_activity_as_cmplt_time_side_effect)
                 resp = self.end_flow()
                 self.assertEqual(resp.status_code, 200)
 

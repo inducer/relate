@@ -37,8 +37,8 @@ from django.core.exceptions import (
     SuspiciousOperation,
 )
 from django.db import transaction
-from django.db.models import query  # noqa
-from django.shortcuts import get_object_or_404, redirect, render  # noqa
+from django.db.models import query
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.safestring import mark_safe
 from django.utils.translation import gettext, gettext_lazy as _
@@ -95,14 +95,14 @@ from relate.utils import (
 # {{{ mypy
 
 if TYPE_CHECKING:
-    import datetime  # noqa
+    import datetime
 
-    from accounts.models import User  # noqa
-    from course.content import FlowDesc  # noqa
-    from course.models import Course  # noqa
-    from course.page.base import AnswerFeedback, PageBase, PageBehavior  # noqa
-    from course.utils import CoursePageContext, FlowSessionStartRule  # noqa
-    from relate.utils import Repo_ish  # noqa
+    from accounts.models import User
+    from course.content import FlowDesc
+    from course.models import Course
+    from course.page.base import AnswerFeedback, PageBase, PageBehavior
+    from course.utils import CoursePageContext, FlowSessionStartRule
+    from relate.utils import Repo_ish
 
 # }}}
 
@@ -337,7 +337,7 @@ def grade_page_visit(visit: FlowPageVisit,
     course = flow_session.course
     page_data = visit.page_data
 
-    most_recent_grade: Optional[FlowPageVisitGrade] = visit.get_most_recent_grade()  # noqa
+    most_recent_grade: Optional[FlowPageVisitGrade] = visit.get_most_recent_grade()
     if most_recent_grade is not None and grade_data is None:
         grade_data = most_recent_grade.grade_data
 
@@ -574,7 +574,7 @@ def assemble_page_grades(
 def assemble_answer_visits(
         flow_session: FlowSession) -> List[Optional[FlowPageVisit]]:
 
-    answer_visits: List[Optional[FlowPageVisit]] = [None] * flow_session.page_count  # noqa
+    answer_visits: List[Optional[FlowPageVisit]] = [None] * flow_session.page_count
 
     answer_page_visits = (
             get_flow_session_graded_answers_qset(flow_session)
@@ -1404,7 +1404,7 @@ def view_start_flow(pctx: CoursePageContext, flow_id: str) -> http.HttpResponse:
                .order_by("start_time"))
 
         from collections import namedtuple
-        SessionProperties = namedtuple("SessionProperties",  # noqa
+        SessionProperties = namedtuple("SessionProperties",
                 ["may_view", "may_modify", "due", "grade_description",
                     "grade_shown"])
 
@@ -1689,7 +1689,7 @@ def get_page_behavior(
                 or (not generates_grade))
             )
 
-    from course.page.base import PageBehavior  # noqa
+    from course.page.base import PageBehavior
     return PageBehavior(
             show_correctness=show_correctness,
             show_answer=show_answer,
@@ -2584,7 +2584,7 @@ def finish_flow_session_view(
     adjust_flow_session_page_data(pctx.repo, flow_session, pctx.course.identifier,
             fctx.flow_desc, respect_preview=True)
 
-    answer_visits: List[Optional[FlowPageVisit]] = assemble_answer_visits(flow_session)  # noqa
+    answer_visits: List[Optional[FlowPageVisit]] = assemble_answer_visits(flow_session)
 
     (answered_page_data_list, unanswered_page_data_list, is_interactive_flow) =\
         get_session_answered_page_data(

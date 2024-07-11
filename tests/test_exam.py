@@ -61,7 +61,7 @@ class ExamTestMixin(SingleCourseTestMixin, MockAddMessageMixing):
     default_valid_end_time = default_valid_start_time + timedelta(hours=3)
 
     @classmethod
-    def setUpTestData(cls):  # noqa
+    def setUpTestData(cls):
         super().setUpTestData()
         cls.add_user_permission(
             cls.instructor_participation.user, "can_issue_exam_tickets",
@@ -814,7 +814,7 @@ class ExamLockdownMiddlewareTest(SingleCoursePageTestMixin,
     """Integration tests for exam.ExamLockdownMiddleware
     """
     @classmethod
-    def setUpTestData(cls):  # noqa
+    def setUpTestData(cls):
         super(SingleCoursePageTestMixin, cls).setUpTestData()
         client = Client()
         client.force_login(cls.student_participation.user)

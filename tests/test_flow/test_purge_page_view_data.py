@@ -52,7 +52,7 @@ class PurgeViewMixin(TwoCoursePageTestMixin):
     courses_setup_list = PURGE_VIEW_TWO_COURSE_SETUP_LIST
 
     @classmethod
-    def setUpTestData(cls):  # noqa
+    def setUpTestData(cls):
         super().setUpTestData()
         assert cls.course1_instructor_participation.has_permission(
             pperm.use_admin_interface)

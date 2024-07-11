@@ -520,7 +520,7 @@ if RELATE_SIGN_IN_BY_SAML2_ENABLED:
             "single_logout_service": {
                 # And the REDIRECT binding for the logout service here:
                 saml2.BINDING_HTTP_REDIRECT:
-                "https://shibboleth.illinois.edu/idp/logout.jsp",  # noqa
+                "https://shibboleth.illinois.edu/idp/logout.jsp",
                 },
             },
         }

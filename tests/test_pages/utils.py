@@ -21,7 +21,7 @@ THE SOFTWARE.
 """
 
 try:
-    from test.support import EnvironmentVarGuard  # noqa
+    from test.support import EnvironmentVarGuard
 except ImportError:
     from test.test_support import EnvironmentVarGuard  # noqa
 
@@ -79,7 +79,7 @@ class RealDockerTestMixin:
     """
 
     @classmethod
-    def setUpClass(cls):  # noqa
+    def setUpClass(cls):
         from unittest import SkipTest
         if skip_real_docker_test:
             raise SkipTest(SKIP_REAL_DOCKER_REASON)
@@ -94,7 +94,7 @@ class RealDockerTestMixin:
         cls.make_sure_docker_image_pulled()
 
     @classmethod
-    def tearDownClass(cls):  # noqa
+    def tearDownClass(cls):
         super().tearDownClass()
         cls.override_docker_settings.disable()
 

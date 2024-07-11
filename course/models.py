@@ -54,10 +54,10 @@ from relate.utils import string_concat
 # {{{ mypy
 
 if TYPE_CHECKING:
-    import datetime  # noqa
+    import datetime
 
-    from course.content import FlowDesc  # noqa
-    from course.page.base import AnswerFeedback  # noqa: F401
+    from course.content import FlowDesc
+    from course.page.base import AnswerFeedback
 
 # }}}
 
@@ -1316,7 +1316,7 @@ def get_feedback_for_grade(
         except FileNotFoundError:
             bulk_feedback_json = None
 
-    from course.page.base import AnswerFeedback  # noqa: F811
+    from course.page.base import AnswerFeedback
     return AnswerFeedback.from_json(grade.feedback, bulk_feedback_json)
 
 # }}}

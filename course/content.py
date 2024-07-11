@@ -57,12 +57,12 @@ from typing import (  # noqa
 
 if TYPE_CHECKING:
     # for mypy
-    import dulwich  # noqa
+    import dulwich
 
-    from course.models import Course, Participation  # noqa
-    from course.page.base import PageBase  # noqa
-    from course.validation import FileSystemFakeRepoTree, ValidationContext  # noqa
-    from relate.utils import Repo_ish  # noqa
+    from course.models import Course, Participation
+    from course.page.base import PageBase
+    from course.validation import FileSystemFakeRepoTree, ValidationContext
+    from relate.utils import Repo_ish
 
 Date_ish = Union[datetime.datetime, datetime.date]
 Datespec = Union[datetime.datetime, datetime.date, str]

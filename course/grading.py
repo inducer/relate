@@ -28,7 +28,7 @@ from typing import TYPE_CHECKING, Any, Dict, List, Optional, Text  # noqa
 
 from django import http
 from django.contrib import messages
-from django.core.exceptions import (  # noqa
+from django.core.exceptions import (
     ObjectDoesNotExist, PermissionDenied, SuspiciousOperation,
 )
 from django.shortcuts import get_object_or_404, redirect  # noqa
@@ -52,12 +52,12 @@ from relate.utils import (
 # {{{ for mypy
 
 if TYPE_CHECKING:
-    import datetime  # noqa
+    import datetime
 
-    from django.db.models import query  # noqa
+    from django.db.models import query
 
-    from course.models import GradingOpportunity  # noqa
-    from course.utils import CoursePageContext  # noqa
+    from course.models import GradingOpportunity
+    from course.utils import CoursePageContext
 
 # }}}
 

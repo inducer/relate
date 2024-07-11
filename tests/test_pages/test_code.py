@@ -63,7 +63,7 @@ NOT_ALLOW_MULTIPLE_SUBMISSION_WARNING = (
     "access_rules/add_permssions/see_correctness."
 )
 
-MAX_AUTO_FEEDBACK_POINTS_VALICATION_ERROR_MSG_PATTERN = (  # noqa
+MAX_AUTO_FEEDBACK_POINTS_VALICATION_ERROR_MSG_PATTERN = (
     "'max_auto_feedback_points' is invalid: expecting "
     "a value within [0, %(max_extra_credit_factor)s], "
     "got %(invalid_value)s."
@@ -88,7 +88,7 @@ class SingleCourseQuizPageCodeQuestionTest(
     skip_code_question = False
 
     @classmethod
-    def setUpTestData(cls):  # noqa
+    def setUpTestData(cls):
         super().setUpTestData()
 
         client = Client()
@@ -1043,7 +1043,7 @@ class RequestPythonRunWithRetriesTest(unittest.TestCase):
                 mock.patch("docker.client.Client.logs")) as mock_ctn_logs, (
                 mock.patch("docker.client.Client.remove_container")) as mock_remove_ctn, (  # noqa
                 mock.patch("docker.client.Client.inspect_container")) as mock_inpect_ctn, (  # noqa
-                mock.patch("http.client.HTTPConnection.request")) as mock_ctn_request:  # noqa
+                mock.patch("http.client.HTTPConnection.request")) as mock_ctn_request:
 
             mock_create_ctn.return_value = {"Id": "someid"}
             mock_ctn_start.side_effect = lambda x: None
@@ -1189,7 +1189,7 @@ class RequestPythonRunWithRetriesTest(unittest.TestCase):
                 mock.patch("docker.client.Client.logs")) as mock_ctn_logs, (
                 mock.patch("docker.client.Client.remove_container")) as mock_remove_ctn, (  # noqa
                 mock.patch("docker.client.Client.inspect_container")) as mock_inpect_ctn, (  # noqa
-                mock.patch("http.client.HTTPConnection.request")) as mock_ctn_request, (  # noqa
+                mock.patch("http.client.HTTPConnection.request")) as mock_ctn_request, (
                 mock.patch("http.client.HTTPConnection.getresponse")) as mock_ctn_get_response:  # noqa
 
             mock_create_ctn.return_value = {"Id": "someid"}
@@ -1228,7 +1228,7 @@ class RequestPythonRunWithRetriesTest(unittest.TestCase):
                 mock.patch("docker.client.Client.logs")) as mock_ctn_logs, (
                 mock.patch("docker.client.Client.remove_container")) as mock_remove_ctn, (  # noqa
                 mock.patch("docker.client.Client.inspect_container")) as mock_inpect_ctn, (  # noqa
-                mock.patch("http.client.HTTPConnection.request")) as mock_ctn_request, (  # noqa
+                mock.patch("http.client.HTTPConnection.request")) as mock_ctn_request, (
                 mock.patch("http.client.HTTPConnection.getresponse")) as mock_ctn_get_response:  # noqa
 
             mock_create_ctn.return_value = {"Id": "someid"}
@@ -1259,7 +1259,7 @@ class RequestPythonRunWithRetriesTest(unittest.TestCase):
 
     def test_docker_container_runpy_retries_count(self):
         with (
-                mock.patch("course.page.code.request_run")) as mock_req_run, (  # noqa
+                mock.patch("course.page.code.request_run")) as mock_req_run, (
                 mock.patch("course.page.code.is_nuisance_failure")) as mock_is_nuisance_failure:  # noqa
             expected_result = "this is my custom result"
             mock_req_run.return_value = {"result": expected_result}
@@ -1336,7 +1336,7 @@ class CodeQuestionWithHumanTextFeedbackSpecialCase(
     """
 
     @classmethod
-    def setUpTestData(cls):  # noqa
+    def setUpTestData(cls):
         super().setUpTestData()
 
         client = Client()
@@ -1344,7 +1344,7 @@ class CodeQuestionWithHumanTextFeedbackSpecialCase(
 
         cls.start_flow(client, cls.flow_id)
 
-    def setUp(self):  # noqa
+    def setUp(self):
         super().setUp()
         self.rf = RequestFactory()
 

@@ -38,7 +38,7 @@ from typing import (  # noqa
 import django.forms as forms
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Button, Div, Layout, Submit
-from django import http  # noqa
+from django import http
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import (
@@ -57,7 +57,7 @@ from django.core.exceptions import (
     SuspiciousOperation,
 )
 from django.http import HttpResponseRedirect
-from django.shortcuts import get_object_or_404, redirect, render, resolve_url  # noqa
+from django.shortcuts import get_object_or_404, redirect, render, resolve_url
 from django.template.response import TemplateResponse
 from django.urls import reverse
 from django.utils.http import url_has_allowed_host_and_scheme
@@ -74,7 +74,7 @@ from course.constants import (
     participation_status,
     user_status,
 )
-from course.models import (  # noqa
+from course.models import (
     AuthenticationToken,
     Participation,
     ParticipationRole,
@@ -90,9 +90,9 @@ from relate.utils import (
 
 
 if TYPE_CHECKING:
-    import datetime  # noqa
+    import datetime
 
-    from django.db.models import query  # noqa
+    from django.db.models import query
 
 
 # {{{ impersonation

@@ -40,7 +40,7 @@ from tests.utils import mock
 
 class ExportGradebook(GradesTestMixin, TestCase):
     @classmethod
-    def setUpTestData(cls):  # noqa
+    def setUpTestData(cls):
         super().setUpTestData()
         cls.gopp = factories.GradingOpportunityFactory(course=cls.course)
         cls.student_participation.user.institutional_id = "1234"
@@ -98,7 +98,7 @@ class ExportGradebook(GradesTestMixin, TestCase):
 class FindParticipantFromIdTest(CoursesTestMixinBase, TestCase):
     # test grades.find_participant_from_id
     @classmethod
-    def setUpTestData(cls):  # noqa
+    def setUpTestData(cls):
         super().setUpTestData()
         cls.course = factories.CourseFactory()
         cls.student_participation = factories.ParticipationFactory(
@@ -172,7 +172,7 @@ class FindParticipantFromUserAttrTest(CoursesTestMixinBase, TestCase):
     # test grades.find_participant_from_user_attr
 
     @classmethod
-    def setUpTestData(cls):  # noqa
+    def setUpTestData(cls):
         super().setUpTestData()
         cls.course = factories.CourseFactory()
         cls.student_participation = factories.ParticipationFactory(
@@ -269,7 +269,7 @@ class FindParticipantFromUserAttrTest(CoursesTestMixinBase, TestCase):
 
 class ImportGradesTest(GradesTestMixin, TestCase):
     @classmethod
-    def setUpTestData(cls):  # noqa
+    def setUpTestData(cls):
         super().setUpTestData()
         cls.gopp = factories.GradingOpportunityFactory(course=cls.course)
         cls.student_participation.user.institutional_id = "1234"

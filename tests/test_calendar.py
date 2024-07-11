@@ -394,7 +394,7 @@ class RenumberEventsTest(SingleCourseTestMixin,
         return data
 
     @classmethod
-    def setUpTestData(cls):  # noqa
+    def setUpTestData(cls):
         super().setUpTestData()
         times = []
         now_time = now()

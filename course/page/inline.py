@@ -345,7 +345,7 @@ class ShortAnswer(AnswerBase):
     def get_correct_answer_text(self, page_context):
 
         unspec_correct_answer_text = None
-        for matcher in self.matchers:  # pragma: no branch  # noqa
+        for matcher in self.matchers:  # pragma: no branch
             unspec_correct_answer_text = matcher.correct_answer_text()
             if unspec_correct_answer_text is not None:
                 break

@@ -2693,7 +2693,7 @@ class CheckGradeIdentifierLinkTest(
     # test validation.check_grade_identifier_link
 
     @classmethod
-    def setUpTestData(cls):  # noqa
+    def setUpTestData(cls):
         super().setUpTestData()
 
         cls.default_grade_indentifier = "gopp1"
@@ -2760,7 +2760,7 @@ class CheckForPageTypeChangesTest(
         return dict_to_struct(flow_desc)
 
     @classmethod
-    def setUpTestData(cls):  # noqa
+    def setUpTestData(cls):
         super().setUpTestData()
         cls.course1 = factories.CourseFactory(identifier="test-course1")
         course1_participation = factories.ParticipationFactory(course=cls.course1)

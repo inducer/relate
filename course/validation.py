@@ -45,8 +45,8 @@ from relate.utils import Struct, string_concat
 # {{{ mypy
 
 if TYPE_CHECKING:
-    from course.models import Course  # noqa
-    from relate.utils import Repo_ish  # noqa
+    from course.models import Course
+    from relate.utils import Repo_ish
 
 # }}}
 

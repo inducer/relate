@@ -86,7 +86,7 @@ content: |
 
 
 class SingleCoursePageSandboxTestBaseMixin(SingleCourseTestMixin):
-    def setUp(self):  # noqa
+    def setUp(self):
         super().setUp()
         self.client.force_login(self.instructor_participation.user)
 

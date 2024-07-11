@@ -37,7 +37,7 @@ from course.models import FlowSession
 # {{{ mypy
 
 if TYPE_CHECKING:
-    from course.auth import APIContext  # noqa
+    from course.auth import APIContext
 
 # }}}
 

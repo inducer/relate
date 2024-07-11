@@ -32,7 +32,7 @@ from django.utils.timezone import now, timedelta
 from django.utils.translation import gettext_noop
 
 from course import (
-    constants,  # noqa
+    constants,
     utils,
 )
 from course.constants import flow_permission as fperm
@@ -190,14 +190,14 @@ class LanguageOverrideTest(SingleCoursePageTestMixin,
     force_login_student_for_each_test = False
 
     @classmethod
-    def setUpTestData(cls):  # noqa
+    def setUpTestData(cls):
         super().setUpTestData()
 
         client = Client()
         client.force_login(cls.student_participation.user)
         cls.start_flow(client, cls.flow_id)
 
-    def setUp(self):  # noqa
+    def setUp(self):
         super().setUp()
         self.client.force_login(self.instructor_participation.user)
 
@@ -496,7 +496,7 @@ class EvalGenericSessionConditionsTest(unittest.TestCase):
 class EvalParticipationTagsConditionsTest(CoursesTestMixinBase, TestCase):
     # test utils._eval_participation_tags_conditions
     @classmethod
-    def setUpTestData(cls):  # noqa
+    def setUpTestData(cls):
         course = factories.CourseFactory()
         cls.participation1 = factories.ParticipationFactory(
             course=course)
@@ -1056,7 +1056,7 @@ class GetSessionStartRuleTest(GetSessionRuleMixin, SingleCourseTestMixin, TestCa
         result = self.get_result()
         self.assertRuleEqual(self.fallback_rule, result)
 
-    def test_not_passing_not_for_rollover_and_if_has_fewer_tagged_sessions_than(self):  # noqa
+    def test_not_passing_not_for_rollover_and_if_has_fewer_tagged_sessions_than(self):
         factories.FlowSessionFactory.create_batch(size=2,
             participation=self.student_participation, flow_id=self.flow_id,
             access_rules_tag="atag1")
@@ -1068,7 +1068,7 @@ class GetSessionStartRuleTest(GetSessionRuleMixin, SingleCourseTestMixin, TestCa
         result = self.get_result()
         self.assertRuleEqual(self.fallback_rule, result)
 
-    def test_passing_not_for_rollover_and_if_has_fewer_tagged_sessions_than(self):  # noqa
+    def test_passing_not_for_rollover_and_if_has_fewer_tagged_sessions_than(self):
         factories.FlowSessionFactory.create_batch(size=2,
             participation=self.student_participation, flow_id=self.flow_id,
             access_rules_tag="atag1")
@@ -1162,7 +1162,7 @@ class GetSessionAccessRuleTest(GetSessionRuleMixin, SingleCourseTestMixin, TestC
         }
 
     @classmethod
-    def setUpTestData(cls):  # noqa
+    def setUpTestData(cls):
         super().setUpTestData()
 
         cls.now = now() - timedelta(days=1)
@@ -1409,7 +1409,7 @@ class GetSessionGradingRuleTest(GetSessionRuleMixin,
         }
 
     @classmethod
-    def setUpTestData(cls):  # noqa
+    def setUpTestData(cls):
         super().setUpTestData()
 
         cls.now = now() - timedelta(days=1)

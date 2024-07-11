@@ -914,7 +914,7 @@ class InlineMultiQuestionTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
             "blank1: at least one answer must be provided")
 
     def test_embedded_text_question_no_stringifiable_correct_answer(self):
-        markdown = INLINE_MULTI_MARKDOWN_EMBEDDED_TEXT_Q_NO_STRINGIFIABLE_CORRECT_ANSWER  # noqa
+        markdown = INLINE_MULTI_MARKDOWN_EMBEDDED_TEXT_Q_NO_STRINGIFIABLE_CORRECT_ANSWER
         resp = self.get_page_sandbox_preview_response(markdown)
         self.assertEqual(resp.status_code, 200)
         self.assertSandboxNotHasValidPage(resp)

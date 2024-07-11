@@ -34,7 +34,7 @@ from tests.utils import SKIP_NON_PSQL_REASON, is_connection_psql, mock  # noqa
 @pytest.mark.django_db
 class PostgreSQLTestMixin:
     @classmethod
-    def setUpTestData(cls):  # noqa
+    def setUpTestData(cls):
         super().setUpTestData()
 
     @classmethod

@@ -41,8 +41,8 @@ from typing import (  # noqa
 )
 
 import django.forms as forms
-import dulwich.blob  # noqa
-import dulwich.client  # noqa
+import dulwich.blob
+import dulwich.client
 import paramiko
 import paramiko.client
 from crispy_forms.layout import Submit
@@ -83,11 +83,11 @@ from relate.utils import (
 # {{{ for mypy
 
 if TYPE_CHECKING:
-    import dulwich.web  # noqa
+    import dulwich.web
     from dulwich.client import GitClient  # noqa
-    from dulwich.objects import Commit  # noqa
+    from dulwich.objects import Commit
 
-    from course.auth import APIContext  # noqa
+    from course.auth import APIContext
 
 # }}}
 
@@ -119,7 +119,6 @@ def transfer_remote_refs(
 def get_dulwich_client_and_remote_path_from_course(
         course: Course) -> Tuple[
                 Union[dulwich.client.GitClient, dulwich.client.SSHGitClient], str]:
-    # noqa
     ssh_kwargs = {}
     if course.ssh_private_key:
         from io import StringIO
@@ -258,8 +257,8 @@ def set_up_new_course(request: http.HttpRequest) -> http.HttpResponse:
                     # to delete the directory if we created it. Trust me.
 
                     # Make sure files opened for 'repo' above are actually closed.
-                    if repo is not None:  # noqa
-                        repo.close()  # noqa
+                    if repo is not None:
+                        repo.close()
 
                     from relate.utils import force_remove_path
 

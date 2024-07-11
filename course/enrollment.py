@@ -29,7 +29,7 @@ from typing import TYPE_CHECKING, Any, FrozenSet, List, Optional, Text, Tuple  #
 from crispy_forms.layout import Submit
 from django import (
     forms,
-    http,  # noqa
+    http,
 )
 from django.conf import settings
 from django.contrib import messages
@@ -65,8 +65,8 @@ from relate.utils import StyledForm, StyledModelForm, string_concat
 # {{{ for mypy
 
 if TYPE_CHECKING:
-    import accounts.models  # noqa
-    from course.utils import CoursePageContext  # noqa
+    import accounts.models
+    from course.utils import CoursePageContext
 
 # }}}
 

@@ -24,12 +24,12 @@ THE SOFTWARE.
 """
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, FrozenSet, Optional, Tuple  # noqa
+from typing import TYPE_CHECKING, FrozenSet, Optional, Tuple
 
 import django.forms as forms
 from crispy_forms.layout import Submit
-from django import http  # noqa
-from django.contrib import messages  # noqa
+from django import http
+from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import permission_required
 from django.core.exceptions import (  # noqa
@@ -68,7 +68,7 @@ from relate.utils import HTML5DateTimeInput, StyledForm, string_concat
 # {{{ mypy
 
 if TYPE_CHECKING:
-    import datetime  # noqa
+    import datetime
 
 # }}}
 
@@ -260,7 +260,7 @@ INITIAL_EXAM_TICKET_TEMPLATE = string_concat("""\
 
 {% for ticket in tickets %}
 <h2 style="page-break-before: always">""",
-_("Instructions for "  # noqa
+_("Instructions for "
   "{{ ticket.exam_description }}"), """
 </h2>
 

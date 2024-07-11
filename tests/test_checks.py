@@ -230,7 +230,7 @@ class CheckRelateUserProfileMaskMethod(CheckRelateSettingsBase):
         with override_settings(
                 RELATE_USER_PROFILE_MASK_METHOD=(
                         "tests.resource"
-                        ".my_get_masked_profile_method_return_none")):  # noqa
+                        ".my_get_masked_profile_method_return_none")):
             self.assertCheckMessages([])
             from tests.resource import (
                 my_get_masked_profile_method_return_none as custom_method,
@@ -246,7 +246,7 @@ class CheckRelateUserProfileMaskMethod(CheckRelateSettingsBase):
         with override_settings(
                 RELATE_USER_PROFILE_MASK_METHOD=(
                         "tests.resource"
-                        ".my_get_masked_profile_method_return_emtpy_string")):  # noqa
+                        ".my_get_masked_profile_method_return_emtpy_string")):
             self.assertCheckMessages([])
             from tests.resource import (
                 my_get_masked_profile_method_return_emtpy_string as custom_method,
