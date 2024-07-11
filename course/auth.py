@@ -24,14 +24,9 @@ THE SOFTWARE.
 """
 
 import re
-from typing import (  # noqa
+from typing import (
     TYPE_CHECKING,
     Any,
-    Dict,
-    Optional,
-    Text,
-    Tuple,
-    Union,
     cast,
 )
 
@@ -1201,11 +1196,11 @@ class APIError(Exception):
 
 
 def find_matching_token(
-        course_identifier: Optional[str] = None,
-        token_id: Optional[int] = None,
-        token_hash_str: Optional[str] = None,
-        now_datetime: Optional[datetime.datetime] = None
-        ) -> Optional[AuthenticationToken]:
+        course_identifier: str | None = None,
+        token_id: int | None = None,
+        token_hash_str: str | None = None,
+        now_datetime: datetime.datetime | None = None
+        ) -> AuthenticationToken | None:
     try:
         token = AuthenticationToken.objects.get(
                 id=token_id,
@@ -1270,7 +1265,7 @@ class APIContext:
 
         self.restrict_to_role = restrict_to_role
 
-    def has_permission(self, perm: str, argument: Optional[str] = None) -> bool:
+    def has_permission(self, perm: str, argument: str | None = None) -> bool:
         if self.restrict_to_role is None:
             return self.participation.has_permission(perm, argument)
         else:

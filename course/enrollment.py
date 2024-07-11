@@ -24,7 +24,7 @@ THE SOFTWARE.
 """
 
 from sys import intern
-from typing import TYPE_CHECKING, Any, FrozenSet, List, Optional, Text, Tuple  # noqa
+from typing import TYPE_CHECKING, Any
 
 from crispy_forms.layout import Submit
 from django import (
@@ -75,7 +75,7 @@ if TYPE_CHECKING:
 
 def get_participation_for_user(
         user: accounts.models.User, course: Course
-        ) -> Optional[Participation]:
+        ) -> Participation | None:
     # "wake up" lazy object
     # http://stackoverflow.com/questions/20534577/int-argument-must-be-a-string-or-a-number-not-simplelazyobject  # noqa
     try:
@@ -105,7 +105,7 @@ def get_participation_for_user(
 
 
 def get_participation_for_request(
-        request: http.HttpRequest, course: Course) -> Optional[Participation]:
+        request: http.HttpRequest, course: Course) -> Participation | None:
     return get_participation_for_user(request.user, course)
 
 # }}}
@@ -114,7 +114,7 @@ def get_participation_for_request(
 # {{{ get_participation_role_identifiers
 
 def get_participation_role_identifiers(
-        course: Course, participation: Optional[Participation]) -> List[str]:
+        course: Course, participation: Participation | None) -> list[str]:
     if participation is None:
         return (
                 ParticipationRole.objects.filter(
@@ -132,8 +132,8 @@ def get_participation_role_identifiers(
 
 def get_participation_permissions(
         course: Course,
-        participation: Optional[Participation],
-        ) -> FrozenSet[Tuple[str, Optional[str]]]:
+        participation: Participation | None,
+        ) -> frozenset[tuple[str, str | None]]:
 
     if participation is not None:
         return participation.permissions()
@@ -310,8 +310,8 @@ def handle_enrollment_request(
         course: Course,
         user: Any,
         status: str,
-        roles: Optional[List[ParticipationRole]],
-        request: Optional[http.HttpRequest] = None
+        roles: list[ParticipationRole] | None,
+        request: http.HttpRequest | None = None
         ) -> Participation:
     participations = Participation.objects.filter(course=course, user=user)
 
@@ -368,7 +368,7 @@ def decide_enrollment(approved, modeladmin, request, queryset):
 def send_enrollment_decision(
         participation: Participation,
         approved: bool,
-        request: Optional[http.HttpRequest] = None) -> None:
+        request: http.HttpRequest | None = None) -> None:
     course = participation.course
     with LanguageOverride(course=course):
         if request:

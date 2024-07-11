@@ -23,8 +23,11 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from typing import (  # noqa
-    TYPE_CHECKING, Any, Dict, FrozenSet, Iterable, List, Optional, Text, Tuple, cast,
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Iterable,
+    cast,
 )
 
 from django.conf import settings
@@ -38,14 +41,26 @@ from django.utils.timezone import now
 from django.utils.translation import gettext_lazy as _, pgettext_lazy
 
 from course.constants import (  # noqa
-    COURSE_ID_REGEX, EVENT_KIND_REGEX, EXAM_TICKET_STATE_CHOICES,
-    FLOW_PERMISSION_CHOICES, FLOW_RULE_KIND_CHOICES,
-    FLOW_SESSION_EXPIRATION_MODE_CHOICES, GRADE_AGGREGATION_STRATEGY_CHOICES,
-    GRADE_STATE_CHANGE_CHOICES, GRADING_OPP_ID_REGEX,
-    PARTICIPATION_PERMISSION_CHOICES, PARTICIPATION_STATUS_CHOICES,
-    USER_STATUS_CHOICES, exam_ticket_states, flow_permission, flow_rule_kind,
-    flow_session_expiration_mode, grade_aggregation_strategy,
-    grade_state_change_types, participation_permission, participation_status,
+    COURSE_ID_REGEX,
+    EVENT_KIND_REGEX,
+    EXAM_TICKET_STATE_CHOICES,
+    FLOW_PERMISSION_CHOICES,
+    FLOW_RULE_KIND_CHOICES,
+    FLOW_SESSION_EXPIRATION_MODE_CHOICES,
+    GRADE_AGGREGATION_STRATEGY_CHOICES,
+    GRADE_STATE_CHANGE_CHOICES,
+    GRADING_OPP_ID_REGEX,
+    PARTICIPATION_PERMISSION_CHOICES,
+    PARTICIPATION_STATUS_CHOICES,
+    USER_STATUS_CHOICES,
+    exam_ticket_states,
+    flow_permission,
+    flow_rule_kind,
+    flow_session_expiration_mode,
+    grade_aggregation_strategy,
+    grade_state_change_types,
+    participation_permission,
+    participation_status,
     user_status,
 )
 from relate.utils import string_concat

@@ -25,15 +25,10 @@ THE SOFTWARE.
 
 
 import datetime
-from typing import (  # noqa
+from typing import (
     TYPE_CHECKING,
     Any,
-    Dict,
-    List,
     Mapping,
-    Optional,
-    Text,
-    Tuple,
     Union,
 )
 
@@ -167,8 +162,8 @@ def get_site_name() -> str:
     return getattr(settings, "RELATE_SITE_NAME", "RELATE")
 
 
-def render_email_template(template_name: str, context: Optional[Dict] = None,
-        request: Optional[HttpRequest] = None, using: Optional[bool] = None) -> str:
+def render_email_template(template_name: str, context: dict | None = None,
+        request: HttpRequest | None = None, using: bool | None = None) -> str:
     if context is None:
         context = {}
     context.update({"relate_site_name": _(get_site_name())})
@@ -248,7 +243,7 @@ def format_datetime_local(
 # {{{ dict_to_struct
 
 class Struct:
-    def __init__(self, entries: Dict) -> None:
+    def __init__(self, entries: dict) -> None:
         for name, val in entries.items():
             setattr(self, name, val)
 
@@ -258,7 +253,7 @@ class Struct:
         return repr(self.__dict__)
 
 
-def dict_to_struct(data: Dict) -> Struct:
+def dict_to_struct(data: dict) -> Struct:
     if isinstance(data, list):
         return [dict_to_struct(d) for d in data]
     elif isinstance(data, dict):
@@ -267,7 +262,7 @@ def dict_to_struct(data: Dict) -> Struct:
         return data
 
 
-def struct_to_dict(data: Struct) -> Dict:
+def struct_to_dict(data: Struct) -> dict:
     return {
             name: val
             for name, val in data.__dict__.items()
@@ -276,8 +271,8 @@ def struct_to_dict(data: Struct) -> Dict:
 # }}}
 
 
-def retry_transaction(f: Any, args: Tuple, kwargs: Optional[Dict] = None,
-        max_tries: Optional[int] = None, serializable: Optional[bool] = None) -> Any:
+def retry_transaction(f: Any, args: tuple, kwargs: dict | None = None,
+        max_tries: int | None = None, serializable: bool | None = None) -> Any:
     if kwargs is None:
         kwargs = {}
 
@@ -313,8 +308,8 @@ def retry_transaction(f: Any, args: Tuple, kwargs: Optional[Dict] = None,
 
 
 class retry_transaction_decorator:  # noqa
-    def __init__(self, max_tries: Optional[int] = None,
-            serializable: Optional[bool] = None) -> None:
+    def __init__(self, max_tries: int | None = None,
+            serializable: bool | None = None) -> None:
         self.max_tries = max_tries
         self.serializable = serializable
 
@@ -361,7 +356,7 @@ if 0:
 #{{{ Allow multiple email connections
 # https://gist.github.com/niran/840999
 
-def get_outbound_mail_connection(label: Optional[str] = None, **kwargs: Any) -> Any:
+def get_outbound_mail_connection(label: str | None = None, **kwargs: Any) -> Any:
     from django.conf import settings
     if label is None:
         label = getattr(settings, "EMAIL_CONNECTION_DEFAULT", None)

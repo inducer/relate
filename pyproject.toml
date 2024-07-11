@@ -188,7 +188,7 @@ extend-select = [
     "Q",   # flake8-quotes
     "W",   # pycodestyle
     "RUF",
-    # "UP",
+    "UP",
     # "DJ",
 ]
 
@@ -207,6 +207,8 @@ extend-ignore = [
     "B028", # stacklevel
     "E251",
     "RUF012", # mutable class atttributes
+    "UP031", # format
+    "UP032" # f-string
 ]
 allowed-confusables = ["‐", "–"]
 

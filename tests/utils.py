@@ -1,33 +1,13 @@
 import sys
-
-
-try:
-    from importlib import reload
-except ImportError:
-    pass  # PY2
 from functools import wraps
-from importlib import import_module
+from importlib import import_module, reload
 from io import StringIO
+from unittest import mock  # noqa: F401
 
 from django.conf import settings
 from django.core import mail
 from django.test import override_settings
 from django.urls import clear_url_caches
-
-
-try:
-    # for Django < 2.0
-    from django.test import mock
-except ImportError:
-    # Since Django >= 2.0 only support PY3
-    from unittest import mock
-
-    if sys.version_info < (3, 8):
-        # __round__ is missing from MagicMock before Py3.8
-        # https://github.com/python/cpython/pull/6880
-        # Work around this by monkeypatching mock:
-        mock._magics.add("__round__")
-        mock._all_magics = mock._magics | mock._non_defaults
 
 
 # {{{ These are copied (and maybe modified) from django official unit tests

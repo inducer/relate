@@ -25,9 +25,8 @@ THE SOFTWARE.
 
 import datetime  # noqa
 from contextlib import ContextDecorator
-from typing import (  # noqa
-    TYPE_CHECKING, Any, Dict, FrozenSet, Iterable, List, Optional, Text, Tuple,
-    Union, cast,
+from typing import (
+    TYPE_CHECKING, Any, Iterable, cast,
 )
 
 from django import http
@@ -229,7 +228,7 @@ def get_flow_rules(
         flow_id: str,
         now_datetime: datetime.datetime,
         consider_exceptions: bool = True,
-        default_rules_desc: Optional[list[Any]] = None
+        default_rules_desc: list[Any] | None = None
         ) -> list[Any]:
     if default_rules_desc is None:
         default_rules_desc = []
@@ -883,16 +882,15 @@ class PageInstanceCache:
 
 def get_codemirror_widget(
         language_mode: str,
-        interaction_mode: Optional[str],
+        interaction_mode: str | None,
         config: dict | None = None,
         addon_css: tuple = (),
         addon_js: tuple = (),
         dependencies: tuple = (),
         read_only: bool = False,
         autofocus: bool = False,
-        additional_keys: Optional[
-            Dict[str, Union[str, CodeMirrorJavascript]]] = None,
-        attrs: Optional[Dict[str, str]] = None,
+        additional_keys: dict[str, str | CodeMirrorJavascript] | None = None,
+        attrs: dict[str, str] | None = None,
         ) -> tuple[CodeMirrorTextarea, str]:
     from codemirror import CodeMirrorJavascript, CodeMirrorTextarea
     if additional_keys is None:

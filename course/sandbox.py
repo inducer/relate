@@ -20,7 +20,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from typing import Any, Dict, Iterable, Optional, Text, Tuple, cast  # noqa
+from typing import Any, Optional, Tuple, cast
 
 import django.forms as forms
 from crispy_forms.layout import Submit
