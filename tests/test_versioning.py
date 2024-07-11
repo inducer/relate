@@ -217,7 +217,7 @@ class CourseCreationTest(VersioningTestMixin, TestCase):
         with mock.patch(
                 "dulwich.client.GitClient.fetch"
         ) as mock_fetch, mock.patch(
-                'relate.utils.force_remove_path'
+                "relate.utils.force_remove_path"
         )as mock_force_remove_path:
             mock_fetch.side_effect = RuntimeError("my fetch error")
             mock_force_remove_path.side_effect = force_remove_path_side_effect
@@ -268,7 +268,7 @@ class CourseCreationTest(VersioningTestMixin, TestCase):
                             refs={b"HEAD": b"some_commit_sha"},
                             symrefs={},
                             agent="Git")), \
-             mock.patch('course.versioning.messages'), \
+             mock.patch("course.versioning.messages"), \
              mock.patch("course.validation.validate_course_content",
                         return_value=None) as mock_validate, \
                 mock.patch("course.models.Course.save"), \

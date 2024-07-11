@@ -132,7 +132,7 @@ class CheckRelateURL(CheckRelateSettingsBase):
 class CheckRelateUserProfileMaskMethod(CheckRelateSettingsBase):
     # This TestCase is not pure for check, but also make sure it returned
     # expected result
-    databases = '__all__'
+    databases = "__all__"
 
     msg_id_prefix = "relate_user_profile_mask_method"
 
@@ -197,7 +197,7 @@ class CheckRelateUserProfileMaskMethod(CheckRelateSettingsBase):
             return "profile"
 
         with override_settings(RELATE_USER_PROFILE_MASK_METHOD=custom_method):
-            self.assertCheckMessages(['relate_user_profile_mask_method.E003'])
+            self.assertCheckMessages(["relate_user_profile_mask_method.E003"])
 
     def test_get_masked_profile_param_invalid2(self):
         # the method has 2 args/kwargs
@@ -205,7 +205,7 @@ class CheckRelateUserProfileMaskMethod(CheckRelateSettingsBase):
             return "{}{}".format("User", str(u.pk + 1))
 
         with override_settings(RELATE_USER_PROFILE_MASK_METHOD=custom_method):
-            self.assertCheckMessages(['relate_user_profile_mask_method.E003'])
+            self.assertCheckMessages(["relate_user_profile_mask_method.E003"])
 
     def test_get_masked_profile_param_invalid3(self):
         # the method has 2 args/kwargs
@@ -213,18 +213,18 @@ class CheckRelateUserProfileMaskMethod(CheckRelateSettingsBase):
             return "{}{}".format("User", str(u.pk + 1))
 
         with override_settings(RELATE_USER_PROFILE_MASK_METHOD=custom_method):
-            self.assertCheckMessages(['relate_user_profile_mask_method.E003'])
+            self.assertCheckMessages(["relate_user_profile_mask_method.E003"])
 
     def test_get_masked_profile_invalid_path(self):
         with override_settings(RELATE_USER_PROFILE_MASK_METHOD="invalid path"):
-            self.assertCheckMessages(['relate_user_profile_mask_method.E001'])
+            self.assertCheckMessages(["relate_user_profile_mask_method.E001"])
 
     def test_get_masked_profile_valid_path_not_callable(self):
         with override_settings(
                 RELATE_USER_PROFILE_MASK_METHOD=(
                         "tests.resource"
                         ".my_custom_get_masked_profile_method_invalid_str")):
-            self.assertCheckMessages(['relate_user_profile_mask_method.E002'])
+            self.assertCheckMessages(["relate_user_profile_mask_method.E002"])
 
     def test_passed_check_but_return_none(self):
         with override_settings(
@@ -262,7 +262,7 @@ class CheckRelateUserProfileMaskMethod(CheckRelateSettingsBase):
 class CheckRelateUserFullNameFormatMethod(CheckRelateSettingsBase):
     # This TestCase is not pure for check, but also make sure it returned
     # expected result
-    databases = '__all__'
+    databases = "__all__"
 
     msg_id_prefix = "relate_user_full_name_format_method"
 
@@ -295,7 +295,7 @@ class CheckRelateUserFullNameFormatMethod(CheckRelateSettingsBase):
             ({"id": 1,
               "custom_method": None,
               "user_dict": {},
-              "default": '',
+              "default": "",
               "not_allow_blank": None,
               "force_verbose_blank": "(blank) (blank)"}),
             ({"id": 2,
@@ -316,49 +316,49 @@ class CheckRelateUserFullNameFormatMethod(CheckRelateSettingsBase):
               "default": default_result,
               "not_allow_blank": default_result,
               "force_verbose_blank": default_result,
-              "check_messages": ['relate_user_full_name_format_method.W003']}),
+              "check_messages": ["relate_user_full_name_format_method.W003"]}),
             ({"id": 5,
               "custom_method": invalid_method2,
               "user_dict": default_user_dict,
               "default": default_result,
               "not_allow_blank": default_result,
               "force_verbose_blank": default_result,
-              "check_messages": ['relate_user_full_name_format_method.W004']}),
+              "check_messages": ["relate_user_full_name_format_method.W004"]}),
             ({"id": 6,
               "custom_method": invalid_method3,
               "user_dict": default_user_dict,
               "default": default_result,
               "not_allow_blank": default_result,
               "force_verbose_blank": default_result,
-              "check_messages": ['relate_user_full_name_format_method.W004']}),
+              "check_messages": ["relate_user_full_name_format_method.W004"]}),
             ({"id": 7,
               "custom_method": invalid_method4,
               "user_dict": default_user_dict,
               "default": default_result,
               "not_allow_blank": default_result,
               "force_verbose_blank": default_result,
-              "check_messages": ['relate_user_full_name_format_method.W004']}),
+              "check_messages": ["relate_user_full_name_format_method.W004"]}),
             ({"id": 8,
               "custom_method": invalid_method5,
               "user_dict": default_user_dict,
               "default": default_result,
               "not_allow_blank": default_result,
               "force_verbose_blank": default_result,
-              "check_messages": ['relate_user_full_name_format_method.W005']}),
+              "check_messages": ["relate_user_full_name_format_method.W005"]}),
             ({"id": 9,
               "custom_method": invalid_method6,
               "user_dict": default_user_dict,
               "default": default_result,
               "not_allow_blank": default_result,
               "force_verbose_blank": default_result,
-              "check_messages": ['relate_user_full_name_format_method.W004']}),
+              "check_messages": ["relate_user_full_name_format_method.W004"]}),
             ({"id": 10,
               "custom_method": "abcd",  # a string
               "user_dict": default_user_dict,
               "default": default_result,
               "not_allow_blank": default_result,
               "force_verbose_blank": default_result,
-              "check_messages": ['relate_user_full_name_format_method.W001']}),
+              "check_messages": ["relate_user_full_name_format_method.W001"]}),
             ({"id": 11,
               "custom_method":
                   "tests.resource.my_customized_get_full_name_method",
@@ -373,7 +373,7 @@ class CheckRelateUserFullNameFormatMethod(CheckRelateSettingsBase):
               "default": default_result,
               "not_allow_blank": default_result,
               "force_verbose_blank": default_result,
-              "check_messages": ['relate_user_full_name_format_method.W004']}),
+              "check_messages": ["relate_user_full_name_format_method.W004"]}),
             ({"id": 13,
               "custom_method":
                   "tests.resource.my_customized_get_full_name_method_invalid_str",
@@ -381,7 +381,7 @@ class CheckRelateUserFullNameFormatMethod(CheckRelateSettingsBase):
               "default": default_result,
               "not_allow_blank": default_result,
               "force_verbose_blank": default_result,
-              "check_messages": ['relate_user_full_name_format_method.W002']}),
+              "check_messages": ["relate_user_full_name_format_method.W002"]}),
             ({"id": 14,
               "custom_method":
                   "tests.resource.my_customized_get_full_name_method",
@@ -458,30 +458,30 @@ class CheckRelateEmailConnections(CheckRelateSettingsBase):
     VALID_CONF_EMPTY_DICT = {}
     VALID_CONF = {
         "robot": {
-            'backend': 'django.core.mail.backends.console.EmailBackend',
-            'host': 'smtp.gmail.com',
-            'username': 'blah@blah.com',
-            'password': 'password',
-            'port': 587,
-            'use_tls': True,
+            "backend": "django.core.mail.backends.console.EmailBackend",
+            "host": "smtp.gmail.com",
+            "username": "blah@blah.com",
+            "password": "password",
+            "port": 587,
+            "use_tls": True,
         },
         "other": {}
     }
     INVALID_CONF_EMPTY_LIST = []
     INVALID_CONF_LIST = [VALID_CONF]
     INVALID_CONF_LIST_AS_ITEM_VALUE = {
-        "robot": ['blah@blah.com'],
+        "robot": ["blah@blah.com"],
         "other": [],
         "yet_another": {}
     }
     INVALID_CONF_INVALID_BACKEND = {
         "robot": {
-            'backend': 'an.invalid.emailBackend',  # invalid backend
-            'host': 'smtp.gmail.com',
-            'username': 'blah@blah.com',
-            'password': 'password',
-            'port': 587,
-            'use_tls': True,
+            "backend": "an.invalid.emailBackend",  # invalid backend
+            "host": "smtp.gmail.com",
+            "username": "blah@blah.com",
+            "password": "password",
+            "port": 587,
+            "use_tls": True,
         },
         "other": {}
     }
@@ -776,7 +776,7 @@ def side_effect_os_access(*args, **kwargs):
     return True
 
 
-@mock.patch('os.access', side_effect=side_effect_os_access)
+@mock.patch("os.access", side_effect=side_effect_os_access)
 @mock.patch("os.path.isdir", side_effect=side_effect_os_path_is_dir)
 class CheckGitRoot(CheckRelateSettingsBase):
     msg_id_prefix = "git_root"
@@ -837,34 +837,34 @@ class CheckRelateCourseLanguages(CheckRelateSettingsBase):
     msg_id_prefix = "relate_languages"
 
     VALID_CONF1 = [
-        ('en', _('my English')),
-        ('zh-hans', _('Simplified Chinese')),
-        ('de', _('German'))]
+        ("en", _("my English")),
+        ("zh-hans", _("Simplified Chinese")),
+        ("de", _("German"))]
     VALID_CONF2 = (
-        ('en', _('English')),
-        ('zh-hans', _('Simplified Chinese')),
-        ('de', _('German')))
+        ("en", _("English")),
+        ("zh-hans", _("Simplified Chinese")),
+        ("de", _("German")))
     VALID_CONF3 = (
-        ('en', 'English'),
-        ('zh-hans', 'Simplified Chinese'),
-        ('de', _('German')))
+        ("en", "English"),
+        ("zh-hans", "Simplified Chinese"),
+        ("de", _("German")))
 
     VALID_WITH_WARNNING_CONF = (
-        ('en', 'English'),
-        ('zh-hans', 'Simplified Chinese'),
-        ('zh-hans', 'my Simplified Chinese'),
-        ('de', _('German')))
+        ("en", "English"),
+        ("zh-hans", "Simplified Chinese"),
+        ("zh-hans", "my Simplified Chinese"),
+        ("de", _("German")))
 
-    VALID_CONF4 = [('en', ('English',)), ]
-    VALID_CONF5 = (['en', 'English'],)
-    VALID_CONF6 = [(('en',), _('English')), ]
+    VALID_CONF4 = [("en", ("English",)), ]
+    VALID_CONF5 = (["en", "English"],)
+    VALID_CONF6 = [(("en",), _("English")), ]
 
     INVALID_CONF1 = {
-        'en': 'English',
-        'zh-hans': 'Simplified Chinese',
-        'de': _('German')}
-    INVALID_CONF2 = (('en',),)
-    INVALID_CONF3 = [('en',), ([], 'English'), ["1", "2"]]
+        "en": "English",
+        "zh-hans": "Simplified Chinese",
+        "de": _("German")}
+    INVALID_CONF2 = (("en",),)
+    INVALID_CONF3 = [("en",), ([], "English"), ["1", "2"]]
     INVALID_CONF4 = "some thing"
 
     def test_valid(self):

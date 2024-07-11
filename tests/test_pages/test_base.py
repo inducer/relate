@@ -375,7 +375,7 @@ class HumanTextFeedbackFormTest(unittest.TestCase):
         form = HumanTextFeedbackForm(5, form_data)
         self.assertFalse(form.is_valid())
         self.assertEqual(form.non_field_errors(),
-                         ['Grade (percent) and Grade (points) disagree'])
+                         ["Grade (percent) and Grade (points) disagree"])
 
     def test_form_points_percentage_valid(self):
         form_data = {"grade_percent": 30, "grade_points": 1.50001}

@@ -824,7 +824,7 @@ class EnrollmentDecisionTest(EnrollmentDecisionTestMixin, TestCase):
         del post_data["approve"]
 
         # add an unknown post operation
-        post_data["unknown"] = ''
+        post_data["unknown"] = ""
 
         with self.temporarily_switch_to_user(self.instructor_participation.user):
             resp = self.client.post(
@@ -875,7 +875,7 @@ class EnrollmentDecisionTest(EnrollmentDecisionTestMixin, TestCase):
         add_post_data = {"submit": [""]}
         add_post_data.update(form_data)
         resp = self.client.post(self.add_new_url, add_post_data, follow=True)
-        self.assertFormError(resp.context['form'], 'user',
+        self.assertFormError(resp.context["form"], "user",
                              VALIDATION_ERROR_USER_NOT_CONFIRMED)
         self.assertEqual(
             self.get_participation_count_by_status(p_status.active),
@@ -940,8 +940,8 @@ class EnrollmentDecisionTest(EnrollmentDecisionTestMixin, TestCase):
 
         from django.forms.models import ModelChoiceField
         self.assertFormError(
-            resp.context['form'], 'user',
-            ModelChoiceField.default_error_messages['invalid_choice'])
+            resp.context["form"], "user",
+            ModelChoiceField.default_error_messages["invalid_choice"])
 
     def test_edit_participation_view_enroll_decision_deny_no_permission1(self):
         with self.temporarily_switch_to_user(self.student_participation.user):
@@ -1145,9 +1145,9 @@ class CreatePreapprovalsTest(EnrollmentTestMixin,
         self.assertAddMessageCalledWith(
             [MESSAGE_BATCH_PREAPPROVED_RESULT_PATTERN
              % {
-                 'n_created': 2,
-                 'n_exist': 0,
-                 'n_requested_approved': 0
+                 "n_created": 2,
+                 "n_exist": 0,
+                 "n_requested_approved": 0
              }])
 
         # repost same data
@@ -1161,9 +1161,9 @@ class CreatePreapprovalsTest(EnrollmentTestMixin,
         self.assertAddMessageCalledWith(
             [MESSAGE_BATCH_PREAPPROVED_RESULT_PATTERN
              % {
-                 'n_created': 0,
-                 'n_exist': 2,
-                 'n_requested_approved': 0
+                 "n_created": 0,
+                 "n_exist": 2,
+                 "n_requested_approved": 0
              }])
 
     def test_create_preapproval_email_handle_pendinng(self):
@@ -1182,9 +1182,9 @@ class CreatePreapprovalsTest(EnrollmentTestMixin,
         self.assertAddMessageCalledWith(
             [MESSAGE_BATCH_PREAPPROVED_RESULT_PATTERN
              % {
-                 'n_created': 2,
-                 'n_exist': 0,
-                 'n_requested_approved': 1
+                 "n_created": 2,
+                 "n_exist": 0,
+                 "n_requested_approved": 1
              }])
         self.assertEqual(
             self.mock_send_enrollment_decision.call_count, 1)
@@ -1201,9 +1201,9 @@ class CreatePreapprovalsTest(EnrollmentTestMixin,
         self.assertAddMessageCalledWith(
             [MESSAGE_BATCH_PREAPPROVED_RESULT_PATTERN
              % {
-                 'n_created': 0,
-                 'n_exist': 2,
-                 'n_requested_approved': 0
+                 "n_created": 0,
+                 "n_exist": 2,
+                 "n_requested_approved": 0
              }])
         self.assertEqual(
             self.mock_send_enrollment_decision.call_count, 0)
@@ -1220,9 +1220,9 @@ class CreatePreapprovalsTest(EnrollmentTestMixin,
         self.assertAddMessageCalledWith(
             [MESSAGE_BATCH_PREAPPROVED_RESULT_PATTERN
              % {
-                 'n_created': 2,
-                 'n_exist': 0,
-                 'n_requested_approved': 0
+                 "n_created": 2,
+                 "n_exist": 0,
+                 "n_requested_approved": 0
              }])
 
         # repost same data
@@ -1236,9 +1236,9 @@ class CreatePreapprovalsTest(EnrollmentTestMixin,
         self.assertAddMessageCalledWith(
             [MESSAGE_BATCH_PREAPPROVED_RESULT_PATTERN
              % {
-                 'n_created': 0,
-                 'n_exist': 2,
-                 'n_requested_approved': 0
+                 "n_created": 0,
+                 "n_exist": 2,
+                 "n_requested_approved": 0
              }])
 
     def test_create_preapproval_inst_id_handle_pending_require_verified(self):
@@ -1266,9 +1266,9 @@ class CreatePreapprovalsTest(EnrollmentTestMixin,
         self.assertAddMessageCalledWith(
             [MESSAGE_BATCH_PREAPPROVED_RESULT_PATTERN
              % {
-                 'n_created': 3,
-                 'n_exist': 0,
-                 'n_requested_approved': 2
+                 "n_created": 3,
+                 "n_exist": 0,
+                 "n_requested_approved": 2
              }])
 
         self.assertEqual(
@@ -1286,9 +1286,9 @@ class CreatePreapprovalsTest(EnrollmentTestMixin,
         self.assertAddMessageCalledWith(
             [MESSAGE_BATCH_PREAPPROVED_RESULT_PATTERN
              % {
-                 'n_created': 0,
-                 'n_exist': 3,
-                 'n_requested_approved': 0
+                 "n_created": 0,
+                 "n_exist": 3,
+                 "n_requested_approved": 0
              }])
         self.assertEqual(
             self.mock_send_enrollment_decision.call_count, 0)
@@ -1316,9 +1316,9 @@ class CreatePreapprovalsTest(EnrollmentTestMixin,
         self.assertAddMessageCalledWith(
             [MESSAGE_BATCH_PREAPPROVED_RESULT_PATTERN
              % {
-                 'n_created': 3,
-                 'n_exist': 0,
-                 'n_requested_approved': 1
+                 "n_created": 3,
+                 "n_exist": 0,
+                 "n_requested_approved": 1
              }])
         self.assertEqual(
             self.mock_send_enrollment_decision.call_count, 1)
@@ -1335,9 +1335,9 @@ class CreatePreapprovalsTest(EnrollmentTestMixin,
         self.assertAddMessageCalledWith(
             [MESSAGE_BATCH_PREAPPROVED_RESULT_PATTERN
              % {
-                 'n_created': 0,
-                 'n_exist': 3,
-                 'n_requested_approved': 0
+                 "n_created": 0,
+                 "n_exist": 3,
+                 "n_requested_approved": 0
              }])
         self.assertEqual(
             self.mock_send_enrollment_decision.call_count, 0)
@@ -1403,11 +1403,11 @@ class EnrollmentEmailConnectionsTestMixin(LocmemBackendTestsMixin):
 
     email_connections = {
         "enroll": {
-            'host': 'smtp.gmail.com',
-            'username': 'blah@blah.com',
-            'password': 'password',
-            'port': 587,
-            'use_tls': True,
+            "host": "smtp.gmail.com",
+            "username": "blah@blah.com",
+            "password": "password",
+            "port": 587,
+            "use_tls": True,
         },
     }
 
