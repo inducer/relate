@@ -20,16 +20,19 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
+import celery
 import pytest
 from django.test import TestCase, override_settings
 from django.utils.timezone import now, timedelta
 from pkg_resources import parse_version
 
-import celery
 from course import models
 from course.tasks import (
-    expire_in_progress_sessions, finish_in_progress_sessions, purge_page_view_data,
-    recalculate_ended_sessions, regrade_flow_sessions,
+    expire_in_progress_sessions,
+    finish_in_progress_sessions,
+    purge_page_view_data,
+    recalculate_ended_sessions,
+    regrade_flow_sessions,
 )
 from tests import factories
 from tests.base_test_mixins import SingleCourseTestMixin, TwoCoursePageTestMixin

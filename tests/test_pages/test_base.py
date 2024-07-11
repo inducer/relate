@@ -25,7 +25,10 @@ import unittest
 from django.test import Client, TestCase
 
 from course.page.base import (
-    HumanTextFeedbackForm, PageBase, PageBehavior, create_default_point_scale,
+    HumanTextFeedbackForm,
+    PageBase,
+    PageBehavior,
+    create_default_point_scale,
     get_editor_interaction_mode,
 )
 from relate.utils import dict_to_struct

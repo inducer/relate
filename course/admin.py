@@ -29,11 +29,26 @@ from django.utils.translation import gettext_lazy as _, pgettext
 from course.constants import exam_ticket_states, participation_permission as pperm
 from course.enrollment import approve_enrollment, deny_enrollment
 from course.models import (
-    AuthenticationToken, Course, Event, Exam, ExamTicket, FlowPageData,
-    FlowPageVisit, FlowPageVisitGrade, FlowRuleException, FlowSession, GradeChange,
-    GradingOpportunity, InstantFlowRequest, InstantMessage, Participation,
-    ParticipationPermission, ParticipationPreapproval, ParticipationRole,
-    ParticipationRolePermission, ParticipationTag,
+    AuthenticationToken,
+    Course,
+    Event,
+    Exam,
+    ExamTicket,
+    FlowPageData,
+    FlowPageVisit,
+    FlowPageVisitGrade,
+    FlowRuleException,
+    FlowSession,
+    GradeChange,
+    GradingOpportunity,
+    InstantFlowRequest,
+    InstantMessage,
+    Participation,
+    ParticipationPermission,
+    ParticipationPreapproval,
+    ParticipationRole,
+    ParticipationRolePermission,
+    ParticipationTag,
 )
 from relate.utils import string_concat
 

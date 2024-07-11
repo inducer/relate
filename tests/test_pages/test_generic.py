@@ -29,17 +29,23 @@ from django.urls import resolve
 from course.constants import MAX_EXTRA_CREDIT_FACTOR
 from course.models import FlowSession
 from course.page.base import (
-    AnswerFeedback, InvalidFeedbackPointsError, get_auto_feedback,
+    AnswerFeedback,
+    InvalidFeedbackPointsError,
+    get_auto_feedback,
     validate_point_count,
 )
 from tests import factories
 from tests.base_test_mixins import (
-    MockAddMessageMixing, SingleCourseQuizPageTestMixin,
+    MockAddMessageMixing,
+    SingleCourseQuizPageTestMixin,
 )
 from tests.constants import (
-    MESSAGE_ANSWER_FAILED_SAVE_TEXT, MESSAGE_ANSWER_SAVED_TEXT,
-    TEST_HGTEXT_MARKDOWN_ANSWER_TYPE_WRONG, TEST_HGTEXT_MARKDOWN_ANSWER_WRONG,
-    TEST_PDF_FILE_PATH, TEST_TEXT_FILE_PATH,
+    MESSAGE_ANSWER_FAILED_SAVE_TEXT,
+    MESSAGE_ANSWER_SAVED_TEXT,
+    TEST_HGTEXT_MARKDOWN_ANSWER_TYPE_WRONG,
+    TEST_HGTEXT_MARKDOWN_ANSWER_WRONG,
+    TEST_PDF_FILE_PATH,
+    TEST_TEXT_FILE_PATH,
 )
 from tests.utils import mock
 

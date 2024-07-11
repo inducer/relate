@@ -2,6 +2,7 @@ import os
 import sys
 from urllib.request import urlopen
 
+
 _conf_url = \
         "https://raw.githubusercontent.com/inducer/sphinxconfig/main/sphinxconfig.py"
 with urlopen(_conf_url) as _inf:
@@ -12,6 +13,7 @@ sys.path.insert(0, os.path.abspath(".."))
 os.environ["DJANGO_SETTINGS_MODULE"] = "relate.settings"
 
 import django
+
 
 django.setup()
 

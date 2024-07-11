@@ -25,7 +25,15 @@ THE SOFTWARE.
 
 import datetime
 from typing import (  # noqa
-    TYPE_CHECKING, Any, Dict, Iterable, List, Optional, Text, Tuple, cast,
+    TYPE_CHECKING,
+    Any,
+    Dict,
+    Iterable,
+    List,
+    Optional,
+    Text,
+    Tuple,
+    cast,
 )
 
 import django.forms as forms
@@ -35,35 +43,54 @@ from django import http
 from django.contrib import messages  # noqa
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import (
-    ObjectDoesNotExist, PermissionDenied, SuspiciousOperation,
+    ObjectDoesNotExist,
+    PermissionDenied,
+    SuspiciousOperation,
 )
 from django.db import transaction
 from django.shortcuts import get_object_or_404, redirect, render  # noqa
 from django.utils.safestring import mark_safe
 from django.utils.translation import (
-    gettext, gettext_lazy as _, pgettext, pgettext_lazy,
+    gettext,
+    gettext_lazy as _,
+    pgettext,
+    pgettext_lazy,
 )
 from django.views.decorators.cache import cache_control
 from django_select2.forms import Select2Widget
 
 from course.auth import get_pre_impersonation_user
 from course.constants import (
-    FLOW_PERMISSION_CHOICES, FLOW_RULE_KIND_CHOICES, flow_rule_kind,
-    participation_permission as pperm, participation_status,
+    FLOW_PERMISSION_CHOICES,
+    FLOW_RULE_KIND_CHOICES,
+    flow_rule_kind,
+    participation_permission as pperm,
+    participation_status,
 )
 from course.content import get_course_repo
 from course.enrollment import (
-    get_participation_for_request, get_participation_permissions,
+    get_participation_for_request,
+    get_participation_permissions,
 )
 from course.models import (
-    Course, FlowRuleException, FlowSession, InstantFlowRequest, Participation,
+    Course,
+    FlowRuleException,
+    FlowSession,
+    InstantFlowRequest,
+    Participation,
 )
 from course.utils import (  # noqa
-    CoursePageContext, course_view, get_course_specific_language_choices,
+    CoursePageContext,
+    course_view,
+    get_course_specific_language_choices,
     render_course_page,
 )
 from relate.utils import (
-    HTML5DateInput, HTML5DateTimeInput, StyledForm, StyledModelForm, string_concat,
+    HTML5DateInput,
+    HTML5DateTimeInput,
+    StyledForm,
+    StyledModelForm,
+    string_concat,
 )
 
 
@@ -1113,7 +1140,8 @@ def grant_exception_stage_3(
                     if form.cleaned_data[key]]
 
             from course.validation import (
-                ValidationContext, validate_session_access_rule,
+                ValidationContext,
+                validate_session_access_rule,
                 validate_session_grading_rule,
             )
             from relate.utils import dict_to_struct

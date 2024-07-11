@@ -31,13 +31,17 @@ from docker.errors import APIError as DockerAPIError
 from course.constants import MAX_EXTRA_CREDIT_FACTOR
 from course.models import FlowSession
 from course.page.code import (
-    CODE_QUESTION_CONTAINER_PORT, InvalidPingResponse,
-    PythonCodeQuestionWithHumanTextFeedback, is_nuisance_failure,
+    CODE_QUESTION_CONTAINER_PORT,
+    InvalidPingResponse,
+    PythonCodeQuestionWithHumanTextFeedback,
+    is_nuisance_failure,
     request_run_with_retries,
 )
 from course.utils import CoursePageContext, FlowPageContext
 from tests.base_test_mixins import (
-    MockAddMessageMixing, SingleCoursePageTestMixin, SingleCourseQuizPageTestMixin,
+    MockAddMessageMixing,
+    SingleCoursePageTestMixin,
+    SingleCourseQuizPageTestMixin,
     SubprocessRunpyContainerMixin,
 )
 from tests.constants import MESSAGE_ANSWER_SAVED_TEXT, PAGE_ERRORS

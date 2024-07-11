@@ -22,7 +22,9 @@ THE SOFTWARE.
 
 
 from django.contrib.auth.models import (
-    AbstractBaseUser, PermissionsMixin, UserManager,
+    AbstractBaseUser,
+    PermissionsMixin,
+    UserManager,
 )
 from django.contrib.auth.validators import ASCIIUsernameValidator
 from django.db import models

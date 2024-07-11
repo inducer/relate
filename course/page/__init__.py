@@ -21,19 +21,29 @@ THE SOFTWARE.
 """
 
 from course.page.base import (
-    AnswerFeedback, InvalidPageData, PageBase, PageBehavior, PageContext,
-    get_auto_feedback, markup_to_html,
+    AnswerFeedback,
+    InvalidPageData,
+    PageBase,
+    PageBehavior,
+    PageContext,
+    get_auto_feedback,
+    markup_to_html,
 )
 from course.page.choice import (
-    ChoiceQuestion, MultipleChoiceQuestion, SurveyChoiceQuestion,
+    ChoiceQuestion,
+    MultipleChoiceQuestion,
+    SurveyChoiceQuestion,
 )
 from course.page.code import (
-    PythonCodeQuestion, PythonCodeQuestionWithHumanTextFeedback,
+    PythonCodeQuestion,
+    PythonCodeQuestionWithHumanTextFeedback,
 )
 from course.page.inline import InlineMultiQuestion
 from course.page.static import Page
 from course.page.text import (
-    HumanGradedTextQuestion, SurveyTextQuestion, TextQuestion,
+    HumanGradedTextQuestion,
+    SurveyTextQuestion,
+    TextQuestion,
 )
 from course.page.upload import FileUploadQuestion
 

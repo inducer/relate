@@ -32,7 +32,9 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import (
-    ObjectDoesNotExist, PermissionDenied, SuspiciousOperation,
+    ObjectDoesNotExist,
+    PermissionDenied,
+    SuspiciousOperation,
 )
 from django.db import transaction
 from django.db.models import query  # noqa
@@ -43,28 +45,50 @@ from django.utils.translation import gettext, gettext_lazy as _
 from django_select2.forms import Select2Widget
 
 from course.constants import (
-    FLOW_SESSION_EXPIRATION_MODE_CHOICES, GRADE_AGGREGATION_STRATEGY_CHOICES,
-    flow_permission, flow_session_expiration_mode, flow_session_interaction_kind,
-    grade_aggregation_strategy, is_expiration_mode_allowed,
+    FLOW_SESSION_EXPIRATION_MODE_CHOICES,
+    GRADE_AGGREGATION_STRATEGY_CHOICES,
+    flow_permission,
+    flow_session_expiration_mode,
+    flow_session_interaction_kind,
+    grade_aggregation_strategy,
+    is_expiration_mode_allowed,
     participation_permission as pperm,
 )
 from course.content import FlowPageDesc
 from course.exam import get_login_exam_ticket
 from course.models import (
-    Course, FlowPageData, FlowPageVisit, FlowPageVisitGrade, FlowSession,
-    GradeChange, Participation, get_feedback_for_grade, update_bulk_feedback,
+    Course,
+    FlowPageData,
+    FlowPageVisit,
+    FlowPageVisitGrade,
+    FlowSession,
+    GradeChange,
+    Participation,
+    get_feedback_for_grade,
+    update_bulk_feedback,
 )
 from course.page import InvalidPageData
 from course.utils import (
-    FlowContext, FlowPageContext, FlowSessionGradingRule, LanguageOverride,
-    PageOrdinalOutOfRange, course_view, get_session_access_rule,
-    get_session_grading_rule, get_session_start_rule, instantiate_flow_page_with_ctx,
+    FlowContext,
+    FlowPageContext,
+    FlowSessionGradingRule,
+    LanguageOverride,
+    PageOrdinalOutOfRange,
+    course_view,
+    get_session_access_rule,
+    get_session_grading_rule,
+    get_session_start_rule,
+    instantiate_flow_page_with_ctx,
     render_course_page,
 )
 from course.views import get_now_or_fake_time
 from relate.utils import (
-    StyledForm, as_local_time, format_datetime_local, local_now,
-    retry_transaction_decorator, string_concat,
+    StyledForm,
+    as_local_time,
+    format_datetime_local,
+    local_now,
+    retry_transaction_decorator,
+    string_concat,
 )
 
 
@@ -318,7 +342,10 @@ def grade_page_visit(visit: FlowPageVisit,
         grade_data = most_recent_grade.grade_data
 
     from course.content import (
-        get_course_commit_sha, get_course_repo, get_flow_desc, get_flow_page_desc,
+        get_course_commit_sha,
+        get_course_repo,
+        get_flow_desc,
+        get_flow_page_desc,
         instantiate_flow_page,
     )
 

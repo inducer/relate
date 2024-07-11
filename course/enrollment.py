@@ -27,8 +27,10 @@ from sys import intern
 from typing import TYPE_CHECKING, Any, FrozenSet, List, Optional, Text, Tuple  # noqa
 
 from crispy_forms.layout import Submit
-from django import http  # noqa
-from django import forms
+from django import (
+    forms,
+    http,  # noqa
+)
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import get_user_model
@@ -43,11 +45,18 @@ from pytools.lex import RE as REBase  # noqa
 
 from course.auth import UserSearchWidget
 from course.constants import (
-    PARTICIPATION_PERMISSION_CHOICES, participation_permission as pperm,
+    PARTICIPATION_PERMISSION_CHOICES,
+    participation_permission as pperm,
 )
 from course.models import (
-    Course, Participation, ParticipationPermission, ParticipationPreapproval,
-    ParticipationRole, ParticipationTag, participation_status, user_status,
+    Course,
+    Participation,
+    ParticipationPermission,
+    ParticipationPreapproval,
+    ParticipationRole,
+    ParticipationTag,
+    participation_status,
+    user_status,
 )
 from course.utils import LanguageOverride, course_view, render_course_page
 from relate.utils import StyledForm, StyledModelForm, string_concat

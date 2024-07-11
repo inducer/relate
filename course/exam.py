@@ -33,7 +33,9 @@ from django.contrib import messages  # noqa
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import permission_required
 from django.core.exceptions import (  # noqa
-    ObjectDoesNotExist, PermissionDenied, SuspiciousOperation,
+    ObjectDoesNotExist,
+    PermissionDenied,
+    SuspiciousOperation,
 )
 from django.db import transaction
 from django.db.models import Q
@@ -47,10 +49,17 @@ from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.debug import sensitive_post_parameters
 
 from course.constants import (
-    exam_ticket_states, participation_permission as pperm, participation_status,
+    exam_ticket_states,
+    participation_permission as pperm,
+    participation_status,
 )
 from course.models import (
-    Course, Exam, ExamTicket, FlowSession, Participation, ParticipationTag,
+    Course,
+    Exam,
+    ExamTicket,
+    FlowSession,
+    Participation,
+    ParticipationTag,
 )
 from course.utils import course_view, render_course_page
 from relate.utils import HTML5DateTimeInput, StyledForm, string_concat
@@ -723,8 +732,14 @@ class ExamFacilityMiddleware:
         resolver_match = resolve(request.path)
 
         from course.auth import (
-            impersonate, sign_in_by_email, sign_in_by_user_pw, sign_in_choice,
-            sign_in_stage2_with_token, sign_out, stop_impersonating, user_profile,
+            impersonate,
+            sign_in_by_email,
+            sign_in_by_user_pw,
+            sign_in_choice,
+            sign_in_stage2_with_token,
+            sign_out,
+            stop_impersonating,
+            user_profile,
         )
         from course.exam import check_in_for_exam, issue_exam_ticket
         from course.flow import view_flow_page, view_resume_flow, view_start_flow
@@ -801,12 +816,19 @@ class ExamLockdownMiddleware:
             resolver_match = resolve(request.path)
 
             from course.auth import (
-                sign_in_by_email, sign_in_by_user_pw, sign_in_choice,
-                sign_in_stage2_with_token, sign_out, user_profile,
+                sign_in_by_email,
+                sign_in_by_user_pw,
+                sign_in_choice,
+                sign_in_stage2_with_token,
+                sign_out,
+                user_profile,
             )
             from course.flow import (
-                finish_flow_session_view, update_expiration_mode,
-                update_page_bookmark_state, view_flow_page, view_resume_flow,
+                finish_flow_session_view,
+                update_expiration_mode,
+                update_page_bookmark_state,
+                view_flow_page,
+                view_resume_flow,
                 view_start_flow,
             )
             from course.views import get_current_repo_file, get_repo_file

@@ -30,7 +30,9 @@ from course import validation
 from course.constants import DEFAULT_ACCESS_KINDS, participation_permission as pperm
 from course.content import get_repo_blob, get_yaml_from_repo, load_yaml
 from course.models import (
-    ParticipationPermission, ParticipationRole, ParticipationRolePermission,
+    ParticipationPermission,
+    ParticipationRole,
+    ParticipationRolePermission,
 )
 from course.validation import ValidationError, get_yaml_from_repo_safely
 from relate.utils import dict_to_struct

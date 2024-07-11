@@ -24,11 +24,15 @@ from django.test import TestCase
 from django.urls import reverse
 
 from course.sandbox import (
-    ANSWER_DATA_SESSION_KEY_PREFIX, PAGE_DATA_SESSION_KEY_PREFIX,
-    PAGE_SESSION_KEY_PREFIX, make_sandbox_session_key,
+    ANSWER_DATA_SESSION_KEY_PREFIX,
+    PAGE_DATA_SESSION_KEY_PREFIX,
+    PAGE_SESSION_KEY_PREFIX,
+    make_sandbox_session_key,
 )
 from tests.base_test_mixins import (
-    MockAddMessageMixing, SingleCourseTestMixin, classmethod_with_client,
+    MockAddMessageMixing,
+    SingleCourseTestMixin,
+    classmethod_with_client,
 )
 from tests.constants import HAVE_VALID_PAGE, PAGE_ERRORS, PAGE_WARNINGS
 from tests.utils import mock

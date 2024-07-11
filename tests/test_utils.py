@@ -31,15 +31,20 @@ from django.utils import translation
 from django.utils.timezone import now, timedelta
 from django.utils.translation import gettext_noop
 
-from course import constants  # noqa
-from course import utils
+from course import (
+    constants,  # noqa
+    utils,
+)
 from course.constants import flow_permission as fperm
 from course.content import parse_date_spec
 from relate.utils import dict_to_struct, struct_to_dict
 from tests import factories
 from tests.base_test_mixins import (
-    CoursesTestMixinBase, MockAddMessageMixing, SingleCoursePageTestMixin,
-    SingleCourseQuizPageTestMixin, SingleCourseTestMixin,
+    CoursesTestMixinBase,
+    MockAddMessageMixing,
+    SingleCoursePageTestMixin,
+    SingleCourseQuizPageTestMixin,
+    SingleCourseTestMixin,
     SubprocessRunpyContainerMixin,
 )
 from tests.constants import QUIZ_FLOW_ID

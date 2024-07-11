@@ -27,7 +27,9 @@ from crispy_forms.layout import Submit
 from django.contrib import messages  # noqa
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import (
-    ObjectDoesNotExist, PermissionDenied, ValidationError,
+    ObjectDoesNotExist,
+    PermissionDenied,
+    ValidationError,
 )
 from django.db import transaction
 from django.utils.translation import get_language, gettext_lazy as _, pgettext_lazy
@@ -374,7 +376,9 @@ def view_calendar(pctx):
     events_json = []
 
     from course.content import (
-        get_raw_yaml_from_repo, markup_to_html, parse_date_spec,
+        get_raw_yaml_from_repo,
+        markup_to_html,
+        parse_date_spec,
     )
     try:
         event_descr = get_raw_yaml_from_repo(pctx.repo,

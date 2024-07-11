@@ -33,7 +33,9 @@ from course import constants, exam
 from course.models import ExamTicket, FlowSession
 from tests import factories
 from tests.base_test_mixins import (
-    MockAddMessageMixing, SingleCoursePageTestMixin, SingleCourseTestMixin,
+    MockAddMessageMixing,
+    SingleCoursePageTestMixin,
+    SingleCourseTestMixin,
 )
 from tests.constants import DATE_TIME_PICKER_TIME_FORMAT
 from tests.utils import mock, reload_urlconf

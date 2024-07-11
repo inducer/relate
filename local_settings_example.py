@@ -2,6 +2,7 @@
 
 import os.path as path
 
+
 _BASEDIR = path.dirname(path.abspath(__file__))
 
 # {{{ database and site
@@ -94,6 +95,7 @@ GIT_ROOT = path.join(_BASEDIR, "git-roots")
 # {{{ bulk storage
 
 from django.core.files.storage import FileSystemStorage
+
 
 # This must be a subclass of django.core.storage.Storage.
 # This should *not* be MEDIA_ROOT, and the corresponding directory/storage location

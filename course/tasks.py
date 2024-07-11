@@ -20,10 +20,10 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
+from celery import shared_task
 from django.db import transaction
 from django.utils.translation import gettext as _
 
-from celery import shared_task
 from course.content import get_course_repo
 from course.models import Course, FlowPageVisit, FlowSession
 

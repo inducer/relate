@@ -25,7 +25,14 @@ THE SOFTWARE.
 
 import re
 from typing import (  # noqa
-    TYPE_CHECKING, Any, Dict, Optional, Text, Tuple, Union, cast,
+    TYPE_CHECKING,
+    Any,
+    Dict,
+    Optional,
+    Text,
+    Tuple,
+    Union,
+    cast,
 )
 
 import django.forms as forms
@@ -35,13 +42,18 @@ from django import http  # noqa
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import (
-    REDIRECT_FIELD_NAME, get_user_model, login as auth_login, logout as auth_logout,
+    REDIRECT_FIELD_NAME,
+    get_user_model,
+    login as auth_login,
+    logout as auth_logout,
 )
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.forms import AuthenticationForm as AuthenticationFormBase
 from django.contrib.auth.validators import ASCIIUsernameValidator
 from django.core.exceptions import (
-    MultipleObjectsReturned, ObjectDoesNotExist, PermissionDenied,
+    MultipleObjectsReturned,
+    ObjectDoesNotExist,
+    PermissionDenied,
     SuspiciousOperation,
 )
 from django.http import HttpResponseRedirect
@@ -58,14 +70,22 @@ from djangosaml2.backends import Saml2Backend
 
 from accounts.models import User
 from course.constants import (
-    participation_permission as pperm, participation_status, user_status,
+    participation_permission as pperm,
+    participation_status,
+    user_status,
 )
 from course.models import (  # noqa
-    AuthenticationToken, Participation, ParticipationRole,
+    AuthenticationToken,
+    Participation,
+    ParticipationRole,
 )
 from course.utils import course_view, render_course_page
 from relate.utils import (
-    HTML5DateTimeInput, StyledForm, StyledModelForm, get_site_name, string_concat,
+    HTML5DateTimeInput,
+    StyledForm,
+    StyledModelForm,
+    get_site_name,
+    string_concat,
 )
 
 

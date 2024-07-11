@@ -37,7 +37,9 @@ def validate_pages(args):
     django.setup()
 
     from course.validation import (
-        FileSystemFakeRepo, ValidationContext, get_yaml_from_repo_safely,
+        FileSystemFakeRepo,
+        ValidationContext,
+        get_yaml_from_repo_safely,
         validate_flow_page,
     )
     fake_repo = FileSystemFakeRepo(args.REPO_ROOT.encode("utf-8"))
@@ -75,7 +77,8 @@ def expand_yaml(yml_file, repo_root):
             data = inf.read()
 
     from course.content import (
-        YamlBlockEscapingFileSystemLoader, process_yaml_for_expansion,
+        YamlBlockEscapingFileSystemLoader,
+        process_yaml_for_expansion,
     )
     data = process_yaml_for_expansion(data)
 

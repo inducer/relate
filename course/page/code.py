@@ -28,8 +28,12 @@ from django.utils.translation import gettext as _
 
 from course.constants import flow_permission
 from course.page.base import (
-    AnswerFeedback, PageBaseWithHumanTextFeedback, PageBaseWithTitle,
-    PageBaseWithValue, get_auto_feedback, get_editor_interaction_mode,
+    AnswerFeedback,
+    PageBaseWithHumanTextFeedback,
+    PageBaseWithTitle,
+    PageBaseWithValue,
+    get_auto_feedback,
+    get_editor_interaction_mode,
     markup_to_html,
 )
 from course.validation import ValidationError
