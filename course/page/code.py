@@ -979,7 +979,7 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
         if hasattr(response, "exec_host") and response.exec_host != "localhost":
             import socket
             try:
-                exec_host_name, dummy, dummy = socket.gethostbyaddr(
+                exec_host_name, _dummy, _dummy = socket.gethostbyaddr(
                         response.exec_host)
             except OSError:
                 exec_host_name = response.exec_host

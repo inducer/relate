@@ -49,10 +49,10 @@ setup:
   stage: setup
   script: poetry config --list
 
-flake8:
+ruff:
   <<: *quality
   script: |
-    poetry run flake8 relate course accounts tests
+    poetry run ruff check
 
 mypy:
   <<: *quality

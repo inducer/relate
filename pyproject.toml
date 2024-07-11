@@ -137,10 +137,7 @@ urllib3 = "^1.26.19"
 
 [tool.poetry.dev-dependencies]
 factory_boy = "^2.12.0"
-flake8-quotes = "^3.2.0"
-flake8-bugbear = "^22.1.11"
-flake8-comprehensions = "^3.10.1"
-flake8 = "^6.0"
+"ruff" = "^0.5.1"
 pep8-naming = "^0.10.0"
 mypy = "^1"
 pytest = "^7"
@@ -152,8 +149,6 @@ sphinx = "^7.2.6"
 furo = "^2023.9.10"
 sphinx-copybutton = "^0.5.2"
 django-upgrade = "^1.12.0"
-isort = "^5.11.4"
-flake8-isort = "^6.0"
 
 types-pytz = "^0.1.0"
 types-bleach = "^0.1.2"
@@ -177,6 +172,65 @@ profile = "django"
 line_length = 85
 lines_after_imports = 2
 src_paths = ["relate", "course", "accounts", "test"]
+
+[tool.ruff]
+preview = true
+
+[tool.ruff.lint]
+extend-select = [
+    "B",   # flake8-bugbear
+    "C",   # flake8-comprehensions
+    "E",   # pycodestyle
+    "F",   # pyflakes
+    # "I",   # flake8-isort
+    "N",   # pep8-naming
+    "NPY", # numpy
+    # "Q",   # flake8-quotes
+    "W",   # pycodestyle
+    # "RUF",
+    # "UP",
+    # "DJ",
+]
+
+extend-ignore = [
+    "C90",  # McCabe complexity
+    "E221", # multiple spaces before operator
+    "E226", # missing whitespace around arithmetic operator
+    "E241", # multiple spaces after comma
+    "E242", # tab after comma
+    "E402", # module level import not at the top of file
+    "N818", # error suffix in exception names
+
+    # TODO
+    "B904", # raise in except needs from
+    "E265",
+    "B028", # stacklevel
+    "E251"
+]
+allowed-confusables = ["‐", "–"]
+
+[tool.ruff.lint.flake8-quotes]
+docstring-quotes = "double"
+inline-quotes = "double"
+multiline-quotes = "double"
+
+[tool.ruff.lint.per-file-ignores]
+"course/mdx_mathjax.py" = ["N802"]
+
+# copy-pasted from elsewhere, not our problem
+"saml-config/attribute-maps/*.py" = ["Q", "E231", "W292", "W291", "E501"]
+
+# mostly generated
+"course/migrations/*.py" = ["Q", "E501", "RUF012", "F401"]
+"accounts/migrations/*.py" = [
+        "Q", "E501", "RUF012", "F401", "E303", "B023", "E731", "N806", "F841"]
+
+# TODO
+"tests/**/*.py" = ["F841"]
+
+[tool.ruff.lint.isort]
+combine-as-imports = true
+lines-after-imports = 2
 
 [tool.mypy]
 strict_optional = true

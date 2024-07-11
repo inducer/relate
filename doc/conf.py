@@ -26,7 +26,7 @@ intersphinx_mapping = {
 
     # https://github.com/dulwich/dulwich/issues/913 (a recurrence)
     "dulwich": (
-        # "https://www.dulwich.io/docs/", 
+        # "https://www.dulwich.io/docs/",
         "https://tiker.net/pub/dulwich-docs-stopgap/",
     None),
 }

@@ -292,7 +292,7 @@ class BatchIssueTicketsForm(StyledForm):
         super().__init__(*args, **kwargs)
 
         from course.utils import get_codemirror_widget
-        cm_widget, cm_help_text = get_codemirror_widget(
+        cm_widget, _cm_help_text = get_codemirror_widget(
                 language_mode={"name": "markdown", "xml": True},
                 dependencies=("xml",),
                 interaction_mode=editor_mode)
@@ -594,7 +594,7 @@ def check_exam_ticket(
 class ExamTicketBackend:
     def authenticate(self, request, username=None, code=None, now_datetime=None,
             facilities=None):
-        is_valid, _ticket, msg = check_exam_ticket(
+        is_valid, _ticket, _msg = check_exam_ticket(
                 username, code, now_datetime, facilities, logged_in=False)
 
         if not is_valid:

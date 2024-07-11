@@ -114,7 +114,7 @@ class InlineMultiQuestionForm(forms.Form):
                         if i + 1 == len(instance_idx.matchers):
                             # last one, and we flunked -> not valid
                             import sys
-                            tp, e, _ = sys.exc_info()
+                            _tp, e, _ = sys.exc_info()
                             self.add_error(field_name_idx, e)
                     else:
                         # Found one that will take the input. Good enough.
@@ -488,9 +488,9 @@ class ChoicesAnswer(AnswerBase):
                 )
 
     def get_max_correct_answer_len(self, page_context):
-        return max([len(answer) for answer in
+        return max(len(answer) for answer in
             [self.process_choice_string(page_context, processed)
-                for processed in self.answers_desc.choices]])
+                for processed in self.answers_desc.choices])
 
     def get_correctness(self, answer):
         if answer == "":

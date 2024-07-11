@@ -7,11 +7,11 @@ from django.db import migrations, models
 def add_default_permissions(apps, schema_editor):
     from course.models import add_default_roles_and_permissions
 
-    Course = apps.get_model("course", "Course")  # noqa
-    ParticipationRole = apps.get_model("course", "ParticipationRole")  # noqa
-    ParticipationRolePermission = apps.get_model("course", "ParticipationRolePermission")  # noqa
-    Participation = apps.get_model("course", "Participation")  # noqa
-    ParticipationPreapproval = apps.get_model("course", "ParticipationPreapproval")  # noqa
+    Course = apps.get_model("course", "Course")
+    ParticipationRole = apps.get_model("course", "ParticipationRole")
+    ParticipationRolePermission = apps.get_model("course", "ParticipationRolePermission")
+    Participation = apps.get_model("course", "Participation")
+    ParticipationPreapproval = apps.get_model("course", "ParticipationPreapproval")
 
     for course in Course.objects.all():
         add_default_roles_and_permissions(
