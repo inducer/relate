@@ -616,7 +616,7 @@ def call_wsgi_app(
     # to the headers by middlewares will be seen here.
     assert request.environ == request.META
     environ = request.environ.copy()
-    #if len(args) > 0:
+    # if len(args) > 0:
     assert environ["PATH_INFO"].startswith(prefix)
     environ["SCRIPT_NAME"] += prefix
     environ["PATH_INFO"] = environ["PATH_INFO"][len(prefix):]

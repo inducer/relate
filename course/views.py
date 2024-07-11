@@ -1292,7 +1292,7 @@ def grant_exception_stage_3(
     else:
         data = {
                 "restrict_to_same_tag": session.access_rules_tag is not None,
-                #"due_same_as_access_expiration": True,
+                # "due_same_as_access_expiration": True,
                 "due": grading_rule.due,
                 "generates_grade": grading_rule.generates_grade,
                 "credit_percent": grading_rule.credit_percent,

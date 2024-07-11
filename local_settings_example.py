@@ -22,7 +22,7 @@ from django.utils.translation import gettext_noop  # noqa
 # If not configured, "RELATE" will be used as default value.
 # Use gettext_noop() if you want it to be discovered as an i18n literal
 # for translation.
-#RELATE_CUTOMIZED_SITE_NAME = gettext_noop("My RELATE")
+# RELATE_CUTOMIZED_SITE_NAME = gettext_noop("My RELATE")
 
 # Uncomment this to use a real database. If left commented out, a local SQLite3
 # database will be used, which is not recommended for production use.
@@ -87,7 +87,7 @@ CSRF_COOKIE_SECURE = False
 #
 # The "course identifiers" you enter will be directory names below this root.
 
-#GIT_ROOT = "/some/where"
+# GIT_ROOT = "/some/where"
 GIT_ROOT = path.join(_BASEDIR, "git-roots")
 
 # }}}
@@ -124,7 +124,7 @@ ADMINS = (
 # If your email service do not allow nonauthorized sender, uncomment the following
 # statement and change the configurations above accordingly, noticing that all
 # emails will be sent using the EMAIL_ settings above.
-#RELATE_EMAIL_SMTP_ALLOW_NONAUTHORIZED_SENDER = False
+# RELATE_EMAIL_SMTP_ALLOW_NONAUTHORIZED_SENDER = False
 
 # Advanced email settings if you want to configure multiple SMTPs for different
 # purpose/type of emails. It is also very useful when
@@ -268,7 +268,7 @@ RELATE_SHOW_EDITOR_FORM = True
 # Default to True, as enable it sometimes crashes for some pages with code fences.
 # For this reason, there will be a warning when the attribute is set to False when
 # starting the server.
-#RELATE_DISABLE_CODEHILITE_MARKDOWN_EXTENSION = True
+# RELATE_DISABLE_CODEHILITE_MARKDOWN_EXTENSION = True
 
 # {{{ user full_name format
 
@@ -278,18 +278,18 @@ RELATE_SHOW_EDITOR_FORM = True
 
 # For example, you can define it like this:
 
-#<code>
+# <code>
 #   def my_fullname_format(firstname, lastname):
 #         return "%s%s" % (last_name, first_name)
-#</code>
+# </code>
 
 # and then uncomment the following line and enable it with:
 
-#RELATE_USER_FULL_NAME_FORMAT_METHOD = my_fullname_format
+# RELATE_USER_FULL_NAME_FORMAT_METHOD = my_fullname_format
 
 # You can also import it from your custom module, or use a dotted path of the
 # method, i.e.:
-#RELATE_USER_FULL_NAME_FORMAT_METHOD = "path.to.my_fullname_format"
+# RELATE_USER_FULL_NAME_FORMAT_METHOD = "path.to.my_fullname_format"
 
 # }}}
 
@@ -318,21 +318,21 @@ RELATE_SHOW_EDITOR_FORM = True
 # default. The mask method can be overriden by the following a custom method, with
 # user as the args.
 
-#RELATE_USER_PROFILE_MASK_METHOD = "path.tomy_method
+# RELATE_USER_PROFILE_MASK_METHOD = "path.tomy_method
 # For example, you can define it like this:
 
-#<code>
+# <code>
 #   def my_mask_method(user):
 #         return "User_%s" % str(user.pk + 100)
-#</code>
+# </code>
 
 # and then uncomment the following line and enable it with:
 
-#RELATE_USER_PROFILE_MASK_METHOD = my_mask_method
+# RELATE_USER_PROFILE_MASK_METHOD = my_mask_method
 
 # You can also import it from your custom module, or use a dotted path of the
 # method, i.e.:
-#RELATE_USER_PROFILE_MASK_METHOD = "path.to.my_mask_method"
+# RELATE_USER_PROFILE_MASK_METHOD = "path.to.my_mask_method"
 
 # }}}
 
@@ -344,11 +344,11 @@ RELATE_SHOW_EDITOR_FORM = True
 # <code>
 #   def my_check_func(app_configs, **kwargs):
 #         return [list of error]
-#</code>
+# </code>
 # The configuration should be
 # RELATE_STARTUP_CHECKS_EXTRA = ["my_module.my_check_func"]
 # i.e., Each item should be the path to an importable check function.
-#RELATE_STARTUP_CHECKS_EXTRA = []
+# RELATE_STARTUP_CHECKS_EXTRA = []
 
 # }}}
 
@@ -426,14 +426,14 @@ RELATE_SITE_ANNOUNCEMENT = None
 # Make sure you have generated, translate and compile the message file of your
 # language. If commented, RELATE will use default language "en-us".
 
-#LANGUAGE_CODE = "en-us"
+# LANGUAGE_CODE = "en-us"
 
 # You can (and it's recommended to) override Django's built-in LANGUAGES settings
 # if you want to filter languages allowed for course-specific languages.
 # The format of languages should be a list/tuple of 2-tuples:
 # (language_code, language_description). If there are entries with the same
 # language_code, language_description will be using the one which comes latest.
-#.If LANGUAGES is not configured, django.conf.global_settings.LANGUAGES will be
+# .If LANGUAGES is not configured, django.conf.global_settings.LANGUAGES will be
 # used.
 # Note: make sure LANGUAGE_CODE you used is also in LANGUAGES, if it is not
 # the default "en-us". Otherwise translation of that language will not work.

@@ -58,7 +58,7 @@ def get_flow_permissions_list(excluded=None):
     return [fp for fp in all_flow_permissions if fp not in excluded]
 
 
-#{{{ test flow.adjust_flow_session_page_data
+# {{{ test flow.adjust_flow_session_page_data
 
 def flow_page_data_save_side_effect(self, *args, **kwargs):
     if self.page_id == "half1":

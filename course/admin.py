@@ -490,7 +490,7 @@ class FlowSessionAdmin(admin.ModelAdmin):
             "completion_time",
             "access_rules_tag",
             "in_progress",
-            #"expiration_mode",
+            # "expiration_mode",
             )
     list_display_links = (
             "flow_id",

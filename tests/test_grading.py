@@ -626,7 +626,7 @@ class GraderSetUpMixin:
                 * n_sessions_per_participation
                 * n_non_null_answer_visits_per_session)
 
-        #print(n_non_null_answer_fpv)
+        # print(n_non_null_answer_fpv)
         return n_non_null_answer_fpv
 
 

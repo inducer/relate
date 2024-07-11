@@ -353,7 +353,7 @@ if 0:
 # }}}
 
 
-#{{{ Allow multiple email connections
+# {{{ Allow multiple email connections
 # https://gist.github.com/niran/840999
 
 def get_outbound_mail_connection(label: str | None = None, **kwargs: Any) -> Any:
@@ -377,7 +377,7 @@ def get_outbound_mail_connection(label: str | None = None, **kwargs: Any) -> Any
     from django.core import mail
     return mail.get_connection(**options)
 
-#}}}
+# }}}
 
 
 def ignore_no_such_table(f, *args):

@@ -1764,8 +1764,8 @@ class GradeStateMachine:
                         _("cannot accept grade once opportunity has been "
                         "marked 'exempt'"))
 
-            #if self.due_time is not None and gchange.grade_time > self.due_time:
-                #raise ValueError("cannot accept grade after due date")
+            # if self.due_time is not None and gchange.grade_time > self.due_time:
+                # raise ValueError("cannot accept grade after due date")
 
             self.state = gchange.state
             if gchange.attempt_id is not None:
