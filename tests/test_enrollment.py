@@ -1535,7 +1535,7 @@ class EnrollmentDecisionEmailConnectionsTest(
 
 @pytest.mark.django_db
 class ParticipationQueryFormTest(unittest.TestCase):
-    #test enrollment.ParticipationQueryForm
+    # test enrollment.ParticipationQueryForm
     def setUp(self):
         self.course = factories.CourseFactory()
 

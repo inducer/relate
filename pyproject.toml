@@ -203,7 +203,6 @@ extend-ignore = [
 
     # TODO
     "B904", # raise in except needs from
-    "E265",
     "B028", # stacklevel
     "E251",
     "RUF012", # mutable class atttributes
