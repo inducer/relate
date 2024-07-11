@@ -178,4 +178,21 @@ line_length = 85
 lines_after_imports = 2
 src_paths = ["relate", "course", "accounts", "test"]
 
+[tool.mypy]
+strict_optional = true
+ignore_missing_imports = true
+disallow_untyped_calls = "true"
+# wishful thinking :)
+# disallow_untyped_defs= "true"
+show_error_codes = true
+untyped_calls_exclude = [
+    "dulwich",
+]
+
+[[tool.mypy.overrides]]
+module = [
+    "course.migrations.*",
+]
+ignore_errors = true
+
 # vim: foldmethod=marker
