@@ -2037,21 +2037,23 @@ postgresql = ["psycopg2"]
 
 [[package]]
 name = "pytools"
-version = "2023.1.1"
+version = "2024.1.8"
 description = "A collection of tools for Python"
 optional = false
-python-versions = "~=3.8"
+python-versions = ">=3.8"
 files = [
-    {file = "pytools-2023.1.1-py2.py3-none-any.whl", hash = "sha256:53b98e5d6c01a90e343f8be2f5271e94204a210ef3e74fbefa3d47ec7480f150"},
-    {file = "pytools-2023.1.1.tar.gz", hash = "sha256:80637873d206f6bcedf7cdb46ad93e868acb4ea2256db052dfcca872bdd0321f"},
+    {file = "pytools-2024.1.8-py3-none-any.whl", hash = "sha256:3fe89cf182e97d16842de78f2b08c009030c895c4e1496e96e3679664cf2bd3b"},
+    {file = "pytools-2024.1.8.tar.gz", hash = "sha256:cccc184a10af56dabab3077af82ab0cf7a5b06625313cae0b2f06a3c4b126001"},
 ]
 
 [package.dependencies]
-platformdirs = ">=2.2.0"
-typing-extensions = {version = ">=4.0", markers = "python_version < \"3.11\""}
+platformdirs = ">=2.2"
+siphash24 = ">=1.6"
+typing-extensions = {version = ">=4", markers = "python_version < \"3.11\""}
 
 [package.extras]
-numpy = ["numpy (>=1.6.0)"]
+numpy = ["numpy (>=1.6)"]
+test = ["mypy", "pytest", "ruff"]
 
 [[package]]
 name = "pytz"

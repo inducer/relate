@@ -113,7 +113,7 @@ bleach = "^4.1"
 html5lib = "^1.1"
 
 # For query lexing
-pytools = "^2023.1.1"
+pytools = ">=2024.1.8"
 
 # For relate script
 colorama = "*"
