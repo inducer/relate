@@ -42,6 +42,7 @@ from markdown.treeprocessors import Treeprocessor
 from yaml import safe_load as load_yaml
 
 from course.constants import ATTRIBUTES_FILENAME
+from course.validation import Blob_ish, Tree_ish
 from relate.utils import Struct, SubdirRepoWrapper, dict_to_struct
 
 
@@ -627,7 +628,7 @@ def get_course_repo_path(course: Course) -> str:
 
 def get_course_repo(course: Course) -> Repo_ish:
 
-    from dulwich.repo.repo import Repo
+    from dulwich.repo import Repo
     repo = Repo(get_course_repo_path(course))
 
     if course.course_root_path:
@@ -694,8 +695,7 @@ def look_up_git_object(repo: dulwich.repo.Repo,
     return cur_lookup
 
 
-def get_repo_blob(repo: Repo_ish, full_name: str, commit_sha: bytes,
-        allow_tree: bool = True) -> dulwich.objects.Blob:
+def get_repo_tree(repo: Repo_ish, full_name: str, commit_sha: bytes) -> Tree_ish:
     """
     :arg full_name: A Unicode string indicating the file name.
     :arg commit_sha: A byte string containing the commit hash
@@ -713,23 +713,44 @@ def get_repo_blob(repo: Repo_ish, full_name: str, commit_sha: bytes,
     git_obj = look_up_git_object(
             dul_repo, root_tree=dul_repo[tree_sha], full_name=full_name)
 
-    from dulwich.objects import Blob, Tree
+    from dulwich.objects import Tree
 
-    from course.validation import FileSystemFakeRepoFile, FileSystemFakeRepoTree
+    from course.validation import FileSystemFakeRepoTree
 
     msg_full_name = full_name if full_name else _("(repo root)")
 
     if isinstance(git_obj, (Tree, FileSystemFakeRepoTree)):
-        if allow_tree:
-            return git_obj
-        else:
-            raise ObjectDoesNotExist(
-                    _("resource '%s' is a directory, not a file") % msg_full_name)
+        return git_obj
+    else:
+        raise ObjectDoesNotExist(_("resource '%s' is not a tree") % msg_full_name)
+
+
+def get_repo_blob(repo: Repo_ish, full_name: str, commit_sha: bytes) -> Blob_ish:
+    """
+    :arg full_name: A Unicode string indicating the file name.
+    :arg commit_sha: A byte string containing the commit hash
+    :arg allow_tree: Allow the resulting object to be a directory
+    """
+
+    dul_repo, full_name = get_true_repo_and_path(repo, full_name)
+
+    try:
+        tree_sha = dul_repo[commit_sha].tree
+    except KeyError:
+        raise ObjectDoesNotExist(
+                _("commit sha '%s' not found") % commit_sha.decode())
+
+    git_obj = look_up_git_object(
+            dul_repo, root_tree=dul_repo[tree_sha], full_name=full_name)
+
+    from dulwich.objects import Blob
+
+    from course.validation import FileSystemFakeRepoFile
 
     if isinstance(git_obj, (Blob, FileSystemFakeRepoFile)):
         return git_obj
     else:
-        raise ObjectDoesNotExist(_("resource '%s' is not a file") % msg_full_name)
+        raise ObjectDoesNotExist(_("resource '%s' is not a file") % full_name)
 
 
 def get_repo_blob_data_cached(
@@ -757,8 +778,7 @@ def get_repo_blob_data_cached(
 
     result: bytes | None = None
     if cache_key is None:
-        result = get_repo_blob(repo, full_name, commit_sha,
-                allow_tree=False).data
+        result = get_repo_blob(repo, full_name, commit_sha).data
         assert isinstance(result, bytes)
         return result
 
@@ -777,8 +797,7 @@ def get_repo_blob_data_cached(
             assert isinstance(result, bytes), cache_key
             return result
 
-    result = get_repo_blob(repo, full_name, commit_sha,
-            allow_tree=False).data
+    result = get_repo_blob(repo, full_name, commit_sha).data
     assert result is not None
 
     if len(result) <= getattr(settings, "RELATE_CACHE_MAX_BYTES", 0):
@@ -1023,8 +1042,7 @@ def get_raw_yaml_from_repo(
 
     yaml_str = expand_yaml_macros(
                 repo, commit_sha,
-                get_repo_blob(repo, full_name, commit_sha,
-                    allow_tree=False).data)
+                get_repo_blob(repo, full_name, commit_sha).data)
 
     result = load_yaml(yaml_str)  # type: ignore
 
@@ -1071,7 +1089,7 @@ def get_yaml_from_repo(
                 return result
 
     yaml_bytestream = get_repo_blob(
-            repo, full_name, commit_sha, allow_tree=False).data
+            repo, full_name, commit_sha).data
     yaml_text = yaml_bytestream.decode("utf-8")
 
     if not tolerate_tabs and LINE_HAS_INDENTING_TABS_RE.search(yaml_text):
@@ -2004,7 +2022,7 @@ def get_course_commit_sha(
 def list_flow_ids(repo: Repo_ish, commit_sha: bytes) -> list[str]:
     flow_ids = []
     try:
-        flows_tree = get_repo_blob(repo, "flows", commit_sha)
+        flows_tree = get_repo_tree(repo, "flows", commit_sha)
     except ObjectDoesNotExist:
         # That's OK--no flows yet.
         pass

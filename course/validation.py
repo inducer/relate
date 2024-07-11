@@ -26,8 +26,9 @@ THE SOFTWARE.
 import datetime
 import re
 import sys
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Union
 
+import dulwich.objects
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.html import escape
 from django.utils.translation import gettext, gettext_lazy as _
@@ -38,7 +39,6 @@ from course.constants import (
     FLOW_SESSION_EXPIRATION_MODE_CHOICES,
     participation_permission as pperm,
 )
-from course.content import get_repo_blob
 from relate.utils import Struct, string_concat
 
 
@@ -1465,13 +1465,15 @@ def validate_course_content(repo, course_file, events_file,
     else:
         access_kinds = DEFAULT_ACCESS_KINDS
 
+    from course.content import get_repo_tree
+
     check_attributes_yml(
             vctx, repo, "",
-            get_repo_blob(repo, "", validate_sha),
+            get_repo_tree(repo, "", validate_sha),
             access_kinds)
 
     try:
-        flows_tree = get_repo_blob(repo, "media", validate_sha)
+        get_repo_tree(repo, "media", validate_sha)
     except ObjectDoesNotExist:
         # That's great--no media directory.
         pass
@@ -1485,7 +1487,7 @@ def validate_course_content(repo, course_file, events_file,
     # {{{ flows
 
     try:
-        flows_tree = get_repo_blob(repo, "flows", validate_sha)
+        flows_tree = get_repo_tree(repo, "flows", validate_sha)
     except ObjectDoesNotExist:
         # That's OK--no flows yet.
         pass
@@ -1537,6 +1539,8 @@ def validate_course_content(repo, course_file, events_file,
                         vctx, location, course, flow_id, flow_desc)
 
     # }}}
+
+    from course.content import get_repo_blob
 
     # {{{ static pages
 
@@ -1591,7 +1595,7 @@ class FileSystemFakeRepo:  # pragma: no cover
 
 
 class FileSystemFakeRepoTreeEntry:  # pragma: no cover
-    def __init__(self, path, mode):
+    def __init__(self, path: bytes, mode: int) -> None:
         self.path = path
         self.mode = mode
 
@@ -1620,7 +1624,7 @@ class FileSystemFakeRepoTree:  # pragma: no cover
         else:
             return stat_result.st_mode, FileSystemFakeRepoFile(name)
 
-    def items(self):
+    def items(self) -> list[FileSystemFakeRepoTreeEntry]:
         import os
         return [
                 FileSystemFakeRepoTreeEntry(
@@ -1637,6 +1641,10 @@ class FileSystemFakeRepoFile:  # pragma: no cover
     def data(self):
         with open(self.name, "rb") as inf:
             return inf.read()
+
+
+Blob_ish = Union[dulwich.objects.Blob, FileSystemFakeRepoFile]
+Tree_ish = Union[dulwich.objects.Tree, FileSystemFakeRepoTree]
 
 
 def validate_course_on_filesystem(

@@ -35,7 +35,6 @@ from typing import (
 )
 
 import django.forms as forms
-import dulwich.blob
 import dulwich.client
 import paramiko
 import paramiko.client

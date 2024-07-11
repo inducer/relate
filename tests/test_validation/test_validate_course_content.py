@@ -365,7 +365,7 @@ class ValidateCourseContentTest(CoursesTestMixinBase, TestCase):
         self.addCleanup(fake_check_grade_identifier_link.stop)
 
         fake_get_repo_blob = (
-            mock.patch("course.validation.get_repo_blob"))
+            mock.patch("course.content.get_repo_blob"))
         self.mock_get_repo_blob = fake_get_repo_blob.start()
         self.mock_get_repo_blob.side_effect = get_repo_blob_side_effect
         self.addCleanup(fake_get_repo_blob.stop)

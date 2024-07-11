@@ -290,8 +290,7 @@ class GetRepoBlobTest(SingleCourseTestMixin, TestCase):
         with self.pctx.repo as repo:
             with self.assertRaises(ObjectDoesNotExist) as cm:
                 content.get_repo_blob(
-                    repo, "", self.course.active_git_commit_sha.encode(),
-                    allow_tree=False)
+                    repo, "", self.course.active_git_commit_sha.encode())
             expected_error_msg = "resource '(repo root)' is a directory, not a file"
             self.assertIn(expected_error_msg, str(cm.exception))
 
@@ -300,9 +299,8 @@ class GetRepoBlobTest(SingleCourseTestMixin, TestCase):
         full_name = os.path.join(*path_parts)
         with self.pctx.repo as repo:
             with self.assertRaises(ObjectDoesNotExist) as cm:
-                content.get_repo_blob(
-                    repo, full_name, self.course.active_git_commit_sha.encode(),
-                    allow_tree=True)
+                content.get_repo_tree(
+                    repo, full_name, self.course.active_git_commit_sha.encode())
             expected_error_msg = (
                     "'%s' is not a directory, cannot lookup nested names"
                     % path_parts[0])
@@ -313,8 +311,7 @@ class GetRepoBlobTest(SingleCourseTestMixin, TestCase):
         with self.pctx.repo as repo:
             with self.assertRaises(ObjectDoesNotExist) as cm:
                 content.get_repo_blob(
-                    repo, full_name, self.course.active_git_commit_sha.encode(),
-                    allow_tree=False)
+                    repo, full_name, self.course.active_git_commit_sha.encode())
             expected_error_msg = (
                     "resource '%s' is a directory, not a file" % full_name)
             self.assertIn(expected_error_msg, str(cm.exception))
@@ -935,6 +932,12 @@ class ListFlowIdsTest(unittest.TestCase):
         self.repo = mock.MagicMock()
         self.commit_sha = mock.MagicMock()
 
+        fake_get_repo_tree = mock.patch("course.content.get_repo_tree")
+        self.mock_get_repo_tree = fake_get_repo_tree.start()
+        self.addCleanup(fake_get_repo_tree.stop)
+        self.repo = mock.MagicMock()
+        self.commit_sha = mock.MagicMock()
+
     def test_object_does_not_exist(self):
         self.mock_get_repo_blob.side_effect = ObjectDoesNotExist()
         self.assertEqual(content.list_flow_ids(self.repo, self.commit_sha), [])
@@ -947,7 +950,7 @@ class ListFlowIdsTest(unittest.TestCase):
         tree.add(b"flow_c.yml", stat.S_IFREG, b"flow_c content")
         tree.add(b"temp_dir", stat.S_IFDIR, b"a temp dir")
 
-        self.mock_get_repo_blob.return_value = tree
+        self.mock_get_repo_tree.return_value = tree
 
         self.assertEqual(content.list_flow_ids(
             self.repo, self.commit_sha), ["flow_a", "flow_b", "flow_c"])

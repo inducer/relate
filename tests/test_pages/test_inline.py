@@ -664,11 +664,11 @@ answers:
 """
 
 
-def get_repo_blob_side_effect(repo, full_name, commit_sha, allow_tree=True):
+def get_repo_blob_side_effect(repo, full_name, commit_sha):
     # Fake the inline multiple question yaml for specific commit
     if not (full_name == "questions/multi-question-example.yml"
             and commit_sha == b"ec41a2de73a99e6022060518cb5c5c162b88cdf5"):
-        return get_repo_blob(repo, full_name, commit_sha, allow_tree)
+        return get_repo_blob(repo, full_name, commit_sha)
     else:
         class Blob:
             pass

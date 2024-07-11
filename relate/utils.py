@@ -26,7 +26,6 @@ THE SOFTWARE.
 
 import datetime
 from typing import (
-    TYPE_CHECKING,
     Any,
     Mapping,
     Union,
@@ -34,12 +33,9 @@ from typing import (
 
 import django.forms as forms
 import dulwich.repo
+from django.http import HttpRequest
 from django.utils.text import format_lazy
 from django.utils.translation import gettext_lazy as _
-
-
-if TYPE_CHECKING:
-    from django.http import HttpRequest
 
 
 def string_concat(*strings: Any) -> str:
