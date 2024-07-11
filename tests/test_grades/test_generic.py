@@ -35,7 +35,7 @@ from tests.base_test_mixins import SingleCoursePageTestMixin, classmethod_with_c
 
 class GradeGenericTestMixin(SingleCoursePageTestMixin):
     @classmethod
-    def setUpTestData(cls):  # noqa
+    def setUpTestData(cls):
         super().setUpTestData()
         client = Client()
         cls.flow_session_ids = []
@@ -340,7 +340,7 @@ class GradeThreeQuizTakerTest(GradeGenericTestMixin, TestCase):
 @pytest.mark.slow
 class GradePermissionsTests(SingleCoursePageTestMixin, TestCase):
     @classmethod
-    def setUpTestData(cls):  # noqa
+    def setUpTestData(cls):
         super().setUpTestData()
 
         client = Client()

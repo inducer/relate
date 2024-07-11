@@ -1074,7 +1074,7 @@ class TestFlowTest(SingleCoursePageTestMixin, TestCase):
 class GrantExceptionTestMixin(MockAddMessageMixing, SingleCoursePageTestMixin):
 
     @classmethod
-    def setUpTestData(cls):  # noqa
+    def setUpTestData(cls):
         super().setUpTestData()
         cls.fs = factories.FlowSessionFactory(
             course=cls.course, participation=cls.student_participation,

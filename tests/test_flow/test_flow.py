@@ -72,7 +72,7 @@ class AdjustFlowSessionPageDataTest(
     initial_commit_sha = "my_fake_commit_sha_1"
 
     @classmethod
-    def setUpTestData(cls):  # noqa
+    def setUpTestData(cls):
         super().setUpTestData()
         client = Client()
         client.force_login(cls.student_participation.user)
@@ -716,7 +716,7 @@ class FakePageData:
 
 
 def instantiate_flow_page_with_ctx_get_interaction_kind_side_effect(fctx,
-                                                                    page_data):  # noqa
+                                                                    page_data):
     # side effect when testing get_interaction_kind
     return page_data.mock_page_attribute()
 
@@ -1076,7 +1076,7 @@ class FinishFlowSessionViewTest(HackRepoMixin,
         self.assertEqual(resp.status_code, 200)
         self.assertGradeInfoEqual(resp, expected_grade_info_dict)
 
-    def test_submit_with_bonus(self):  # noqa
+    def test_submit_with_bonus(self):
         with mock.patch(
                 "course.flow.get_session_grading_rule") as mock_get_grule:
             mock_get_grule.return_value = \
@@ -1562,7 +1562,7 @@ class FinishFlowSessionTest(SingleCourseTestMixin, TestCase):
             participation=self.student_participation, in_progress=True)
         grading_rule = FlowSessionGradingRule(
             grade_identifier="la_quiz",
-            grade_aggregation_strategy=g_strategy.use_latest,  # noqa
+            grade_aggregation_strategy=g_strategy.use_latest,
             due=None,
             generates_grade=True,
             use_last_activity_as_completion_time=False
@@ -1601,7 +1601,7 @@ class FinishFlowSessionTest(SingleCourseTestMixin, TestCase):
 
         grading_rule = FlowSessionGradingRule(
             grade_identifier="la_quiz",
-            grade_aggregation_strategy=g_strategy.use_latest,  # noqa
+            grade_aggregation_strategy=g_strategy.use_latest,
             due=None,
             generates_grade=True,
             use_last_activity_as_completion_time=True
@@ -1657,7 +1657,7 @@ class FinishFlowSessionTest(SingleCourseTestMixin, TestCase):
 
         grading_rule = FlowSessionGradingRule(
             grade_identifier="la_quiz",
-            grade_aggregation_strategy=g_strategy.use_latest,  # noqa
+            grade_aggregation_strategy=g_strategy.use_latest,
             due=None,
             generates_grade=True,
             use_last_activity_as_completion_time=True
@@ -1750,7 +1750,7 @@ class ExpireFlowSessionTest(SingleCourseTestMixin, TestCase):
             participation=self.student_participation, in_progress=True)
         grading_rule = FlowSessionGradingRule(
             grade_identifier="la_quiz",
-            grade_aggregation_strategy=g_strategy.use_latest,  # noqa
+            grade_aggregation_strategy=g_strategy.use_latest,
             due=None,
             generates_grade=True,
             use_last_activity_as_completion_time=False
@@ -4409,7 +4409,7 @@ class PostFlowPageTest(HackRepoMixin, SingleCourseQuizPageTestMixin, TestCase):
     page_id = "half"
 
     @classmethod
-    def setUpTestData(cls):  # noqa
+    def setUpTestData(cls):
         super().setUpTestData()
 
         # We only concern one page, so it can be put here to speed up
@@ -4570,7 +4570,7 @@ class SendEmailAboutFlowPageTest(HackRepoMixin,
     page_id = "half"
 
     @classmethod
-    def setUpTestData(cls):  # noqa
+    def setUpTestData(cls):
         super().setUpTestData()
 
         # We only conern one page, so it can be put here to speed up
@@ -5063,7 +5063,7 @@ class ViewUnsubmitFlowPageTest(SingleCourseQuizPageTestMixin, TestCase):
     page_id = "half"
 
     @classmethod
-    def setUpTestData(cls):  # noqa
+    def setUpTestData(cls):
         super().setUpTestData()
         client = Client()
         client.force_login(cls.student_participation.user)

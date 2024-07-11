@@ -24,15 +24,15 @@ from typing import Any, Dict, Iterable, Optional, Text, Tuple, cast  # noqa
 
 import django.forms as forms
 from crispy_forms.layout import Submit
-from django import http  # noqa
-from django.contrib import messages  # noqa
+from django import http
+from django.contrib import messages
 from django.core.exceptions import PermissionDenied
 from django.utils.safestring import mark_safe
 from django.utils.translation import gettext, gettext_lazy as _
 
 from course.constants import participation_permission as pperm
 from course.content import FlowPageDesc
-from course.utils import CoursePageContext, course_view, render_course_page  # noqa
+from course.utils import CoursePageContext, course_view, render_course_page
 
 
 # {{{ for mypy
@@ -388,7 +388,7 @@ def view_page_sandbox(pctx: CoursePageContext) -> http.HttpResponse:
                                 "(change page ID to clear faults)")
                             + ": "
                             + "{err_type}: {err_str}".format(
-                                err_type=tp.__name__, err_str=e))  # type: ignore  # noqa: E501
+                                err_type=tp.__name__, err_str=e))  # type: ignore
 
                     page_form = None
 

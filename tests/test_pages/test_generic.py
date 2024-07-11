@@ -54,7 +54,7 @@ from tests.utils import mock
 class SingleCourseQuizPageTest(SingleCourseQuizPageTestMixin,
                                MockAddMessageMixing, TestCase):
     @classmethod
-    def setUpTestData(cls):  # noqa
+    def setUpTestData(cls):
         super().setUpTestData()
 
         client = Client()

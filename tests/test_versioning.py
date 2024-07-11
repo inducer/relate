@@ -78,7 +78,7 @@ class VersioningTestMixin(CoursesTestMixinBase, MockAddMessageMixing):
     courses_setup_list = []
 
     @classmethod
-    def setUpTestData(cls):  # noqa
+    def setUpTestData(cls):
         super().setUpTestData()
         cls.instructor = cls.create_user(
             SINGLE_COURSE_SETUP_LIST[0]["participations"][0]["user"])
@@ -295,7 +295,7 @@ class ParamikoSSHVendorTest(TestCase):
         return data
 
     @classmethod
-    def make_ssh_vendor(cls):  # noqa
+    def make_ssh_vendor(cls):
         course = factories.CourseFactory.create(**cls.prepare_data())
         git_client, _ = (
             versioning.get_dulwich_client_and_remote_path_from_course(course))
@@ -1087,7 +1087,7 @@ class RunCourseUpdateCommandTest(MockAddMessageMixing, unittest.TestCase):
 
 class VersioningRepoMixin:
     @classmethod
-    def setUpTestData(cls):  # noqa
+    def setUpTestData(cls):
         super().setUpTestData()
         cls.rf = RequestFactory()
         request = cls.rf.get(cls.get_update_course_url())

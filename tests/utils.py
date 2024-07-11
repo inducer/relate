@@ -17,10 +17,10 @@ from django.urls import clear_url_caches
 
 try:
     # for Django < 2.0
-    from django.test import mock  # noqa
+    from django.test import mock
 except ImportError:
     # Since Django >= 2.0 only support PY3
-    from unittest import mock  # noqa
+    from unittest import mock
 
     if sys.version_info < (3, 8):
         # __round__ is missing from MagicMock before Py3.8
@@ -34,7 +34,7 @@ except ImportError:
 class BaseEmailBackendTestsMixin:
     email_backend = None
 
-    def setUp(self):  # noqa
+    def setUp(self):
         super().setUp()
         self.email_backend_settings_override = (
             override_settings(EMAIL_BACKEND=self.email_backend))
@@ -108,7 +108,7 @@ class LocmemBackendTestsMixin(BaseEmailBackendTestsMixin):
     def flush_mailbox(self):
         mail.outbox = []
 
-    def tearDown(self):  # noqa
+    def tearDown(self):
         super().tearDown()
         mail.outbox = []
 

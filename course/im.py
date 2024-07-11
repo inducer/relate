@@ -30,7 +30,7 @@ import slixmpp
 from asgiref.sync import async_to_sync
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Submit
-from django.contrib import messages  # noqa
+from django.contrib import messages
 from django.core.exceptions import PermissionDenied
 from django.shortcuts import get_object_or_404, redirect, render  # noqa
 from django.utils.translation import gettext as _, pgettext_lazy

@@ -39,14 +39,14 @@ from typing import (  # noqa
 
 from crispy_forms.layout import Submit
 from django import forms, http
-from django.contrib import messages  # noqa
+from django.contrib import messages
 from django.core.exceptions import (
     ObjectDoesNotExist,
     PermissionDenied,
     SuspiciousOperation,
 )
 from django.db import connection, transaction
-from django.shortcuts import get_object_or_404, redirect, render  # noqa
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.timezone import now
 from django.utils.translation import gettext, gettext_lazy as _, pgettext_lazy
@@ -76,9 +76,9 @@ from relate.utils import (
 # {{{ for mypy
 
 if TYPE_CHECKING:
-    from course.content import FlowDesc  # noqa
-    from course.models import Course, FlowPageVisitGrade  # noqa
-    from course.utils import CoursePageContext  # noqa
+    from course.content import FlowDesc
+    from course.models import Course, FlowPageVisitGrade
+    from course.utils import CoursePageContext
 
 # }}}
 
@@ -224,7 +224,6 @@ class GradeInfo:
 
 def get_grade_table(course: Course) -> Tuple[
         List[Participation], List[GradingOpportunity], List[List[GradeInfo]]]:
-    # noqa
 
     # NOTE: It's important that these queries are sorted consistently,
     # also consistently with the code below.
@@ -657,7 +656,7 @@ def view_grades_by_opportunity(
         from course.flow import assemble_page_grades
         page_grades: List[List[Optional[FlowPageVisitGrade]]] = assemble_page_grades(all_flow_sessions)  # noqa
 
-        for (_dummy2, grade_info), grade_list in zip(grade_table, page_grades):  # type: ignore  # noqa
+        for (_dummy2, grade_info), grade_list in zip(grade_table, page_grades):  # type: ignore
             # Not all pages exist in all sessions
             grades: List[Tuple[Optional[int], Optional[FlowPageVisitGrade]]] = list(enumerate(grade_list))  # noqa
             if len(grades) < max_page_count:
@@ -686,7 +685,7 @@ def view_grades_by_opportunity(
 
 # {{{ reopen session UI
 
-NONE_SESSION_TAG = "<<<NONE>>>"  # noqa
+NONE_SESSION_TAG = "<<<NONE>>>"
 
 
 class ReopenSessionForm(StyledForm):
@@ -841,7 +840,6 @@ def average_grade(opportunity: GradingOpportunity) -> Tuple[Optional[float], int
 
 def get_single_grade_changes_and_state_machine(opportunity: GradingOpportunity,
         participation: Participation) -> Tuple[List[GradeChange], GradeStateMachine]:
-    # noqa
 
     grade_changes = list(
         GradeChange.objects.filter(
@@ -993,7 +991,7 @@ def view_single_grade(pctx: CoursePageContext, participation_id: str,
                 .order_by("start_time"))
 
         from collections import namedtuple
-        SessionProperties = namedtuple(  # noqa
+        SessionProperties = namedtuple(
                 "SessionProperties",
                 ["due", "grade_description"])
 

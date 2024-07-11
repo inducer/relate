@@ -290,7 +290,7 @@ class ResponseContextMixin:
                 self.assertInHTML(expected_value, value)
 
     def assertResponseContextRegex(  # noqa
-            self, resp,  # noqa
+            self, resp,
             context_name, expected_value_regex):
         value = self.get_response_context_value_by_name(resp, context_name)
         self.assertRegex(value, expected_value_regex)
@@ -419,7 +419,7 @@ class SuperuserCreateMixin(ResponseContextMixin):
     create_superuser_kwargs = CREATE_SUPERUSER_KWARGS
 
     @classmethod
-    def setUpTestData(cls):  # noqa
+    def setUpTestData(cls):
         # Create superuser, without this, we cannot
         # create user, course and participation.
         cls.superuser = cls.create_superuser()
@@ -720,7 +720,7 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
     override_settings_at_post_create_course = {}
 
     @classmethod
-    def setUpTestData(cls):  # noqa
+    def setUpTestData(cls):
         super().setUpTestData()
 
         client = Client()
@@ -926,7 +926,7 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
         return client.get(cls.get_update_course_url)
 
     @classmethod
-    def get_edit_course_url(cls, course_identifier=None):  # noqa: N805
+    def get_edit_course_url(cls, course_identifier=None):
         course_identifier = (
             course_identifier or cls.get_default_course_identifier())
         return cls.get_course_view_url("relate-edit_course", course_identifier)
@@ -1870,7 +1870,7 @@ class SingleCourseTestMixin(CoursesTestMixinBase):
     initial_commit_sha = None
 
     @classmethod
-    def setUpTestData(cls):  # noqa
+    def setUpTestData(cls):
         super().setUpTestData()
         assert len(cls.course_qset) == 1
         cls.course = cls.course_qset.first()
@@ -1901,7 +1901,7 @@ class SingleCourseTestMixin(CoursesTestMixinBase):
 
         cls.course_page_url = cls.get_course_page_url()
 
-    def setUp(self):  # noqa
+    def setUp(self):
         super().setUp()
 
         # reload objects created during setUpTestData in case they were modified in
@@ -2014,7 +2014,7 @@ class TwoCourseTestMixin(CoursesTestMixinBase):
     courses_setup_list = TWO_COURSE_SETUP_LIST
 
     @classmethod
-    def setUpTestData(cls):  # noqa
+    def setUpTestData(cls):
         super().setUpTestData()
         assert len(cls.course_qset) == 2, (
             "'courses_setup_list' should contain two courses")
@@ -2064,7 +2064,7 @@ class TwoCourseTestMixin(CoursesTestMixinBase):
         assert cls.course2_ta_participation
         cls.course2_page_url = cls.get_course_page_url(cls.course2.identifier)
 
-    def setUp(self):  # noqa
+    def setUp(self):
         super().setUp()
         # reload objects created during setUpTestData in case they were modified in
         # tests. Ref: https://goo.gl/AuzJRC#django.test.TestCase.setUpTestData
@@ -2581,7 +2581,7 @@ class SubprocessRunpyContainerMixin:
     the TestCase include test(s) for code questions
     """
     @classmethod
-    def setUpClass(cls):  # noqa
+    def setUpClass(cls):
         super().setUpClass()
 
         python_executable = os.getenv("PY_EXE")
@@ -2612,7 +2612,7 @@ class SubprocessRunpyContainerMixin:
         self.addCleanup(self.faked_container_patch.stop)
 
     @classmethod
-    def tearDownClass(cls):  # noqa
+    def tearDownClass(cls):
         super().tearDownClass()
 
         from course.page.code import SPAWN_CONTAINERS
@@ -2634,7 +2634,7 @@ class SubprocessRunpyContainerMixin:
 def improperly_configured_cache_patch():
     # can be used as context manager or decorator
     built_in_import_path = "builtins.__import__"
-    import builtins  # noqa
+    import builtins
 
     built_in_import = builtins.__import__
 
@@ -2652,7 +2652,7 @@ def improperly_configured_cache_patch():
 ADMIN_TWO_COURSE_SETUP_LIST = deepcopy(TWO_COURSE_SETUP_LIST)
 # switch roles
 ADMIN_TWO_COURSE_SETUP_LIST[1]["participations"][0]["role_identifier"] = "ta"
-ADMIN_TWO_COURSE_SETUP_LIST[1]["participations"][1]["role_identifier"] = "instructor"  # noqa
+ADMIN_TWO_COURSE_SETUP_LIST[1]["participations"][1]["role_identifier"] = "instructor"
 
 
 class AdminTestMixin(TwoCourseTestMixin):
@@ -2661,8 +2661,8 @@ class AdminTestMixin(TwoCourseTestMixin):
         NONE_PARTICIPATION_USER_CREATE_KWARG_LIST)
 
     @classmethod
-    def setUpTestData(cls):  # noqa
-        super().setUpTestData()  # noqa
+    def setUpTestData(cls):
+        super().setUpTestData()
 
         # create 2 participation (with new user) for course1
         from tests.factories import ParticipationFactory
@@ -2828,7 +2828,7 @@ class HackRepoMixin:
     get_repo_blob_patching_path = "course.content.get_repo_blob"
 
     @classmethod
-    def setUpTestData(cls):  # noqa
+    def setUpTestData(cls):
         super().setUpTestData()
 
         class Blob:
@@ -2854,7 +2854,7 @@ class HackRepoMixin:
         cls.mock_get_repo_blob.side_effect = get_repo_side_effect
 
     @classmethod
-    def tearDownClass(cls):  # noqa
+    def tearDownClass(cls):
         # This must be done to avoid inconsistency
         super().tearDownClass()
         cls.batch_fake_get_repo_blob.stop()

@@ -187,7 +187,7 @@ class PageBaseAPITest(SingleCourseQuizPageTestMixin, TestCase):
     page_id = "half"
 
     @classmethod
-    def setUpTestData(cls):  # noqa
+    def setUpTestData(cls):
         super().setUpTestData()
         client = Client()
         client.force_login(cls.student_participation.user)
@@ -583,7 +583,7 @@ def human_feedback_point_value_side_effect_super(self, page_context, page_data):
 class PageBaseWithHumanTextFeedbackTest(SingleCourseQuizPageGradeInterfaceTestMixin,
                                     TestCase):
     @classmethod
-    def setUpTestData(cls):  # noqa
+    def setUpTestData(cls):
         super().setUpTestData()
         cls.page_id = "anyup"
         client = Client()

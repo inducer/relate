@@ -42,7 +42,7 @@ class SingleCourseQuizPageGradeInterfaceTestMixin(SingleCourseQuizPageTestMixin)
     page_id = "anyup"
 
     @classmethod
-    def setUpTestData(cls):  # noqa
+    def setUpTestData(cls):
         super().setUpTestData()
         client = Client()
         client.force_login(cls.student_participation.user)
@@ -57,7 +57,7 @@ class SingleCourseQuizPageGradeInterfaceTest(
         SingleCourseQuizPageGradeInterfaceTestMixin, MockAddMessageMixing, TestCase):
 
     @classmethod
-    def setUpTestData(cls):  # noqa
+    def setUpTestData(cls):
         super().setUpTestData()
 
         client = Client()
@@ -635,7 +635,7 @@ class ShowGraderStatisticsTest(
     # test grading.show_grader_statistics
 
     @classmethod
-    def setUpTestData(cls):  # noqa
+    def setUpTestData(cls):
         super().setUpTestData()
         cls.create_flow_page_visit_grade(cls.course)
 

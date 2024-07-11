@@ -144,7 +144,7 @@ choices:
   - ~CORRECT~ Almond bits
 
 %(extra_attr)s
-"""  # noqa
+"""
 
 MULTIPLE_CHOICES_MARKDWON_WITH_MULTIPLE_MODE1 = """
 type: MultipleChoiceQuestion
@@ -199,7 +199,7 @@ choices:
   - Spider webs
   - ~CORRECT~ Almond bits
   - ~DISREGARD~ A flawed option
-"""  # noqa
+"""
 
 MULTIPLE_CHOICES_MARKDWON_WITH_ALWAYS_CORRECT_PATTERN = """
 type: MultipleChoiceQuestion
@@ -218,7 +218,7 @@ choices:
   - Spider webs
   - ~CORRECT~ Almond bits
   - ~ALWAYS_CORRECT~ A flawed option
-"""  # noqa
+"""
 
 
 class ChoicesQuestionTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
@@ -664,7 +664,7 @@ class MultiChoicesQuestionTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
 
 class BrokenPageDataTest(SingleCoursePageTestMixin, TestCase):
     @classmethod
-    def setUpTestData(cls):  # noqa
+    def setUpTestData(cls):
         super().setUpTestData()
 
         client = Client()

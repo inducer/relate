@@ -50,7 +50,7 @@ from tests.utils import mock
 class SingleCoursePageCacheTest(SingleCoursePageTestMixin, TestCase):
 
     @classmethod
-    def setUpTestData(cls):  # noqa
+    def setUpTestData(cls):
         super().setUpTestData()
         client = Client()
         client.force_login(cls.student_participation.user)
@@ -93,7 +93,7 @@ content: |
     value=${#1}
     %s
     [example2](http://example2.com)
-"""  # noqa
+"""
 
 
 class YamlJinjaExpansionTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
@@ -251,7 +251,7 @@ class SubDirRepoTest(SingleCourseQuizPageTestMixin, MockAddMessageMixing, TestCa
     subdir_branch_commit_ref = "refs/remotes/origin/subdir-repo"
 
     @classmethod
-    def setUpTestData(cls):  # noqa
+    def setUpTestData(cls):
         super().setUpTestData()
 
         cls.course.course_root_path = "course_content"
@@ -796,7 +796,7 @@ class GetFlowPageDescTest(SingleCoursePageTestMixin, TestCase):
     # test content.get_flow_desc
 
     @classmethod
-    def setUpTestData(cls):  # noqa
+    def setUpTestData(cls):
         super().setUpTestData()
         cls.flow_desc = cls.get_hacked_flow_desc()
 

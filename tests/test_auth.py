@@ -426,7 +426,7 @@ class ImpersonateTest(SingleCoursePageTestMixin, MockAddMessageMixing, TestCase)
 class CrossCourseImpersonateTest(CoursesTestMixinBase, TestCase):
 
     @classmethod
-    def setUpTestData(cls):  # noqa
+    def setUpTestData(cls):
         super().setUpTestData()
         course1 = factories.CourseFactory()
         course2 = factories.CourseFactory(identifier="another-course")
@@ -477,7 +477,7 @@ class AuthTestMixin:
     }
 
     @classmethod
-    def setUpTestData(cls):  # noqa
+    def setUpTestData(cls):
         super().setUpTestData()
         cls.test_user = (
             get_user_model().objects.create_user(**cls._user_create_kwargs))
@@ -793,7 +793,7 @@ class SignInByEmailTest(CoursesTestMixinBase, MockAddMessageMixing,
     courses_setup_list = []
 
     @classmethod
-    def setUpTestData(cls):  # noqa
+    def setUpTestData(cls):
         super().setUpTestData()
 
         new_email = "somebody@example.com"
@@ -1598,7 +1598,7 @@ class UserProfileTest(CoursesTestMixinBase, AuthTestMixin,
 class ResetPasswordStageOneTest(CoursesTestMixinBase, MockAddMessageMixing,
                                 LocmemBackendTestsMixin, TestCase):
     @classmethod
-    def setUpTestData(cls):  # noqa
+    def setUpTestData(cls):
         super().setUpTestData()
         cls.user_email = "a_very_looooooong_email@somehost.com"
         cls.user_inst_id = "1234"
@@ -1731,7 +1731,7 @@ class ResetPasswordStageTwoTest(CoursesTestMixinBase, MockAddMessageMixing,
                                 LocmemBackendTestsMixin, TestCase):
 
     @classmethod
-    def setUpTestData(cls):  # noqa
+    def setUpTestData(cls):
         super().setUpTestData()
         user = factories.UserFactory()
 

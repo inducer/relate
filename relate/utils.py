@@ -44,7 +44,7 @@ from django.utils.translation import gettext_lazy as _
 
 
 if TYPE_CHECKING:
-    from django.http import HttpRequest  # noqa
+    from django.http import HttpRequest
 
 
 def string_concat(*strings: Any) -> str:
@@ -431,7 +431,7 @@ def force_remove_path(path: str) -> None:
     import shutil
     import stat
 
-    def remove_readonly(func, path, _):  # noqa
+    def remove_readonly(func, path, _):
         """Clear the readonly bit and reattempt the removal"""
         os.chmod(path, stat.S_IWRITE)
         func(path)

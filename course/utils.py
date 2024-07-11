@@ -32,17 +32,17 @@ from typing import (  # noqa
 
 from django import http
 from django.core.exceptions import ObjectDoesNotExist
-from django.shortcuts import get_object_or_404, render  # noqa
+from django.shortcuts import get_object_or_404, render
 from django.utils import translation
 from django.utils.translation import gettext as _, pgettext_lazy
 
 from course.constants import flow_permission, flow_rule_kind
-from course.content import (  # noqa
+from course.content import (
     CourseCommitSHADoesNotExist, FlowDesc, FlowPageDesc, FlowSessionAccessRuleDesc,
     FlowSessionGradingRuleDesc, FlowSessionStartRuleDesc, get_course_commit_sha,
     get_course_repo, get_flow_desc, parse_date_spec,
 )
-from course.page.base import PageBase, PageContext  # noqa
+from course.page.base import PageBase, PageContext
 from relate.utils import string_concat
 
 
@@ -51,8 +51,8 @@ from relate.utils import string_concat
 if TYPE_CHECKING:
     from codemirror import CodeMirrorJavascript, CodeMirrorTextarea  # noqa
 
-    from course.content import Repo_ish  # noqa
-    from course.models import (  # noqa
+    from course.content import Repo_ish
+    from course.models import (
         Course, ExamTicket, FlowPageData, FlowSession, Participation,
     )
     from relate.utils import Repo_ish  # noqa
@@ -288,7 +288,7 @@ def get_session_start_rule(
                     "may_start_new_session": True,
                     "may_list_existing_sessions": False})])
 
-    from course.models import FlowSession  # noqa
+    from course.models import FlowSession
     for rule in rules:
         if not _eval_generic_conditions(rule, course, participation,
                 now_datetime, flow_id=flow_id,
@@ -544,7 +544,7 @@ def get_session_grading_rule(
 
 # {{{ contexts
 
-class AnyArgumentType:  # noqa
+class AnyArgumentType:
     pass
 
 
@@ -556,14 +556,14 @@ class CoursePageContext:
 
         self.request = request
         self.course_identifier = course_identifier
-        self._permissions_cache: frozenset[tuple[str, str | None]] | None = None  # noqa
+        self._permissions_cache: frozenset[tuple[str, str | None]] | None = None
         self._role_identifiers_cache: list[str] | None = None
         self.old_language = None
 
         # using this to prevent nested using as context manager
         self._is_in_context_manager = False
 
-        from course.models import Course  # noqa
+        from course.models import Course
         self.course = get_object_or_404(Course, identifier=course_identifier)
 
         from course.enrollment import get_participation_for_request
@@ -702,7 +702,7 @@ class FlowPageContext(FlowContext):
         if page_ordinal >= flow_session.page_count:
             raise PageOrdinalOutOfRange()
 
-        from course.models import FlowPageData  # noqa
+        from course.models import FlowPageData
         page_data = self.page_data = get_object_or_404(
                 FlowPageData, flow_session=flow_session, page_ordinal=page_ordinal)
 
@@ -894,7 +894,7 @@ def get_codemirror_widget(
             Dict[str, Union[str, CodeMirrorJavascript]]] = None,
         attrs: Optional[Dict[str, str]] = None,
         ) -> tuple[CodeMirrorTextarea, str]:
-    from codemirror import CodeMirrorJavascript, CodeMirrorTextarea  # noqa
+    from codemirror import CodeMirrorJavascript, CodeMirrorTextarea
     if additional_keys is None:
         additional_keys = {}
 
@@ -1122,7 +1122,7 @@ def will_use_masked_profile_for_email(
         return False
     if not isinstance(recipient_email, list):
         recipient_email = [recipient_email]
-    from course.models import Participation  # noqa
+    from course.models import Participation
     recepient_participations = (
         Participation.objects.filter(
             user__email__in=recipient_email

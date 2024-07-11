@@ -38,7 +38,7 @@ from tests.base_test_mixins import AdminTestMixin
 class AccountsAdminTest(AdminTestMixin, TestCase):
 
     @classmethod
-    def setUpTestData(cls):  # noqa
+    def setUpTestData(cls):
         super().setUpTestData()
 
         cls.user_change_list_url = cls.get_admin_change_list_view_url()

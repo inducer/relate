@@ -177,9 +177,9 @@ def test_code_question(page_desc, repo_root) -> bool:
 
     response: Dict[str, Any] = {}
 
-    prev_stdin = sys.stdin  # noqa
-    prev_stdout = sys.stdout  # noqa
-    prev_stderr = sys.stderr  # noqa
+    prev_stdin = sys.stdin
+    prev_stdout = sys.stdout
+    prev_stderr = sys.stderr
 
     stdout = io.StringIO()
     stderr = io.StringIO()

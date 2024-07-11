@@ -179,7 +179,7 @@ class CourseAdminGenericTest(CourseAdminTestMixin, TestCase):
 
 class CourseAdminSessionRelatedMixin(CourseAdminTestMixin):
     @classmethod
-    def setUpTestData(cls):  # noqa
+    def setUpTestData(cls):
         super().setUpTestData()
 
         course1_session = factories.FlowSessionFactory.create(

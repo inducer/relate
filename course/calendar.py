@@ -24,7 +24,7 @@ import datetime
 
 import django.forms as forms
 from crispy_forms.layout import Submit
-from django.contrib import messages  # noqa
+from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import (
     ObjectDoesNotExist,

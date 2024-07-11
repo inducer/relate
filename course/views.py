@@ -40,7 +40,7 @@ import django.forms as forms
 import django.views.decorators.http as http_dec
 from crispy_forms.layout import Div, Layout, Submit
 from django import http
-from django.contrib import messages  # noqa
+from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import (
     ObjectDoesNotExist,
@@ -48,7 +48,7 @@ from django.core.exceptions import (
     SuspiciousOperation,
 )
 from django.db import transaction
-from django.shortcuts import get_object_or_404, redirect, render  # noqa
+from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.safestring import mark_safe
 from django.utils.translation import (
     gettext,
@@ -79,7 +79,7 @@ from course.models import (
     InstantFlowRequest,
     Participation,
 )
-from course.utils import (  # noqa
+from course.utils import (
     CoursePageContext,
     course_view,
     get_course_specific_language_choices,
@@ -97,13 +97,13 @@ from relate.utils import (
 # {{{ for mypy
 
 if TYPE_CHECKING:
-    from accounts.models import User  # noqa
-    from course.content import FlowDesc  # noqa
+    from accounts.models import User
+    from course.content import FlowDesc
 
 # }}}
 
 
-NONE_SESSION_TAG = string_concat("<<<", _("NONE"), ">>>")  # noqa
+NONE_SESSION_TAG = string_concat("<<<", _("NONE"), ">>>")
 
 
 # {{{ home
@@ -311,7 +311,6 @@ def get_repo_file_backend(
         commit_sha: bytes,
         path: str,
         ) -> http.HttpResponse:
-    # noqa
     """
     Check if a file should be accessible.  Then call for it if
     the permission is not denied.

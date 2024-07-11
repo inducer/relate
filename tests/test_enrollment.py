@@ -113,7 +113,7 @@ def get_not_empty_count_from_list(lst):
 class EnrollmentTestMixin(MockAddMessageMixing, CoursesTestMixinBase):
 
     @classmethod
-    def setUpTestData(cls):  # noqa
+    def setUpTestData(cls):
         super().setUpTestData()
         cls.course = factories.CourseFactory()
 
@@ -656,7 +656,7 @@ class SendEnrollmentDecisionTest(SingleCourseTestMixin, TestCase):
 class EnrollmentTestBaseMixin(MockAddMessageMixing, SingleCourseTestMixin):
 
     @classmethod
-    def setUpTestData(cls):  # noqa
+    def setUpTestData(cls):
         super().setUpTestData()
         (cls.non_ptcp_active_user1, cls.non_ptcp_active_user2) = (
             factories.UserFactory.create_batch(
@@ -691,7 +691,7 @@ class EnrollmentDecisionTestMixin(LocmemBackendTestsMixin, EnrollmentTestBaseMix
     courses_attributes_extra_list = [{"enrollment_approval_required": True}]
 
     @classmethod
-    def setUpTestData(cls):  # noqa
+    def setUpTestData(cls):
         super().setUpTestData()
         cls.my_participation = cls.create_participation(
             cls.course, cls.non_ptcp_active_user1,
@@ -1005,7 +1005,7 @@ class EnrollmentPreapprovalTestMixin(LocmemBackendTestsMixin,
                                      EnrollmentTestBaseMixin):
 
     @classmethod
-    def setUpTestData(cls):  # noqa
+    def setUpTestData(cls):
         super().setUpTestData()
         cls.non_ptcp_active_user1.institutional_id_verified = True
         cls.non_ptcp_active_user1.save()
@@ -1074,7 +1074,7 @@ class CreatePreapprovalsTest(EnrollmentTestMixin,
                              SingleCourseTestMixin, TestCase):
     # test enrollment.create_preapprovals
     @classmethod
-    def setUpTestData(cls):  # noqa
+    def setUpTestData(cls):
         super().setUpTestData()
         cls.course.enrollment_approval_required = True
         cls.course.preapproval_require_verified_inst_id = True
@@ -1609,7 +1609,7 @@ class QueryParticipationsTestMixin(MockAddMessageMixing, SingleCoursePageTestMix
 class QueryParticipationsParseQueryTest(QueryParticipationsTestMixin, TestCase):
     # test enrollment.query_participations for parse query
     @classmethod
-    def setUpTestData(cls):  # noqa
+    def setUpTestData(cls):
         super().setUpTestData()
 
         # Participations are created here should not be modified

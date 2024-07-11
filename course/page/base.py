@@ -43,7 +43,7 @@ from relate.utils import Struct, StyledForm, string_concat
 if TYPE_CHECKING:
     # FIXME There seem to be some cyclic imports that prevent importing these
     # outright.
-    from course.models import Course, FlowSession  # noqa
+    from course.models import Course, FlowSession
     from relate.utils import Repo_ish
 
 # }}}

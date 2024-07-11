@@ -7,7 +7,7 @@ import os
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 import sys
 from os.path import join
-from typing import Any, Callable, Dict, Union  # noqa
+from typing import Any, Callable, Dict, Union
 
 from django.conf.global_settings import STATICFILES_FINDERS
 from django.utils.translation import gettext_noop
@@ -211,7 +211,7 @@ RELATE_OVERRIDE_TEMPLATES_DIRS = (
     local_settings.get("RELATE_OVERRIDE_TEMPLATES_DIRS", []))
 if RELATE_OVERRIDE_TEMPLATES_DIRS:
     TEMPLATES[0]["DIRS"] = (
-        tuple(RELATE_OVERRIDE_TEMPLATES_DIRS) + TEMPLATES[0]["DIRS"])   # type: ignore  # noqa
+        tuple(RELATE_OVERRIDE_TEMPLATES_DIRS) + TEMPLATES[0]["DIRS"])   # type: ignore
 
 # }}}
 
