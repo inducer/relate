@@ -747,10 +747,12 @@ def get_repo_blob(repo: Repo_ish, full_name: str, commit_sha: bytes) -> Blob_ish
 
     from course.validation import FileSystemFakeRepoFile
 
+    msg_full_name = full_name if full_name else _("(repo root)")
+
     if isinstance(git_obj, (Blob, FileSystemFakeRepoFile)):
         return git_obj
     else:
-        raise ObjectDoesNotExist(_("resource '%s' is not a file") % full_name)
+        raise ObjectDoesNotExist(_("resource '%s' is not a file") % msg_full_name)
 
 
 def get_repo_blob_data_cached(
