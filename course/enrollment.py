@@ -662,7 +662,7 @@ def parse_query(course, expr_str):
             return result
 
         elif next_tag is _tagged:
-            ptag, created = ParticipationTag.objects.get_or_create(
+            ptag, _created = ParticipationTag.objects.get_or_create(
                     course=course,
                     name=pstate.next_match_obj().group(1))
 
@@ -674,7 +674,7 @@ def parse_query(course, expr_str):
         elif next_tag is _role:
             name_map = {"teaching_assistant": "ta"}
             name = pstate.next_match_obj().group(1)
-            prole, created = ParticipationRole.objects.get_or_create(
+            prole, _created = ParticipationRole.objects.get_or_create(
                     course=course,
                     identifier=name_map.get(name, name))
 

@@ -220,7 +220,7 @@ class ResponseContextMixin:
     """
     Response context refers to "the template Context instance that was used
     to render the template that produced the response content".
-    Ref: https://docs.djangoproject.com/en/dev/topics/testing/tools/#django.test.Response.context  # noqa
+    Ref: https://docs.djangoproject.com/en/dev/topics/testing/tools/#django.test.Response.context
     """
     def get_response_context_value_by_name(self, response, context_name):
         try:
@@ -2865,8 +2865,7 @@ class HackRepoMixin:
         if not expected_grade_info_dict:
             import json
             error_msg = ("\n%s" % json.dumps(OrderedDict(
-                sorted(
-                    [(k, v) for (k, v) in grade_info.__dict__.items()])),
+                sorted(grade_info.__dict__.items())),
                 indent=4))
             error_msg = error_msg.replace("null", "None")
             self.fail(error_msg)

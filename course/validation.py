@@ -1231,7 +1231,7 @@ def check_attributes_yml(
     # {{{ analyze attributes file
 
     try:
-        dummy, attr_blob_sha = tree[ATTRIBUTES_FILENAME.encode()]
+        _dummy, attr_blob_sha = tree[ATTRIBUTES_FILENAME.encode()]
     except KeyError:
         # no .attributes.yml here
         pass
@@ -1268,8 +1268,8 @@ def check_attributes_yml(
 
         for access_kind in access_kinds:
             if hasattr(att_yml, access_kind):
-                for i, l in enumerate(getattr(att_yml, access_kind)):
-                    if not isinstance(l, str):
+                for i, ln in enumerate(getattr(att_yml, access_kind)):
+                    if not isinstance(ln, str):
                         raise ValidationError(
                             "%s: entry %d in '%s' is not a string"
                             % (loc, i+1, access_kind))
@@ -1281,7 +1281,7 @@ def check_attributes_yml(
     gitignore_lines: list[str] = []
 
     try:
-        dummy, gitignore_sha = tree[b".gitignore"]
+        _dummy, gitignore_sha = tree[b".gitignore"]
     except KeyError:
         # no .gitignore here
         pass
@@ -1307,7 +1307,7 @@ def check_attributes_yml(
             subpath = entry_name
 
         if stat.S_ISDIR(entry.mode):
-            dummy, blob_sha = tree[entry.path]
+            _dummy, blob_sha = tree[entry.path]
             subtree = true_repo[blob_sha]
             check_attributes_yml(vctx, true_repo, subpath, subtree, access_kinds)
 

@@ -1328,7 +1328,7 @@ class CodeQuestionWithHumanTextFeedbackSpecialCase(
         SingleCoursePageTestMixin, SubprocessRunpyContainerMixin, TestCase):
     """
     https://github.com/inducer/relate/issues/269
-    https://github.com/inducer/relate/commit/2af0ad7aa053b735620b2cf0bae0b45822bfb87f  # noqa
+    https://github.com/inducer/relate/commit/2af0ad7aa053b735620b2cf0bae0b45822bfb87f
     """
 
     @classmethod

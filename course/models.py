@@ -328,7 +328,7 @@ class Event(models.Model):
         super().clean()
 
         try:
-            self.course
+            self.course  # noqa: B018
         except ObjectDoesNotExist:
             raise ValidationError(
                 {"course":

@@ -282,7 +282,7 @@ def view_gradebook(pctx):
     participations, grading_opps, grade_table = get_grade_table(pctx.course)
 
     def grade_key(entry):
-        (participation, grades) = entry
+        (participation, _grades) = entry
         return (participation.user.last_name.lower(),
                     participation.user.first_name.lower())
 

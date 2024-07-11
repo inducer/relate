@@ -19,7 +19,7 @@ def get_local_test_settings_file(argv):
     parser.add_argument('--local_test_settings',
                         dest="local_test_settings")
 
-    options, args = parser.parse_known_args(argv)
+    options, _args = parser.parse_known_args(argv)
 
     if options.local_test_settings is None:
         local_settings_file = "local_settings_example.py"

@@ -38,9 +38,9 @@ jobs:
       - name: Install Dependencies
         run: poetry install
       #  if: steps.cache.outputs.cache-hit != 'true'
-      - name: "Flake8"
+      - name: "Ruff"
         run: |
-          poetry run flake8 relate course accounts tests
+          poetry run ruff check
       - name: "Mypy"
         run: poetry run mypy relate course
       - name: "Safety"

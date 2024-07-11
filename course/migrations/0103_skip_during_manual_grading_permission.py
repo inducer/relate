@@ -6,11 +6,11 @@ from django.db import migrations, models
 def add_skip_during_manual_grading_permission(apps, schema_editor):
     from course.constants import participation_permission as pperm
 
-    ParticipationPermission = apps.get_model("course", "ParticipationPermission")  # noqa
-    Participation = apps.get_model("course", "Participation")  # noqa
+    ParticipationPermission = apps.get_model("course", "ParticipationPermission")
+    Participation = apps.get_model("course", "Participation")
 
     target_participations = Participation.objects.filter(
-        roles__permissions__permission = (
+        roles__permissions__permission=(
             pperm.assign_grade)
     )
 
