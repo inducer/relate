@@ -1375,7 +1375,7 @@ class FinishFlowSessionViewTest(HackRepoMixin,
         self.assertEqual(len(mail.outbox), 1)
         self.assertEqual(
             mail.outbox[0].recipients(),
-            notify_on_submit_emails + [self.course.notify_email])
+            [*notify_on_submit_emails, self.course.notify_email])
 
         self.assertIn(
             self.student_participation.user.username,

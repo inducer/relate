@@ -232,7 +232,7 @@ class TextAnswerMatcher:
                 allowed_attrs=(
                     ("correctness", (int, float)),
                     ("feedback", str),
-                    ) + self.ALLOWED_ATTRIBUTES,
+                    *self.ALLOWED_ATTRIBUTES),
                 )
 
         assert matcher_desc.type == self.type
@@ -721,15 +721,10 @@ class TextQuestionBase(PageBaseWithTitle):
                         "type": page_desc.widget})
 
     def required_attrs(self):
-        return super().required_attrs() + (
-                ("prompt", "markup"),
-                )
+        return (*super().required_attrs(), ("prompt", "markup"))
 
     def allowed_attrs(self):
-        return super().allowed_attrs() + (
-                ("widget", str),
-                ("initial_text", str),
-                )
+        return (*super().allowed_attrs(), ("widget", str), ("initial_text", str))
 
     def markup_body_for_title(self):
         return self.page_desc.prompt
@@ -838,9 +833,7 @@ class SurveyTextQuestion(TextQuestionBase):
         return []
 
     def allowed_attrs(self):
-        return super().allowed_attrs() + (
-                ("answer_comment", "markup"),
-                )
+        return (*super().allowed_attrs(), ("answer_comment", "markup"))
 
     def correct_answer(self, page_context, page_data, answer_data, grade_data):
         if hasattr(self.page_desc, "answer_comment"):
@@ -1018,14 +1011,10 @@ class TextQuestion(TextQuestionBase, PageBaseWithValue):
                     % location)
 
     def required_attrs(self):
-        return super().required_attrs() + (
-                ("answers", list),
-                )
+        return (*super().required_attrs(), ("answers", list))
 
     def allowed_attrs(self):
-        return super().allowed_attrs() + (
-                ("answer_explanation", "markup"),
-                )
+        return (*super().allowed_attrs(), ("answer_explanation", "markup"))
 
     def get_validators(self):
         return self.matchers
@@ -1158,9 +1147,7 @@ class HumanGradedTextQuestion(TextQuestionBase, PageBaseWithValue,
                     getattr(page_desc, "validators", []))]
 
     def allowed_attrs(self):
-        return super().allowed_attrs() + (
-                ("validators", list),
-                )
+        return (*super().allowed_attrs(), ("validators", list))
 
     def human_feedback_point_value(self, page_context, page_data):
         return self.max_points(page_data)

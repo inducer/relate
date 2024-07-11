@@ -939,8 +939,8 @@ class UserForm(StyledModelForm):
                     "<b>Once %(submitted_or_verified)s, it cannot be "
                     "changed</b>.")
                 % {"submitted_or_verified":
-                   is_inst_id_editable_before_validation()
-                   and _("verified") or _("submitted")})
+                   (is_inst_id_editable_before_validation()
+                   and _("verified")) or _("submitted")})
 
         # {{{ build layout
 

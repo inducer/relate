@@ -697,7 +697,7 @@ class ReopenSessionForm(StyledForm):
         rules = getattr(flow_desc, "rules", object())
         tags = getattr(rules, "tags", [])
 
-        tags = [NONE_SESSION_TAG] + tags
+        tags = [NONE_SESSION_TAG, *tags]
         self.fields["set_access_rules_tag"] = forms.ChoiceField(
                 choices=[(tag, tag) for tag in tags],
                 initial=(current_tag

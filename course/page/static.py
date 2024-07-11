@@ -60,9 +60,7 @@ class Page(PageBaseWithCorrectAnswer, PageBaseWithTitle):
     """
 
     def required_attrs(self):
-        return super().required_attrs() + (
-            ("content", "markup"),
-            )
+        return (*super().required_attrs(), ("content", "markup"))
 
     def markup_body_for_title(self):
         return self.page_desc.content

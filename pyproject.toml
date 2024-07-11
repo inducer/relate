@@ -187,7 +187,7 @@ extend-select = [
     "NPY", # numpy
     "Q",   # flake8-quotes
     "W",   # pycodestyle
-    "RUF100",
+    "RUF",
     # "UP",
     # "DJ",
 ]
@@ -205,7 +205,8 @@ extend-ignore = [
     "B904", # raise in except needs from
     "E265",
     "B028", # stacklevel
-    "E251"
+    "E251",
+    "RUF012", # mutable class atttributes
 ]
 allowed-confusables = ["‐", "–"]
 
@@ -226,7 +227,7 @@ multiline-quotes = "double"
         "Q", "E501", "RUF012", "F401", "E303", "B023", "E731", "N806", "F841"]
 
 # TODO
-"tests/**/*.py" = ["F841"]
+"tests/**/*.py" = ["F841", "RUF012"]
 
 [tool.ruff.lint.isort]
 combine-as-imports = true

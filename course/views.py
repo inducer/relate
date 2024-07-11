@@ -988,7 +988,7 @@ class ExceptionStage3Form(StyledForm):
         layout = []
 
         if tags:
-            tags = [NONE_SESSION_TAG] + tags
+            tags = [NONE_SESSION_TAG, *tags]
             if base_session_tag is not None and base_session_tag not in tags:
                 tags.append(base_session_tag)
 

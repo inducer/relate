@@ -1431,8 +1431,7 @@ class GrantExceptionStage2Test(GrantExceptionTestMixin, TestCase):
             self.assertEqual(field.initial, tag_session)
 
             self.assertSetEqual(
-                set(flow_desc_access_rule_tags
-                    + [tag_session, views.NONE_SESSION_TAG]),
+                {*flow_desc_access_rule_tags, tag_session, views.NONE_SESSION_TAG},
                 set(dict(field.choices).keys()))
 
             resp = self.post_grant_exception_stage_2_view(
@@ -1480,7 +1479,7 @@ class GrantExceptionStage2Test(GrantExceptionTestMixin, TestCase):
             self.assertEqual(field.initial, tag_session)
 
             self.assertSetEqual(
-                set(flow_desc_access_rule_tags + [views.NONE_SESSION_TAG]),
+                {*flow_desc_access_rule_tags, views.NONE_SESSION_TAG},
                 set(dict(field.choices).keys()))
 
             resp = self.post_grant_exception_stage_2_view(
@@ -1821,7 +1820,7 @@ class GrantExceptionStage3Test(GrantExceptionTestMixin, TestCase):
 
         for permissions in comb:
             with self.subTest(permissions=permissions):
-                kwargs = {perm: True for perm in permissions}
+                kwargs = dict.fromkeys(permissions, True)
                 resp = self.post_grant_exception_stage_3_view(
                     data=self.get_default_post_data(
                         create_access_exception=True,

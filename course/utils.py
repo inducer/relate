@@ -907,10 +907,7 @@ def get_codemirror_widget(
             + _("Set editor mode in <a href='%s'>user profile</a>.")
             % reverse("relate-user_profile"))
 
-    actual_addon_css = (
-        "dialog/dialog",
-        "display/fullscreen",
-        ) + addon_css
+    actual_addon_css = ("dialog/dialog", "display/fullscreen", *addon_css)
     actual_addon_js = (
         "search/searchcursor",
         "dialog/dialog",
@@ -920,7 +917,7 @@ def get_codemirror_widget(
         "display/fullscreen",
         "selection/active-line",
         "edit/trailingspace",
-        ) + addon_js
+        *addon_js)
 
     if language_mode == "python":
         indent_unit = 4
@@ -1140,7 +1137,7 @@ def get_course_specific_language_choices() -> tuple[tuple[str, Any], ...]:
 
     from django.conf import settings
 
-    all_options = ((settings.LANGUAGE_CODE, None),) + tuple(settings.LANGUAGES)
+    all_options = ((settings.LANGUAGE_CODE, None), *tuple(settings.LANGUAGES))
     filtered_options_dict = OrderedDict(all_options)
 
     def get_default_option() -> tuple[str, str]:

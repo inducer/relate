@@ -67,7 +67,7 @@ INSTALLED_APPS = (
 )
 
 if local_settings.get("RELATE_SIGN_IN_BY_SAML2_ENABLED"):
-    INSTALLED_APPS = INSTALLED_APPS + ("djangosaml2",)  # type: ignore
+    INSTALLED_APPS = (*INSTALLED_APPS, "djangosaml2",)  # type: ignore
 
 SOCIAL_AUTH_POSTGRES_JSONFIELD = (
         "DATABASES" in local_settings
@@ -94,7 +94,7 @@ MIDDLEWARE = (
     "social_django.middleware.SocialAuthExceptionMiddleware",
 )
 if local_settings.get("RELATE_SIGN_IN_BY_SAML2_ENABLED"):
-    MIDDLEWARE = MIDDLEWARE + (  # type: ignore
+    MIDDLEWARE = (*MIDDLEWARE,   # type: ignore
         "djangosaml2.middleware.SamlSessionMiddleware",)
 
 CSRF_COOKIE_NAME = "relate_csrftoken"
@@ -113,7 +113,7 @@ AUTHENTICATION_BACKENDS = (
     )
 
 if local_settings.get("RELATE_SIGN_IN_BY_SAML2_ENABLED"):
-    AUTHENTICATION_BACKENDS = AUTHENTICATION_BACKENDS + (  # type: ignore
+    AUTHENTICATION_BACKENDS = (*AUTHENTICATION_BACKENDS,   # type: ignore
             "course.auth.RelateSaml2Backend",
             )
 
@@ -150,9 +150,7 @@ LOGIN_ERROR_URL = "/"
 
 # {{{ django-npm
 
-STATICFILES_FINDERS = tuple(STATICFILES_FINDERS) + (
-    "npm.finders.NpmFinder",
-    )
+STATICFILES_FINDERS = (*tuple(STATICFILES_FINDERS), "npm.finders.NpmFinder")
 
 CODEMIRROR_PATH = "codemirror"
 
@@ -196,12 +194,12 @@ TEMPLATES = [
                 "django.contrib.auth.context_processors.auth",
                 "django.template.context_processors.debug",
                 "django.template.context_processors.i18n",
-                "django.template.context_processors.media",
-                "django.template.context_processors.static",
-                "django.template.context_processors.tz",
-                "django.template.context_processors.request",
-                "django.contrib.messages.context_processors.messages",
-                ) + RELATE_EXTRA_CONTEXT_PROCESSORS,
+                 "django.template.context_processors.media",
+                 "django.template.context_processors.static",
+                 "django.template.context_processors.tz",
+                 "django.template.context_processors.request",
+                 "django.contrib.messages.context_processors.messages",
+                 *RELATE_EXTRA_CONTEXT_PROCESSORS),
             "builtins": ["course.templatetags.coursetags"],
             }
     },

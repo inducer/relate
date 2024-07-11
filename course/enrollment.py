@@ -748,7 +748,7 @@ def parse_query(course, expr_str):
                 pstate.advance()
                 left_query = left_query | inner_parse(pstate, _PREC_OR)
                 did_something = True
-            elif (next_tag in _TERMINALS + [_not, _openpar]
+            elif (next_tag in [*_TERMINALS, _not, _openpar]
                     and _PREC_AND > min_precedence):
                 left_query = left_query & inner_parse(pstate, _PREC_AND)
                 did_something = True
