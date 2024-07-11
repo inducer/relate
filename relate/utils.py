@@ -26,7 +26,7 @@ THE SOFTWARE.
 
 import datetime
 from typing import (  # noqa
-    TYPE_CHECKING, Any, Dict, List, Optional, Text, Tuple, Union,
+    TYPE_CHECKING, Any, Dict, List, Optional, Text, Tuple, Union, Mapping,
 )
 
 import django.forms as forms
@@ -84,24 +84,33 @@ class StyledModelForm(forms.ModelForm):
 # {{{ repo-ish types
 
 class SubdirRepoWrapper:
-    def __init__(self, repo: dulwich.Repo, subdir: str) -> None:
+    def __init__(self, repo: dulwich.repo.Repo, subdir: str) -> None:
         self.repo = repo
 
         # This wrapper should only get used if there is a subdir to be had.
         assert subdir
         self.subdir = subdir
 
-    def controldir(self):
+    def controldir(self) -> str:
         return self.repo.controldir()
 
-    def close(self):
+    def close(self) -> None:
         self.repo.close()
 
-    def __enter__(self):
+    def __enter__(self) -> SubdirRepoWrapper:
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
         self.close()
+
+    def get_refs(self) -> Mapping[bytes, bytes]:
+        return self.repo.get_refs()
+
+    def __setitem__(self, item: bytes, value: bytes) -> None:
+        self.repo[item] = value
+
+    def __delitem__(self, item: bytes) -> None:
+        del self.repo[item]
 
 
 Repo_ish = Union[dulwich.repo.Repo, SubdirRepoWrapper]

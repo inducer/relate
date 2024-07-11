@@ -34,6 +34,7 @@ from typing import (  # noqa
 
 import django.forms as forms
 import dulwich.client  # noqa
+import dulwich.blob  # noqa
 import paramiko
 import paramiko.client
 from crispy_forms.layout import Submit
@@ -57,7 +58,8 @@ from course.models import Course, Participation, ParticipationRole
 from course.utils import (
     course_view, get_course_specific_language_choices, render_course_page,
 )
-from relate.utils import HTML5DateInput, StyledForm, StyledModelForm, string_concat
+from relate.utils import (
+    HTML5DateInput, StyledForm, StyledModelForm, string_concat, Repo_ish)
 
 
 # {{{ for mypy
@@ -80,7 +82,7 @@ def _remove_prefix(prefix: bytes, s: bytes) -> bytes:
 
 
 def transfer_remote_refs(
-        repo: Repo, fetch_pack_result: dulwich.client.FetchPackResult) -> None:
+        repo: Repo_ish, fetch_pack_result: dulwich.client.FetchPackResult) -> None:
 
     valid_refs = []
 
@@ -98,7 +100,7 @@ def transfer_remote_refs(
 
 def get_dulwich_client_and_remote_path_from_course(
         course: Course) -> Tuple[
-                Union[dulwich.client.GitClient, dulwich.client.SSHGitClient], bytes]:
+                Union[dulwich.client.GitClient, dulwich.client.SSHGitClient], str]:
     # noqa
     ssh_kwargs = {}
     if course.ssh_private_key:
@@ -112,7 +114,7 @@ def get_dulwich_client_and_remote_path_from_course(
         return vendor
 
     # writing to another module's global variable: gross!
-    dulwich.client.get_ssh_vendor = get_dulwich_ssh_vendor
+    dulwich.client.get_ssh_vendor = get_dulwich_ssh_vendor  # type: ignore[assignment]
 
     from dulwich.client import get_transport_and_path
     client, remote_path = get_transport_and_path(
@@ -196,11 +198,12 @@ def set_up_new_course(request: http.HttpRequest) -> http.HttpResponse:
                         transfer_remote_refs(repo, fetch_pack_result)
                         new_sha = repo[b"HEAD"] = fetch_pack_result.refs[b"HEAD"]
 
-                        vrepo = repo
                         if new_course.course_root_path:
                             from course.content import SubdirRepoWrapper
-                            vrepo = SubdirRepoWrapper(
-                                    vrepo, new_course.course_root_path)
+                            vrepo: Repo_ish = SubdirRepoWrapper(
+                                    repo, new_course.course_root_path)
+                        else:
+                            vrepo = repo
 
                         from course.validation import validate_course_content
                         validate_course_content(  # type: ignore

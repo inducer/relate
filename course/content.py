@@ -30,6 +30,8 @@ import re
 import sys
 from typing import Text, Union, cast
 
+import dulwich.objects
+import dulwich.repo
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured, ObjectDoesNotExist
 from django.urls import NoReverseMatch
@@ -602,7 +604,7 @@ class FlowDesc(Struct):
 
 # {{{ repo blob getting
 
-def get_true_repo_and_path(repo: Repo_ish, path: str) -> tuple[dulwich.Repo, str]:
+def get_true_repo_and_path(repo: Repo_ish, path: str) -> tuple[dulwich.repo.Repo, str]:
 
     if isinstance(repo, SubdirRepoWrapper):
         if path:
@@ -623,7 +625,7 @@ def get_course_repo_path(course: Course) -> str:
 
 def get_course_repo(course: Course) -> Repo_ish:
 
-    from dulwich.repo import Repo
+    from dulwich.repo.repo import Repo
     repo = Repo(get_course_repo_path(course))
 
     if course.course_root_path:
@@ -632,7 +634,7 @@ def get_course_repo(course: Course) -> Repo_ish:
         return repo
 
 
-def look_up_git_object(repo: dulwich.Repo,
+def look_up_git_object(repo: dulwich.repo.Repo,
         root_tree: Union[dulwich.objects.Tree, FileSystemFakeRepoTree],
         full_name: str, _max_symlink_depth: int | None = None):
     """Traverse git directory tree from *root_tree*, respecting symlinks."""
@@ -691,7 +693,7 @@ def look_up_git_object(repo: dulwich.Repo,
 
 
 def get_repo_blob(repo: Repo_ish, full_name: str, commit_sha: bytes,
-        allow_tree: bool = True) -> dulwich.Blob:
+        allow_tree: bool = True) -> dulwich.objects.Blob:
     """
     :arg full_name: A Unicode string indicating the file name.
     :arg commit_sha: A byte string containing the commit hash
