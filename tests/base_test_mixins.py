@@ -2837,7 +2837,7 @@ class HackRepoMixin:
                     data = f.read()
                 self.data = data
 
-        def get_repo_side_effect(repo, full_name, commit_sha, allow_tree=True):
+        def get_repo_side_effect(repo, full_name, commit_sha):
             commit_sha_path_maps = COMMIT_SHA_MAP.get(full_name)
             if commit_sha_path_maps:
                 assert isinstance(commit_sha_path_maps, list)
@@ -2846,8 +2846,7 @@ class HackRepoMixin:
                         path = cs_map[commit_sha.decode()]["path"]
                         return Blob(path)
 
-            return get_repo_blob(repo, full_name, repo[b"HEAD"].id,
-                                 allow_tree=allow_tree)
+            return get_repo_blob(repo, full_name, repo[b"HEAD"].id)
 
         cls.batch_fake_get_repo_blob = mock.patch(cls.get_repo_blob_patching_path)
         cls.mock_get_repo_blob = cls.batch_fake_get_repo_blob.start()
