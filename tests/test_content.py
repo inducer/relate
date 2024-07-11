@@ -291,7 +291,7 @@ class GetRepoBlobTest(SingleCourseTestMixin, TestCase):
             with self.assertRaises(ObjectDoesNotExist) as cm:
                 content.get_repo_blob(
                     repo, "", self.course.active_git_commit_sha.encode())
-            expected_error_msg = "resource '(repo root)' is a directory, not a file"
+            expected_error_msg = "resource '(repo root)' is not a file"
             self.assertIn(expected_error_msg, str(cm.exception))
 
     def test_access_directory_content_type_error(self):
@@ -313,7 +313,7 @@ class GetRepoBlobTest(SingleCourseTestMixin, TestCase):
                 content.get_repo_blob(
                     repo, full_name, self.course.active_git_commit_sha.encode())
             expected_error_msg = (
-                    "resource '%s' is a directory, not a file" % full_name)
+                    "resource '%s' is not a file" % full_name)
             self.assertIn(expected_error_msg, str(cm.exception))
 
 

@@ -370,6 +370,12 @@ class ValidateCourseContentTest(CoursesTestMixinBase, TestCase):
         self.mock_get_repo_blob.side_effect = get_repo_blob_side_effect
         self.addCleanup(fake_get_repo_blob.stop)
 
+        fake_get_repo_tree = (
+            mock.patch("course.content.get_repo_tree"))
+        self.mock_get_repo_tree = fake_get_repo_tree.start()
+        self.mock_get_repo_tree.side_effect = get_repo_blob_side_effect
+        self.addCleanup(fake_get_repo_tree.stop)
+
         fake_validate_static_page_name = (
             mock.patch("course.validation.validate_static_page_name"))
         self.mock_validate_static_page_name = fake_validate_static_page_name.start()
@@ -561,6 +567,8 @@ class ValidateCourseContentTest(CoursesTestMixinBase, TestCase):
 
     def test_get_repo_blob_media_dir_not_empty(self):
         self.mock_get_repo_blob.side_effect = get_repo_blob_side_effect1
+        self.mock_get_repo_tree.side_effect = get_repo_blob_side_effect1
+
         validation.validate_course_content(
             self.repo, course_file, events_file, validate_sha, course=self.course)
         self.assertEqual(self.mock_vctx_add_warning.call_count, 1)
@@ -595,6 +603,8 @@ class ValidateCourseContentTest(CoursesTestMixinBase, TestCase):
 
     def test_get_repo_blob_flows_dir_empty(self):
         self.mock_get_repo_blob.side_effect = get_repo_blob_side_effect2
+        self.mock_get_repo_tree.side_effect = get_repo_blob_side_effect2
+
         validation.validate_course_content(
             self.repo, course_file, events_file, validate_sha, course=self.course)
         self.assertEqual(self.mock_vctx_add_warning.call_count, 0)
@@ -622,6 +632,8 @@ class ValidateCourseContentTest(CoursesTestMixinBase, TestCase):
 
     def test_get_repo_blob_staticpages_empty(self):
         self.mock_get_repo_blob.side_effect = get_repo_blob_side_effect3
+        self.mock_get_repo_tree.side_effect = get_repo_blob_side_effect3
+
         validation.validate_course_content(
             self.repo, course_file, events_file, validate_sha, course=self.course)
         self.assertEqual(self.mock_vctx_add_warning.call_count, 0)
