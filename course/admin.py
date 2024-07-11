@@ -69,8 +69,7 @@ def _filter_course_linked_obj_for_user(queryset, user):
         return queryset
     return queryset.filter(
             course__participations__user=user,
-            course__participations__roles__permissions__permission
-            =pperm.use_admin_interface
+            course__participations__roles__permissions__permission=pperm.use_admin_interface
             )
 
 
@@ -79,8 +78,7 @@ def _filter_participation_linked_obj_for_user(queryset, user):
         return queryset
     return queryset.filter(
         participation__course__participations__user=user,
-        participation__course__participations__roles__permissions__permission
-        =pperm.use_admin_interface)
+        participation__course__participations__roles__permissions__permission=pperm.use_admin_interface)
 
 # }}}
 
@@ -572,8 +570,7 @@ class FlowIdListFilter(admin.SimpleListFilter):
         if not request.user.is_superuser:
             qs = qs.filter(
                 flow_session__course__participations__user=request.user,
-                flow_session__course__participations__roles__permissions__permission
-                =pperm.use_admin_interface)
+                flow_session__course__participations__roles__permissions__permission=pperm.use_admin_interface)
 
         flow_ids = qs.values_list("flow_session__flow_id", flat=True).distinct()
         return zip(flow_ids, flow_ids)
@@ -695,8 +692,7 @@ class FlowPageVisitAdmin(admin.ModelAdmin):
             return qs
         return qs.filter(
             flow_session__course__participations__user=request.user,
-            flow_session__course__participations__roles__permissions__permission
-            =pperm.use_admin_interface)
+            flow_session__course__participations__roles__permissions__permission=pperm.use_admin_interface)
 
     # }}}
 
