@@ -20,7 +20,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from typing import Any, List, Optional, Text, Tuple, Union  # noqa
+from typing import Any, List, Optional, Tuple, Union
 
 from django.db import transaction
 from django.db.models.signals import post_save
@@ -28,7 +28,10 @@ from django.dispatch import receiver
 
 from accounts.models import User
 from course.models import (
-    Course, Participation, ParticipationPreapproval, participation_status,
+    Course,
+    Participation,
+    ParticipationPreapproval,
+    participation_status,
 )
 
 

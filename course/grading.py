@@ -24,28 +24,38 @@ THE SOFTWARE.
 """
 
 
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Text  # noqa
+from typing import TYPE_CHECKING, Any
 
 from django import http
 from django.contrib import messages
 from django.core.exceptions import (
-    ObjectDoesNotExist, PermissionDenied, SuspiciousOperation,
+    ObjectDoesNotExist,
+    PermissionDenied,
+    SuspiciousOperation,
 )
 from django.shortcuts import get_object_or_404, redirect  # noqa
 from django.utils.translation import gettext as _
 
 from course.constants import participation_permission as pperm
 from course.models import (
-    FlowPageVisitGrade, FlowSession, get_feedback_for_grade,
-    get_flow_grading_opportunity, update_bulk_feedback,
+    FlowPageVisitGrade,
+    FlowSession,
+    get_feedback_for_grade,
+    get_flow_grading_opportunity,
+    update_bulk_feedback,
 )
 from course.page import InvalidPageData
 from course.utils import (
-    FlowPageContext, course_view, get_session_grading_rule, render_course_page,
+    FlowPageContext,
+    course_view,
+    get_session_grading_rule,
+    render_course_page,
 )
 from course.views import get_now_or_fake_time
 from relate.utils import (
-    as_local_time, format_datetime_local, retry_transaction_decorator,
+    as_local_time,
+    format_datetime_local,
+    retry_transaction_decorator,
 )
 
 
@@ -66,9 +76,9 @@ def get_prev_visit_grades(
             course_identifier: str,
             flow_session_id: int,
             page_ordinal: int,
-            reversed_on_visit_time_and_grade_time: Optional[bool] = False
+            reversed_on_visit_time_and_grade_time: bool | None = False
         ) -> query.QuerySet:
-    order_by_args: List[str] = []
+    order_by_args: list[str] = []
     if reversed_on_visit_time_and_grade_time:
         order_by_args = ["-visit__visit_time", "-grade_time"]
     return (FlowPageVisitGrade.objects
@@ -290,8 +300,8 @@ def grade_flow_page(
                 else:
                     correctness = None
 
-                feedback_json: Optional[Dict[str, Any]] = None
-                bulk_feedback_json: Optional[Dict[str, Any]] = None
+                feedback_json: dict[str, Any] | None = None
+                bulk_feedback_json: dict[str, Any] | None = None
 
                 if feedback is not None:
                     feedback_json, bulk_feedback_json = feedback.as_json()
@@ -318,7 +328,7 @@ def grade_flow_page(
     else:
         grading_form = None
 
-    grading_form_html: Optional[str] = None
+    grading_form_html: str | None = None
 
     if grading_form is not None:
         from crispy_forms.layout import Submit
@@ -349,7 +359,7 @@ def grade_flow_page(
             flow_session, fpctx.flow_desc, get_now_or_fake_time(pctx.request))
 
     if grading_rule.grade_identifier is not None:
-        grading_opportunity: Optional[GradingOpportunity] = \
+        grading_opportunity: GradingOpportunity | None = \
                 get_flow_grading_opportunity(
                         pctx.course, flow_session.flow_id, fpctx.flow_desc,
                         grading_rule.grade_identifier,

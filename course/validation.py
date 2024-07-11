@@ -26,7 +26,7 @@ THE SOFTWARE.
 import datetime
 import re
 import sys
-from typing import TYPE_CHECKING, Any, List, Optional, Text, Tuple  # noqa
+from typing import TYPE_CHECKING, Any
 
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.html import escape

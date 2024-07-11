@@ -28,7 +28,7 @@ import html.parser as html_parser
 import os
 import re
 import sys
-from typing import Text, Union, cast
+from typing import Union, cast
 
 import dulwich.objects
 import dulwich.repo
@@ -50,8 +50,10 @@ CACHE_KEY_ROOT = "py3"
 
 # {{{ mypy
 
-from typing import (  # noqa
-    TYPE_CHECKING, Any, Callable, Dict, FrozenSet, List, Optional, Text, Tuple,
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
 )
 
 
@@ -635,7 +637,7 @@ def get_course_repo(course: Course) -> Repo_ish:
 
 
 def look_up_git_object(repo: dulwich.repo.Repo,
-        root_tree: Union[dulwich.objects.Tree, FileSystemFakeRepoTree],
+        root_tree: dulwich.objects.Tree | FileSystemFakeRepoTree,
         full_name: str, _max_symlink_depth: int | None = None):
     """Traverse git directory tree from *root_tree*, respecting symlinks."""
 
@@ -1332,7 +1334,7 @@ def expand_markup(
         commit_sha: bytes,
         text: str,
         use_jinja: bool = True,
-        jinja_env: Optional[dict] = None,
+        jinja_env: dict | None = None,
         ) -> str:
 
     if jinja_env is None:
@@ -1388,10 +1390,10 @@ def markup_to_html(
         repo: Repo_ish,
         commit_sha: bytes,
         text: str,
-        reverse_func: Optional[Callable] = None,
+        reverse_func: Callable | None = None,
         validate_only: bool = False,
         use_jinja: bool = True,
-        jinja_env: Optional[dict] = None,
+        jinja_env: dict | None = None,
         ) -> str:
 
     if jinja_env is None:

@@ -24,7 +24,7 @@ THE SOFTWARE.
 """
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, FrozenSet, Optional, Tuple
+from typing import TYPE_CHECKING
 
 import django.forms as forms
 from crispy_forms.layout import Submit
@@ -522,13 +522,13 @@ def _redirect_to_exam(
 
 
 def check_exam_ticket(
-        username: Optional[str],
-        code: Optional[str],
+        username: str | None,
+        code: str | None,
         now_datetime: datetime.datetime,
-        facilities: Optional[FrozenSet[str]],
+        facilities: frozenset[str] | None,
         logged_in: bool,
-        restrict_to_course: Optional[Course] = None
-        ) -> Tuple[bool, Optional[ExamTicket], str]:
+        restrict_to_course: Course | None = None
+        ) -> tuple[bool, ExamTicket | None, str]:
     """
     :returns: (is_valid, msg)
     """
@@ -700,7 +700,7 @@ def is_from_exams_only_facility(request):
     return False
 
 
-def get_login_exam_ticket(request: http.HttpRequest) -> Optional[ExamTicket]:
+def get_login_exam_ticket(request: http.HttpRequest) -> ExamTicket | None:
     exam_ticket_pk = request.session.get("relate_exam_ticket_pk_used_for_login")
 
     if exam_ticket_pk is None:

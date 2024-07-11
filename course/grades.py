@@ -25,15 +25,12 @@ THE SOFTWARE.
 
 import re
 from decimal import Decimal
-from typing import (  # noqa
+from typing import (
     TYPE_CHECKING,
     Any,
-    Iterable,
     List,
     Optional,
-    Text,
     Tuple,
-    Union,
     cast,
 )
 
@@ -222,8 +219,8 @@ class GradeInfo:
         self.grade_state_machine = grade_state_machine
 
 
-def get_grade_table(course: Course) -> Tuple[
-        List[Participation], List[GradingOpportunity], List[List[GradeInfo]]]:
+def get_grade_table(course: Course) -> tuple[
+        list[Participation], list[GradingOpportunity], list[list[GradeInfo]]]:
 
     # NOTE: It's important that these queries are sorted consistently,
     # also consistently with the code below.
@@ -383,7 +380,7 @@ class OpportunitySessionGradeInfo:
 
 
 class ModifySessionsForm(StyledForm):
-    def __init__(self, session_rule_tags: List[str],
+    def __init__(self, session_rule_tags: list[str],
             *args: Any, **kwargs: Any) -> None:
 
         super().__init__(*args, **kwargs)
@@ -414,7 +411,7 @@ class ModifySessionsForm(StyledForm):
 RULE_TAG_NONE_STRING = "<<<NONE>>>"
 
 
-def mangle_session_access_rule_tag(rule_tag: Optional[str]) -> str:
+def mangle_session_access_rule_tag(rule_tag: str | None) -> str:
     if rule_tag is None:
         return RULE_TAG_NONE_STRING
     else:
@@ -445,7 +442,7 @@ def view_grades_by_opportunity(
             or pctx.has_permission(pperm.batch_recalculate_flow_session_grade)
             )
 
-    batch_session_ops_form: Optional[ModifySessionsForm] = None
+    batch_session_ops_form: ModifySessionsForm | None = None
     if batch_ops_allowed and opportunity.flow_id:
         cursor = connection.cursor()
         cursor.execute("select distinct access_rules_tag from course_flowsession "
@@ -555,7 +552,7 @@ def view_grades_by_opportunity(
             .select_related("opportunity"))
 
     if opportunity.flow_id:
-        flow_sessions: Optional[List[FlowSession]] = list(FlowSession.objects
+        flow_sessions: list[FlowSession] | None = list(FlowSession.objects
                 .filter(
                     flow_id=opportunity.flow_id,
                     )
@@ -574,7 +571,7 @@ def view_grades_by_opportunity(
     finished_sessions = 0
     total_sessions = 0
 
-    grade_table: List[Tuple[Participation, OpportunitySessionGradeInfo]] = []
+    grade_table: list[tuple[Participation, OpportunitySessionGradeInfo]] = []
     for participation in participations:
         # Advance in grade change list
         while (
@@ -792,7 +789,7 @@ def view_reopen_session(pctx: CoursePageContext, flow_session_id: str,
 
 # {{{ view single grade
 
-def average_grade(opportunity: GradingOpportunity) -> Tuple[Optional[float], int]:
+def average_grade(opportunity: GradingOpportunity) -> tuple[float | None, int]:
 
     grade_changes = (GradeChange.objects
             .filter(
@@ -806,7 +803,7 @@ def average_grade(opportunity: GradingOpportunity) -> Tuple[Optional[float], int
             .select_related("opportunity"))
 
     grades = []
-    my_grade_changes: List[GradeChange] = []
+    my_grade_changes: list[GradeChange] = []
 
     def finalize() -> None:
 
@@ -839,7 +836,7 @@ def average_grade(opportunity: GradingOpportunity) -> Tuple[Optional[float], int
 
 
 def get_single_grade_changes_and_state_machine(opportunity: GradingOpportunity,
-        participation: Participation) -> Tuple[List[GradeChange], GradeStateMachine]:
+        participation: Participation) -> tuple[list[GradeChange], GradeStateMachine]:
 
     grade_changes = list(
         GradeChange.objects.filter(
@@ -1246,7 +1243,7 @@ def fix_decimal(s):
         return s
 
 
-def points_equal(num: Optional[Decimal], other: Optional[Decimal]) -> bool:
+def points_equal(num: Decimal | None, other: Decimal | None) -> bool:
     if num is None and other is None:
         return True
     if ((num is None and other is not None)

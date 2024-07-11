@@ -28,15 +28,9 @@ THE SOFTWARE.
 """
 
 import re
-from typing import (  # noqa
+from typing import (
     TYPE_CHECKING,
     Any,
-    Dict,
-    List,
-    Optional,
-    Text,
-    Tuple,
-    Union,
     cast,
 )
 
@@ -117,8 +111,8 @@ def transfer_remote_refs(
 
 
 def get_dulwich_client_and_remote_path_from_course(
-        course: Course) -> Tuple[
-                Union[dulwich.client.GitClient, dulwich.client.SSHGitClient], str]:
+        course: Course) -> tuple[
+                dulwich.client.GitClient | dulwich.client.SSHGitClient, str]:
     ssh_kwargs = {}
     if course.ssh_private_key:
         from io import StringIO
@@ -308,7 +302,7 @@ def set_up_new_course(request: http.HttpRequest) -> http.HttpResponse:
 
 def is_ancestor_commit(
         repo: Repo, potential_ancestor: Commit, child: Commit,
-        max_history_check_size: Optional[int] = None) -> bool:
+        max_history_check_size: int | None = None) -> bool:
 
     queue = [repo[parent] for parent in child.parents]
 
@@ -627,8 +621,8 @@ def call_wsgi_app(
     environ["SCRIPT_NAME"] += prefix
     environ["PATH_INFO"] = environ["PATH_INFO"][len(prefix):]
 
-    headers_set: List[Tuple[str, str]] = []
-    headers_sent: List[bool] = []
+    headers_set: list[tuple[str, str]] = []
+    headers_sent: list[bool] = []
 
     def write(data: str) -> None:
         if not headers_set:

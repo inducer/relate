@@ -24,15 +24,10 @@ THE SOFTWARE.
 """
 
 import datetime
-from typing import (  # noqa
+from typing import (
     TYPE_CHECKING,
     Any,
-    Dict,
-    Iterable,
     List,
-    Optional,
-    Text,
-    Tuple,
     cast,
 )
 

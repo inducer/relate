@@ -342,7 +342,7 @@ class ImportGradesTest(GradesTestMixin, TestCase):
             gchanges = models.GradeChange.objects.all()
             self.assertEqual(gchanges.count(), 1)
             gchange, = gchanges
-            self.assertEqual(float(gchange.points), float(86.66))
+            self.assertEqual(float(gchange.points), 86.66)
 
     def test_import_success_by_username(self):
         with open(
@@ -352,7 +352,7 @@ class ImportGradesTest(GradesTestMixin, TestCase):
             gchanges = models.GradeChange.objects.all()
             self.assertEqual(gchanges.count(), 1)
             gchange, = gchanges
-            self.assertEqual(float(gchange.points), float(86.66))
+            self.assertEqual(float(gchange.points), 86.66)
 
     def test_import_success_by_inst_id(self):
         with open(
@@ -365,7 +365,7 @@ class ImportGradesTest(GradesTestMixin, TestCase):
             gchanges = models.GradeChange.objects.all()
             self.assertEqual(gchanges.count(), 1)
             gchange, = gchanges
-            self.assertEqual(float(gchange.points), float(86.66))
+            self.assertEqual(float(gchange.points), 86.66)
 
     def test_import_success_not_importing_feedback(self):
         with open(
@@ -375,7 +375,7 @@ class ImportGradesTest(GradesTestMixin, TestCase):
             gchanges = models.GradeChange.objects.all()
             self.assertEqual(gchanges.count(), 1)
             gchange, = gchanges
-            self.assertEqual(float(gchange.points), float(86.66))
+            self.assertEqual(float(gchange.points), 86.66)
 
     def test_import_success_none_points(self):
         with open(
@@ -518,7 +518,7 @@ class ImportGradesTest(GradesTestMixin, TestCase):
             gchanges = models.GradeChange.objects.all()
             self.assertEqual(gchanges.count(), 3)
             gchange = gchanges.last()
-            self.assertEqual(float(gchange.points), float(86.66))
+            self.assertEqual(float(gchange.points), 86.66)
 
     def test_has_last_grades_max_points_updated(self):
         factories.GradeChangeFactory(
@@ -537,7 +537,7 @@ class ImportGradesTest(GradesTestMixin, TestCase):
             gchanges = models.GradeChange.objects.all()
             self.assertEqual(gchanges.count(), 2)
             gchange = gchanges.last()
-            self.assertEqual(float(gchange.points), float(86.66))
+            self.assertEqual(float(gchange.points), 86.66)
 
     def test_has_last_grades_multiple_attrs_updated(self):
         factories.GradeChangeFactory(
@@ -558,7 +558,7 @@ class ImportGradesTest(GradesTestMixin, TestCase):
             gchanges = models.GradeChange.objects.all()
             self.assertEqual(gchanges.count(), 2)
             gchange = gchanges.last()
-            self.assertEqual(float(gchange.points), float(86.66))
+            self.assertEqual(float(gchange.points), 86.66)
 
     def test_has_last_grades_state_not_graded(self):
         factories.GradeChangeFactory(
@@ -576,7 +576,7 @@ class ImportGradesTest(GradesTestMixin, TestCase):
             gchanges = models.GradeChange.objects.all()
             self.assertEqual(gchanges.count(), 2)
             gchange = gchanges.last()
-            self.assertEqual(float(gchange.points), float(86.66))
+            self.assertEqual(float(gchange.points), 86.66)
 
     def test_re_import_same(self):
         with open(

@@ -1093,7 +1093,7 @@ class RequestPythonRunWithRetriesTest(unittest.TestCase):
 
             with self.subTest(
                     case="Docker ping socket error with erron ECONNRESET"):
-                my_socket_error = socket_error()
+                my_socket_error = OSError()
                 my_socket_error.errno = errno.ECONNRESET
                 mock_ctn_request.side_effect = my_socket_error
 
@@ -1109,7 +1109,7 @@ class RequestPythonRunWithRetriesTest(unittest.TestCase):
 
             with self.subTest(
                     case="Docker ping socket error with erron ECONNREFUSED"):
-                my_socket_error = socket_error()
+                my_socket_error = OSError()
                 my_socket_error.errno = errno.ECONNREFUSED
                 mock_ctn_request.side_effect = my_socket_error
 
@@ -1125,7 +1125,7 @@ class RequestPythonRunWithRetriesTest(unittest.TestCase):
 
             with self.subTest(
                     case="Docker ping socket error with erron EAFNOSUPPORT"):
-                my_socket_error = socket_error()
+                my_socket_error = OSError()
 
                 # This errno should raise error
                 my_socket_error.errno = errno.EAFNOSUPPORT

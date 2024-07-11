@@ -23,8 +23,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from typing import Dict, List  # noqa
-
 import django.forms as forms
 import slixmpp
 from asgiref.sync import async_to_sync
@@ -36,8 +34,10 @@ from django.shortcuts import get_object_or_404, redirect, render  # noqa
 from django.utils.translation import gettext as _, pgettext_lazy
 
 from course.constants import participation_permission as pperm
-from course.models import Course  # noqa
-from course.models import InstantMessage
+from course.models import (
+    Course,  # noqa
+    InstantMessage,
+)
 from course.utils import course_view, render_course_page
 
 

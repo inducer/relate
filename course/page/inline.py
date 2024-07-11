@@ -21,7 +21,7 @@ THE SOFTWARE.
 """
 
 import re
-from typing import Any, Iterable, List, Optional, Text, Tuple, cast  # noqa
+from typing import Optional, cast
 
 import django.forms as forms
 from crispy_forms.bootstrap import PrependedAppendedText

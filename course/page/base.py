@@ -23,7 +23,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from typing import TYPE_CHECKING, Any, Callable, Optional
+from typing import TYPE_CHECKING, Any, Callable
 
 import django.forms as forms
 import django.http
@@ -114,7 +114,7 @@ class PageContext:
             flow_session: FlowSession,
             in_sandbox: bool = False,
             page_uri: str | None = None,
-            request: Optional[django.http.HttpRequest] = None,
+            request: django.http.HttpRequest | None = None,
             ) -> None:
 
         self.course = course
@@ -156,7 +156,7 @@ def markup_to_html(
         page_context: PageContext,
         text: str,
         use_jinja: bool = True,
-        reverse_func: Optional[Callable] = None,
+        reverse_func: Callable | None = None,
         ) -> str:
     from course.content import markup_to_html as mth
 

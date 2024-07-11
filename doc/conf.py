@@ -33,7 +33,7 @@ intersphinx_mapping = {
     None),
 }
 
-copyright = u"2014-21, Andreas Kloeckner"
+copyright = "2014-21, Andreas Kloeckner"
 
 version = "2021.1"
 release = version
