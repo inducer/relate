@@ -2052,29 +2052,16 @@ def api_test_func_not_allowed(api_ctx, course_identifier):
     return JsonResponse({})
 
 
-urlpatterns = base_urlpatterns + [
-    re_path(r"^course"
-        "/" + COURSE_ID_REGEX
-        + "/api/test_token$",
-        api_test_func_token,
-        name="test_api_token_method"),
-    re_path(r"^course"
-        "/" + COURSE_ID_REGEX
-        + "/api/test_basic$",
-        api_test_func_basic,
-        name="test_api_basic_method"),
-    re_path(r"^course"
-        "/" + COURSE_ID_REGEX
-        + "/api/test_not_allowed$",
-        api_test_func_not_allowed,
-        name="test_api_not_allowed_method"),
-    re_path(r"^course"
-        "/" + COURSE_ID_REGEX
-        + "/api/test_api_error$",
-        api_test_func_raise_api_error,
-        name="test_api_with_api_error"),
-
-]
+urlpatterns = [
+    *base_urlpatterns,
+    re_path("^course" "/" + COURSE_ID_REGEX + "/api/test_token$",
+            api_test_func_token, name="test_api_token_method"),
+    re_path("^course" "/" + COURSE_ID_REGEX + "/api/test_basic$",
+            api_test_func_basic, name="test_api_basic_method"),
+    re_path("^course" "/" + COURSE_ID_REGEX + "/api/test_not_allowed$",
+            api_test_func_not_allowed, name="test_api_not_allowed_method"),
+    re_path("^course" "/" + COURSE_ID_REGEX + "/api/test_api_error$",
+            api_test_func_raise_api_error, name="test_api_with_api_error")]
 
 
 @override_settings(ROOT_URLCONF=__name__)

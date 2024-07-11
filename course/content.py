@@ -681,8 +681,8 @@ def look_up_git_object(repo: dulwich.repo.Repo,
         mode, cur_lookup_sha = mode_sha
 
         if S_ISLNK(mode):
-            link_target = os.sep.join(processed_name_parts + [
-                repo[cur_lookup_sha].data.decode()])
+            link_target = os.sep.join(
+                        [*processed_name_parts, repo[cur_lookup_sha].data.decode()])
             cur_lookup = look_up_git_object(repo, root_tree, link_target,
                     _max_symlink_depth=_max_symlink_depth-1)
         else:
@@ -1453,11 +1453,10 @@ def markup_to_html(
     if course is None or not course.trusted_for_markup:
         import bleach
         result = bleach.clean(result,
-                tags=bleach.ALLOWED_TAGS + [
-                    "div", "span", "p", "img",
+                tags=[*bleach.ALLOWED_TAGS, "div", "span", "p", "img",
                     "h1", "h2", "h3", "h4", "h5", "h6",
-                    "table", "td", "tr", "th", "pre",
-                    ],
+                    "table", "td", "tr", "th",
+                    "pre"],
                 attributes=filter_html_attributes)
 
     assert isinstance(result, str)

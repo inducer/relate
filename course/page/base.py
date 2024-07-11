@@ -808,9 +808,7 @@ class PageBaseWithTitle(PageBase):
         self._title = title
 
     def allowed_attrs(self):
-        return super().allowed_attrs() + (
-                ("title", str),
-                )
+        return (*super().allowed_attrs(), ("title", str))
 
     def markup_body_for_title(self):
         raise NotImplementedError()
@@ -839,9 +837,7 @@ class PageBaseWithValue(PageBase):
                           "got %s instead") % str(page_desc.value)))
 
     def allowed_attrs(self):
-        return super().allowed_attrs() + (
-                ("value", (int, float)),
-                )
+        return (*super().allowed_attrs(), ("value", (int, float)))
 
     def expects_answer(self):
         return True
@@ -1056,9 +1052,7 @@ class PageBaseWithHumanTextFeedback(PageBase):
     grade_data_attrs = ["released", "grade_percent", "feedback_text", "notes"]
 
     def required_attrs(self):
-        return super().required_attrs() + (
-                ("rubric", "markup"),
-                )
+        return (*super().required_attrs(), ("rubric", "markup"))
 
     def human_feedback_point_value(self, page_context, page_data):
         """Subclasses can override this to make the point value of the human
@@ -1253,9 +1247,7 @@ class PageBaseWithHumanTextFeedback(PageBase):
 
 class PageBaseWithCorrectAnswer(PageBase):
     def allowed_attrs(self):
-        return super().allowed_attrs() + (
-            ("correct_answer", "markup"),
-            )
+        return (*super().allowed_attrs(), ("correct_answer", "markup"))
 
     def correct_answer(self, page_context, page_data, answer_data, grade_data):
         if hasattr(self.page_desc, "correct_answer"):

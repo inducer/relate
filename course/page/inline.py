@@ -505,8 +505,8 @@ class ChoicesAnswer(AnswerBase):
                 page_context, self.answers_desc.choices[i]))
             for i, src_i in enumerate(self.answers_desc.choices))
         choices = (
-                (None, "-"*self.get_max_correct_answer_len(page_context)),
-                ) + choices
+            (None, "-" * self.get_max_correct_answer_len(page_context)),
+            *choices)
         return (self.form_field_class)(
             required=self.required or force_required,
             choices=tuple(choices),
@@ -764,14 +764,10 @@ class InlineMultiQuestion(TextQuestionBase, PageBaseWithValue):
                 parse_question(vctx, location, name, answers_desc)
 
     def required_attrs(self):
-        return super().required_attrs() + (
-                ("question", "markup"), ("answers", Struct),
-                )
+        return (*super().required_attrs(), ("question", "markup"), ("answers", Struct))
 
     def allowed_attrs(self):
-        return super().allowed_attrs() + (
-                ("answer_explanation", "markup"),
-                )
+        return (*super().allowed_attrs(), ("answer_explanation", "markup"))
 
     def body(self, page_context, page_data):
         return markup_to_html(page_context, self.page_desc.prompt)
@@ -800,7 +796,7 @@ class InlineMultiQuestion(TextQuestionBase, PageBaseWithValue):
         # add mb-4 class to the last paragraph so as to add spacing before
         # submit buttons.
         last_div_start = (
-            f"<div class=\"{' '.join(div_start_css_class_list + ['mb-4'])}\">")
+            f"<div class=\"{' '.join([*div_start_css_class_list, 'mb-4'])}\">")
 
         # https://stackoverflow.com/a/59082116/3437454
         question_html = last_div_start.join(question_html.rsplit(replace_p_start, 1))

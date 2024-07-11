@@ -49,19 +49,25 @@ from course.page.upload import FileUploadQuestion
 
 
 __all__ = (
-        "InvalidPageData",
-        "PageBase", "AnswerFeedback", "PageContext", "PageBehavior",
-        "get_auto_feedback",
-        "markup_to_html",
-        "Page",
-
-        "TextQuestion", "SurveyTextQuestion", "HumanGradedTextQuestion",
-        "InlineMultiQuestion",
-
-        "ChoiceQuestion", "SurveyChoiceQuestion", "MultipleChoiceQuestion",
-        "PythonCodeQuestion", "PythonCodeQuestionWithHumanTextFeedback",
-        "FileUploadQuestion",
-        )
+    "AnswerFeedback",
+    "ChoiceQuestion",
+    "FileUploadQuestion",
+    "HumanGradedTextQuestion",
+    "InlineMultiQuestion",
+    "InvalidPageData",
+    "MultipleChoiceQuestion",
+    "Page",
+    "PageBase",
+    "PageBehavior",
+    "PageContext",
+    "PythonCodeQuestion",
+    "PythonCodeQuestionWithHumanTextFeedback",
+    "SurveyChoiceQuestion",
+    "SurveyTextQuestion",
+    "TextQuestion",
+    "get_auto_feedback",
+    "markup_to_html",
+)
 
 __doc__ = """
 

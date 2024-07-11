@@ -62,20 +62,17 @@ class CourseListFilter(admin.SimpleListFilter):
 class UserAdmin(UserAdminBase):
     save_on_top = True
 
-    list_display = tuple(UserAdminBase.list_display) + (
-            "name_verified",
-            "status",
-            "institutional_id", "institutional_id_verified",
-            )
+    list_display = (*tuple(UserAdminBase.list_display),
+        "name_verified", "status", "institutional_id", "institutional_id_verified")
     list_editable = ("first_name", "last_name",
             "name_verified",
             "status",
             "institutional_id", "institutional_id_verified",
             "name_verified",)
-    list_filter = tuple(UserAdminBase.list_filter) + (
+    list_filter = (
+            *UserAdminBase.list_filter,
             "status", CourseListFilter)  # type: ignore
-    search_fields = tuple(UserAdminBase.search_fields) + (
-            "institutional_id",)
+    search_fields = (*tuple(UserAdminBase.search_fields), "institutional_id")
 
     fieldsets = UserAdminBase.fieldsets[:1] + (
             (UserAdminBase.fieldsets[1][0], {"fields": (

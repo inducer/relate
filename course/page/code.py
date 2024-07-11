@@ -134,8 +134,8 @@ def sanitize_from_code_html(s):
         return _("(Non-string in 'HTML' output filtered out)")
 
     return bleach.clean(s,
-            tags=bleach.ALLOWED_TAGS + ["audio", "video", "source"],
-            protocols=bleach.ALLOWED_PROTOCOLS + ["data"],
+            tags=[*bleach.ALLOWED_TAGS, "audio", "video", "source"],
+            protocols=[*bleach.ALLOWED_PROTOCOLS, "data"],
             attributes=filter_attributes)
 
 # }}}
@@ -345,9 +345,9 @@ def request_run(run_req, run_timeout, image=None):
 
             result = json.loads(response_data)
 
-            result["feedback"] = (result.get("feedback", [])
-                    + ["Execution time: %.1f s -- Time limit: %.1f s"
-                        % (end_time - start_time, run_timeout)])
+            result["feedback"] = ([*result.get("feedback", []),
+                "Execution time: %.1f s -- Time limit: %.1f s" % (
+                    end_time - start_time, run_timeout)])
 
             result["exec_host"] = connect_host_ip
 
@@ -604,26 +604,26 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
                     "access_rules/add_permssions/see_correctness."))
 
     def required_attrs(self):
-        return super().required_attrs() + (
-                ("prompt", "markup"),
-                ("timeout", (int, float)),
-                )
+        return (
+            *super().required_attrs(),
+            ("prompt", "markup"),
+            ("timeout", (int, float)))
 
     def allowed_attrs(self):
-        return super().allowed_attrs() + (
-                ("setup_code", str),
-                ("show_setup_code", bool),
-                ("names_for_user", list),
-                ("names_from_user", list),
-                ("test_code", str),
-                ("show_test_code", bool),
-                ("correct_code_explanation", "markup"),
-                ("correct_code", str),
-                ("initial_code", str),
-                ("docker_image", str),
-                ("data_files", list),
-                ("single_submission", bool),
-                )
+        return (
+            *super().allowed_attrs(),
+            ("setup_code", str),
+            ("show_setup_code", bool),
+            ("names_for_user", list),
+            ("names_from_user", list),
+            ("test_code", str),
+            ("show_test_code", bool),
+            ("correct_code_explanation", "markup"),
+            ("correct_code", str),
+            ("initial_code", str),
+            ("docker_image", str),
+            ("data_files", list),
+            ("single_submission", bool))
 
     def _initial_code(self):
         result = getattr(self.page_desc, "initial_code", None)
@@ -1423,16 +1423,17 @@ class PythonCodeQuestionWithHumanTextFeedback(
                 self.page_desc.human_feedback_percentage)
 
     def required_attrs(self):
-        return super().required_attrs() + (
-                        # value is otherwise optional, but we require it here
-                        ("value", (int, float)),
-                        )
+        return (
+            *super().required_attrs(),
+            # value is otherwise optional, but we require it here
+            ("value", (int, float)),
+            )
 
     def allowed_attrs(self):
-        return super().allowed_attrs() + (
-                        ("human_feedback_value", (int, float)),
-                        ("human_feedback_percentage", (int, float)),
-                        )
+        return (
+            *super().allowed_attrs(),
+            ("human_feedback_value", (int, float)),
+            ("human_feedback_percentage", (int, float)))
 
     def human_feedback_point_value(self, page_context, page_data):
         return self.page_desc.value * self.human_feedback_percentage / 100

@@ -183,16 +183,14 @@ class FileUploadQuestion(PageBaseWithTitle, PageBaseWithValue,
                         "assigned point value"))
 
     def required_attrs(self):
-        return super().required_attrs() + (
-                ("prompt", "markup"),
-                ("mime_types", list),
-                ("maximum_megabytes", (int, float)),
-                )
+        return (
+            *super().required_attrs(),
+            ("prompt", "markup"),
+            ("mime_types", list),
+            ("maximum_megabytes", (int, float)))
 
     def allowed_attrs(self):
-        return super().allowed_attrs() + (
-                ("correct_answer", "markup"),
-                )
+        return (*super().allowed_attrs(), ("correct_answer", "markup"))
 
     def human_feedback_point_value(self, page_context, page_data):
         return self.max_points(page_data)

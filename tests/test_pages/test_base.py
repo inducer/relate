@@ -311,7 +311,7 @@ class PageBaseGetModifiedPermissionsForPageTest(unittest.TestCase):
             page = PageBase(None, "", page_desc)
             self.assertSetEqual(
                 page.get_modified_permissions_for_page(access_rule_permissions),
-                frozenset(access_rule_permissions_list + ["some_perm"]))
+                frozenset([*access_rule_permissions_list, "some_perm"]))
 
         with self.subTest(access_rules={"remove_permissions": ["none_exist_perm"]}):
             page_desc = dict_to_struct(

@@ -425,9 +425,10 @@ class TagProcessingHTMLParserAndLinkFixerTreeprocessorTest(
 
         self.assertSandboxHasValidPage(resp)
 
-        for literal in (expected_literal
-                        + [self.get_course_page_url(),
-                           self.get_course_page_url(another_course.identifier)]):
+        for literal in ([
+                *expected_literal,
+                self.get_course_page_url(),
+                self.get_course_page_url(another_course.identifier)]):
             with self.subTest(literal=literal):
                 self.assertResponseContextContains(resp, "body", literal)
 

@@ -182,15 +182,10 @@ class ChoiceQuestionBase(PageBaseWithTitle, PageBaseWithValue):
                 self.always_correct_choice_count += 1
 
     def required_attrs(self):
-        return super().required_attrs() + (
-                ("prompt", "markup"),
-                ("choices", list),
-                )
+        return (*super().required_attrs(), ("prompt", "markup"), ("choices", list))
 
     def allowed_attrs(self):
-        return super().allowed_attrs() + (
-                ("shuffle", bool),
-                )
+        return (*super().allowed_attrs(), ("shuffle", bool))
 
     def markup_body_for_title(self):
         return self.page_desc.prompt
@@ -352,9 +347,7 @@ class ChoiceQuestion(ChoiceQuestionBase):
                     % {"location": location})
 
     def allowed_attrs(self):
-        return super().allowed_attrs() + (
-                ("answer_explanation", "markup"),
-                )
+        return (*super().allowed_attrs(), ("answer_explanation", "markup"))
 
     def make_choice_form(
             self, page_context, page_data, page_behavior, *args, **kwargs):
@@ -575,12 +568,11 @@ class MultipleChoiceQuestion(ChoiceQuestionBase):
         self.credit_mode = credit_mode
 
     def allowed_attrs(self):
-        return super().allowed_attrs() + (
-                ("allow_partial_credit", bool),
-                ("allow_partial_credit_subset_only", bool),
-                ("credit_mode", str),
-                ("answer_explanation", "markup"),
-                )
+        return (*super().allowed_attrs(),
+            ("allow_partial_credit", bool),
+            ("allow_partial_credit_subset_only", bool),
+            ("credit_mode", str),
+            ("answer_explanation", "markup"))
 
     def make_choice_form(self, page_context, page_data, page_behavior,
             *args, **kwargs):
@@ -785,15 +777,10 @@ class SurveyChoiceQuestion(PageBaseWithTitle):
                 validate_markup(vctx, location, choice)
 
     def required_attrs(self):
-        return super().required_attrs() + (
-                ("prompt", "markup"),
-                ("choices", list),
-                )
+        return (*super().required_attrs(), ("prompt", "markup"), ("choices", list))
 
     def allowed_attrs(self):
-        return super().allowed_attrs() + (
-                ("answer_comment", "markup"),
-                )
+        return (*super().allowed_attrs(), ("answer_comment", "markup"))
 
     def correct_answer(self, page_context, page_data, answer_data, grade_data):
         if hasattr(self.page_desc, "answer_comment"):
