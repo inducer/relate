@@ -16,7 +16,7 @@ def get_local_test_settings_file(argv):
             usage="%(prog)s subcommand [options] [args]",
             add_help=False)
 
-    parser.add_argument('--local_test_settings',
+    parser.add_argument("--local_test_settings",
                         dest="local_test_settings")
 
     options, _args = parser.parse_known_args(argv)
@@ -52,6 +52,6 @@ if __name__ == "__main__":
 
     if sys.argv[1] == "test":
         local_settings_file = get_local_test_settings_file(sys.argv)
-        os.environ['RELATE_LOCAL_TEST_SETTINGS'] = local_settings_file
+        os.environ["RELATE_LOCAL_TEST_SETTINGS"] = local_settings_file
 
     execute_from_command_line(sys.argv)

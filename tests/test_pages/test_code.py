@@ -106,7 +106,7 @@ class SingleCourseQuizPageCodeQuestionTest(
         page_id = "addition"
         submit_answer_response, post_grade_response = (
             self.default_submit_page_answer_by_page_id_and_test(
-                page_id, answer_data={"answer": 'c = a - b\r'},
+                page_id, answer_data={"answer": "c = a - b\r"},
                 expected_grade=0))
         self.assertAddMessageCalledWith(MESSAGE_ANSWER_SAVED_TEXT)
 
@@ -114,7 +114,7 @@ class SingleCourseQuizPageCodeQuestionTest(
         page_id = "addition"
         submit_answer_response, post_grade_response = (
             self.default_submit_page_answer_by_page_id_and_test(
-                page_id, answer_data={"answer": 'c = a + b\r'},
+                page_id, answer_data={"answer": "c = a + b\r"},
                 expected_grade=1))
         self.assertAddMessageCalledWith(MESSAGE_ANSWER_SAVED_TEXT)
 
@@ -135,7 +135,7 @@ class SingleCourseQuizPageCodeQuestionTest(
 
         submit_answer_response, post_grade_response = (
             self.default_submit_page_answer_by_page_id_and_test(
-                page_id, answer_data={"answer": 'c = b * a\r'},
+                page_id, answer_data={"answer": "c = b * a\r"},
                 expected_grade=4))
 
         self.assertResponseContextAnswerFeedbackContainsFeedback(
@@ -149,7 +149,7 @@ class SingleCourseQuizPageCodeQuestionTest(
         feedback_text = "This is the feedback from instructor."
         submit_answer_response, post_grade_response = (
             self.default_submit_page_answer_by_page_id_and_test(
-                page_id, answer_data={"answer": 'c = a / b\r'},
+                page_id, answer_data={"answer": "c = a / b\r"},
                 grade_data_extra_kwargs={"feedback_text": feedback_text},
                 expected_grade=2))
 
@@ -170,7 +170,7 @@ class SingleCourseQuizPageCodeQuestionTest(
 
         submit_answer_response, post_grade_response = (
             self.default_submit_page_answer_by_page_id_and_test(
-                page_id, answer_data={"answer": 'b = [a + 1] * 50\r'},
+                page_id, answer_data={"answer": "b = [a + 1] * 50\r"},
                 do_grading=False))
 
         # this is testing feedback.finish(0.3, feedback_msg)
@@ -296,7 +296,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
 
         resp = self.get_page_sandbox_submit_answer_response(
             markdown,
-            answer_data={"answer": ['c = b + a\r']})
+            answer_data={"answer": ["c = b + a\r"]})
         self.assertEqual(resp.status_code, 200)
         self.assertResponseContextAnswerFeedbackCorrectnessEquals(resp, None)
         self.assertResponseContextAnswerFeedbackContainsFeedback(
@@ -311,7 +311,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
 
         resp = self.get_page_sandbox_submit_answer_response(
             markdown,
-            answer_data={"answer": ['c = b + a\r']})
+            answer_data={"answer": ["c = b + a\r"]})
         self.assertEqual(resp.status_code, 200)
         self.assertResponseContextAnswerFeedbackCorrectnessEquals(resp, 1)
 
@@ -428,7 +428,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
 
             resp = self.get_page_sandbox_submit_answer_response(
                 markdowns.CODE_MARKDWON,
-                answer_data={"answer": ['c = 1 + 2\r']})
+                answer_data={"answer": ["c = 1 + 2\r"]})
             self.assertEqual(resp.status_code, 200)
             self.assertResponseContextAnswerFeedbackCorrectnessEquals(resp,
                                                                       None)
@@ -450,7 +450,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
             with override_settings(DEBUG=True):
                 resp = self.get_page_sandbox_submit_answer_response(
                     markdowns.CODE_MARKDWON,
-                    answer_data={"answer": ['c = 1 + 2\r']})
+                    answer_data={"answer": ["c = 1 + 2\r"]})
                 self.assertEqual(resp.status_code, 200)
                 self.assertResponseContextAnswerFeedbackCorrectnessEquals(resp,
                                                                           None)
@@ -477,7 +477,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
 
                 resp = self.get_page_sandbox_submit_answer_response(
                     markdowns.CODE_MARKDWON,
-                    answer_data={"answer": ['c = 1 + 2\r']})
+                    answer_data={"answer": ["c = 1 + 2\r"]})
                 self.assertEqual(resp.status_code, 200)
                 self.assertResponseContextAnswerFeedbackCorrectnessEquals(resp,
                                                                           None)
@@ -507,7 +507,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
 
                     resp = self.get_page_sandbox_submit_answer_response(
                         markdowns.CODE_MARKDWON,
-                        answer_data={"answer": ['c = 1 + 2\r']})
+                        answer_data={"answer": ["c = 1 + 2\r"]})
                     self.assertContains(resp, expected_error_str)
                     self.assertEqual(resp.status_code, 200)
                     self.assertResponseContextAnswerFeedbackCorrectnessEquals(resp,
@@ -525,7 +525,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
 
             resp = self.get_page_sandbox_submit_answer_response(
                 markdowns.CODE_MARKDWON,
-                answer_data={"answer": ['c = 1 + 2\r']})
+                answer_data={"answer": ["c = 1 + 2\r"]})
 
             if expected_msgs is not None:
                 if isinstance(expected_msgs, str):
@@ -812,7 +812,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
 
         resp = self.get_page_sandbox_submit_answer_response(
             markdown,
-            answer_data={"answer": ['c = b + a\r']})
+            answer_data={"answer": ["c = b + a\r"]})
         self.assertEqual(resp.status_code, 200)
         self.assertResponseContextAnswerFeedbackCorrectnessEquals(resp, 1)
 
@@ -829,7 +829,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
 
         resp = self.get_page_sandbox_submit_answer_response(
             markdown,
-            answer_data={"answer": ['c = b + a\r']})
+            answer_data={"answer": ["c = b + a\r"]})
         self.assertEqual(resp.status_code, 200)
         self.assertResponseContextAnswerFeedbackCorrectnessEquals(resp, 1.1)
 
@@ -852,7 +852,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
         # Post a wrong answer
         resp = self.get_page_sandbox_submit_answer_response(
             markdown,
-            answer_data={"answer": ['c = b - a\r']})
+            answer_data={"answer": ["c = b - a\r"]})
         self.assertEqual(resp.status_code, 200)
         self.assertResponseContextAnswerFeedbackCorrectnessEquals(resp, 0)
 
@@ -870,7 +870,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
         # Post a wrong answer
         resp = self.get_page_sandbox_submit_answer_response(
             markdown,
-            answer_data={"answer": ['c = b - a\r']})
+            answer_data={"answer": ["c = b - a\r"]})
         self.assertEqual(resp.status_code, 200)
         self.assertResponseContextAnswerFeedbackCorrectnessEquals(resp, 0)
 
@@ -887,7 +887,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
 
         resp = self.get_page_sandbox_submit_answer_response(
             markdown,
-            answer_data={"answer": ['c = b + a\r']})
+            answer_data={"answer": ["c = b + a\r"]})
         self.assertEqual(resp.status_code, 200)
         self.assertResponseContextAnswerFeedbackCorrectnessEquals(
             resp, MAX_EXTRA_CREDIT_FACTOR)
@@ -905,7 +905,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
 
         resp = self.get_page_sandbox_submit_answer_response(
             markdown,
-            answer_data={"answer": ['c = b + a\r']})
+            answer_data={"answer": ["c = b + a\r"]})
         self.assertEqual(resp.status_code, 200)
         self.assertResponseContextAnswerFeedbackCorrectnessEquals(
             resp, MAX_EXTRA_CREDIT_FACTOR)
@@ -924,7 +924,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
         # Post a wrong answer
         resp = self.get_page_sandbox_submit_answer_response(
             markdown,
-            answer_data={"answer": ['c = b - a\r']})
+            answer_data={"answer": ["c = b - a\r"]})
         self.assertEqual(resp.status_code, 200)
         self.assertResponseContextAnswerFeedbackCorrectnessEquals(resp, None)
 
@@ -950,7 +950,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
 
         resp = self.get_page_sandbox_submit_answer_response(
             markdown,
-            answer_data={"answer": ['c = b + a\r']})
+            answer_data={"answer": ["c = b + a\r"]})
         self.assertEqual(resp.status_code, 200)
         self.assertResponseContextAnswerFeedbackCorrectnessEquals(resp, None)
         error_msg = (AUTO_FEEDBACK_POINTS_OUT_OF_RANGE_ERROR_MSG_PATTERN
@@ -984,7 +984,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
 
             resp = self.get_page_sandbox_submit_answer_response(
                 markdown,
-                answer_data={"answer": ['c = b + a\r']})
+                answer_data={"answer": ["c = b + a\r"]})
             self.assertEqual(resp.status_code, 200)
             self.assertResponseContextAnswerFeedbackCorrectnessEquals(resp, None)
             error_msg = (AUTO_FEEDBACK_POINTS_OUT_OF_RANGE_ERROR_MSG_PATTERN
@@ -1069,7 +1069,7 @@ class RequestPythonRunWithRetriesTest(unittest.TestCase):
                     res = request_run_with_retries(
                         run_req={}, run_timeout=0.1, retry_count=0)
                     self.assertEqual(res["result"], "uncaught_error")
-                    self.assertEqual(res['message'],
+                    self.assertEqual(res["message"],
                                      "Timeout waiting for container.")
                     self.assertEqual(res["exec_host"], fake_host_ip)
                     self.assertIn(fake_bad_statusline_msg, res["traceback"])
@@ -1085,7 +1085,7 @@ class RequestPythonRunWithRetriesTest(unittest.TestCase):
                     res = request_run_with_retries(
                         run_req={}, run_timeout=0.1, retry_count=0)
                     self.assertEqual(res["result"], "uncaught_error")
-                    self.assertEqual(res['message'],
+                    self.assertEqual(res["message"],
                                      "Timeout waiting for container.")
                     self.assertEqual(res["exec_host"], fake_host_ip)
                     self.assertIn(InvalidPingResponse.__name__, res["traceback"])
@@ -1102,7 +1102,7 @@ class RequestPythonRunWithRetriesTest(unittest.TestCase):
                     res = request_run_with_retries(
                         run_req={}, run_timeout=0.1, retry_count=0)
                     self.assertEqual(res["result"], "uncaught_error")
-                    self.assertEqual(res['message'],
+                    self.assertEqual(res["message"],
                                      "Timeout waiting for container.")
                     self.assertEqual(res["exec_host"], fake_host_ip)
                     self.assertIn(type(my_socket_error).__name__, res["traceback"])
@@ -1118,7 +1118,7 @@ class RequestPythonRunWithRetriesTest(unittest.TestCase):
                     res = request_run_with_retries(
                         run_req={}, run_timeout=0.1, retry_count=0)
                     self.assertEqual(res["result"], "uncaught_error")
-                    self.assertEqual(res['message'],
+                    self.assertEqual(res["message"],
                                      "Timeout waiting for container.")
                     self.assertEqual(res["exec_host"], fake_host_ip)
                     self.assertIn(type(my_socket_error).__name__, res["traceback"])
@@ -1172,7 +1172,7 @@ class RequestPythonRunWithRetriesTest(unittest.TestCase):
                     res = request_run_with_retries(
                         run_req={}, run_timeout=0.1, retry_count=0)
                     self.assertEqual(res["result"], "uncaught_error")
-                    self.assertEqual(res['message'],
+                    self.assertEqual(res["message"],
                                      "Timeout waiting for container.")
                     self.assertEqual(res["exec_host"], "localhost")
                     self.assertIn(InvalidPingResponse.__name__, res["traceback"])
@@ -1216,7 +1216,7 @@ class RequestPythonRunWithRetriesTest(unittest.TestCase):
                     res = request_run_with_retries(
                         run_req={}, run_timeout=0.1, retry_count=0)
                     self.assertEqual(res["result"], "uncaught_error")
-                    self.assertEqual(res['message'],
+                    self.assertEqual(res["message"],
                                      "Timeout waiting for container.")
                     self.assertEqual(res["exec_host"], fake_host_ip)
                     self.assertIn(InvalidPingResponse.__name__, res["traceback"])
@@ -1378,9 +1378,9 @@ class CodeQuestionWithHumanTextFeedbackSpecialCase(
         page = PythonCodeQuestionWithHumanTextFeedback(None, None, page_desc)
 
         page_context = fpctx.page_context
-        grade_data.setdefault('grade_percent', None)
-        grade_data.setdefault('released', True)
-        grade_data.setdefault('feedback_text', "")
+        grade_data.setdefault("grade_percent", None)
+        grade_data.setdefault("released", True)
+        grade_data.setdefault("feedback_text", "")
         page_data = fpctx.page_data
         feedback = page.grade(
             page_context=page_context,
@@ -1391,7 +1391,7 @@ class CodeQuestionWithHumanTextFeedbackSpecialCase(
         return feedback
 
     def test_code_with_human_feedback(self):
-        answer_data = {"answer": 'b = [a + 0] * 50'}
+        answer_data = {"answer": "b = [a + 0] * 50"}
         grade_data = {"grade_percent": 100}
         page_value = 4
         human_feedback_percentage = 60
@@ -1404,7 +1404,7 @@ class CodeQuestionWithHumanTextFeedbackSpecialCase(
             "The human grader assigned 2.40/2.40 points.", feedback.feedback)
 
     def test_code_with_human_feedback_full_percentage(self):
-        answer_data = {"answer": 'b = [a + 0] * 50'}
+        answer_data = {"answer": "b = [a + 0] * 50"}
         grade_data = {"grade_percent": 100}
         page_value = 0
         human_feedback_percentage = 100
@@ -1423,7 +1423,7 @@ class CodeQuestionWithHumanTextFeedbackSpecialCase(
                 "The human grader assigned 0/0 points.", feedback.feedback)
 
     def test_code_with_human_feedback_zero_percentage(self):
-        answer_data = {"answer": 'b = [a + 0] * 50'}
+        answer_data = {"answer": "b = [a + 0] * 50"}
         grade_data = {}
         page_value = 0
         human_feedback_percentage = 0

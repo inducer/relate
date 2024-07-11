@@ -60,7 +60,7 @@ class TaskTestMixin:
             override_settings_kwargs = {
                 "CELERY_TASK_ALWAYS_EAGER": True,
                 "CELERY_EAGER_PROPAGATES_EXCEPTIONS": True,
-                "BROKER_BACKEND": 'memory'
+                "BROKER_BACKEND": "memory"
             }
         celery_fake_overriding = (
             override_settings(**override_settings_kwargs))

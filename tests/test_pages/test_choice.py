@@ -352,13 +352,13 @@ class MultiChoicesQuestionTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
 
         resp = self.get_page_sandbox_submit_answer_response(
             markdown,
-            answer_data={"choice": ['0', '1', '4']})
+            answer_data={"choice": ["0", "1", "4"]})
         self.assertEqual(resp.status_code, 200)
         self.assertResponseContextAnswerFeedbackCorrectnessEquals(resp, 1)
 
         resp = self.get_page_sandbox_submit_answer_response(
             markdown,
-            answer_data={"choice": ['0']})
+            answer_data={"choice": ["0"]})
         self.assertEqual(resp.status_code, 200)
         self.assertResponseContextAnswerFeedbackCorrectnessEquals(resp, 0)
 
@@ -374,13 +374,13 @@ class MultiChoicesQuestionTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
 
         resp = self.get_page_sandbox_submit_answer_response(
             markdown,
-            answer_data={"choice": ['0', '1', '4']})
+            answer_data={"choice": ["0", "1", "4"]})
         self.assertEqual(resp.status_code, 200)
         self.assertResponseContextAnswerFeedbackCorrectnessEquals(resp, 1)
 
         resp = self.get_page_sandbox_submit_answer_response(
             markdown,
-            answer_data={"choice": ['0', '1', '2', '3', '4']})
+            answer_data={"choice": ["0", "1", "2", "3", "4"]})
         self.assertEqual(resp.status_code, 200)
         self.assertResponseContextAnswerFeedbackCorrectnessEquals(resp, 0.6)
 
@@ -394,19 +394,19 @@ class MultiChoicesQuestionTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
         self.assertSandboxHasValidPage(resp)
         resp = self.get_page_sandbox_submit_answer_response(
             markdown,
-            answer_data={"choice": ['2', '5']})
+            answer_data={"choice": ["2", "5"]})
         self.assertEqual(resp.status_code, 200)
         self.assertResponseContextAnswerFeedbackCorrectnessEquals(resp, 0)
 
         resp = self.get_page_sandbox_submit_answer_response(
             markdown,
-            answer_data={"choice": ['0', '1']})
+            answer_data={"choice": ["0", "1"]})
         self.assertEqual(resp.status_code, 200)
         self.assertResponseContextAnswerFeedbackCorrectnessEquals(resp, 2/3)
 
         resp = self.get_page_sandbox_submit_answer_response(
             markdown,
-            answer_data={"choice": ['0', '1', '5']})
+            answer_data={"choice": ["0", "1", "5"]})
         self.assertEqual(resp.status_code, 200)
         self.assertResponseContextAnswerFeedbackCorrectnessEquals(resp, 2/3)
 
@@ -419,7 +419,7 @@ class MultiChoicesQuestionTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
 
         resp = self.get_page_sandbox_submit_answer_response(
             markdown,
-            answer_data={"choice": ['2', '5']})
+            answer_data={"choice": ["2", "5"]})
         self.assertEqual(resp.status_code, 200)
         self.assertResponseContextAnswerFeedbackCorrectnessEquals(resp, 0)
 
@@ -427,13 +427,13 @@ class MultiChoicesQuestionTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
         # option is tagged "~DISREGARD~"
         resp = self.get_page_sandbox_submit_answer_response(
             markdown,
-            answer_data={"choice": ['0', '1']})
+            answer_data={"choice": ["0", "1"]})
         self.assertEqual(resp.status_code, 200)
         self.assertResponseContextAnswerFeedbackCorrectnessEquals(resp, 0.75)
 
         resp = self.get_page_sandbox_submit_answer_response(
             markdown,
-            answer_data={"choice": ['0', '1', '5']})
+            answer_data={"choice": ["0", "1", "5"]})
         self.assertEqual(resp.status_code, 200)
         self.assertResponseContextAnswerFeedbackCorrectnessEquals(resp, 0.75)
         self.assertResponseContextEqual(
@@ -631,19 +631,19 @@ class MultiChoicesQuestionTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
 
         from relate.utils import dict_to_struct
         fake_page_desc = dict_to_struct(
-            {'type': 'MultipleChoiceQuestion', 'id': 'ice_cream_toppings',
-             'value': 1, 'shuffle': False,
-             'prompt': '# Ice Cream Toppings\nWhich of the following are '
-                       'ice cream toppings?\n',
-             'choices': ['~CORRECT~ Sprinkles',
+            {"type": "MultipleChoiceQuestion", "id": "ice_cream_toppings",
+             "value": 1, "shuffle": False,
+             "prompt": "# Ice Cream Toppings\nWhich of the following are "
+                       "ice cream toppings?\n",
+             "choices": ["~CORRECT~ Sprinkles",
                          BadChoice(),
-                         'Vacuum cleaner dust', 'Spider webs',
-                         '~CORRECT~ Almond bits'],
-             'allow_partial_credit': True,
-             '_field_names': [
-                 'type', 'id', 'value', 'shuffle',
-                 'prompt', 'choices',
-                 'allow_partial_credit']}
+                         "Vacuum cleaner dust", "Spider webs",
+                         "~CORRECT~ Almond bits"],
+             "allow_partial_credit": True,
+             "_field_names": [
+                 "type", "id", "value", "shuffle",
+                 "prompt", "choices",
+                 "allow_partial_credit"]}
         )
 
         with mock.patch("relate.utils.dict_to_struct") as mock_dict_to_struct:
@@ -769,15 +769,15 @@ class SurveyChoiceQuestionExtra(SingleCoursePageSandboxTestBaseMixin, TestCase):
 
         from relate.utils import dict_to_struct
         fake_page_desc = dict_to_struct(
-            {'type': 'SurveyChoiceQuestion', 'id': 'age_group_with_comment',
-             'answer_comment': 'this is a survey question',
-             'prompt': '\n# Age\n\nHow old are you?\n',
-             'choices': [
-                 '0-10 years', '11-20 years', '21-30 years', '31-40 years',
-                 '41-50 years', '51-60 years', '61-70 years', '71-80 years',
-                 '81-90 years', BadChoice()],
-             '_field_names': ['type', 'id', 'answer_comment',
-                              'prompt', 'choices']}
+            {"type": "SurveyChoiceQuestion", "id": "age_group_with_comment",
+             "answer_comment": "this is a survey question",
+             "prompt": "\n# Age\n\nHow old are you?\n",
+             "choices": [
+                 "0-10 years", "11-20 years", "21-30 years", "31-40 years",
+                 "41-50 years", "51-60 years", "61-70 years", "71-80 years",
+                 "81-90 years", BadChoice()],
+             "_field_names": ["type", "id", "answer_comment",
+                              "prompt", "choices"]}
         )
 
         with mock.patch("relate.utils.dict_to_struct") as mock_dict_to_struct:

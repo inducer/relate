@@ -756,7 +756,7 @@ class InlineMultiQuestionTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
         # partial answer
         resp = self.get_page_sandbox_submit_answer_response(
             markdown,
-            answer_data={'blank1': ['Bar']})
+            answer_data={"blank1": ["Bar"]})
         self.assertEqual(resp.status_code, 200)
         self.assertFormErrorLoose(resp, None)
         self.assertResponseContextAnswerFeedbackCorrectnessEquals(resp, 0.5)
@@ -764,7 +764,7 @@ class InlineMultiQuestionTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
         # full answer, choice wrong answer
         resp = self.get_page_sandbox_submit_answer_response(
             markdown,
-            answer_data={'blank1': 'Bar', 'choice1': 4})
+            answer_data={"blank1": "Bar", "choice1": 4})
         self.assertEqual(resp.status_code, 200)
         self.assertFormErrorLoose(resp, None)
         self.assertResponseContextAnswerFeedbackCorrectnessEquals(resp, 0.5)
@@ -772,7 +772,7 @@ class InlineMultiQuestionTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
         # full answer, all correct
         resp = self.get_page_sandbox_submit_answer_response(
             markdown,
-            answer_data={'blank1': 'Bar', 'choice1': 2})
+            answer_data={"blank1": "Bar", "choice1": 2})
         self.assertResponseContextAnswerFeedbackCorrectnessEquals(resp, 1)
 
     def test_submit_validation_error(self):
@@ -787,7 +787,7 @@ class InlineMultiQuestionTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
 
         resp = self.get_page_sandbox_submit_answer_response(
             markdown,
-            answer_data={'blank1': 'Bar', 'blank2': 'abc'})
+            answer_data={"blank1": "Bar", "blank2": "abc"})
         self.assertEqual(resp.status_code, 200)
         self.assertFormErrorLoose(
             resp, "TypeError: Cannot convert expression to float")
@@ -839,7 +839,7 @@ class InlineMultiQuestionTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
         # partial answer
         resp = self.get_page_sandbox_submit_answer_response(
             markdown,
-            answer_data={'blank1': ['Bar']})
+            answer_data={"blank1": ["Bar"]})
         self.assertEqual(resp.status_code, 200)
         self.assertFormErrorLoose(resp, None)
         self.assertResponseContextAnswerFeedbackCorrectnessEquals(resp, 0.75)
@@ -854,14 +854,14 @@ class InlineMultiQuestionTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
 
         resp = self.get_page_sandbox_submit_answer_response(
             markdown,
-            answer_data={'blank1': ['Bar']})
+            answer_data={"blank1": ["Bar"]})
         self.assertEqual(resp.status_code, 200)
         self.assertFormErrorLoose(resp, None)
         self.assertResponseContextAnswerFeedbackCorrectnessEquals(resp, 1)
 
         resp = self.get_page_sandbox_submit_answer_response(
             markdown,
-            answer_data={'blank2': 'One'})
+            answer_data={"blank2": "One"})
         self.assertEqual(resp.status_code, 200)
         self.assertFormErrorLoose(resp, None)
         self.assertResponseContextAnswerFeedbackCorrectnessEquals(resp, 0)
@@ -943,23 +943,23 @@ class InlineMultiQuestionTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
 
         from relate.utils import dict_to_struct
         fake_page_desc = dict_to_struct(
-            {'type': 'InlineMultiQuestion', 'id': 'inlinemulti',
-             'prompt':
-                 '\n# An InlineMultiQuestion example\n\nComplete the '
-                 'following paragraph.\n',
-             'question': '\nFoo and [[choice]] are often used in code '
-                         'examples.\n',
-             '_field_names': [
-                 'type', 'id', 'prompt', 'question', 'answers', 'value'],
-             'answers': {'_field_names': ['choice'],
-                         'choice': {
-                             '_field_names': ['type',
-                                              'choices'],
-                             'type': 'ChoicesAnswer',
-                             'choices': [0.2,
+            {"type": "InlineMultiQuestion", "id": "inlinemulti",
+             "prompt":
+                 "\n# An InlineMultiQuestion example\n\nComplete the "
+                 "following paragraph.\n",
+             "question": "\nFoo and [[choice]] are often used in code "
+                         "examples.\n",
+             "_field_names": [
+                 "type", "id", "prompt", "question", "answers", "value"],
+             "answers": {"_field_names": ["choice"],
+                         "choice": {
+                             "_field_names": ["type",
+                                              "choices"],
+                             "type": "ChoicesAnswer",
+                             "choices": [0.2,
                                          BadChoice(),
-                                         '~CORRECT~ 0.25']}},
-             'value': 10}
+                                         "~CORRECT~ 0.25"]}},
+             "value": 10}
         )
 
         with mock.patch("relate.utils.dict_to_struct") as mock_dict_to_struct:
@@ -1037,7 +1037,7 @@ class InlineMultiQuestionTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
 
         resp = self.get_page_sandbox_submit_answer_response(
             markdown,
-            answer_data={'blank1': 'Bar'})
+            answer_data={"blank1": "Bar"})
         self.assertEqual(resp.status_code, 200)
         self.assertContains(resp, "This is an explanation.")
         self.assertResponseContextAnswerFeedbackCorrectnessEquals(resp, 1)
@@ -1102,8 +1102,8 @@ class InlineMultiPageUpdateTest(SingleCourseQuizPageTestMixin, TestCase):
             self.assertContains(resp, "(old version)")
 
             answer_data = {
-                'blank1': 'Bar', 'blank_2': '0.2', 'blank3': '1',
-                'blank4': '5', 'choice2': '0', 'choice_a': '0'}
+                "blank1": "Bar", "blank_2": "0.2", "blank3": "1",
+                "blank4": "5", "choice2": "0", "choice_a": "0"}
 
             submit_answer_response, _ = (
                 self.submit_page_answer_by_page_id_and_test(

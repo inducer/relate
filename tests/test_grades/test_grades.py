@@ -1297,7 +1297,7 @@ class ViewParticipantGradesTest2(GradesTestMixin, TestCase):
             self.assertEqual((len(grade_table)), 3)
             self.assertEqual([g_info.opportunity.identifier
                               for g_info in grade_table],
-                             ['all_hidden_in_ptcp_gradebook',
+                             ["all_hidden_in_ptcp_gradebook",
                               factories.DEFAULT_GRADE_IDENTIFIER,
                               "result_hidden_in_ptcp_gradebook"])
 
@@ -1346,9 +1346,9 @@ class ViewReopenSessionTest(GradesTestMixin, TestCase):
     def test_already_in_progress(self):
         # not unsubmit, because we don't have previoius grade visit (which will
         # result in error)
-        data = {'set_access_rules_tag': ['<<<NONE>>>'],
-                'comment': ['test reopen'],
-                'reopen': ''}
+        data = {"set_access_rules_tag": ["<<<NONE>>>"],
+                "comment": ["test reopen"],
+                "reopen": ""}
 
         resp = self.post_reopen_session_view(
             self.gopp_id, flow_session_id=self.fs2.pk, data=data)
@@ -1366,9 +1366,9 @@ class ViewReopenSessionTest(GradesTestMixin, TestCase):
 
         # not unsubmit, because we don't have previoius grade visit (which will
         # result in error)
-        data = {'set_access_rules_tag': ['<<<NONE>>>'],
-                'comment': ['test reopen'],
-                'reopen': ''}
+        data = {"set_access_rules_tag": ["<<<NONE>>>"],
+                "comment": ["test reopen"],
+                "reopen": ""}
 
         resp = self.post_reopen_session_view(
             self.gopp_id, flow_session_id=self.fs1.pk, data=data)
@@ -1386,9 +1386,9 @@ class ViewReopenSessionTest(GradesTestMixin, TestCase):
 
             # not unsubmit, because we don't have previoius grade visit (which will
             # result in error)
-            data = {'set_access_rules_tag': ['blahblah'],
-                    'comment': ['test reopen'],
-                    'reopen': ''}
+            data = {"set_access_rules_tag": ["blahblah"],
+                    "comment": ["test reopen"],
+                    "reopen": ""}
 
             resp = self.post_reopen_session_view(
                 self.gopp_id, flow_session_id=self.fs1.pk, data=data)
@@ -1396,7 +1396,7 @@ class ViewReopenSessionTest(GradesTestMixin, TestCase):
 
         self.fs1.refresh_from_db()
         self.assertTrue(self.fs1.in_progress)
-        self.assertEqual(self.fs1.access_rules_tag, 'blahblah')
+        self.assertEqual(self.fs1.access_rules_tag, "blahblah")
 
 
 class ViewSingleGradeTest(GradesTestMixin, TestCase):
@@ -1510,14 +1510,14 @@ class ViewSingleGradeTest(GradesTestMixin, TestCase):
             with self.subTest(op=op):
                 resp = self.post_view_single_grade(
                     self.student_participation, self.gopp,
-                    data={"%s_%d" % (op, fs.pk): ''},
+                    data={"%s_%d" % (op, fs.pk): ""},
                     force_login_instructor=False)
                 self.assertEqual(resp.status_code, 403)
 
     def test_post_no_action_match(self):
         resp = self.post_view_single_grade(
             self.student_participation, self.gopp,
-            data={"blablabal": ''})
+            data={"blablabal": ""})
         self.assertEqual(resp.status_code, 400)
 
     def test_post(self):
@@ -1536,7 +1536,7 @@ class ViewSingleGradeTest(GradesTestMixin, TestCase):
             with self.subTest(op=op):
                 resp = self.post_view_single_grade(
                     self.student_participation, self.gopp,
-                    data={"%s_%d" % (op, fs.pk): ''})
+                    data={"%s_%d" % (op, fs.pk): ""})
                 self.assertEqual(resp.status_code, 200)
                 self.assertEqual(mock_func.call_count, 1)
                 self.assertAddMessageCalledWith(msg, reset=True)
@@ -1548,7 +1548,7 @@ class ViewSingleGradeTest(GradesTestMixin, TestCase):
 
         resp = self.post_view_single_grade(
             self.student_participation, self.gopp,
-            data={"blablabal_%d" % fs.pk: ''})
+            data={"blablabal_%d" % fs.pk: ""})
         self.assertEqual(resp.status_code, 400)
 
     def test_post_keyboard_interrupt(self):
@@ -1573,7 +1573,7 @@ class ViewSingleGradeTest(GradesTestMixin, TestCase):
             with self.subTest(op=op):
                 resp = self.post_view_single_grade(
                     self.student_participation, self.gopp,
-                    data={"%s_%d" % (op, fs.pk): ''})
+                    data={"%s_%d" % (op, fs.pk): ""})
                 self.assertEqual(resp.status_code, 200)
                 self.assertAddMessageNotCalledWith(msg, reset=False)
                 self.assertAddMessageCalledWith(
@@ -1695,11 +1695,11 @@ class EditGradingOpportunityTest(GradesTestMixin, TestCase):
 
         data = {"name": name,
                 "identifier": identifier,
-                op: '',
+                op: "",
                 "aggregation_strategy": aggregation_strategy}
 
         if page_scores_in_participant_gradebook:
-            data["page_scores_in_participant_gradebook"] = ''
+            data["page_scores_in_participant_gradebook"] = ""
 
         if hide_superseded_grade_history_before:
             if isinstance(hide_superseded_grade_history_before, datetime.datetime):
@@ -1710,11 +1710,11 @@ class EditGradingOpportunityTest(GradesTestMixin, TestCase):
             data["hide_superseded_grade_history_before"] = (
                 hide_superseded_grade_history_before)
         if shown_in_participant_grade_book:
-            data["shown_in_participant_grade_book"] = ''
+            data["shown_in_participant_grade_book"] = ""
         if shown_in_grade_book:
-            data["shown_in_grade_book"] = ''
+            data["shown_in_grade_book"] = ""
         if result_shown_in_participant_grade_book:
-            data["result_shown_in_participant_grade_book"] = ''
+            data["result_shown_in_participant_grade_book"] = ""
 
         data.update(kwargs)
         return data
@@ -1843,12 +1843,12 @@ class DownloadAllSubmissionsTest(SingleCourseQuizPageTestMixin,
         assert isinstance(extensions, list)
         assert isinstance(counts, list)
         assert len(extensions) == len(counts)
-        prefix, zip_file = resp["Content-Disposition"].split('=')
+        prefix, zip_file = resp["Content-Disposition"].split("=")
         self.assertEqual(prefix, "attachment; filename")
-        self.assertEqual(resp.get('Content-Type'), "application/zip")
+        self.assertEqual(resp.get("Content-Type"), "application/zip")
         buf = io.BytesIO(resp.content)
         import zipfile
-        with zipfile.ZipFile(buf, 'r') as zf:
+        with zipfile.ZipFile(buf, "r") as zf:
             self.assertIsNone(zf.testzip())
 
             for f in zf.filelist:
@@ -1918,8 +1918,8 @@ class DownloadAllSubmissionsTest(SingleCourseQuizPageTestMixin,
             import os
             with open(
                     os.path.join(os.path.dirname(__file__),
-                                 '../resource',
-                                 'test_file.pdf'), 'rb') as extra_file:
+                                 "../resource",
+                                 "test_file.pdf"), "rb") as extra_file:
                 resp = self.post_download_all_submissions_by_group_page_id(
                     group_page_id=self.group_page_id, flow_id=self.flow_id,
                     extra_file=extra_file)
@@ -2026,7 +2026,7 @@ class FixingTest(GradesTestMixin, TestCase):
 
             # create a flow page visit, then there should be last_activity() for
             # the session.
-            self.post_answer_by_ordinal(1, {"answer": ['0.5']})
+            self.post_answer_by_ordinal(1, {"answer": ["0.5"]})
             self.assertEqual(
                 models.FlowPageVisit.objects.filter(answer__isnull=False).count(),
                 1)
@@ -2189,7 +2189,7 @@ class FixingTest(GradesTestMixin, TestCase):
         exist_flow_session_count = models.FlowSession.objects.count()
         flow_session_delete_url = self._get_admin_flow_session_delete_url(
             args=(flow_session.id,))
-        delete_dict = {'post': 'yes'}
+        delete_dict = {"post": "yes"}
         with self.temporarily_switch_to_user(self.superuser):
             resp = self.client.get(flow_session_delete_url)
             self.assertEqual(resp.status_code, 200)
@@ -2307,7 +2307,7 @@ class FixingTest(GradesTestMixin, TestCase):
 
             # create a flow page visit, then there should be last_activity() for
             # the session.
-            self.post_answer_by_ordinal(1, {"answer": ['0.5']})
+            self.post_answer_by_ordinal(1, {"answer": ["0.5"]})
             self.assertEqual(
                 models.FlowPageVisit.objects.filter(answer__isnull=False).count(),
                 1)

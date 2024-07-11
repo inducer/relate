@@ -398,7 +398,7 @@ class TagProcessingHTMLParserAndLinkFixerTreeprocessorTest(
         another_course = factories.CourseFactory(identifier="another-course")
         markdown = MARKDOWN_WITH_LINK_FRAGMENT
         expected_literal = [
-            '/course/test-course/page/test/#abcd',
+            "/course/test-course/page/test/#abcd",
             '<a href="blablabla">',
 
             # handle_startendtag
@@ -726,7 +726,7 @@ class GetCourseDescTest(SingleCourseTestMixin, HackRepoMixin, TestCase):
             "facilities": ["test_center"],
             "custom_facilities": [],
             "add_pretend_facilities_header": ["on"],
-            "set": ''}
+            "set": ""}
 
         with self.temporarily_switch_to_user(self.instructor_participation.user):
             # pretend facility
@@ -780,7 +780,7 @@ class GetCourseDescTest(SingleCourseTestMixin, HackRepoMixin, TestCase):
             # fake time to 2017-12-31
             set_fake_time_data = {
                 "time": datetime.datetime(2017, 12, 31).strftime("%Y-%m-%d %H:%M"),
-                "set": ''}
+                "set": ""}
             self.post_set_fake_time(data=set_fake_time_data)
 
             # second visit

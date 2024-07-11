@@ -94,7 +94,7 @@ class SingleCourseQuizPageGradeInterfaceTest(
     def test_post_grades_huge_points_failure(self):
         grade_data = {
             "grade_percent": "2000",
-            "released": 'on'
+            "released": "on"
         }
 
         resp = self.submit_page_human_grading_by_page_id_and_test(
@@ -113,7 +113,7 @@ class SingleCourseQuizPageGradeInterfaceTest(
 
     def test_feedback_and_notify(self):
         grade_data_extra_kwargs = {
-            "feedback_text": 'test feedback'
+            "feedback_text": "test feedback"
         }
 
         self.submit_page_human_grading_by_page_id_and_test(
@@ -151,7 +151,7 @@ class SingleCourseQuizPageGradeInterfaceTest(
         self.instructor_participation.individual_permissions.set([pp])
 
         grade_data_extra_kwargs = {
-            "feedback_text": 'test feedback',
+            "feedback_text": "test feedback",
             "notify": "on"}
         self.submit_page_human_grading_by_page_id_and_test(
             self.page_id, grade_data_extra_kwargs=grade_data_extra_kwargs)
@@ -173,20 +173,20 @@ class SingleCourseQuizPageGradeInterfaceTest(
     @override_settings(
         EMAIL_CONNECTIONS={
             "grader_feedback": {
-                'backend': 'tests.resource.MyFakeEmailBackend',
+                "backend": "tests.resource.MyFakeEmailBackend",
             },
         },
         GRADER_FEEDBACK_EMAIL_FROM="my_feedback_from_email@example.com"
     )
     def test_feedback_notify_with_grader_feedback_connection(self):
         grade_data_extra_kwargs = {
-            "feedback_text": 'test feedback',
+            "feedback_text": "test feedback",
             "notify": "on"
         }
 
         from django.core.mail import get_connection
         connection = get_connection(
-            backend='django.core.mail.backends.locmem.EmailBackend')
+            backend="django.core.mail.backends.locmem.EmailBackend")
 
         with mock.patch("django.core.mail.get_connection") as mock_get_connection:
             mock_get_connection.return_value = connection
@@ -213,7 +213,7 @@ class SingleCourseQuizPageGradeInterfaceTest(
 
     def test_feedback_email_may_reply(self):
         grade_data_extra_kwargs = {
-            "feedback_text": 'test feedback',
+            "feedback_text": "test feedback",
             "may_reply": "on",
             "notify": "on"
         }
@@ -242,7 +242,7 @@ class SingleCourseQuizPageGradeInterfaceTest(
 
     def test_notes_and_notify(self):
         grade_data_extra_kwargs = {
-            "notes": 'test notes'
+            "notes": "test notes"
         }
 
         with self.temporarily_switch_to_user(self.ta_participation.user):
@@ -277,7 +277,7 @@ class SingleCourseQuizPageGradeInterfaceTest(
         self.ta_participation.individual_permissions.set([pp])
 
         grade_data_extra_kwargs = {
-            "notes": 'test notes',
+            "notes": "test notes",
             "notify_instructor": "on"}
 
         with self.temporarily_switch_to_user(self.ta_participation.user):
@@ -299,20 +299,20 @@ class SingleCourseQuizPageGradeInterfaceTest(
     @override_settings(
         EMAIL_CONNECTIONS={
             "grader_feedback": {
-                'backend': 'tests.resource.MyFakeEmailBackend',
+                "backend": "tests.resource.MyFakeEmailBackend",
             },
         },
         GRADER_FEEDBACK_EMAIL_FROM="my_feedback_from_email@example.com"
     )
     def test_notes_and_notify_with_grader_feedback_connection(self):
         grade_data_extra_kwargs = {
-            "notes": 'test notes',
+            "notes": "test notes",
             "notify_instructor": "on"
         }
 
         from django.core.mail import get_connection
         connection = get_connection(
-            backend='django.core.mail.backends.locmem.EmailBackend')
+            backend="django.core.mail.backends.locmem.EmailBackend")
 
         with mock.patch("django.core.mail.get_connection") as mock_get_connection:
             mock_get_connection.return_value = connection
@@ -343,7 +343,7 @@ class SingleCourseQuizPageGradeInterfaceTest(
     def test_grade_history_failure_no_perm(self):
         resp = self.client.get(
             self.get_page_grade_history_url_by_ordinal(
-                page_ordinal=1), HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+                page_ordinal=1), HTTP_X_REQUESTED_WITH="XMLHttpRequest")
         self.assertEqual(resp.status_code, 403)
 
     def test_grade_history_failure_not_ajax(self):
@@ -355,14 +355,14 @@ class SingleCourseQuizPageGradeInterfaceTest(
     def test_submit_history_failure_not_get(self):
         resp = self.client.post(
             self.get_page_grade_history_url_by_ordinal(
-                page_ordinal=1), HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+                page_ordinal=1), HTTP_X_REQUESTED_WITH="XMLHttpRequest")
         self.assertEqual(resp.status_code, 403)
 
     def test_grade_history_failure_not_authenticated(self):
         with self.temporarily_switch_to_user(None):
             resp = self.client.get(
                 self.get_page_grade_history_url_by_ordinal(
-                    page_ordinal=1), HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+                    page_ordinal=1), HTTP_X_REQUESTED_WITH="XMLHttpRequest")
         self.assertEqual(resp.status_code, 403)
 
     def test_grades_history_after_graded(self):

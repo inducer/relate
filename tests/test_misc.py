@@ -51,9 +51,9 @@ from tests.utils import LocmemBackendTestsMixin, mail, mock
 
 
 LANGUAGES = [
-    ('en', _('English')),
-    ('ko', _('Korean')),
-    ('fr', _('French')),
+    ("en", _("English")),
+    ("ko", _("Korean")),
+    ("fr", _("French")),
 ]
 
 ASSERSION_ERROR_LANGUAGE_PATTERN = (
@@ -91,27 +91,27 @@ class CourseSpecificLangTestMixin(SingleCourseTestMixin, TestCase):
         contains_korean_result = []
         response_content_language_result = []
 
-        with override_settings(USE_I18N=True, LANGUAGE_CODE='en-us'):
+        with override_settings(USE_I18N=True, LANGUAGE_CODE="en-us"):
             resp = self.client.get(url)
             self.assertEqual(resp.status_code, 200)
             contains_korean_result.append(self.response_contains_korean(resp))
-            response_content_language_result.append(resp['content-language'])
+            response_content_language_result.append(resp["content-language"])
 
-            resp = self.client.get(url, HTTP_ACCEPT_LANGUAGE='ko')
+            resp = self.client.get(url, HTTP_ACCEPT_LANGUAGE="ko")
             self.assertEqual(resp.status_code, 200)
             contains_korean_result.append(self.response_contains_korean(resp))
-            response_content_language_result.append(resp['content-language'])
+            response_content_language_result.append(resp["content-language"])
 
         with override_settings(USE_I18N=False):
             resp = self.client.get(url)
             self.assertEqual(resp.status_code, 200)
             contains_korean_result.append(self.response_contains_korean(resp))
-            response_content_language_result.append(resp['content-language'])
+            response_content_language_result.append(resp["content-language"])
 
-            resp = self.client.get(url, HTTP_ACCEPT_LANGUAGE='ko')
+            resp = self.client.get(url, HTTP_ACCEPT_LANGUAGE="ko")
             self.assertEqual(resp.status_code, 200)
             contains_korean_result.append(self.response_contains_korean(resp))
-            response_content_language_result.append(resp['content-language'])
+            response_content_language_result.append(resp["content-language"])
 
         return contains_korean_result, response_content_language_result
 
@@ -135,14 +135,14 @@ class CourseSpecificLangConfigureTest(CourseSpecificLangTestMixin, TestCase):
         fake_time = datetime.datetime(2038, 12, 31, 0, 0, 0, 0)
         set_fake_time_data = {
             "time": fake_time.strftime(DATE_TIME_PICKER_TIME_FORMAT),
-            "set": ['']}
+            "set": [""]}
         self.post_set_fake_time(set_fake_time_data)
 
     def assertResponseBehaveLikeUnconfigured(self):  # noqa
         # For each setting combinations, the response behaves the same
         # as before this functionality was introduced
         expected_result = ([False, True, False, True],
-                           ['en', 'ko', 'en', 'ko'])
+                           ["en", "ko", "en", "ko"])
         self.assertEqual(
             self.home_resp_contains_korean_with_diff_settings()[0],
             expected_result[0],
@@ -156,7 +156,7 @@ class CourseSpecificLangConfigureTest(CourseSpecificLangTestMixin, TestCase):
         )
 
         expected_result = ([False, True, False, True],
-                           ['en', 'ko', 'en', 'ko'])
+                           ["en", "ko", "en", "ko"])
         self.assertEqual(
             self.course_resp_contains_korean_with_diff_settings()[0],
             expected_result[0],
@@ -171,7 +171,7 @@ class CourseSpecificLangConfigureTest(CourseSpecificLangTestMixin, TestCase):
     def assertResponseBehaveAsExpectedForCourseWithForceLang(self):  # noqa
         # For each setting combinations, the response behaves as expected
         expected_result = ([False, True, False, True],
-                           ['en', 'ko', 'en', 'ko'])
+                           ["en", "ko", "en", "ko"])
         self.assertEqual(
             self.home_resp_contains_korean_with_diff_settings()[0],
             expected_result[0],
@@ -185,7 +185,7 @@ class CourseSpecificLangConfigureTest(CourseSpecificLangTestMixin, TestCase):
         )
 
         expected_result = ([True, True, True, True],
-                           ['en', 'ko', 'en', 'ko'])
+                           ["en", "ko", "en", "ko"])
         self.assertEqual(
             self.course_resp_contains_korean_with_diff_settings()[0],
             expected_result[0],
@@ -411,8 +411,8 @@ class RelateSiteNameTest(SingleCourseTestMixin, LocmemBackendTestsMixin, TestCas
                     mock.patch(REAL_TRANSLATION_FUNCTION_TO_MOCK) \
                     as mock_gettext_global, \
                     mock.patch("course.auth._") as mock_gettext_auth, \
-                    mock.patch('course.auth.messages'), \
-                    mock.patch('course.auth.render'):
+                    mock.patch("course.auth.messages"), \
+                    mock.patch("course.auth.render"):
                 mock_gettext_global.return_value = "foo"
                 mock_gettext_auth.return_value = "foo"
                 with self.temporarily_switch_to_user(None):
@@ -474,7 +474,7 @@ class RenderEmailTemplateTest(unittest.TestCase):
                 "django.template.loader.render_to_string") as mock_render_to_string:
             render_email_template("abcd", context=None)
             self.assertDictEqual(mock_render_to_string.call_args[0][1],
-                                 {'relate_site_name': 'RELATE'})
+                                 {"relate_site_name": "RELATE"})
 
 
 class GetOutboundMailConnectionTest(unittest.TestCase):

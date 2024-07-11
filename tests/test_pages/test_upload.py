@@ -165,7 +165,7 @@ class FileUploadQuestionSandBoxTest(SingleCoursePageSandboxTestBaseMixin, TestCa
     def test_upload_file_with_size_exceed(self):
         markdown = UPLOAD_WITH_SMALL_MAX_ALLOWED_SIZE
         from tests.constants import TEST_PDF_FILE_PATH
-        with open(TEST_PDF_FILE_PATH, 'rb') as fp:
+        with open(TEST_PDF_FILE_PATH, "rb") as fp:
             answer_data = {"uploaded_file": fp}
             resp = self.get_page_sandbox_submit_answer_response(
                 markdown,

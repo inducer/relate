@@ -64,7 +64,7 @@ class UserFactory(factory.django.DjangoModelFactory):
 class CourseFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = models.Course
-        django_get_or_create = ('identifier', 'git_source')
+        django_get_or_create = ("identifier", "git_source")
 
     identifier = DEFAULT_COURSE_IDENTIFIER
     name = "test-course"
@@ -79,7 +79,7 @@ class CourseFactory(factory.django.DjangoModelFactory):
 class ParticipationRoleFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = models.ParticipationRole
-        django_get_or_create = ('course', 'identifier',)
+        django_get_or_create = ("course", "identifier",)
 
     course = factory.SubFactory(CourseFactory)
     identifier = "student"
@@ -133,7 +133,7 @@ class ParticipationFactory(factory.django.DjangoModelFactory):
 class ParticipationTagFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = models.ParticipationTag
-        django_get_or_create = ('course', 'name', 'shown_to_participant')
+        django_get_or_create = ("course", "name", "shown_to_participant")
 
     course = factory.SubFactory(CourseFactory)
     name = fuzzy.FuzzyText()
@@ -160,7 +160,7 @@ class FlowSessionFactory(factory.django.DjangoModelFactory):
 class GradingOpportunityFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = models.GradingOpportunity
-        django_get_or_create = ('course', 'identifier',)
+        django_get_or_create = ("course", "identifier",)
 
     course = factory.SubFactory(CourseFactory)
     identifier = DEFAULT_GRADE_IDENTIFIER
@@ -338,7 +338,7 @@ class FlowRuleExceptionFactory(factory.django.DjangoModelFactory):
 class InstantMessageFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = models.InstantMessage
-        django_get_or_create = ('participation', 'text')
+        django_get_or_create = ("participation", "text")
 
     participation = factory.SubFactory(ParticipationFactory)
     text = fuzzy.FuzzyText()
@@ -350,7 +350,7 @@ class InstantMessageFactory(factory.django.DjangoModelFactory):
 class ExamFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = models.Exam
-        django_get_or_create = ('course', 'description')
+        django_get_or_create = ("course", "description")
 
     course = factory.SubFactory(CourseFactory)
     description = "desc of exam"
@@ -369,7 +369,7 @@ class ExamFactory(factory.django.DjangoModelFactory):
 class ExamTicketFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = models.ExamTicket
-        django_get_or_create = ('exam', 'participation')
+        django_get_or_create = ("exam", "participation")
 
     exam = factory.SubFactory(ExamFactory)
 

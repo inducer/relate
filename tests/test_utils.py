@@ -67,17 +67,17 @@ class GetCourseSpecificLanguageChoicesTest(SimpleTestCase):
     # test course.utils.get_course_specific_language_choices
 
     LANGUAGES_CONF1 = [
-        ('en', 'English'),
-        ('zh-hans', 'Simplified Chinese'),
-        ('de', 'German')]
+        ("en", "English"),
+        ("zh-hans", "Simplified Chinese"),
+        ("de", "German")]
     LANGUAGES_CONF2 = [
-        ('en', 'English'),
-        ('zh-hans', 'Simplified Chinese'),
-        ('zh-hans', 'my Simplified Chinese'),
-        ('de', 'German')]
+        ("en", "English"),
+        ("zh-hans", "Simplified Chinese"),
+        ("zh-hans", "my Simplified Chinese"),
+        ("de", "German")]
 
     @override_settings(USE_I18N=False, LANGUAGES=LANGUAGES_CONF1,
-                       LANGUAGE_CODE='ko')
+                       LANGUAGE_CODE="ko")
     def test_i18n_disabled(self):
         choices = utils.get_course_specific_language_choices()
         self.assertTrue(choices[0][1].startswith("Default:"))
@@ -86,7 +86,7 @@ class GetCourseSpecificLanguageChoicesTest(SimpleTestCase):
         self.assertIn("(ko)", choices[0][1])
 
     @override_settings(USE_I18N=False, LANGUAGES=LANGUAGES_CONF1,
-                       LANGUAGE_CODE='en')
+                       LANGUAGE_CODE="en")
     def test_i18n_disabled_lang_items_has_same_lang_code_with_language_code(self):
         choices = utils.get_course_specific_language_choices()
         self.assertTrue(choices[0][1].startswith("Default:"))
@@ -94,7 +94,7 @@ class GetCourseSpecificLanguageChoicesTest(SimpleTestCase):
         self.assertEqual(len(choices), 3)
 
     @override_settings(USE_I18N=False, LANGUAGES=LANGUAGES_CONF2,
-                       LANGUAGE_CODE='en-us')
+                       LANGUAGE_CODE="en-us")
     def test_i18n_disabled_lang_items_having_duplicated_lang_code(self):
         choices = utils.get_course_specific_language_choices()
         self.assertTrue(choices[0][1].startswith("Default:"))
@@ -102,7 +102,7 @@ class GetCourseSpecificLanguageChoicesTest(SimpleTestCase):
         self.assertEqual(len(choices), 4)
 
     @override_settings(USE_I18N=True, LANGUAGES=LANGUAGES_CONF1,
-                       LANGUAGE_CODE='ko')
+                       LANGUAGE_CODE="ko")
     def test_i18n_enabled(self):
         choices = utils.get_course_specific_language_choices()
         self.assertTrue(choices[0][1].startswith("Default: disabled"))
@@ -110,14 +110,14 @@ class GetCourseSpecificLanguageChoicesTest(SimpleTestCase):
         self.assertIn("(ko)", choices[1][1])
 
     @override_settings(USE_I18N=True, LANGUAGES=LANGUAGES_CONF1,
-                       LANGUAGE_CODE='en')
+                       LANGUAGE_CODE="en")
     def test_i18n_enabled_lang_items_has_same_lang_code_with_language_code(self):
         choices = utils.get_course_specific_language_choices()
         self.assertTrue(choices[0][1].startswith("Default: disabled"))
         self.assertEqual(len(choices), 4)
 
     @override_settings(USE_I18N=True, LANGUAGES=LANGUAGES_CONF2,
-                       LANGUAGE_CODE='en-us')
+                       LANGUAGE_CODE="en-us")
     def test_i18n_enabled_lang_items_having_duplicated_lang_code(self):
         choices = utils.get_course_specific_language_choices()
         self.assertEqual(len(choices), 5)
@@ -150,16 +150,16 @@ class GetCourseSpecificLanguageChoicesTest(SimpleTestCase):
 
     def test_lang_descr_translated(self):
         with override_settings(USE_I18N=True, LANGUAGES=self.LANGUAGES_CONF2,
-                       LANGUAGE_CODE='en-us'):
+                       LANGUAGE_CODE="en-us"):
             self.lang_descr_get_translated(choice_count=5)
 
         with override_settings(USE_I18N=True, LANGUAGES=self.LANGUAGES_CONF2,
-                       LANGUAGE_CODE='en-us'):
+                       LANGUAGE_CODE="en-us"):
             self.lang_descr_get_translated(choice_count=5)
 
     def test_user_customized_lang_code_as_settings_language_code(self):
         with override_settings(USE_I18N=True, LANGUAGES=self.LANGUAGES_CONF2,
-                       LANGUAGE_CODE='user_customized_lang_code'):
+                       LANGUAGE_CODE="user_customized_lang_code"):
             with self.assertRaises(IOError):
                 # because there's no file named "user_customized_lang_code.mo"
                 utils.get_course_specific_language_choices()
@@ -173,7 +173,7 @@ class GetCourseSpecificLanguageChoicesTest(SimpleTestCase):
                 self.assertEqual(choices[1][1], "user_customized_lang_code")
 
         with override_settings(USE_I18N=False, LANGUAGES=self.LANGUAGES_CONF2,
-                               LANGUAGE_CODE='user_customized_lang_code'):
+                               LANGUAGE_CODE="user_customized_lang_code"):
             with mock.patch(REAL_TRANSLATION_FUNCTION_TO_MOCK) as mock_gettext:
                 mock_gettext.side_effect = real_trans_side_effect
                 choices = utils.get_course_specific_language_choices()
@@ -1668,12 +1668,12 @@ class CoursePageContextTest(SingleCourseTestMixin, MockAddMessageMixing, TestCas
     def test_role_identifiers(self):
         self.request.user = self.ta_participation.user
         pctx = utils.CoursePageContext(self.request, self.course.identifier)
-        self.assertEqual(pctx.role_identifiers(), ['ta'])
+        self.assertEqual(pctx.role_identifiers(), ["ta"])
 
         with mock.patch(
                 "course.enrollment.get_participation_role_identifiers"
         ) as mock_get_prole_identifiers:
-            self.assertEqual(pctx.role_identifiers(), ['ta'])
+            self.assertEqual(pctx.role_identifiers(), ["ta"])
 
             # This is to ensure _role_identifiers_cache is working
             self.assertEqual(mock_get_prole_identifiers.call_count, 0)

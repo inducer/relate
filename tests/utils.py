@@ -49,12 +49,12 @@ class BaseEmailBackendTestsMixin:
 
     def get_mailbox_content(self):
         raise NotImplementedError(
-            'subclasses of BaseEmailBackendTests must provide '
-            'a get_mailbox_content() method')
+            "subclasses of BaseEmailBackendTests must provide "
+            "a get_mailbox_content() method")
 
     def flush_mailbox(self):
-        raise NotImplementedError('subclasses of BaseEmailBackendTests may '
-                                  'require a flush_mailbox() method')
+        raise NotImplementedError("subclasses of BaseEmailBackendTests may "
+                                  "require a flush_mailbox() method")
 
     def get_the_email_message(self):
         mailbox = self.get_mailbox_content()
@@ -100,7 +100,7 @@ class BaseEmailBackendTestsMixin:
 
 
 class LocmemBackendTestsMixin(BaseEmailBackendTestsMixin):
-    email_backend = 'django.core.mail.backends.locmem.EmailBackend'
+    email_backend = "django.core.mail.backends.locmem.EmailBackend"
 
     def get_mailbox_content(self):
         return [m.message() for m in mail.outbox]
@@ -148,9 +148,9 @@ def load_url_pattern_names(patterns):
     """Retrieve a list of urlpattern names"""
     url_names = []
     for pat in patterns:
-        if pat.__class__.__name__ == 'RegexURLResolver':
+        if pat.__class__.__name__ == "RegexURLResolver":
             load_url_pattern_names(pat.url_patterns)
-        elif pat.__class__.__name__ == 'RegexURLPattern':
+        elif pat.__class__.__name__ == "RegexURLPattern":
             if pat.name is not None and pat.name not in url_names:
                 url_names.append(pat.name)
         else:
@@ -175,7 +175,7 @@ def reload_urlconf(urlconf=None):
 
 def _is_connection_psql():
     from django.db import connection
-    return connection.vendor == 'postgresql'
+    return connection.vendor == "postgresql"
 
 
 is_connection_psql = _is_connection_psql()

@@ -189,8 +189,8 @@ class GradeGenericTestMixin(SingleCoursePageTestMixin):
     # Helper method for testing grant exceptions for new session
     def check_grant_new_exception(self, params):
         # Grant a new one
-        data = {'access_rules_tag_for_new_session': ['<<<NONE>>>'],
-                    'create_session': ['Create session']}
+        data = {"access_rules_tag_for_new_session": ["<<<NONE>>>"],
+                    "create_session": ["Create session"]}
         resp = self.client.post(reverse("relate-grant_exception_stage_2",
                                                 kwargs=params), data)
         self.assertEqual(resp.status_code, 200)
@@ -202,7 +202,7 @@ class GradeGenericTestMixin(SingleCoursePageTestMixin):
         self.assertTrue(flow_session.id in self.flow_session_ids)
 
         # Grant an existing one
-        data = {'session': [str(flow_session.id)], 'next': ['Next \xbb']}
+        data = {"session": [str(flow_session.id)], "next": ["Next \xbb"]}
         resp = self.client.post(reverse("relate-grant_exception_stage_2",
                                                 kwargs=params), data)
         self.assertEqual(resp.status_code, 302)
@@ -219,14 +219,14 @@ class GradeGenericTestMixin(SingleCoursePageTestMixin):
         self.assertEqual(resp.status_code, 200)
 
         # Create a new exception rule
-        data = {'comment': ['test-rule'], 'save': ['Save'], 'view': ['on'],
-                'see_answer_after_submission': ['on'],
-                'create_grading_exception': ['on'],
-                'create_access_exception': ['on'],
-                'access_expires': [''], 'due': [''],
-                'bonus_points': ['0.0'], 'max_points': [''],
-                'credit_percent': ['100.0'], 'max_points_enforced_cap': [''],
-                'generates_grade': ['on'], 'see_correctness': ['on']}
+        data = {"comment": ["test-rule"], "save": ["Save"], "view": ["on"],
+                "see_answer_after_submission": ["on"],
+                "create_grading_exception": ["on"],
+                "create_access_exception": ["on"],
+                "access_expires": [""], "due": [""],
+                "bonus_points": ["0.0"], "max_points": [""],
+                "credit_percent": ["100.0"], "max_points_enforced_cap": [""],
+                "generates_grade": ["on"], "see_correctness": ["on"]}
         resp = self.client.post(reverse("relate-grant_exception_stage_3",
                                                 kwargs=params), data)
         self.assertEqual(resp.status_code, 302)
@@ -249,10 +249,10 @@ class GradeGenericTestMixin(SingleCoursePageTestMixin):
         self.assertEqual(resp.status_code, 200)
 
         # Reopen session
-        data = {'set_access_rules_tag': ['<<<NONE>>>'],
-                'comment': ['test-reopen'],
-                'unsubmit_pages': ['on'],
-                'reopen': ['Reopen']}
+        data = {"set_access_rules_tag": ["<<<NONE>>>"],
+                "comment": ["test-reopen"],
+                "unsubmit_pages": ["on"],
+                "reopen": ["Reopen"]}
         resp = self.client.post(
             reverse("relate-view_reopen_session", kwargs=params), data)
 
