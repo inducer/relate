@@ -21,7 +21,7 @@ poetry run python manage.py compilemessages
 echo "Starts testing"
 export RELATE_LOCAL_TEST_SETTINGS="local_settings_example.py"
 
-PYTEST_COMMON_FLAGS=(--cov-config=setup.cfg --cov-report=xml --cov=. --tb=native)
+PYTEST_COMMON_FLAGS=(--tb=native)
 
 if test "$CI_SERVER_NAME" = "GitLab"; then
         # I don't *really* know what's going on, but I observed EADDRNOTAVAIL

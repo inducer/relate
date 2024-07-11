@@ -143,7 +143,6 @@ mypy = "^1"
 pytest = "^7"
 pytest-django = "^4.5.2"
 pytest-factoryboy = "^2.6.0"
-pytest-cov = "^4.1.0"
 pytest-pudb = "^0.7"
 safety = "^2.2.0"
 sphinx = "^7.2.6"
@@ -250,5 +249,19 @@ module = [
     "course.migrations.*",
 ]
 ignore_errors = true
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "relate.settings"
+python_files = [
+    "tests.py",
+    "test_*.py",
+    "*_tests.py",
+]
+
+
+markers = [
+    "slow: marks tests as slow (run with '--slow')",
+    "postgres: mark test as postgres specific",
+]
 
 # vim: foldmethod=marker
