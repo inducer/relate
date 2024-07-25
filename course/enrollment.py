@@ -782,7 +782,7 @@ class ParticipationQueryForm(StyledForm):
             required=True,
             widget=forms.Textarea,
             help_text=string_concat(
-                _("Enter queries, one per line."), " ",
+                _("Enter queries, one per line. Union of results is shown."), " ",
                 _("Allowed"), ": ",
                 "<code>and</code>, "
                 "<code>or</code>, "
