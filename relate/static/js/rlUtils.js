@@ -192,4 +192,29 @@ export function parsePointsSpecs(feedbackText) {
 
 // }}}
 
+// http://stackoverflow.com/a/30558011
+const SURROGATE_PAIR_REGEXP = /[\uD800-\uDBFF][\uDC00-\uDFFF]/g;
+// Match everything outside of normal chars and " (quote character)
+const NON_ALPHANUMERIC_REGEXP = /([^#-~| |!])/g;
+
+export function encodeEntities(value) {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(SURROGATE_PAIR_REGEXP, (val) => {
+      const hi = val.charCodeAt(0);
+      const low = val.charCodeAt(1);
+      return `&#${((hi - 0xD800) * 0x400) + (low - 0xDC00) + 0x10000};`;
+    })
+    .replace(NON_ALPHANUMERIC_REGEXP, (val) => `&#${val.charCodeAt(0)};`)
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+export function truncateText(s, length) {
+  if (s.length > length) {
+    return `${s.slice(0, length)}...`;
+  }
+  return s;
+}
+
 // vim: foldmethod=marker
