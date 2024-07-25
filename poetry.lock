@@ -609,6 +609,16 @@ celery = ">=5.2.7,<6.0"
 Django = ">=3.2.18"
 
 [[package]]
+name = "django-codemirror-widget"
+version = "0.5.0"
+description = "Django form widget library for using CodeMirror on textarea"
+optional = false
+python-versions = "*"
+files = [
+    {file = "django-codemirror-widget-0.5.0.tar.gz", hash = "sha256:a2f7facf299f3f51dff7227cc9850905b899e08485698d3f4fad110a7ad628be"},
+]
+
+[[package]]
 name = "django-crispy-forms"
 version = "2.3"
 description = "Best way to have Django DRY forms"
@@ -2849,4 +2859,4 @@ postgres = ["psycopg2"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.9,<3.13"
-content-hash = "57e54df75d582e5be001e2f9c599322bfd6f1dbfd1e1d189d3ecced21270314d"
+content-hash = "5e81914d7582218d1e4f35f81e51409737994a227983afd55680255435cfd283"
