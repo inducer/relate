@@ -69,6 +69,9 @@ export default [
       format: 'iife',
       sourcemap: true,
       name: 'rlDataTables',
+      // Otherwise there are complaints about datatables trying to set attributes
+      // on window.
+      strict: false,
     },
     plugins: defaultPlugins,
   },
