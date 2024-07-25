@@ -23,7 +23,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-import datetime  # noqa
+import datetime
 from contextlib import ContextDecorator
 from typing import (
     TYPE_CHECKING, Any, Iterable, cast,
