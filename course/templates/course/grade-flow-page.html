@@ -238,35 +238,6 @@
 
   <script>
 
-    // http://stackoverflow.com/a/30558011
-    const SURROGATE_PAIR_REGEXP = /[\uD800-\uDBFF][\uDC00-\uDFFF]/g,
-        // Match everything outside of normal chars and " (quote character)
-        NON_ALPHANUMERIC_REGEXP = /([^\#-~| |!])/g;
-
-    function encode_entities(value)
-    {
-      return value.
-        replace(/&/g, '&amp;').
-        replace(SURROGATE_PAIR_REGEXP, function(value) {
-          const hi = value.charCodeAt(0);
-          const low = value.charCodeAt(1);
-          return '&#' + (((hi - 0xD800) * 0x400) + (low - 0xDC00) + 0x10000) + ';';
-        }).
-        replace(NON_ALPHANUMERIC_REGEXP, function(value) {
-          return '&#' + value.charCodeAt(0) + ';';
-        }).
-        replace(/</g, '&lt;').
-        replace(/>/g, '&gt;');
-    }
-
-    function truncate_text(s, length)
-    {
-      if (s.length > length)
-        return s.slice(0, length) + "...";
-      else
-        return s;
-    }
-
     function set_grade_percent(p)
     {
       $("#id_grade_percent").val(p);
@@ -352,7 +323,7 @@
         var fb = items[i];
         buttons += ("<button class='btn btn-sm btn-outline-secondary' type='button' "
             + "onclick='add_feedback(" + i + ")'>"
-            + truncate_text(encode_entities(fb), 25)
+            + rlUtils.truncateText(rlUtils.encodeEntities(fb), 25)
             + "</button>"
             + " <a class='remove_fb_button link-secondary' id='remove_fb_"+i+"' href='#'>"
             +   "<i class='bi bi-x-circle'></i>"
