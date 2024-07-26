@@ -215,44 +215,39 @@ def request_run(run_req, run_timeout, image=None):
                 "unix://var/run/docker.sock")
         docker_tls = getattr(settings, "RELATE_DOCKER_TLS_CONFIG",
                 None)
-        docker_cnx = docker.Client(
+        docker_cnx = docker.DockerClient(
                 base_url=docker_url,
                 tls=docker_tls,
                 timeout=DOCKER_TIMEOUT,
-                version="1.19")
+                version="1.24")
 
-        dresult = docker_cnx.create_container(
+        mem_limit = 384*10**6
+        container = docker_cnx.containers.create(
                 image=image,
                 command=[
                     command_path,
                     "-1"],
-                host_config={
-                    "Memory": 384*10**6,
-                    "MemorySwap": -1,
-                    "PublishAllPorts": True,
-                    # Do not enable: matplotlib stops working if enabled.
-                    # "ReadonlyRootfs": True,
-                    },
+                mem_limit=mem_limit,
+                memswap_limit=mem_limit,
+                publish_all_ports=True,
+                detach=True,
+                # Do not enable: matplotlib stops working if enabled.
+                # read_only=True,
                 user=user)
 
-        container_id = dresult["Id"]
     else:
-        container_id = None
+        container = None
 
     connect_host_ip = "localhost"
 
     try:
         # FIXME: Prohibit networking
 
-        if container_id is not None:
-            docker_cnx.start(container_id)
+        if container is not None:
+            container.start()
 
-            container_props = docker_cnx.inspect_container(container_id)
-
-            port_infos = (container_props
-                    ["NetworkSettings"]["Ports"]["%d/tcp" %
-                    CODE_QUESTION_CONTAINER_PORT])
-            if len(port_infos) < 1:
+            port_infos = container.ports[f"{CODE_QUESTION_CONTAINER_PORT}/tcp"]
+            if not port_infos:
                 raise ValueError("got empty list of container ports")
             port_info = port_infos[0]
 
@@ -359,13 +354,13 @@ def request_run(run_req, run_timeout, image=None):
                     "exec_host": connect_host_ip,
                     }
     finally:
-        if container_id is not None:
-            debug_print("-----------BEGIN DOCKER LOGS for %s" % container_id)
-            debug_print(docker_cnx.logs(container_id))
-            debug_print("-----------END DOCKER LOGS for %s" % container_id)
+        if container is not None:
+            debug_print(f"-----------BEGIN DOCKER LOGS for {container.id}")
+            debug_print(container.logs())
+            debug_print(f"-----------END DOCKER LOGS for {container.id}")
 
             try:
-                docker_cnx.remove_container(container_id, force=True)
+                container.remove(force=True)
             except DockerAPIError:
                 # Oh well. No need to bother the students with this nonsense.
                 pass
