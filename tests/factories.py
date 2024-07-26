@@ -21,9 +21,9 @@ THE SOFTWARE.
 """
 
 from datetime import datetime
+from zoneinfo import ZoneInfo
 
 import factory
-import pytz
 from django.contrib.auth import get_user_model
 from django.contrib.auth.hashers import make_password
 from django.utils.timezone import now, timedelta
@@ -35,6 +35,9 @@ from course.auth import make_sign_in_key
 from course.constants import participation_permission as pperm
 from tests.base_test_mixins import SINGLE_COURSE_SETUP_LIST
 from tests.constants import QUIZ_FLOW_ID
+
+
+UTC = ZoneInfo("UTC")
 
 
 DEFAULT_COURSE_IDENTIFIER = SINGLE_COURSE_SETUP_LIST[0]["course"]["identifier"]
@@ -325,8 +328,8 @@ class FlowRuleExceptionFactory(factory.django.DjangoModelFactory):
     flow_id = DEFAULT_FLOW_ID
     participation = factory.SubFactory(ParticipationFactory)
     creation_time = fuzzy.FuzzyDateTime(
-        datetime(2019, 1, 1, tzinfo=pytz.UTC),
-        datetime(2019, 1, 31, tzinfo=pytz.UTC))
+        datetime(2019, 1, 1, tzinfo=UTC),
+        datetime(2019, 1, 31, tzinfo=UTC))
 
     kind = constants.flow_rule_kind.start
     rule = {
@@ -343,8 +346,8 @@ class InstantMessageFactory(factory.django.DjangoModelFactory):
     participation = factory.SubFactory(ParticipationFactory)
     text = fuzzy.FuzzyText()
     time = fuzzy.FuzzyDateTime(
-        datetime(2019, 2, 1, tzinfo=pytz.UTC),
-        datetime(2019, 3, 1, tzinfo=pytz.UTC))
+        datetime(2019, 2, 1, tzinfo=UTC),
+        datetime(2019, 3, 1, tzinfo=UTC))
 
 
 class ExamFactory(factory.django.DjangoModelFactory):
@@ -359,11 +362,11 @@ class ExamFactory(factory.django.DjangoModelFactory):
     listed = True
 
     no_exams_before = fuzzy.FuzzyDateTime(
-        datetime(2019, 1, 1, tzinfo=pytz.UTC),
-        datetime(2019, 1, 31, tzinfo=pytz.UTC))
+        datetime(2019, 1, 1, tzinfo=UTC),
+        datetime(2019, 1, 31, tzinfo=UTC))
     no_exams_after = fuzzy.FuzzyDateTime(
-        datetime(2019, 2, 1, tzinfo=pytz.UTC),
-        datetime(2019, 3, 1, tzinfo=pytz.UTC))
+        datetime(2019, 2, 1, tzinfo=UTC),
+        datetime(2019, 3, 1, tzinfo=UTC))
 
 
 class ExamTicketFactory(factory.django.DjangoModelFactory):
@@ -379,9 +382,9 @@ class ExamTicketFactory(factory.django.DjangoModelFactory):
     state = constants.exam_ticket_states.valid
     code = fuzzy.FuzzyText()
     valid_start_time = fuzzy.FuzzyDateTime(
-        datetime(2019, 1, 1, tzinfo=pytz.UTC),
-        datetime(2019, 1, 31, tzinfo=pytz.UTC))
+        datetime(2019, 1, 1, tzinfo=UTC),
+        datetime(2019, 1, 31, tzinfo=UTC))
     valid_end_time = fuzzy.FuzzyDateTime(
-        datetime(2019, 2, 1, tzinfo=pytz.UTC),
-        datetime(2019, 3, 1, tzinfo=pytz.UTC))
+        datetime(2019, 2, 1, tzinfo=UTC),
+        datetime(2019, 3, 1, tzinfo=UTC))
     restrict_to_facility = ""

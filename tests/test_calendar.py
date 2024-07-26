@@ -22,8 +22,8 @@ THE SOFTWARE.
 
 import datetime
 import json
+from zoneinfo import ZoneInfo
 
-import pytz_deprecation_shim as pytz
 from django.core.exceptions import ValidationError
 from django.test import TestCase
 from django.utils.timezone import now, timedelta
@@ -39,6 +39,9 @@ from tests.base_test_mixins import (
 )
 from tests.constants import DATE_TIME_PICKER_TIME_FORMAT
 from tests.utils import mock
+
+
+UTC = ZoneInfo("UTC")
 
 
 class CreateRecurringEventsTest(SingleCourseTestMixin,
@@ -587,7 +590,7 @@ class RenumberEventsTest(SingleCourseTestMixin,
 class ViewCalendarTest(SingleCourseTestMixin, HackRepoMixin, TestCase):
     """test course.calendar.view_calendar"""
 
-    default_faked_now = datetime.datetime(2019, 1, 1, tzinfo=pytz.UTC)
+    default_faked_now = datetime.datetime(2019, 1, 1, tzinfo=UTC)
     default_event_time = default_faked_now - timedelta(hours=12)
     default_event_kind = "lecture"
 
@@ -892,7 +895,7 @@ class ViewCalendarTest(SingleCourseTestMixin, HackRepoMixin, TestCase):
         self.switch_to_fake_commit_sha()
 
         # lecture 2, no end_time
-        lecture2_start_time = datetime.datetime(2019, 1, 1, tzinfo=pytz.UTC)
+        lecture2_start_time = datetime.datetime(2019, 1, 1, tzinfo=UTC)
 
         self.mock_get_now_or_fake_time.return_value = (
                 lecture2_start_time + timedelta(minutes=5))

@@ -29,6 +29,7 @@ packages = [
 relate = "relate.bin.relate:main"
 
 [tool.poetry.dependencies]
+# keep consistent with ruff target version below
 python = ">=3.9,<3.13"
 
 django = "^4.2.11"
@@ -52,8 +53,6 @@ minijinja= "^1.0.16"
 # For math/symbolic questions
 pymbolic = "*"
 sympy = "*"
-
-pytz_deprecation_shim = "^0.1.0"
 
 # Course content is stored in YAML.
 pyyaml = "*"
@@ -150,7 +149,6 @@ sphinx-copybutton = "^0.5.2"
 django-upgrade = "^1.12.0"
 pyright = "^1"
 
-types-pytz = "^0.1.0"
 types-bleach = "^0.1.2"
 types-Jinja2 = "^0.1.3"
 types-paramiko = "^0.1.3"
@@ -175,6 +173,7 @@ src_paths = ["relate", "course", "accounts", "test"]
 
 [tool.ruff]
 preview = true
+target-version = "py39"
 
 [tool.ruff.lint]
 extend-select = [
@@ -206,7 +205,9 @@ extend-ignore = [
     "B028", # stacklevel
     "RUF012", # mutable class atttributes
     "UP031", # format
-    "UP032" # f-string
+    "UP032", # f-string
+    "UP035",
+    "UP006",
 ]
 allowed-confusables = ["‐", "–"]
 

@@ -30,6 +30,7 @@ from typing import (
     Mapping,
     Union,
 )
+from zoneinfo import ZoneInfo
 
 import django.forms as forms
 import dulwich.repo
@@ -178,27 +179,25 @@ def settings_context_processor(request):
 def as_local_time(dtm: datetime.datetime) -> datetime.datetime:
     """Takes a timezone-aware datetime and applies the server timezone."""
 
-    import pytz_deprecation_shim as pds
     from django.conf import settings
-    tz = pds.timezone(settings.TIME_ZONE)
+    tz = ZoneInfo(settings.TIME_ZONE)
     return dtm.astimezone(tz)
 
 
 def localize_datetime(dtm: datetime.datetime) -> datetime.datetime:
     """Takes an timezone-naive datetime and applies the server timezone."""
 
-    import pytz_deprecation_shim as pds
+    assert dtm.tzinfo is None
+
     from django.conf import settings
-    tz = pds.timezone(settings.TIME_ZONE)
-    return tz.localize(dtm)  # type: ignore
+    tz = ZoneInfo(settings.TIME_ZONE)
+    return dtm.replace(tzinfo=tz)
 
 
 def local_now() -> datetime.datetime:
-
-    import pytz_deprecation_shim as pds
     from django.conf import settings
-    tz = pds.timezone(settings.TIME_ZONE)
-    return tz.localize(datetime.datetime.now())  # type: ignore
+    tz = ZoneInfo(settings.TIME_ZONE)
+    return datetime.datetime.now(tz)
 
 
 def format_datetime_local(
