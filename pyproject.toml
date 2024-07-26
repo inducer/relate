@@ -264,4 +264,30 @@ markers = [
     "postgres: mark test as postgres specific",
 ]
 
+[tool.typos.default]
+extend-ignore-re = [
+  "(?Rm)^.*(#|//)\\s*spellchecker:\\s*disable-line"
+]
+
+[tool.typos.default.extend-words]
+# opps as in 'grading opportunities'
+opps = "opps"
+# fre, short for flow rule exception
+fre = "fre"
+# short for 'stipulation'
+stip = "stip"
+# as in documen.tician.de
+documen = "documen"
+# like sur_name in SAML
+sur = "sur"
+
+[tool.typos.files]
+extend-exclude = [
+"locale/**/*.po",
+# migrations reflect the past, don't attempt to alter them.
+"*/migrations/**/*.py",
+# not ours
+"saml-config/**/*.py",
+]
+
 # vim: foldmethod=marker

@@ -31,7 +31,7 @@ Getting everything set up
 
 -   Now you are ready to click that 'Set up new course' button.
     Fill in the form that pops up. For the 'Git source' field,
-    use the SSH clone URL provided by your Git host. It shoud look
+    use the SSH clone URL provided by your Git host. It should look
     like this::
 
         git@hostingsite.com:yourusername/yourreponame.git
@@ -256,7 +256,7 @@ Here's an example page to give you an idea::
 I wrote a Yes/No question, but RELATE shows "True/False" instead of "Yes/No"--why on earth would it do that?
 ------------------------------------------------------------------------------------------------------------
 
-This is a bit of a misfeature in YAML (which relate uses), wich parses ``No`` as
+This is a bit of a misfeature in YAML (which relate uses), which parses ``No`` as
 a :class:`bool` instead of a literal string. Once that has happened, relate can't
 recover the original string representation. To avoid that, just put quotes
 around the ``"No"``.

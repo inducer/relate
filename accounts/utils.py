@@ -157,7 +157,7 @@ class RelateUserMethodSettingsInitializer:
         priority_list = []
         not_supported_appels = []
 
-        # filter out not allowd appellations in customized list
+        # filter out not allowed appellations in customized list
         for appell in custom_email_appellation_priority_list:
             if appell in DEFAULT_EMAIL_APPELLATION_PRIORITY_LIST:
                 priority_list.append(appell)

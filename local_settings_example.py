@@ -256,7 +256,7 @@ SOCIAL_AUTH_GOOGLE_OAUTH2_USE_UNIQUE_USER_ID = True
 
 # If set to False, user won't be able to edit institutional ID
 # after submission. Set to False only when you trust your students
-# or you don't want to verfiy insitutional ID they submit.
+# or you don't want to verify insitutional ID they submit.
 RELATE_EDITABLE_INST_ID_BEFORE_VERIFICATION = True
 
 # If set to False, these fields will be hidden in the user profile form.
@@ -275,7 +275,7 @@ RELATE_SHOW_EDITOR_FORM = True
 
 # RELATE's default full_name format is "'%s %s' % (first_name, last_name)",
 # you can override it by supply a customized method/fuction, with
-# "firstname" and "lastname" as its paramaters, and return a string.
+# "firstname" and "lastname" as its parameters, and return a string.
 
 # For example, you can define it like this:
 
@@ -316,7 +316,7 @@ RELATE_SHOW_EDITOR_FORM = True
 # When a participation, for example, teaching assistant, has limited access to
 # students' profile (i.e., has_permission(pperm.view_participant_masked_profile)),
 # a built-in mask method (which is based on pk of user instances) is used be
-# default. The mask method can be overriden by the following a custom method, with
+# default. The mask method can be overridden by the following a custom method, with
 # user as the args.
 
 # RELATE_USER_PROFILE_MASK_METHOD = "path.tomy_method
@@ -339,7 +339,7 @@ RELATE_SHOW_EDITOR_FORM = True
 
 # {{{ extra checks
 
-# This allow user to add customized startup checkes for user-defined modules
+# This allow user to add customized startup checks for user-defined modules
 # using Django's system checks (https://docs.djangoproject.com/en/dev/ref/checks/)
 # For example, define a `my_check_func in `my_module` with
 # <code>
@@ -529,7 +529,7 @@ if RELATE_SIGN_IN_BY_SAML2_ENABLED:
         }
 
     SAML_CONFIG = {
-        # full path to the xmlsec1 binary programm
+        # full path to the xmlsec1 binary program
         "xmlsec_binary": "/usr/bin/xmlsec1",
 
         # your entity id, usually your subdomain plus the url to the metadata view

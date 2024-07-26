@@ -705,7 +705,7 @@ class BrokenPageDataTest(SingleCoursePageTestMixin, TestCase):
 
 class MarkupToHtmlPlainTest(unittest.TestCase):
     # test course.page.choice.markup_to_html_plain
-    def test_markup_to_html_plain_wrapp_by_p_tag(self):
+    def test_markup_to_html_plain_wrap_by_p_tag(self):
         with mock.patch("course.page.choice.markup_to_html") as mock_mth:
             mock_mth.side_effect = lambda x, y: "<p>%s</p>" % y
             fake_page_context = object
@@ -713,7 +713,7 @@ class MarkupToHtmlPlainTest(unittest.TestCase):
                 markup_to_html_plain(fake_page_context, "abcd"), "abcd")
             self.assertEqual(markup_to_html_plain(fake_page_context, ""), "")
 
-    def test_markup_to_html_plain_wrapp_by_p_other_tag(self):
+    def test_markup_to_html_plain_wrap_by_p_other_tag(self):
         with mock.patch("course.page.choice.markup_to_html") as mock_mth:
             mock_mth.side_effect = lambda x, y: "<div>%s</div>" % y
             fake_page_context = object

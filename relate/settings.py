@@ -215,7 +215,7 @@ if RELATE_OVERRIDE_TEMPLATES_DIRS:
 
 # {{{ database
 
-# default, likely overriden by local_settings.py
+# default, likely overridden by local_settings.py
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",

@@ -45,7 +45,7 @@ def my_get_masked_profile_method_return_none(u):
     return
 
 
-def my_get_masked_profile_method_return_emtpy_string(u):
+def my_get_masked_profile_method_return_empty_string(u):
     return "  "
 
 

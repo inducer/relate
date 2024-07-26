@@ -51,7 +51,7 @@ class IsExpirationModeAllowedTest(unittest.TestCase):
         self.assertTrue(
             constants.is_expiration_mode_allowed(expmode, permissions))
 
-    def test_unkown_mode(self):
+    def test_unknown_mode(self):
         expmode = "unknown_mode"
         permissions = frozenset([])
 

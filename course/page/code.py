@@ -372,7 +372,7 @@ def is_nuisance_failure(result):
         if "BadStatusLine" in result["traceback"]:
 
             # Occasionally, we fail to send a POST to the container, even after
-            # the inital ping GET succeeded, for (for now) mysterious reasons.
+            # the initial ping GET succeeded, for (for now) mysterious reasons.
             # Just try again.
 
             return True
@@ -590,11 +590,11 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
             if not is_multi_submit:
                 vctx.add_warning(location, _("code question does not explicitly "
                     "allow multiple submission. Either add "
-                    "access_rules/add_permssions/change_answer "
+                    "access_rules/add_permissions/change_answer "
                     "or add 'single_submission: True' to confirm that you intend "
                     "for only a single submission to be allowed. "
                     "While you're at it, consider adding "
-                    "access_rules/add_permssions/see_correctness."))
+                    "access_rules/add_permissions/see_correctness."))
 
     def required_attrs(self):
         return (

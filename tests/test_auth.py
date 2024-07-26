@@ -989,7 +989,7 @@ class SignUpTest(CoursesTestMixinBase, MockAddMessageMixing,
         self.client.logout()
 
     @override_settings()
-    def test_signup_registeration_not_enabled(self):
+    def test_signup_registration_not_enabled(self):
         settings.RELATE_REGISTRATION_ENABLED = False
         resp = self.get_sign_up()
         self.assertEqual(resp.status_code, 400)
@@ -1804,7 +1804,7 @@ class ResetPasswordStageTwoTest(CoursesTestMixinBase, MockAddMessageMixing,
         self.assertAddMessageCalledWith(expected_msg)
         self.assertHasNoUserLoggedIn()
 
-    def test_reset_stage2_get_sucess(self):
+    def test_reset_stage2_get_success(self):
         resp = self.get_reset_password_stage2(self.user.id, self.user.sign_in_key)
         self.assertEqual(resp.status_code, 200)
         self.assertHasNoUserLoggedIn()

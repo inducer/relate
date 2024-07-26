@@ -246,10 +246,10 @@ class CheckRelateUserProfileMaskMethod(CheckRelateSettingsBase):
         with override_settings(
                 RELATE_USER_PROFILE_MASK_METHOD=(
                         "tests.resource"
-                        ".my_get_masked_profile_method_return_emtpy_string")):
+                        ".my_get_masked_profile_method_return_empty_string")):
             self.assertCheckMessages([])
             from tests.resource import (
-                my_get_masked_profile_method_return_emtpy_string as custom_method,
+                my_get_masked_profile_method_return_empty_string as custom_method,
             )
 
             # test method can run
@@ -491,7 +491,7 @@ class CheckRelateEmailConnections(CheckRelateSettingsBase):
         self.assertCheckMessages([])
 
     @override_settings(EMAIL_CONNECTIONS=VALID_CONF_EMPTY_DICT)
-    def test_valid_email_connections_emtpy_dict(self):
+    def test_valid_email_connections_empty_dict(self):
         self.assertCheckMessages([])
 
     @override_settings(EMAIL_CONNECTIONS=VALID_CONF)
@@ -580,12 +580,12 @@ class CheckRelateFacilities(CheckRelateSettingsBase):
             self.assertCheckMessages([])
 
     def test_valid_relate_facilities_callable_with_empty_ip_ranges(self):
-        def valid_func_though_return_emtpy_ip_ranges(now_datetime):
-            # this won't result in warnning, because the facility is defined
+        def valid_func_though_return_empty_ip_ranges(now_datetime):
+            # this won't result in warning, because the facility is defined
             # by a callable.
             return self.WARNING_CONF_IP_RANGES_NOT_CONFIGURED
         with override_settings(
-                RELATE_FACILITIES=valid_func_though_return_emtpy_ip_ranges):
+                RELATE_FACILITIES=valid_func_though_return_empty_ip_ranges):
             self.assertCheckMessages([])
 
     @override_settings(RELATE_FACILITIES=INVALID_CONF_LIST)
@@ -653,7 +653,7 @@ class CheckRelateMaintenanceModeExceptions(CheckRelateSettingsBase):
         self.assertCheckMessages([])
 
     @override_settings(RELATE_MAINTENANCE_MODE_EXCEPTIONS=VALID_CONF_EMPTY_LIST)
-    def test_valid_maintenance_mode_exceptions_emtpy_list(self):
+    def test_valid_maintenance_mode_exceptions_empty_list(self):
         self.assertCheckMessages([])
 
     @override_settings(RELATE_MAINTENANCE_MODE_EXCEPTIONS=VALID_CONF)
@@ -849,7 +849,7 @@ class CheckRelateCourseLanguages(CheckRelateSettingsBase):
         ("zh-hans", "Simplified Chinese"),
         ("de", _("German")))
 
-    VALID_WITH_WARNNING_CONF = (
+    VALID_WITH_WARNING_CONF = (
         ("en", "English"),
         ("zh-hans", "Simplified Chinese"),
         ("zh-hans", "my Simplified Chinese"),
@@ -909,7 +909,7 @@ class CheckRelateCourseLanguages(CheckRelateSettingsBase):
             self.assertCheckMessages([])
 
     def test_item_duplicated_inside_settings_languages(self):
-        with override_settings(LANGUAGES=self.VALID_WITH_WARNNING_CONF,
+        with override_settings(LANGUAGES=self.VALID_WITH_WARNING_CONF,
                                LANGUAGE_CODE="en-us"):
             self.assertCheckMessages(
                 expected_ids=["relate_languages.W001"],
@@ -1059,8 +1059,8 @@ class CheckRelateDisableCodehiliteMarkdownExtensions(CheckRelateSettingsBase):
 class RelateStartupChecksExtraCheckTest(CheckRelateSettingsBase):
     msg_id_prefix = "my_custom_check_msg"
 
-    INSTANCE_WRONG1 = "tests.resouce.my_check_func"
-    INSTANCE_WRONG2 = {"path": "tests.resouce.my_check_func"}
+    INSTANCE_WRONG1 = "tests.resource.my_check_func"
+    INSTANCE_WRONG2 = {"path": "tests.resource.my_check_func"}
 
     @override_settings()
     def test_not_configured(self):

@@ -778,7 +778,7 @@ def instantiate_flow_page_with_ctx(
 # }}}
 
 
-# {{{ utilties for course-based views
+# {{{ utilities for course-based views
 
 def course_view(f):
     def wrapper(request, course_identifier, *args, **kwargs):
@@ -1137,12 +1137,12 @@ def will_use_masked_profile_for_email(
     if not isinstance(recipient_email, list):
         recipient_email = [recipient_email]
     from course.models import Participation
-    recepient_participations = (
+    recipient_participations = (
         Participation.objects.filter(
             user__email__in=recipient_email
         ))
     from course.constants import participation_permission as pperm
-    for part in recepient_participations:
+    for part in recipient_participations:
         if part.has_permission(pperm.view_participant_masked_profile):
             return True
     return False

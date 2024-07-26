@@ -41,6 +41,7 @@ jobs:
       - name: "Ruff"
         run: |
           poetry run ruff check
+      - uses: crate-ci/typos@master
       - name: "Mypy"
         run: poetry run mypy relate course
       - name: "Safety"

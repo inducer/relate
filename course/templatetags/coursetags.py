@@ -45,7 +45,7 @@ def do_get_current_js_lang_name(parser, token):
     """
     This will store the current language in the context, in js lang format.
     This is different with built-in do_get_current_language, which returns
-    languange name like "en-us", "zh-hans". This method return lang name
+    language name like "en-us", "zh-hans". This method return lang name
     "en-US", "zh-Hans",  with the country code capitallized if country code
     has 2 characters, and capitalize first if country code has more than 2
     characters.

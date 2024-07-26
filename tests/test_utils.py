@@ -574,7 +574,7 @@ class GetFlowRulesTest(SingleCourseTestMixin, TestCase):
 
     def test_no_rules(self):
 
-        # emtpy rules
+        # empty rules
         flow_desc = self.get_hacked_flow_desc(del_rules=True)
 
         default_rules_desc = [mock.MagicMock(), mock.MagicMock()]

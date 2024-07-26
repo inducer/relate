@@ -56,12 +56,12 @@ LANGUAGES = [
     ("fr", _("French")),
 ]
 
-ASSERSION_ERROR_LANGUAGE_PATTERN = (
+ASSERTION_ERROR_LANGUAGE_PATTERN = (
     "%s page visiting results don't match in terms of "
     "whether the response contains Korean characters."
 )
 
-ASSERSION_ERROR_CONTENT_LANGUAGE_PATTERN = (
+ASSERTION_ERROR_CONTENT_LANGUAGE_PATTERN = (
     "%s page visiting result don't match in terms of "
     "whether the response content-language are restored."
 )
@@ -146,13 +146,13 @@ class CourseSpecificLangConfigureTest(CourseSpecificLangTestMixin, TestCase):
         self.assertEqual(
             self.home_resp_contains_korean_with_diff_settings()[0],
             expected_result[0],
-            ASSERSION_ERROR_LANGUAGE_PATTERN % "Home"
+            ASSERTION_ERROR_LANGUAGE_PATTERN % "Home"
         )
 
         self.assertEqual(
             self.home_resp_contains_korean_with_diff_settings()[1],
             expected_result[1],
-            ASSERSION_ERROR_CONTENT_LANGUAGE_PATTERN % "Home"
+            ASSERTION_ERROR_CONTENT_LANGUAGE_PATTERN % "Home"
         )
 
         expected_result = ([False, True, False, True],
@@ -160,12 +160,12 @@ class CourseSpecificLangConfigureTest(CourseSpecificLangTestMixin, TestCase):
         self.assertEqual(
             self.course_resp_contains_korean_with_diff_settings()[0],
             expected_result[0],
-            ASSERSION_ERROR_LANGUAGE_PATTERN % "Course"
+            ASSERTION_ERROR_LANGUAGE_PATTERN % "Course"
         )
         self.assertEqual(
             self.course_resp_contains_korean_with_diff_settings()[1],
             expected_result[1],
-            ASSERSION_ERROR_CONTENT_LANGUAGE_PATTERN % "Course"
+            ASSERTION_ERROR_CONTENT_LANGUAGE_PATTERN % "Course"
         )
 
     def assertResponseBehaveAsExpectedForCourseWithForceLang(self):  # noqa
@@ -175,13 +175,13 @@ class CourseSpecificLangConfigureTest(CourseSpecificLangTestMixin, TestCase):
         self.assertEqual(
             self.home_resp_contains_korean_with_diff_settings()[0],
             expected_result[0],
-            ASSERSION_ERROR_LANGUAGE_PATTERN % "Home"
+            ASSERTION_ERROR_LANGUAGE_PATTERN % "Home"
         )
 
         self.assertEqual(
             self.home_resp_contains_korean_with_diff_settings()[1],
             expected_result[1],
-            ASSERSION_ERROR_CONTENT_LANGUAGE_PATTERN % "Home"
+            ASSERTION_ERROR_CONTENT_LANGUAGE_PATTERN % "Home"
         )
 
         expected_result = ([True, True, True, True],
@@ -189,12 +189,12 @@ class CourseSpecificLangConfigureTest(CourseSpecificLangTestMixin, TestCase):
         self.assertEqual(
             self.course_resp_contains_korean_with_diff_settings()[0],
             expected_result[0],
-            ASSERSION_ERROR_LANGUAGE_PATTERN % "Course"
+            ASSERTION_ERROR_LANGUAGE_PATTERN % "Course"
         )
         self.assertEqual(
             self.course_resp_contains_korean_with_diff_settings()[1],
             expected_result[1],
-            ASSERSION_ERROR_CONTENT_LANGUAGE_PATTERN % "Course"
+            ASSERTION_ERROR_CONTENT_LANGUAGE_PATTERN % "Course"
         )
 
     def set_course_lang_to_ko(self):
@@ -423,7 +423,7 @@ class RelateSiteNameTest(SingleCourseTestMixin, LocmemBackendTestsMixin, TestCas
                     self.assertTrue(resp.status_code, 200)
                     self.assertEqual(len(mail.outbox), 1)
 
-                    # In the view, tranlating RELATE for email title.
+                    # In the view, translating RELATE for email title.
                     self.assertEqual(
                         self.get_translation_count(
                             mock_gettext_auth, my_site_name), 1)
@@ -459,8 +459,8 @@ class MaintenanceModeTest(SingleCourseTestMixin, TestCase):
                 RELATE_MAINTENANCE_MODE=True,
                 RELATE_MAINTENANCE_MODE_EXCEPTIONS=[
                     "192.168.1.1", "127.0.0.1"]):
-            mata = self.request.META
-            mata["REMOTE_ADDR"] = "192.168.1.1"
+            meta = self.request.META
+            meta["REMOTE_ADDR"] = "192.168.1.1"
 
             self.assertFalse(is_maintenance_mode(self.request))
             self.client.get("/")

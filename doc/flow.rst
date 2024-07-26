@@ -657,7 +657,7 @@ The rules for this can be written as follows::
             message: |
               You have marked your session to roll over to 50% credit at the due
               date. If you would like to have your current answers graded as-is
-              (and recieve full credit for them), please select 'End session
+              (and receive full credit for them), please select 'End session
               and grade'.
             permissions: [view, submit_answer, end_session, see_correctness, change_answer, set_roll_over_expiration_mode]
 

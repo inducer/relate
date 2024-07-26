@@ -138,7 +138,7 @@ export :ref:`markup` to essentially any other markup format under the sun,
 including LaTeX, HTML, MediaWiki, Microsoft Word, and many more.
 
 Further, YAML files are quite easy to read and traverse in most programming languages,
-facilitating automated coversion.  `This example Python script
+facilitating automated conversion.  `This example Python script
 <https://github.com/inducer/relate/blob/main/contrib/flow-to-worksheet>`_
 provided as part of RELATE takes a flow and converts it to a paper-based
 worksheet. To do so, it makes use of `pypandoc
@@ -485,7 +485,7 @@ Here's an example:
 
     .. attribute:: id
 
-        An identifer used as page anchors and for tracking. Not
+        An identifier used as page anchors and for tracking. Not
         user-visible otherwise.
 
     .. attribute:: rules
@@ -565,7 +565,7 @@ Events serve two purposes:
 * They are (optionally) shown in the class calendar.
 
 For example, to create contiguously numbered ``lecture`` events for a
-lecture occuring on a Tuesday/Thursday schedule, perform the following
+lecture occurring on a Tuesday/Thursday schedule, perform the following
 sequence of steps:
 
 * Create a recurring, weekly event for the Tuesday lectures, with a
@@ -648,7 +648,7 @@ by the 'ordinal' of each event.
 
 The secondsection, ``events``, can be used to provide a more verbose
 description for each event that appears below the main calendar. Titles and
-colors can also be overriden for each event specifically.
+colors can also be overridden for each event specifically.
 
 All attributes in each section (as well as the entire calendar information
 file) are optional.

@@ -1577,7 +1577,7 @@ class GradingOpportunity(models.Model):
 
     aggregation_strategy = models.CharField(max_length=20,
             choices=GRADE_AGGREGATION_STRATEGY_CHOICES,
-            # Translators: strategy on how the grading of mutiple sessioins
+            # Translators: strategy on how the grading of multiple sessioins
             # are aggregated.
             verbose_name=_("Aggregation strategy"))
 

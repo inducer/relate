@@ -147,7 +147,7 @@ answer_comment:  |
 
 class TextAnswerFormTest(unittest.TestCase):
     def test_unknown_widget_type(self):
-        self.assertEqual(TextAnswerForm.get_text_widget("unkown"), (None, None))
+        self.assertEqual(TextAnswerForm.get_text_widget("unknown"), (None, None))
 
     def test_validation_error(self):
         class SomeValidator1:
