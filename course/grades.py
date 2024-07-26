@@ -366,7 +366,7 @@ class OpportunitySessionGradeInfo:
         whether the instance is created by a flow-session-related opportunity.
         :param grades: optional, a :class:`list:` of float or None, representing the
         percentage grades of each page in the flow session.
-        :param has_finished_session:  a :class:`bool:`, respresent whether
+        :param has_finished_session:  a :class:`bool:`, represent whether
         the related participation has finished a flow-session, if the opportunity
         is a flow-session related one. This is used to correctly order flow state,
         if the participation has at least one finished flow session, the in-progress
@@ -1409,9 +1409,9 @@ def import_grades(pctx):
             else:
                 if total_count != len(grade_changes):
                     messages.add_message(pctx.request, messages.INFO,
-                            _("%(total)d grades found, %(unchaged)d unchanged.")
+                            _("%(total)d grades found, %(unchanged)d unchanged.")
                             % {"total": total_count,
-                               "unchaged": total_count - len(grade_changes)})
+                               "unchanged": total_count - len(grade_changes)})
 
                 from django.template.loader import render_to_string
 

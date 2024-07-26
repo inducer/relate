@@ -50,11 +50,11 @@ NO_CORRECTNESS_INFO_MSG = "No information on correctness of answer."
 NOT_ALLOW_MULTIPLE_SUBMISSION_WARNING = (
     "code question does not explicitly "
     "allow multiple submission. Either add "
-    "access_rules/add_permssions/change_answer "
+    "access_rules/add_permissions/change_answer "
     "or add 'single_submission: True' to confirm that you intend "
     "for only a single submission to be allowed. "
     "While you're at it, consider adding "
-    "access_rules/add_permssions/see_correctness."
+    "access_rules/add_permissions/see_correctness."
 )
 
 MAX_AUTO_FEEDBACK_POINTS_VALICATION_ERROR_MSG_PATTERN = (
@@ -271,7 +271,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
         self.assertSandboxHasValidPage(resp)
         self.assertSandboxWarningTextContain(resp, None)
 
-    def test_explicity_not_allow_multiple_submit(self):
+    def test_explicitly_not_allow_multiple_submit(self):
         markdown = (
                 markdowns.CODE_MARKDWON_PATTERN_EXPLICITLY_NOT_ALLOW_MULTI_SUBMIT
                 % {"extra_data_file": ""}
@@ -630,10 +630,10 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
                     "2RlZmdoaWpzdHV2d3h5eoOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmq"
                     "srO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4eLj5OXm5+jp6vHy8/T"
                     "19vf4+fr/xAAfAQADAQEBAQEBAQEBAAAAAAAAAQIDBAUGBwgJCgv/xA"
-                    "C1EQACAQIEBAMEBwUEBAABAncAAQIDEQQFITEGEkFRB2FxEyIygQgUQp"
+                    "C1EQACAQIEBAMEBwUEBAABAncAAQIDEQQFITEGEkFRB2FxEyIygQgUQp"  # spellchecker: disable-line  # noqa: E501
                     "GhscEJIzNS8BVictEKFiQ04SXxFxgZGiYnKCkqNTY3ODk6Q0RFRkdIS"
                     "UpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqCg4SFhoeIiYqSk5SVlpeY"
-                    "mZqio6Slpqeoqaqys7S1tre4ubrCw8TFxsfIycrS09TV1tfY2dri4+T"
+                    "mZqio6Slpqeoqaqys7S1tre4ubrCw8TFxsfIycrS09TV1tfY2dri4+T"  # spellchecker: disable-line  # noqa: E501
                     "l5ufo6ery8/T19vf4+fr/2gAMAwEAAhEDEQA/AP38ooooA//Z")
         png_b64 = (
             "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAACAQMAAAB"
@@ -1007,7 +1007,7 @@ class IsNuisanceFailureTest(unittest.TestCase):
         result = {"result": "uncaught_error"}
         self.assertFalse(is_nuisance_failure(result))
 
-    def test_traceback_unkown(self):
+    def test_traceback_unknown(self):
         result = {"result": "uncaught_error",
                   "traceback": "unknow traceback"}
         self.assertFalse(is_nuisance_failure(result))

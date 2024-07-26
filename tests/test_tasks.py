@@ -530,13 +530,13 @@ class PurgePageViewDataTaskTest(TwoCoursePageTestMixin,
         super().setUp()
 
         # {{{ create flow page visits
-        # all 40, null answer 25, answerd 15
+        # all 40, null answer 25, answered 15
         result1 = self.create_flow_page_visit(self.course1)
 
         (self.course1_n_all_fpv, self.course1_n_null_answer_fpv,
          self.course1_n_non_null_answer_fpv) = result1
 
-        # all 30, null answer 24, answerd 6
+        # all 30, null answer 24, answered 6
         result2 = self.create_flow_page_visit(
             self.course2,
             n_participations_per_course=3, n_sessions_per_participation=2,

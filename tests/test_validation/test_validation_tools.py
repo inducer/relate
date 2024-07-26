@@ -2696,12 +2696,12 @@ class CheckGradeIdentifierLinkTest(
     def setUpTestData(cls):
         super().setUpTestData()
 
-        cls.default_grade_indentifier = "gopp1"
+        cls.default_grade_identifier = "gopp1"
 
         cls.course1 = factories.CourseFactory(identifier="test-course1")
         cls.course2 = factories.CourseFactory(identifier="test-course2")
         cls.course1_gopp = factories.GradingOpportunityFactory(
-            course=cls.course1, identifier=cls.default_grade_indentifier,
+            course=cls.course1, identifier=cls.default_grade_identifier,
             flow_id="flow1_id")
 
         # Ensure cross gopp independence
@@ -2711,13 +2711,13 @@ class CheckGradeIdentifierLinkTest(
 
         # Ensure cross course independence
         factories.GradingOpportunityFactory(
-            course=cls.course2, identifier=cls.default_grade_indentifier,
+            course=cls.course2, identifier=cls.default_grade_identifier,
             flow_id="flow2_id")
 
     def test_success(self):
         validation.check_grade_identifier_link(
             vctx, location, self.course1, flow_id="flow1_id",
-            flow_grade_identifier=self.default_grade_indentifier)
+            flow_grade_identifier=self.default_grade_identifier)
 
     def test_fail(self):
         new_flow_id = "flow2_id"

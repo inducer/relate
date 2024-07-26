@@ -457,8 +457,8 @@ class ExamTicketBackendTest(ExamTestMixin, TestCase):
 class IsFromExamsOnlyFacilityTest(unittest.TestCase):
     """test exam.is_from_exams_only_facility"""
     def setUp(self):
-        self.requset = mock.MagicMock()
-        self.requset.relate_facilities = ["fa1", "fa2"]
+        self.request = mock.MagicMock()
+        self.request.relate_facilities = ["fa1", "fa2"]
         fake_get_facilities_config = mock.patch(
             "course.utils.get_facilities_config")
         self.mock_get_facilities_config = fake_get_facilities_config.start()
@@ -468,17 +468,17 @@ class IsFromExamsOnlyFacilityTest(unittest.TestCase):
         self.mock_get_facilities_config.return_value = {
             "fa1": {"exams_only": False, "ip_range": "foo"},
             "fa2": {"exams_only": True, "ip_range": "bar"}}
-        self.assertTrue(exam.is_from_exams_only_facility(self.requset))
+        self.assertTrue(exam.is_from_exams_only_facility(self.request))
 
     def test_false(self):
         self.mock_get_facilities_config.return_value = {}
-        self.assertFalse(exam.is_from_exams_only_facility(self.requset))
+        self.assertFalse(exam.is_from_exams_only_facility(self.request))
 
     def test_false_2(self):
         self.mock_get_facilities_config.return_value = {
             "fa1": {"exams_only": False, "ip_range": "foo"},
             "fa3": {"exams_only": True, "ip_range": "bar"}}
-        self.assertFalse(exam.is_from_exams_only_facility(self.requset))
+        self.assertFalse(exam.is_from_exams_only_facility(self.request))
 
 
 class GetLoginExamTicketTest(ExamTestMixin, TestCase):
@@ -930,7 +930,7 @@ class ExamLockdownMiddlewareTest(SingleCoursePageTestMixin,
                 self.assertAddMessageCallCount(0)
 
     def test_ok_with_select2_views(self):
-        # There's curently no views using select2 when locked down.
+        # There's currently no views using select2 when locked down.
         # Here we are testing by using link from the select2 widget of
         # impersonating form
         with self.temporarily_switch_to_user(self.ta_participation.user):

@@ -289,7 +289,7 @@ def enroll_view(
                 msg.send()
 
             messages.add_message(request, messages.INFO,
-                    _("Enrollment request sent. You will receive notifcation "
+                    _("Enrollment request sent. You will receive notification "
                     "by email once your request has been acted upon."))
         else:
             handle_enrollment_request(course, user, participation_status.active,

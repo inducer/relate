@@ -469,7 +469,7 @@ class ImportGradesTest(GradesTestMixin, TestCase):
                 self.assertEqual(models.GradeChange.objects.count(), 0)
 
     def test_import_csv_other_error(self):
-        error_msg = ("Some other unkown error")
+        error_msg = ("Some other unknown error")
         expected_file_error_msg = (
             "Error: TypeError: %s" % error_msg)
 

@@ -869,10 +869,10 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
                         create_course_kwargs["trusted_for_markup"]
                 last_course.save()
 
-            url_cache_key, commit_sha_cach_key = (
+            url_cache_key, commit_sha_cache_key = (
                 git_source_url_to_cache_keys(last_course.git_source))
             mc.set_multi({url_cache_key: get_course_repo_path(last_course),
-                          commit_sha_cach_key: last_course.active_git_commit_sha},
+                          commit_sha_cache_key: last_course.active_git_commit_sha},
                          time=120000
                          )
         return resp
@@ -1951,7 +1951,7 @@ class SingleCourseTestMixin(CoursesTestMixinBase):
         Get a hacked version of flow_desc
         :param user: the flow_desc viewed by which user, default to a student
         :param flow_id: the flow_desc of which flow_id, default to `quiz-test`
-        :param commit_sha: default to corrent running commit_sha
+        :param commit_sha: default to current running commit_sha
         :param kwargs: the attributes of the hacked flow_dec
         :return: the faked flow_desc
         """
@@ -2420,7 +2420,7 @@ class SingleCourseQuizPageTestMixin(SingleCoursePageTestMixin):
             expected_post_grading_status_code=200,
             grade_data=None,
             expected_grades=None,
-            do_session_score_equal_assersion=True,
+            do_session_score_equal_assertion=True,
             grade_data_extra_kwargs=None,
             force_login_instructor=True,
             ensure_grading_ui_get_before_grading=False,
@@ -2473,7 +2473,7 @@ class SingleCourseQuizPageTestMixin(SingleCoursePageTestMixin):
                         == expected_post_grading_status_code)
 
                 if post_grade_response.status_code == 200:
-                    if do_session_score_equal_assersion:
+                    if do_session_score_equal_assertion:
                         cls.assertSessionScoreEqual(expected_grades)
 
                 if ensure_download_after_grading:
@@ -2500,10 +2500,10 @@ class MockAddMessageMixing:
     def setUp(self):
         super().setUp()
         self._fake_add_message_path = "django.contrib.messages.add_message"
-        fake_add_messag = mock.patch(self._fake_add_message_path)
+        fake_add_message = mock.patch(self._fake_add_message_path)
 
-        self._mock_add_message = fake_add_messag.start()
-        self.addCleanup(fake_add_messag.stop)
+        self._mock_add_message = fake_add_message.start()
+        self.addCleanup(fake_add_message.stop)
 
     def _get_added_messages(self, join=True):
         try:

@@ -195,7 +195,7 @@ class AnswerBase:
 
 # length unit used is "em"
 DEFAULT_WIDTH = 10
-MINIMUN_WIDTH = 4
+MINIMUM_WIDTH = 4
 
 EM_LEN_DICT = {
         "em": 1,
@@ -308,7 +308,7 @@ class ShortAnswer(AnswerBase):
 
         self.width = 0
         if parsed_length is not None:
-            self.width = max(MINIMUN_WIDTH, parsed_length)
+            self.width = max(MINIMUM_WIDTH, parsed_length)
         else:
             self.width = DEFAULT_WIDTH
 
@@ -320,7 +320,7 @@ class ShortAnswer(AnswerBase):
                     string_concat("%s, ",
                                   # Translators: refers to optional
                                   # correct answer for checking
-                                  # correctness sumbitted by students.
+                                  # correctness submitted by students.
                                   _("answer"),
                                   " %d") % (location, i+1),
                     answer)

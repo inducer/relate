@@ -649,8 +649,8 @@ NOT_UPDATED_LITERAL = "Update not applied."
 FAILURE_MSG = "my validation error."
 LOCATION1 = "location1"
 LOCATION2 = "location2"
-WARNING1 = "some waring1"
-WARNING2 = "some waring2"
+WARNING1 = "some warning1"
+WARNING2 = "some warning2"
 
 
 @pytest.mark.django_db
@@ -660,7 +660,7 @@ class RunCourseUpdateCommandTest(MockAddMessageMixing, unittest.TestCase):
     default_preview_sha = "preview_sha"
     default_old_sha = "old_sha"
     default_switch_to_sha = "switch_sha"
-    default_lastest_sha = "latest_sha"
+    default_latest_sha = "latest_sha"
 
     def setUp(self):
         super().setUp()
@@ -898,7 +898,7 @@ class RunCourseUpdateCommandTest(MockAddMessageMixing, unittest.TestCase):
 
     def test_fetch_not_prevent_discarding_revisions(self):
         self.mock_client.fetch.return_value = FetchPackResult(
-                refs={b"HEAD": self.default_lastest_sha.encode()},
+                refs={b"HEAD": self.default_latest_sha.encode()},
                 symrefs={},
                 agent="Git")
 
@@ -907,7 +907,7 @@ class RunCourseUpdateCommandTest(MockAddMessageMixing, unittest.TestCase):
              self.default_old_sha),
             ("fetch_update", 3, [FETCHED_LITERAL, UPDATE_APPLIED_LITERAL,
                                  VALIDATE_SUCCESS_LITERAL], [],
-             self.default_lastest_sha)
+             self.default_latest_sha)
         )
 
         for (command, add_message_call_count, expected, not_expected,
@@ -953,7 +953,7 @@ class RunCourseUpdateCommandTest(MockAddMessageMixing, unittest.TestCase):
 
     def test_fetch_update_success_with_warnings(self):
         self.mock_client.fetch.return_value = FetchPackResult(
-                refs={b"HEAD": self.default_lastest_sha.encode()},
+                refs={b"HEAD": self.default_latest_sha.encode()},
                 symrefs={},
                 agent="Git")
         self.mock_validate_course_content.return_value = (
@@ -971,11 +971,11 @@ class RunCourseUpdateCommandTest(MockAddMessageMixing, unittest.TestCase):
             not_expected_add_message_literals=[PREVIEW_END_LITERAL])
         self.assertIsNone(self.participation.preview_git_commit_sha)
         self.assertEqual(
-            self.course.active_git_commit_sha, self.default_lastest_sha)
+            self.course.active_git_commit_sha, self.default_latest_sha)
 
     def test_fetch_update_success_with_warnings_previewing(self):
         self.mock_client.fetch.return_value = FetchPackResult(
-                refs={b"HEAD": self.default_lastest_sha.encode()},
+                refs={b"HEAD": self.default_latest_sha.encode()},
                 symrefs={},
                 agent="Git")
 
@@ -995,7 +995,7 @@ class RunCourseUpdateCommandTest(MockAddMessageMixing, unittest.TestCase):
             ])
         self.assertIsNone(self.participation.preview_git_commit_sha)
         self.assertEqual(
-            self.course.active_git_commit_sha, self.default_lastest_sha)
+            self.course.active_git_commit_sha, self.default_latest_sha)
 
     def test_fetch_update_with_validation_error(self):
         from course.validation import ValidationError
@@ -1050,7 +1050,7 @@ class RunCourseUpdateCommandTest(MockAddMessageMixing, unittest.TestCase):
 
     def test_fetch_not_may_update(self):
         self.mock_client.fetch.return_value = FetchPackResult(
-                refs={b"HEAD": self.default_lastest_sha.encode()},
+                refs={b"HEAD": self.default_latest_sha.encode()},
                 symrefs={},
                 agent="Git")
 
@@ -1217,7 +1217,7 @@ class UpdateCourseTest(SingleCourseTestMixin, MockAddMessageMixing, TestCase):
                 self.assertEqual(resp.status_code, 403)
 
     def test_participation_with_preview_permission(self):
-        # Just to make sure it won't fail, Todo: assersion on form kwargs
+        # Just to make sure it won't fail, Todo: assertion on form kwargs
         from course.models import ParticipationPermission
         pp = ParticipationPermission(
             participation=self.student_participation,
@@ -1233,7 +1233,7 @@ class UpdateCourseTest(SingleCourseTestMixin, MockAddMessageMixing, TestCase):
                 self.assertEqual(resp.status_code, 200, command)
 
     def test_participation_with_update_permission(self):
-        # Just to make sure it won't fail, Todo: assersion on form kwargs
+        # Just to make sure it won't fail, Todo: assertion on form kwargs
         from course.models import ParticipationPermission
         pp = ParticipationPermission(
             participation=self.student_participation,

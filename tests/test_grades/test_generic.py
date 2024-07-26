@@ -51,7 +51,7 @@ class GradeGenericTestMixin(SingleCoursePageTestMixin):
         cls.flow_session_ids.append(
             int(cls.default_flow_params["flow_session_id"]))
 
-    # Seperate the test here
+    # Separate the test here
     def test_grading_opportunity(self):
         # Should only have one grading opportunity object
         self.assertEqual(GradingOpportunity.objects.all().count(), 1)
@@ -313,7 +313,7 @@ class GradeTwoQuizTakerTest(GradeGenericTestMixin, TestCase):
 
     def setUp(self):
         super().setUp()
-        # Make sure the instructor is logged in after all quizes finished
+        # Make sure the instructor is logged in after all quizzes finished
         self.client.force_login(self.instructor_participation.user)
 
 
@@ -333,7 +333,7 @@ class GradeThreeQuizTakerTest(GradeGenericTestMixin, TestCase):
 
     def setUp(self):
         super().setUp()
-        # Make sure the instructor is logged in after all quizes finished
+        # Make sure the instructor is logged in after all quizzes finished
         self.client.force_login(self.instructor_participation.user)
 
 

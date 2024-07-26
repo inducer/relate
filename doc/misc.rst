@@ -330,7 +330,7 @@ Next, install Relate and its dependencies::
 
     poetry install
 
-In order to use the ``relate`` comand, you need to activate the virtualenv that
+In order to use the ``relate`` command, you need to activate the virtualenv that
 was created::
 
     source ~/path/to/relate/checkout/.venv/bin/activate

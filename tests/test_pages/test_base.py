@@ -434,7 +434,7 @@ class PageBaseDeprecationTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
             self.assertTrue(mock_warn.call_count >= 1)
 
             expected_warn_msg = (
-                "TextQuestion is using the make_page_data compatiblity "
+                "TextQuestion is using the make_page_data compatibility "
                 "hook, which is deprecated.")
 
             warned_with_expected_msg = False
@@ -513,7 +513,7 @@ class PageBaseGradeDeprecationTest(SingleCourseQuizPageTestMixin, TestCase):
             expected_warn_msg = (
                 "HumanGradedTextQuestion is using the "
                 "update_grade_data_from_grading_form "
-                "compatiblity hook, which is deprecated.")
+                "compatibility hook, which is deprecated.")
 
             warned_with_expected_msg = False
 
@@ -545,7 +545,7 @@ class PageBaseGradeDeprecationTest(SingleCourseQuizPageTestMixin, TestCase):
             self.assertTrue(mock_warn.call_count >= 1)
 
             expected_warn_msg = (
-                "TextQuestion is using the post_form compatiblity hook, "
+                "TextQuestion is using the post_form compatibility hook, "
                 "which is deprecated.")
 
             warned_with_expected_msg = False

@@ -145,7 +145,7 @@ class PageBehavior:
         self.may_change_answer = may_change_answer
 
     def __bool__(self):
-        # This is for compatiblity: page_behavior used to be a bool argument
+        # This is for compatibility: page_behavior used to be a bool argument
         # 'answer_is_final'.
         return not self.may_change_answer
 
@@ -479,7 +479,7 @@ class PageBase:
         data = self.make_page_data()
         if data:
             from warnings import warn
-            warn(_("%s is using the make_page_data compatiblity hook, which "
+            warn(_("%s is using the make_page_data compatibility hook, which "
                  "is deprecated.") % type(self).__name__,
                  DeprecationWarning)
 
@@ -590,7 +590,7 @@ class PageBase:
         """
 
         from warnings import warn
-        warn(_("%s is using the post_form compatiblity hook, which "
+        warn(_("%s is using the post_form compatibility hook, which "
                 "is deprecated.") % type(self).__name__,
                 DeprecationWarning)
 
@@ -662,7 +662,7 @@ class PageBase:
 
         from warnings import warn
         warn(_("%s is using the update_grade_data_from_grading_form "
-               "compatiblity hook, which "
+               "compatibility hook, which "
                 "is deprecated.") % type(self).__name__,
                 DeprecationWarning)
 
@@ -753,7 +753,7 @@ class PageBase:
         to be stuffed in a zip file.
 
         :returns: a tuple of ``(file_ext, data)`` where *file_ext* is a suggested
-            file extension (inlcuding the leading period, if applicable).
+            file extension (including the leading period, if applicable).
             May also return *None*.
 
         One use case of this function is to work as input for a plagiarism

@@ -375,7 +375,7 @@ content: |
     ## link to another course
     [A static page](course:another-course)
 
-    ## calendar linkes
+    ## calendar links
     [A static page](calendar:)
 
     ## images

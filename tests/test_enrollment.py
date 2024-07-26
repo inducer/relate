@@ -61,7 +61,7 @@ ENROLLMENT_EMAIL_FROM = "ENROLLMENT_EMAIL_FROM"
 # {{{ message constants
 
 MESSAGE_ENROLLMENT_SENT_TEXT = (
-    "Enrollment request sent. You will receive notifcation "
+    "Enrollment request sent. You will receive notification "
     "by email once your request has been acted upon.")
 MESSAGE_ENROLL_REQUEST_PENDING_TEXT = (
     "Your enrollment request is pending. You will be "
@@ -161,7 +161,7 @@ class EnrollmentTestMixin(MockAddMessageMixing, CoursesTestMixinBase):
 
         return factories.ParticipationPreapprovalFactory(**defaults)
 
-    def assertParticiaptionStatusCallCount(self, expected_counts):  # noqa
+    def assertParticipationStatusCallCount(self, expected_counts):  # noqa
         from collections import OrderedDict
         d = OrderedDict()
         counts = []
@@ -202,53 +202,53 @@ class EnrollViewTest(EnrollmentTestMixin, TestCase):
     def test_participation_status_requested(self):
         participation = self.get_test_participation(
             status=p_status.requested)
-        self.assertParticiaptionStatusCallCount([0, 0, 0, 1])
+        self.assertParticipationStatusCallCount([0, 0, 0, 1])
         with self.temporarily_switch_to_user(participation.user):
             resp = self.client.post(self.enroll_request_url)
         self.assertRedirects(
             resp, self.course_page_url, fetch_redirect_response=False)
         self.assertAddMessageCallCount(1)
         self.assertAddMessageCalledWith(MESSAGE_ENROLL_REQUEST_ALREADY_PENDING_TEXT)
-        self.assertParticiaptionStatusCallCount([0, 0, 0, 1])
+        self.assertParticipationStatusCallCount([0, 0, 0, 1])
         self.assertEqual(len(mail.outbox), 0)
 
     def test_participation_status_denied(self):
         participation = self.get_test_participation(
             status=p_status.denied)
-        self.assertParticiaptionStatusCallCount([0, 1, 0, 0])
+        self.assertParticipationStatusCallCount([0, 1, 0, 0])
         with self.temporarily_switch_to_user(participation.user):
             resp = self.client.post(self.enroll_request_url)
         self.assertRedirects(
             resp, self.course_page_url, fetch_redirect_response=False)
         self.assertAddMessageCallCount(1)
         self.assertAddMessageCalledWith(MESSAGE_ENROLL_DENIED_NOT_ALLOWED_TEXT)
-        self.assertParticiaptionStatusCallCount([0, 1, 0, 0])
+        self.assertParticipationStatusCallCount([0, 1, 0, 0])
         self.assertEqual(len(mail.outbox), 0)
 
     def test_participation_status_dropped(self):
         participation = self.get_test_participation(
             status=p_status.dropped)
-        self.assertParticiaptionStatusCallCount([0, 0, 1, 0])
+        self.assertParticipationStatusCallCount([0, 0, 1, 0])
         with self.temporarily_switch_to_user(participation.user):
             resp = self.client.post(self.enroll_request_url)
         self.assertRedirects(
             resp, self.course_page_url, fetch_redirect_response=False)
         self.assertAddMessageCallCount(1)
         self.assertAddMessageCalledWith(MESSAGE_ENROLL_DROPPED_NOT_ALLOWED_TEXT)
-        self.assertParticiaptionStatusCallCount([0, 0, 1, 0])
+        self.assertParticipationStatusCallCount([0, 0, 1, 0])
         self.assertEqual(len(mail.outbox), 0)
 
     def test_participation_status_active(self):
         participation = self.get_test_participation(
             status=p_status.active)
-        self.assertParticiaptionStatusCallCount([1, 0, 0, 0])
+        self.assertParticipationStatusCallCount([1, 0, 0, 0])
         with self.temporarily_switch_to_user(participation.user):
             resp = self.client.post(self.enroll_request_url)
         self.assertRedirects(
             resp, self.course_page_url, fetch_redirect_response=False)
         self.assertAddMessageCallCount(1)
         self.assertAddMessageCalledWith(MESSAGE_CANNOT_REENROLL_TEXT)
-        self.assertParticiaptionStatusCallCount([1, 0, 0, 0])
+        self.assertParticipationStatusCallCount([1, 0, 0, 0])
         self.assertEqual(len(mail.outbox), 0)
 
     def test_not_accepts_enrollment(self):
@@ -261,7 +261,7 @@ class EnrollViewTest(EnrollmentTestMixin, TestCase):
             resp, self.course_page_url, fetch_redirect_response=False)
         self.assertAddMessageCallCount(1)
         self.assertAddMessageCalledWith(MESSAGE_NOT_ACCEPTING_ENROLLMENTS_TEXT)
-        self.assertParticiaptionStatusCallCount([0, 0, 0, 0])
+        self.assertParticipationStatusCallCount([0, 0, 0, 0])
         self.assertEqual(len(mail.outbox), 0)
 
     def test_not_post_request(self):
@@ -273,7 +273,7 @@ class EnrollViewTest(EnrollmentTestMixin, TestCase):
             self.assertAddMessageCallCount(1)
             self.assertAddMessageCalledWith(
                 MESSAGE_ENROLL_ONLY_ACCEPT_POST_REQUEST_TEXT)
-        self.assertParticiaptionStatusCallCount([0, 0, 0, 0])
+        self.assertParticipationStatusCallCount([0, 0, 0, 0])
         self.assertEqual(len(mail.outbox), 0)
 
     def test_user_not_active(self):
@@ -288,7 +288,7 @@ class EnrollViewTest(EnrollmentTestMixin, TestCase):
                     self.assertAddMessageCallCount(1)
                     self.assertAddMessageCalledWith(
                         MESSAGE_EMAIL_NOT_CONFIRMED_TEXT)
-        self.assertParticiaptionStatusCallCount([0, 0, 0, 0])
+        self.assertParticipationStatusCallCount([0, 0, 0, 0])
         self.assertEqual(len(mail.outbox), 0)
 
     def test_no_restrictions(self):
@@ -300,7 +300,7 @@ class EnrollViewTest(EnrollmentTestMixin, TestCase):
         self.assertAddMessageCallCount(1)
         self.assertAddMessageCalledWith(MESSAGE_SUCCESSFULLY_ENROLLED_TEXT)
 
-        self.assertParticiaptionStatusCallCount([1, 0, 0, 0])
+        self.assertParticipationStatusCallCount([1, 0, 0, 0])
 
     def test_no_restrictions_user_has_no_instid(self):
         user = factories.UserFactory(institutional_id=None)
@@ -311,7 +311,7 @@ class EnrollViewTest(EnrollmentTestMixin, TestCase):
         self.assertAddMessageCallCount(1)
         self.assertAddMessageCalledWith(MESSAGE_SUCCESSFULLY_ENROLLED_TEXT)
 
-        self.assertParticiaptionStatusCallCount([1, 0, 0, 0])
+        self.assertParticipationStatusCallCount([1, 0, 0, 0])
 
     def test_not_matching_preapproved_email(self):
         self.update_require_approval_course()
@@ -325,7 +325,7 @@ class EnrollViewTest(EnrollmentTestMixin, TestCase):
         self.assertAddMessageCallCount(1)
         self.assertAddMessageCalledWith(MESSAGE_ENROLLMENT_SENT_TEXT)
         self.assertEqual(len(mail.outbox), 1)
-        self.assertParticiaptionStatusCallCount([0, 0, 0, 1])
+        self.assertParticipationStatusCallCount([0, 0, 0, 1])
 
     def test_matched_preapproved_email(self):
         self.update_require_approval_course()
@@ -338,7 +338,7 @@ class EnrollViewTest(EnrollmentTestMixin, TestCase):
             resp, self.course_page_url, fetch_redirect_response=False)
         self.assertAddMessageCallCount(1)
         self.assertAddMessageCalledWith(MESSAGE_SUCCESSFULLY_ENROLLED_TEXT)
-        self.assertParticiaptionStatusCallCount([1, 0, 0, 0])
+        self.assertParticipationStatusCallCount([1, 0, 0, 0])
         self.assertEqual(len(mail.outbox), 1)
 
     def test_course_not_require_inst_id_verified(self):
@@ -357,7 +357,7 @@ class EnrollViewTest(EnrollmentTestMixin, TestCase):
                 self.assertAddMessageCallCount(1)
                 self.assertAddMessageCalledWith(MESSAGE_SUCCESSFULLY_ENROLLED_TEXT)
 
-        self.assertParticiaptionStatusCallCount([2, 0, 0, 0])
+        self.assertParticipationStatusCallCount([2, 0, 0, 0])
         self.assertEqual(len(mail.outbox), 2)
 
     def test_course_require_inst_id_verified_user_inst_id_verified1(self):
@@ -374,7 +374,7 @@ class EnrollViewTest(EnrollmentTestMixin, TestCase):
             resp, self.course_page_url, fetch_redirect_response=False)
         self.assertAddMessageCallCount(1)
         self.assertAddMessageCalledWith(MESSAGE_SUCCESSFULLY_ENROLLED_TEXT)
-        self.assertParticiaptionStatusCallCount([1, 0, 0, 0])
+        self.assertParticipationStatusCallCount([1, 0, 0, 0])
         self.assertEqual(len(mail.outbox), 1)
 
     def test_course_require_inst_id_verified_user_inst_id_verified2(self):
@@ -392,7 +392,7 @@ class EnrollViewTest(EnrollmentTestMixin, TestCase):
         self.assertAddMessageCallCount(1)
         self.assertAddMessageCalledWith(MESSAGE_ENROLLMENT_SENT_TEXT)
         self.assertEqual(len(mail.outbox), 1)
-        self.assertParticiaptionStatusCallCount([0, 0, 0, 1])
+        self.assertParticipationStatusCallCount([0, 0, 0, 1])
 
     def test_preapprved_user_updated_inst_id_after_req_enrollment_roles_match(self):
         # Check assigned roles, testing issue #735
@@ -437,7 +437,7 @@ class EnrollViewTest(EnrollmentTestMixin, TestCase):
             resp, self.course_page_url, fetch_redirect_response=False)
         self.assertAddMessageCallCount(1)
         self.assertAddMessageCalledWith(MESSAGE_ENROLLMENT_SENT_TEXT)
-        self.assertParticiaptionStatusCallCount([0, 0, 0, 1])
+        self.assertParticipationStatusCallCount([0, 0, 0, 1])
         self.assertEqual(len(mail.outbox), 1)
 
     def test_course_require_inst_id_verified_user_inst_id_not_verified2(self):
@@ -454,7 +454,7 @@ class EnrollViewTest(EnrollmentTestMixin, TestCase):
             resp, self.course_page_url, fetch_redirect_response=False)
         self.assertAddMessageCallCount(1)
         self.assertAddMessageCalledWith(MESSAGE_ENROLLMENT_SENT_TEXT)
-        self.assertParticiaptionStatusCallCount([0, 0, 0, 1])
+        self.assertParticipationStatusCallCount([0, 0, 0, 1])
         self.assertEqual(len(mail.outbox), 1)
 
     def test_course_require_email_suffix_but_need_approval(self):
@@ -469,7 +469,7 @@ class EnrollViewTest(EnrollmentTestMixin, TestCase):
             resp, self.course_page_url, fetch_redirect_response=False)
         self.assertAddMessageCallCount(1)
         self.assertAddMessageCalledWith(MESSAGE_ENROLLMENT_SENT_TEXT)
-        self.assertParticiaptionStatusCallCount([0, 0, 0, 1])
+        self.assertParticipationStatusCallCount([0, 0, 0, 1])
         self.assertEqual(len(mail.outbox), 1)
 
     def test_course_require_email_suffix_passed_without_at(self):
@@ -484,7 +484,7 @@ class EnrollViewTest(EnrollmentTestMixin, TestCase):
             resp, self.course_page_url, fetch_redirect_response=False)
         self.assertAddMessageCallCount(1)
         self.assertAddMessageCalledWith(MESSAGE_ENROLLMENT_SENT_TEXT)
-        self.assertParticiaptionStatusCallCount([0, 0, 0, 1])
+        self.assertParticipationStatusCallCount([0, 0, 0, 1])
         self.assertEqual(len(mail.outbox), 1)
 
     def test_course_require_email_suffix_passed_without_at_pattern2(self):
@@ -499,7 +499,7 @@ class EnrollViewTest(EnrollmentTestMixin, TestCase):
             resp, self.course_page_url, fetch_redirect_response=False)
         self.assertAddMessageCallCount(1)
         self.assertAddMessageCalledWith(MESSAGE_ENROLLMENT_SENT_TEXT)
-        self.assertParticiaptionStatusCallCount([0, 0, 0, 1])
+        self.assertParticipationStatusCallCount([0, 0, 0, 1])
         self.assertEqual(len(mail.outbox), 1)
 
     def test_course_require_email_suffix_failed(self):
@@ -515,7 +515,7 @@ class EnrollViewTest(EnrollmentTestMixin, TestCase):
         self.assertAddMessageCallCount(1)
         self.assertAddMessageCalledWith(
             MESSAGE_EMAIL_SUFFIX_REQUIRED_PATTERN % required_suffix)
-        self.assertParticiaptionStatusCallCount([0, 0, 0, 0])
+        self.assertParticipationStatusCallCount([0, 0, 0, 0])
         self.assertEqual(len(mail.outbox), 0)
 
     def test_integrity_error(self):
@@ -532,7 +532,7 @@ class EnrollViewTest(EnrollmentTestMixin, TestCase):
             self.assertAddMessageCallCount(1)
             self.assertAddMessageCalledWith(MESSAGE_PARTICIPATION_ALREADY_EXIST_TEXT)
 
-            self.assertParticiaptionStatusCallCount([0, 0, 0, 0])
+            self.assertParticipationStatusCallCount([0, 0, 0, 0])
 
 
 class HandleEnrollmentRequestTest(SingleCourseTestMixin,

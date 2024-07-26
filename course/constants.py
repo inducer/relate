@@ -215,7 +215,7 @@ PARTICIPATION_PERMISSION_CHOICES = (
                 "Recalculate flow session grade")),
         (participation_permission.batch_recalculate_flow_session_grade,
             pgettext_lazy("Participation permission",
-                "Batch-recalculate flow sesssion grades")),
+                "Batch-recalculate flow session grades")),
 
         (participation_permission.reopen_flow_session,
             pgettext_lazy("Participation permission", "Reopen flow session")),
