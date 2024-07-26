@@ -1,5 +1,6 @@
 # See https://docs.djangoproject.com/en/dev/howto/deployment/checklist/
 
+import os  # noqa: F401
 import os.path as path
 
 
@@ -388,6 +389,8 @@ RELATE_DOCKER_RUNPY_IMAGE = "inducer/relate-runcode-python-amd64"
 # A URL pointing to the Docker command interface which RELATE should use
 # to spawn containers for student code.
 RELATE_DOCKER_URL = "unix://var/run/docker.sock"
+# for podman
+# RELATE_DOCKER_URL = f"unix://run/user/{os.getuid()}/podman/podman.sock"
 
 RELATE_DOCKER_TLS_CONFIG = None
 

@@ -70,7 +70,8 @@ django-npm = "^1.0.0"
 # For comfortable code entry
 django-codemirror-widget = ">=0.5"
 # For code isolation in code questions
-docker-py = "^1.10.6"
+# 7.1 bumps the minimum API version to 1.24, which is unsupported by podman
+docker = "^7.1.0"
 # For code highlighting, required via the CodeHilite extension to Python-Markdown
 pygments = "^2.6.1"
 # For grade export
