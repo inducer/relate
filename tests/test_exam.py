@@ -22,8 +22,8 @@ THE SOFTWARE.
 
 import datetime
 import unittest
+from zoneinfo import ZoneInfo
 
-import pytz_deprecation_shim as pytz
 from django import http
 from django.test import Client, TestCase, override_settings
 from django.urls import reverse
@@ -41,6 +41,9 @@ from tests.constants import DATE_TIME_PICKER_TIME_FORMAT
 from tests.utils import mock, reload_urlconf
 
 
+UTC = ZoneInfo("UTC")
+
+
 class GenTicketCodeTest(unittest.TestCase):
     """test exam.gen_ticket_code"""
 
@@ -55,7 +58,7 @@ class GenTicketCodeTest(unittest.TestCase):
 class ExamTestMixin(SingleCourseTestMixin, MockAddMessageMixing):
     force_login_student_for_each_test = False
 
-    default_faked_now = datetime.datetime(2019, 1, 1, tzinfo=pytz.UTC)
+    default_faked_now = datetime.datetime(2019, 1, 1, tzinfo=UTC)
 
     default_valid_start_time = default_faked_now
     default_valid_end_time = default_valid_start_time + timedelta(hours=3)

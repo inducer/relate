@@ -25,9 +25,9 @@ import os
 import stat
 import unittest
 from copy import deepcopy
+from zoneinfo import ZoneInfo
 
 import pytest
-import pytz_deprecation_shim as pytz
 from django.core.exceptions import ObjectDoesNotExist
 from django.test import Client, RequestFactory, TestCase, override_settings
 from dulwich.repo import Tree
@@ -45,6 +45,9 @@ from tests.base_test_mixins import (
 )
 from tests.test_sandbox import SingleCoursePageSandboxTestBaseMixin
 from tests.utils import mock
+
+
+UTC = ZoneInfo("UTC")
 
 
 class SingleCoursePageCacheTest(SingleCoursePageTestMixin, TestCase):
@@ -500,7 +503,7 @@ class ParseDateSpecTest(SingleCourseTestMixin, TestCase):
 
     def test_course_is_none_not_parsed(self):
         datespec = "homework_due 1 + 25 hours"
-        time = datetime.datetime(2018, 12, 30, 23, tzinfo=pytz.UTC)
+        time = datetime.datetime(2018, 12, 30, 23, tzinfo=UTC)
         factories.EventFactory(
             course=self.course, kind="homework_due", ordinal=1,
             time=time)
@@ -511,7 +514,7 @@ class ParseDateSpecTest(SingleCourseTestMixin, TestCase):
     def test_course_is_none_parsed(self):
         # this also tested datespec is datetime
         course = None
-        datespec = datetime.datetime(2018, 12, 30, 23, tzinfo=pytz.UTC)
+        datespec = datetime.datetime(2018, 12, 30, 23, tzinfo=UTC)
         self.assertEqual(
             content.parse_date_spec(course, datespec, self.vctx), datespec)
         self.assertEqual(self.mock_add_warning.call_count, 0)
@@ -587,67 +590,67 @@ class ParseDateSpecTest(SingleCourseTestMixin, TestCase):
         self.mock_add_warning.reset_mock()
 
         # event defined
-        time = datetime.datetime(2018, 12, 30, 23, tzinfo=pytz.UTC)
+        time = datetime.datetime(2018, 12, 30, 23, tzinfo=UTC)
         factories.EventFactory(
             course=self.course, kind="homework_due", ordinal=1,
             time=time)
         self.assertEqual(
             content.parse_date_spec(self.course, datespec, vctx=self.vctx),
-            datetime.datetime(2019, 1, 1, tzinfo=pytz.UTC))
+            datetime.datetime(2019, 1, 1, tzinfo=UTC))
         self.assertEqual(self.mock_add_warning.call_count, 0)
 
     def test_minus(self):
         datespec = "homework_due 1 - 25 hours"
 
-        time = datetime.datetime(2019, 1, 1, tzinfo=pytz.UTC)
+        time = datetime.datetime(2019, 1, 1, tzinfo=UTC)
         factories.EventFactory(
             course=self.course, kind="homework_due", ordinal=1,
             time=time)
         self.assertEqual(
             content.parse_date_spec(self.course, datespec, vctx=self.vctx),
-            datetime.datetime(2018, 12, 30, 23, tzinfo=pytz.UTC))
+            datetime.datetime(2018, 12, 30, 23, tzinfo=UTC))
         self.assertEqual(self.mock_add_warning.call_count, 0)
 
     def test_plus_days(self):
         datespec = "homework_due 1 + 1 day"
 
-        time = datetime.datetime(2018, 12, 31, tzinfo=pytz.UTC)
+        time = datetime.datetime(2018, 12, 31, tzinfo=UTC)
         factories.EventFactory(
             course=self.course, kind="homework_due", ordinal=1,
             time=time)
         self.assertEqual(
             content.parse_date_spec(self.course, datespec, vctx=self.vctx),
-            datetime.datetime(2019, 1, 1, tzinfo=pytz.UTC))
+            datetime.datetime(2019, 1, 1, tzinfo=UTC))
         self.assertEqual(self.mock_add_warning.call_count, 0)
 
     def test_plus_weeks(self):
         datespec = "homework_due 1 + 2 weeks"
 
-        time = datetime.datetime(2018, 12, 31, tzinfo=pytz.UTC)
+        time = datetime.datetime(2018, 12, 31, tzinfo=UTC)
         factories.EventFactory(
             course=self.course, kind="homework_due", ordinal=1,
             time=time)
         self.assertEqual(
             content.parse_date_spec(self.course, datespec, vctx=self.vctx),
-            datetime.datetime(2019, 1, 14, tzinfo=pytz.UTC))
+            datetime.datetime(2019, 1, 14, tzinfo=UTC))
         self.assertEqual(self.mock_add_warning.call_count, 0)
 
     def test_plus_minutes(self):
         datespec = "homework_due 1 +     2 hour - 59 minutes"
 
-        time = datetime.datetime(2018, 12, 31, tzinfo=pytz.UTC)
+        time = datetime.datetime(2018, 12, 31, tzinfo=UTC)
         factories.EventFactory(
             course=self.course, kind="homework_due", ordinal=1,
             time=time)
         self.assertEqual(
             content.parse_date_spec(self.course, datespec, vctx=self.vctx),
-            datetime.datetime(2018, 12, 31, 1, 1, tzinfo=pytz.UTC))
+            datetime.datetime(2018, 12, 31, 1, 1, tzinfo=UTC))
         self.assertEqual(self.mock_add_warning.call_count, 0)
 
     def test_plus_invalid_time_unit(self):
         datespec = "homework_due 1 + 2 foos"
 
-        time = datetime.datetime(2018, 12, 31, tzinfo=pytz.UTC)
+        time = datetime.datetime(2018, 12, 31, tzinfo=UTC)
         factories.EventFactory(
             course=self.course, kind="homework_due", ordinal=1,
             time=time)
@@ -665,7 +668,7 @@ class ParseDateSpecTest(SingleCourseTestMixin, TestCase):
     def test_is_end(self):
         datespec = "end:homework_due 1 + 25 hours"
 
-        time = datetime.datetime(2018, 12, 30, 23, tzinfo=pytz.UTC)
+        time = datetime.datetime(2018, 12, 30, 23, tzinfo=UTC)
         evt = factories.EventFactory(
             course=self.course, kind="homework_due", ordinal=1,
             time=time)
@@ -673,12 +676,12 @@ class ParseDateSpecTest(SingleCourseTestMixin, TestCase):
         # event has no end_time, no vctx
         self.assertEqual(
             content.parse_date_spec(self.course, datespec),
-            datetime.datetime(2019, 1, 1, tzinfo=pytz.UTC))
+            datetime.datetime(2019, 1, 1, tzinfo=UTC))
 
         # event has no end_time, no vctx
         self.assertEqual(
             content.parse_date_spec(self.course, datespec, vctx=self.vctx),
-            datetime.datetime(2019, 1, 1, tzinfo=pytz.UTC))
+            datetime.datetime(2019, 1, 1, tzinfo=UTC))
         self.assertEqual(self.mock_add_warning.call_count, 1)
         expected_warning_msg = (
             "event '%s' has no end time, using start time instead"
@@ -693,7 +696,7 @@ class ParseDateSpecTest(SingleCourseTestMixin, TestCase):
 
         self.assertEqual(
             content.parse_date_spec(self.course, datespec, vctx=self.vctx),
-            datetime.datetime(2019, 1, 1, tzinfo=pytz.UTC))
+            datetime.datetime(2019, 1, 1, tzinfo=UTC))
         self.assertEqual(self.mock_add_warning.call_count, 0)
 
 

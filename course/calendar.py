@@ -150,9 +150,8 @@ def _create_recurring_events_backend(course, time, kind, starting_ordinal, inter
         else:
             raise NotImplementedError()
 
-        time = time.tzinfo.localize(
-                datetime.datetime(date.year, date.month, date.day,
-                    time.hour, time.minute, time.second))
+        time = datetime.datetime(date.year, date.month, date.day,
+                    time.hour, time.minute, time.second, tzinfo=time.tzinfo)
         del date
 
         ordinal += 1

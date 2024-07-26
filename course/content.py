@@ -1553,9 +1553,9 @@ class AtTimePostprocessor(DatespecPostprocessor):
         else:
             return s, None
 
-    def apply(self, dtm):
-        from pytz import timezone
-        server_tz = timezone(settings.TIME_ZONE)
+    def apply(self, dtm: datetime.datetime) -> datetime.datetime:
+        from zoneinfo import ZoneInfo
+        server_tz = ZoneInfo(settings.TIME_ZONE)
 
         return dtm.astimezone(server_tz).replace(
                     hour=self.hour,

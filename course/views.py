@@ -382,12 +382,12 @@ class FakeTimeForm(StyledForm):
 def get_fake_time(request: http.HttpRequest) -> datetime.datetime | None:
 
     if request is not None and "relate_fake_time" in request.session:
+        from zoneinfo import ZoneInfo
+
         from django.conf import settings
-        from pytz import timezone
-        tz = timezone(settings.TIME_ZONE)
-        return tz.localize(  # type: ignore
-                datetime.datetime.fromtimestamp(
-                    request.session["relate_fake_time"]))
+        tz = ZoneInfo(settings.TIME_ZONE)
+        return datetime.datetime.fromtimestamp(
+                    request.session["relate_fake_time"], tz=tz)
     else:
         return None
 
