@@ -30,9 +30,9 @@ relate = "relate.bin.relate:main"
 
 [tool.poetry.dependencies]
 # keep consistent with ruff target version below
-python = ">=3.9,<3.13"
+python = ">=3.10,<4"
 
-django = "^4.2.11"
+django = "^5"
 
 # Automatically renders Django forms in a pretty, Bootstrap-compatible way.
 django-crispy-forms = ">=1.13.0"
@@ -173,7 +173,7 @@ src_paths = ["relate", "course", "accounts", "test"]
 
 [tool.ruff]
 preview = true
-target-version = "py39"
+target-version = "py310"
 
 [tool.ruff.lint]
 extend-select = [
@@ -208,6 +208,10 @@ extend-ignore = [
     "UP032", # f-string
     "UP035",
     "UP006",
+    "UP038",
+    "B905",
+    "UP007",
+    "UP041",
 ]
 allowed-confusables = ["‐", "–"]
 

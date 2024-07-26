@@ -32,6 +32,7 @@ from django.core.exceptions import (
     ValidationError,
 )
 from django.db import transaction
+from django.utils.safestring import mark_safe
 from django.utils.translation import get_language, gettext_lazy as _, pgettext_lazy
 
 from course.constants import participation_permission as pperm
@@ -56,7 +57,7 @@ class ListTextWidget(forms.TextInput):
             data_list += '<option value="{}">{}</option>'.format(item[0], item[1])
         data_list += "</datalist>"
 
-        return (text_html + data_list)
+        return mark_safe(text_html + data_list)
 
 
 # {{{ creation

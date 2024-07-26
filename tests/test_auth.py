@@ -1287,12 +1287,16 @@ class UserProfileTest(CoursesTestMixinBase, AuthTestMixin,
 
     def test_update_profile_with_different_settings(self):
         disabled_inst_id_html_pattern = (
-            '<input type="text" name="institutional_id" value="%s" '
+            '<input '
+            'aria-describedby="id_institutional_id_helptext" '
+            'type="text" name="institutional_id" value="%s" '
             'maxlength="100" class="textinput form-control" '
             'disabled id="id_institutional_id">')
 
         enabled_inst_id_html_pattern = (
-            '<input type="text" name="institutional_id" value="%s" '
+            '<input '
+            'aria-describedby="id_institutional_id_helptext" '
+            'type="text" name="institutional_id" value="%s" '
             'maxlength="100" class="textinput form-control" '
             'id="id_institutional_id">')
 
