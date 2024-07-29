@@ -9,5 +9,5 @@ import '../css/base.scss';
 
 select2(jQuery);
 
-/* eslint-disable-next-line import/prefer-default-export */
-export { rlUtils, bootstrap };
+globalThis.rlUtils = rlUtils;
+globalThis.bootstrap = bootstrap;
