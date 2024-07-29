@@ -12,8 +12,6 @@ import datatablesFixedColumns from 'datatables.net-fixedcolumns/js/dataTables.fi
 import 'datatables.net-fixedcolumns-bs5/css/fixedColumns.bootstrap5.css';
 import 'datatables.net-fixedcolumns-bs5/js/fixedColumns.bootstrap5';
 
-import * as rlUtils from './rlUtils';
-
 datatables(window, jQuery);
 datatablesBs(window, jQuery);
 datatablesFixedColumns(window, jQuery);
@@ -35,8 +33,5 @@ jQuery.extend(jQuery.fn.dataTableExt.oSort, {
 });
 
 // }}}
-
-/* eslint-disable-next-line import/prefer-default-export */
-export { rlUtils };
 
 // vim: foldmethod=marker
