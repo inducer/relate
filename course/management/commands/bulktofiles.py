@@ -25,8 +25,8 @@ def convert_flow_page_visit(stderr, fpv):
         flow_desc = get_flow_desc(repo, course,
                 flow_id, commit_sha, tolerate_tabs=True)
     except ObjectDoesNotExist:
-        stderr.write("warning: no flow yaml file found for '%s' in '%s'"
-                % (flow_id, course.identifier))
+        stderr.write("warning: no flow yaml file found for "
+                     f"'{flow_id}' in '{course.identifier}'")
         return
 
     try:
@@ -41,9 +41,8 @@ def convert_flow_page_visit(stderr, fpv):
         return
 
     page = instantiate_flow_page(
-            location="flow '%s', group, '%s', page '%s'"
-            % (flow_id,
-                fpv.page_data.group_id, fpv.page_data.page_id),
+            location=(f"flow '{flow_id}', "
+                f"group '{fpv.page_data.group_id}', page '{fpv.page_data.page_id}'"),
             repo=repo, page_desc=page_desc,
             commit_sha=commit_sha)
 

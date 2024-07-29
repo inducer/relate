@@ -162,8 +162,7 @@ class RELATEPageValidator:
         except Exception:
             tp, e, _ = sys.exc_info()
 
-            raise forms.ValidationError("%(err_type)s: %(err_str)s"
-                    % {"err_type": tp.__name__, "err_str": str(e)})
+            raise forms.ValidationError(f"{tp.__name__}: {e!s}")
 
 
 TEXT_ANSWER_VALIDATOR_CLASSES = [
@@ -428,20 +427,14 @@ class SymbolicExpressionMatcher(TextAnswerMatcher):
         except Exception:
             tp, e, __ = sys.exc_info()
             raise ValidationError(
-                    "%(location)s: %(err_type)s: %(err_str)s"
-                    % {
-                        "location": location,
-                        "err_type": tp.__name__,
-                        "err_str": str(e)
-                        })
+                    f"{location}: {tp.__name__}: {e!s}")
 
     def validate(self, s):
         try:
             parse_sympy(s)
         except Exception:
             tp, e, _ = sys.exc_info()
-            raise forms.ValidationError("%(err_type)s: %(err_str)s"
-                    % {"err_type": tp.__name__, "err_str": str(e)})
+            raise forms.ValidationError(f"{tp.__name__}: {e!s}")
 
     def grade(self, s):
         try:
@@ -558,8 +551,7 @@ class FloatMatcher(TextAnswerMatcher):
             float_or_sympy_evalf(s)
         except Exception:
             tp, e, _ = sys.exc_info()
-            raise forms.ValidationError("%(err_type)s: %(err_str)s"
-                    % {"err_type": tp.__name__, "err_str": str(e)})
+            raise forms.ValidationError(f"{tp.__name__}: {e!s}")
 
     def grade(self, s):
         try:

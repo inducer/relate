@@ -78,8 +78,7 @@ class ExportGradebook(GradesTestMixin, TestCase):
 
     def assertResponseHasCsv(self, resp):  # noqa
         self.assertEqual(resp["Content-Disposition"],
-                         'attachment; filename="grades-%s.csv"'
-                         % self.course.identifier)
+                         f'attachment; filename="grades-{self.course.identifier}.csv"')
 
     def get_export_gradebook_csv_url(self):
         return self.get_course_view_url("relate-export_gradebook_csv")
@@ -130,7 +129,7 @@ class FindParticipantFromIdTest(CoursesTestMixinBase, TestCase):
             grades.find_participant_from_id(self.course,
                                             dropped_participation.user.email)
         expected_error_msg = (
-                "no participant found for '%s'" % dropped_participation.user.email)
+                f"no participant found for '{dropped_participation.user.email}'")
         self.assertIn(expected_error_msg, str(cm.exception))
 
     def test_found_by_id(self):
@@ -151,7 +150,7 @@ class FindParticipantFromIdTest(CoursesTestMixinBase, TestCase):
         idstr = self.student_participation.user.email.replace(".com", "")
         with self.assertRaises(grades.ParticipantNotFound) as cm:
             grades.find_participant_from_id(self.course, idstr)
-        expected_error_msg = "no participant found for '%s'" % idstr
+        expected_error_msg = f"no participant found for '{idstr}'"
         self.assertIn(expected_error_msg, str(cm.exception))
 
     def test_found_multiple(self):
@@ -162,12 +161,12 @@ class FindParticipantFromIdTest(CoursesTestMixinBase, TestCase):
         # create another participation with the same uid
         factories.ParticipationFactory(
             course=self.course, user=factories.UserFactory(
-                email="%s@somewhere.com" % uid.upper()))
+                email=f"{uid.upper()}@somewhere.com"))
 
         with self.assertRaises(grades.ParticipantNotFound) as cm:
             grades.find_participant_from_id(self.course, uid)
 
-        expected_error_msg = "more than one participant found for '%s'" % uid
+        expected_error_msg = f"more than one participant found for '{uid}'"
         self.assertIn(expected_error_msg, str(cm.exception))
 
 
@@ -184,7 +183,7 @@ class FindParticipantFromUserAttrTest(CoursesTestMixinBase, TestCase):
     def test_found_strip_inst_id(self):
         self.assertEqual(grades.find_participant_from_user_attr(
             self.course, "institutional_id",
-            "  %s  " % self.student_participation.user.institutional_id),
+            f"  {self.student_participation.user.institutional_id}  "),
             self.student_participation)
 
     def test_found_iexact_by_inst_id(self):
@@ -202,7 +201,7 @@ class FindParticipantFromUserAttrTest(CoursesTestMixinBase, TestCase):
     def test_found_strip_username(self):
         self.assertEqual(grades.find_participant_from_user_attr(
             self.course, "username",
-            "  %s " % self.student_participation.user.username),
+            f"  {self.student_participation.user.username} "),
             self.student_participation)
 
     def test_found_exact_by_username(self):
@@ -223,7 +222,7 @@ class FindParticipantFromUserAttrTest(CoursesTestMixinBase, TestCase):
                 self.course, "username", upper_user_name)
 
         expected_error_msg = (
-                "no participant found with username '%s'" % upper_user_name)
+                f"no participant found with username '{upper_user_name}'")
         self.assertIn(expected_error_msg, str(cm.exception))
 
     def test_not_found_across_course(self):
@@ -236,8 +235,7 @@ class FindParticipantFromUserAttrTest(CoursesTestMixinBase, TestCase):
                 self.course, "username", another_participation.user.username)
 
             expected_error_msg = (
-                    "no participant found with username '%s'"
-                    % another_participation.user.username)
+                    f"no participant found with username '{another_participation.user.username}'")  # noqa: E501
             self.assertIn(expected_error_msg, str(cm.exception))
 
     def test_skip_not_active(self):
@@ -249,8 +247,7 @@ class FindParticipantFromUserAttrTest(CoursesTestMixinBase, TestCase):
                 self.course, "username", dropped_participation.user.username)
 
         expected_error_msg = (
-                "no participant found with username '%s'"
-                % dropped_participation.user.username)
+                f"no participant found with username '{dropped_participation.user.username}'")  # noqa: E501
         self.assertIn(expected_error_msg, str(cm.exception))
 
     def test_multiple_found(self):
@@ -265,8 +262,7 @@ class FindParticipantFromUserAttrTest(CoursesTestMixinBase, TestCase):
                 another_student_participation.user.institutional_id)
 
         expected_error_msg = (
-                "more than one participant found with Institutional ID '%s'"
-                % another_student_participation.user.institutional_id)
+                f"more than one participant found with Institutional ID '{another_student_participation.user.institutional_id}'")  # noqa: E501
         self.assertIn(expected_error_msg, str(cm.exception))
 
 
@@ -434,7 +430,7 @@ class ImportGradesTest(GradesTestMixin, TestCase):
     def test_import_csv_reader_next_error(self):
         error_msg = "This is a faked error"
         expected_file_error_msg = (
-            "Error: TypeError: %s" % error_msg)
+            f"Error: TypeError: {error_msg}")
 
         with open(
                 os.path.join(CSV_PATH, "test_import_csv.csv"), "rb") as csv_file:
@@ -454,7 +450,7 @@ class ImportGradesTest(GradesTestMixin, TestCase):
                      "characters. Please save your CSV file as utf-8 "
                      "encoded and import again.")
         expected_file_error_msg = (
-            "Error: %s" % error_msg)
+            f"Error: {error_msg}")
 
         with open(
                 os.path.join(CSV_PATH, "test_import_csv.csv"), "rb") as csv_file:
@@ -474,7 +470,7 @@ class ImportGradesTest(GradesTestMixin, TestCase):
     def test_import_csv_other_error(self):
         error_msg = ("Some other unknown error")
         expected_file_error_msg = (
-            "Error: TypeError: %s" % error_msg)
+            f"Error: TypeError: {error_msg}")
 
         with open(
                 os.path.join(CSV_PATH, "test_import_csv.csv"), "rb") as csv_file:
@@ -492,7 +488,7 @@ class ImportGradesTest(GradesTestMixin, TestCase):
 
     def test_used_preserved_attempt_id(self):
         attempt_id = "flow-session-blabla"
-        error_msg = '"%s" as a prefix is not allowed' % "flow-session-"
+        error_msg = '"{}" as a prefix is not allowed'.format("flow-session-")
 
         with open(
                 os.path.join(CSV_PATH, "test_import_csv.csv"), "rb") as csv_file:

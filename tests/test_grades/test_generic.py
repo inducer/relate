@@ -392,8 +392,8 @@ class GradePermissionsTests(SingleCoursePageTestMixin, TestCase):
                     url = reverse(urlname, kwargs=kwargs)
                 except NoReverseMatch:
                     self.fail(
-                        "Reversal of url named '%s' failed with "
-                        "NoReverseMatch" % urlname)
+                        f"Reversal of url named '{urlname}' failed with "
+                        "NoReverseMatch")
                 with self.subTest(user=user, urlname=urlname, method="GET"):
                     resp = self.client.get(url)
                     self.assertEqual(

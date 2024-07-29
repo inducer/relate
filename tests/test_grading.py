@@ -503,7 +503,7 @@ class SingleCourseQuizPageGradeInterfaceTest(
                     "changed in an incompatible way (say, by adding "
                     "an option to a choice question) without changing "
                     "the question ID. The precise error encountered "
-                    "was the following: %s" % error_msg)
+                    f"was the following: {error_msg}")
 
             with self.temporarily_switch_to_user(
                     self.instructor_participation.user):

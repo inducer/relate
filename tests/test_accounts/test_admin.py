@@ -188,8 +188,7 @@ class AccountsAdminTest(AdminTestMixin, TestCase):
                     for f in common_fields:
                         self.assertEqual(
                             td["see_common_fields"], f in field_names,
-                            "'%s' unexpectedly %s SHOWN in %s"
-                            % (f,
+                            "'{}' unexpectedly {} SHOWN in {}".format(f,
                                "NOT" if td["see_superuser_only_fields"]
                                else "",
                                repr(field_names))
@@ -197,8 +196,7 @@ class AccountsAdminTest(AdminTestMixin, TestCase):
                     for f in superuser_only_fields:
                         self.assertEqual(
                             td["see_superuser_only_fields"], f in field_names,
-                            "'%s' unexpectedly %s SHOWN in %s"
-                            % (f,
+                            "'{}' unexpectedly {} SHOWN in {}".format(f,
                               "NOT" if td["see_superuser_only_fields"]
                               else "",
                               repr(field_names)))

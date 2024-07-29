@@ -361,7 +361,7 @@ class ImpersonateTest(SingleCoursePageTestMixin, MockAddMessageMixing, TestCase)
                     if bad_string in s:
                         self.fail("label_from_instance method in "
                                   "course.auth.UserSearchWidget should not "
-                                  "return %s" % bad_string)
+                                  f"return {bad_string}")
 
             # Search ta by ta's last name
             impersonatee = self.ta_participation.user
@@ -412,7 +412,7 @@ class ImpersonateTest(SingleCoursePageTestMixin, MockAddMessageMixing, TestCase)
                     if bad_string in s:
                         self.fail("label_from_instance method in "
                                   "course.auth.UserSearchWidget should not "
-                                  "return %s" % bad_string)
+                                  f"return {bad_string}")
 
             # Search student by his email
             impersonatee = self.student_participation.user
@@ -539,7 +539,7 @@ class AuthTestMixin:
                                 nasty_url, self.get_sign_in_data())
                         self.assertEqual(response.status_code, 302)
                         self.assertNotIn(bad_url, response.url,
-                                         "%s should be blocked" % bad_url)
+                                         f"{bad_url} should be blocked")
 
             # These URLs should pass the security check.
             good_urls = (
@@ -560,7 +560,7 @@ class AuthTestMixin:
                                 safe_url, self.get_sign_in_data())
                         self.assertEqual(response.status_code, 302)
                         self.assertIn(good_url, response.url,
-                                      "%s should be allowed" % good_url)
+                                      f"{good_url} should be allowed")
 
     def assertSessionHasUserLoggedIn(self):  # noqa
         self.assertIn(SESSION_KEY, self.client.session)
@@ -571,11 +571,7 @@ class AuthTestMixin:
     def concatenate_redirect_url(self, url, redirect_to=None):
         if not redirect_to:
             return url
-        return ("{url}?{next}={bad_url}".format(
-            url=url,
-            next=REDIRECT_FIELD_NAME,
-            bad_url=quote(redirect_to),
-        ))
+        return (f"{url}?{REDIRECT_FIELD_NAME}={quote(redirect_to)}")
 
     def get_sign_up_view_url(self, redirect_to=None):
         return self.concatenate_redirect_url(
@@ -701,8 +697,8 @@ class AuthViewNamedURLTests(AuthTestMixin, TestCase):
                     reverse(name, args=args, kwargs=kwargs)
                 except NoReverseMatch:
                     self.fail(
-                        "Reversal of url named '%s' failed with "
-                        "NoReverseMatch" % name)
+                        f"Reversal of url named '{name}' failed with "
+                        "NoReverseMatch")
 
     @override_settings(RELATE_SIGN_IN_BY_USERNAME_ENABLED=True,
                        RELATE_SIGN_IN_BY_EMAIL_ENABLED=True)
@@ -1042,8 +1038,7 @@ class SignUpTest(CoursesTestMixinBase, MockAddMessageMixing,
         expected_msg = (
                 "That email address is already in use. "
                 "Would you like to "
-                "<a href='%s'>reset your password</a> instead?"
-                % reverse("relate-reset_password"))
+                "<a href='{}'>reset your password</a> instead?".format(reverse("relate-reset_password")))  # noqa: E501
 
         data = self.get_sign_up_user_dict()
         data["email"] = self.test_user.email
@@ -1544,12 +1539,11 @@ class UserProfileTest(CoursesTestMixinBase, AuthTestMixin,
             pattern = field_div_with_id_pattern % field_name
             if exist:
                 self.assertRegex(resp.content.decode(), pattern,
-                                 msg=("Field Div of '%s' is expected to exist."
-                                      % field_name))
+                             msg=(f"Field Div of '{field_name}' is expected to exist."))
             else:
                 self.assertNotRegex(resp.content.decode(), pattern,
-                                    msg=("Field Div of '%s' is not expected "
-                                         "to exist." % field_name))
+                                    msg=(f"Field Div of '{field_name}' is not expected "
+                                         "to exist."))
 
         with override_settings(
                 RELATE_SHOW_INST_ID_FORM=True, RELATE_SHOW_EDITOR_FORM=True):
@@ -1650,9 +1644,9 @@ class ResetPasswordStageOneTest(CoursesTestMixinBase, MockAddMessageMixing,
 
     def test_reset_by_email_non_exist(self):
         expected_msg = (
-                "That %s doesn't have an "
+                "That {} doesn't have an "
                 "associated user account. Are you "
-                "sure you've registered?" % "email address")
+                "sure you've registered?".format("email address"))
         resp = self.post_reset_password(
             data={"email": "some_email@example.com"})
         self.assertTrue(resp.status_code, 200)
@@ -1661,9 +1655,9 @@ class ResetPasswordStageOneTest(CoursesTestMixinBase, MockAddMessageMixing,
 
     def test_reset_by_instid_non_exist(self):
         expected_msg = (
-                "That %s doesn't have an "
+                "That {} doesn't have an "
                 "associated user account. Are you "
-                "sure you've registered?" % "institutional ID")
+                "sure you've registered?".format("institutional ID"))
         resp = self.post_reset_password(
             data={"instid": "2345"}, use_instid=True)
         self.assertTrue(resp.status_code, 200)
@@ -2189,13 +2183,13 @@ class AuthCourseWithTokenTest(APITestMixin, TestCase):
     def test_basic_auth_success(self):
         resp = self.client.get(
             self.get_test_basic_url(),
-            HTTP_AUTHORIZATION="Basic %s" % self.create_basic_auth())
+            HTTP_AUTHORIZATION=f"Basic {self.create_basic_auth()}")
         self.assertEqual(resp.status_code, 200)
 
     def test_basic_auth_ill_formed(self):
         resp = self.client.get(
             self.get_test_basic_url(),
-            HTTP_AUTHORIZATION="Basic %s" % "foo:barbar")
+            HTTP_AUTHORIZATION="Basic {}".format("foo:barbar"))
         self.assertEqual(resp.status_code, 401)
 
     def test_basic_auth_no_match(self):
@@ -2204,7 +2198,7 @@ class AuthCourseWithTokenTest(APITestMixin, TestCase):
 
         resp = self.client.get(
             self.get_test_basic_url(),
-            HTTP_AUTHORIZATION="Basic %s" % bad_auth_data)
+            HTTP_AUTHORIZATION=f"Basic {bad_auth_data}")
         self.assertEqual(resp.status_code, 401)
 
     def test_basic_auth_user_not_matched(self):
@@ -2215,7 +2209,7 @@ class AuthCourseWithTokenTest(APITestMixin, TestCase):
 
         resp = self.client.get(
             self.get_test_basic_url(),
-            HTTP_AUTHORIZATION="Basic %s" % basic_auth_user_not_matched)
+            HTTP_AUTHORIZATION=f"Basic {basic_auth_user_not_matched}")
         self.assertEqual(resp.status_code, 401)
 
     # }}}

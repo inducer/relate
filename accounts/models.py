@@ -148,8 +148,7 @@ class User(AbstractBaseUser, PermissionsMixin):
             Returns the first_name plus the last_name, with a space in
             between.
             """
-            return "{} {}".format(
-                verbose_blank(first_name), verbose_blank(last_name))
+            return f"{verbose_blank(first_name)} {verbose_blank(last_name)}"
 
         from accounts.utils import relate_user_method_settings
         format_method = relate_user_method_settings.custom_full_name_method

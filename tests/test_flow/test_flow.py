@@ -3532,18 +3532,18 @@ class GetPageBehaviorTest(unittest.TestCase):
     def assertShowCorrectness(self, behavior, perms, show=True):  # noqa
         self.assertEqual(
             behavior.show_correctness, show,
-            "behavior.show_correctness unexpected to be %s with %s"
-            % (not show, ", ".join(perms)))
+            "behavior.show_correctness unexpected to be {} with {}"
+            .format(not show, ", ".join(perms)))
 
     def assertShowAnswer(self, behavior, perms, show=True):  # noqa
         self.assertEqual(behavior.show_answer, show,
-                         "behavior.show_answer unexpected to be %s with %s"
-                         % (not show, ", ".join(perms)))
+                         "behavior.show_answer unexpected to be {} with {}"
+                         .format(not show, ", ".join(perms)))
 
     def assertMayChangeAnswer(self, behavior, perms, may_change=True):  # noqa
         self.assertEqual(behavior.may_change_answer, may_change,
-                         "behavior.may_change_answer unexpected to be %s with %s"
-                         % (not may_change, ", ".join(perms)))
+                         "behavior.may_change_answer unexpected to be {} with {}"
+                         .format(not may_change, ", ".join(perms)))
 
     def test_show_correctness1(self):
         # not expects_answer

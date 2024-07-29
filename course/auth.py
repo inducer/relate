@@ -183,20 +183,11 @@ class UserSearchWidget(ModelSelect2Widget):
     def label_from_instance(self, u):
         if u.first_name and u.last_name:
             return (
-                    "%(full_name)s (%(username)s - %(email)s)"
-                    % {
-                        "full_name": u.get_full_name(),
-                        "email": u.email,
-                        "username": u.username
-                        })
+                    f"{u.get_full_name()} ({u.username} - {u.email})")
         else:
             # for users with "None" fullname
             return (
-                    "%(username)s (%(email)s)"
-                    % {
-                        "email": u.email,
-                        "username": u.username
-                        })
+                    f"{u.username} ({u.email})")
 
 
 class ImpersonateForm(StyledForm):
@@ -512,7 +503,7 @@ def sign_up(request):
 
                 from django.core.mail import EmailMessage
                 msg = EmailMessage(
-                        string_concat("[%s] " % _(get_site_name()),
+                        string_concat(f"[{_(get_site_name())}] ",
                                       _("Verify your email")),
                         message,
                         getattr(settings, "NO_REPLY_EMAIL_FROM",
@@ -651,7 +642,7 @@ def reset_password(request, field="email"):
                             })
                         from django.core.mail import EmailMessage
                         msg = EmailMessage(
-                                string_concat("[%s] " % _(get_site_name()),
+                                string_concat(f"[{_(get_site_name())}] ",
                                               _("Password reset")),
                                 message,
                                 getattr(settings, "NO_REPLY_EMAIL_FROM",
@@ -966,8 +957,7 @@ class UserForm(StyledModelForm):
         self.helper.add_input(
                 Button("signout", _("Sign out"), css_class="btn btn-danger",
                        onclick=(
-                           "window.location.href='%s'"
-                           % reverse("relate-logout"))))
+                           "window.location.href='{}'".format(reverse("relate-logout")))))
 
         # }}}
 
@@ -1348,7 +1338,7 @@ def auth_course_with_token(method, func, request,
             realm = _(f"Relate direct git access for {course_identifier}")
             response = http.HttpResponse("Forbidden: " + str(e),
                         content_type="text/plain")
-            response["WWW-Authenticate"] = 'Basic realm="%s"' % (realm)
+            response["WWW-Authenticate"] = f'Basic realm="{realm}"'
             response.status_code = 401
             return response
 

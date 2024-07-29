@@ -339,8 +339,7 @@ def export_gradebook_csv(pctx):
             csvfile.getvalue().encode("utf-8"),
             content_type="text/plain; charset=utf-8")
     response["Content-Disposition"] = (
-            'attachment; filename="grades-%s.csv"'
-            % pctx.course.identifier)
+            f'attachment; filename="grades-{pctx.course.identifier}.csv"')
     return response
 
 # }}}
@@ -1615,8 +1614,7 @@ def download_all_submissions(pctx, flow_id):
                         feedback_lines = []
 
                         feedback_lines.append(
-                            "scores: %s" % (
-                                ", ".join(
+                            "scores: {}".format(", ".join(
                                     str(g.correctness)
                                     for g in visit_grades)))
 
@@ -1640,9 +1638,9 @@ def download_all_submissions(pctx, flow_id):
                     bio.getvalue(),
                     content_type="application/zip")
             response["Content-Disposition"] = (
-                    'attachment; filename="submissions_%s_%s_%s_%s_%s.zip"'
-                    % (pctx.course.identifier, flow_id, group_id, page_id,
-                        now().date().strftime("%Y-%m-%d")))
+                    f'attachment; filename="submissions_{pctx.course.identifier}_'
+                    f'{flow_id}_{group_id}_{page_id}_'
+                    f'{now().date().strftime("%Y-%m-%d")}.zip"')
             return response
 
     else:

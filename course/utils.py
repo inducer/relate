@@ -770,9 +770,8 @@ def instantiate_flow_page_with_ctx(
 
     from course.content import instantiate_flow_page
     return instantiate_flow_page(
-            "course '%s', flow '%s', page '%s/%s'"
-            % (fctx.course.identifier, fctx.flow_id,
-                page_data.group_id, page_data.page_id),
+            f"course '{fctx.course.identifier}', "
+            f"flow '{fctx.flow_id}', page '{page_data.group_id}/{page_data.page_id}'",
             fctx.repo, page_desc, fctx.course_commit_sha)
 
 # }}}
@@ -803,7 +802,7 @@ class ParticipationPermissionWrapper:
         try:
             getattr(participation_permission, perm)
         except AttributeError:
-            raise ValueError("permission name '%s' not valid" % perm)
+            raise ValueError(f"permission name '{perm}' not valid")
 
         return self.pctx.has_permission(perm, ANY_ARGUMENT)
 
@@ -880,8 +879,9 @@ class PageInstanceCache:
                     group_id, page_id)
 
             page = instantiate_flow_page(
-                    location="flow '%s', group, '%s', page '%s'"
-                    % (self.flow_id, group_id, page_id),
+                    location=(
+                        f"flow '{self.flow_id}', "
+                        f"group '{group_id}', page '{page_id}'"),
                     repo=self.repo, page_desc=page_desc,
                     commit_sha=commit_sha)
 
@@ -900,9 +900,9 @@ class JsLiteral:
 
 def repr_js(obj: Any) -> str:
     if isinstance(obj, list):
-        return "[%s]" % ", ".join(repr_js(ch) for ch in obj)
+        return "[{}]".format(", ".join(repr_js(ch) for ch in obj))
     elif isinstance(obj, dict):
-        return "{%s}" % ", ".join(f"{k}: {repr_js(v)}" for k, v in obj.items())
+        return "{{{}}}".format(", ".join(f"{k}: {repr_js(v)}" for k, v in obj.items()))
     elif isinstance(obj, bool):
         return repr(obj).lower()
     elif isinstance(obj, int | float):
@@ -1097,7 +1097,7 @@ def csv_data_importable(file_contents, column_idx_list, header_count):
         return False, (
             string_concat(
                 pgettext_lazy("Starting of Error message", "Error"),
-                ": %s" % err_msg))
+                f": {err_msg}"))
 
     from itertools import chain
 
@@ -1166,7 +1166,7 @@ def get_course_specific_language_choices() -> tuple[tuple[str, Any], ...]:
         else:
             formatted_descr = _("disabled (i.e., displayed language is "
                                 "determined by user's browser preference)")
-        return "", string_concat("%s: " % _("Default"), formatted_descr)
+        return "", string_concat("{}: ".format(_("Default")), formatted_descr)
 
     def get_formatted_options(
             lang_code: str, lang_descr: str | None) -> tuple[str, str]:
@@ -1180,7 +1180,7 @@ def get_course_specific_language_choices() -> tuple[tuple[str, Any], ...]:
                     return (lang_code.strip(), lang_code)
 
         return (lang_code.strip(),
-                string_concat(_(lang_descr), " (%s)" % lang_code))
+                string_concat(_(lang_descr), f" ({lang_code})"))
 
     filtered_options = (
         [get_default_option()]

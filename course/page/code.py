@@ -206,7 +206,7 @@ def request_run(run_req, run_timeout, image=None):
 
     # The following is necessary because tests don't arise from a CodeQuestion
     # object, so we provide a fallback.
-    debug_print("Image is %s." % repr(image))
+    debug_print(f"Image is {image!r}.")
     if image is None:
         image = settings.RELATE_DOCKER_RUNPY_IMAGE
 
@@ -341,8 +341,8 @@ def request_run(run_req, run_timeout, image=None):
             result = json.loads(response_data)
 
             result["feedback"] = ([*result.get("feedback", []),
-                "Execution time: %.1f s -- Time limit: %.1f s" % (
-                    end_time - start_time, run_timeout)])
+                f"Execution time: {end_time - start_time:.1f} s "
+                f"-- Time limit: {run_timeout:.1f} s"])
 
             result["exec_host"] = connect_host_ip
 
@@ -793,13 +793,12 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
             correctness = response_dict["points"]
             try:
                 feedback_bits.append(
-                        "<p><b>%s</b></p>"
-                        % _(get_auto_feedback(correctness)))
+                        f"<p><b>{_(get_auto_feedback(correctness))}</b></p>")
             except Exception as e:
                 correctness = None
                 response_dict["result"] = "setup_error"
                 response_dict["message"] = (
-                    "{}: {}".format(type(e).__name__, str(e))
+                    f"{type(e).__name__}: {e!s}"
                 )
 
         # {{{ send email if the grading code broke
@@ -810,7 +809,7 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
                 "setup_error",
                 "test_compile_error",
                 "test_error"]:
-            error_msg_parts = ["RESULT: %s" % response_dict["result"]]
+            error_msg_parts = ["RESULT: {}".format(response_dict["result"])]
             for key, val in sorted(response_dict.items()):
                 if (key not in ["result", "figures"]
                         and val
@@ -897,9 +896,9 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
             if (normalize_code(user_code)
                     == normalize_code(self.page_desc.correct_code)):
                 feedback_bits.append(
-                        "<p><b>%s</b></p>"
-                        % _("It looks like you submitted code that is identical to "
-                            "the reference solution. This is not allowed."))
+                        "<p><b>{}</b></p>".format(
+                            _("It looks like you submitted code that is identical to "
+                            "the reference solution. This is not allowed.")))
 
         from relate.utils import dict_to_struct
         response = dict_to_struct(response_dict)
@@ -955,7 +954,7 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
 
             correctness = 0
         else:
-            raise RuntimeError("invalid run result: %s" % response.result)
+            raise RuntimeError(f"invalid run result: {response.result}")
 
         if hasattr(response, "feedback") and response.feedback:
             def sanitize(s):
@@ -967,7 +966,7 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
                 ":"
                 "<ul>%s</ul></p>"]) %
                         "".join(
-                            "<li>%s</li>" % sanitize(fb_item)
+                            f"<li>{sanitize(fb_item)}</li>"
                             for fb_item in response.feedback))
         if hasattr(response, "traceback") and response.traceback:
             feedback_bits.append("".join([
@@ -1062,7 +1061,7 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
         normalized_answer = self.get_code_from_answer_data(answer_data)
 
         from django.utils.html import escape
-        return "<pre>%s</pre>" % escape(normalized_answer)
+        return f"<pre>{escape(normalized_answer)}</pre>"
 
     def normalized_bytes_answer(self, page_context, page_data, answer_data):
         if answer_data is None:

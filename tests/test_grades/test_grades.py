@@ -170,8 +170,7 @@ class GradesTestMixin(SingleCoursePageTestMixin, MockAddMessageMixing):
             expected_percentage = None
 
         not_equal_msg = (
-                "%s does not have equal value with '%s'"
-                % (state_string, str(expected_percentage))
+            f"{state_string} does not have equal value with '{expected_percentage!s}'"
         )
 
         if percentage is not None and expected_percentage is not None:
@@ -1580,7 +1579,7 @@ class ViewSingleGradeTest(GradesTestMixin, TestCase):
                 self.assertEqual(resp.status_code, 200)
                 self.assertAddMessageNotCalledWith(msg, reset=False)
                 self.assertAddMessageCalledWith(
-                    "Error: KeyboardInterrupt %s" % err, reset=True)
+                    f"Error: KeyboardInterrupt {err}", reset=True)
 
                 mock_func.reset_mock()
 

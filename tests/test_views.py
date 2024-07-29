@@ -1377,10 +1377,8 @@ class GrantExceptionStage2Test(GrantExceptionTestMixin, TestCase):
                              0)
             self.assertAddMessageCallCount(1)
             self.assertAddMessageCalledWith(
-                "A new session was created for '%(participation)s' "
-                "for '%(flow_id)s'."
-                % {"participation": self.student_participation,
-                   "flow_id": self.flow_id})
+                f"A new session was created for '{self.student_participation}' "
+                f"for '{self.flow_id}'.")
 
     def test_exist_session_has_tags(self):
         another_fs_tag = "my_tag1"
@@ -1395,7 +1393,7 @@ class GrantExceptionStage2Test(GrantExceptionTestMixin, TestCase):
 
         # stringified session name, the first is not tagged, the second is tagged
         self.assertNotIn("tagged", choices[0][1])
-        self.assertIn("tagged '%s'" % another_fs_tag, choices[1][1])
+        self.assertIn(f"tagged '{another_fs_tag}'", choices[1][1])
 
         resp = self.post_grant_exception_stage_2_view(
             data=self.get_default_post_data(session=another_fs.pk))
@@ -1447,11 +1445,8 @@ class GrantExceptionStage2Test(GrantExceptionTestMixin, TestCase):
             self.assertEqual(all_fs.filter(access_rules_tag=tag_session).count(), 1)
             self.assertAddMessageCallCount(1)
             self.assertAddMessageCalledWith(
-                "A new session tagged '%(tag)s' was created for "
-                "'%(participation)s' for '%(flow_id)s'."
-                % {"tag": tag_session,
-                   "participation": self.student_participation,
-                   "flow_id": self.flow_id})
+                f"A new session tagged '{tag_session}' was created for "
+                f"'{self.student_participation}' for '{self.flow_id}'.")
 
     def test_start_rule_has_tag_session_with_in_flow_desc_arule_tags(self):
         flow_desc_access_rule_tags = ["my_tag1", "my_tag2"]
@@ -1695,7 +1690,7 @@ class GrantExceptionStage3Test(GrantExceptionTestMixin, TestCase):
             self.assertAddMessageCallCount(2)
             self.assertAddMessageCalledWith(
                 ["Access rules tag of the selected session updated "
-                 "to '%s'." % flow_desc_access_rule_tags[1],
+                 f"to '{flow_desc_access_rule_tags[1]}'.",
                  "'Session Access' exception granted to "], reset=True)
             self.fs.refresh_from_db()
             self.assertEqual(self.fs.access_rules_tag, flow_desc_access_rule_tags[1])
@@ -1877,7 +1872,7 @@ class GrantExceptionStage3Test(GrantExceptionTestMixin, TestCase):
             self.assertAddMessageCallCount(2)
             self.assertAddMessageCalledWith(
                 ["Access rules tag of the selected session updated "
-                 "to '%s'." % flow_desc_access_rule_tags[1],
+                 f"to '{flow_desc_access_rule_tags[1]}'.",
                  "No other exception granted to "], reset=True)
             self.fs.refresh_from_db()
             self.assertEqual(self.fs.access_rules_tag, flow_desc_access_rule_tags[1])

@@ -279,9 +279,7 @@ class FileUploadQuestion(PageBaseWithTitle, PageBaseWithValue,
             from base64 import b64encode
             subm_data, subm_mime = self.get_content_from_answer_data(answer_data)
             ctx["mime_type"] = subm_mime
-            ctx["data_url"] = "data:{};base64,{}".format(
-                subm_mime,
-                b64encode(subm_data).decode())
+            ctx["data_url"] = f"data:{subm_mime};base64,{b64encode(subm_data).decode()}"
 
         from django.template.loader import render_to_string
         return render_to_string(

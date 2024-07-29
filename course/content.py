@@ -1139,7 +1139,7 @@ class TagProcessingHTMLParser(html_parser.HTMLParser):
             _attr_to_string(k, v) for k, v in attrs.items())))
 
     def handle_endtag(self, tag):
-        self.out_file.write("</%s>" % tag)
+        self.out_file.write(f"</{tag}>")
 
     def handle_startendtag(self, tag, attrs):
         attrs = dict(attrs)
@@ -1152,23 +1152,23 @@ class TagProcessingHTMLParser(html_parser.HTMLParser):
         self.out_file.write(data)
 
     def handle_entityref(self, name):
-        self.out_file.write("&%s;" % name)
+        self.out_file.write(f"&{name};")
 
     def handle_charref(self, name):
-        self.out_file.write("&#%s;" % name)
+        self.out_file.write(f"&#{name};")
 
     def handle_comment(self, data):
-        self.out_file.write("<!--%s-->" % data)
+        self.out_file.write(f"<!--{data}-->")
 
     def handle_decl(self, decl):
-        self.out_file.write("<!%s>" % decl)
+        self.out_file.write(f"<!{decl}>")
 
     def handle_pi(self, data):
         raise NotImplementedError(
                 _("I have no idea what a processing instruction is."))
 
     def unknown_decl(self, data):
-        self.out_file.write("<![%s]>" % data)
+        self.out_file.write(f"<![{data}]>")
 
 
 class PreserveFragment:
@@ -1686,7 +1686,7 @@ def parse_date_spec(
 
     if vctx is not None:
         from course.validation import validate_identifier
-        validate_identifier(vctx, "%s: event kind" % location, event_kind)
+        validate_identifier(vctx, f"{location}: event kind", event_kind)
 
     if course is None:
         return now()
@@ -1883,7 +1883,7 @@ def get_flow_desc(
     """
 
     # FIXME: extension should be case-insensitive
-    flow_desc = get_yaml_from_repo(repo, "flows/%s.yml" % flow_id, commit_sha,
+    flow_desc = get_yaml_from_repo(repo, f"flows/{flow_id}.yml", commit_sha,
             tolerate_tabs=tolerate_tabs)
 
     flow_desc = normalize_flow_desc(flow_desc)
@@ -1995,9 +1995,8 @@ def get_course_commit_sha(
         except KeyError:
             if raise_on_nonexistent_preview_commit:
                 raise CourseCommitSHADoesNotExist(
-                    _("Preview revision '%s' does not exist--"
-                      "showing active course content instead."
-                      % commit_sha))
+                    _("Preview revision '{}' does not exist--"
+                      "showing active course content instead.").format(commit_sha))
             return False
 
         return True

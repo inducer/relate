@@ -232,7 +232,7 @@ def enroll_view(
         if suffix.startswith("@"):
             return email.endswith(suffix)
         else:
-            return email.endswith("@%s" % suffix) or email.endswith(".%s" % suffix)
+            return email.endswith(f"@{suffix}") or email.endswith(f".{suffix}")
 
     if (preapproval is None
         and course.enrollment_required_email_suffix
@@ -484,7 +484,7 @@ def create_preapprovals(pctx):
                 if not ln:
                     continue
 
-                preapp_filter_kwargs = {"%s__iexact" % preapp_type: ln}
+                preapp_filter_kwargs = {f"{preapp_type}__iexact": ln}
 
                 try:
                     ParticipationPreapproval.objects.get(
@@ -492,7 +492,7 @@ def create_preapprovals(pctx):
                 except ParticipationPreapproval.DoesNotExist:
 
                     # approve if ln is requesting enrollment
-                    user_filter_kwargs = {"user__%s__iexact" % preapp_type: ln}
+                    user_filter_kwargs = {f"user__{preapp_type}__iexact": ln}
                     if preapp_type == "institutional_id":
                         if pctx.course.preapproval_require_verified_inst_id:
                             user_filter_kwargs.update(

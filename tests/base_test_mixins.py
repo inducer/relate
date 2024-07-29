@@ -195,8 +195,8 @@ SELECT2_HTML_FIELD_ID_SEARCH_PATTERN = re.compile(r'data-field_id="([^"]+)"')
 def git_source_url_to_cache_keys(url):
     url_hash = hashlib.md5(url.encode("utf-8")).hexdigest()
     return (
-        "test_course:%s" % url_hash,
-        "test_sha:%s" % url_hash
+        f"test_course:{url_hash}",
+        f"test_sha:{url_hash}"
     )
 
 
@@ -239,7 +239,7 @@ class ResponseContextMixin:
         try:
             value = response.context[context_name]
         except KeyError:
-            self.fail("%s does not exist in given response" % context_name)
+            self.fail(f"{context_name} does not exist in given response")
         else:
             return value
 
@@ -250,7 +250,7 @@ class ResponseContextMixin:
         except KeyError:
             has_context = False
         if has_context:
-            self.fail("%s unexpectedly exist in given response" % context_name)
+            self.fail(f"{context_name} unexpectedly exist in given response")
 
     def assertResponseContextIsNone(self, resp, context_name):  # noqa
         try:
@@ -352,14 +352,11 @@ class ResponseContextMixin:
                 self.assertIsNone(answer_feedback.correctness)
         else:
             if answer_feedback.correctness is None:
-                return self.fail("The returned correctness is None, not %s"
-                          % expected_correctness)
+                return self.fail(f"The returned correctness is None, not {expected_correctness}")  # noqa: E501
             self.assertTrue(
                 abs(float(answer_feedback.correctness)
                     - float(str(expected_correctness))) < CORRECTNESS_ATOL,
-                "%s does not equal %s"
-                % (str(answer_feedback.correctness)[:5],
-                   str(expected_correctness)[:5]))
+                f"{str(answer_feedback.correctness)[:5]} does not equal {str(expected_correctness)[:5]}")  # noqa: E501
 
     def get_response_body(self, response):
         return self.get_response_context_value_by_name(response, "body")
@@ -373,8 +370,7 @@ class ResponseContextMixin:
     def debug_print_response_context_value(self, resp, context_name):
         try:
             value = self.get_response_context_value_by_name(resp, context_name)
-            print("\n-----------context %s-------------"
-                  % context_name)
+            print(f"\n-----------context {context_name}-------------")
             if isinstance(value, list | tuple):
                 from course.validation import ValidationWarning
                 for v in value:
@@ -386,17 +382,16 @@ class ResponseContextMixin:
                 print(value)
             print("-----------context end-------------\n")
         except AssertionError:
-            print("\n-------no value for context %s----------" % context_name)
+            print(f"\n-------no value for context {context_name}----------")
 
     def get_select2_field_id_from_response(self, response,
                                            form_context_name="form"):
         self.assertResponseContextIsNotNone(
             response, form_context_name,
-            "The response doesn't contain a context named '%s'"
-            % form_context_name)
+            f"The response doesn't contain a context named '{form_context_name}'")
         form_str = str(response.context[form_context_name])
         m = SELECT2_HTML_FIELD_ID_SEARCH_PATTERN.search(form_str)
-        assert m, "pattern not found in %s" % form_str
+        assert m, f"pattern not found in {form_str}"
         return m.group(1)
 
     def select2_get_request(self, field_id, term=None,
@@ -542,10 +537,9 @@ class SuperuserCreateMixin(ResponseContextMixin):
         querystring = kwargs.pop("querystring", None)
         if querystring is not None:
             assert isinstance(querystring, dict)
-            url += ("?%s"
-                    % "&".join(
+            url += ("?{}".format("&".join(
                         [f"{k}={v}"
-                         for (k, v) in querystring.items()]))
+                         for (k, v) in querystring.items()])))
         return url
 
     def get_reset_password_stage2(self, user_id, sign_in_key, **kwargs):
@@ -638,14 +632,14 @@ class SuperuserCreateMixin(ResponseContextMixin):
 
         if form_errors is None or not form_errors:
             if errors:
-                self.fail("%s has no error" % form_name)
+                self.fail(f"{form_name} has no error")
             else:
                 return
 
         if form_errors:
             if not errors:
-                self.fail("%s unexpectedly has following errors: %s"
-                          % (form_name, repr(form_errors)))
+                self.fail(
+                    f"{form_name} unexpectedly has following errors: {form_errors!r}")
 
         for err in errors:
             self.assertIn(err, form_errors)
@@ -848,9 +842,8 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
                 error_list = []
                 if form_context.errors:
                     error_list = [
-                        "%s: %s"
-                        % (field,
-                           "\n".join(["{}:{}".format(type(e).__name__, str(e))
+                        "{}: {}".format(field,
+                           "\n".join([f"{type(e).__name__}:{e!s}"
                                       for e in errs]))
                         for field, errs
                         in form_context.errors.as_data().items()]
@@ -1377,7 +1370,7 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
             "relate-view_flow_page",
             page_ordinal, course_identifier, flow_session_id)
         if visit_id is not None:
-            url += "?visit_id=%s" % str(visit_id)
+            url += f"?visit_id={visit_id!s}"
 
         return url
 
@@ -1497,13 +1490,13 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
         if expected_score is not None:
             from decimal import Decimal
             assert flow_session.points == Decimal(str(expected_score)), (
-                "The flow session got '%s' in stead of '%s'"
-                % (str(flow_session.points), str(Decimal(str(expected_score))))
+                f"The flow session got '{flow_session.points!s}' "
+                f"instead of '{Decimal(str(expected_score))!s}'"
             )
         else:
             assert flow_session.points is None, (
-                    "This flow session unexpectedly got %s instead of None"
-                    % flow_session.points)
+                f"This flow session unexpectedly got {flow_session.points} "
+                "instead of None")
 
     @classmethod
     def get_page_submit_history_url_by_ordinal(
@@ -1840,7 +1833,7 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
             "course_identifier": course_identifier}
         result = reverse("relate-flow_analytics", kwargs=kwargs)
         if restrict_to_first_attempt:
-            result += "?restrict_to_first_attempt=%s" % restrict_to_first_attempt
+            result += f"?restrict_to_first_attempt={restrict_to_first_attempt}"
         return result
 
     def get_flow_analytics_view(self, flow_id, course_identifier=None,
@@ -2196,10 +2189,9 @@ class SingleCourseQuizPageTestMixin(SingleCoursePageTestMixin):
                         assert len([f for f in zf.filelist if
                                     f.filename.endswith(dl_file_extension)]) > 0, \
                             ("The zipped file unexpectedly didn't contain "
-                             "file with extension '%s', the actual file list "
-                             "is %s" % (
-                                 dl_file_extension,
-                                 repr([f.filename for f in zf.filelist])))
+                             f"file with extension '{dl_file_extension}', "
+                             "the actual file list "
+                             f"is {[f.filename for f in zf.filelist]!r}")
                     else:
                         assert (
                                 len([f for f in zf.filelist if
@@ -2333,10 +2325,7 @@ class SingleCourseQuizPageTestMixin(SingleCoursePageTestMixin):
                     submit_answer_response.context["form"].as_p()
 
                     assert (submit_answer_response.status_code
-                            == expected_post_answer_status_code), (
-                            "{} != {}".format(submit_answer_response.status_code,
-                                          expected_post_answer_status_code))
-
+                            == expected_post_answer_status_code)
                     if ensure_analytic_page_get_after_submission:
                         cls.ensure_analytic_page_get(client, group_id, page_id)
 
@@ -2511,10 +2500,10 @@ class MockAddMessageMixing:
     def _get_added_messages(self, join=True):
         try:
             msgs = [
-                "'%s'" % str(arg[2])
+                f"'{arg[2]!s}'"
                 for arg, _ in self._mock_add_message.call_args_list]
         except IndexError:
-            self.fail("%s is unexpectedly not called." % self._fake_add_message_path)
+            self.fail(f"{self._fake_add_message_path} is unexpectedly not called.")
         else:
             if join:
                 return "; ".join(msgs)
@@ -2526,8 +2515,8 @@ class MockAddMessageMixing:
             (self._fake_add_message_path, self._mock_add_message.call_count,
              expected_call_count))
         if self._mock_add_message.call_count > 0:
-            fail_msg += ("The called messages are: %s"
-                         % repr(self._get_added_messages(join=False)))
+            fail_msg += (
+                f"The called messages are: {self._get_added_messages(join=False)!r}")
         self.assertEqual(
             self._mock_add_message.call_count, expected_call_count, msg=fail_msg)
         if reset:
@@ -2545,9 +2534,9 @@ class MockAddMessageMixing:
                 not_called.append(msg)
 
         if not_called:
-            fail_msg = "%s unexpectedly not added in messages. " % repr(not_called)
+            fail_msg = f"{not_called!r} unexpectedly not added in messages. "
             if joined_msgs:
-                fail_msg += 'the actual message are "%s"' % joined_msgs
+                fail_msg += f'the actual message are "{joined_msgs}"'
             self.fail(fail_msg)
         if reset:
             self._mock_add_message.reset_mock()
@@ -2564,8 +2553,8 @@ class MockAddMessageMixing:
                 called.append(msg)
 
         if called:
-            fail_msg = "%s unexpectedly added in messages. " % repr(called)
-            fail_msg += 'the actual message are "%s"' % joined_msgs
+            fail_msg = f"{called!r} unexpectedly added in messages. "
+            fail_msg += f'the actual message are "{joined_msgs}"'
             self.fail(fail_msg)
         if reset:
             self._mock_add_message.reset_mock()
@@ -2773,7 +2762,7 @@ class APITestMixin(SingleCoursePageTestMixin):
         url = reverse("relate-course_get_flow_session", kwargs=kwargs)
 
         if flow_id:
-            url += "?flow_id=%s" % flow_id
+            url += f"?flow_id={flow_id}"
         return url
 
     def get_get_flow_session_content_url(
@@ -2790,7 +2779,7 @@ class APITestMixin(SingleCoursePageTestMixin):
         url = reverse("relate-course_get_flow_session_content", kwargs=kwargs)
 
         if flow_session_id:
-            url += "?flow_session_id=%s" % flow_session_id
+            url += f"?flow_session_id={flow_session_id}"
         return url
 
     def create_token(self, token_hash_str=None, participation=None, **kwargs):
@@ -2811,9 +2800,7 @@ class APITestMixin(SingleCoursePageTestMixin):
         participation = participation or self.instructor_participation
         user = user or participation.user
         token = token or self.create_token(participation=participation)
-        basic_auth_str = "{}:{}_{}".format(
-            user.username,
-            token.id, self.default_token_hash_str)
+        basic_auth_str = f"{user.username}:{token.id}_{self.default_token_hash_str}"
 
         from base64 import b64encode
         return b64encode(basic_auth_str.encode("utf-8")).decode()
@@ -2876,9 +2863,9 @@ class HackRepoMixin:
         assert isinstance(grade_info, GradeInfo)
         if not expected_grade_info_dict:
             import json
-            error_msg = ("\n%s" % json.dumps(OrderedDict(
+            error_msg = ("\n{}".format(json.dumps(OrderedDict(
                 sorted(grade_info.__dict__.items())),
-                indent=4))
+                indent=4)))
             error_msg = error_msg.replace("null", "None")
             self.fail(error_msg)
 
@@ -2889,9 +2876,7 @@ class HackRepoMixin:
         for k in grade_info_dict.keys():
             if grade_info_dict[k] != expected_grade_info_dict[k]:
                 not_match_infos.append(
-                    "'%s' is expected to be %s, while got %s"
-                    % (k, str(expected_grade_info_dict[k]),
-                       str(grade_info_dict[k])))
+                    f"'{k}' is expected to be {expected_grade_info_dict[k]!s}, while got {grade_info_dict[k]!s}")  # noqa: E501
 
         if not_match_infos:
             self.fail("\n".join(not_match_infos))

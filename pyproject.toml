@@ -195,8 +195,6 @@ extend-ignore = [
     "B904", # raise in except needs from
     "B028", # stacklevel
     "RUF012", # mutable class atttributes
-    "UP031", # format
-    "UP032", # f-string
 ]
 allowed-confusables = ["‐", "–"]
 

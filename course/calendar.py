@@ -50,14 +50,14 @@ class ListTextWidget(forms.TextInput):
         super().__init__(*args, **kwargs)
         self._name = name
         self._list = data_list
-        self.attrs.update({"list": "list__%s" % self._name})
+        self.attrs.update({"list": f"list__{self._name}"})
 
     def render(self, name, value, attrs=None, renderer=None):
         text_html = super().render(
             name, value, attrs=attrs, renderer=renderer)
-        data_list = '<datalist id="list__%s">' % self._name
+        data_list = f'<datalist id="list__{self._name}">'
         for item in self._list:
-            data_list += '<option value="{}">{}</option>'.format(item[0], item[1])
+            data_list += f'<option value="{item[0]}">{item[1]}</option>'
         data_list += "</datalist>"
 
         return mark_safe(text_html + data_list)

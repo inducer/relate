@@ -150,9 +150,8 @@ def _adjust_flow_session_page_data_inner(
     def instantiate_page(page_desc: FlowPageDesc) -> PageBase:
         from course.content import instantiate_flow_page
         return instantiate_flow_page(
-                "course '%s', flow '%s', page '%s/%s'"
-                % (course_identifier, flow_session.flow_id,
-                    grp.id, page_desc.id),
+                f"course '{course_identifier}', flow '{flow_session.flow_id}', "
+                f"page '{grp.id}/{page_desc.id}'",
                 repo, page_desc, commit_sha)
 
     def create_fpd(new_page_desc: FlowPageDesc) -> FlowPageData:
@@ -363,8 +362,8 @@ def grade_page_visit(visit: FlowPageVisit,
                 page_data.group_id, page_data.page_id)
 
         page = instantiate_flow_page(
-                location="flow '%s', group, '%s', page '%s'"
-                % (flow_session.flow_id, page_data.group_id, page_data.page_id),
+                location=(f"flow '{flow_session.flow_id}', "
+                    f"group, '{page_data.group_id}', page '{page_data.page_id}'"),
                 repo=repo, page_desc=page_desc,
                 commit_sha=course_commit_sha)
 
@@ -1897,8 +1896,7 @@ def view_flow_page(
                             "DATETIME_FORMAT"),
                     }
                     + '<a class="btn btn-secondary btn-sm" href="?" '
-                    'role="button">&laquo; %s</a>'
-                    % _("Go back")))
+                    'role="button">&laquo; {}</a>'.format(_("Go back"))))
 
             prev_visit_id = answer_visit.id
 

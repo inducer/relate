@@ -65,7 +65,7 @@ def do_get_current_js_lang_name(parser, token):
     args = token.contents.split()
     if len(args) != 3 or args[1] != "as":
         raise TemplateSyntaxError("'get_current_js_lang_name' requires "
-                "'as variable' (got %r)" % args)
+                f"'as variable' (got {args!r})")
     return GetCurrentLanguageJsFmtNode(args[2])
 
 # }}}

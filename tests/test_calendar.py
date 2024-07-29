@@ -221,7 +221,7 @@ class CreateRecurringEventsTest(SingleCourseTestMixin,
         self.assertEqual(Event.objects.count(), 0)
         self.assertAddMessageCallCount(1)
         self.assertAddMessageCalledWith(
-            "RuntimeError: %s. No events created." % error_msg)
+            f"RuntimeError: {error_msg}. No events created.")
 
     def test_event_save_other_validation_error(self):
         error_msg = "my unknown validation error for end_time"

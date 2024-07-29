@@ -1174,7 +1174,7 @@ class CreatePreapprovalsTest(EnrollmentTestMixin,
         factories.ParticipationFactory(
             course=self.course, user=user, status=p_status.requested
         )
-        approval_data = "%s\n  \n cde@foo.com\n  \n" % user.email.upper()
+        approval_data = f"{user.email.upper()}\n  \n cde@foo.com\n  \n"
         resp = self.post_preapproval(
             "email",
             approval_data)
@@ -1253,8 +1253,7 @@ class CreatePreapprovalsTest(EnrollmentTestMixin,
             course=self.course, user=user1, status=p_status.requested)
         factories.ParticipationFactory(
             course=self.course, user=user2, status=p_status.requested)
-        approval_data = "{}\n  \ncde \n  {}\n".format(
-            user1.institutional_id.upper(), user2.institutional_id)
+        approval_data = f"{user1.institutional_id.upper()}\n  \ncde \n  {user2.institutional_id}\n"  # noqa: E501
 
         resp = self.post_preapproval(
             "institutional_id",
@@ -1303,8 +1302,7 @@ class CreatePreapprovalsTest(EnrollmentTestMixin,
             course=self.course, user=user1, status=p_status.requested)
         factories.ParticipationFactory(
             course=self.course, user=user2, status=p_status.requested)
-        approval_data = "{}\n  \ncde \n  {}\n".format(
-            user1.institutional_id, user2.institutional_id)
+        approval_data = f"{user1.institutional_id}\n  \ncde \n  {user2.institutional_id}\n"  # noqa: E501
 
         resp = self.post_preapproval(
             "institutional_id",
@@ -1654,7 +1652,7 @@ class QueryParticipationsParseQueryTest(QueryParticipationsTestMixin, TestCase):
             resp, "result", [self.participations[0]])
 
     def test_user_email_equal(self):
-        queries = "email:%s" % self.participations[0].user.email
+        queries = f"email:{self.participations[0].user.email}"
 
         resp = self.post_query_participation(queries)
         self.assertEqual(resp.status_code, 200)
@@ -1670,7 +1668,7 @@ class QueryParticipationsParseQueryTest(QueryParticipationsTestMixin, TestCase):
         self.assertSetEqual(set(result), set(self.participations))
 
     def test_username_equal(self):
-        queries = "username:%s" % self.participations[0].user.username
+        queries = f"username:{self.participations[0].user.username}"
 
         resp = self.post_query_participation(queries)
         self.assertEqual(resp.status_code, 200)
@@ -1686,8 +1684,7 @@ class QueryParticipationsParseQueryTest(QueryParticipationsTestMixin, TestCase):
         self.assertSetEqual(set(result), set(self.participations))
 
     def test_inst_id_equal(self):
-        queries = "institutional-id:%s" % (
-            self.participations[0].user.institutional_id)
+        queries = f"institutional-id:{self.participations[0].user.institutional_id}"
 
         resp = self.post_query_participation(queries)
         self.assertEqual(resp.status_code, 200)
@@ -1703,8 +1700,7 @@ class QueryParticipationsParseQueryTest(QueryParticipationsTestMixin, TestCase):
         self.assertSetEqual(set(result), set(self.participations))
 
     def test_tagged(self):
-        queries = "tagged:%s" % (
-            self.participations[0].tags.all()[0].name)
+        queries = f"tagged:{self.participations[0].tags.all()[0].name}"
 
         resp = self.post_query_participation(queries)
         self.assertEqual(resp.status_code, 200)
@@ -1712,8 +1708,7 @@ class QueryParticipationsParseQueryTest(QueryParticipationsTestMixin, TestCase):
             resp, "result", [self.participations[0]])
 
     def test_tagged2(self):
-        queries = "tagged:%s" % (
-            self.participations[1].tags.all()[0].name)
+        queries = f"tagged:{self.participations[1].tags.all()[0].name}"
 
         resp = self.post_query_participation(queries)
         self.assertEqual(resp.status_code, 200)
@@ -1721,8 +1716,7 @@ class QueryParticipationsParseQueryTest(QueryParticipationsTestMixin, TestCase):
             resp, "result", self.participations[1:])
 
     def test_role(self):
-        queries = "role:%s" % (
-            self.participations[1].roles.all()[0].identifier)
+        queries = f"role:{self.participations[1].roles.all()[0].identifier}"
         resp = self.post_query_participation(queries)
         self.assertEqual(resp.status_code, 200)
         result = resp.context["result"]
@@ -1750,7 +1744,7 @@ class QueryParticipationsParseQueryTest(QueryParticipationsTestMixin, TestCase):
         with self.temporarily_switch_to_user(self.participations[2].user):
             self.start_flow(self.flow_id)
 
-        queries = "has-started:%s" % self.flow_id
+        queries = f"has-started:{self.flow_id}"
 
         resp = self.post_query_participation(queries)
         self.assertEqual(resp.status_code, 200)
@@ -1764,7 +1758,7 @@ class QueryParticipationsParseQueryTest(QueryParticipationsTestMixin, TestCase):
             self.start_flow(self.flow_id)
             self.end_flow()
 
-        queries = "has-submitted:%s" % self.flow_id
+        queries = f"has-submitted:{self.flow_id}"
 
         resp = self.post_query_participation(queries)
         self.assertEqual(resp.status_code, 200)
@@ -1805,8 +1799,7 @@ class QueryParticipationsParseQueryTest(QueryParticipationsTestMixin, TestCase):
 
     def test_multiple_line(self):
         queries = (
-            "id:{}\n  \n  id:{}".format(
-                self.participations[0].user.id, self.participations[2].user.id))
+            f"id:{self.participations[0].user.id}\n  \n  id:{self.participations[2].user.id}")  # noqa: E501
 
         resp = self.post_query_participation(queries)
         self.assertEqual(resp.status_code, 200)
@@ -1837,8 +1830,7 @@ class QueryParticipationsParseQueryTest(QueryParticipationsTestMixin, TestCase):
             course=self.course,
             user=factories.UserFactory(username="temp_user2"))
 
-        queries = "username:{} or username:{}".format(
-            p1.user.username, p2.user.username)
+        queries = f"username:{p1.user.username} or username:{p2.user.username}"
         resp = self.post_query_participation(
             queries, apply=True, op="apply_tag", tag="temp_tag")
         self.assertEqual(resp.status_code, 200)
@@ -1863,8 +1855,7 @@ class QueryParticipationsParseQueryTest(QueryParticipationsTestMixin, TestCase):
             user=factories.UserFactory(username="temp_user2"),
             tags=[to_remove_tag, "cdef"])
 
-        queries = "username:{} or username:{}".format(
-            p1.user.username, p2.user.username)
+        queries = f"username:{p1.user.username} or username:{p2.user.username}"
         resp = self.post_query_participation(
             queries, apply=True, op="remove_tag", tag=to_remove_tag)
         self.assertEqual(resp.status_code, 200)
@@ -1889,7 +1880,7 @@ class QueryParticipationsParseQueryTest(QueryParticipationsTestMixin, TestCase):
             user=factories.UserFactory(username="temp_user2"),
             tags=[to_remove_tag, "cdef"])
 
-        queries = "tagged:%s" % to_remove_tag
+        queries = f"tagged:{to_remove_tag}"
         resp = self.post_query_participation(
             queries, apply=True, op="drop")
         self.assertEqual(resp.status_code, 200)
