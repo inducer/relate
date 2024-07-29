@@ -171,5 +171,21 @@
       {% endif %}
 
     {% endblock %}
+
+    {# {{{ toast #}
+
+    <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+      <div id="relate-ui-toast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="toast-header">
+          <strong class="me-auto text-danger" id="relate-ui-toast-title">{% trans "Error" %}</strong>
+          <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+        <div id="relate-ui-toast-body" class="toast-body">
+        </div>
+      </div>
+    </div>
+
+    {# }}} #}
+
   </body>
 </html>
