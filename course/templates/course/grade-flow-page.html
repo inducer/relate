@@ -111,12 +111,18 @@
 
             {% if expects_answer %}
               <div class="dropdown" id="past-submission-and-grades_dropdown">
-                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="past-submission-and-grades_dropdown_button"
-                        data-bs-toggle="dropdown">
+                <button
+                    class="btn btn-sm btn-outline-secondary dropdown-toggle"
+                    type="button" id="past-submission-and-grades_dropdown_button"
+                    hx-get='{% url "relate-get_prev_grades_dropdown_content" course.identifier flow_session.id page_ordinal prev_grade_id %}'
+                    hx-target="#past-submission-and-grades_dropdown_content"
+                    data-bs-toggle="dropdown">
                   {% trans "Past submissions/grades" %}
                   <span class="caret"></span>
                 </button>
-                <ul class="dropdown-menu dropdown-menu shadow" aria-labelledby="past-submission-and-grades_dropdown_button" id="past-submission-and-grades_dropdown_content">
+                <ul class="dropdown-menu dropdown-menu shadow"
+                    aria-labelledby="past-submission-and-grades_dropdown_button"
+                    id="past-submission-and-grades_dropdown_content">
                   <li style="list-style:none; position:relative; left:50%;">
                     <i class="bi bi-hourglass"></i>
                   </li>
@@ -470,57 +476,6 @@
 
   {# }}} #}
 
-{% endblock %}
-
-{% block page_bottom_javascript_extra %}
-
-  {% if expects_answer %}
-    <script>
-
-      function generate_past_submission_and_grades_dropdown_content(){
-        var jqxhr = $.ajax({
-          url: "{% url "relate-get_prev_grades_dropdown_content" course.identifier flow_session.id page_ordinal %}"
-        }).done(function (result) {
-          if(result.result)
-          document.getElementById("past-submission-and-grades_dropdown_content").innerHTML = tmpl("tmpl-prev-grades", result.result);
-        });
-      }
-
-      $('#past-submission-and-grades_dropdown').on('shown.bs.dropdown', generate_past_submission_and_grades_dropdown_content);
-
-    </script>
-
-    {# https://github.com/blueimp/JavaScript-Templates #}
-    <script type="text/x-tmpl" id="tmpl-prev-grades">
-      {{ JQ_OPEN }} if (o.length==0) { {{ JQ_CLOSE }}
-        <li><h6 class="dropdown-header">{% trans 'No submission/grade history' %}</h6><li>
-      {{ JQ_OPEN }} } else { {{ JQ_CLOSE }}
-        {{ JQ_OPEN }} for (var i=0; i<o.length; i++) { {{ JQ_CLOSE }}
-          <li>
-            {{ JQ_OPEN }} if (i==0) { {{ JQ_CLOSE }}
-              <a class="dropdown-item" href="?">
-            {{ JQ_OPEN }} } else { {{ JQ_CLOSE }}
-              <a class="dropdown-item" href="?grade_id={{ JQ_OPEN }}=o[i].id{{ JQ_CLOSE }}">
-            {{ JQ_OPEN }} } {{ JQ_CLOSE }}
-              {{ JQ_OPEN }} if (o[i].id=={{ prev_grade_id }}) { {{ JQ_CLOSE }}<b>{{ JQ_OPEN }} } {{ JQ_CLOSE }}
-              {% trans "Submission:" %} {{ JQ_OPEN }}=o[i].visit_time{{ JQ_CLOSE }} &middot; {% trans "Grade:" %} {{ JQ_OPEN }}=o[i].grade_time{{ JQ_CLOSE }}
-              {{ JQ_OPEN }} if (o[i].id=={{ prev_grade_id }}) { {{ JQ_CLOSE }}</b>{{ JQ_OPEN }} } {{ JQ_CLOSE }}
-              {{ JQ_OPEN }} if (i==0) { {{ JQ_CLOSE }}
-              {% trans "(current)" %}
-              {{ JQ_OPEN }} } {{ JQ_CLOSE }}
-              {{ JQ_OPEN }} if (!o[i].value) { {{ JQ_CLOSE }}
-                [{% trans "no grade" %}]
-              {{ JQ_OPEN }} } else { {{ JQ_CLOSE }}
-                [{{ JQ_OPEN }}=o[i].value{{ JQ_CLOSE }}
-                {{ JQ_OPEN }} if (o[i].value <=1) { {{ JQ_CLOSE }}{% trans "point" %}{{ JQ_OPEN }} } else { {{ JQ_CLOSE }}{% trans "points" %}{{ JQ_OPEN }} } {{ JQ_CLOSE }}]
-              {{ JQ_OPEN }} } {{ JQ_CLOSE }}
-            </a>
-          </li>
-        {{ JQ_OPEN }} } {{ JQ_CLOSE }}
-      {{ JQ_OPEN }} } {{ JQ_CLOSE }}
-    </script>
-  {% endif %}
-  {{ block.super }}
 {% endblock %}
 
 {# vim: set foldmethod=marker: #}

@@ -1501,16 +1501,20 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
     @classmethod
     def get_page_submit_history_url_by_ordinal(
             cls, page_ordinal, course_identifier=None, flow_session_id=None):
-        return cls.get_page_view_url_by_ordinal(
+        page_params = cls.get_page_params(
+            course_identifier, flow_session_id, page_ordinal)
+        page_params["prev_visit_id"] = None
+        return reverse(
             "relate-get_prev_answer_visits_dropdown_content",
-            page_ordinal, course_identifier, flow_session_id)
+            kwargs=page_params)
 
     @classmethod
     def get_page_grade_history_url_by_ordinal(
             cls, page_ordinal, course_identifier=None, flow_session_id=None):
-        return cls.get_page_view_url_by_ordinal(
-            "relate-get_prev_grades_dropdown_content",
-            page_ordinal, course_identifier, flow_session_id)
+        page_params = cls.get_page_params(
+            course_identifier, flow_session_id, page_ordinal)
+        page_params["prev_grade_id"] = None
+        return reverse("relate-get_prev_grades_dropdown_content", kwargs=page_params)
 
     @classmethod_with_client
     def get_page_submit_history_by_ordinal(
@@ -1538,9 +1542,14 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
         resp = self.get_page_submit_history_by_ordinal(
             page_ordinal, course_identifier=course_identifier,
             flow_session_id=flow_session_id)
-        import json
-        result = json.loads(resp.content.decode())["result"]
-        self.assertEqual(len(result), expected_count)
+
+        content = resp.content.decode()
+        if "No submission" in content:
+            count = 0
+        else:
+            count = content.count("<li")
+
+        assert count == expected_count
 
     def assertGradeHistoryItemsCount(  # noqa
             self, page_ordinal, expected_count,
@@ -1561,9 +1570,13 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
                 page_ordinal, course_identifier=course_identifier,
                 flow_session_id=flow_session_id)
 
-        import json
-        result = json.loads(resp.content.decode())["result"]
-        self.assertEqual(len(result), expected_count)
+        content = resp.content.decode()
+        if "No submission" in content:
+            count = 0
+        else:
+            count = content.count("<li")
+
+        assert count == expected_count
 
     @classmethod
     def get_update_course_url(cls, course_identifier=None):

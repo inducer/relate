@@ -2080,11 +2080,6 @@ def view_flow_page(
         "viewing_prior_version": viewing_prior_version,
         "prev_answer_visits": prev_answer_visits,
         "prev_visit_id": prev_visit_id,
-
-        # Wrappers used by JavaScript template (tmpl) so as not to
-        # conflict with Django template's tag wrapper
-        "JQ_OPEN": "{%",
-        "JQ_CLOSE": "%}",
     }
 
     if fpctx.page.expects_answer() and fpctx.page.is_answer_gradable():
@@ -2103,7 +2098,8 @@ def view_flow_page(
 
 
 @course_view
-def get_prev_answer_visits_dropdown_content(pctx, flow_session_id, page_ordinal):
+def get_prev_answer_visits_dropdown_content(
+            pctx, flow_session_id, page_ordinal, prev_visit_id):
     """
     :return: serialized prev_answer_visits items for past-submission-dropdown
     """
@@ -2120,16 +2116,13 @@ def get_prev_answer_visits_dropdown_content(pctx, flow_session_id, page_ordinal)
         FlowPageData, flow_session=flow_session, page_ordinal=page_ordinal)
     prev_answer_visits = get_prev_answer_visits_qset(page_data)
 
-    def serialize(obj):
-        return {
-            "id": obj.id,
-            "visit_time": (
-                format_datetime_local(as_local_time(obj.visit_time))),
-            "is_submitted_answer": obj.is_submitted_answer,
-        }
-
-    return http.JsonResponse(
-        {"result": [serialize(visit) for visit in prev_answer_visits]})
+    return render(request, "course/flow-page-prev-visits.html", {
+        "prev_answer_visits": prev_answer_visits,
+        "prev_visit_id": (
+            None
+            if prev_visit_id == "None" else
+            int(prev_visit_id)),
+    })
 
 
 def get_pressed_button(form: StyledForm) -> str:

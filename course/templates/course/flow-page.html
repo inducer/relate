@@ -130,11 +130,19 @@
           {% if expects_answer %}
             <div class="relate-flow-page-past-submissions">
               <div class="dropdown" id="past-submission_dropdown">
-                <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="past-submission_dropdown_button" data-bs-toggle="dropdown"
+                <button
+                  class="btn btn-outline-secondary dropdown-toggle"
+                  type="button" id="past-submission_dropdown_button"
+                  hx-get="{% url "relate-get_prev_answer_visits_dropdown_content" course.identifier flow_session.id page_ordinal prev_visit_id %}"
+                  hx-target="#past-submission_dropdown_content"
+                  data-bs-toggle="dropdown"
                   title='{% trans "Submission history for this page" %}'>
                   <i class="bi bi-clock-history"></i>
                 </button>
-                <ul class="dropdown-menu dropdown-menu-end shadow" aria-labelledby="past-submission_dropdown_button" id="past-submission_dropdown_content">
+                <ul
+                  class="dropdown-menu dropdown-menu-end shadow"
+                  aria-labelledby="past-submission_dropdown_button"
+                  id="past-submission_dropdown_content">
                   <li style="list-style:none; position:relative; left:50%;">
                     <i class="bi bi-hourglass"></i>
                   </li>
@@ -545,51 +553,4 @@
 
 {% endblock %}
 
-{% block page_bottom_javascript_extra %}
-
-  {% if expects_answer %}
-    <script>
-      function generate_past_submission_dropdown_content(){
-        var jqxhr = $.ajax({
-          url: "{% url "relate-get_prev_answer_visits_dropdown_content" course.identifier flow_session.id page_ordinal %}"
-        }).done(function (result) {
-          if(result.result)
-            document.getElementById("past-submission_dropdown_content").innerHTML = tmpl("tmpl-prev-answer-visits", result.result);
-        });
-      }
-
-      $('#past-submission_dropdown').on('shown.bs.dropdown', generate_past_submission_dropdown_content);
-
-
-    </script>
-
-    {# https://github.com/blueimp/JavaScript-Templates #}
-    <script type="text/x-tmpl" id="tmpl-prev-answer-visits">
-      {{ JQ_OPEN }} if (o.length==0) { {{ JQ_CLOSE }}
-        <li><h6 class="dropdown-header">{% trans 'No submission history' %}</h6> </li>
-      {{ JQ_OPEN }} } else { {{ JQ_CLOSE }}
-        {{ JQ_OPEN }} for (var i=0; i<o.length; i++) { {{ JQ_CLOSE }}
-          <li>
-            {{ JQ_OPEN }} if (i==0) { {{ JQ_CLOSE }}
-              <a class="dropdown-item" href="?">
-            {{ JQ_OPEN }} } else { {{ JQ_CLOSE }}
-              <a class="dropdown-item" href="?visit_id={{ JQ_OPEN }}=o[i].id{{ JQ_CLOSE }}">
-            {{ JQ_OPEN }} } {{ JQ_CLOSE }}
-              {{ JQ_OPEN }} if (o[i].id=={{ prev_visit_id }}) { {{ JQ_CLOSE }}<b>{{ JQ_OPEN }} } {{ JQ_CLOSE }}
-                {{ JQ_OPEN }}=o[i].visit_time{{ JQ_CLOSE }}
-              {{ JQ_OPEN }} if (o[i].id=={{ prev_visit_id }}) { {{ JQ_CLOSE }}</b>{{ JQ_OPEN }} } {{ JQ_CLOSE }}
-              {{ JQ_OPEN }} if (i==0) { {{ JQ_CLOSE }}
-              {% trans "(current)" %}
-              {{ JQ_OPEN }} } {{ JQ_CLOSE }}
-              {{ JQ_OPEN }} if (o[i].is_submitted_answer) { {{ JQ_CLOSE }}
-                {% trans "(submitted)" %}
-              {{ JQ_OPEN }} } {{ JQ_CLOSE }}
-            </a>
-          </li>
-        {{ JQ_OPEN }} } {{ JQ_CLOSE }}
-      {{ JQ_OPEN }} } {{ JQ_CLOSE }}
-    </script>
-  {% endif %}
-  {{ block.super }}
-{% endblock %}
 {# vim: set foldmethod=marker: #}
