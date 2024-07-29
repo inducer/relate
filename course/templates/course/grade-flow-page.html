@@ -222,9 +222,10 @@
   <script>
 
     function getFeedbackCodemirror() {
-      return rlCodemirror.EditorView.findFromDOM(
-         document.querySelector('#div_id_feedback_text .cm-editor')
-      );
+      let editorDom = document.querySelector('#div_id_feedback_text .cm-editor');
+      if (!editorDom)
+        return null;
+      return rlCodemirror.EditorView.findFromDOM(editorDom);
     }
 
     function setFeedback(p) {
@@ -396,13 +397,17 @@
 
       updateFeedbackItems();
 
-      rlCodemirror.setListener(
-        getFeedbackCodemirror(),
-        (viewUpdate) => {
-          if (viewUpdate.docChanged) {
-            processFeedbackChange(viewUpdate.view.state.doc.toString())
-          }
-        })
+      let fbcm = getFeedbackCodemirror();
+      if (fbcm)
+      {
+        rlCodemirror.setListener(
+          getFeedbackCodemirror(),
+          (viewUpdate) => {
+            if (viewUpdate.docChanged) {
+              processFeedbackChange(viewUpdate.view.state.doc.toString())
+            }
+          })
+      }
 
       document.addEventListener("keydown", listenForFocusHotkey);
     }
