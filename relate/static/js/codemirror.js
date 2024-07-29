@@ -134,6 +134,9 @@ export function setListener(view, fn) {
 }
 
 Vim.defineEx('write', 'w', () => {
+  // assume we're submitting the changes, reset the change flag
+  anyEditorChangedFlag = false;
+
   const textarea = document.querySelector('textarea.rl-managed-by-codemirror');
   if (textarea.form) {
     const { form } = textarea;
