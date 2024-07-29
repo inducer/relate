@@ -33,7 +33,7 @@ from django.core.exceptions import (
     PermissionDenied,
     SuspiciousOperation,
 )
-from django.shortcuts import get_object_or_404, redirect  # noqa
+from django.shortcuts import get_object_or_404, redirect, render  # noqa
 from django.utils.translation import gettext as _
 
 from course.constants import participation_permission as pperm
@@ -53,8 +53,6 @@ from course.utils import (
 )
 from course.views import get_now_or_fake_time
 from relate.utils import (
-    as_local_time,
-    format_datetime_local,
     retry_transaction_decorator,
 )
 
@@ -92,7 +90,8 @@ def get_prev_visit_grades(
 
 
 @course_view
-def get_prev_grades_dropdown_content(pctx, flow_session_id, page_ordinal):
+def get_prev_grades_dropdown_content(pctx, flow_session_id, page_ordinal,
+                                     prev_grade_id):
     """
     :return: serialized prev_grades items for rendering past-grades-dropdown
     """
@@ -111,17 +110,13 @@ def get_prev_grades_dropdown_content(pctx, flow_session_id, page_ordinal):
     prev_grades = get_prev_visit_grades(pctx.course_identifier,
                                         flow_session_id, page_ordinal, True)
 
-    def serialize(obj):
-        return {
-            "id": obj.id,
-            "visit_time": (
-                format_datetime_local(as_local_time(obj.visit.visit_time))),
-            "grade_time": format_datetime_local(as_local_time(obj.grade_time)),
-            "value": obj.value(),
-        }
-
-    return http.JsonResponse(
-        {"result": [serialize(pgrade) for pgrade in prev_grades]})
+    return render(pctx.request, "course/prev-grades-dropdown.html", {
+                      "prev_grades": prev_grades,
+                      "prev_grade_id": (
+                          None
+                          if prev_grade_id == "None" else
+                          int(prev_grade_id)),
+                  })
 
 
 # {{{ grading driver
@@ -398,12 +393,6 @@ def grade_flow_page(
                 "correct_answer": fpctx.page.correct_answer(
                     fpctx.page_context, fpctx.page_data.data,
                     answer_data, grade_data),
-
-
-                # Wrappers used by JavaScript template (tmpl) so as not to
-                # conflict with Django template's tag wrapper
-                "JQ_OPEN": "{%",
-                "JQ_CLOSE": "%}",
             })
 
 
