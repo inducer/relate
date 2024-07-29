@@ -511,7 +511,7 @@ class AuthTestMixin:
         """
         fields = ParseResult._fields
 
-        for attr, x, y in zip(fields, urlparse(url), urlparse(expected)):
+        for attr, x, y in zip(fields, urlparse(url), urlparse(expected), strict=True):
             if parse_qs and attr == "query":
                 x, y = QueryDict(x), QueryDict(y)
             if x and y and x != y:
