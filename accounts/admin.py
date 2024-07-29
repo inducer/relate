@@ -49,7 +49,7 @@ class CourseListFilter(admin.SimpleListFilter):
         course_identifiers = (
             _filter_courses_for_user(Course.objects, request.user)
             .values_list("identifier", flat=True))
-        return zip(course_identifiers, course_identifiers)
+        return zip(course_identifiers, course_identifiers, strict=True)
 
     def queryset(self, request, queryset):
         if self.value():

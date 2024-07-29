@@ -298,7 +298,7 @@ def view_gradebook(pctx):
         return (participation.user.last_name.lower(),
                     participation.user.first_name.lower())
 
-    grade_table = sorted(zip(participations, grade_table), key=grade_key)
+    grade_table = sorted(zip(participations, grade_table, strict=True), key=grade_key)
 
     return render_course_page(pctx, "course/gradebook.html", {
         "grade_table": grade_table,
@@ -327,7 +327,7 @@ def export_gradebook_csv(pctx):
 
     writer.writerow(fieldnames)
 
-    for participation, grades in zip(participations, grade_table):
+    for participation, grades in zip(participations, grade_table, strict=True):
         writer.writerow([
             participation.user.username,
             participation.user.last_name,
@@ -651,7 +651,8 @@ def view_grades_by_opportunity(
         page_grades: list[list[FlowPageVisitGrade | None]] \
             = assemble_page_grades(all_flow_sessions)
 
-        for (_dummy2, grade_info), grade_list in zip(grade_table, page_grades):  # type: ignore
+        for (_dummy2, grade_info), grade_list in \
+                zip(grade_table, page_grades, strict=True):  # type: ignore
             # Not all pages exist in all sessions
             grades: list[tuple[int | None, FlowPageVisitGrade | None]] \
                 = list(enumerate(grade_list))

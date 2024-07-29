@@ -184,7 +184,7 @@ class Histogram:
                         100*weight/total_weight
                         if total_weight
                         else None))
-                for start, weight in zip(num_bin_starts, bins)]
+                for start, weight in zip(num_bin_starts, bins, strict=True)]
 
         str_bin_info = [
                 BinInfo(
