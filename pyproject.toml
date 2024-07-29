@@ -162,12 +162,6 @@ yamllint = "^1.32.0"
 postgres = ["psycopg2"]
 memcache = ["pylibmc"]
 
-[tool.isort]
-profile = "django"
-line_length = 85
-lines_after_imports = 2
-src_paths = ["relate", "course", "accounts", "test"]
-
 [tool.ruff]
 preview = true
 target-version = "py310"
