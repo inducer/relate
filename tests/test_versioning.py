@@ -418,7 +418,7 @@ class FakeCommit:
         self.id = id
 
     def __repr__(self):
-        return "%s: %s" % self.__class__.__name__ + str(self.name)
+        return "{}: {}".format(*self.__class__.__name__) + str(self.name)
 
 
 class IsParentCommitTest(unittest.TestCase):
@@ -752,12 +752,12 @@ class RunCourseUpdateCommandTest(MockAddMessageMixing, unittest.TestCase):
                     prevent_discarding_revisions)
                 if will_check and self.mock_is_ancestor_commit.call_count != 1:
                     self.fail(
-                        "'is_ancestor_commit' is expected for command '%s' to "
-                        "be called while not" % command)
+                        f"'is_ancestor_commit' is expected for command '{command}' to "
+                        "be called while not")
                 elif not will_check and self.mock_is_ancestor_commit.call_count > 0:
                     self.fail(
-                        "'is_ancestor_commit' is not expected for command '%s' to "
-                        "be called while called" % command)
+                        f"'is_ancestor_commit' is not expected for command '{command}' to "  # noqa: E501
+                        "be called while called")
 
         # when not prevent_discarding_revisions, is_ancestor_commit
         # should not be checked (expensive operation)
@@ -774,12 +774,12 @@ class RunCourseUpdateCommandTest(MockAddMessageMixing, unittest.TestCase):
                     may_update, prevent_discarding_revisions)
                 if self.mock_is_ancestor_commit.call_count > 0:
                     self.fail(
-                        "'is_ancestor_commit' is not expected for command '%s' to "
-                        "be called while called (expensive)" % command)
+                        f"'is_ancestor_commit' is not expected for command '{command}' to "  # noqa: E501
+                        "be called while called (expensive)")
                 elif self.mock_is_ancestor_commit.call_count > 0:
                     self.fail(
-                        "'is_ancestor_commit' is not expected for command '%s' to "
-                        "be called while called" % command)
+                        f"'is_ancestor_commit' is not expected for command '{command}' to "  # noqa: E501
+                        "be called while called")
 
     def test_is_content_validated(self):
         may_update = True
@@ -803,12 +803,12 @@ class RunCourseUpdateCommandTest(MockAddMessageMixing, unittest.TestCase):
                         and self.mock_validate_course_content.call_count != 1):
                     self.fail(
                         "'validate_course_content' is expected for "
-                        "command '%s' to be called while not" % command)
+                        f"command '{command}' to be called while not")
                 elif (not will_validate
                       and self.mock_validate_course_content.call_count > 0):
                     self.fail(
                         "'validate_course_content' is not expected for "
-                        "command '%s' to be called while called" % command)
+                        f"command '{command}' to be called while called")
 
     def test_unknown_command(self):
         command = "unknown"
@@ -1272,7 +1272,7 @@ class UpdateCourseTest(SingleCourseTestMixin, MockAddMessageMixing, TestCase):
                 self.course.active_git_commit_sha, command="update")
             self.assertEqual(resp.status_code, 200)
             self.assertAddMessageCallCount(1)
-            expected_error_msg = "Error: RuntimeError %s" % error_msg
+            expected_error_msg = f"Error: RuntimeError {error_msg}"
             self.assertAddMessageCalledWith(expected_error_msg)
 
     def test_form_not_valid(self):

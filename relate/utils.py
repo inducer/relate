@@ -321,15 +321,14 @@ def dumpstacks(signal, frame):  # pragma: no cover
         for filename, lineno, name, line in traceback.extract_stack(stack):
             code.append('File: "%s", line %d, in %s' % (filename, lineno, name))
             if line:
-                code.append("  %s" % (line.strip()))
+                code.append(f"  {line.strip()}")
     print("\n".join(code))
 
 
 if 0:
     import os
     import signal
-    print("*** HANG DUMP HANDLER ACTIVATED: 'kill -USR1 %s' to dump stacks"
-            % os.getpid())
+    print(f"*** HANG DUMP HANDLER ACTIVATED: 'kill -USR1 {os.getpid()}' to dump stacks")
     signal.signal(signal.SIGUSR1, dumpstacks)
 
 # }}}

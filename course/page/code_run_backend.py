@@ -160,7 +160,7 @@ def package_exception(result: dict[str, Any], what: str) -> None:
     tp, val, tb = sys.exc_info()
     assert tp is not None
     result["result"] = what
-    result["message"] = "{}: {}".format(tp.__name__, str(val))
+    result["message"] = f"{tp.__name__}: {val!s}"
     result["traceback"] = "".join(
             traceback.format_exception(tp, val, tb))
 
@@ -247,7 +247,7 @@ def run_code(result, run_req):
         for name in run_req.names_for_user:
             if name not in maint_ctx:
                 result["result"] = "setup_error"
-                result["message"] = "Setup code did not define '%s'." % name
+                result["message"] = f"Setup code did not define '{name}'."
 
             user_ctx[name] = maint_ctx[name]
 
@@ -292,8 +292,7 @@ def run_code(result, run_req):
         for name in run_req.names_from_user:
             if name not in user_ctx:
                 feedback.add_feedback(
-                        "Required answer variable '%s' is not defined."
-                        % name)
+                        f"Required answer variable '{name}' is not defined.")
                 maint_ctx[name] = None
             else:
                 maint_ctx[name] = user_ctx[name]

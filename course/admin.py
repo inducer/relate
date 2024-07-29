@@ -190,7 +190,7 @@ class EventAdmin(admin.ModelAdmin):
     def __unicode__(self):  # pragma: no cover  # not used
         return "{}{} in {}".format(
             self.kind,
-            " (%s)" % str(self.ordinal) if self.ordinal is not None else "",
+            f" ({self.ordinal!s})" if self.ordinal is not None else "",
             self.course)
 
     __str__ = __unicode__
@@ -319,9 +319,8 @@ class ParticipationAdmin(admin.ModelAdmin):
                 "</a>"
                 ) % {
                     "link": reverse(
-                        "admin:%s_change"
-                        % settings.AUTH_USER_MODEL.replace(".", "_")
-                        .lower(),
+                        "admin:{}_change".format(
+                            settings.AUTH_USER_MODEL.replace(".", "_").lower()),
                         args=(obj.user.id,)),
                     "user_fullname": obj.user.get_full_name(
                         force_verbose_blank=True),
@@ -611,10 +610,9 @@ class FlowPageVisitAdmin(admin.ModelAdmin):
                     obj.page_data.group_id,
                     obj.page_data.page_id)
         else:
-            return "{}/{} ({})".format(
-                    obj.page_data.group_id,
-                    obj.page_data.page_id,
-                    obj.page_data.page_ordinal)
+            return (
+                f"{obj.page_data.group_id}/{obj.page_data.page_id} "
+                f"({obj.page_data.page_ordinal})")
 
     @admin.display(
         description=_("Owner"),

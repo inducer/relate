@@ -705,7 +705,7 @@ class FlowRuleExceptionTest(RelateModelTestMixin, TestCase):
         with self.assertRaises(ValidationError) as cm:
             fre.clean()
 
-        expected_error_msg = "invalid existing_session_rules: %s" % my_custom_error
+        expected_error_msg = f"invalid existing_session_rules: {my_custom_error}"
         self.assertIn(expected_error_msg, str(cm.exception))
         self.assertEqual(self.mock_get_course_repo.call_count, 1)
         self.assertEqual(self.mock_get_flow_desc.call_count, 1)

@@ -421,8 +421,7 @@ class FlowAnalyticsTest(SingleCourseQuizPageTestMixin, HackRepoMixin,
             resp = self.get_flow_analytics_view(flow_id=self.flow_id)
             self.assertEqual(resp.status_code, 404)
             self.assertAddMessageCalledWith(
-                ("Flow '%s' was not found in the repository, but it exists in "
+                f"Flow '{self.flow_id}' was not found in the repository, but it exists in "  # noqa: E501
                     "the database--maybe it was deleted?")
-                % self.flow_id)
 
 # vim: fdm=marker

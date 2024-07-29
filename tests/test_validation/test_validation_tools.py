@@ -68,7 +68,7 @@ class ValidateIdentifierTest(ValidationTestMixin, unittest.TestCase):
     def test_id_re_not_matched(self):
         identifier = "test identifier"
         expected_warn_msg = expected_error_msg = (
-            "invalid identifier '%s'" % identifier)
+            f"invalid identifier '{identifier}'")
         validation.validate_identifier(
             vctx, location, identifier, warning_only=True)
         self.assertEqual(vctx.add_warning.call_count, 1)
@@ -1061,7 +1061,7 @@ class ValidateSessionStartRuleTest(ValidationTestMixin, unittest.TestCase):
                 self.get_updated_tags())
 
         expected_error_msg = (
-                "invalid default expiration mode '%s'" % mode)
+                f"invalid default expiration mode '{mode}'")
         self.assertIn(expected_error_msg, str(cm.exception))
 
         # no warnings
@@ -1339,7 +1339,7 @@ class ValidateSessionAccessRuleTest(ValidationTestMixin, unittest.TestCase):
                 self.get_updated_tags())
 
         expected_error_msg = (
-                "invalid expiration mode '%s'" % mode)
+                f"invalid expiration mode '{mode}'")
         self.assertIn(expected_error_msg, str(cm.exception))
 
         # no warnings
@@ -1950,10 +1950,9 @@ class ValidateFlowRules(ValidationTestMixin, unittest.TestCase):
                     self.get_updated_rule(no_grade_aggregation_strategy=True))
             expected_error_msg = (
                 "flows that have a grade "
-                "identifier ('%(identifier)s') "
+                f"identifier ('{self.default_grade_identifier}') "
                 "must have grading rules with a "
-                "grade_aggregation_strategy"
-                % {"identifier": self.default_grade_identifier})
+                "grade_aggregation_strategy")
 
             self.assertIn(expected_error_msg, str(cm.exception))
 
@@ -1987,7 +1986,7 @@ class ValidateFlowRules(ValidationTestMixin, unittest.TestCase):
                     self.get_updated_rule(**kwargs))
 
             expected_error_msg = (
-                "invalid grade aggregation strategy: %s" % g_strategy)
+                f"invalid grade aggregation strategy: {g_strategy}")
 
             self.assertIn(expected_error_msg, str(cm.exception))
 
@@ -2411,7 +2410,7 @@ class ValidateFlowDescTest(ValidationTestMixin, unittest.TestCase):
                     self.get_updated_flow_desc(**kwargs))
 
             expected_error_msg = (
-                "%s: no pages found" % location)
+                f"{location}: no pages found")
             self.assertIn(expected_error_msg, str(cm.exception))
 
         self.assertEqual(mock_vs.call_count, 1)
@@ -2587,8 +2586,8 @@ class ValidateFlowDescTest(ValidationTestMixin, unittest.TestCase):
                 # no warnings
 
                 expected_warn_msg = (
-                    "Attribute '%s' is deprecated as part of a flow. "
-                    "Specify it as part of a grading rule instead." % attr)
+                    f"Attribute '{attr}' is deprecated as part of a flow. "
+                    "Specify it as part of a grading rule instead.")
 
                 self.assertIn(expected_warn_msg, vctx.add_warning.call_args[0])
                 self.assertEqual(vctx.add_warning.call_count, 1)
@@ -2730,16 +2729,12 @@ class CheckGradeIdentifierLinkTest(
                 flow_grade_identifier=self.course1_gopp.identifier)
 
         expected_error_msg = (
-            "{location}: existing grading opportunity with identifier "
-            "'{grade_identifier}' refers to flow '{other_flow_id}', however "
-            "flow code in this flow ('{new_flow_id}') specifies the same "
+            f"{location}: existing grading opportunity with identifier "
+            f"'{self.course1_gopp.identifier}' refers to flow '{self.course1_gopp.flow_id}', however "  # noqa: E501
+            f"flow code in this flow ('{new_flow_id}') specifies the same "
             "grade identifier. "
             "(Have you renamed the flow? If so, edit the grading "
-            "opportunity to match.)".format(
-                location=location,
-                grade_identifier=self.course1_gopp.identifier,
-                other_flow_id=self.course1_gopp.flow_id,
-                new_flow_id=new_flow_id))
+            "opportunity to match.)")
         self.assertIn(expected_error_msg, str(cm.exception))
 
 

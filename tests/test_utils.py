@@ -1663,8 +1663,8 @@ class CoursePageContextTest(SingleCourseTestMixin, MockAddMessageMixing, TestCas
 
         self.assertAddMessageCallCount(1)
         expected_error_msg = (
-                "Preview revision '%s' does not exist--"
-                "showing active course content instead." % commit_sha)
+                f"Preview revision '{commit_sha}' does not exist--"
+                "showing active course content instead.")
 
         self.assertAddMessageCalledWith(expected_error_msg)
 
@@ -1734,7 +1734,7 @@ class ParticipationPermissionWrapperTest(SingleCourseTestMixin, TestCase):
             ppwraper[invalid_perm]
 
         expected_error_msg = (
-            "permission name '%s' not valid" % invalid_perm)
+            f"permission name '{invalid_perm}' not valid")
 
         self.assertIn(expected_error_msg, str(cm.exception))
 

@@ -395,7 +395,7 @@ class PageBase:
                 # {{{ validate access_rules
 
                 if hasattr(page_desc, "access_rules"):
-                    ar_loc = "%s: access rules" % location
+                    ar_loc = f"{location}: access rules"
                     validate_struct(
                             vctx,
                             ar_loc,
@@ -888,8 +888,7 @@ class TextInputWithButtons(forms.TextInput):
         id = attrs["id"]
 
         def make_feedback_func(feedback):
-            return "'$(\"#{id}\").val(\"{feedback}\")'".format(
-                                 id=id, feedback=escapejs(feedback))
+            return f"'$(\"#{id}\").val(\"{escapejs(feedback)}\")'"
 
         buttons = []
         # Add buttons.
@@ -1221,7 +1220,7 @@ class PageBaseWithHumanTextFeedback(PageBase):
                 or grade_data["feedback_text"]):
             if grade_data["grade_percent"] is not None:
                 correctness = grade_data["grade_percent"]/100
-                feedback_text = "<p>%s</p>" % get_auto_feedback(correctness)
+                feedback_text = f"<p>{get_auto_feedback(correctness)}</p>"
 
             else:
                 correctness = None

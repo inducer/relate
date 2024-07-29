@@ -250,7 +250,7 @@ class PageBasePageDescBackwardCompatibilityTest(unittest.TestCase):
                     break
 
             if not warned_with_expected_msg:
-                self.fail("'%s' is not warned as expected" % expected_warn_msg)
+                self.fail(f"'{expected_warn_msg}' is not warned as expected")
 
 
 class PageBaseGetModifiedPermissionsForPageTest(unittest.TestCase):
@@ -448,7 +448,7 @@ class PageBaseDeprecationTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
                     break
 
             if not warned_with_expected_msg:
-                self.fail("'%s' is not warned as expected" % expected_warn_msg)
+                self.fail(f"'{expected_warn_msg}' is not warned as expected")
 
 
 def update_grade_data_from_grading_form_v2_side_effect_super(
@@ -526,7 +526,7 @@ class PageBaseGradeDeprecationTest(SingleCourseQuizPageTestMixin, TestCase):
                     break
 
             if not warned_with_expected_msg:
-                self.fail("'%s' is not warned as expected" % expected_warn_msg)
+                self.fail(f"'{expected_warn_msg}' is not warned as expected")
 
     def test_post_form_deprecated(self):
         page_id = "half"
@@ -559,7 +559,7 @@ class PageBaseGradeDeprecationTest(SingleCourseQuizPageTestMixin, TestCase):
                     break
 
             if not warned_with_expected_msg:
-                self.fail("'%s' is not warned as expected" % expected_warn_msg)
+                self.fail(f"'{expected_warn_msg}' is not warned as expected")
 
         self.assertEqual(self.end_flow().status_code, 200)
         self.assertSessionScoreEqual(5)
@@ -713,7 +713,7 @@ class PageBaseWithTitleTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
                     break
 
             if not warned_with_expected_msg:
-                self.fail("%s is not warned as expected" % expected_warn_msg)
+                self.fail(f"{expected_warn_msg} is not warned as expected")
 
     def test_no_title(self):
         markdown = (
@@ -754,7 +754,7 @@ class PageBaseWithTitleTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
         expected_title_str = "This is attribute title"
         markdown = (
                 PAGE_WITH_TITLE_MARKDOWN_PATTERN
-                % {"attr_title": "title: %s" % expected_title_str,
+                % {"attr_title": f"title: {expected_title_str}",
                    "content_title": ""})
         resp = self.get_page_sandbox_preview_response(markdown)
         self.assertEqual(resp.status_code, 200)
@@ -768,7 +768,7 @@ class PageBaseWithTitleTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
         markdown = (
                 PAGE_WITH_TITLE_MARKDOWN_PATTERN
                 % {"attr_title": "",
-                   "content_title": "# %s" % expected_title_str})
+                   "content_title": f"# {expected_title_str}"})
         resp = self.get_page_sandbox_preview_response(markdown)
         self.assertEqual(resp.status_code, 200)
         self.assertSandboxHasValidPage(resp)
@@ -782,8 +782,8 @@ class PageBaseWithTitleTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
         content_title_str = "This is content title"
         markdown = (
                 PAGE_WITH_TITLE_MARKDOWN_PATTERN
-                % {"attr_title": "title: %s" % expected_title_str,
-                   "content_title": "# %s" % content_title_str})
+                % {"attr_title": f"title: {expected_title_str}",
+                   "content_title": f"# {content_title_str}"})
         resp = self.get_page_sandbox_preview_response(markdown)
         self.assertEqual(resp.status_code, 200)
         self.assertSandboxHasValidPage(resp)
@@ -797,7 +797,7 @@ class PageBaseWithTitleTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
         markdown = (
                 PAGE_WITH_TITLE_MARKDOWN_PATTERN
                 % {"attr_title": "",
-                   "content_title": "# %s" % title_str})
+                   "content_title": f"# {title_str}"})
         resp = self.get_page_sandbox_preview_response(markdown)
         self.assertEqual(resp.status_code, 200)
         self.assertSandboxHasValidPage(resp)
@@ -811,7 +811,7 @@ class PageBaseWithTitleTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
         markdown = (
                 PAGE_WITH_TITLE_MARKDOWN_PATTERN
                 % {"attr_title": "",
-                   "content_title": "# %s" % title_str})
+                   "content_title": f"# {title_str}"})
         resp = self.get_page_sandbox_preview_response(markdown)
         self.assertEqual(resp.status_code, 200)
         self.assertSandboxHasValidPage(resp)
@@ -826,7 +826,7 @@ class PageBaseWithTitleTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
         markdown = (
                 PAGE_WITH_TITLE_MARKDOWN_PATTERN
                 % {"attr_title": "",
-                   "content_title": "# %s" % title_str})
+                   "content_title": f"# {title_str}"})
         resp = self.get_page_sandbox_preview_response(markdown)
         self.assertEqual(resp.status_code, 200)
         self.assertSandboxHasValidPage(resp)
@@ -839,7 +839,7 @@ class PageBaseWithTitleTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
         markdown = (
                 PAGE_WITH_TITLE_MARKDOWN_PATTERN
                 % {"attr_title": "",
-                   "content_title": "# %s" % title_str})
+                   "content_title": f"# {title_str}"})
         resp = self.get_page_sandbox_preview_response(markdown)
         self.assertEqual(resp.status_code, 200)
         self.assertSandboxHasValidPage(resp)

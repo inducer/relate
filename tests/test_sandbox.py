@@ -149,8 +149,7 @@ class SingleCoursePageSandboxTestBaseMixin(SingleCourseTestMixin):
         if expected_text is None:
             return self.assertEqual(
                 warnings_strs, [],
-                "Page validatioin warning is not None, but %s."
-                % repr(warnings_strs))
+                f"Page validatioin warning is not None, but {warnings_strs!r}.")
         if loose:
             warnings_strs = "".join(warnings_strs)
         self.assertIn(expected_text, warnings_strs)
@@ -380,7 +379,7 @@ class ViewMarkupSandboxTest(SingleCoursePageSandboxTestBaseMixin,
         self.assertEqual(resp.status_code, 200)
         self.assertResponseContextEqual(
             resp, "preview_text",
-            '<p><a href="/course/%s/">home</a></p>' % self.course.identifier)
+            f'<p><a href="/course/{self.course.identifier}/">home</a></p>')
 
     def test_preview_failed(self):
         with mock.patch("course.content.markup_to_html") as mock_mth:

@@ -387,7 +387,7 @@ class RelateSiteNameTest(SingleCourseTestMixin, LocmemBackendTestsMixin, TestCas
             mock_gettext.side_effect = real_trans_side_effect
             resp = self.client.get("/")
             self.assertEqual(resp.status_code, 200)
-            self.assertContains(resp, "<title>%s</title>" % my_site_name, html=True)
+            self.assertContains(resp, f"<title>{my_site_name}</title>", html=True)
 
             # Three translations in nav_bar brand, html title and
             # "Welcome to RELATE", respectively
@@ -400,7 +400,7 @@ class RelateSiteNameTest(SingleCourseTestMixin, LocmemBackendTestsMixin, TestCas
             self.assertEqual(resp.status_code, 200)
 
             test_site_name_re = re.compile(
-                ".+<title>.+-.+%s.+</title>.+" % my_site_name, re.DOTALL)
+                f".+<title>.+-.+{my_site_name}.+</title>.+", re.DOTALL)
             self.assertRegex(resp.content.decode(), test_site_name_re)
 
             # One translation in html title
@@ -571,7 +571,7 @@ class GetLocalTestSettingsFileTest(unittest.TestCase):
                  invalid_file])
 
         self.assertIn(
-            "file '%s' does not exist" % invalid_file, str(cm.exception))
+            f"file '{invalid_file}' does not exist", str(cm.exception))
 
     def test_custom_local_test_setting_file(self):
         settings_file = "foo/local_test_settings.py"

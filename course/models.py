@@ -1858,7 +1858,7 @@ class GradeStateMachine:
             return _("(exempt)")
         elif self.state == grade_state_change_types.graded:
             if self.valid_percentages:
-                result = "%.1f%%" % self.percentage()
+                result = f"{self.percentage():.1f}%"
                 if len(self.valid_percentages) > 1:
                     result += " (/%d)" % len(self.valid_percentages)
                 return result
@@ -1874,7 +1874,7 @@ class GradeStateMachine:
             return "EXEMPT"
         elif self.state == grade_state_change_types.graded:
             if self.valid_percentages:
-                return "%.3f" % self.percentage()
+                return f"{self.percentage():.3f}"
             else:
                 return "NONE"
         else:
@@ -1883,7 +1883,7 @@ class GradeStateMachine:
     def stringify_percentage(self):
         if self.state == grade_state_change_types.graded:
             if self.valid_percentages:
-                return "%.1f" % self.percentage()
+                return f"{self.percentage():.1f}"
             else:
                 return ""
         else:

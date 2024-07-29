@@ -171,7 +171,7 @@ def validate_struct(
 
     if not isinstance(obj, Struct):
         raise ValidationError(
-                "%s: not a key-value map" % location)
+                f"{location}: not a key-value map")
 
     present_attrs = {name for name in dir(obj) if not name.startswith("_")}
 
@@ -289,10 +289,7 @@ def validate_markup(
         assert tp is not None
 
         raise ValidationError(
-                "{location}: {err_type}: {err_str}".format(
-                    location=location,
-                    err_type=tp.__name__,
-                    err_str=str(e)))
+                f"{location}: {tp.__name__}: {e!s}")
 
 # }}}
 
@@ -611,7 +608,7 @@ def validate_session_start_rule(
 
     if hasattr(nrule, "if_has_session_tagged"):
         if nrule.if_has_session_tagged is not None:
-            validate_identifier(vctx, "%s: if_has_session_tagged" % location,
+            validate_identifier(vctx, f"{location}: if_has_session_tagged",
                     nrule.if_has_session_tagged)
 
     if not hasattr(nrule, "may_start_new_session"):
@@ -631,7 +628,7 @@ def validate_session_start_rule(
 
     if hasattr(nrule, "tag_session"):
         if nrule.tag_session is not None:
-            validate_identifier(vctx, "%s: tag_session" % location,
+            validate_identifier(vctx, f"{location}: tag_session",
                     nrule.tag_session,
                     warning_only=True)
 
@@ -707,7 +704,7 @@ def validate_session_access_rule(
 
     if hasattr(arule, "if_has_tag"):
         if arule.if_has_tag is not None:
-            validate_identifier(vctx, "%s: if_has_tag" % location,
+            validate_identifier(vctx, f"{location}: if_has_tag",
                     arule.if_has_tag,
                     warning_only=True)
 
@@ -833,7 +830,7 @@ def validate_session_grading_rule(
 
     if hasattr(grule, "if_has_tag"):
         if grule.if_has_tag is not None:
-            validate_identifier(vctx, "%s: if_has_tag" % location,
+            validate_identifier(vctx, f"{location}: if_has_tag",
                     grule.if_has_tag,
                     warning_only=True)
 
@@ -922,7 +919,7 @@ def validate_flow_rules(vctx, location, rules):
     # {{{ grade_id
 
     if rules.grade_identifier:
-        validate_identifier(vctx, "%s: grade_identifier" % location,
+        validate_identifier(vctx, f"{location}: grade_identifier",
                 rules.grade_identifier)
         if not hasattr(rules, "grade_aggregation_strategy"):
             raise ValidationError(
@@ -943,7 +940,7 @@ def validate_flow_rules(vctx, location, rules):
         raise ValidationError(
                 string_concat("%s: ",
                     _("invalid grade aggregation strategy"),
-                    ": %s" % rules.grade_aggregation_strategy)
+                    f": {rules.grade_aggregation_strategy}")
                 % location)
 
     # }}}
@@ -1197,10 +1194,7 @@ def get_yaml_from_repo_safely(repo, full_name, commit_sha):
         tp, e, _ = sys.exc_info()
 
         raise ValidationError(
-                "{fullname}: {err_type}: {err_str}".format(
-                    fullname=full_name,
-                    err_type=tp.__name__,
-                    err_str=str(e)))
+                f"{full_name}: {tp.__name__}: {e!s}")
 
 
 def check_attributes_yml(
@@ -1503,7 +1497,7 @@ def validate_course_content(repo, course_file, events_file,
             location = entry_path
             validate_flow_id(vctx, location, flow_id)
 
-            location = "flows/%s" % entry_path
+            location = f"flows/{entry_path}"
             flow_desc = get_yaml_from_repo_safely(repo, location,
                     commit_sha=validate_sha)
 
@@ -1559,7 +1553,7 @@ def validate_course_content(repo, course_file, events_file,
             location = entry_path
             validate_static_page_name(vctx, location, page_name)
 
-            location = "staticpages/%s" % entry_path
+            location = f"staticpages/{entry_path}"
             page_desc = get_yaml_from_repo_safely(repo, location,
                     commit_sha=validate_sha)
 
@@ -1584,7 +1578,7 @@ class FileSystemFakeRepo:  # pragma: no cover
         return sha
 
     def __str__(self):
-        return "<FAKEREPO:%s>" % self.root
+        return f"<FAKEREPO:{self.root}>"
 
     def decode(self):
         return self

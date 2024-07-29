@@ -41,7 +41,7 @@ def get_local_test_settings_file(argv):
 
     if not os.path.isfile(local_settings_file):
         raise CommandError(
-            "file '%s' does not exist" % local_settings_file
+            f"file '{local_settings_file}' does not exist"
         )
 
     return local_settings_file

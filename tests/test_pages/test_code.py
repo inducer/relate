@@ -218,13 +218,13 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
         file_name = "foo"
         markdown = (
                 markdowns.CODE_MARKDWON_PATTERN_WITH_DATAFILES
-                % {"extra_data_file": "- %s" % file_name}
+                % {"extra_data_file": f"- {file_name}"}
         )
         resp = self.get_page_sandbox_preview_response(markdown)
         self.assertEqual(resp.status_code, 200)
         self.assertSandboxNotHasValidPage(resp)
         self.assertResponseContextContains(
-            resp, PAGE_ERRORS, "data file '%s' not found" % file_name)
+            resp, PAGE_ERRORS, f"data file '{file_name}' not found")
 
     def test_data_files_missing_random_question_data_file_bad_format(self):
         markdown = markdowns.CODE_MARKDWON_WITH_DATAFILES_BAD_FORMAT
@@ -232,7 +232,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
         self.assertEqual(resp.status_code, 200)
         self.assertSandboxNotHasValidPage(resp)
         self.assertResponseContextContains(
-            resp, PAGE_ERRORS, "data file '%s' not found" % "['foo', 'bar']")
+            resp, PAGE_ERRORS, "data file '{}' not found".format("['foo', 'bar']"))
 
     def test_not_multiple_submit_warning(self):
         markdown = (
@@ -602,7 +602,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
             mock_get_host.side_effect = lambda x: (resolved, [], [])
             self.assert_runpy_result_and_response(
                 "user_error",
-                execpted_msgs="Your code ran on %s" % resolved,
+                execpted_msgs=f"Your code ran on {resolved}",
                 exec_host=ip
             )
 
@@ -612,7 +612,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
             mock_get_host.side_effect = socket_error
             self.assert_runpy_result_and_response(
                 "user_error",
-                execpted_msgs="Your code ran on %s" % ip,
+                execpted_msgs=f"Your code ran on {ip}",
                 exec_host=ip
             )
 
@@ -677,24 +677,24 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
         b64_data = "T2dnUwACAAAAAAAAAAA+HAAAAAAAAGyawCEBQGZpc2h"
         audio_valid1 = (
             '<audio controls><source src="data:audio/wav;base64,'
-            '%s" type="audio/wav">'
-            '</audio>' % b64_data)
+            f'{b64_data}" type="audio/wav">'
+            '</audio>')
         audio_valid2 = (
             '<audio><source src="data:audio/wav;base64,'
-            '%s" type="audio/wav">'
-            '</audio>' % b64_data)
+            f'{b64_data}" type="audio/wav">'
+            '</audio>')
         audio_invalid1 = (
             '<audio control><source src="data:audio/wav;base64,'
-            '%s" type="audio/wav">'
-            '</audio>' % b64_data)
+            f'{b64_data}" type="audio/wav">'
+            '</audio>')
         audio_invalid2 = (
             '<audio controls><source href="data:audio/wav;base64,'
-            '%s" type="audio/wav">'
-            '</audio>' % b64_data)
+            f'{b64_data}" type="audio/wav">'
+            '</audio>')
         audio_invalid3 = (
             '<audio controls><source src="data:audio/ogg;base64,'
-            '%s" type="audio/ogg">'
-            '</audio>' % b64_data)
+            f'{b64_data}" type="audio/ogg">'
+            '</audio>')
         audio_invalid4 = (
             '<audio controls><source src="hosse.wav" type="audio/wav">'
             '</audio>')

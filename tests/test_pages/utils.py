@@ -46,7 +46,7 @@ def _skip_real_docker_test():
     # Skipping CI
     for skipped_ci in [GITLAB_CI]:
         if os.environ.get(skipped_ci):
-            print("Running on %s" % skipped_ci)
+            print(f"Running on {skipped_ci}")
             return True
 
     # For debugging on local Windows or Mac

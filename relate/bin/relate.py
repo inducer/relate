@@ -210,9 +210,8 @@ def test_code_question(page_desc, repo_root) -> bool:
 
     stop = time()
     response["timeout"] = (
-            "Execution took %.1f seconds. "
-            "(Timeout is %.1f seconds.)"
-            % (stop-start, page_desc.timeout))
+            f"Execution took {stop-start:.1f} seconds. "
+            f"(Timeout is {page_desc.timeout:.1f} seconds.)")
 
     from colorama import Fore, Style
     if response["result"] == "success":
@@ -283,8 +282,7 @@ def test_code_yml(yml_file, repo_root):
         else:
             from colorama import Fore, Style
             print(Fore.RED + Style.BRIGHT
-                    + "'%s' does not look like a valid flow or page file"
-                    % yml_file
+                    + f"'{yml_file}' does not look like a valid flow or page file"
                     + Style.RESET_ALL)
             return
 

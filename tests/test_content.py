@@ -215,9 +215,8 @@ class GetCourseCommitShaTest(SingleCourseTestMixin, TestCase):
                 course=self.course, participation=self.ta_participation,
                 raise_on_nonexistent_preview_commit=True)
 
-        expected_error_msg = ("Preview revision '%s' does not exist--"
-                      "showing active course content instead."
-                      % invalid_sha)
+        expected_error_msg = (f"Preview revision '{invalid_sha}' does not exist--"
+                      "showing active course content instead.")
         self.assertIn(expected_error_msg, str(cm.exception))
 
     def test_passed_repo_not_none(self):
@@ -308,8 +307,7 @@ class GetRepoBlobTest(SingleCourseTestMixin, TestCase):
                 content.get_repo_tree(
                     repo, full_name, self.course.active_git_commit_sha.encode())
             expected_error_msg = (
-                    "'%s' is not a directory, cannot lookup nested names"
-                    % path_parts[0])
+                    f"'{path_parts[0]}' is not a directory, cannot lookup nested names")
             self.assertIn(expected_error_msg, str(cm.exception))
 
     def test_resource_is_a_directory_error(self):
@@ -319,7 +317,7 @@ class GetRepoBlobTest(SingleCourseTestMixin, TestCase):
                 content.get_repo_blob(
                     repo, full_name, self.course.active_git_commit_sha.encode())
             expected_error_msg = (
-                    "resource '%s' is not a file" % full_name)
+                    f"resource '{full_name}' is not a file")
             self.assertIn(expected_error_msg, str(cm.exception))
 
 
@@ -415,13 +413,11 @@ class TagProcessingHTMLParserAndLinkFixerTreeprocessorTest(
             # images
             "https://raw.githubusercontent.com/inducer/relate/master/"
             "doc/images/screenshot.png",
-            "/course/test-course/file-version/%s/images/cc.png"
-            % self.course.active_git_commit_sha,
+            f"/course/test-course/file-version/{self.course.active_git_commit_sha}/images/cc.png",
 
             # object data
             'data="helloworld.swf"',
-            "/course/test-course/file-version/%s/images/cc.png"
-            % self.course.active_git_commit_sha,
+            f"/course/test-course/file-version/{self.course.active_git_commit_sha}/images/cc.png",
         ]
 
         resp = self.get_page_sandbox_preview_response(markdown)
@@ -584,9 +580,9 @@ class ParseDateSpecTest(SingleCourseTestMixin, TestCase):
         self.assertEqual(
             content.parse_date_spec(self.course, datespec, vctx=self.vctx),
             self.mock_now_value)
-        expected_warning_msg = ("Unrecognized date/time specification: '%s' "
+        expected_warning_msg = (f"Unrecognized date/time specification: '{datespec}' "
                                 "(interpreted as 'now'). "
-                                "You should add an event with this name." % datespec)
+                                "You should add an event with this name.")
 
         self.assertEqual(self.mock_add_warning.call_count, 1)
         self.assertIn(expected_warning_msg, self.mock_add_warning.call_args[0])
@@ -661,7 +657,7 @@ class ParseDateSpecTest(SingleCourseTestMixin, TestCase):
         with self.assertRaises(ValidationError) as cm:
             content.parse_date_spec(self.course, datespec, vctx=self.vctx)
 
-        expected_error_msg = "invalid identifier '%s'" % datespec
+        expected_error_msg = f"invalid identifier '{datespec}'"
         self.assertIn(expected_error_msg, str(cm.exception))
 
         # no vctx
@@ -687,8 +683,7 @@ class ParseDateSpecTest(SingleCourseTestMixin, TestCase):
             datetime.datetime(2019, 1, 1, tzinfo=UTC))
         self.assertEqual(self.mock_add_warning.call_count, 1)
         expected_warning_msg = (
-            "event '%s' has no end time, using start time instead"
-            % datespec)
+            f"event '{datespec}' has no end time, using start time instead")
         self.assertIn(expected_warning_msg, self.mock_add_warning.call_args[0])
         self.mock_add_warning.reset_mock()
 
@@ -858,7 +853,7 @@ class MarkupToHtmlTest(SingleCoursePageTestMixin, TestCase):
             text = "[this course](course:)"
             self.assertEqual(content.markup_to_html(
                 self.course, repo, self.course.active_git_commit_sha, text),
-                '<p><a href="%s">this course</a></p>' % self.course_page_url)
+                f'<p><a href="{self.course_page_url}">this course</a></p>')
 
     def test_startswith_jinja_prefix(self):
         with self.pctx.repo as repo:
@@ -866,7 +861,7 @@ class MarkupToHtmlTest(SingleCoursePageTestMixin, TestCase):
             self.assertEqual(content.markup_to_html(
                 self.course, repo,
                 self.course.active_git_commit_sha.encode(), text),
-                '<p><a href="%s">this course</a></p>' % self.course_page_url)
+                f'<p><a href="{self.course_page_url}">this course</a></p>')
 
 
 class GetFlowPageClassTest(SingleCourseTestMixin, TestCase):

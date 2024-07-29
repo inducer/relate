@@ -395,8 +395,7 @@ def run_course_update_command(
                         _("Course content validated OK, with warnings: "),
                         "<ul>%s</ul>")
                     % ("".join(
-                        "<li><i>%(location)s</i>: %(warningtext)s</li>"
-                        % {"location": w.location, "warningtext": w.text}
+                        f"<li><i>{w.location}</i>: {w.text}</li>"
                         for w in warnings)))
 
     # }}}

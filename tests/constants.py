@@ -142,7 +142,7 @@ HAVE_VALID_PAGE = "have_valid_page"
 COMMIT_SHA_MAP = {
     # This didn't use os.path.join, because "get_flow_desc" used "flows/%s.yml" to
     # get the path.
-    "flows/%s.yml" % QUIZ_FLOW_ID: [
+    f"flows/{QUIZ_FLOW_ID}.yml": [
 
         # key: commit_sha, value: attributes
         {"my_fake_commit_sha_1": {"path": "fake-quiz-test1.yml"}},

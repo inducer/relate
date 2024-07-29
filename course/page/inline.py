@@ -146,7 +146,7 @@ def parse_question(vctx, location, name, answers_desc):
         raise ValidationError(
                 string_concat(
                     "%s: ",
-                    _("Embedded question '%s' must be a struct" % name))
+                    _("Embedded question '{}' must be a struct".format(name)))
                 % location)
 
 
@@ -354,8 +354,8 @@ class ShortAnswer(AnswerBase):
                 break
 
         assert unspec_correct_answer_text is not None
-        return ("%s%s%s"
-                % (getattr(self.answers_desc, "prepended_text", "").strip(),
+        return ("{}{}{}".format(
+                   getattr(self.answers_desc, "prepended_text", "").strip(),
                    unspec_correct_answer_text,
                    getattr(self.answers_desc, "appended_text", "").strip())
                 )
@@ -482,8 +482,7 @@ class ChoicesAnswer(AnswerBase):
 
     def get_correct_answer_text(self, page_context):
         corr_idx = self.correct_indices()[0]
-        return ("%s%s%s"
-                % (
+        return ("{}{}{}".format(
                     getattr(self.answers_desc, "prepended_text", "").strip(),
                     self.process_choice_string(
                         page_context, self.answers_desc.choices[corr_idx]).lstrip(),
@@ -724,7 +723,7 @@ class InlineMultiQuestion(TextQuestionBase, PageBaseWithValue):
                  string_concat(
                      "%s: ",
                      _("embedded question name %s not unique."))
-                 % (location, ", ".join(["'%s'" % d for d in sorted(duplicated)])))
+                 % (location, ", ".join([f"'{d}'" for d in sorted(duplicated)])))
 
         redundant_answer_list = list(set(answers_name_list)
                 - set(self.embedded_name_list))
@@ -816,7 +815,7 @@ class InlineMultiQuestion(TextQuestionBase, PageBaseWithValue):
 
         # remainder_html should at least include "</p>"
         assert remainder_html, (
-            "remainder_html is unexpected not empty: %s" % remainder_html)
+            f"remainder_html is unexpected not empty: {remainder_html}")
         html_list.append(remainder_html)
 
         return {

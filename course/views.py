@@ -701,11 +701,7 @@ class ParticipationChoiceField(forms.ModelChoiceField):
     def label_from_instance(self, obj):
         user = obj.user
         return (
-                "%(user_email)s - %(user_fullname)s"
-                % {
-                    "user_email": user.email,
-                    "user_fullname": user.get_full_name()
-                })
+                f"{user.email} - {user.get_full_name()}")
 
 
 class ExceptionStage1Form(StyledForm):
@@ -873,8 +869,7 @@ def grant_exception_stage_2(
     create_session_is_override = False
     if not session_start_rule.may_start_new_session:
         create_session_is_override = True
-        form_text += ("<div class='alert alert-info'>%s</div>" % (
-            string_concat(
+        form_text += ("<div class='alert alert-info'>{}</div>".format(string_concat(
                 "<i class='bi bi-info-circle'></i> ",
                 _("Creating a new session is (technically) not allowed "
                 "by course rules. Clicking 'Create Session' anyway will "

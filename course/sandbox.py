@@ -134,8 +134,7 @@ def view_markup_sandbox(pctx):
                 messages.add_message(pctx.request, messages.ERROR,
                         gettext("Markup failed to render")
                         + ": "
-                        + "{err_type}: {err_str}".format(
-                            err_type=tp.__name__, err_str=e))
+                        + f"{tp.__name__}: {e}")
 
         form = make_form(request.POST)
 
@@ -269,8 +268,7 @@ def view_page_sandbox(pctx: CoursePageContext) -> http.HttpResponse:
                 page_errors = (
                         gettext("Page failed to load/validate")
                         + ": "
-                        + "{err_type}: {err_str}".format(
-                            err_type=tp.__name__, err_str=e))  # type: ignore
+                        + f"{tp.__name__}: {e}")  # type: ignore
 
             else:
                 # Yay, it did validate.
@@ -316,8 +314,7 @@ def view_page_sandbox(pctx: CoursePageContext) -> http.HttpResponse:
             page_errors = (
                     gettext("Page failed to load/validate")
                     + ": "
-                    + "{err_type}: {err_str}".format(
-                        err_type=tp.__name__, err_str=e))  # type: ignore
+                    + f"{tp.__name__}: {e}")  # type: ignore
             have_valid_page = False
 
     if have_valid_page:
@@ -391,8 +388,7 @@ def view_page_sandbox(pctx: CoursePageContext) -> http.HttpResponse:
                             gettext("Page failed to load/validate "
                                 "(change page ID to clear faults)")
                             + ": "
-                            + "{err_type}: {err_str}".format(
-                                err_type=tp.__name__, err_str=e))  # type: ignore
+                            + f"{tp.__name__}: {e}")  # type: ignore
 
                     page_form = None
 

@@ -32,15 +32,13 @@ if os.environ.get("RELATE_LOCAL_TEST_SETTINGS", None):
 
 if not os.path.isfile(_local_settings_file):
     raise RuntimeError(
-        "Management command '%(cmd_name)s' failed to run "
-        "because '%(local_settings_file)s' is missing."
-        % {"cmd_name": sys.argv[1],
-           "local_settings_file": _local_settings_file})
+        f"Management command '{sys.argv[1]}' failed to run "
+        f"because '{_local_settings_file}' is missing.")
 
 local_settings_module_name, ext = (
     os.path.splitext(os.path.split(_local_settings_file)[-1]))
 assert ext == ".py"
-exec("import %s as local_settings_module" % local_settings_module_name)
+exec(f"import {local_settings_module_name} as local_settings_module")
 
 local_settings = local_settings_module.__dict__  # type: ignore  # noqa
 
