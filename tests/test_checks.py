@@ -81,7 +81,8 @@ class CheckRelateSettingsBase(SimpleTestCase):
         try:
             result_ids, result_msgs = (
                 list(zip(*[(r.id, r.msg) for r in result
-                      if is_id_in_filter(r.id, filter_message_id_prefixes)])))
+                      if is_id_in_filter(r.id, filter_message_id_prefixes)],
+                      strict=True)))
 
             if expected_ids is not None:
                 assert isinstance(expected_ids, list | tuple)

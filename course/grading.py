@@ -517,7 +517,8 @@ def show_grader_statistics(pctx, flow_id):
                 "flow_id": flow_id,
                 "pages": pages,
                 "graders": graders,
-                "pages_stats_counts": list(zip(pages, stats_table, page_counts)),
+                "pages_stats_counts":
+                    list(zip(pages, stats_table, page_counts, strict=True)),
                 "grader_counts": grader_counts,
             })
 
