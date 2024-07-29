@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+
 __copyright__ = "Copyright (C) 2014 Andreas Kloeckner"
 
 __license__ = """
@@ -20,7 +23,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from typing import Any, Tuple
+from typing import Any
 
 from django import forms
 from django.contrib import admin
@@ -85,7 +88,7 @@ def _filter_participation_linked_obj_for_user(queryset, user):
 
 # {{{ list filter helper
 
-def _filter_related_only(filter_arg: str) -> Tuple[str, Any]:
+def _filter_related_only(filter_arg: str) -> tuple[str, Any]:
     return (filter_arg, admin.RelatedOnlyFieldListFilter)
 
 # }}}

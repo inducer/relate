@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+
 __copyright__ = "Copyright (C) 2014 Andreas Kloeckner"
 
 __license__ = """
@@ -23,7 +26,7 @@ THE SOFTWARE.
 
 import re
 import sys
-from typing import Any, Tuple
+from typing import Any
 
 import django.forms as forms
 from django.utils.translation import gettext, gettext_lazy as _
@@ -213,7 +216,7 @@ class TextAnswerMatcher:
         Only used for answer normalization. Matchers are responsible for
         case sensitivity themselves.
     """
-    ALLOWED_ATTRIBUTES: Tuple[Any, ...] = ()
+    ALLOWED_ATTRIBUTES: tuple[Any, ...] = ()
 
     def __init__(self, vctx, location, matcher_desc):
         self.matcher_desc = matcher_desc
@@ -465,7 +468,7 @@ class SymbolicExpressionMatcher(TextAnswerMatcher):
 
 
 def float_or_sympy_evalf(s):
-    if isinstance(s, (int, float,)):
+    if isinstance(s, int | float):
         return s
 
     if not isinstance(s, str):

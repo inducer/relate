@@ -24,12 +24,12 @@ THE SOFTWARE.
 """
 
 import datetime
+from collections.abc import Iterable
 from contextlib import ContextDecorator
 from dataclasses import dataclass
 from typing import (
     TYPE_CHECKING,
     Any,
-    Iterable,
     cast,
 )
 
@@ -905,7 +905,7 @@ def repr_js(obj: Any) -> str:
         return "{%s}" % ", ".join(f"{k}: {repr_js(v)}" for k, v in obj.items())
     elif isinstance(obj, bool):
         return repr(obj).lower()
-    elif isinstance(obj, (int, float)):
+    elif isinstance(obj, int | float):
         return repr(obj)
     elif isinstance(obj, str):
         return repr(obj)

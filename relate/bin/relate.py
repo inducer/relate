@@ -1,8 +1,9 @@
 #! /usr/bin/env python3
+from __future__ import annotations
 
 import io
 import sys
-from typing import Any, Dict
+from typing import Any
 
 
 # {{{ validate_course
@@ -175,7 +176,7 @@ def test_code_question(page_desc, repo_root) -> bool:
             "data_files": data_files,
             }
 
-    response: Dict[str, Any] = {}
+    response: dict[str, Any] = {}
 
     prev_stdin = sys.stdin
     prev_stdout = sys.stdout

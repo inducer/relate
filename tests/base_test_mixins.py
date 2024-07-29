@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+
 __copyright__ = "Copyright (C) 2017 Dong Zhuang, Andreas Kloeckner, Zesheng Wang"
 
 __license__ = """
@@ -372,7 +375,7 @@ class ResponseContextMixin:
             value = self.get_response_context_value_by_name(resp, context_name)
             print("\n-----------context %s-------------"
                   % context_name)
-            if isinstance(value, (list, tuple)):
+            if isinstance(value, list | tuple):
                 from course.validation import ValidationWarning
                 for v in value:
                     if isinstance(v, ValidationWarning):
@@ -611,7 +614,7 @@ class SuperuserCreateMixin(ResponseContextMixin):
                 "the session doesn't have "
                 "'relate_pretend_facilities' attribute")
 
-        if isinstance(expected_facilities, (list, tuple)):
+        if isinstance(expected_facilities, list | tuple):
             self.assertTrue(set(expected_facilities).issubset(set(pretended)))
         else:
             self.assertTrue(expected_facilities in pretended)
@@ -625,7 +628,7 @@ class SuperuserCreateMixin(ResponseContextMixin):
         import itertools
         if errors is None:
             errors = []
-        if not isinstance(errors, (list, tuple)):
+        if not isinstance(errors, list | tuple):
             errors = [errors]
         try:
             form_errors = ". ".join(list(

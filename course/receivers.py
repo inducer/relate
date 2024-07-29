@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+
 __copyright__ = "Copyright (C) 2016 Dong Zhuang, Andreas Kloeckner"
 
 __license__ = """
@@ -20,7 +23,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from typing import Any, List, Optional, Tuple, Union
+from typing import Any
 
 from django.db import transaction
 from django.db.models.signals import post_save
@@ -43,7 +46,7 @@ from course.models import (
 def update_requested_participation_status(
         sender: Any,
         created: bool,
-        instance: Union[Course, User],
+        instance: Course | User,
         **kwargs: Any) -> None:
     if created:
         return
@@ -80,7 +83,7 @@ def update_requested_participation_status(
 
 
 def may_preapprove_role(
-        course: Course, user: User) -> Tuple[bool, Optional[List[str]]]:
+        course: Course, user: User) -> tuple[bool, list[str] | None]:
     if not user.is_active:
         return False, None
 

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.management.base import BaseCommand, CommandError  # noqa
 from django.db import transaction

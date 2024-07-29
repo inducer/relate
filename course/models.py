@@ -23,10 +23,10 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
+from collections.abc import Iterable
 from typing import (
     TYPE_CHECKING,
     Any,
-    Iterable,
     cast,
 )
 
@@ -1354,7 +1354,7 @@ def validate_stipulations(stip):  # pragma: no cover (deprecated and not tested)
                 % ", ".join(set(stip.keys()) - allowed_keys))
 
     if "credit_percent" in stip and not isinstance(
-            stip["credit_percent"], (int, float)):
+            stip["credit_percent"], int | float):
         raise ValidationError(_("credit_percent must be a float"))
     if ("allowed_session_count" in stip
             and (

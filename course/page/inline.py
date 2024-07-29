@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+
 __copyright__ = "Copyright (C) 2015 Andreas Kloeckner, Dong Zhuang"
 
 __license__ = """
@@ -21,7 +24,7 @@ THE SOFTWARE.
 """
 
 import re
-from typing import Optional, cast
+from typing import cast
 
 import django.forms as forms
 from crispy_forms.bootstrap import PrependedAppendedText
@@ -214,7 +217,7 @@ class ShortAnswer(AnswerBase):
     form_field_class = forms.CharField
 
     @staticmethod
-    def get_length_attr_em(location: str, width_attr: str) -> Optional[float]:
+    def get_length_attr_em(location: str, width_attr: str) -> float | None:
         """
         generate the length for input box, the unit is 'em'
         """
@@ -222,7 +225,7 @@ class ShortAnswer(AnswerBase):
         if width_attr is None:
             return None
 
-        if isinstance(width_attr, (int, float)):
+        if isinstance(width_attr, int | float):
             return width_attr
 
         width_re_match = WIDTH_STR_RE.match(width_attr)

@@ -27,7 +27,6 @@ import datetime
 from typing import (
     TYPE_CHECKING,
     Any,
-    List,
     cast,
 )
 
@@ -1149,7 +1148,7 @@ def grant_exception_stage_3(
 
             tags: list[str] = []
             if hasattr(flow_desc, "rules"):
-                tags = cast(List[str], getattr(flow_desc.rules, "tags", []))
+                tags = cast(list[str], getattr(flow_desc.rules, "tags", []))
 
             exceptions_created = []
 

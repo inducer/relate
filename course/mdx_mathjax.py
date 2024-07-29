@@ -1,4 +1,5 @@
 # Downloaded from https://github.com/mayoff/python-markdown-mathjax/issues/3
+from __future__ import annotations
 
 import markdown
 from markdown.postprocessors import Postprocessor

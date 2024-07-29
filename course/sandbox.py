@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+
 __copyright__ = "Copyright (C) 2014 Andreas Kloeckner"
 
 __license__ = """
@@ -20,7 +23,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from typing import Any, Optional, Tuple, cast
+from typing import Any, cast
 
 import django.forms as forms
 from crispy_forms.layout import Submit
@@ -154,10 +157,10 @@ def get_sandbox_data_for_page(
     stored_data_tuple = pctx.request.session.get(key)
 
     # Session storage uses JSON and may turn tuples into lists.
-    if (isinstance(stored_data_tuple, (list, tuple))
+    if (isinstance(stored_data_tuple, list | tuple)
             and len(stored_data_tuple) == 3):
         stored_data_page_type, stored_data_page_id, \
-            stored_data = cast(Tuple, stored_data_tuple)
+            stored_data = cast(tuple, stored_data_tuple)
 
         if (
                 stored_data_page_type == page_desc.type
@@ -222,7 +225,7 @@ def view_page_sandbox(pctx: CoursePageContext) -> http.HttpResponse:
             and "clear_response" in request.POST)
     is_preview_post = (request.method == "POST" and "preview" in request.POST)
 
-    def make_form(data: Optional[str] = None) -> PageSandboxForm:
+    def make_form(data: str | None = None) -> PageSandboxForm:
         return PageSandboxForm(
                 page_source, "yaml", request.user.editor_mode,
                 gettext("Enter YAML markup for a flow page."),
