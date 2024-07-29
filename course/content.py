@@ -28,7 +28,7 @@ import html.parser as html_parser
 import os
 import re
 import sys
-from typing import Union, cast
+from typing import cast
 
 import dulwich.objects
 import dulwich.repo
@@ -51,10 +51,10 @@ CACHE_KEY_ROOT = "py3"
 
 # {{{ mypy
 
+from collections.abc import Callable
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
 )
 
 
@@ -67,8 +67,8 @@ if TYPE_CHECKING:
     from course.validation import FileSystemFakeRepoTree, ValidationContext
     from relate.utils import Repo_ish
 
-Date_ish = Union[datetime.datetime, datetime.date]
-Datespec = Union[datetime.datetime, datetime.date, str]
+Date_ish = datetime.datetime | datetime.date
+Datespec = datetime.datetime | datetime.date | str
 
 
 class ChunkRulesDesc(Struct):
@@ -662,7 +662,7 @@ def look_up_git_object(repo: dulwich.repo.Repo,
 
     from stat import S_ISLNK
     while name_parts:
-        if not isinstance(cur_lookup, (Tree, FileSystemFakeRepoTree)):
+        if not isinstance(cur_lookup, Tree | FileSystemFakeRepoTree):
             raise ObjectDoesNotExist(
                     _("'%s' is not a directory, cannot lookup nested names")
                     % os.sep.join(processed_name_parts))
@@ -719,7 +719,7 @@ def get_repo_tree(repo: Repo_ish, full_name: str, commit_sha: bytes) -> Tree_ish
 
     msg_full_name = full_name if full_name else _("(repo root)")
 
-    if isinstance(git_obj, (Tree, FileSystemFakeRepoTree)):
+    if isinstance(git_obj, Tree | FileSystemFakeRepoTree):
         return git_obj
     else:
         raise ObjectDoesNotExist(_("resource '%s' is not a tree") % msg_full_name)
@@ -749,7 +749,7 @@ def get_repo_blob(repo: Repo_ish, full_name: str, commit_sha: bytes) -> Blob_ish
 
     msg_full_name = full_name if full_name else _("(repo root)")
 
-    if isinstance(git_obj, (Blob, FileSystemFakeRepoFile)):
+    if isinstance(git_obj, Blob | FileSystemFakeRepoFile):
         return git_obj
     else:
         raise ObjectDoesNotExist(_("resource '%s' is not a file") % msg_full_name)

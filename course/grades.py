@@ -28,9 +28,6 @@ from decimal import Decimal
 from typing import (
     TYPE_CHECKING,
     Any,
-    List,
-    Optional,
-    Tuple,
     cast,
 )
 
@@ -651,11 +648,13 @@ def view_grades_by_opportunity(
         page_numbers = list(range(1, 1 + max_page_count))
 
         from course.flow import assemble_page_grades
-        page_grades: List[List[Optional[FlowPageVisitGrade]]] = assemble_page_grades(all_flow_sessions)  # noqa
+        page_grades: list[list[FlowPageVisitGrade | None]] \
+            = assemble_page_grades(all_flow_sessions)
 
         for (_dummy2, grade_info), grade_list in zip(grade_table, page_grades):  # type: ignore
             # Not all pages exist in all sessions
-            grades: List[Tuple[Optional[int], Optional[FlowPageVisitGrade]]] = list(enumerate(grade_list))  # noqa
+            grades: list[tuple[int | None, FlowPageVisitGrade | None]] \
+                = list(enumerate(grade_list))
             if len(grades) < max_page_count:
                 grades.extend([(None, None)] * (max_page_count - len(grades)))
             grade_info.grades = grades
@@ -999,7 +998,8 @@ def view_single_grade(pctx: CoursePageContext, participation_id: str,
             flow_desc = get_flow_desc(pctx.repo, pctx.course,
                     opportunity.flow_id, pctx.course_commit_sha)
         except ObjectDoesNotExist:
-            flow_sessions_and_session_properties: Optional[List[Tuple[Any, SessionProperties]]] = None  # noqa
+            flow_sessions_and_session_properties: \
+                list[tuple[Any, SessionProperties]] | None = None
         else:
             flow_sessions_and_session_properties = []
             for session in flow_sessions:

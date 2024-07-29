@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+
 __copyright__ = "Copyright (C) 2017 Dong Zhuang"
 
 __license__ = """
@@ -191,7 +194,7 @@ def check_relate_settings(app_configs, **kwargs):
                     else:
                         ip_ranges = conf.get("ip_ranges", [])
                         if ip_ranges:
-                            if not isinstance(ip_ranges, (list, tuple)):
+                            if not isinstance(ip_ranges, list | tuple):
                                 errors.append(RelateCriticalCheckMessage(
                                     msg=(
                                         INSTANCE_ERROR_PATTERN
@@ -237,7 +240,7 @@ def check_relate_settings(app_configs, **kwargs):
     relate_maintenance_mode_exceptions = getattr(
         settings, RELATE_MAINTENANCE_MODE_EXCEPTIONS, None)
     if relate_maintenance_mode_exceptions is not None:
-        if not isinstance(relate_maintenance_mode_exceptions, (list, tuple)):
+        if not isinstance(relate_maintenance_mode_exceptions, list | tuple):
             errors.append(RelateCriticalCheckMessage(
                 msg=(INSTANCE_ERROR_PATTERN
                      % {"location": RELATE_MAINTENANCE_MODE_EXCEPTIONS,
@@ -266,7 +269,7 @@ def check_relate_settings(app_configs, **kwargs):
     relate_session_restart_cooldown_seconds = getattr(
         settings, RELATE_SESSION_RESTART_COOLDOWN_SECONDS, None)
     if relate_session_restart_cooldown_seconds is not None:
-        if not isinstance(relate_session_restart_cooldown_seconds, (int, float)):
+        if not isinstance(relate_session_restart_cooldown_seconds, int | float):
             errors.append(RelateCriticalCheckMessage(
                 msg=(INSTANCE_ERROR_PATTERN
                      % {"location": RELATE_SESSION_RESTART_COOLDOWN_SECONDS,
@@ -290,7 +293,7 @@ def check_relate_settings(app_configs, **kwargs):
     relate_ticket_minutes_valid_after_use = getattr(
         settings, RELATE_TICKET_MINUTES_VALID_AFTER_USE, None)
     if relate_ticket_minutes_valid_after_use is not None:
-        if not isinstance(relate_ticket_minutes_valid_after_use, (int, float)):
+        if not isinstance(relate_ticket_minutes_valid_after_use, int | float):
             errors.append(RelateCriticalCheckMessage(
                 msg=(INSTANCE_ERROR_PATTERN
                      % {"location": RELATE_TICKET_MINUTES_VALID_AFTER_USE,
@@ -531,7 +534,7 @@ def register_startup_checks_extra():
     """
     startup_checks_extra = getattr(settings, RELATE_STARTUP_CHECKS_EXTRA, None)
     if startup_checks_extra is not None:
-        if not isinstance(startup_checks_extra, (list, tuple)):
+        if not isinstance(startup_checks_extra, list | tuple):
             raise ImproperlyConfigured(
                 INSTANCE_ERROR_PATTERN
                 % {"location": RELATE_STARTUP_CHECKS_EXTRA,

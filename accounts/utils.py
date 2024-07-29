@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+
 __copyright__ = "Copyright (C) 2018 Dong Zhuang"
 
 __license__ = """
@@ -143,7 +146,7 @@ class RelateUserMethodSettingsInitializer:
         if not custom_email_appellation_priority_list:
             return errors
 
-        if not isinstance(custom_email_appellation_priority_list, (list, tuple)):
+        if not isinstance(custom_email_appellation_priority_list, list | tuple):
             errors.append(Warning(
                 msg=("{}, {}".format(
                         INSTANCE_ERROR_PATTERN

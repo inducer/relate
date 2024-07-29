@@ -8,6 +8,8 @@ markdowns for page sandbox tests
 # }}}
 
 # {{{ code questions
+from __future__ import annotations
+
 
 CODE_MARKDWON = """
 type: PythonCodeQuestion

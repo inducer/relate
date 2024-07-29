@@ -25,10 +25,9 @@ THE SOFTWARE.
 
 
 import datetime
+from collections.abc import Mapping
 from typing import (
     Any,
-    Mapping,
-    Union,
 )
 from zoneinfo import ZoneInfo
 
@@ -101,7 +100,7 @@ class SubdirRepoWrapper:
         del self.repo[item]
 
 
-Repo_ish = Union[dulwich.repo.Repo, SubdirRepoWrapper]
+Repo_ish = dulwich.repo.Repo | SubdirRepoWrapper
 
 # }}}
 

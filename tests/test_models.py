@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+
 __doc__ = """
 This is testing uncovering part of course.models by other tests
 """

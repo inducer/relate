@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+
 __copyright__ = "Copyright (C) 2017 Zesheng Wang, Andreas Kloeckner, Zhuang Dong"
 
 __license__ = """

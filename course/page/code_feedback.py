@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+
 __copyright__ = "Copyright (C) 2014 Andreas Kloeckner"
 
 __license__ = """
@@ -132,7 +135,7 @@ class Feedback:
             rtol=1e-5, atol=1e-8, report_success=True, report_failure=True):
         import numpy as np
 
-        if not isinstance(data, (complex, float, int, np.number)):
+        if not isinstance(data, complex | float | int | np.number):
             try:
                 # Check whether data is a sympy number because sympy
                 # numbers do not follow the typical interface

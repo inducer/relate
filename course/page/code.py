@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+
 __copyright__ = "Copyright (C) 2014 Andreas Kloeckner"
 
 __license__ = """
@@ -186,7 +189,6 @@ def request_run(run_req, run_timeout, image=None):
     import errno
     import http.client as http_client
     import json
-    import socket
 
     import docker
     from docker.errors import APIError as DockerAPIError
@@ -346,7 +348,7 @@ def request_run(run_req, run_timeout, image=None):
 
             return result
 
-        except socket.timeout:
+        except TimeoutError:
             return {
                     "result": "timeout",
                     "exec_host": connect_host_ip,

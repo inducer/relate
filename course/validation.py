@@ -26,7 +26,7 @@ THE SOFTWARE.
 import datetime
 import re
 import sys
-from typing import TYPE_CHECKING, Any, Union
+from typing import TYPE_CHECKING, Any
 
 import dulwich.objects
 from django.core.exceptions import ObjectDoesNotExist
@@ -1643,8 +1643,8 @@ class FileSystemFakeRepoFile:  # pragma: no cover
             return inf.read()
 
 
-Blob_ish = Union[dulwich.objects.Blob, FileSystemFakeRepoFile]
-Tree_ish = Union[dulwich.objects.Tree, FileSystemFakeRepoTree]
+Blob_ish = dulwich.objects.Blob | FileSystemFakeRepoFile
+Tree_ish = dulwich.objects.Tree | FileSystemFakeRepoTree
 
 
 def validate_course_on_filesystem(

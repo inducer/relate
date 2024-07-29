@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+
 __copyright__ = "Copyright (C) 2018 Dong Zhuang"
 
 __license__ = """
@@ -393,7 +396,7 @@ class AssemblePageGradesTest(HackRepoMixin,
     def get_grades_of_opps(self, opp_identifiers=None, as_dict=False,
                            with_grade_time=False):
         if opp_identifiers is not None:
-            assert isinstance(opp_identifiers, (list, tuple))
+            assert isinstance(opp_identifiers, list | tuple)
         resp = self.get_my_grades_view()
         self.assertEqual(resp.status_code, 200)
         grade_tables = resp.context["grade_table"]

@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+
 __copyright__ = "Copyright (C) 2014 Andreas Kloeckner"
 
 __license__ = """
@@ -20,7 +23,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-import typing
 
 from django.utils.translation import gettext, pgettext_lazy
 
@@ -296,7 +298,7 @@ FLOW_SESSION_EXPIRATION_MODE_CHOICES = (
 
 
 def is_expiration_mode_allowed(
-        expmode: str, permissions: typing.FrozenSet[str]
+        expmode: str, permissions: frozenset[str]
         ) -> bool:
     if expmode == flow_session_expiration_mode.roll_over:
         if (flow_permission.set_roll_over_expiration_mode
