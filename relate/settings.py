@@ -1,13 +1,15 @@
 """
 Django settings for RELATE.
 """
+from __future__ import annotations
 
 import os
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 import sys
+from collections.abc import Callable
 from os.path import join
-from typing import Any, Callable, Dict, Union
+from typing import Any
 
 from django.conf.global_settings import STATICFILES_FINDERS
 from django.utils.translation import gettext_noop
@@ -267,7 +269,11 @@ SESSION_COOKIE_AGE = 12096000  # 20 weeks
 
 # {{{ app defaults
 
-RELATE_FACILITIES: Union[None,Dict[str, Dict[str, Any]], Callable[..., Dict[str, Dict[str, Any]]], ] = {}  # noqa
+RELATE_FACILITIES: (
+    None
+    | dict[str, dict[str, Any]]
+    | Callable[..., dict[str, dict[str, Any]]]
+) = {}
 
 RELATE_TICKET_MINUTES_VALID_AFTER_USE = 0
 

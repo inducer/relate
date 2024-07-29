@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+
 __copyright__ = "Copyright (C) 2014 Andreas Kloeckner"
 
 __license__ = """
@@ -22,7 +25,7 @@ THE SOFTWARE.
 
 import sys
 import traceback
-from typing import Any, Dict
+from typing import Any
 
 
 try:
@@ -153,7 +156,7 @@ def substitute_correct_code_into_test_code(test_code: str, correct_code: str) ->
     return "\n".join(new_test_code_lines)
 
 
-def package_exception(result: Dict[str, Any], what: str) -> None:
+def package_exception(result: dict[str, Any], what: str) -> None:
     tp, val, tb = sys.exc_info()
     assert tp is not None
     result["result"] = what

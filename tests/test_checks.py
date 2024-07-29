@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+
 __copyright__ = "Copyright (C) 2017 Dong Zhuang"
 
 __license__ = """
@@ -63,7 +66,7 @@ class CheckRelateSettingsBase(SimpleTestCase):
             filter_message_id_prefixes = self.msg_id_prefix
             if isinstance(filter_message_id_prefixes, str):
                 filter_message_id_prefixes = [filter_message_id_prefixes]
-            assert isinstance(filter_message_id_prefixes, (list, tuple))
+            assert isinstance(filter_message_id_prefixes, list | tuple)
 
         if expected_ids is None and expected_msgs is None and length is None:
             raise RuntimeError("At least one parameter should be specified "
@@ -81,14 +84,14 @@ class CheckRelateSettingsBase(SimpleTestCase):
                       if is_id_in_filter(r.id, filter_message_id_prefixes)])))
 
             if expected_ids is not None:
-                assert isinstance(expected_ids, (list, tuple))
+                assert isinstance(expected_ids, list | tuple)
                 if ignore_order:
                     result_ids = tuple(sorted(result_ids))
                     expected_ids = sorted(expected_ids)
                 self.assertEqual(result_ids, tuple(expected_ids))
 
             if expected_msgs is not None:
-                assert isinstance(expected_msgs, (list, tuple))
+                assert isinstance(expected_msgs, list | tuple)
                 if ignore_order:
                     result_msgs = tuple(sorted(result_msgs))
                     expected_msgs = sorted(expected_msgs)

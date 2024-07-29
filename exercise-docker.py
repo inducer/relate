@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+
 def main():
     from course.page.code import request_run
 

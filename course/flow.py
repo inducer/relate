@@ -23,7 +23,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from typing import TYPE_CHECKING, Any, Iterable, List, Optional
+from collections.abc import Iterable
+from typing import TYPE_CHECKING, Any
 
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Submit
@@ -1304,7 +1305,7 @@ def regrade_session(
 
     if session.in_progress:
         with transaction.atomic():
-            answer_visits: List[Optional[FlowPageVisit]] = assemble_answer_visits(session)  # noqa
+            answer_visits: list[FlowPageVisit | None] = assemble_answer_visits(session)
 
             for i in range(len(answer_visits)):
                 answer_visit = answer_visits[i]

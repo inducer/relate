@@ -203,12 +203,7 @@ extend-ignore = [
     "RUF012", # mutable class atttributes
     "UP031", # format
     "UP032", # f-string
-    "UP035",
-    "UP006",
-    "UP038",
     "B905",
-    "UP007",
-    "UP041",
 ]
 allowed-confusables = ["‐", "–"]
 
@@ -220,13 +215,17 @@ multiline-quotes = "double"
 [tool.ruff.lint.per-file-ignores]
 "course/mdx_mathjax.py" = ["N802"]
 
+# config file, no type annotations, avoid scaring users
+"local_settings_example.py" = ["I002"]
+
 # copy-pasted from elsewhere, not our problem
-"saml-config/attribute-maps/*.py" = ["Q", "E231", "W292", "W291", "E501"]
+"saml-config/attribute-maps/*.py" = ["Q", "E231", "W292", "W291", "E501", "I002"]
 
 # mostly generated
-"course/migrations/*.py" = ["Q", "E501", "RUF012", "F401"]
+"course/migrations/*.py" = ["Q", "E501", "RUF012", "F401", "I002", "UP"]
 "accounts/migrations/*.py" = [
-        "Q", "E501", "RUF012", "F401", "E303", "B023", "E731", "N806", "F841"]
+        "Q", "E501", "RUF012", "F401", "E303", "B023", "E731", "N806", "F841",
+        "I002"]
 
 # TODO
 "tests/**/*.py" = ["F841", "RUF012"]
@@ -234,6 +233,7 @@ multiline-quotes = "double"
 [tool.ruff.lint.isort]
 combine-as-imports = true
 lines-after-imports = 2
+required-imports = ["from __future__ import annotations"]
 
 [tool.mypy]
 strict_optional = true
