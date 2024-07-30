@@ -24,6 +24,8 @@ THE SOFTWARE.
 """
 
 
+from mimetypes import add_type, guess_extension
+
 import django.forms as forms
 from crispy_forms.layout import Field, Layout
 from django.utils.translation import gettext as _, gettext_lazy
@@ -37,6 +39,9 @@ from course.page.base import (
 )
 from course.validation import ValidationError
 from relate.utils import StyledForm, string_concat
+
+
+add_type("application/x-ipynb+json", ".ipynb")
 
 
 # {{{ upload question
@@ -76,9 +81,22 @@ class FileUploadForm(StyledForm):
                     % {"allowedsize": filesizeformat(self.max_file_size),
                         "uploadedsize": filesizeformat(uploaded_file.size)})
 
-        if self.mime_types is not None and self.mime_types == ["application/pdf"]:
-            if uploaded_file.read()[:4] != b"%PDF":
-                raise forms.ValidationError(_("Uploaded file is not a PDF."))
+        if self.mime_types is not None:
+            if self.mime_types == ["application/pdf"]:
+                if uploaded_file.read()[:4] != b"%PDF":
+                    raise forms.ValidationError(_("Uploaded file is not a PDF."))
+            elif self.mime_types == ["application/x-ipynb+json"]:
+                try:
+                    # make sure it is loadable json
+                    import json
+                    data = json.load(uploaded_file)
+
+                    # check for a notebook format of at least 4
+                    if int(data["nbformat"]) < 4:
+                        raise ValueError(_("Invalid notebook format."))
+                except Exception:
+                    raise forms.ValidationError(_("Uploaded file is not a "
+                                                  "Jupyter notebook."))
 
         return uploaded_file
 
@@ -132,6 +150,7 @@ class FileUploadQuestion(PageBaseWithTitle, PageBaseWithValue,
         * ``application/pdf`` (will check for a PDF header)
         * ``text/plain`` (no check performed)
         * ``application/octet-stream`` (no check performed)
+        * ``application/x-ipynb+json`` (will check for JSON and nbformat>=4)
 
     .. attribute:: maximum_megabytes
 
@@ -156,6 +175,7 @@ class FileUploadQuestion(PageBaseWithTitle, PageBaseWithValue,
             "application/pdf",
             "text/plain",
             "application/octet-stream",
+            "application/x-ipynb+json",
             ]
 
     def __init__(self, vctx, location, page_desc):
@@ -205,7 +225,6 @@ class FileUploadQuestion(PageBaseWithTitle, PageBaseWithValue,
         return markup_to_html(page_context, self.page_desc.prompt)
 
     def get_submission_filename_pattern(self, page_context, mime_type):
-        from mimetypes import guess_extension
         if mime_type is not None:
             ext = guess_extension(mime_type)
         else:
@@ -295,8 +314,6 @@ class FileUploadQuestion(PageBaseWithTitle, PageBaseWithValue,
             return None
 
         subm_data, subm_mime = self.get_content_from_answer_data(answer_data)
-
-        from mimetypes import guess_extension
         ext = guess_extension(subm_mime)
 
         if ext is None:
