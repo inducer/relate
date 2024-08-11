@@ -32,7 +32,7 @@ relate = "relate.bin.relate:main"
 # keep consistent with ruff target version below
 python = ">=3.10,<4"
 
-django = "^5"
+django = "^5.1"
 
 # Automatically renders Django forms in a pretty, Bootstrap-compatible way.
 django-crispy-forms = ">=1.13.0"
