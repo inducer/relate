@@ -96,19 +96,19 @@ class UserAdmin(UserAdminBase):
         if request is not None and request.user.is_superuser:
             return fieldsets
         return tuple(
-            [fields for fields in fieldsets
+            fields for fields in fieldsets
              if "is_superuser" not in fields[1]["fields"]
              and "is_staff" not in fields[1]["fields"]
-             and "user_permissions" not in fields[1]["fields"]])
+             and "user_permissions" not in fields[1]["fields"])
 
     def get_list_display(self, request):
         list_display = super().get_list_display(request)
         if request is not None and request.user.is_superuser:
             return list_display
-        return tuple([f for f in list_display if f != "is_staff"])
+        return tuple(f for f in list_display if f != "is_staff")
 
     def get_list_filter(self, request):
         list_filter = super().get_list_filter(request)
         if request is not None and request.user.is_superuser:
             return list_filter
-        return tuple([f for f in list_filter if f != "is_staff"])
+        return tuple(f for f in list_filter if f != "is_staff")
