@@ -245,8 +245,12 @@ def request_run(run_req, run_timeout, image=None):
 
         if container is not None:
             container.start()
+            container_props = docker_cnx.api.inspect_container(container.id)
 
-            port_infos = container.ports[f"{CODE_QUESTION_CONTAINER_PORT}/tcp"]
+            port_infos = (container_props
+                ["NetworkSettings"]["Ports"]
+                [f"{CODE_QUESTION_CONTAINER_PORT}/tcp"])
+
             if not port_infos:
                 raise ValueError("got empty list of container ports")
             port_info = port_infos[0]
