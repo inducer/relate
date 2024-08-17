@@ -433,11 +433,12 @@
       function before_submit(evt)
       {
         input_changed = false;
+        if (rlCodemirror)
+          rlCodemirror.resetAnyEditorChanged();
 
         // We can't simply set "disabled" on the submitting button here.
         // Otherwise the browser will simply remove that button from the POST
         // data.
-
         $(".relate-save-button").each(
             function()
             {
