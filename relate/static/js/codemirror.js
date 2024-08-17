@@ -32,6 +32,10 @@ export function anyEditorChanged() {
   return anyEditorChangedFlag;
 }
 
+export function resetAnyEditorChanged() {
+  anyEditorChangedFlag = false;
+}
+
 const myListener = new Compartment();
 
 const rlDefaultKeymap = [
