@@ -973,6 +973,9 @@ class FlowSession(models.Model):
         return assemble_answer_visits(self)
 
     def last_activity(self) -> datetime.datetime | None:
+        if self.pk is None:
+            return None
+
         for visit in (FlowPageVisit.objects
                 .filter(
                     flow_session=self,
