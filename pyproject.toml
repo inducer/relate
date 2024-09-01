@@ -282,6 +282,7 @@ extend-exclude = [
 "*/migrations/**/*.py",
 # not ours
 "saml-config/**/*.py",
+"contrib/jupyterlite/mamba-root",
 ]
 
 # vim: foldmethod=marker

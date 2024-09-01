@@ -131,7 +131,7 @@ ADMINS = (
 # purpose/type of emails. It is also very useful when
 # "RELATE_EMAIL_SMTP_ALLOW_NONAUTHORIZED_SENDER" is False.
 # If you want to enable this functionality, set the next line to True, and edit
-# the next block with your cofigurations.
+# the next block with your configurations.
 RELATE_ENABLE_MULTIPLE_SMTP = False
 
 if RELATE_ENABLE_MULTIPLE_SMTP:
