@@ -52,39 +52,39 @@ class TextAnswerForm(StyledForm):
     use_required_attribute = False
 
     @staticmethod
-    def get_text_widget(widget_type, check_only=False,
+    def get_text_widget(widget_type, read_only=False, check_only=False,
             interaction_mode=None, initial_text=None):
         """Returns None if no widget found."""
 
+        help_text = None
         if widget_type in [None, "text_input"]:
             if check_only:
                 return True
 
             widget = forms.TextInput()
-            widget.attrs["autofocus"] = None
-            return widget, None
 
         elif widget_type == "textarea":
             if check_only:
                 return True
 
             widget = forms.Textarea()
-            widget.attrs["autofocus"] = None
-            return widget, None
 
         elif widget_type.startswith("editor:"):
             if check_only:
                 return True
 
             from course.utils import get_codemirror_widget
-            cm_widget, cm_help_text = get_codemirror_widget(
+            widget, help_text = get_codemirror_widget(
                     language_mode=widget_type[widget_type.find(":")+1:],
                     interaction_mode=interaction_mode)
 
-            return cm_widget, cm_help_text
-
         else:
             return None, None
+
+        widget.attrs["autofocus"] = None
+        if read_only:
+            widget.attrs["readonly"] = None
+        return widget, help_text
 
     def __init__(self, read_only, interaction_mode, validators, *args, **kwargs):
         widget_type = kwargs.pop("widget_type", "text_input")
@@ -92,13 +92,12 @@ class TextAnswerForm(StyledForm):
 
         super().__init__(*args, **kwargs)
         widget, help_text = self.get_text_widget(
-                    widget_type,
+                    widget_type, read_only,
                     interaction_mode=interaction_mode)
         self.validators = validators
         self.fields["answer"] = forms.CharField(
                 required=True,
                 initial=initial_text,
-                disabled=read_only,
                 widget=widget,
                 help_text=help_text,
                 label=_("Answer"))

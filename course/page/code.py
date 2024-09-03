@@ -164,12 +164,13 @@ class CodeForm(StyledForm):
                 autofocus=(
                     not read_only
                     and (data is not None and "answer" in data)))
+        if read_only:
+            cm_widget.attrs["readonly"] = None
 
         self.fields["answer"] = forms.CharField(required=True,
             initial=initial_code,
             help_text=cm_help_text,
             widget=cm_widget,
-            disabled=read_only,
             label=_("Answer"))
 
     def clean(self):
