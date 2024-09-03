@@ -100,7 +100,7 @@ export function editorFromTextArea(textarea, extensions, autofocus, additionalKe
     )),
   );
 
-  if (textarea.disabled) {
+  if (textarea.disabled || textarea.readOnly) {
     extensions.push(
       EditorState.readOnly.of(true),
       EditorView.editable.of(false),

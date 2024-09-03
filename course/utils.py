@@ -979,7 +979,7 @@ class CodeMirrorTextarea(forms.Textarea):
 def get_codemirror_widget(
         language_mode: str,
         interaction_mode: str | None,
-        config: dict | None = None,
+        *,
         autofocus: bool = False,
         additional_keys: dict[str, JsLiteral] | None = None,
         ) -> tuple[CodeMirrorTextarea, str]:
