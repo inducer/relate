@@ -576,6 +576,7 @@ def validate_session_start_rule(
                 ("if_has_fewer_sessions_than", int),
                 ("if_has_fewer_tagged_sessions_than", int),
                 ("if_signed_in_with_matching_exam_ticket", bool),
+                ("if_has_prairietest_exam_access", str),
                 ("tag_session", (str, type(None))),
                 ("may_start_new_session", bool),
                 ("may_list_existing_sessions", bool),
@@ -673,6 +674,7 @@ def validate_session_access_rule(
                 ("if_expiration_mode", str),
                 ("if_session_duration_shorter_than_minutes", (int, float)),
                 ("if_signed_in_with_matching_exam_ticket", bool),
+                ("if_has_prairietest_exam_access", str),
                 ("message", str),
                 ]
             )

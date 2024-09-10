@@ -64,6 +64,7 @@ INSTALLED_APPS = (
 
     "accounts",
     "course",
+    "prairietest",
 )
 
 if local_settings.get("RELATE_SIGN_IN_BY_SAML2_ENABLED"):

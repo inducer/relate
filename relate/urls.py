@@ -546,6 +546,8 @@ urlpatterns = [
         course.exam.access_exam,
         name="relate-access_exam"),
 
+    path("prairietest/", include("prairietest.urls")),
+
     # }}}
 
     path(r"select2/", include("django_select2.urls")),
