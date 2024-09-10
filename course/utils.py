@@ -54,7 +54,6 @@ from course.content import (
     parse_date_spec,
 )
 from course.page.base import PageBase, PageContext
-from prairietest.utils import has_access_to_exam
 from relate.utils import (
     RelateHttpRequest,
     not_none,
@@ -164,6 +163,8 @@ def _eval_generic_conditions(
         now_datetime: datetime.datetime,
         flow_id: str,
         login_exam_ticket: ExamTicket | None,
+        *,
+        remote_ip_address: IPv4Address | IPv6Address | None = None,
         ) -> bool:
 
     if hasattr(rule, "if_before"):
@@ -187,6 +188,22 @@ def _eval_generic_conditions(
         if login_exam_ticket is None:
             return False
         if login_exam_ticket.exam.flow_id != flow_id:
+            return False
+
+    if hasattr(rule, "if_has_prairietest_exam_access"):
+        if remote_ip_address is None:
+            return False
+        if participation is None:
+            return False
+
+        from prairietest.utils import has_access_to_exam
+        if not has_access_to_exam(
+                    course,
+                    participation.user.email,
+                    rule.if_has_prairietest_exam_access,
+                    now_datetime,
+                    remote_ip_address,
+                ):
             return False
 
     return True
@@ -313,7 +330,8 @@ def get_session_start_rule(
     for rule in rules:
         if not _eval_generic_conditions(rule, course, participation,
                 now_datetime, flow_id=flow_id,
-                login_exam_ticket=login_exam_ticket):
+                login_exam_ticket=login_exam_ticket,
+                remote_ip_address=remote_ip_address):
             continue
 
         if not _eval_participation_tags_conditions(rule, participation):
@@ -401,9 +419,11 @@ def get_session_access_rule(
 
     for rule in rules:
         if not _eval_generic_conditions(
-                rule, session.course, session.participation,
-                now_datetime, flow_id=session.flow_id,
-                login_exam_ticket=login_exam_ticket):
+                    rule, session.course, session.participation,
+                    now_datetime, flow_id=session.flow_id,
+                    login_exam_ticket=login_exam_ticket,
+                    remote_ip_address=remote_ip_address,
+                ):
             continue
 
         if not _eval_participation_tags_conditions(rule, session.participation):
@@ -1050,7 +1070,7 @@ class FacilityFindingMiddleware:
     def __init__(self, get_response):
         self.get_response = get_response
 
-    def __call__(self, request):
+    def __call__(self, request: http.HttpRequest) -> http.HttpResponse:
         pretend_facilities = request.session.get("relate_pretend_facilities")
 
         if pretend_facilities is not None:
@@ -1071,6 +1091,7 @@ class FacilityFindingMiddleware:
                     if remote_address in ip_network(str(ir)):
                         facilities.add(name)
 
+        request = cast(RelateHttpRequest, request)
         request.relate_facilities = frozenset(facilities)
 
         return self.get_response(request)

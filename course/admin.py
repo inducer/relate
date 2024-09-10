@@ -23,10 +23,11 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from django import forms
 from django.contrib import admin
+from django.db.models import QuerySet
 from django.utils.translation import gettext_lazy as _, pgettext
 
 from course.constants import exam_ticket_states, participation_permission as pperm
@@ -56,9 +57,13 @@ from course.models import (
 from relate.utils import string_concat
 
 
+if TYPE_CHECKING:
+    from accounts.models import User
+
+
 # {{{ permission helpers
 
-def _filter_courses_for_user(queryset, user):
+def _filter_courses_for_user(queryset: QuerySet, user: User) -> QuerySet:
     if user.is_superuser:
         return queryset
     z = queryset.filter(
@@ -67,7 +72,7 @@ def _filter_courses_for_user(queryset, user):
     return z
 
 
-def _filter_course_linked_obj_for_user(queryset, user):
+def _filter_course_linked_obj_for_user(queryset: QuerySet, user: User) -> QuerySet:
     if user.is_superuser:
         return queryset
     return queryset.filter(
@@ -76,7 +81,9 @@ def _filter_course_linked_obj_for_user(queryset, user):
             )
 
 
-def _filter_participation_linked_obj_for_user(queryset, user):
+def _filter_participation_linked_obj_for_user(
+            queryset: QuerySet, user: User
+        ) -> QuerySet:
     if user.is_superuser:
         return queryset
     return queryset.filter(

@@ -2,13 +2,6 @@
 
 set -e
 
-PY_EXE=${PY_EXE:-$(poetry run which python)}
-
-echo "-----------------------------------------------"
-echo "Current directory: $(pwd)"
-echo "Python executable: ${PY_EXE}"
-echo "-----------------------------------------------"
-
 echo "i18n"
 # Testing i18n needs a local_settings file even though the rest of the tests
 #   don't use it

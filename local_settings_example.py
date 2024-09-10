@@ -471,6 +471,17 @@ RELATE_SITE_ANNOUNCEMENT = None
 #             "exams_only": True,
 #             },
 #     }
+#
+#    # Automatically get denied facilities from PrairieTest
+#    result = {}
+#
+#    from prairietest.utils import denied_ip_networks_at
+#    pt_facilities_networks = denied_ip_networks_at(now_datetime)
+#    for (course_id, facility_name), networks in pt_facilities_networks.items():
+#        fdata = result.setdefault(facility_name, {})
+#        fdata["exams_only"] = True
+#        fdata["ip_ranges"] = [*fdata.get("ip_ranges", []), *networks]
+#    return result
 
 
 RELATE_FACILITIES = {
