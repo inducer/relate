@@ -1257,7 +1257,7 @@ def points_equal(num: Decimal | None, other: Decimal | None) -> bool:
         return False
     assert num is not None
     assert other is not None
-    return abs(num - other) < 1e-2
+    return abs(num - other) < Decimal("0.01")
 
 
 def csv_to_grade_changes(

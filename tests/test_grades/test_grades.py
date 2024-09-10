@@ -1964,10 +1964,10 @@ class PointsEqualTest(unittest.TestCase):
     def test(self):
         from decimal import Decimal
         self.assertTrue(grades.points_equal(None, None))
-        self.assertFalse(grades.points_equal(Decimal(1.11), None))
-        self.assertFalse(grades.points_equal(None, Decimal(1.11)))
-        self.assertTrue(grades.points_equal(Decimal(1.11), Decimal(1.11)))
-        self.assertFalse(grades.points_equal(Decimal(1.11), Decimal(1.12)))
+        self.assertFalse(grades.points_equal(Decimal("1.11"), None))
+        self.assertFalse(grades.points_equal(None, Decimal("1.11")))
+        self.assertTrue(grades.points_equal(Decimal("1.11"), Decimal("1.11")))
+        self.assertFalse(grades.points_equal(Decimal("1.11"), Decimal("1.12")))
 
 
 @unittest.SkipTest
