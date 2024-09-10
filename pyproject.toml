@@ -167,6 +167,7 @@ memcache = ["pylibmc"]
 [tool.ruff]
 preview = true
 target-version = "py310"
+exclude = ["contrib/jupyterlite"]
 
 [tool.ruff.lint]
 extend-select = [
