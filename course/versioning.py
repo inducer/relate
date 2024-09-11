@@ -227,6 +227,8 @@ def set_up_new_course(request: http.HttpRequest) -> http.HttpResponse:
 
                         # {{{ set up a participation for the course creator
 
+                        assert request.user.is_authenticated
+
                         part = Participation()
                         part.user = request.user
                         part.course = new_course
@@ -612,8 +614,8 @@ def call_wsgi_app(
 
     # request.environ and request.META are the same object, so changes
     # to the headers by middlewares will be seen here.
-    assert request.environ == request.META
-    environ = request.environ.copy()
+    assert request.environ is request.META  # type: ignore[attr-defined]
+    environ = request.environ.copy()  # type: ignore[attr-defined]
     # if len(args) > 0:
     assert environ["PATH_INFO"].startswith(prefix)
     environ["SCRIPT_NAME"] += prefix

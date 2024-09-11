@@ -569,7 +569,7 @@ class PageBase:
             page_data: Any,
             post_data: Any,
             files_data: Any,
-            ) -> forms.Form:
+            ) -> StyledForm:
         raise NotImplementedError()
 
     def process_form_post(
@@ -579,7 +579,7 @@ class PageBase:
             post_data: Any,
             files_data: Any,
             page_behavior: PageBehavior,
-            ) -> forms.Form:
+            ) -> StyledForm:
         """Return a form with the POST response from *post_data* and *files_data*
         filled in.
 
@@ -622,7 +622,7 @@ class PageBase:
             page_context: PageContext,
             page_data: Any,
             grade_data: Any,
-            ) -> forms.Form:
+            ) -> StyledForm | None:
         """
         :arg grade_data: value returned by
             :meth:`update_grade_data_from_grading_form_v2`.  May be *None*.
@@ -638,7 +638,7 @@ class PageBase:
             grade_data: Any,
             post_data: Any,
             files_data: Any,
-            ) -> forms.Form:
+            ) -> StyledForm:
         """Return a form with the POST response from *post_data* and *files_data*
         filled in.
 

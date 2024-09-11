@@ -56,7 +56,9 @@ ruff:
 
 mypy:
   <<: *quality
-  script: poetry run mypy relate course
+  variables:
+    RELATE_LOCAL_TEST_SETTINGS: './local_settings_example.py'
+  script: poetry run ./.ci/run-mypy.sh
 
 safety:
   <<: *quality

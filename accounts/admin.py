@@ -65,7 +65,10 @@ class CourseListFilter(admin.SimpleListFilter):
 class UserAdmin(UserAdminBase):
     save_on_top = True
 
-    list_display = (*tuple(UserAdminBase.list_display),
+    # Fixing this type-ignore would require type.__getitem__ on Django types,
+    # which is only available via monkeypatching, ugh.
+    list_display = (
+        *UserAdminBase.list_display,  # type: ignore[misc]
         "name_verified", "status", "institutional_id", "institutional_id_verified")
     list_editable = ("first_name", "last_name",
             "name_verified",
@@ -77,8 +80,12 @@ class UserAdmin(UserAdminBase):
             "status", CourseListFilter)  # type: ignore
     search_fields = (*tuple(UserAdminBase.search_fields), "institutional_id")
 
-    fieldsets = UserAdminBase.fieldsets[:1] + (
-            (UserAdminBase.fieldsets[1][0], {"fields": (
+    _fsets = UserAdminBase.fieldsets
+    assert _fsets is not None
+
+    fieldsets = (
+            *_fsets[:1],
+            (_fsets[1][0], {"fields": (
                 "status",
                 "first_name",
                 "last_name",
@@ -88,7 +95,8 @@ class UserAdmin(UserAdminBase):
                 "institutional_id_verified",
                 "editor_mode",)
                 }),
-            ) + UserAdminBase.fieldsets[2:]
+            *_fsets[2:],
+            )
     ordering = ["-date_joined"]
 
     def get_fieldsets(self, request, obj=None):

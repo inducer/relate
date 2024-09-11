@@ -74,7 +74,7 @@ from course.models import (
     Participation,
     ParticipationRole,
 )
-from course.utils import course_view, render_course_page
+from course.utils import CoursePageContext, course_view, render_course_page
 from relate.utils import (
     HTML5DateTimeInput,
     StyledForm,
@@ -1191,11 +1191,17 @@ def find_matching_token(
         token_hash_str: str | None = None,
         now_datetime: datetime.datetime | None = None
         ) -> AuthenticationToken | None:
+    if token_id is None:
+        return None
+
     try:
         token = AuthenticationToken.objects.get(
                 id=token_id,
                 participation__course__identifier=course_identifier)
     except AuthenticationToken.DoesNotExist:
+        return None
+
+    if token.token_hash is None:
         return None
 
     from django.contrib.auth.hashers import check_password
@@ -1204,8 +1210,11 @@ def find_matching_token(
 
     if token.revocation_time is not None:
         return None
-    if token.valid_until is not None and now_datetime > token.valid_until:
-        return None
+    if token.valid_until is not None:
+        if now_datetime is None:
+            return None
+        if now_datetime > token.valid_until:
+            return None
 
     return token
 
@@ -1400,7 +1409,7 @@ class AuthenticationTokenForm(StyledModelForm):
                             pperm.impersonate_role, prole.identifier)}
                 )
 
-        self.fields["restrict_to_participation_role"].queryset = (
+        self.fields["restrict_to_participation_role"].queryset = (  # type:ignore[attr-defined]
                 ParticipationRole.objects.filter(
                     id__in=list(allowable_role_ids)
                     ))
@@ -1409,8 +1418,7 @@ class AuthenticationTokenForm(StyledModelForm):
 
 
 @course_view
-def manage_authentication_tokens(pctx: http.HttpRequest) -> http.HttpResponse:
-
+def manage_authentication_tokens(pctx: CoursePageContext) -> http.HttpResponse:
     request = pctx.request
 
     if not request.user.is_authenticated:
@@ -1418,6 +1426,7 @@ def manage_authentication_tokens(pctx: http.HttpRequest) -> http.HttpResponse:
 
     if not pctx.has_permission(pperm.view_analytics):
         raise PermissionDenied()
+    assert pctx.participation is not None
 
     from course.views import get_now_or_fake_time
     now_datetime = get_now_or_fake_time(request)
@@ -1446,7 +1455,7 @@ def manage_authentication_tokens(pctx: http.HttpRequest) -> http.HttpResponse:
 
                 from django.contrib.auth.hashers import make_password
                 auth_token = AuthenticationToken(
-                        user=pctx.request.user,
+                        user=request.user,
                         participation=pctx.participation,
                         restrict_to_participation_role=form.cleaned_data[
                             "restrict_to_participation_role"],

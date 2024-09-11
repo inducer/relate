@@ -16,7 +16,7 @@
 # 67599: pip issue, utter nonsense
 # 70612: Jinja2 SSTI, as of https://github.com/inducer/relate/pull/1053
 #   there is no longer a direct Jinja dependency, and no known path to SSTI.
-poetry run safety check \
+safety check \
         -i 38678 \
         -i 39253 \
         -i 39535 \

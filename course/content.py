@@ -51,7 +51,7 @@ CACHE_KEY_ROOT = "py3"
 
 # {{{ mypy
 
-from collections.abc import Callable
+from collections.abc import Callable, Collection
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -1736,7 +1736,7 @@ def compute_chunk_weight_and_shown(
         chunk: ChunkDesc,
         roles: list[str],
         now_datetime: datetime.datetime,
-        facilities: frozenset[str],
+        facilities: Collection[str],
         ) -> tuple[float, bool]:
     if not hasattr(chunk, "rules"):
         return 0, True
@@ -1794,7 +1794,7 @@ def get_processed_page_chunks(
         page_desc: StaticPageDesc,
         roles: list[str],
         now_datetime: datetime.datetime,
-        facilities: frozenset[str],
+        facilities: Collection[str],
         ) -> list[ChunkDesc]:
     for chunk in page_desc.chunks:
         chunk.weight, chunk.shown = \
@@ -2006,15 +2006,12 @@ def get_course_commit_sha(
             preview_sha = participation.preview_git_commit_sha
 
             if repo is not None:
-                commit_sha_valid = is_commit_sha_valid(repo, preview_sha)
+                preview_sha_valid = is_commit_sha_valid(repo, preview_sha)
             else:
                 with get_course_repo(course) as repo:
-                    commit_sha_valid = is_commit_sha_valid(repo, preview_sha)
+                    preview_sha_valid = is_commit_sha_valid(repo, preview_sha)
 
-            if not commit_sha_valid:
-                preview_sha = None
-
-            if preview_sha is not None:
+            if preview_sha_valid:
                 sha = preview_sha
 
     return sha.encode()
