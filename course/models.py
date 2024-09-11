@@ -254,10 +254,8 @@ class Course(models.Model):
         verbose_name = _("Course")
         verbose_name_plural = _("Courses")
 
-    def __unicode__(self):
+    def __str__(self) -> str:
         return self.identifier
-
-    __str__ = __unicode__
 
     def clean(self):
         if self.force_lang:
@@ -333,7 +331,7 @@ class Event(models.Model):
         ordering = ("course", "time")
         unique_together = (("course", "kind", "ordinal"))
 
-    def __unicode__(self):
+    def __str__(self) -> str:
         if self.ordinal is not None:
             return f"{self.kind} {self.ordinal}"
         else:
@@ -374,8 +372,6 @@ class Event(models.Model):
         self.full_clean()
         return super().save(*args, **kwargs)
 
-    __str__ = __unicode__
-
 # }}}
 
 
@@ -401,10 +397,8 @@ class ParticipationTag(models.Model):
                 {field_name:
                      _("'%s' contains invalid characters.") % field_name})
 
-    def __unicode__(self):
+    def __str__(self) -> str:
         return f"{self.name} ({self.course})"
-
-    __str__ = __unicode__
 
     class Meta:
         verbose_name = _("Participation tag")
@@ -441,7 +435,7 @@ class ParticipationRole(models.Model):
                 {field_name:
                      _("'%s' contains invalid characters.") % field_name})
 
-    def __unicode__(self):
+    def __str__(self) -> str:
         return _("%(identifier)s in %(course)s") % {
             "identifier": self.identifier,
             "course": self.course}
@@ -470,7 +464,6 @@ class ParticipationRole(models.Model):
         return (perm, argument) in self.permission_tuples()
 
     # }}}
-    __str__ = __unicode__
 
     class Meta:
         verbose_name = _("Participation role")
@@ -490,13 +483,11 @@ class ParticipationPermissionBase(models.Model):
     class Meta:
         abstract = True
 
-    def __unicode__(self):
+    def __str__(self) -> str:
         if self.argument:
             return f"{self.permission} {self.argument}"
         else:
             return self.permission
-
-    __str__ = __unicode__
 
 
 class ParticipationRolePermission(ParticipationPermissionBase):
@@ -504,13 +495,11 @@ class ParticipationRolePermission(ParticipationPermissionBase):
             verbose_name=_("Role"), on_delete=models.CASCADE,
             related_name="permissions")
 
-    def __unicode__(self):
+    def __str__(self) -> str:
         # Translators: permissions for roles
         return _("%(permission)s for %(role)s") % {
-            "permission": super().__unicode__(),
+            "permission": super().__str__(),
             "role": self.role}
-
-    __str__ = __unicode__
 
     class Meta:
         verbose_name = _("Participation role permission")
@@ -552,7 +541,7 @@ class Participation(models.Model):
     notes = models.TextField(blank=True, null=True,
             verbose_name=_("Notes"))
 
-    def __unicode__(self):
+    def __str__(self) -> str:
         # Translators: displayed format of Participation: some user in some
         # course as some role
         return _("%(user)s in %(course)s as %(role)s") % {
@@ -561,8 +550,6 @@ class Participation(models.Model):
                     role.identifier
                     for role in self.roles.all())
                 }
-
-    __str__ = __unicode__
 
     class Meta:
         verbose_name = _("Participation")
@@ -634,7 +621,7 @@ class ParticipationPreapproval(models.Model):
     creation_time = models.DateTimeField(default=now, db_index=True,
             verbose_name=_("Creation time"))
 
-    def __unicode__(self):
+    def __str__(self) -> str:
         if self.email:
             # Translators: somebody's email in some course in Participation
             # Preapproval
@@ -648,8 +635,6 @@ class ParticipationPreapproval(models.Model):
         else:
             return _("Preapproval with pk %(pk)s in %(course)s") % {
                     "pk": self.pk, "course": self.course}
-
-    __str__ = __unicode__
 
     class Meta:
         verbose_name = _("Participation preapproval")
@@ -820,13 +805,11 @@ class AuthenticationToken(models.Model):
             null=True, blank=True, unique=True,
             verbose_name=_("Hash of git authentication token"))
 
-    def __unicode__(self):
+    def __str__(self) -> str:
         return _("Token %(id)d for %(participation)s: %(description)s") % {
                 "id": self.id,
                 "participation": self.participation,
                 "description": self.description}
-
-    __str__ = __unicode__
 
     class Meta:
         verbose_name = _("Authentication token")
@@ -854,7 +837,7 @@ class InstantFlowRequest(models.Model):
         verbose_name = _("Instant flow request")
         verbose_name_plural = _("Instant flow requests")
 
-    def __unicode__(self):
+    def __str__(self) -> str:
         return _("Instant flow request for "
                 "%(flow_id)s in %(course)s at %(start_time)s") \
                 % {
@@ -862,8 +845,6 @@ class InstantFlowRequest(models.Model):
                         "course": self.course,
                         "start_time": self.start_time,
                         }
-
-    __str__ = __unicode__
 
 # }}}
 
@@ -937,7 +918,7 @@ class FlowSession(models.Model):
         verbose_name_plural = _("Flow sessions")
         ordering = ("course", "-start_time")
 
-    def __unicode__(self):
+    def __str__(self) -> str:
         if self.participation is None:
             return _("anonymous session %(session_id)d on '%(flow_id)s'") % {
                     "session_id": self.id,
@@ -947,8 +928,6 @@ class FlowSession(models.Model):
                     "user": self.participation.user,
                     "session_id": self.id,
                     "flow_id": self.flow_id}
-
-    __str__ = __unicode__
 
     def append_comment(self, s: str | None) -> None:
         if s is None:
@@ -1029,7 +1008,7 @@ class FlowPageData(models.Model):
         verbose_name = _("Flow page data")
         verbose_name_plural = _("Flow page data")
 
-    def __unicode__(self):
+    def __str__(self) -> str:
         # flow page data
         return (_("Data for page '%(group_id)s/%(page_id)s' "
                 "(page ordinal %(page_ordinal)s) in %(flow_session)s") % {
@@ -1037,8 +1016,6 @@ class FlowPageData(models.Model):
                     "page_id": self.page_id,
                     "page_ordinal": self.page_ordinal,
                     "flow_session": self.flow_session})
-
-    __str__ = __unicode__
 
     # Django's templates are a little daft. No arithmetic--really?
     def previous_ordinal(self):
@@ -1103,7 +1080,7 @@ class FlowPageVisit(models.Model):
             verbose_name=_("Is submitted answer"),
             null=True)
 
-    def __unicode__(self):
+    def __str__(self) -> str:
         result = (
                 # Translators: flow page visit
                 _("'%(group_id)s/%(page_id)s' in '%(session)s' "
@@ -1119,8 +1096,6 @@ class FlowPageVisit(models.Model):
             result += str(_(" (with answer)"))
 
         return result
-
-    __str__ = __unicode__
 
     class Meta:
         verbose_name = _("Flow page visit")
@@ -1221,14 +1196,12 @@ class FlowPageVisitGrade(models.Model):
 
         ordering = ("visit", "grade_time")
 
-    def __unicode__(self):
+    def __str__(self) -> str:
         # information on FlowPageVisitGrade class
         # Translators: return the information of the grade of a user
         # by percentage.
         return _("grade of %(visit)s: %(percentage)s") % {
                 "visit": self.visit, "percentage": self.percentage()}
-
-    __str__ = __unicode__
 
 # }}}
 
@@ -1405,7 +1378,7 @@ class FlowAccessException(models.Model):  # pragma: no cover (deprecated and not
     comment = models.TextField(blank=True, null=True,
             verbose_name=_("Comment"))
 
-    def __unicode__(self):
+    def __str__(self) -> str:
         return (
                 # Translators: flow access exception in admin (deprecated)
                 _("Access exception for '%(user)s' to '%(flow_id)s' "
@@ -1415,8 +1388,6 @@ class FlowAccessException(models.Model):  # pragma: no cover (deprecated and not
                     "flow_id": self.flow_id,
                     "course": self.participation.course
                     })
-
-    __str__ = __unicode__
 
 
 class FlowAccessExceptionEntry(models.Model):  # pragma: no cover (deprecated and not tested)  # noqa
@@ -1433,10 +1404,8 @@ class FlowAccessExceptionEntry(models.Model):  # pragma: no cover (deprecated an
         # Translators: FlowAccessExceptionEntry (deprecated)
         verbose_name_plural = _("Flow access exception entries")
 
-    def __unicode__(self):
+    def __str__(self) -> str:
         return self.permission
-
-    __str__ = __unicode__
 
 # }}}
 
@@ -1468,7 +1437,7 @@ class FlowRuleException(models.Model):
             verbose_name=pgettext_lazy(
                 "Is the flow rule exception activated?", "Active"))
 
-    def __unicode__(self):
+    def __str__(self) -> str:
         return (
                 # Translators: For FlowRuleException
                 _("%(kind)s exception %(exception_id)s for '%(user)s' to "
@@ -1480,8 +1449,6 @@ class FlowRuleException(models.Model):
                     "course": self.participation.course,
                     "exception_id":
                         " id %d" % self.id if self.id is not None else ""})
-
-    __str__ = __unicode__
 
     def clean(self) -> None:
         super().clean()
@@ -1617,7 +1584,7 @@ class GradingOpportunity(models.Model):
         ordering = ("course", "due_time", "identifier")
         unique_together = (("course", "identifier"),)
 
-    def __unicode__(self):
+    def __str__(self) -> str:
         return (
                 # Translators: For GradingOpportunity
                 _("%(opportunity_name)s (%(opportunity_id)s) in %(course)s")
@@ -1625,8 +1592,6 @@ class GradingOpportunity(models.Model):
                     "opportunity_name": self.name,
                     "opportunity_id": self.identifier,
                     "course": self.course})
-
-    __str__ = __unicode__
 
     def get_aggregation_strategy_descr(self):
         return dict(GRADE_AGGREGATION_STRATEGY_CHOICES).get(
@@ -1686,14 +1651,12 @@ class GradeChange(models.Model):
         verbose_name_plural = _("Grade changes")
         ordering = ("opportunity", "participation", "grade_time")
 
-    def __unicode__(self):
+    def str(self):
         # Translators: information for GradeChange
         return _("%(participation)s %(state)s on %(opportunityname)s") % {
             "participation": self.participation,
             "state": self.state,
             "opportunityname": self.opportunity.name}
-
-    __str__ = __unicode__
 
     def clean(self):
         super().clean()
@@ -1941,10 +1904,8 @@ class InstantMessage(models.Model):
         verbose_name_plural = _("Instant messages")
         ordering = ("participation__course", "time")
 
-    def __unicode__(self):
+    def __str__(self) -> str:
         return f"{self.participation}: {self.text}"
-
-    __str__ = __unicode__
 
 # }}}
 
@@ -1980,13 +1941,11 @@ class Exam(models.Model):
         verbose_name_plural = _("Exams")
         ordering = ("course", "no_exams_before",)
 
-    def __unicode__(self):
+    def __str__(self) -> str:
         return _("Exam  %(description)s in %(course)s") % {
                 "description": self.description,
                 "course": self.course,
                 }
-
-    __str__ = __unicode__
 
 
 class ExamTicket(models.Model):
@@ -2038,13 +1997,11 @@ class ExamTicket(models.Model):
                 ("can_issue_exam_tickets", _("Can issue exam tickets to student")),
                 )
 
-    def __unicode__(self):
+    def __str__(self) -> str:
         return _("Exam  ticket for %(participation)s in %(exam)s") % {
                 "participation": self.participation,
                 "exam": self.exam,
                 }
-
-    __str__ = __unicode__
 
     def clean(self):
         super().clean()

@@ -187,13 +187,11 @@ class EventAdmin(admin.ModelAdmin):
             "kind",
             )
 
-    def __unicode__(self):  # pragma: no cover  # not used
+    def __str__(self):  # pragma: no cover  # not used
         return "{}{} in {}".format(
             self.kind,
             f" ({self.ordinal!s})" if self.ordinal is not None else "",
             self.course)
-
-    __str__ = __unicode__
 
     list_editable = ("ordinal", "time", "end_time", "shown_in_calendar")
 
