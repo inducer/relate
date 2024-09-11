@@ -45,8 +45,7 @@ from django.db import transaction
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.safestring import mark_safe
 from django.utils.translation import (
-    gettext,
-    gettext_lazy as _,
+    gettext as _,
     pgettext,
     pgettext_lazy,
 )
@@ -82,6 +81,7 @@ from course.utils import (
 from relate.utils import (
     HTML5DateInput,
     HTML5DateTimeInput,
+    RelateHttpRequest,
     StyledForm,
     StyledModelForm,
     string_concat,
@@ -314,6 +314,8 @@ def get_repo_file_backend(
     Note: an access_role of "public" is equal to "unenrolled"
     """
 
+    request = cast(RelateHttpRequest, request)
+
     # check to see if the course is hidden
     check_course_state(course, participation)
 
@@ -378,8 +380,7 @@ class FakeTimeForm(StyledForm):
                 Submit("unset", _("Unset")))
 
 
-def get_fake_time(request: http.HttpRequest) -> datetime.datetime | None:
-
+def get_fake_time(request: http.HttpRequest | None) -> datetime.datetime | None:
     if request is not None and "relate_fake_time" in request.session:
         from zoneinfo import ZoneInfo
 
@@ -391,8 +392,7 @@ def get_fake_time(request: http.HttpRequest) -> datetime.datetime | None:
         return None
 
 
-def get_now_or_fake_time(request: http.HttpRequest) -> datetime.datetime:
-
+def get_now_or_fake_time(request: http.HttpRequest | None) -> datetime.datetime:
     fake_time = get_fake_time(request)
     if fake_time is None:
         from django.utils.timezone import now
@@ -967,7 +967,7 @@ class ExceptionStage3Form(StyledForm):
             self,
             default_data: dict,
             flow_desc: FlowDesc,
-            base_session_tag: str,
+            base_session_tag: str | None,
             *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
 
@@ -1099,6 +1099,7 @@ def grant_exception_stage_3(
         session_id: int) -> http.HttpResponse:
     if not pctx.has_permission(pperm.grant_exception):
         raise PermissionDenied(_("may not grant exceptions"))
+    assert pctx.request.user.is_authenticated
 
     participation = get_object_or_404(Participation, id=participation_id)
 
@@ -1154,7 +1155,7 @@ def grant_exception_stage_3(
             # {{{ put together access rule
 
             if form.cleaned_data["create_access_exception"]:
-                new_access_rule = {"permissions": permissions}
+                new_access_rule: dict[str, Any] = {"permissions": permissions}
 
                 if restricted_to_same_tag:
                     new_access_rule["if_has_tag"] = session.access_rules_tag
@@ -1204,9 +1205,9 @@ def grant_exception_stage_3(
                 if form.cleaned_data["due_same_as_access_expiration"]:
                     due = form.cleaned_data["access_expires"]
 
-                descr = gettext("Granted exception")
+                descr = _("Granted exception")
                 if form.cleaned_data["credit_percent"] is not None:
-                    descr += string_concat(" (%.1f%% ", gettext("credit"), ")") \
+                    descr += string_concat(" (%.1f%% ", _("credit"), ")") \
                             % form.cleaned_data["credit_percent"]
 
                 due_local_naive = due
@@ -1216,9 +1217,7 @@ def grant_exception_stage_3(
                             as_local_time(due_local_naive)
                             .replace(tzinfo=None))
 
-                new_grading_rule = {
-                    "description": descr,
-                    }
+                new_grading_rule: dict[str, Any] = {"description": descr}
 
                 if due_local_naive is not None:
                     new_grading_rule["due"] = due_local_naive

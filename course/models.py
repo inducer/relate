@@ -24,6 +24,7 @@ THE SOFTWARE.
 """
 
 from collections.abc import Iterable
+from decimal import Decimal
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -63,7 +64,7 @@ from course.constants import (  # noqa
     participation_status,
     user_status,
 )
-from relate.utils import string_concat
+from relate.utils import not_none, string_concat
 
 
 # {{{ mypy
@@ -244,7 +245,7 @@ class Course(models.Model):
             verbose_name=_("Active git commit SHA"))
 
     participants = models.ManyToManyField(settings.AUTH_USER_MODEL,
-            through="Participation")
+            through="course.Participation")
 
     trusted_for_markup = models.BooleanField(
             default=False,
@@ -257,14 +258,14 @@ class Course(models.Model):
     def __str__(self) -> str:
         return self.identifier
 
-    def clean(self):
+    def clean(self) -> None:
         if self.force_lang:
             self.force_lang = self.force_lang.strip()
 
-    def get_absolute_url(self):
+    def get_absolute_url(self) -> str:
         return reverse("relate-course_page", args=(self.identifier,))
 
-    def get_from_email(self):
+    def get_from_email(self) -> str:
         if settings.RELATE_EMAIL_SMTP_ALLOW_NONAUTHORIZED_SENDER:
             return self.from_email
         else:
@@ -272,7 +273,7 @@ class Course(models.Model):
                 settings, "NOTIFICATION_EMAIL_FROM",
                 settings.ROBOT_EMAIL_FROM)
 
-    def get_reply_to_email(self):
+    def get_reply_to_email(self) -> str:
         # this functionality need more fields in Course model,
         # about the preference of the course.
         if settings.RELATE_EMAIL_SMTP_ALLOW_NONAUTHORIZED_SENDER:
@@ -1176,7 +1177,7 @@ class FlowPageVisitGrade(models.Model):
             # Translators: "Feedback" stands for the feedback of answers.
             verbose_name=_("Feedback"))
 
-    def percentage(self):
+    def percentage(self) -> float | None:
         if self.correctness is not None:
             return 100*self.correctness
         else:
@@ -1658,15 +1659,14 @@ class GradeChange(models.Model):
             "state": self.state,
             "opportunityname": self.opportunity.name}
 
-    def clean(self):
+    def clean(self) -> None:
         super().clean()
 
         if self.opportunity.course != self.participation.course:
             raise ValidationError(_("Participation and opportunity must live "
                     "in the same course"))
 
-    def percentage(self) -> float | None:
-
+    def percentage(self) -> Decimal | None:
         if (self.max_points is not None
                 and self.points is not None
                 and self.max_points != 0):
@@ -1678,12 +1678,26 @@ class GradeChange(models.Model):
         return dict(GRADE_STATE_CHANGE_CHOICES).get(
                 self.state)
 
+    # may be set by GradeStateMachine
+    # FIXME: This is kind of a nasty thing to do
+    is_superseded: bool
+
 # }}}
 
 
 # {{{ grade state machine
 
 class GradeStateMachine:
+    opportunity: GradingOpportunity | None
+    state: str | None
+    due_time: datetime.datetime | None
+    last_graded_time: datetime.datetime | None
+    last_report_time: datetime.datetime | None
+    _last_grade_change_time: datetime.datetime | None
+
+    valid_percentages: list[float | Decimal]
+    attempt_id_to_gchange: dict[str, GradeChange]
+
     def __init__(self) -> None:
         self.opportunity = None
 
@@ -1700,7 +1714,7 @@ class GradeStateMachine:
 
         self.state = None
         self.last_grade_time = None
-        self.valid_percentages: list[GradeChange] = []
+        self.valid_percentages = []
         self.attempt_id_to_gchange: dict[str, GradeChange] = {}
 
     def _consume_grade_change(self,
@@ -1739,10 +1753,9 @@ class GradeStateMachine:
                         and gchange.attempt_id in self.attempt_id_to_gchange):
                     self.attempt_id_to_gchange[gchange.attempt_id] \
                             .is_superseded = True
-                self.attempt_id_to_gchange[gchange.attempt_id] \
-                        = gchange
+                self.attempt_id_to_gchange[gchange.attempt_id] = gchange
             else:
-                self.valid_percentages.append(gchange.percentage())
+                self.valid_percentages.append(not_none(gchange.percentage()))
 
             self.last_graded_time = gchange.grade_time
 
@@ -1786,15 +1799,14 @@ class GradeStateMachine:
                 key=lambda gchange: gchange.grade_time)
 
         self.valid_percentages.extend(
-                cast(GradeChange, gchange.percentage())
+                not_none(gchange.percentage())
                 for gchange in valid_grade_changes)
 
         del self.attempt_id_to_gchange
 
         return self
 
-    def percentage(self) -> float | None:
-
+    def percentage(self) -> float | Decimal | None:
         """
         :return: a percentage of achieved points, or *None*
         """

@@ -150,9 +150,7 @@ LOGIN_ERROR_URL = "/"
 
 # {{{ django-npm
 
-STATICFILES_FINDERS = (*tuple(STATICFILES_FINDERS), "npm.finders.NpmFinder")
-
-CODEMIRROR_PATH = "codemirror"
+STATICFILES_FINDERS = [*STATICFILES_FINDERS, "npm.finders.NpmFinder"]
 
 # }}}
 

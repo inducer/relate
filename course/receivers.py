@@ -34,6 +34,7 @@ from course.models import (
     Course,
     Participation,
     ParticipationPreapproval,
+    ParticipationRole,
     participation_status,
 )
 
@@ -83,7 +84,7 @@ def update_requested_participation_status(
 
 
 def may_preapprove_role(
-        course: Course, user: User) -> tuple[bool, list[str] | None]:
+        course: Course, user: User) -> tuple[bool, list[ParticipationRole] | None]:
     if not user.is_active:
         return False, None
 

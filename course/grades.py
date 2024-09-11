@@ -63,6 +63,7 @@ from relate.utils import (
     HTML5DateTimeInput,
     StyledForm,
     StyledModelForm,
+    not_none,
     string_concat,
 )
 
@@ -597,7 +598,7 @@ def view_grades_by_opportunity(
                     and (
                         flow_sessions[fsess_idx].participation is None
                         or (
-                            flow_sessions[fsess_idx].participation.pk
+                            not_none(flow_sessions[fsess_idx].participation).pk
                             < participation.pk))):
                 fsess_idx += 1
 
@@ -607,7 +608,7 @@ def view_grades_by_opportunity(
                     fsess_idx < len(flow_sessions)
                     and flow_sessions[fsess_idx].participation is not None
                     and (
-                        flow_sessions[fsess_idx].participation.pk
+                        not_none(flow_sessions[fsess_idx].participation).pk
                         == participation.pk)):
                 my_flow_sessions.append(flow_sessions[fsess_idx])
                 fsess_idx += 1
@@ -643,7 +644,7 @@ def view_grades_by_opportunity(
                 for _dummy1, info in grade_table]
 
         assert all(all_flow_sessions)
-        max_page_count = max(fsess.page_count for fsess in all_flow_sessions)
+        max_page_count = max(not_none(fsess.page_count) for fsess in all_flow_sessions)
         page_numbers = list(range(1, 1 + max_page_count))
 
         from course.flow import assemble_page_grades
@@ -685,7 +686,7 @@ NONE_SESSION_TAG = "<<<NONE>>>"
 
 
 class ReopenSessionForm(StyledForm):
-    def __init__(self, flow_desc: FlowDesc, current_tag: str,
+    def __init__(self, flow_desc: FlowDesc, current_tag: str | None,
             *args: Any, **kwargs: Any) -> None:
 
         super().__init__(*args, **kwargs)
@@ -761,7 +762,7 @@ def view_reopen_session(pctx: CoursePageContext, flow_session_id: str,
                             "now": format_datetime_local(now_datetime),
                             "user": pctx.request.user,
                             "completion_time": format_datetime_local(
-                                as_local_time(session.completion_time)),
+                                as_local_time(not_none(session.completion_time))),
                             "comment": form.cleaned_data["comment"]
                             })
             session.save()
@@ -769,6 +770,9 @@ def view_reopen_session(pctx: CoursePageContext, flow_session_id: str,
             from course.flow import reopen_session
             reopen_session(now_datetime, session, suppress_log=True,
                     unsubmit_pages=form.cleaned_data["unsubmit_pages"])
+
+            # anonymous sessions do not appear in the grading interface
+            assert session.participation is not None
 
             return redirect("relate-view_single_grade",
                     pctx.course.identifier,
@@ -788,7 +792,9 @@ def view_reopen_session(pctx: CoursePageContext, flow_session_id: str,
 
 # {{{ view single grade
 
-def average_grade(opportunity: GradingOpportunity) -> tuple[float | None, int]:
+def average_grade(
+            opportunity: GradingOpportunity
+        ) -> tuple[float | Decimal | None, int]:
 
     grade_changes = (GradeChange.objects
             .filter(

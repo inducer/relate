@@ -23,6 +23,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
+from collections.abc import Mapping
 from typing import Any, cast
 
 import django.forms as forms
@@ -58,7 +59,7 @@ class SandboxForm(forms.Form):
     # prevents form submission with codemirror's empty textarea
     use_required_attribute = False
 
-    def __init__(self, initial_text: str,
+    def __init__(self, initial_text: str | None,
             language_mode: str, interaction_mode: str, help_text: str,
             *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
@@ -83,11 +84,8 @@ class SandboxForm(forms.Form):
                     + gettext("Press Alt/Cmd+(Shift+)P to preview.")
                     + " "
                     + cm_help_text),
-                label=_("Content"))
-
-        # 'strip' attribute was added to CharField in Django 1.9
-        # with 'True' as default value.
-        self.fields["content"].strip = False
+                label=_("Content"),
+                strip=False)
 
         self.helper.add_input(
                 Submit("preview", _("Preview"), accesskey="p"),
@@ -174,7 +172,7 @@ def get_sandbox_data_for_page(
 # {{{ page sandbox form
 
 class PageSandboxForm(SandboxForm):
-    def __init__(self, initial_text: str,
+    def __init__(self, initial_text: str | None,
             language_mode: str, interaction_mode: str, help_text: str,
             *args: Any, **kwargs: Any) -> None:
         super().__init__(
@@ -214,7 +212,8 @@ def view_page_sandbox(pctx: CoursePageContext) -> http.HttpResponse:
         PAGE_DATA_SESSION_KEY_PREFIX, pctx.course.identifier)
 
     request = pctx.request
-    page_source = pctx.request.session.get(page_session_key)
+
+    page_source = cast(str | None, pctx.request.session.get(page_session_key))
 
     page_errors = None
     page_warnings = None
@@ -224,7 +223,8 @@ def view_page_sandbox(pctx: CoursePageContext) -> http.HttpResponse:
             and "clear_response" in request.POST)
     is_preview_post = (request.method == "POST" and "preview" in request.POST)
 
-    def make_form(data: str | None = None) -> PageSandboxForm:
+    def make_form(data: Mapping[str, Any] | None = None) -> PageSandboxForm:
+        assert request.user.is_authenticated
         return PageSandboxForm(
                 page_source, "yaml", request.user.editor_mode,
                 gettext("Enter YAML markup for a flow page."),

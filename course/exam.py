@@ -23,8 +23,9 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
+from collections.abc import Collection
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 import django.forms as forms
 from crispy_forms.layout import Submit
@@ -62,7 +63,13 @@ from course.models import (
     ParticipationTag,
 )
 from course.utils import course_view, render_course_page
-from relate.utils import HTML5DateTimeInput, StyledForm, string_concat
+from relate.utils import (
+    HTML5DateTimeInput,
+    RelateHttpRequest,
+    StyledForm,
+    not_none,
+    string_concat,
+)
 
 
 # {{{ mypy
@@ -522,13 +529,14 @@ def check_exam_ticket(
         username: str | None,
         code: str | None,
         now_datetime: datetime.datetime,
-        facilities: frozenset[str] | None,
+        facilities: Collection[str] | None,
         logged_in: bool,
         restrict_to_course: Course | None = None
         ) -> tuple[bool, ExamTicket | None, str]:
     """
     :returns: (is_valid, msg)
     """
+    _ = gettext
 
     try:
         user = get_user_model().objects.get(
@@ -562,7 +570,7 @@ def check_exam_ticket(
             minutes=settings.RELATE_TICKET_MINUTES_VALID_AFTER_USE)
 
     if (ticket.state == exam_ticket_states.used
-            and now_datetime >= ticket.usage_time + validity_period):
+            and now_datetime >= not_none(ticket.usage_time) + validity_period):
         return (False, ticket, _("Ticket has exceeded its validity period."))
 
     if not ticket.exam.active:
@@ -640,6 +648,8 @@ class ExamCheckInForm(StyledForm):
 @csrf_protect
 @never_cache
 def check_in_for_exam(request: http.HttpRequest) -> http.HttpResponse:
+    request = cast(RelateHttpRequest, request)
+
     # must import locally for mock to work
     from course.views import get_now_or_fake_time
     now_datetime = get_now_or_fake_time(request)

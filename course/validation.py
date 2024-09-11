@@ -31,7 +31,7 @@ from typing import TYPE_CHECKING, Any
 import dulwich.objects
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.html import escape
-from django.utils.translation import gettext, gettext_lazy as _
+from django.utils.translation import gettext as _
 
 from course.constants import (
     ATTRIBUTES_FILENAME,
@@ -464,7 +464,7 @@ def validate_flow_page(
         raise ValidationError(
                 string_concat(
                     "%s: ",
-                    gettext("flow page has no ID"))
+                    _("flow page has no ID"))
                 % location)
 
     validate_identifier(vctx, location, page_desc.id)

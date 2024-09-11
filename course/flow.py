@@ -24,7 +24,7 @@ THE SOFTWARE.
 """
 
 from collections.abc import Iterable
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Submit
@@ -88,6 +88,7 @@ from relate.utils import (
     as_local_time,
     format_datetime_local,
     local_now,
+    not_none,
     retry_transaction_decorator,
     string_concat,
 )
@@ -525,7 +526,7 @@ def assemble_page_grades(
     """
     id_to_fsess_idx = {fsess.id: i for i, fsess in enumerate(flow_sessions)}
     answer_visit_ids: list[list[int | None]] = [
-            [None] * fsess.page_count for fsess in flow_sessions
+            [None] * not_none(fsess.page_count) for fsess in flow_sessions
             ]
 
     # Get all answer visits corresponding to the sessions. The query result is
@@ -557,13 +558,13 @@ def assemble_page_grades(
               .order_by("visit__id")
               .order_by("grade_time"))
 
-    grades_by_answer_visit = {}
+    grades_by_answer_visit: dict[int | None, FlowPageVisitGrade] = {}
     for grade in grades:
         grades_by_answer_visit[grade.visit_id] = grade
 
     def get_grades_for_visit_group(
             visit_group: list[int | None]
-            ) -> list[FlowPageVisit | None]:
+            ) -> list[FlowPageVisitGrade | None]:
 
         return [grades_by_answer_visit.get(visit_id)
             for visit_id in visit_group]
@@ -574,7 +575,8 @@ def assemble_page_grades(
 def assemble_answer_visits(
         flow_session: FlowSession) -> list[FlowPageVisit | None]:
 
-    answer_visits: list[FlowPageVisit | None] = [None] * flow_session.page_count
+    answer_visits: list[FlowPageVisit | None] = [
+        cast(FlowPageVisit | None, None)] * not_none(flow_session.page_count)
 
     answer_page_visits = (
             get_flow_session_graded_answers_qset(flow_session)
@@ -753,52 +755,52 @@ class GradeInfo:
 
     # }}}
 
-    # {{{ page counts
+    # {{{ page counts / percentages
 
-    def total_count(self):
+    def total_count(self) -> int:
         return (self.fully_correct_count
                 + self.partially_correct_count
                 + self.incorrect_count
                 + self.unknown_count)
 
-    def fully_correct_percent(self):
+    def fully_correct_percent(self) -> float:
         """Only to be used for visualization purposes."""
         return self.FULL_PERCENT*self.fully_correct_count/self.total_count()
 
-    def partially_correct_percent(self):
+    def partially_correct_percent(self) -> float:
         """Only to be used for visualization purposes."""
         return self.FULL_PERCENT*self.partially_correct_count/self.total_count()
 
-    def incorrect_percent(self):
+    def incorrect_percent(self) -> float:
         """Only to be used for visualization purposes."""
         return self.FULL_PERCENT*self.incorrect_count/self.total_count()
 
-    def unknown_percent(self):
+    def unknown_percent(self) -> float:
         """Only to be used for visualization purposes."""
         return self.FULL_PERCENT*self.unknown_count/self.total_count()
 
-    def optional_total_count(self):
+    def optional_total_count(self) -> int:
         return (self.optional_fully_correct_count
                 + self.optional_partially_correct_count
                 + self.optional_incorrect_count
                 + self.optional_unknown_count)
 
-    def optional_fully_correct_percent(self):
+    def optional_fully_correct_percent(self) -> float:
         """Only to be used for visualization purposes."""
         return self.FULL_PERCENT * self.optional_fully_correct_count\
                / self.optional_total_count()
 
-    def optional_partially_correct_percent(self):
+    def optional_partially_correct_percent(self) -> float:
         """Only to be used for visualization purposes."""
         return self.FULL_PERCENT * self.optional_partially_correct_count\
                / self.optional_total_count()
 
-    def optional_incorrect_percent(self):
+    def optional_incorrect_percent(self) -> float:
         """Only to be used for visualization purposes."""
         return self.FULL_PERCENT * self.optional_incorrect_count\
                / self.optional_total_count()
 
-    def optional_unknown_percent(self):
+    def optional_unknown_percent(self) -> float:
         """Only to be used for visualization purposes."""
         return self.FULL_PERCENT * self.optional_unknown_count\
                / self.optional_total_count()
@@ -850,6 +852,7 @@ def gather_grade_info(
 
         grade = av.get_most_recent_grade()
         assert grade is not None
+        assert grade.max_points is not None
 
         feedback = get_feedback_for_grade(grade)
 
@@ -1148,7 +1151,7 @@ def grade_flow_session(
         gchange.state = grade_state_change_types.graded
         gchange.attempt_id = get_flow_session_attempt_id(flow_session)
         gchange.points = points
-        gchange.max_points = grade_info.max_points
+        gchange.max_points = not_none(grade_info.max_points)
         # creator left as NULL
         gchange.flow_session = flow_session
         gchange.comment = comment
@@ -1200,7 +1203,6 @@ def unsubmit_page(
 def reopen_session(
         now_datetime: datetime.datetime,
         session: FlowSession,
-        force: bool = False,
         suppress_log: bool = False,
         unsubmit_pages: bool = False,
         ) -> None:
@@ -1223,7 +1225,7 @@ def reopen_session(
                     "was '%(complete_time)s'.") % {
                         "now": format_datetime_local(now_datetime),
                         "complete_time": format_datetime_local(
-                            as_local_time(session.completion_time))
+                            as_local_time(not_none(session.completion_time)))
                         })
 
         session.completion_time = None
@@ -1324,7 +1326,7 @@ def regrade_session(
                         })
             session.save()
 
-            reopen_session(now_datetime, session, force=True, suppress_log=True)
+            reopen_session(now_datetime, session, suppress_log=True)
             finish_flow_session_standalone(
                     repo, course, session, force_regrade=True,
                     now_datetime=prev_completion_time,
@@ -1353,7 +1355,7 @@ def recalculate_session_grade(
                     })
         session.save()
 
-        reopen_session(now_datetime, session, force=True, suppress_log=True)
+        reopen_session(now_datetime, session, suppress_log=True)
         finish_flow_session_standalone(
                 repo, course, session, force_regrade=False,
                 now_datetime=prev_completion_time,
@@ -1519,9 +1521,10 @@ def post_start_flow(
     if not session_start_rule.may_start_new_session:
         raise PermissionDenied(_("new session not allowed"))
 
-    flow_user = pctx.request.user
-    if not flow_user.is_authenticated:
-        flow_user = None
+    if not pctx.request.user.is_authenticated:
+        flow_user: User | None = None
+    else:
+        flow_user = pctx.request.user
 
     session = start_flow(
             pctx.repo, pctx.course, pctx.participation,
@@ -1722,7 +1725,8 @@ def add_buttons_to_form(
                         css_class="relate-save-button relate-submit-button"))
     else:
         # Only offer 'save and move on' if student will receive no feedback
-        if fpctx.page_data.page_ordinal + 1 < flow_session.page_count:
+        if (not_none(fpctx.page_data.page_ordinal) + 1
+                < not_none(flow_session.page_count)):
             form.helper.add_input(
                     Submit("save_and_next",
                         mark_safe(
@@ -1794,7 +1798,7 @@ def view_flow_page(
         return redirect("relate-view_flow_page",
                 pctx.course.identifier,
                 flow_session.id,
-                flow_session.page_count-1)
+                not_none(flow_session.page_count)-1)
 
     if fpctx.page is None:
         raise http.Http404()
@@ -2010,16 +2014,16 @@ def view_flow_page(
             expiration_mode_choices.append((key, descr))
 
     session_minutes = None
-    time_factor = 1
+    time_factor: float = 1
     if flow_permission.see_session_time in permissions:
         if not flow_session.in_progress:
-            end_time = as_local_time(flow_session.completion_time)
+            end_time = as_local_time(not_none(flow_session.completion_time))
         else:
             end_time = now_datetime
         session_minutes = (
                 end_time - flow_session.start_time).total_seconds() / 60
         if flow_session.participation is not None:
-            time_factor = flow_session.participation.time_factor
+            time_factor = float(flow_session.participation.time_factor)
 
     all_page_data = get_all_page_data(flow_session)
 
@@ -2125,8 +2129,7 @@ def get_prev_answer_visits_dropdown_content(
     })
 
 
-def get_pressed_button(form: StyledForm) -> str:
-
+def get_pressed_button(form: forms.Form) -> str:
     buttons = ["save", "save_and_next", "save_and_finish", "submit"]
     for button in buttons:
         if button in form.data:
@@ -2143,7 +2146,7 @@ def post_flow_page(
         permissions: frozenset[str],
         generates_grade: bool,
         ) -> tuple[PageBehavior, list[FlowPageVisit],
-                forms.Form, AnswerFeedback | None, Any, bool]:
+                forms.Form, AnswerFeedback | None, Any, bool] | http.HttpResponse:
     page_context = fpctx.page_context
     page_data = fpctx.page_data
 
@@ -2228,7 +2231,7 @@ def post_flow_page(
                 grade = FlowPageVisitGrade()
                 grade.visit = answer_visit
                 grade.max_points = fpctx.page.max_points(page_data.data)
-                grade.graded_at_git_commit_sha = fpctx.course_commit_sha
+                grade.graded_at_git_commit_sha = fpctx.course_commit_sha.decode()
 
                 bulk_feedback_json = None
                 if feedback is not None:
@@ -2521,6 +2524,7 @@ def update_expiration_mode(
     if not any(expmode == em_key
             for em_key, _ in FLOW_SESSION_EXPIRATION_MODE_CHOICES):
         raise SuspiciousOperation(_("invalid expiration mode"))
+    assert expmode is not None
 
     fctx = FlowContext(pctx.repo, pctx.course, flow_session.flow_id,
             participation=pctx.participation)
@@ -2659,6 +2663,7 @@ def finish_flow_session_view(
 
                 participation_desc = repr(participation)
                 if use_masked_profile:
+                    assert participation is not None
                     participation_desc = _(
                         "%(user)s in %(course)s as %(role)s") % {
                         "user": participation.user.get_masked_profile(),
@@ -2713,7 +2718,7 @@ def finish_flow_session_view(
 
         return render_finish_response(
                 "course/flow-completion.html",
-                last_page_nr=flow_session.page_count-1,
+                last_page_nr=not_none(flow_session.page_count)-1,
                 flow_session=flow_session,
                 completion_text=completion_text)
 
@@ -2739,7 +2744,7 @@ def finish_flow_session_view(
             grading_rule.generates_grade and required_count)
         return render_finish_response(
                 "course/flow-confirm-completion.html",
-                last_page_nr=flow_session.page_count-1,
+                last_page_nr=not_none(flow_session.page_count)-1,
                 flow_session=flow_session,
                 answered_count=answered_count,
                 unanswered_count=unanswered_count,

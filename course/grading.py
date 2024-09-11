@@ -53,6 +53,7 @@ from course.utils import (
 )
 from course.views import get_now_or_fake_time
 from relate.utils import (
+    StyledForm,
     retry_transaction_decorator,
 )
 
@@ -132,16 +133,19 @@ def grade_flow_page(
     page_ordinal = int(page_ordinal)
 
     viewing_prev_grade = False
-    prev_grade_id = pctx.request.GET.get("grade_id")
-    if prev_grade_id is not None:
+    prev_grade_id_str = pctx.request.GET.get("grade_id")
+    if prev_grade_id_str is not None:
         try:
-            prev_grade_id = int(prev_grade_id)
+            prev_grade_id = int(prev_grade_id_str)
             viewing_prev_grade = True
         except ValueError:
             raise SuspiciousOperation("non-integer passed for 'grade_id'")
+    else:
+        prev_grade_id = None
 
     if not pctx.has_permission(pperm.view_gradebook):
         raise PermissionDenied(_("may not view grade book"))
+    assert pctx.request.user.is_authenticated
 
     flow_session = get_object_or_404(FlowSession, id=int(flow_session_id))
 
@@ -266,6 +270,8 @@ def grade_flow_page(
 
     # {{{ grading form
 
+    grading_form: StyledForm | None = None
+
     if (page_expects_answer
             and fpctx.page.is_answer_gradable()
             and fpctx.prev_answer_visit is not None
@@ -306,7 +312,7 @@ def grade_flow_page(
                 most_recent_grade = FlowPageVisitGrade(
                         visit=fpctx.prev_answer_visit,
                         grader=pctx.request.user,
-                        graded_at_git_commit_sha=pctx.course_commit_sha,
+                        graded_at_git_commit_sha=pctx.course_commit_sha.decode(),
 
                         grade_data=grade_data,
 

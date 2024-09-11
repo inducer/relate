@@ -2856,8 +2856,6 @@ class RegradeSessionTest(SingleCourseTestMixin, TestCase):
 
         self.assertEqual(self.mock_reopen_session.call_count, 1)
         self.assertTrue(
-            self.mock_reopen_session.call_args[1]["force"])
-        self.assertTrue(
             self.mock_reopen_session.call_args[1]["suppress_log"])
 
         self.assertEqual(self.mock_finish_flow_session_standalone.call_count, 1)
@@ -2931,8 +2929,6 @@ class RecalculateSessionGradeTest(SingleCourseTestMixin, TestCase):
             self.mock_adjust_flow_session_page_data.call_args[1]["respect_preview"])
 
         self.assertEqual(self.mock_reopen_session.call_count, 1)
-        self.assertTrue(
-            self.mock_reopen_session.call_args[1]["force"])
         self.assertTrue(
             self.mock_reopen_session.call_args[1]["suppress_log"])
 

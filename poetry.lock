@@ -656,6 +656,46 @@ selenium = ["selenium"]
 test = ["pytest", "pytest-cov", "pytest-django", "selenium"]
 
 [[package]]
+name = "django-stubs"
+version = "5.0.4"
+description = "Mypy stubs for Django"
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "django_stubs-5.0.4-py3-none-any.whl", hash = "sha256:c2502f5ecbae50c68f9a86d52b5b2447d8648fd205036dad0ccb41e19a445927"},
+    {file = "django_stubs-5.0.4.tar.gz", hash = "sha256:78e3764488fdfd2695f12502136548ec22f8d4b1780541a835042b8238d11514"},
+]
+
+[package.dependencies]
+asgiref = "*"
+django = "*"
+django-stubs-ext = ">=5.0.4"
+mypy = {version = ">=1.11.0,<1.12.0", optional = true, markers = "extra == \"compatible-mypy\""}
+tomli = {version = "*", markers = "python_version < \"3.11\""}
+types-PyYAML = "*"
+typing-extensions = ">=4.11.0"
+
+[package.extras]
+compatible-mypy = ["mypy (>=1.11.0,<1.12.0)"]
+oracle = ["oracledb"]
+redis = ["redis"]
+
+[[package]]
+name = "django-stubs-ext"
+version = "5.0.4"
+description = "Monkey-patching and extensions for django-stubs"
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "django_stubs_ext-5.0.4-py3-none-any.whl", hash = "sha256:910cbaff3d1e8e806a5c27d5ddd4088535aae8371ea921b7fd680fdfa5f14e30"},
+    {file = "django_stubs_ext-5.0.4.tar.gz", hash = "sha256:85da065224204774208be29c7d02b4482d5a69218a728465c2fbe41725fdc819"},
+]
+
+[package.dependencies]
+django = "*"
+typing-extensions = "*"
+
+[[package]]
 name = "django-upgrade"
 version = "1.20.0"
 description = "Automatically upgrade your Django project code."
@@ -2775,4 +2815,4 @@ postgres = ["psycopg2"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.10,<4"
-content-hash = "0dde54b25517f1d3e2752754b811b87d217f64789b5139cf3955fe07128066a4"
+content-hash = "e996912a7f96ff443f2b1bb0a340a4d697402e83854636b36661b507ad515eb5"

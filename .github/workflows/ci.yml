@@ -42,13 +42,14 @@ jobs:
         run: |
           poetry run ruff check
       - uses: crate-ci/typos@master
+      - name: "Set up local settings"
+        run: cp local_settings_example.py local_settings.py
       - name: "Mypy"
-        run: poetry run mypy relate course
+        run: poetry run ./.ci/run-mypy.sh
       - name: "Safety"
-        run: bash ./.ci/run-safety.sh
+        run: poetry run ./.ci/run-safety.sh
       - name: "Sphinx"
         run: |
-            cp local_settings_example.py local_settings.py
             (cd doc; poetry run make html SPHINXOPTS="-W --keep-going -n")
 
   frontend:

@@ -24,7 +24,7 @@ THE SOFTWARE.
 """
 
 import datetime
-from collections.abc import Iterable
+from collections.abc import Collection, Iterable
 from contextlib import ContextDecorator
 from dataclasses import dataclass
 from typing import (
@@ -53,7 +53,7 @@ from course.content import (
     parse_date_spec,
 )
 from course.page.base import PageBase, PageContext
-from relate.utils import string_concat
+from relate.utils import RelateHttpRequest, not_none, string_concat
 
 
 # {{{ mypy
@@ -279,7 +279,7 @@ def get_session_start_rule(
         flow_id: str,
         flow_desc: FlowDesc,
         now_datetime: datetime.datetime,
-        facilities: frozenset[str] | None = None,
+        facilities: Collection[str] | None = None,
         for_rollover: bool = False,
         login_exam_ticket: ExamTicket | None = None,
         ) -> FlowSessionStartRule:
@@ -372,7 +372,7 @@ def get_session_access_rule(
         session: FlowSession,
         flow_desc: FlowDesc,
         now_datetime: datetime.datetime,
-        facilities: frozenset[str] | None = None,
+        facilities: Collection[str] | None = None,
         login_exam_ticket: ExamTicket | None = None,
         ) -> FlowSessionAccessRule:
 
@@ -505,7 +505,7 @@ def get_session_grading_rule(
                 if session.in_progress:
                     completion_time = now_datetime
                 else:
-                    completion_time = session.completion_time
+                    completion_time = not_none(session.completion_time)
 
             if completion_time > ds:
                 continue
@@ -566,11 +566,13 @@ ANY_ARGUMENT = AnyArgumentType()
 class CoursePageContext:
     def __init__(self, request: http.HttpRequest, course_identifier: str) -> None:
 
-        self.request = request
+        # account for monkeypatching
+        self.request = cast(RelateHttpRequest, request)
+
         self.course_identifier = course_identifier
         self._permissions_cache: frozenset[tuple[str, str | None]] | None = None
         self._role_identifiers_cache: list[str] | None = None
-        self.old_language = None
+        self.old_language: str | None = None
 
         # using this to prevent nested using as context manager
         self._is_in_context_manager = False
@@ -711,7 +713,7 @@ class FlowPageContext(FlowContext):
             ) -> None:
         super().__init__(repo, course, flow_id, participation)
 
-        if page_ordinal >= flow_session.page_count:
+        if page_ordinal >= not_none(flow_session.page_count):
             raise PageOrdinalOutOfRange()
 
         from course.models import FlowPageData

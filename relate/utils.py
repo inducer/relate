@@ -25,9 +25,10 @@ THE SOFTWARE.
 
 
 import datetime
-from collections.abc import Mapping
+from collections.abc import Collection, Mapping
 from typing import (
     Any,
+    TypeVar,
 )
 from zoneinfo import ZoneInfo
 
@@ -36,6 +37,24 @@ import dulwich.repo
 from django.http import HttpRequest
 from django.utils.text import format_lazy
 from django.utils.translation import gettext_lazy as _
+
+
+T = TypeVar("T")
+
+
+class RelateHttpRequest(HttpRequest):
+    # add monkey-patched request attributes
+
+    # added by FacilityFindingMiddleware
+    relate_facilities: Collection[str]
+
+    # added by ExamLockdownMiddleware
+    relate_exam_lockdown: bool
+
+
+def not_none(obj: T | None) -> T:
+    assert obj is not None
+    return obj
 
 
 def string_concat(*strings: Any) -> str:
@@ -147,7 +166,7 @@ def get_site_name() -> str:
 
 
 def render_email_template(template_name: str, context: dict | None = None,
-        request: HttpRequest | None = None, using: bool | None = None) -> str:
+        request: HttpRequest | None = None, using: str | None = None) -> str:
     if context is None:
         context = {}
     context.update({"relate_site_name": _(get_site_name())})
@@ -343,7 +362,7 @@ def get_outbound_mail_connection(label: str | None = None, **kwargs: Any) -> Any
         label = getattr(settings, "EMAIL_CONNECTION_DEFAULT", None)
 
     try:
-        connections = settings.EMAIL_CONNECTIONS
+        connections = settings.EMAIL_CONNECTIONS  # type: ignore[misc]
         options = connections[label]
     except (KeyError, AttributeError):
         # Neither EMAIL_CONNECTIONS nor

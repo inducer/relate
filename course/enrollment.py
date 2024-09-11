@@ -35,6 +35,7 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import AnonymousUser
 from django.core.exceptions import PermissionDenied, SuspiciousOperation
 from django.db import IntegrityError, transaction
 from django.shortcuts import get_object_or_404, redirect, render  # noqa
@@ -74,18 +75,8 @@ if TYPE_CHECKING:
 # {{{ get_participation_for_{user,request}
 
 def get_participation_for_user(
-        user: accounts.models.User, course: Course
+        user: accounts.models.User | AnonymousUser, course: Course
         ) -> Participation | None:
-    # "wake up" lazy object
-    # http://stackoverflow.com/questions/20534577/int-argument-must-be-a-string-or-a-number-not-simplelazyobject  # noqa
-    try:
-        possible_user = user._wrapped
-    except AttributeError:
-        pass
-    else:
-        if isinstance(possible_user, get_user_model()):
-            user = possible_user
-
     if not user.is_authenticated:
         return None
 
@@ -116,7 +107,7 @@ def get_participation_for_request(
 def get_participation_role_identifiers(
         course: Course, participation: Participation | None) -> list[str]:
     if participation is None:
-        return (
+        return list(
                 ParticipationRole.objects.filter(
                     course=course,
                     is_default_for_unenrolled=True)
@@ -161,7 +152,10 @@ def get_participation_permissions(
 def enroll_view(
         request: http.HttpRequest, course_identifier: str) -> http.HttpResponse:
     course = get_object_or_404(Course, identifier=course_identifier)
+
     user = request.user
+    assert user.is_authenticated
+
     participations = Participation.objects.filter(course=course, user=user)
     if not participations.count():
         participation = None
@@ -210,10 +204,10 @@ def enroll_view(
         return redirect("relate-course_page", course_identifier)
 
     preapproval = None
-    if request.user.email:  # pragma: no branch (user email NOT NULL constraint)
+    if user.email:  # pragma: no branch (user email NOT NULL constraint)
         try:
             preapproval = ParticipationPreapproval.objects.get(
-                    course=course, email__iexact=request.user.email)
+                    course=course, email__iexact=user.email)
         except ParticipationPreapproval.DoesNotExist:
             pass
 
@@ -244,18 +238,20 @@ def enroll_view(
                 "enroll.") % course.enrollment_required_email_suffix)
         return redirect("relate-course_page", course_identifier)
 
-    roles = ParticipationRole.objects.filter(
-            course=course,
-            is_default_for_new_participants=True)
-
     if preapproval is not None:
-        roles = list(preapproval.roles.all())
+        roles = preapproval.roles.all()
+    else:
+        roles = ParticipationRole.objects.filter(
+                course=course,
+                is_default_for_new_participants=True)
+
+    roles_list = list(roles)
 
     try:
         if course.enrollment_approval_required and preapproval is None:
             participation = handle_enrollment_request(
                     course, user, participation_status.requested,
-                    roles, request)
+                    roles_list, request)
 
             assert participation is not None
 
@@ -293,7 +289,7 @@ def enroll_view(
                     "by email once your request has been acted upon."))
         else:
             handle_enrollment_request(course, user, participation_status.active,
-                                      roles, request)
+                                      roles_list, request)
 
             messages.add_message(request, messages.SUCCESS,
                     _("Successfully enrolled."))
@@ -939,7 +935,7 @@ class EditParticipationForm(StyledModelForm):
         else:
             participation_users = Participation.objects.filter(
                 course=participation.course).values_list("user__pk", flat=True)
-            self.fields["user"].queryset = (
+            self.fields["user"].queryset = (  # type: ignore[attr-defined]
                 get_user_model().objects.exclude(pk__in=participation_users)
             )
         self.add_new = add_new
@@ -948,10 +944,10 @@ class EditParticipationForm(StyledModelForm):
         if not may_edit_permissions:
             self.fields["roles"].disabled = True
 
-        self.fields["roles"].queryset = (
+        self.fields["roles"].queryset = (  # type: ignore[attr-defined]
                 ParticipationRole.objects.filter(
                     course=participation.course))
-        self.fields["tags"].queryset = (
+        self.fields["tags"].queryset = (  # type: ignore[attr-defined]
                 ParticipationTag.objects.filter(
                     course=participation.course))
 
@@ -985,9 +981,9 @@ class EditParticipationForm(StyledModelForm):
         raise forms.ValidationError(
             _("This user has not confirmed his/her email."))
 
-    def save(self) -> Participation:
+    def save(self, commit: bool = True) -> Participation:
 
-        inst = super().save()
+        inst = super().save(commit)
 
         (ParticipationPermission.objects
                 .filter(participation=self.instance)
