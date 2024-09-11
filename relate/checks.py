@@ -24,6 +24,7 @@ THE SOFTWARE.
 """
 
 import os
+from collections.abc import Iterable
 
 from django.conf import settings
 from django.core.checks import Critical, Warning, register
@@ -380,10 +381,8 @@ def check_relate_settings(app_configs, **kwargs):
 
     languages = settings.LANGUAGES
 
-    from django.utils.itercompat import is_iterable
-
     if (isinstance(languages, str)
-            or not is_iterable(languages)):
+            or not isinstance(languages, Iterable)):
         errors.append(RelateCriticalCheckMessage(
             msg=(INSTANCE_ERROR_PATTERN
                  % {"location": LANGUAGES,
@@ -392,7 +391,7 @@ def check_relate_settings(app_configs, **kwargs):
         )
     else:
         if any(isinstance(choice, str)
-                       or not is_iterable(choice) or len(choice) != 2
+                       or not isinstance(choice, Iterable) or len(choice) != 2
                for choice in languages):
             errors.append(RelateCriticalCheckMessage(
                 msg=(f"'{LANGUAGES}' must be an iterable containing "
@@ -455,7 +454,7 @@ def check_relate_settings(app_configs, **kwargs):
                                              RELATE_OVERRIDE_TEMPLATES_DIRS, None)
     if relate_override_templates_dirs is not None:
         if (isinstance(relate_override_templates_dirs, str)
-                or not is_iterable(relate_override_templates_dirs)):
+                or not isinstance(relate_override_templates_dirs, Iterable)):
             errors.append(RelateCriticalCheckMessage(
                 msg=(INSTANCE_ERROR_PATTERN
                      % {"location": RELATE_OVERRIDE_TEMPLATES_DIRS,
