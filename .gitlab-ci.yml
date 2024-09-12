@@ -62,7 +62,7 @@ mypy:
 
 safety:
   <<: *quality
-  script: bash ./.ci/run-safety.sh
+  script: poetry run ./.ci/run-safety.sh
 
 Python 3:
   <<: *test
