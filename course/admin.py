@@ -193,7 +193,7 @@ class EventAdmin(admin.ModelAdmin):
             f" ({self.ordinal!s})" if self.ordinal is not None else "",
             self.course)
 
-    list_editable = ("ordinal", "time", "end_time", "shown_in_calendar")
+    list_editable = ("kind", "ordinal", "time", "end_time", "shown_in_calendar")
 
     # {{{ permissions
 
