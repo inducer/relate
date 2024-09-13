@@ -26,6 +26,7 @@ THE SOFTWARE.
 
 import datetime
 from collections.abc import Collection, Mapping
+from ipaddress import IPv4Address, IPv6Address, ip_address, ip_network
 from typing import (
     Any,
     TypeVar,
@@ -124,6 +125,10 @@ Repo_ish = dulwich.repo.Repo | SubdirRepoWrapper
 # }}}
 
 
+def remote_address_from_request(request: HttpRequest) -> IPv4Address | IPv6Address:
+    return ip_address(str(request.META["REMOTE_ADDR"]))
+
+
 # {{{ maintenance mode
 
 def is_maintenance_mode(request):
@@ -133,13 +138,10 @@ def is_maintenance_mode(request):
     if maintenance_mode:
         exceptions = getattr(settings, "RELATE_MAINTENANCE_MODE_EXCEPTIONS", [])
 
-        import ipaddress
-
-        remote_address = ipaddress.ip_address(
-                str(request.META["REMOTE_ADDR"]))
+        remote_address = remote_address_from_request(request)
 
         for exc in exceptions:
-            if remote_address in ipaddress.ip_network(str(exc)):
+            if remote_address in ip_network(str(exc)):
                 maintenance_mode = False
                 break
 

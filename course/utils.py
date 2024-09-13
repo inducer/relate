@@ -27,6 +27,7 @@ import datetime
 from collections.abc import Collection, Iterable
 from contextlib import ContextDecorator
 from dataclasses import dataclass
+from ipaddress import IPv4Address, IPv6Address
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -53,7 +54,13 @@ from course.content import (
     parse_date_spec,
 )
 from course.page.base import PageBase, PageContext
-from relate.utils import RelateHttpRequest, not_none, string_concat
+from prairietest.utils import has_access_to_exam
+from relate.utils import (
+    RelateHttpRequest,
+    not_none,
+    remote_address_from_request,
+    string_concat,
+)
 
 
 # {{{ mypy
@@ -282,6 +289,8 @@ def get_session_start_rule(
         facilities: Collection[str] | None = None,
         for_rollover: bool = False,
         login_exam_ticket: ExamTicket | None = None,
+        *,
+        remote_ip_address: IPv4Address | IPv6Address | None = None,
         ) -> FlowSessionStartRule:
 
     """Return a :class:`FlowSessionStartRule` if a new session is
@@ -374,6 +383,8 @@ def get_session_access_rule(
         now_datetime: datetime.datetime,
         facilities: Collection[str] | None = None,
         login_exam_ticket: ExamTicket | None = None,
+        *,
+        remote_ip_address: IPv4Address | IPv6Address | None = None,
         ) -> FlowSessionAccessRule:
 
     if facilities is None:
@@ -1045,16 +1056,19 @@ class FacilityFindingMiddleware:
         if pretend_facilities is not None:
             facilities = pretend_facilities
         else:
-            import ipaddress
-            remote_address = ipaddress.ip_address(
-                    str(request.META["REMOTE_ADDR"]))
+            remote_address = remote_address_from_request(request)
 
             facilities = set()
 
-            for name, props in get_facilities_config(request).items():
+            facilities_config = get_facilities_config(request)
+            if facilities_config is None:
+                facilities_config = {}
+
+            from ipaddress import ip_network
+            for name, props in facilities_config.items():
                 ip_ranges = props.get("ip_ranges", [])
                 for ir in ip_ranges:
-                    if remote_address in ipaddress.ip_network(str(ir)):
+                    if remote_address in ip_network(str(ir)):
                         facilities.add(name)
 
         request.relate_facilities = frozenset(facilities)
