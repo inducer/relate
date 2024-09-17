@@ -189,6 +189,8 @@ def _eval_generic_conditions(
             return False
         if login_exam_ticket.exam.flow_id != flow_id:
             return False
+        if login_exam_ticket.participation != participation:
+            return False
 
     if hasattr(rule, "if_has_prairietest_exam_access"):
         if remote_ip_address is None:
