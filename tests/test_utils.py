@@ -437,7 +437,17 @@ class EvalGenericConditionsTest(unittest.TestCase):
         self.flow_id = "bar"
         self.login_exam_ticket.exam = mock.MagicMock()
         self.login_exam_ticket.exam.flow_id = "foo"
+        self.login_exam_ticket.participation = self.participation
         self.assertFalse(
+            utils._eval_generic_conditions(
+                rule, self.course, self.participation,
+                now_datetime, self.flow_id, self.login_exam_ticket))
+
+        # participation does not match
+        self.flow_id = "foo"
+        self.login_exam_ticket.exam = mock.MagicMock()
+        self.login_exam_ticket.exam.flow_id = "foo"
+        self.assertTrue(
             utils._eval_generic_conditions(
                 rule, self.course, self.participation,
                 now_datetime, self.flow_id, self.login_exam_ticket))
@@ -446,6 +456,7 @@ class EvalGenericConditionsTest(unittest.TestCase):
         self.flow_id = "foo"
         self.login_exam_ticket.exam = mock.MagicMock()
         self.login_exam_ticket.exam.flow_id = "foo"
+        self.login_exam_ticket.participation = self.participation
         self.assertTrue(
             utils._eval_generic_conditions(
                 rule, self.course, self.participation,
