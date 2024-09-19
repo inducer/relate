@@ -1,0 +1,19 @@
+apiVersion: "acid.zalan.do/v1"
+kind: postgresql
+metadata:
+  name: obmondo-postgresql
+  namespace: relate
+spec:
+  teamId: obmondo
+  volume:
+    size: 2Gi
+  numberOfInstances: 1
+  users:
+    relate_admin: # database owner
+      - superuser
+      - createdb
+  databases:
+    relate: relate_admin
+  postgresql:
+    version: "14"
+  enableMasterLoadBalancer: false
