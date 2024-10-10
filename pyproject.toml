@@ -155,7 +155,7 @@ types-Markdown = "^0.1.2"
 types-PyYAML = "^0.1.5"
 
 # tests for code questions use question code that has numpy
-numpy = "^1.26"
+numpy = "^2.1"
 
 yamllint = "^1.32.0"
 
