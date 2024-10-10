@@ -24,7 +24,7 @@
     "@replit/codemirror-emacs": "^6.0.1",
     "datatables-i18n": "github:dzhuang/datatables-i18n",
     "datatables.net": "^1.13.5",
-    "datatables.net-bs5": "^1.13.5",
+    "datatables.net-bs5": "^2.1.8",
     "datatables.net-fixedcolumns": "^5.0.3",
     "datatables.net-fixedcolumns-bs5": "^4.3.0",
     "bootstrap-icons": "^1.8.1",
