@@ -57,7 +57,7 @@ sympy = "*"
 # Course content is stored in YAML.
 pyyaml = "*"
 # Dulwich git integration
-dulwich = "^0.20.3"
+dulwich = "^0.22.1"
 
 paramiko = "*"
 
