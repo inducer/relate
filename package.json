@@ -17,7 +17,7 @@
     "@codemirror/lang-markdown": "^6.2.0",
     "@codemirror/lang-yaml": "^6.1.1",
     "@codemirror/legacy-modes": "^6.4.1",
-    "@replit/codemirror-vim": "^6.0.14",
+    "@replit/codemirror-vim": "^6.2.1",
     "@replit/codemirror-emacs": "^6.0.1",
     "@lezer/highlight": "^1.1.6",
     "@replit/codemirror-vim": "^6.0.14",
