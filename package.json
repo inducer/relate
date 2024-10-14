@@ -19,7 +19,7 @@
     "@codemirror/legacy-modes": "^6.4.1",
     "@replit/codemirror-vim": "^6.2.1",
     "@replit/codemirror-emacs": "^6.0.1",
-    "@lezer/highlight": "^1.1.6",
+    "@lezer/highlight": "^1.2.1",
     "@replit/codemirror-vim": "^6.0.14",
     "@replit/codemirror-emacs": "^6.0.1",
     "datatables-i18n": "github:dzhuang/datatables-i18n",
