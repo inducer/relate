@@ -538,18 +538,18 @@ files = [
 
 [[package]]
 name = "crispy-bootstrap5"
-version = "0.7"
+version = "2024.10"
 description = "Bootstrap5 template pack for django-crispy-forms"
 optional = false
-python-versions = ">=3.7"
+python-versions = ">=3.8"
 files = [
-    {file = "crispy-bootstrap5-0.7.tar.gz", hash = "sha256:0745a67199619149b7feca87dab7a45664876ed50fb582b38fd2aeb3f8a8d869"},
-    {file = "crispy_bootstrap5-0.7-py3-none-any.whl", hash = "sha256:f3ff1ef5cb379fe80b1b02e245008f276444098a4bdb8d855bed84c623798a85"},
+    {file = "crispy_bootstrap5-2024.10-py3-none-any.whl", hash = "sha256:59e91dac5e45a8c954af3fbcaa6804cd5aef4402f027af2f99a352b096c4016f"},
+    {file = "crispy_bootstrap5-2024.10.tar.gz", hash = "sha256:55b442fe675dd95ad280123c7fe464f454186e90b8e5642e751f436c87627c44"},
 ]
 
 [package.dependencies]
-django = ">=3.2"
-django-crispy-forms = ">=1.13.0"
+django = ">=4.2"
+django-crispy-forms = ">=2.3"
 
 [package.extras]
 test = ["pytest", "pytest-django"]
@@ -3196,4 +3196,4 @@ postgres = ["psycopg2"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.10,<4"
-content-hash = "b4598ab2a28289e47057d39f196cc9e56a9bc2f22d394718d350d31cc919db3b"
+content-hash = "05e5ec193b01097ea16737395113208e93cd28909c74944e5b044021970c0d7b"
