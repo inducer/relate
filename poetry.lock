@@ -2972,19 +2972,6 @@ files = [
 ]
 
 [[package]]
-name = "types-jinja2"
-version = "0.1.3"
-description = "Typing stubs for Jinja2"
-optional = false
-python-versions = "*"
-files = [
-    {file = "types_Jinja2-0.1.3-py2.py3-none-any.whl", hash = "sha256:604faa911fd008395c8f0c88b9965b952f00b13613b73d2ff80de19d0fa18cb7"},
-]
-
-[package.dependencies]
-types-MarkupSafe = "*"
-
-[[package]]
 name = "types-markdown"
 version = "0.1.5"
 description = "Typing stubs for Markdown"
@@ -2993,17 +2980,6 @@ python-versions = "*"
 files = [
     {file = "types-Markdown-0.1.5.tar.gz", hash = "sha256:ef9285b7a5d321e8495f32be99a80d931c0414beae1c3c71a54ca955a3b7f492"},
     {file = "types_Markdown-0.1.5-py2.py3-none-any.whl", hash = "sha256:3b5f279067f17630efe55c49be1f9795ce02c25b836e15c47095297d85153a0c"},
-]
-
-[[package]]
-name = "types-markupsafe"
-version = "1.1.10"
-description = "Typing stubs for MarkupSafe"
-optional = false
-python-versions = "*"
-files = [
-    {file = "types-MarkupSafe-1.1.10.tar.gz", hash = "sha256:85b3a872683d02aea3a5ac2a8ef590193c344092032f58457287fbf8e06711b1"},
-    {file = "types_MarkupSafe-1.1.10-py3-none-any.whl", hash = "sha256:ca2bee0f4faafc45250602567ef38d533e877d2ddca13003b319c551ff5b3cc5"},
 ]
 
 [[package]]
@@ -3196,4 +3172,4 @@ postgres = ["psycopg2"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.10,<4"
-content-hash = "05e5ec193b01097ea16737395113208e93cd28909c74944e5b044021970c0d7b"
+content-hash = "736a0fa0b95dbdd1ec1770c4b6c359b68d8782164f57c6af84909fa1940ca0ab"
