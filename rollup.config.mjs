@@ -2,8 +2,8 @@ import resolve from '@rollup/plugin-node-resolve';
 import { brotliCompress } from 'zlib';
 import { promisify } from 'util';
 import commonjs from '@rollup/plugin-commonjs';
-import { terser } from 'rollup-plugin-terser';
-import styles from 'rollup-plugin-styles';
+import terser from '@rollup/plugin-terser';
+import styles from 'rollup-plugin-styler';
 import gzipPlugin from 'rollup-plugin-gzip';
 import replace from '@rollup/plugin-replace';
 
