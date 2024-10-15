@@ -38,6 +38,7 @@ from django import forms, http
 from django.core.exceptions import ObjectDoesNotExist
 from django.shortcuts import get_object_or_404, render
 from django.utils import translation
+from django.utils.safestring import SafeString, mark_safe
 from django.utils.translation import gettext as _, pgettext_lazy
 
 from course.constants import flow_permission, flow_rule_kind
@@ -971,7 +972,7 @@ class CodeMirrorTextarea(forms.Textarea):
 
     # TODO: Maybe add VSCode keymap?
     # https://github.com/replit/codemirror-vscode-keymap
-    def render(self, name, value, attrs=None, renderer=None):
+    def render(self, name, value, attrs=None, renderer=None) -> SafeString:
         # based on
         # https://github.com/codemirror/basic-setup/blob/b3be7cd30496ee578005bd11b1fa6a8b21fcbece/src/codemirror.ts
         extensions = [
@@ -1008,7 +1009,7 @@ class CodeMirrorTextarea(forms.Textarea):
                   </script>
                   """]
 
-        return "\n".join(output)
+        return mark_safe("\n".join(output))
 
 
 def get_codemirror_widget(
