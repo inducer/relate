@@ -1,9 +1,9 @@
 {
   "dependencies": {
-    "@fullcalendar/core": "^5.10.1",
-    "@fullcalendar/daygrid": "^5.11.5",
-    "@fullcalendar/list": "^5.10.1",
-    "@fullcalendar/timegrid": "^5.10.1",
+    "@fullcalendar/core": "^6.1.15",
+    "@fullcalendar/daygrid": "^6.1.15",
+    "@fullcalendar/list": "^6.1.15",
+    "@fullcalendar/timegrid": "^6.1.15",
     "@popperjs/core": "^2.11.2",
     "bootstrap": "^5.3.1",
     "@codemirror/state": "^6.4.1",
