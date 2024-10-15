@@ -1,0 +1,35 @@
+.rl-prosemirror-container {
+  @extend .border;
+  @extend .border-2;
+}
+
+.rl-prosemirror-container .ProseMirror {
+  margin-left: 1ex;
+  margin-right: 1ex;
+  margin-top: 2px;
+  margin-bottom: 2px;
+}
+
+.rl-prosemirror-container .ProseMirror:read-write:focus {
+  outline: none;
+}
+
+.ProseMirror > p:last-child { margin-bottom: 0 !important;}
+
+.ProseMirror-menubar {
+  @extend .bg-secondary-subtle;
+  @extend .border-bottom;
+  @extend .border-secondary-subtle;
+}
+
+.ProseMirror-menuseparator {
+  @extend .border-secondary-subtle;
+}
+
+.ProseMirror-menu-submenu, .ProseMirror-menu-dropdown-menu {
+  @extend .bg-secondary-subtle;
+}
+
+math-display.ProseMirror-selectednode {
+  @extend .bg-secondary-subtle;
+}

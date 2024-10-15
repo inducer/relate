@@ -1043,6 +1043,53 @@ def get_codemirror_widget(
 # }}}
 
 
+# {{{ prosemirror
+
+class ProseMirrorTextarea(forms.Textarea):
+    @property
+    def media(self):
+        return forms.Media(js=["bundle-prosemirror.js"])
+
+    def render(self, name, value, attrs=None, renderer=None) -> SafeString:
+        output = [super().render(
+                        name, value, attrs, renderer),
+                  f"""
+                  <script type="text/javascript">
+                    rlProsemirror.editorFromTextArea(
+                        document.getElementById('id_{name}'),
+                        )
+                  </script>
+                  """]
+
+        return mark_safe("\n".join(output))
+
+    math_help_text = mark_safe(r"""
+    See the <a href="https://katex.org/docs/supported.html"
+            >list of supported math commands</a>.
+    More tips for using this editor to type math:
+    <ul>
+        <li>
+        Inline math nodes are delimited with <code>$</code>.
+        After typing the closing dollar sign in
+        an expression like <code>$\int_a^b f(x) dx$</code>, a math node will appear.
+        </li>
+
+        <li>
+        To start a block math node, press Enter to create a blank line,
+        then type <code>$$</code> followed by Space. You can type multi-line math
+        expressions, and the result will render in display style.
+        </li>
+        <li>
+        Math nodes behave like regular text when using arrow keys or Backspace.
+        From within a math node, press Ctrl-Backspace to delete the entire node.
+        You can select, copy, and paste math nodes just like regular text!
+        </li>
+    </ul>
+    """)
+
+# }}}
+
+
 # {{{ facility processing
 
 def get_facilities_config(

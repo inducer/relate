@@ -83,4 +83,14 @@ export default [
     },
     plugins: defaultPlugins,
   },
+  {
+    input: 'relate/static/js/prosemirror.js',
+    output: {
+      file: 'frontend-dist/bundle-prosemirror.js',
+      format: 'iife',
+      sourcemap: true,
+      name: 'rlProsemirror',
+    },
+    plugins: defaultPlugins,
+  },
 ];
