@@ -29,11 +29,13 @@ from django.utils.translation import gettext, gettext_lazy as _
 
 from course.page.base import (
     AnswerFeedback,
+    PageBaseUngraded,
+    PageBaseWithoutHumanGrading,
     PageBaseWithTitle,
     PageBaseWithValue,
     markup_to_html,
 )
-from course.validation import ValidationError, validate_markup
+from course.validation import AttrSpec, ValidationError, validate_markup
 from relate.utils import StyledForm, string_concat
 
 
@@ -184,16 +186,16 @@ class ChoiceQuestionBase(PageBaseWithTitle, PageBaseWithValue):
             if choice.mode == ChoiceModes.ALWAYS_CORRECT:
                 self.always_correct_choice_count += 1
 
-    def required_attrs(self):
+    def required_attrs(self) -> AttrSpec:
         return (*super().required_attrs(), ("prompt", "markup"), ("choices", list))
 
-    def allowed_attrs(self):
+    def allowed_attrs(self) -> AttrSpec:
         return (*super().allowed_attrs(), ("shuffle", bool))
 
-    def markup_body_for_title(self):
+    def markup_body_for_title(self) -> str:
         return self.page_desc.prompt
 
-    def body(self, page_context, page_data):
+    def body(self, page_context, page_data) -> str:
         return markup_to_html(page_context, self.page_desc.prompt)
 
     def initialize_page_data(self, page_context):
@@ -250,7 +252,7 @@ class ChoiceQuestionBase(PageBaseWithTitle, PageBaseWithValue):
 
 # {{{ choice question
 
-class ChoiceQuestion(ChoiceQuestionBase):
+class ChoiceQuestion(ChoiceQuestionBase, PageBaseWithoutHumanGrading):
     """
     A page asking the participant to choose one of multiple answers.
 
@@ -349,7 +351,7 @@ class ChoiceQuestion(ChoiceQuestionBase):
                         "marked 'always_correct'"))
                     % {"location": location})
 
-    def allowed_attrs(self):
+    def allowed_attrs(self) -> AttrSpec:
         return (*super().allowed_attrs(), ("answer_explanation", "markup"))
 
     def make_choice_form(
@@ -436,7 +438,7 @@ class ChoiceQuestion(ChoiceQuestionBase):
 
 # {{{ multiple choice question
 
-class MultipleChoiceQuestion(ChoiceQuestionBase):
+class MultipleChoiceQuestion(ChoiceQuestionBase, PageBaseWithoutHumanGrading):
     """
     A page asking the participant to choose a few of multiple available answers.
 
@@ -719,7 +721,7 @@ class MultipleChoiceQuestion(ChoiceQuestionBase):
 
 # {{{ survey choice question
 
-class SurveyChoiceQuestion(PageBaseWithTitle):
+class SurveyChoiceQuestion(PageBaseWithTitle, PageBaseUngraded):
     """
     A page asking the participant to choose one of multiple answers.
 

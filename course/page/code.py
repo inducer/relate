@@ -33,13 +33,14 @@ from course.constants import flow_permission
 from course.page.base import (
     AnswerFeedback,
     PageBaseWithHumanTextFeedback,
+    PageBaseWithoutHumanGrading,
     PageBaseWithTitle,
     PageBaseWithValue,
     get_auto_feedback,
     get_editor_interaction_mode,
     markup_to_html,
 )
-from course.validation import ValidationError
+from course.validation import AttrSpec, ValidationError
 from relate.utils import StyledForm, string_concat
 
 
@@ -603,13 +604,13 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
                     "While you're at it, consider adding "
                     "access_rules/add_permissions/see_correctness."))
 
-    def required_attrs(self):
+    def required_attrs(self) -> AttrSpec:
         return (
             *super().required_attrs(),
             ("prompt", "markup"),
             ("timeout", (int, float)))
 
-    def allowed_attrs(self):
+    def allowed_attrs(self) -> AttrSpec:
         return (
             *super().allowed_attrs(),
             ("setup_code", str),
@@ -1080,7 +1081,7 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
 
 # {{{ python code question
 
-class PythonCodeQuestion(CodeQuestion):
+class PythonCodeQuestion(CodeQuestion, PageBaseWithoutHumanGrading):
     """
     An auto-graded question allowing an answer consisting of Python code.
     All user code as well as all code specified as part of the problem
@@ -1313,7 +1314,7 @@ class PythonCodeQuestion(CodeQuestion):
 # {{{ python code question with human feedback
 
 class PythonCodeQuestionWithHumanTextFeedback(
-        PythonCodeQuestion, PageBaseWithHumanTextFeedback):
+        PageBaseWithHumanTextFeedback, PythonCodeQuestion):
     """
     A question allowing an answer consisting of Python code.
     This page type allows both automatic grading and grading

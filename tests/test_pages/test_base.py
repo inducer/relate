@@ -29,11 +29,11 @@ from django.test import Client, TestCase
 
 from course.page.base import (
     HumanTextFeedbackForm,
-    PageBase,
     PageBehavior,
     create_default_point_scale,
     get_editor_interaction_mode,
 )
+from course.page.static import Page
 from relate.utils import dict_to_struct
 from tests.base_test_mixins import SingleCourseQuizPageTestMixin
 from tests.constants import PAGE_ERRORS
@@ -233,26 +233,6 @@ class PageBaseAPITest(SingleCourseQuizPageTestMixin, TestCase):
                 do_grading=True)
 
 
-class PageBasePageDescBackwardCompatibilityTest(unittest.TestCase):
-    def test_page_desc_not_struct_warn(self):
-        with mock.patch("warnings.warn") as mock_warn:
-            PageBase(None, "", "abcd")
-            self.assertTrue(mock_warn.call_count >= 1)
-
-            expected_warn_msg = (
-                "Not passing page_desc to PageBase.__init__ is deprecated")
-
-            warned_with_expected_msg = False
-
-            for args in mock_warn.call_args_list:
-                if expected_warn_msg in args[0]:
-                    warned_with_expected_msg = True
-                    break
-
-            if not warned_with_expected_msg:
-                self.fail(f"'{expected_warn_msg}' is not warned as expected")
-
-
 class PageBaseGetModifiedPermissionsForPageTest(unittest.TestCase):
     # test page_base.get_modified_permissions_for_page
     def test_get_modified_permissions_for_page(self):
@@ -261,14 +241,17 @@ class PageBaseGetModifiedPermissionsForPageTest(unittest.TestCase):
             "lock_down_as_exam_session"]
         access_rule_permissions = frozenset(access_rule_permissions_list)
 
+        page_base_desc = {
+                "id": "abcd",
+                "type": "SomePageType",
+                "content": "Um?",
+                "title": "Title",
+            }
         with self.subTest(access_rules="Not present"):
             page_desc = dict_to_struct(
-                {
-                    "id": "abcd",
-                    "type": "SomePageType",
-                }
+                page_base_desc
             )
-            page = PageBase(None, "", page_desc)
+            page = Page(None, "", page_desc)
             self.assertSetEqual(
                 page.get_modified_permissions_for_page(access_rule_permissions),
                 access_rule_permissions)
@@ -276,12 +259,11 @@ class PageBaseGetModifiedPermissionsForPageTest(unittest.TestCase):
         with self.subTest(access_rules={}):
             page_desc = dict_to_struct(
                 {
-                    "id": "abcd",
-                    "type": "SomePageType",
-                    "access_rules": {}
+                    **page_base_desc,
+                    "access_rules": {},
                 }
             )
-            page = PageBase(None, "", page_desc)
+            page = Page(None, "", page_desc)
             self.assertSetEqual(
                 page.get_modified_permissions_for_page(access_rule_permissions),
                 access_rule_permissions)
@@ -290,13 +272,12 @@ class PageBaseGetModifiedPermissionsForPageTest(unittest.TestCase):
                                         "remove_permissions": []}):
             page_desc = dict_to_struct(
                 {
-                    "id": "abcd",
-                    "type": "SomePageType",
+                    **page_base_desc,
                     "access_rules": {"add_permissions": [],
                                      "remove_permissions": []}
                 }
             )
-            page = PageBase(None, "", page_desc)
+            page = Page(None, "", page_desc)
             self.assertSetEqual(
                 page.get_modified_permissions_for_page(access_rule_permissions),
                 access_rule_permissions)
@@ -305,13 +286,12 @@ class PageBaseGetModifiedPermissionsForPageTest(unittest.TestCase):
                                         "remove_permissions": []}):
             page_desc = dict_to_struct(
                 {
-                    "id": "abcd",
-                    "type": "SomePageType",
+                    **page_base_desc,
                     "access_rules": {"add_permissions": ["some_perm"],
                                      "remove_permissions": []}
                 }
             )
-            page = PageBase(None, "", page_desc)
+            page = Page(None, "", page_desc)
             self.assertSetEqual(
                 page.get_modified_permissions_for_page(access_rule_permissions),
                 frozenset([*access_rule_permissions_list, "some_perm"]))
@@ -319,12 +299,11 @@ class PageBaseGetModifiedPermissionsForPageTest(unittest.TestCase):
         with self.subTest(access_rules={"remove_permissions": ["none_exist_perm"]}):
             page_desc = dict_to_struct(
                 {
-                    "id": "abcd",
-                    "type": "SomePageType",
+                    **page_base_desc,
                     "access_rules": {"remove_permissions": ["none_exist_perm"]}
                 }
             )
-            page = PageBase(None, "", page_desc)
+            page = Page(None, "", page_desc)
 
             self.assertSetEqual(
                 page.get_modified_permissions_for_page(access_rule_permissions),
@@ -334,13 +313,12 @@ class PageBaseGetModifiedPermissionsForPageTest(unittest.TestCase):
                 "remove_permissions": [access_rule_permissions_list[0]]}):
             page_desc = dict_to_struct(
                 {
-                    "id": "abcd",
-                    "type": "SomePageType",
+                    **page_base_desc,
                     "access_rules": {
                         "remove_permissions": [access_rule_permissions_list[0]]}
                 }
             )
-            page = PageBase(None, "", page_desc)
+            page = Page(None, "", page_desc)
 
             self.assertSetEqual(
                 page.get_modified_permissions_for_page(access_rule_permissions),
@@ -527,42 +505,6 @@ class PageBaseGradeDeprecationTest(SingleCourseQuizPageTestMixin, TestCase):
 
             if not warned_with_expected_msg:
                 self.fail(f"'{expected_warn_msg}' is not warned as expected")
-
-    def test_post_form_deprecated(self):
-        page_id = "half"
-
-        with mock.patch(
-                "course.page.text.TextQuestionBase.process_form_post",
-                autospec=True
-        ) as mock_process_form_post, mock.patch(
-                "course.page.text.TextQuestionBase.post_form",
-                autospec=True) as mock_post_form, mock.patch(
-                "warnings.warn") as mock_warn:
-
-            mock_process_form_post.side_effect = process_form_post_side_effect_super
-            mock_post_form.side_effect = post_form_side_effect
-
-            self.post_answer_by_page_id(
-                page_id, answer_data={"answer": "1/2"})
-
-            self.assertTrue(mock_warn.call_count >= 1)
-
-            expected_warn_msg = (
-                "TextQuestion is using the post_form compatibility hook, "
-                "which is deprecated.")
-
-            warned_with_expected_msg = False
-
-            for args in mock_warn.call_args_list:
-                if expected_warn_msg in args[0]:
-                    warned_with_expected_msg = True
-                    break
-
-            if not warned_with_expected_msg:
-                self.fail(f"'{expected_warn_msg}' is not warned as expected")
-
-        self.assertEqual(self.end_flow().status_code, 200)
-        self.assertSessionScoreEqual(5)
 
 
 def grading_form_to_html_side_effect_super(

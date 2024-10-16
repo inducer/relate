@@ -33,7 +33,12 @@ from django.utils.safestring import mark_safe
 from django.utils.translation import gettext, gettext_lazy as _
 
 from course.content import remove_prefix
-from course.page.base import AnswerFeedback, PageBaseWithValue, markup_to_html
+from course.page.base import (
+    AnswerFeedback,
+    PageBaseWithoutHumanGrading,
+    PageBaseWithValue,
+    markup_to_html,
+)
 from course.page.text import TextQuestionBase, parse_matcher
 from course.validation import ValidationError, validate_markup, validate_struct
 from relate.utils import Struct, string_concat
@@ -529,7 +534,11 @@ NAME_RE = re.compile(r"[^{](?=\[\[([^\[\]]*)\]\])[^}]")
 NAME_VALIDATE_RE = re.compile("^[a-zA-Z]+[a-zA-Z0-9_]{0,}$")
 
 
-class InlineMultiQuestion(TextQuestionBase, PageBaseWithValue):
+class InlineMultiQuestion(
+            TextQuestionBase,
+            PageBaseWithValue,
+            PageBaseWithoutHumanGrading
+        ):
     r"""
     An auto-graded page with cloze like questions.
 

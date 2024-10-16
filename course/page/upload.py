@@ -23,6 +23,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
+from typing import Any
 
 import django.forms as forms
 from crispy_forms.layout import Field, Layout
@@ -33,9 +34,10 @@ from course.page.base import (
     PageBaseWithHumanTextFeedback,
     PageBaseWithTitle,
     PageBaseWithValue,
+    PageContext,
     markup_to_html,
 )
-from course.validation import ValidationError
+from course.validation import AttrSpec, ValidationError
 from relate.utils import StyledForm, string_concat
 
 
@@ -185,14 +187,14 @@ class FileUploadQuestion(PageBaseWithTitle, PageBaseWithValue,
                 vctx.add_warning(location, _("upload question does not have "
                         "assigned point value"))
 
-    def required_attrs(self):
+    def required_attrs(self) -> AttrSpec:
         return (
             *super().required_attrs(),
             ("prompt", "markup"),
             ("mime_types", list),
             ("maximum_megabytes", (int, float)))
 
-    def allowed_attrs(self):
+    def allowed_attrs(self) -> AttrSpec:
         return (*super().allowed_attrs(), ("correct_answer", "markup"))
 
     def human_feedback_point_value(self, page_context, page_data):
@@ -289,6 +291,14 @@ class FileUploadQuestion(PageBaseWithTitle, PageBaseWithValue,
         uploaded_file = files_data["uploaded_file"]
         return self.file_to_answer_data(page_context, uploaded_file,
                 mime_type=uploaded_file.content_type)
+
+    def normalized_answer(
+                self,
+                page_context: PageContext,
+                page_data: Any,
+                answer_data: Any
+            ) -> str | None:
+        return None
 
     def normalized_bytes_answer(self, page_context, page_data, answer_data):
         if answer_data is None:
