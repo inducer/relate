@@ -89,7 +89,7 @@ class GetFlowSessionContentTest(
 
     def test_success_with_visit(self):
         self.start_flow(self.flow_id)
-        self.submit_page_answer_by_page_id_and_test("proof")
+        self.submit_page_answer_by_page_id_and_test("proof_upload")
         self.submit_page_answer_by_page_id_and_test("age_group")
         self.submit_page_answer_by_page_id_and_test("half")
         self.submit_page_answer_by_page_id_and_test("addition")

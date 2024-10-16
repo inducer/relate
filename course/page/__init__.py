@@ -44,6 +44,7 @@ from course.page.code import (
 from course.page.inline import InlineMultiQuestion
 from course.page.static import Page
 from course.page.text import (
+    HumanGradedRichTextQuestion,
     HumanGradedTextQuestion,
     SurveyTextQuestion,
     TextQuestion,
@@ -55,6 +56,7 @@ __all__ = (
     "AnswerFeedback",
     "ChoiceQuestion",
     "FileUploadQuestion",
+    "HumanGradedRichTextQuestion",
     "HumanGradedTextQuestion",
     "InlineMultiQuestion",
     "InvalidPageData",

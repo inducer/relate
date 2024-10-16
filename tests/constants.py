@@ -127,7 +127,7 @@ TEST_PAGE_TUPLE = (
     PageTuple("anyup", "quiz_tail", True, False, False,
               {"uploaded_file": TEST_TEXT_FILE_PATH},
               {"grade_percent": "100", "released": "on"}, 5, None),
-    PageTuple("proof", "quiz_tail", True, False, False,
+    PageTuple("proof_upload", "quiz_tail", True, False, False,
               {"uploaded_file": TEST_PDF_FILE_PATH},
               {"grade_percent": "100", "released": "on"}, 5, ".pdf"),
     PageTuple("eigvec", "quiz_tail", False, True, False, {"answer": "matrix"}, {},
@@ -158,7 +158,7 @@ COMMIT_SHA_MAP = {
         {"my_fake_commit_sha_for_finish_flow_session": {
             "path": "fake-quiz-test-for-finish_flow_session.yml",
             "page_ids": ["half", "krylov", "matrix_props", "age_group",
-                         "anyup", "proof", "neumann"]
+                         "anyup", "proof_upload", "neumann"]
         }},
 
         {"my_fake_commit_sha_for_grade_flow_session": {

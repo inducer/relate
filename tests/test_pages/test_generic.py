@@ -318,7 +318,7 @@ class SingleCourseQuizPageTest(SingleCourseQuizPageTestMixin,
             expected_result1)
 
     def test_fileupload_pdf_wrong_mime_type(self):
-        page_id = "proof"
+        page_id = "proof_upload"
 
         # wrong MIME type, a text file
         submit_answer_response, post_grade_response = (
@@ -337,7 +337,7 @@ class SingleCourseQuizPageTest(SingleCourseQuizPageTestMixin,
         self.assertSessionScoreEqual(0)
 
     def test_fileupload_pdf(self):
-        page_id = "proof"
+        page_id = "proof_upload"
 
         submit_answer_response, post_grade_response = (
             self.default_submit_page_answer_by_page_id_and_test(page_id))

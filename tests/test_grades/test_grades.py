@@ -1816,7 +1816,7 @@ class DownloadAllSubmissionsTest(SingleCourseQuizPageTestMixin,
         fs.save()
 
         cls.start_flow(client, cls.flow_id)
-        cls.submit_page_answer_by_page_id_and_test(client, "proof")
+        cls.submit_page_answer_by_page_id_and_test(client, "proof_upload")
         cls.submit_page_answer_by_page_id_and_test(client, cls.page_id)
         cls.end_flow(client)
 
@@ -1906,7 +1906,7 @@ class DownloadAllSubmissionsTest(SingleCourseQuizPageTestMixin,
     def test_download_include_feedback_no_feedback(self):
         with self.temporarily_switch_to_user(self.instructor_participation.user):
             another_group_page_id = (
-                self.group_page_id.replace(self.page_id, "proof"))
+                self.group_page_id.replace(self.page_id, "proof_upload"))
             resp = self.post_download_all_submissions_by_group_page_id(
                 group_page_id=another_group_page_id, flow_id=self.flow_id,
                 include_feedback=True)
