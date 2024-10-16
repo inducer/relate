@@ -11,7 +11,7 @@ import { searchKeymap, highlightSelectionMatches } from '@codemirror/search';
 import {
   HighlightStyle,
   syntaxHighlighting, indentOnInput, bracketMatching,
-  foldGutter, foldKeymap, indentUnit,
+  foldGutter, foldKeymap, indentUnit, StreamLanguage,
 } from '@codemirror/language';
 import {
   autocompletion, completionKeymap,
@@ -19,7 +19,7 @@ import {
 } from '@codemirror/autocomplete';
 import { python } from '@codemirror/lang-python';
 import { markdown } from '@codemirror/lang-markdown';
-import { yaml } from '@codemirror/lang-yaml';
+import { yaml as yamlStreamParser } from '@codemirror/legacy-modes/mode/yaml';
 
 import { tags } from '@lezer/highlight';
 
@@ -60,6 +60,8 @@ const highlightStyle = HighlightStyle.define([
   { tag: tags.separator, class: 'cmt-separator' },
   { tag: tags.string, class: 'cmt-string' },
 ]);
+
+const yaml = () => StreamLanguage.define(yamlStreamParser);
 
 const defaultExtensionsBase = [
   lineNumbers(),
