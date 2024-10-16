@@ -183,6 +183,10 @@ div.progress:hover  span.stats-percentage{
   bottom: 0;
   overflow-y: auto;
 }
+.sandbox-page-editor .cm-editor {
+  max-height: calc(100vh - 45ex);
+}
+
 .sandbox-page-preview {
   position: absolute;
   top: 60px;
