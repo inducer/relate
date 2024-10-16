@@ -193,16 +193,29 @@ def make_sandbox_session_key(prefix: str, course_identifier: str) -> str:
     return f"{prefix}:{course_identifier}"
 
 
+def page_desc_from_yaml_string(pctx: CoursePageContext, source: str) -> FlowPageDesc:
+    import yaml
+    from pytools.py_codegen import remove_common_indentation
+
+    from course.content import expand_yaml_macros
+    from relate.utils import dict_to_struct
+    new_page_source = remove_common_indentation(
+            source, require_leading_newline=False)
+    new_page_source = expand_yaml_macros(
+            pctx.repo, pctx.course_commit_sha, new_page_source)
+
+    yaml_data = yaml.safe_load(new_page_source)  # type: ignore
+    return cast(FlowPageDesc, dict_to_struct(yaml_data))
+
+
 @course_view
 def view_page_sandbox(pctx: CoursePageContext) -> http.HttpResponse:
 
     if not pctx.has_permission(pperm.use_page_sandbox):
         raise PermissionDenied()
 
-    import yaml
-
     from course.validation import ValidationError
-    from relate.utils import Struct, dict_to_struct
+    from relate.utils import Struct
 
     page_session_key = make_sandbox_session_key(
         PAGE_SESSION_KEY_PREFIX, pctx.course.identifier)
@@ -237,15 +250,7 @@ def view_page_sandbox(pctx: CoursePageContext) -> http.HttpResponse:
         if edit_form.is_valid():
             form_content = edit_form.cleaned_data["content"]
             try:
-                from pytools.py_codegen import remove_common_indentation
-                new_page_source = remove_common_indentation(
-                        form_content, require_leading_newline=False)
-                from course.content import expand_yaml_macros
-                new_page_source = expand_yaml_macros(
-                        pctx.repo, pctx.course_commit_sha, new_page_source)
-
-                yaml_data = yaml.safe_load(new_page_source)  # type: ignore
-                page_desc = dict_to_struct(yaml_data)
+                page_desc = page_desc_from_yaml_string(pctx, form_content)
 
                 if not isinstance(page_desc, Struct):
                     raise ValidationError("Provided page source code is not "
@@ -300,8 +305,8 @@ def view_page_sandbox(pctx: CoursePageContext) -> http.HttpResponse:
 
     have_valid_page = page_source is not None
     if have_valid_page:
-        yaml_data = yaml.safe_load(page_source)  # type: ignore
-        page_desc = cast(FlowPageDesc, dict_to_struct(yaml_data))
+        assert page_source is not None
+        page_desc = page_desc_from_yaml_string(pctx, page_source)
 
         from course.content import instantiate_flow_page
         try:
