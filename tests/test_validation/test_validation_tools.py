@@ -172,7 +172,7 @@ class ValidateParticipationtagTest(CoursesTestMixinBase, TestCase):
 
 
 required_attrs = [("ra1", int), ("ra2", str)]
-allowed_attrs = [("aa1", float), ("aa2", bool), "aa3", ("aa4", "markup")]
+allowed_attrs = [("aa1", float), ("aa2", bool), ("aa4", "markup")]
 rule1 = dict_to_struct({"ra1": 1, "ra2": "abcd"})
 rule2 = dict_to_struct({"ra2": "abcd"})
 rule3 = dict_to_struct(
