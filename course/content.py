@@ -1970,6 +1970,10 @@ def instantiate_flow_page(
         ) -> PageBase:
     class_ = get_flow_page_class(repo, page_desc.type, commit_sha)
 
+    from course.page.base import PageBase
+    if not issubclass(class_, PageBase):
+        raise ClassNotFoundError(f"'{page_desc.type}' is not a PageBase subclass")
+
     return class_(None, location, page_desc)
 
 # }}}
