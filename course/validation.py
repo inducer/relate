@@ -26,7 +26,8 @@ THE SOFTWARE.
 import datetime
 import re
 import sys
-from typing import TYPE_CHECKING, Any
+from collections.abc import Sequence
+from typing import TYPE_CHECKING, Any, Literal, TypeAlias
 
 import dulwich.objects
 from django.core.exceptions import ObjectDoesNotExist
@@ -151,12 +152,15 @@ def validate_participationtag(
                 })
 
 
+AttrSpec: TypeAlias = Sequence[tuple[str, type | tuple[type, ...] | Literal["markup"]]]
+
+
 def validate_struct(
         vctx: ValidationContext,
         location: str,
         obj: Any,
-        required_attrs: list[tuple[str, Any]],
-        allowed_attrs: list[tuple[str, Any]],
+        required_attrs: AttrSpec,
+        allowed_attrs: AttrSpec,
         ) -> None:
 
     """
@@ -179,13 +183,7 @@ def validate_struct(
             (True, required_attrs),
             (False, allowed_attrs),
             ]:
-        for attr_rec in attr_list:
-            if isinstance(attr_rec, tuple):
-                attr, allowed_types = attr_rec
-            else:
-                attr = attr_rec
-                allowed_types = None
-
+        for attr, allowed_types in attr_list:
             if attr not in present_attrs:
                 if required:
                     raise ValidationError(
