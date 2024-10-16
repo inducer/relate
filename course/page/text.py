@@ -33,14 +33,16 @@ from django.utils.translation import gettext, gettext_lazy as _
 
 from course.page.base import (
     AnswerFeedback,
+    PageBaseUngraded,
     PageBaseWithCorrectAnswer,
     PageBaseWithHumanTextFeedback,
+    PageBaseWithoutHumanGrading,
     PageBaseWithTitle,
     PageBaseWithValue,
     get_editor_interaction_mode,
     markup_to_html,
 )
-from course.validation import ValidationError, validate_struct
+from course.validation import AttrSpec, ValidationError, validate_struct
 from relate.utils import Struct, StyledForm, string_concat
 
 
@@ -708,10 +710,10 @@ class TextQuestionBase(PageBaseWithTitle):
                         "location": location,
                         "type": page_desc.widget})
 
-    def required_attrs(self):
+    def required_attrs(self) -> AttrSpec:
         return (*super().required_attrs(), ("prompt", "markup"))
 
-    def allowed_attrs(self):
+    def allowed_attrs(self) -> AttrSpec:
         return (*super().allowed_attrs(), ("widget", str), ("initial_text", str))
 
     def markup_body_for_title(self):
@@ -770,12 +772,13 @@ class TextQuestionBase(PageBaseWithTitle):
             return None
 
         return (".txt", answer_data["answer"].encode("utf-8"))
+
 # }}}
 
 
 # {{{ survey text question
 
-class SurveyTextQuestion(TextQuestionBase):
+class SurveyTextQuestion(TextQuestionBase, PageBaseUngraded):
     """
     A page asking for a textual answer, without any notion of 'correctness'
 
@@ -820,7 +823,7 @@ class SurveyTextQuestion(TextQuestionBase):
     def get_validators(self):
         return []
 
-    def allowed_attrs(self):
+    def allowed_attrs(self) -> AttrSpec:
         return (*super().allowed_attrs(), ("answer_comment", "markup"))
 
     def correct_answer(self, page_context, page_data, answer_data, grade_data):
@@ -832,15 +835,12 @@ class SurveyTextQuestion(TextQuestionBase):
     def expects_answer(self):
         return True
 
-    def is_answer_gradable(self):
-        return False
-
 # }}}
 
 
 # {{{ text question
 
-class TextQuestion(TextQuestionBase, PageBaseWithValue):
+class TextQuestion(TextQuestionBase, PageBaseWithValue, PageBaseWithoutHumanGrading):
     """
     A page asking for a textual answer.
 
