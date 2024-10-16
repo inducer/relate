@@ -1052,7 +1052,7 @@ class FinishFlowSessionViewTest(HackRepoMixin,
                 self.submit_page_human_grading_by_page_id_and_test(
                     page_id, grade_data={"grade_percent": "0", "released": "on"},
                     do_session_score_equal_assertion=False)
-            if page_id == "proof":
+            if page_id == "proof_upload":
                 self.submit_page_human_grading_by_page_id_and_test(
                     page_id,
                     grade_data={"grade_percent": "70", "released": "on"},
@@ -1107,7 +1107,7 @@ class FinishFlowSessionViewTest(HackRepoMixin,
                         page_id,
                         grade_data={"grade_percent": "0", "released": "on"},
                         do_session_score_equal_assertion=False)
-                if page_id == "proof":
+                if page_id == "proof_upload":
                     self.submit_page_human_grading_by_page_id_and_test(
                         page_id,
                         grade_data={"grade_percent": "70", "released": "on"},

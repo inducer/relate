@@ -39,6 +39,8 @@ from course.page.base import (
     PageBaseWithoutHumanGrading,
     PageBaseWithTitle,
     PageBaseWithValue,
+    PageBehavior,
+    PageContext,
     get_editor_interaction_mode,
     markup_to_html,
 )
@@ -1142,6 +1144,145 @@ class HumanGradedTextQuestion(TextQuestionBase, PageBaseWithValue,
 
     def get_validators(self):
         return self.validators
+
+# }}}
+
+
+# {{{ rich text
+
+class RichTextAnswerForm(StyledForm):
+    # FIXME: ugh, this should be a PageBase thing
+    show_save_button = False
+
+    def __init__(self, read_only: bool, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+
+        from course.utils import ProseMirrorTextarea
+        self.fields["answer"] = forms.JSONField(
+                required=True,
+                widget=ProseMirrorTextarea(attrs={"readonly": read_only}),
+                help_text=ProseMirrorTextarea.math_help_text,
+                label=_("Answer"))
+
+
+class HumanGradedRichTextQuestion(PageBaseWithValue, PageBaseWithTitle,
+        PageBaseWithHumanTextFeedback, PageBaseWithCorrectAnswer):
+    """
+    A page asking for a textual answer, with human-graded feedback.
+
+    Supports automatic computation of point values from textual feedback.
+    See :ref:`points-from-feedback`.
+
+    .. attribute:: id
+
+        |id-page-attr|
+
+    .. attribute:: type
+
+        ``HumanGradedRichTextQuestion``
+
+    .. attribute:: is_optional_page
+
+        |is-optional-page-attr|
+
+    .. attribute:: access_rules
+
+        |access-rules-page-attr|
+
+    .. attribute:: title
+
+        |title-page-attr|
+
+    .. attribute:: value
+
+        |value-page-attr|
+
+    .. attribute:: prompt
+
+        The page's prompt, written in :ref:`markup`.
+
+    .. attribute:: correct_answer
+
+        Optional.
+        Content that is revealed when answers are visible
+        (see :ref:`flow-permissions`). Written in :ref:`markup`.
+
+    .. attribute:: rubric
+
+        Required.
+        The grading guideline for this question, in :ref:`markup`.
+    """
+    def required_attrs(self) -> AttrSpec:
+        return (*super().required_attrs(), ("prompt", "markup"))
+
+    def body(self, page_context: PageContext, page_data: Any) -> str:
+        return markup_to_html(page_context, self.page_desc.prompt)
+
+    def markup_body_for_title(self) -> str:
+        return self.page_desc.prompt
+
+    def human_feedback_point_value(self,
+                page_context: PageContext,
+                page_data: Any
+            ) -> float:
+        return self.max_points(page_data)
+
+    def make_form(
+            self,
+            page_context: PageContext,
+            page_data: Any,
+            answer_data: Any,
+            page_behavior: Any,
+            ) -> StyledForm:
+        kwargs = {}
+
+        if answer_data is not None:
+            from json import dumps
+            kwargs.update({"data": {"answer": dumps(answer_data["answer"])}})
+
+        return RichTextAnswerForm(
+            read_only=not page_behavior.may_change_answer,
+            **kwargs)
+
+    def process_form_post(
+            self,
+            page_context: PageContext,
+            page_data: Any,
+            post_data: Any,
+            files_data: Any,
+            page_behavior: PageBehavior,
+            ) -> StyledForm:
+        return RichTextAnswerForm(
+                not page_behavior.may_change_answer,
+                post_data, files_data,
+                )
+
+    def answer_data(self, page_context, page_data, form, files_data):
+        data = form.cleaned_data["answer"]
+        assert isinstance(data, dict)
+        return {"answer": data}
+
+    def normalized_answer(
+            self,
+            page_context: PageContext,
+            page_data: Any,
+            answer_data: Any
+            ) -> str | None:
+        if answer_data is None:
+            return None
+
+        from json import dumps
+
+        from django.utils.html import escape
+        return escape(dumps(answer_data["answer"]))
+
+    def normalized_bytes_answer(
+            self,
+            page_context: PageContext,
+            page_data: Any,
+            answer_data: Any,
+            ) -> tuple[str, bytes] | None:
+        return None
 
 # }}}
 

@@ -81,6 +81,10 @@ Fill-in-the-Blank (long-/short-form) (Human-graded)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. autoclass:: HumanGradedTextQuestion()
 
+Fill-in-the-Blank (long-form, with formatting) (Human-graded)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. autoclass:: HumanGradedRichTextQuestion()
+
 Fill-in-Multiple-Blanks (Automatically Graded)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. autoclass:: InlineMultiQuestion()

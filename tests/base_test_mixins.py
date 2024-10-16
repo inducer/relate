@@ -2312,7 +2312,7 @@ class SingleCourseQuizPageTestMixin(SingleCoursePageTestMixin):
                     if answer_data is None:
                         answer_data = page_tuple.correct_answer
 
-                    if page_id in ["anyup", "proof"]:
+                    if page_id in ["anyup", "proof_upload"]:
                         file_path = answer_data["uploaded_file"]
                         if not file_path:
                             # submitting an empty answer
