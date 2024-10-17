@@ -139,23 +139,20 @@ export function setListener(view, fn) {
   });
 }
 
-Vim.defineEx('write', 'w', () => {
-  // assume we're submitting the changes, reset the change flag
-  anyEditorChangedFlag = false;
-
-  const textarea = document.querySelector('textarea.rl-managed-by-codemirror');
-  if (textarea.form) {
-    const { form } = textarea;
-
+Vim.defineEx('write', 'w', (cm) => {
+  const form = cm.cm6.dom.closest('form');
+  if (form) {
     // prefer 'submit' over 'save' on flow pages
     let submitButton = form.querySelector("input[type='submit'][name='submit']");
     if (submitButton) {
+      anyEditorChangedFlag = false;
       submitButton.click();
       return;
     }
 
     submitButton = form.querySelector("input[type='submit']");
     if (submitButton) {
+      anyEditorChangedFlag = false;
       submitButton.click();
     }
   }
