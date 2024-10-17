@@ -37,14 +37,15 @@
   .cmt-string    {color: #FF5500;}
 
   @media (prefers-color-scheme: dark) {
-
-    .cmt-atom      {color: #F78C6C;}
-    .cmt-comment   {color: #545454;}
-    .cmt-keyword   {color: #C792EA;}
-    .cmt-literal   {color: #FFCB6B;}
-    .cmt-number    {color: #FF5370;}
-    .cmt-operator  {color: #89DDFF;}
-    .cmt-separator {color: #FF7DE9;}
-    .cmt-string    {color: #F07178;}
+/*Converted from https://github.com/dennis84/codemirror-themes/blob/main/theme/github-dark.ts*/
+    
+    .cmt-atom      {color: #ffab70;}
+    .cmt-comment   {color: #6a737d;}
+    .cmt-keyword   {color: #f97583;}
+    .cmt-literal   {color: #ffab70;}
+    .cmt-number    {color: #79b8ff;}
+    .cmt-operator  {color: #f97583;}
+    .cmt-separator {color: #ffab70;}
+    .cmt-string    {color: #9ecbff;}
   }
 }
