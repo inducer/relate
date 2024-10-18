@@ -426,7 +426,10 @@
       $(window).on('beforeunload',
           function()
           {
-            if (input_changed || (rlCodemirror && rlCodemirror.anyEditorChanged()))
+            if (input_changed
+                || ((typeof rlCodemirror !== 'undefined') && rlCodemirror.anyEditorChanged())
+                || ((typeof rlProsemirror !== 'undefined') && rlProsemirror.anyEditorChanged())
+                )
               return "{% trans 'You have unsaved changes on this page.' %}";
           });
 
@@ -435,6 +438,8 @@
         input_changed = false;
         if (rlCodemirror)
           rlCodemirror.resetAnyEditorChanged();
+        if (rlProsemirror)
+          rlProsemirror.resetAnyEditorChanged();
 
         // We can't simply set "disabled" on the submitting button here.
         // Otherwise the browser will simply remove that button from the POST

@@ -26,6 +26,16 @@ import {
 } from '@benrbray/prosemirror-math';
 import '@benrbray/prosemirror-math/dist/prosemirror-math.css';
 
+let anyEditorChangedFlag = false;
+
+export function anyEditorChanged() {
+  return anyEditorChangedFlag;
+}
+
+export function resetAnyEditorChanged() {
+  anyEditorChangedFlag = false;
+}
+
 const schema = new Schema({
   nodes: addListNodes(basicSchema.spec.nodes, 'paragraph block*', 'block')
     .remove('image')
@@ -67,6 +77,16 @@ const readonlyPlugin = new Plugin({
   filterTransaction: (transaction) => transaction.docChanged === false,
 });
 
+const changeListenerPlugin = new Plugin({
+  key: new PluginKey('readonly'),
+  filterTransaction: (transaction) => {
+    if (transaction.docChanged) {
+      anyEditorChangedFlag = true;
+    }
+    return true;
+  },
+});
+
 // eslint-disable-next-line import/prefer-default-export
 export function editorFromTextArea(textarea, autofocus) {
   const plugins = [
@@ -88,6 +108,8 @@ export function editorFromTextArea(textarea, autofocus) {
   if (textarea.disabled || textarea.readOnly) {
     plugins.push(readonlyPlugin);
   }
+  // Change listener should be after readonly.
+  plugins.push(changeListenerPlugin);
 
   let docJson = null;
   if (textarea.value) {
