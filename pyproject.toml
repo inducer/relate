@@ -71,8 +71,6 @@ docker = "^7.1.0"
 pygments = "^2.6.1"
 # For grade export
 unicodecsv = "^0.14.1"
-# To support network matching for facility recognition
-ipaddress = "^1.0.23"
 
 # {{{ For interoperation with SAML2/Shibboleth
 
