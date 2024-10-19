@@ -678,19 +678,6 @@ files = [
 django = ">=4.2"
 
 [[package]]
-name = "django-npm"
-version = "1.0.0"
-description = "A django staticfiles finder that uses npm"
-optional = false
-python-versions = "*"
-files = [
-    {file = "django-npm-1.0.0.tar.gz", hash = "sha256:2e6bba65e728fa18b9db3c8dc0d4490b70cb7f43bacf60eb3654d7dcb6424272"},
-]
-
-[package.extras]
-test = ["pytest"]
-
-[[package]]
 name = "django-select2"
 version = "7.11.1"
 description = "Select2 option fields for Django"

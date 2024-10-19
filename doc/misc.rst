@@ -194,10 +194,13 @@ Additional Setup Steps for Deploying to Production
 
 *   Run::
 
-        python manage.py collectstatic
+        ./collectstatic.sh
 
     to assemble the required collection of static files to be served, as the
     production app server will not serve them (unlike the dev server).
+
+    (Do not run ``python manage.py collectstatic`` directly; it will fail
+    because it cannot resolve some source map URLs in mathjax.)
 
 Configuring uwsgi
 ^^^^^^^^^^^^^^^^^

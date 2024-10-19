@@ -11,6 +11,24 @@ cp local_settings_example.py local_settings.py
 poetry run python manage.py makemessages --all
 poetry run python manage.py compilemessages
 
+staticfiles=(
+  bundle-base.js
+  bundle-base-with-markup.js
+  bundle-codemirror.js
+  bundle-datatables.js
+  bundle-fullcalendar.js
+  bundle-prosemirror.js
+  bundle-prosemirror.js
+  tex-svg.js
+)
+
+mkdir -p frontend-dist
+for i in "${staticfiles[@]}"; do
+    touch "frontend-dist/$i"
+done
+
+poetry run python manage.py collectstatic
+
 echo "Starts testing"
 export RELATE_LOCAL_TEST_SETTINGS="local_settings_example.py"
 

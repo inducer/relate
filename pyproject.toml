@@ -64,8 +64,6 @@ paramiko = "*"
 # https://github.com/poezio/slixmpp/commit/53dc9847e2a4110be85ad16af9b427f9a280aaee#commitcomment-69121492
 slixmpp = "^1.8.3"
 
-# To manage web dependencies
-django-npm = "^1.0.0"
 # For code isolation in code questions
 # 7.1 bumps the minimum API version to 1.24, which is unsupported by podman
 docker = "^7.1.0"
@@ -90,7 +88,6 @@ python-memcached = "^1.59"
 # {{{ celery and related
 
 # A task queue, used to execute long-running tasks
-#
 celery = "^5.2.2"
 kombu = "*"
 # Avoid 2.3.0 because of https://github.com/celery/django-celery-results/issues/293
