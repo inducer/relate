@@ -1,0 +1,218 @@
+# nameOverride: ""
+## @param fullnameOverride String to fully override relate.fullname
+##
+# fullnameOverride: ""
+## @param namespace Namespace where to deploy the RELATEs controller
+##
+namespace: "relate"
+
+## Relate image
+## ref: https://quay.io/repository/bitnami/relate-controller?tab=tags
+## @param image.registry RELATEs image registry
+## @param image.repository RELATEs image repository
+## @param image.tag RELATEs image tag (immutable tags are recommended)
+## @param image.pullPolicy RELATEs image pull policy
+## @param image.pullSecrets [array]  RELATEs image pull secrets
+##
+image:
+  registry: registry.example.com
+  repository: obmondo/dockerfiles/relate
+  tag: latest
+  ## Specify a imagePullPolicy
+  ## Defaults to 'Always' if image tag is 'latest', else set to 'IfNotPresent'
+  ## ref: http://kubernetes.io/docs/user-guide/images/#pre-pulling-images
+  ##
+  pullPolicy: Always
+  ## Optionally specify an array of imagePullSecrets.
+  ## Secrets must be manually created in the namespace.
+  ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
+  ## e.g:
+  ## pullSecrets:
+  ##   - myRegistryKeySecretName
+  ##
+  #pullSecret: dockerfiles-pullsecrets
+resources:
+  limits: {}
+  requests: {}
+
+persistence:
+    enabled: true
+    accessMode: ReadWriteOnce
+    size: 100Mi
+     storageClass:
+
+# default settings for emptydir volume
+emptyDir: {}
+
+## Environment variables - db user+pass loaded from secret
+environment:
+  - name: SMTPHOST
+    value: 'mail.system'
+  - name: SMTPPORT
+    value: '587'
+  - name: DBHOST
+    value: 'obmondo-postgresql'
+  - name: DBUSER
+    valueFrom:
+      secretKeyRef:
+        name: relate-admin.example-postgresql.credentials.postgresql.acid.zalan.do
+        key: username
+  - name: DBPASS
+    valueFrom:
+      secretKeyRef:
+        name: relate-admin.example-postgresql.credentials.postgresql.acid.zalan.do
+        key: password
+
+## @param podLabels [object] Extra labels for RELATE pods
+## ref: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/
+##
+podLabels: {}
+## @param podAnnotations [object] Annotations for RELATE pods
+## ref: https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/
+##
+podAnnotations: {}
+## @param priorityClassName RELATE pods' priorityClassName
+##
+priorityClassName: ""
+## @param affinity [object] Affinity for RELATE pods assignment
+## ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity
+##
+affinity: {}
+## @param nodeSelector [object] Node labels for RELATE pods assignment
+## ref: https://kubernetes.io/docs/user-guide/node-selection/
+##
+nodeSelector: {}
+## @param tolerations [array] Tolerations for RELATE pods assignment
+## ref: https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/
+##
+tolerations: []
+
+## @section Traffic Exposure Parameters
+
+##
+service:
+  ## @param service.type RELATE service type
+  ##
+  type: ClusterIP
+  ## @param service.port RELATE service HTTP port
+  ##
+  port: 8000
+  ## @param service.nodePort Node port for HTTP
+  ## Specify the nodePort value for the LoadBalancer and NodePort service types
+  ## ref: https://kubernetes.io/docs/concepts/services-networking/service/#type-nodeport
+  ## NOTE: choose port between <30000-32767>
+  ##
+  nodePort: ""
+  ## @param service.annotations [object] Additional custom annotations for RELATE service
+  ##
+  annotations: {}
+## RELATE ingress parameters
+## ref: http://kubernetes.io/docs/user-guide/ingress/
+##
+ingress:
+  ## @param ingress.enabled Enable ingress record generation for RELATE
+  ##
+  enabled: false
+  ## @param ingress.pathType Ingress path type
+  ##
+  pathType: ImplementationSpecific
+  ## @param ingress.apiVersion Force Ingress API version (automatically detected if not set)
+  ##
+  # apiVersion: ""
+  ## @param ingress.ingressClassName IngressClass that will be be used to implement the Ingress
+  ## This is supported in Kubernetes 1.18+ and required if you have more than one IngressClass marked as the default for your cluster.
+  ## ref: https://kubernetes.io/blog/2020/04/02/improvements-to-the-ingress-api-in-kubernetes-1.18/
+  ##
+  # ingressClassName: ""
+  ## @param ingress.hostname Default host for the ingress record
+  ##
+  hostname: relate.example.com
+  ## @param ingress.annotations [object] Additional annotations for the Ingress resource. To enable certificate autogeneration, place here your cert-manager annotations.
+  ## Use this parameter to set the required annotations for cert-manager, see
+  ## ref: https://cert-manager.io/docs/usage/ingress/#supported-annotations
+  ## e.g:
+  ## annotations:
+  ##   kubernetes.io/ingress.class: nginx
+  ##   cert-manager.io/cluster-issuer: cluster-issuer-name
+  ##
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt
+    kubernetes.io/ingress.class: traefik-cert-manager
+  ## @param ingress.tls Enable TLS configuration for the host defined at `ingress.hostname` parameter
+  ## TLS certificates will be retrieved from a TLS secret with name: `{{- printf "%s-tls" .Values.ingress.hostname }}`
+  ## You can:
+  ##   - Use the `ingress.secrets` parameter to create this TLS secret
+  ##   - Relay on cert-manager to create it by setting the corresponding annotations
+  ##   - Relay on Helm to create self-signed certificates by setting `ingress.selfSigned=true`
+  ##
+  tls: true
+  ## @param ingress.selfSigned Create a TLS secret for this ingress record using self-signed certificates generated by Helm
+  ##
+  selfSigned: false
+  ## @param ingress.extraHosts [array] An array with additional hostname(s) to be covered with the ingress record
+  ## e.g:
+  ## extraHosts:
+  ##   - name: relate.local
+  ##     path: /
+  ##
+  extraHosts:
+      - name: relate.example.com
+        path: /
+
+#   @param ingress.extraPaths [array] An array with additional arbitrary paths that may need to be added to the ingress under the main host
+#   e.g:
+#   extraPaths:
+#   - path: /*
+#     backend:
+#       serviceName: ssl-redirect
+#       servicePort: use-annotation
+
+#   extraPaths: [ ]
+#   @param ingress.extraTls [array] TLS configuration for additional hostname(s) to be covered with this ingress record
+#   ref: https://kubernetes.io/docs/concepts/services-networking/ingress/#tls
+#   e.g:
+#   extraTls:
+#   - hosts:
+#       - relate.local
+#     secretName: relate.local-tls
+
+#   extraTls: [ ]
+#   @param ingress.secrets [array] Custom TLS certificates as secrets
+#   NOTE: 'key' and 'certificate' are expected in PEM format
+#   NOTE: 'name' should line up with a 'secretName' set further up
+#   If it is not set and you're using cert-manager, this is unneeded, as it will create a secret for you with valid certificates
+#   If it is not set and you're NOT using cert-manager either, self-signed certificates will be created valid for 365 days
+#   It is also possible to create and manage the certificates outside of this helm chart
+#   Please see README.md for more information
+#   e.g:
+#   secrets:
+#     - name: relate.local-tls
+#       key: |-
+#         -----BEGIN RSA PRIVATE KEY-----
+#         ...
+#         -----END RSA PRIVATE KEY-----
+#       certificate: |-
+#         -----BEGIN CERTIFICATE-----
+#         ...
+#         -----END CERTIFICATE-----
+
+networkPolicy:
+  ## @param networkPolicy.enabled Specifies whether a NetworkPolicy should be created
+  ##
+  enabled: false
+
+## @section Other Parameters
+
+## RBAC configuration
+##
+rbac:
+  ## @param rbac.create Specifies whether RBAC resources should be created
+  ##
+  create: true
+  ## @param rbac.labels Extra labels to be added to RBAC resources
+  ##
+  labels: {}
+  ## @param rbac.pspEnabled PodSecurityPolicy
+  ##
+  pspEnabled: false
+
