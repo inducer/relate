@@ -11,7 +11,7 @@ from collections.abc import Callable
 from os.path import join
 from typing import Any
 
-from django.conf.global_settings import STATICFILES_FINDERS
+from django.conf.global_settings import STORAGES
 from django.utils.translation import gettext_noop
 
 
@@ -149,12 +149,6 @@ LOGIN_ERROR_URL = "/"
 
 # }}}
 
-# {{{ django-npm
-
-STATICFILES_FINDERS = [*STATICFILES_FINDERS, "npm.finders.NpmFinder"]
-
-# }}}
-
 ROOT_URLCONF = "relate.urls"
 
 CRISPY_FAIL_SILENTLY = False
@@ -248,12 +242,20 @@ LOGIN_REDIRECT_URL = "/"
 
 STATICFILES_DIRS = (
         join(BASE_DIR, "relate", "static"),
+        join(BASE_DIR, "node_modules", "mathjax", "es5"),
         join(BASE_DIR, "frontend-dist"),
         )
 
 STATIC_URL = "/static/"
 
 STATIC_ROOT = join(BASE_DIR, "static")
+
+STORAGES = {
+    **STORAGES,
+    "staticfiles": {
+        "BACKEND": "django.contrib.staticfiles.storage.ManifestStaticFilesStorage",
+    },
+}
 
 # bundled select2 "static" resources instead of from CDN
 SELECT2_JS = ""

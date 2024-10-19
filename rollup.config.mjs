@@ -33,7 +33,7 @@ const defaultPlugins = [
 
 export default [
   {
-    input: 'relate/static/js/base.js',
+    input: 'frontend/js/base.js',
     output: {
       file: 'frontend-dist/bundle-base.js',
       format: 'iife',
@@ -42,7 +42,7 @@ export default [
     plugins: defaultPlugins,
   },
   {
-    input: 'relate/static/js/base-with-markup.js',
+    input: 'frontend/js/base-with-markup.js',
     output: {
       file: 'frontend-dist/bundle-base-with-markup.js',
       format: 'iife',
@@ -51,7 +51,7 @@ export default [
     plugins: defaultPlugins,
   },
   {
-    input: 'relate/static/js/fullcalendar.js',
+    input: 'frontend/js/fullcalendar.js',
     output: {
       file: 'frontend-dist/bundle-fullcalendar.js',
       format: 'iife',
@@ -61,7 +61,7 @@ export default [
     plugins: defaultPlugins,
   },
   {
-    input: 'relate/static/js/datatables.js',
+    input: 'frontend/js/datatables.js',
     output: {
       file: 'frontend-dist/bundle-datatables.js',
       format: 'iife',
@@ -74,7 +74,7 @@ export default [
     plugins: defaultPlugins,
   },
   {
-    input: 'relate/static/js/codemirror.js',
+    input: 'frontend/js/codemirror.js',
     output: {
       file: 'frontend-dist/bundle-codemirror.js',
       format: 'iife',
@@ -84,7 +84,7 @@ export default [
     plugins: defaultPlugins,
   },
   {
-    input: 'relate/static/js/prosemirror.js',
+    input: 'frontend/js/prosemirror.js',
     output: {
       file: 'frontend-dist/bundle-prosemirror.js',
       format: 'iife',

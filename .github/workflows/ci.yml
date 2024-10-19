@@ -67,7 +67,7 @@ jobs:
       run: npm install
 
     - name: ESLint
-      run: npx eslint relate/static/js/*.js
+      run: npx eslint frontend/js/*.js
 
     - name: Rollup build
       run: npm run build
