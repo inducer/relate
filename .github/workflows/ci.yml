@@ -141,9 +141,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          # Pinned to 3.11 because of poetry issues with missing setuptools
-          # https://github.com/python-poetry/poetry/issues/7611#issuecomment-1793850783
-          python-version: '3.11'
+          python-version: '3.x'
       - name: Install Poetry
         uses: snok/install-poetry@v1.4.1
         with:
@@ -153,20 +151,10 @@ jobs:
         run: |
           poetry config virtualenvs.in-project true
       - name: Install Dependencies
-        env:
-          SETUPTOOLS_USE_DISTUTILS: stdlib
         run: |
-          # work around
-          # https://github.com/python-poetry/poetry/issues/7611#issuecomment-1747836233
-          # can be removed when
-          # https://github.com/python-poetry/poetry/pull/8517
-          # is merged and released
-          poetry config installer.max-workers 1
           poetry install
       - name: Run test suite
-        env:
-          RELATE_LOCAL_TEST_SETTINGS: "local_settings_example.py"
         run: |
-          poetry run pytest -rxsw --tb=native
+          bash ./.ci/run-tests-for-ci.sh
 
 # vim: sw=2
