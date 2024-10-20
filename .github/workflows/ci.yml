@@ -12,6 +12,10 @@ defaults:
     # required by https://github.com/snok/install-poetry#windows
     shell: bash
 
+concurrency:
+    group: ${{ github.head_ref || github.ref_name }}
+    cancel-in-progress: true
+
 jobs:
   lint:
     name: Lint and typecheck Python
