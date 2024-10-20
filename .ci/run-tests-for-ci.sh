@@ -2,14 +2,16 @@
 
 set -e
 
-echo "i18n"
-# Testing i18n needs a local_settings file even though the rest of the tests
-#   don't use it
+# collectstatic and i18n a local_settings file
 cp local_settings_example.py local_settings.py
 
-# Make sure i18n literals marked correctly
-poetry run python manage.py makemessages --all
-poetry run python manage.py compilemessages
+echo "OSTYPE: $OSTYPE"
+if [[ "$OSTYPE" != msys ]]; then
+    echo "i18n"
+    # Make sure i18n literals marked correctly
+    poetry run python manage.py makemessages --all
+    poetry run python manage.py compilemessages
+fi
 
 staticfiles=(
   bundle-base.js
@@ -29,19 +31,21 @@ done
 
 poetry run python manage.py collectstatic
 
-echo "Starts testing"
+rm local_settings.py
+
+echo "Start testing"
 export RELATE_LOCAL_TEST_SETTINGS="local_settings_example.py"
 
-PYTEST_COMMON_FLAGS=(--tb=native)
+PYTEST_COMMON_FLAGS=()
 
 if test "$CI_SERVER_NAME" = "GitLab"; then
-        # I don't *really* know what's going on, but I observed EADDRNOTAVAIL
-        # when the tests try to connect to the code grading process.
-        #
-        # Sample failed job:
-        # https://gitlab.tiker.net/inducer/relate/-/jobs/159522
-        # -AK, 2020-09-01
-        PYTEST_COMMON_FLAGS+=(-k "not LanguageOverrideTest")
+    # I don't *really* know what's going on, but I observed EADDRNOTAVAIL
+    # when the tests try to connect to the code grading process.
+    #
+    # Sample failed job:
+    # https://gitlab.tiker.net/inducer/relate/-/jobs/159522
+    # -AK, 2020-09-01
+    PYTEST_COMMON_FLAGS+=(-k "not LanguageOverrideTest")
 fi
 
 if [[ "$RL_CI_TEST" = "expensive" ]]; then
