@@ -2949,13 +2949,13 @@ files = [
 
 [[package]]
 name = "types-markdown"
-version = "0.1.5"
+version = "3.7.0.20240822"
 description = "Typing stubs for Markdown"
 optional = false
-python-versions = "*"
+python-versions = ">=3.8"
 files = [
-    {file = "types-Markdown-0.1.5.tar.gz", hash = "sha256:ef9285b7a5d321e8495f32be99a80d931c0414beae1c3c71a54ca955a3b7f492"},
-    {file = "types_Markdown-0.1.5-py2.py3-none-any.whl", hash = "sha256:3b5f279067f17630efe55c49be1f9795ce02c25b836e15c47095297d85153a0c"},
+    {file = "types-Markdown-3.7.0.20240822.tar.gz", hash = "sha256:183557c9f4f865bdefd8f5f96a38145c31819271cde111d35557c3bd2069e78d"},
+    {file = "types_Markdown-3.7.0.20240822-py3-none-any.whl", hash = "sha256:bec91c410aaf2470ffdb103e38438fbcc53689b00133f19e64869eb138432ad7"},
 ]
 
 [[package]]
@@ -3148,4 +3148,4 @@ postgres = ["psycopg2"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.10,<4"
-content-hash = "d12214a041716c0b6a98f0d3a25fe5a88380d1dfe28af16c30b6010af16470a2"
+content-hash = "9ffa8c9bdfdc12712bd497b64f582fe020c823e0ed79150b4878ef896d0d5837"
