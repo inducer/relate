@@ -27,7 +27,7 @@
     "datatables.net-fixedcolumns-bs5": "^4.3.0",
     "htmx.org": "^2",
     "jquery": "^3.5.1",
-    "jstree": "^3.3.5",
+    "jstree": "^3.3.17",
     "katex": "^0.16.11",
     "mathjax": "^3.2.0",
     "prosemirror-commands": "^1.6.1",
