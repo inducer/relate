@@ -1263,7 +1263,8 @@ class PythonCodeQuestion(CodeQuestion, PageBaseWithoutHumanGrading):
 
           feedback.check_numpy_array_sanity(name, num_axes, data)
 
-          feedback.check_numpy_array_features(name, ref, data, report_failure=True)
+          feedback.check_numpy_array_features(name, ref, data, check_finite=True,
+              report_failure=True)
 
           feedback.check_numpy_array_allclose(name, ref, data,
                   accuracy_critical=True, rtol=1e-5, atol=1e-8,
