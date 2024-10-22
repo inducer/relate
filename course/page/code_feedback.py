@@ -64,7 +64,9 @@ class Feedback:
                     0, f"'{name}' does not consist of floating point numbers--"
                     f"got: '{data.dtype}'")
 
-    def check_numpy_array_features(self, name, ref, data, report_failure=True, check_finite=True):
+    def check_numpy_array_features(self, name, ref, data, check_finite=True,
+            report_failure=True):
+
         import numpy as np
         assert isinstance(ref, np.ndarray)
 
