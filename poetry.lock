@@ -1183,14 +1183,18 @@ zookeeper = ["kazoo (>=2.8.0)"]
 
 [[package]]
 name = "markdown"
-version = "2.6.11"
-description = "Python implementation of Markdown."
+version = "3.7"
+description = "Python implementation of John Gruber's Markdown."
 optional = false
-python-versions = "*"
+python-versions = ">=3.8"
 files = [
-    {file = "Markdown-2.6.11-py2.py3-none-any.whl", hash = "sha256:9ba587db9daee7ec761cfc656272be6aabe2ed300fece21208e4aab2e457bc8f"},
-    {file = "Markdown-2.6.11.tar.gz", hash = "sha256:a856869c7ff079ad84a3e19cd87a64998350c2b94e9e08e44270faef33400f81"},
+    {file = "Markdown-3.7-py3-none-any.whl", hash = "sha256:7eb6df5690b81a1d7942992c97fad2938e956e79df20cbc6186e9c3a77b1c803"},
+    {file = "markdown-3.7.tar.gz", hash = "sha256:2ae2471477cfd02dbbf038d5d9bc226d40def84b4fe2986e49b59b6b472bbed2"},
 ]
+
+[package.extras]
+docs = ["mdx-gh-links (>=0.2)", "mkdocs (>=1.5)", "mkdocs-gen-files", "mkdocs-literate-nav", "mkdocs-nature (>=0.6)", "mkdocs-section-index", "mkdocstrings[python]"]
+testing = ["coverage", "pyyaml"]
 
 [[package]]
 name = "markdown-it-py"
@@ -2023,6 +2027,24 @@ pytools = ">=2"
 
 [package.extras]
 test = ["pytest (>=2.3)"]
+
+[[package]]
+name = "pymdown-extensions"
+version = "10.11.2"
+description = "Extension pack for Python Markdown."
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "pymdown_extensions-10.11.2-py3-none-any.whl", hash = "sha256:41cdde0a77290e480cf53892f5c5e50921a7ee3e5cd60ba91bf19837b33badcf"},
+    {file = "pymdown_extensions-10.11.2.tar.gz", hash = "sha256:bc8847ecc9e784a098efd35e20cba772bc5a1b529dfcef9dc1972db9021a1049"},
+]
+
+[package.dependencies]
+markdown = ">=3.6"
+pyyaml = "*"
+
+[package.extras]
+extra = ["pygments (>=2.12)"]
 
 [[package]]
 name = "pynacl"
@@ -2949,13 +2971,13 @@ files = [
 
 [[package]]
 name = "types-markdown"
-version = "0.1.5"
+version = "3.7.0.20240822"
 description = "Typing stubs for Markdown"
 optional = false
-python-versions = "*"
+python-versions = ">=3.8"
 files = [
-    {file = "types-Markdown-0.1.5.tar.gz", hash = "sha256:ef9285b7a5d321e8495f32be99a80d931c0414beae1c3c71a54ca955a3b7f492"},
-    {file = "types_Markdown-0.1.5-py2.py3-none-any.whl", hash = "sha256:3b5f279067f17630efe55c49be1f9795ce02c25b836e15c47095297d85153a0c"},
+    {file = "types-Markdown-3.7.0.20240822.tar.gz", hash = "sha256:183557c9f4f865bdefd8f5f96a38145c31819271cde111d35557c3bd2069e78d"},
+    {file = "types_Markdown-3.7.0.20240822-py3-none-any.whl", hash = "sha256:bec91c410aaf2470ffdb103e38438fbcc53689b00133f19e64869eb138432ad7"},
 ]
 
 [[package]]
@@ -3148,4 +3170,4 @@ postgres = ["psycopg2"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.10,<4"
-content-hash = "d12214a041716c0b6a98f0d3a25fe5a88380d1dfe28af16c30b6010af16470a2"
+content-hash = "78bd9c245a26c95d9086d4620a57a611fc13b531b6df431131725568664b8a72"

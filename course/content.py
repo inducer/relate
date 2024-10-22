@@ -1315,12 +1315,12 @@ class LinkFixerTreeprocessor(Treeprocessor):
         # root through and process Markdown's HTML stash (gross!)
         from io import StringIO
 
-        for i, (html, safe) in enumerate(self.md.htmlStash.rawHtmlBlocks):
+        for i, html in enumerate(self.md.htmlStash.rawHtmlBlocks):
             outf = StringIO()
             parser = TagProcessingHTMLParser(outf, self.process_tag)
             parser.feed(html)
 
-            self.md.htmlStash.rawHtmlBlocks[i] = (outf.getvalue(), safe)
+            self.md.htmlStash.rawHtmlBlocks[i] = outf.getvalue()
 
 
 class LinkFixerExtension(Extension):
@@ -1332,10 +1332,11 @@ class LinkFixerExtension(Extension):
         self.commit_sha = commit_sha
         self.reverse_func = reverse_func
 
-    def extendMarkdown(self, md, md_globals):  # noqa
-        md.treeprocessors["relate_link_fixer"] = \
-                LinkFixerTreeprocessor(md, self.course, self.commit_sha,
-                        reverse_func=self.reverse_func)
+    def extendMarkdown(self, md):  # noqa
+        md.treeprocessors.register(
+            LinkFixerTreeprocessor(md, self.course, self.commit_sha,
+                                    reverse_func=self.reverse_func),
+            "relate_link_fixer", 0)
 
 
 def remove_prefix(prefix: str, s: str) -> str:
@@ -1460,16 +1461,19 @@ def markup_to_html(
 
     import markdown
 
-    from course.mdx_mathjax import MathJaxExtension
-
     extensions: list[markdown.Extension | str] = [
         LinkFixerExtension(course, commit_sha, reverse_func=reverse_func),
-        MathJaxExtension(),
+        "pymdownx.arithmatex",
         "markdown.extensions.extra",
     ]
 
     result = markdown.markdown(text,
         extensions=extensions,
+        extension_configs={
+            "pymdownx.arithmatex": {
+                "generic": True,
+            }
+        },
         output_format="html")
 
     if course is None or not course.trusted_for_markup:
