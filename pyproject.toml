@@ -46,7 +46,8 @@ jsonfield = ">=1.4.0"
 # /!\ Upstream is dead, using branch for Django 3.0 support
 django-yamlfield = {git = "https://github.com/bakatrouble/django-yamlfield.git", rev = "c92d0373d12a02d1e52fb09b44010f156111d7ea"}
 # For easy content formatting:
-markdown = "^2.6.3"
+markdown = "^3.7"
+pymdown-extensions = "^10.11.2"
 
 minijinja= "^1.0.16"
 
@@ -143,7 +144,7 @@ pyright = "^1"
 
 types-bleach = "^0.1.2"
 types-paramiko = "^0.1.3"
-types-Markdown = "^0.1.2"
+types-Markdown = "^3.7"
 types-PyYAML = "^0.1.5"
 
 # tests for code questions use question code that has numpy
