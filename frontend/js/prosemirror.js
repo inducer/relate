@@ -1,7 +1,37 @@
+// Copyright (C) 2017 University of Illinois Board of Trustees
+// Copyright (C) 2024 Marijn Haverbeke
+// Copyright (C) 2024 Stefan Goessner
+
+// Contains parts of
+// https://github.com/ProseMirror/prosemirror-markdown/blob/99b6f0a6c377a2c010320f4fdd883e4868aaf122/src/from_markdown.ts
+// Used under the MIT license.
+
+// Contains parts of
+// https://github.com/goessner/markdown-it-texmath/blob/5a1133b210cb6c69b07bc307ddb2c46491402b3f/texmath.js
+// Used under the MIT license.
+
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+// THE SOFTWARE.
+
 import 'katex/dist/katex.min.css';
 
 // prosemirror imports
-import { Schema, Node } from 'prosemirror-model';
+import { Schema, Node, Slice } from 'prosemirror-model';
 import { EditorView } from 'prosemirror-view';
 import { EditorState, Plugin, PluginKey } from 'prosemirror-state';
 import { schema as basicSchema } from 'prosemirror-schema-basic';
@@ -16,6 +46,10 @@ import 'prosemirror-menu/style/menu.css';
 
 import { exampleSetup } from 'prosemirror-example-setup';
 import 'prosemirror-example-setup/style/style.css';
+
+import { MarkdownParser } from 'prosemirror-markdown';
+import MarkdownIt from 'markdown-it';
+import { mergeDelimiters, inline as texmathInline, block as texmathBlock } from 'markdown-it-texmath';
 
 import {
   mathPlugin, mathBackspaceCmd, insertMathCmd, mathSerializer,
@@ -87,11 +121,100 @@ const changeListenerPlugin = new Plugin({
   },
 });
 
+// {{{ handle markdown paste
+
+function listIsTight(tokens, i) {
+  // eslint-disable-next-line no-plusplus, no-param-reassign
+  while (++i < tokens.length) {
+    if (tokens[i].type !== 'list_item_open') return tokens[i].hidden;
+  }
+  return false;
+}
+
+const markdownItWithMath = (() => {
+  const md = MarkdownIt('commonmark', { html: false });
+
+  const delimiters = mergeDelimiters(['dollars', 'beg_end']);
+
+  // inject rules into markdown-it
+  delimiters.inline.forEach((baseRule) => {
+    const rule = { ...baseRule };
+    if ('outerSpace' in rule) rule.outerSpace = true;
+    md.inline.ruler.before('escape', rule.name, texmathInline(rule));
+  });
+  delimiters.block.forEach((rule) => {
+    md.block.ruler.before('fence', rule.name, texmathBlock(rule));
+  });
+
+  return md;
+})();
+
+const markdownParser = new MarkdownParser(schema, markdownItWithMath, {
+  blockquote: { block: 'blockquote' },
+  paragraph: { block: 'paragraph' },
+  list_item: { block: 'list_item' },
+  bullet_list: {
+    block: 'bullet_list',
+    getAttrs: (_, tokens, i) => ({ tight: listIsTight(tokens, i) }),
+  },
+  ordered_list: {
+    block: 'ordered_list',
+    getAttrs: (tok, tokens, i) => ({
+      order: +tok.attrGet('start') || 1,
+      tight: listIsTight(tokens, i),
+    }),
+  },
+  heading: {
+    block: 'heading',
+    getAttrs: (tok) => ({ level: +tok.tag.slice(1) }),
+  },
+  code_block: { block: 'code_block', noCloseToken: true },
+  fence: {
+    block: 'code_block',
+    getAttrs: (tok) => ({ params: tok.info || '' }),
+    noCloseToken: true,
+  },
+  hr: { node: 'horizontal_rule' },
+  hardbreak: { node: 'hard_break' },
+
+  em: { mark: 'em' },
+  strong: { mark: 'strong' },
+  link: {
+    mark: 'link',
+    getAttrs: (tok) => ({
+      href: tok.attrGet('href'),
+      title: tok.attrGet('title') || null,
+    }),
+  },
+  code_inline: { mark: 'code', noCloseToken: true },
+
+  math_inline: { block: 'math_inline', noCloseToken: true },
+  math_block: { block: 'math_display', noCloseToken: true },
+});
+
+const pasteMarkdownPlugin = new Plugin({
+  props: {
+    handlePaste(view, event/* , slice */) {
+      const clipboardText = event.clipboardData.getData('text/plain');
+      if (!clipboardText) return false;
+
+      const doc = markdownParser.parse(clipboardText);
+      const transaction = view.state.tr.replaceSelection(new Slice(doc.content, 0, 0));
+      view.dispatch(transaction);
+
+      return true;
+    },
+  },
+});
+
+// }}}
+
 // eslint-disable-next-line import/prefer-default-export
 export function editorFromTextArea(textarea, autofocus) {
   const plugins = [
     ...exampleSetup({ schema }),
     mathPlugin,
+    pasteMarkdownPlugin,
     keymap({
       'Mod-Space': insertMathCmd(schema.nodes.math_inline),
 
