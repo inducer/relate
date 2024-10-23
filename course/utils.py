@@ -1069,6 +1069,13 @@ class ProseMirrorTextarea(forms.Textarea):
     More tips for using this editor to type math:
     <ul>
         <li>
+        You may paste in Markdown-with-math (as accepted by
+        <a
+        href="https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/writing-mathematical-expressions"
+        >Github</a>,
+        <a href="https://pandoc.org/MANUAL.html#math">Pandoc</a>, or
+        <a href="https://meta.discourse.org/t/discourse-math/65770">Discourse</a>).
+        <li>
         Inline math nodes are delimited with <code>$</code>.
         After typing the closing dollar sign in
         an expression like <code>$\int_a^b f(x) dx$</code>, a math node will appear.
