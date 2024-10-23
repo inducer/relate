@@ -47,7 +47,6 @@ jsonfield = ">=1.4.0"
 django-yamlfield = {git = "https://github.com/bakatrouble/django-yamlfield.git", rev = "c92d0373d12a02d1e52fb09b44010f156111d7ea"}
 # For easy content formatting:
 markdown = "^3.7"
-pymdown-extensions = "^10.11.2"
 
 minijinja= "^1.0.16"
 
