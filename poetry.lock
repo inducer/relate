@@ -2029,24 +2029,6 @@ pytools = ">=2"
 test = ["pytest (>=2.3)"]
 
 [[package]]
-name = "pymdown-extensions"
-version = "10.11.2"
-description = "Extension pack for Python Markdown."
-optional = false
-python-versions = ">=3.8"
-files = [
-    {file = "pymdown_extensions-10.11.2-py3-none-any.whl", hash = "sha256:41cdde0a77290e480cf53892f5c5e50921a7ee3e5cd60ba91bf19837b33badcf"},
-    {file = "pymdown_extensions-10.11.2.tar.gz", hash = "sha256:bc8847ecc9e784a098efd35e20cba772bc5a1b529dfcef9dc1972db9021a1049"},
-]
-
-[package.dependencies]
-markdown = ">=3.6"
-pyyaml = "*"
-
-[package.extras]
-extra = ["pygments (>=2.12)"]
-
-[[package]]
 name = "pynacl"
 version = "1.5.0"
 description = "Python binding to the Networking and Cryptography (NaCl) library"
@@ -3170,4 +3152,4 @@ postgres = ["psycopg2"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.10,<4"
-content-hash = "78bd9c245a26c95d9086d4620a57a611fc13b531b6df431131725568664b8a72"
+content-hash = "aa5670ada1fa395cab94c5caa37815eb539fe779516022837cc3e88d644328f3"

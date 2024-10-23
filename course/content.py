@@ -1461,19 +1461,16 @@ def markup_to_html(
 
     import markdown
 
+    from course.mdx_mathjax import MathJaxExtension
+
     extensions: list[markdown.Extension | str] = [
         LinkFixerExtension(course, commit_sha, reverse_func=reverse_func),
-        "pymdownx.arithmatex",
+        MathJaxExtension(),
         "markdown.extensions.extra",
     ]
 
     result = markdown.markdown(text,
         extensions=extensions,
-        extension_configs={
-            "pymdownx.arithmatex": {
-                "generic": True,
-            }
-        },
         output_format="html")
 
     if course is None or not course.trusted_for_markup:
