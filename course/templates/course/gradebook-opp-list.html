@@ -74,7 +74,7 @@
         "scrollCollapse": true,
         "paging": false,
         "ordering": true,
-        "language": {url: '{% static "datatables-i18n/i18n/" %}{{LANG}}.json'},
+        "language": rlDataTables.getI18nTable('{{ LANG}}'),
     } );
   </script>
   {{ block.super }}

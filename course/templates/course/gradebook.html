@@ -75,7 +75,7 @@
         "paging": true,
         "ordering": true,
         "columnDefs": [{ type: 'name', targets: 1 }],
-        "language": {url: '{% static "datatables-i18n/i18n/" %}{{LANG}}.json'},
+        "language": rlDataTables.getI18nTable('{{ LANG}}'),
     } );
     new $.fn.dataTable.FixedColumns(tbl);
   </script>
