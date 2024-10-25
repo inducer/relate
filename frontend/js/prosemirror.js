@@ -1,13 +1,8 @@
 // Copyright (C) 2017 University of Illinois Board of Trustees
 // Copyright (C) 2024 Marijn Haverbeke
-// Copyright (C) 2024 Stefan Goessner
 
 // Contains parts of
 // https://github.com/ProseMirror/prosemirror-markdown/blob/99b6f0a6c377a2c010320f4fdd883e4868aaf122/src/from_markdown.ts
-// Used under the MIT license.
-
-// Contains parts of
-// https://github.com/goessner/markdown-it-texmath/blob/5a1133b210cb6c69b07bc307ddb2c46491402b3f/texmath.js
 // Used under the MIT license.
 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -49,7 +44,7 @@ import 'prosemirror-example-setup/style/style.css';
 
 import { MarkdownParser } from 'prosemirror-markdown';
 import MarkdownIt from 'markdown-it';
-import { mergeDelimiters, inline as texmathInline, block as texmathBlock } from 'markdown-it-texmath';
+import markdownItMath from '@vscode/markdown-it-katex';
 
 import {
   mathPlugin, mathBackspaceCmd, insertMathCmd, mathSerializer,
@@ -131,66 +126,53 @@ function listIsTight(tokens, i) {
   return false;
 }
 
-const markdownItWithMath = (() => {
-  const md = MarkdownIt('commonmark', { html: false });
-
-  const delimiters = mergeDelimiters(['dollars', 'beg_end']);
-
-  // inject rules into markdown-it
-  delimiters.inline.forEach((baseRule) => {
-    const rule = { ...baseRule };
-    if ('outerSpace' in rule) rule.outerSpace = true;
-    md.inline.ruler.before('escape', rule.name, texmathInline(rule));
+function markdownToProsemirrorParser() {
+  const mdit = MarkdownIt('commonmark', { html: false }).use(markdownItMath, {
+    enableBareBlocks: true,
   });
-  delimiters.block.forEach((rule) => {
-    md.block.ruler.before('fence', rule.name, texmathBlock(rule));
+  return new MarkdownParser(schema, mdit, {
+    blockquote: { block: 'blockquote' },
+    paragraph: { block: 'paragraph' },
+    list_item: { block: 'list_item' },
+    bullet_list: {
+      block: 'bullet_list',
+      getAttrs: (_, tokens, i) => ({ tight: listIsTight(tokens, i) }),
+    },
+    ordered_list: {
+      block: 'ordered_list',
+      getAttrs: (tok, tokens, i) => ({
+        order: +tok.attrGet('start') || 1,
+        tight: listIsTight(tokens, i),
+      }),
+    },
+    heading: {
+      block: 'heading',
+      getAttrs: (tok) => ({ level: +tok.tag.slice(1) }),
+    },
+    code_block: { block: 'code_block', noCloseToken: true },
+    fence: {
+      block: 'code_block',
+      getAttrs: (tok) => ({ params: tok.info || '' }),
+      noCloseToken: true,
+    },
+    hr: { node: 'horizontal_rule' },
+    hardbreak: { node: 'hard_break' },
+
+    em: { mark: 'em' },
+    strong: { mark: 'strong' },
+    link: {
+      mark: 'link',
+      getAttrs: (tok) => ({
+        href: tok.attrGet('href'),
+        title: tok.attrGet('title') || null,
+      }),
+    },
+    code_inline: { mark: 'code', noCloseToken: true },
+
+    math_inline: { block: 'math_inline', noCloseToken: true },
+    math_block: { block: 'math_display', noCloseToken: true },
   });
-
-  return md;
-})();
-
-const markdownParser = new MarkdownParser(schema, markdownItWithMath, {
-  blockquote: { block: 'blockquote' },
-  paragraph: { block: 'paragraph' },
-  list_item: { block: 'list_item' },
-  bullet_list: {
-    block: 'bullet_list',
-    getAttrs: (_, tokens, i) => ({ tight: listIsTight(tokens, i) }),
-  },
-  ordered_list: {
-    block: 'ordered_list',
-    getAttrs: (tok, tokens, i) => ({
-      order: +tok.attrGet('start') || 1,
-      tight: listIsTight(tokens, i),
-    }),
-  },
-  heading: {
-    block: 'heading',
-    getAttrs: (tok) => ({ level: +tok.tag.slice(1) }),
-  },
-  code_block: { block: 'code_block', noCloseToken: true },
-  fence: {
-    block: 'code_block',
-    getAttrs: (tok) => ({ params: tok.info || '' }),
-    noCloseToken: true,
-  },
-  hr: { node: 'horizontal_rule' },
-  hardbreak: { node: 'hard_break' },
-
-  em: { mark: 'em' },
-  strong: { mark: 'strong' },
-  link: {
-    mark: 'link',
-    getAttrs: (tok) => ({
-      href: tok.attrGet('href'),
-      title: tok.attrGet('title') || null,
-    }),
-  },
-  code_inline: { mark: 'code', noCloseToken: true },
-
-  math_inline: { block: 'math_inline', noCloseToken: true },
-  math_block: { block: 'math_display', noCloseToken: true },
-});
+}
 
 const pasteMarkdownPlugin = new Plugin({
   props: {
@@ -198,7 +180,7 @@ const pasteMarkdownPlugin = new Plugin({
       const clipboardText = event.clipboardData.getData('text/plain');
       if (!clipboardText) return false;
 
-      const doc = markdownParser.parse(clipboardText);
+      const doc = markdownToProsemirrorParser().parse(clipboardText);
       const transaction = view.state.tr.replaceSelection(new Slice(doc.content, 0, 0));
       view.dispatch(transaction);
 
