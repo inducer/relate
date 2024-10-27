@@ -32,7 +32,6 @@ class MathJaxExtension(markdown.Extension):
         # inlinepatterns in Python-Markdown seem to top out at 200-ish?
         # https://github.com/Python-Markdown/markdown/blob/0b5e80efbb83f119e0e38801bf5b5b5864c67cd0/markdown/inlinepatterns.py#L53-L95
         md.inlinePatterns.register(MathJaxPattern(), "mathjax", 1000)
-        print(md.inlinePatterns)
         md.postprocessors.register(MathJaxPostprocessor(md), "mathjax", 0)
 
 
