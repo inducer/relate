@@ -112,6 +112,11 @@ table.past-flow-session-table {
   border-radius: 4px;
 }
 
+/* remove extra spacing from ChoiceQuestion options */
+label div.relate-markup p:only-child {
+  margin-bottom: 0;
+}
+
 /* }}} */
 
 /* {{{ histograms */
