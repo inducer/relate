@@ -59,13 +59,6 @@ class MultipleChoiceAnswerForm(StyledForm):
         self.fields["choice"].label = _("Select all that apply:")
 
 
-def markup_to_html_plain(page_context, s):
-    s = markup_to_html(page_context, s)
-    if s.startswith("<p>") and s.endswith("</p>"):
-        s = s[3:-4]
-    return s
-
-
 # {{{ choice data model
 
 class ChoiceModes:
@@ -153,7 +146,7 @@ class ChoiceInfo:
 class ChoiceQuestionBase(PageBaseWithTitle, PageBaseWithValue):
     @classmethod
     def process_choice_string(cls, page_context, s):
-        s = markup_to_html_plain(page_context, s)
+        s = markup_to_html(page_context, s)
         # allow HTML in option
         s = mark_safe(s)
 
@@ -395,7 +388,7 @@ class ChoiceQuestion(ChoiceQuestionBase, PageBaseWithoutHumanGrading):
 
     def correct_answer(self, page_context, page_data, answer_data, grade_data):
         corr_idx = self.unpermuted_correct_indices()[0]
-        result = (string_concat(_("A correct answer is"), ": '%s'.")
+        result = (string_concat(_("A correct answer is"), ": %s")
                 % self.process_choice_string(
                     page_context,
                     self.choices[corr_idx].text))
@@ -758,7 +751,7 @@ class SurveyChoiceQuestion(PageBaseWithTitle, PageBaseUngraded):
     def process_choice_string(cls, page_context, s):
         if not isinstance(s, str):
             s = str(s)
-        s = markup_to_html_plain(page_context, s)
+        s = markup_to_html(page_context, s)
         # allow HTML in option
         s = mark_safe(s)
 

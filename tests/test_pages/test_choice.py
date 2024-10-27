@@ -23,11 +23,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-import unittest
-
 from django.test import Client, TestCase
 
-from course.page.choice import markup_to_html_plain
 from tests.base_test_mixins import SingleCoursePageTestMixin
 from tests.constants import PAGE_ERRORS
 from tests.test_sandbox import SingleCoursePageSandboxTestBaseMixin
@@ -704,25 +701,6 @@ class BrokenPageDataTest(SingleCoursePageTestMixin, TestCase):
         self.assertContains(
             resp, ("existing choice permutation not "
                    "suitable for number of choices in question"))
-
-
-class MarkupToHtmlPlainTest(unittest.TestCase):
-    # test course.page.choice.markup_to_html_plain
-    def test_markup_to_html_plain_wrap_by_p_tag(self):
-        with mock.patch("course.page.choice.markup_to_html") as mock_mth:
-            mock_mth.side_effect = lambda x, y: f"<p>{y}</p>"
-            fake_page_context = object
-            self.assertEqual(
-                markup_to_html_plain(fake_page_context, "abcd"), "abcd")
-            self.assertEqual(markup_to_html_plain(fake_page_context, ""), "")
-
-    def test_markup_to_html_plain_wrap_by_p_other_tag(self):
-        with mock.patch("course.page.choice.markup_to_html") as mock_mth:
-            mock_mth.side_effect = lambda x, y: f"<div>{y}</div>"
-            fake_page_context = object
-            self.assertEqual(
-                markup_to_html_plain(fake_page_context, "abcd"),
-                "<div>abcd</div>")
 
 
 SURVEY_CHOICE_QUESTION_MARKDOWN = """

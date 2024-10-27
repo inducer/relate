@@ -890,7 +890,7 @@ class InlineMultiQuestion(
                 wrapped,
                 "<strong>" + correct_answer_i + "</strong>")
 
-        CA_PATTERN = string_concat(_("A correct answer is"), ": <br/> %s")  # noqa
+        CA_PATTERN = string_concat(_("A correct answer is"), ": %s")  # noqa
 
         result = CA_PATTERN % cor_answer_output
 
