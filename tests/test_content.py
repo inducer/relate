@@ -853,7 +853,9 @@ class MarkupToHtmlTest(SingleCoursePageTestMixin, TestCase):
             text = "[this course](course:)"
             self.assertEqual(content.markup_to_html(
                 self.course, repo, self.course.active_git_commit_sha, text),
-                f'<p><a href="{self.course_page_url}">this course</a></p>')
+                "<div class='relate-markup'>"
+                f'<p><a href="{self.course_page_url}">this course</a></p>'
+                "</div>")
 
     def test_startswith_jinja_prefix(self):
         with self.pctx.repo as repo:
@@ -861,7 +863,9 @@ class MarkupToHtmlTest(SingleCoursePageTestMixin, TestCase):
             self.assertEqual(content.markup_to_html(
                 self.course, repo,
                 self.course.active_git_commit_sha.encode(), text),
-                f'<p><a href="{self.course_page_url}">this course</a></p>')
+                "<div class='relate-markup'>"
+                f'<p><a href="{self.course_page_url}">this course</a></p>'
+                "</div>")
 
 
 class GetFlowPageClassTest(SingleCourseTestMixin, TestCase):

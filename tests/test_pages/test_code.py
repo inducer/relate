@@ -418,8 +418,9 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
 
             # correct_code_explanation and correct_code
             expected_feedback = (
+                "<div class='relate-markup'>"
                 '<p>This is the <a href="http://example.com/1">explanation'
-                '</a>.</p>The following code is a valid answer: '
+                '</a>.</p></div>The following code is a valid answer: '
                 '<pre>\nc = 2 + 1\n</pre>')
             mock_runpy.side_effect = RuntimeError(expected_error_str)
 

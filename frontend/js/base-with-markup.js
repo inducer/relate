@@ -9,4 +9,7 @@ window.MathJax = {
     inlineMath: [['$', '$'], ['\\(', '\\)']],
     displayMath: [['$$', '$$'], ['\\[', '\\]']],
   },
+  options: {
+    processHtmlClass: 'relate-markup',
+  },
 };

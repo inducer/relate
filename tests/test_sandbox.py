@@ -379,7 +379,10 @@ class ViewMarkupSandboxTest(SingleCoursePageSandboxTestBaseMixin,
         self.assertEqual(resp.status_code, 200)
         self.assertResponseContextEqual(
             resp, "preview_text",
-            f'<p><a href="/course/{self.course.identifier}/">home</a></p>')
+            "<div class='relate-markup'>"
+            f'<p><a href="/course/{self.course.identifier}/">home</a></p>'
+            "</div>"
+        )
 
     def test_preview_failed(self):
         with mock.patch("course.content.markup_to_html") as mock_mth:
