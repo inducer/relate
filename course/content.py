@@ -1431,7 +1431,7 @@ def markup_to_html(
             cache_key = None
         else:
             import hashlib
-            cache_key = ("markup:v8:%s:%d:%s:%s:%s%s"
+            cache_key = ("markup:v9:%s:%d:%s:%s:%s%s"
                     % (CACHE_KEY_ROOT,
                        course.id, course.trusted_for_markup, str(commit_sha),
                        hashlib.md5(text.encode("utf-8")).hexdigest(),
