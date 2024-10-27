@@ -52,7 +52,7 @@ CACHE_KEY_ROOT = "py3"
 
 # {{{ mypy
 
-from collections.abc import Callable, Collection
+from collections.abc import Callable, Collection, Mapping
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -1126,7 +1126,11 @@ def _attr_to_string(key, val):
 
 
 class TagProcessingHTMLParser(html_parser.HTMLParser):
-    def __init__(self, out_file, process_tag_func):
+    def __init__(
+                self,
+                out_file,
+                process_tag_func: Callable[[str, Mapping[str, str]], Mapping[str, str]]
+            ) -> None:
         html_parser.HTMLParser.__init__(self)
 
         self.out_file = out_file
@@ -1173,7 +1177,7 @@ class TagProcessingHTMLParser(html_parser.HTMLParser):
 
 
 class PreserveFragment:
-    def __init__(self, s):
+    def __init__(self, s: str) -> None:
         self.s = s
 
 
@@ -1185,7 +1189,7 @@ class LinkFixerTreeprocessor(Treeprocessor):
         self.commit_sha = commit_sha
         self.reverse_func = reverse_func
 
-    def reverse(self, viewname, args):
+    def reverse(self, viewname: str, args: tuple[Any, ...]) -> str:
         frag = None
 
         new_args = []
@@ -1208,13 +1212,13 @@ class LinkFixerTreeprocessor(Treeprocessor):
 
         return result
 
-    def get_course_identifier(self):
+    def get_course_identifier(self) -> str:
         if self.course is None:
             return "bogus-course-identifier"
         else:
             return self.course.identifier
 
-    def process_url(self, url):
+    def process_url(self, url: str) -> str | None:
         try:
             if url.startswith("course:"):
                 course_id = url[7:]
@@ -1272,7 +1276,7 @@ class LinkFixerTreeprocessor(Treeprocessor):
             message = ("Invalid character in RELATE URL: " + url).encode("utf-8")
             return "data:text/plain;base64,"+b64encode(message).decode()
 
-    def process_tag(self, tag_name, attrs):
+    def process_tag(self, tag_name: str, attrs: Mapping[str, str]) -> Mapping[str, str]:
         changed_attrs = {}
 
         if tag_name == "table" and attrs.get("bootstrap") != "no":
@@ -1298,19 +1302,19 @@ class LinkFixerTreeprocessor(Treeprocessor):
 
         return changed_attrs
 
-    def process_etree_element(self, element):
+    def process_etree_element(self, element: Element) -> None:
         changed_attrs = self.process_tag(element.tag, element.attrib)
 
         for key, val in changed_attrs.items():
             element.set(key, val)
 
-    def walk_and_process_tree(self, root):
+    def walk_and_process_tree(self, root: Element) -> None:
         self.process_etree_element(root)
 
         for child in root:
             self.walk_and_process_tree(child)
 
-    def run(self, root):
+    def run(self, root: Element) -> None:
         self.walk_and_process_tree(root)
 
         # root through and process Markdown's HTML stash (gross!)
