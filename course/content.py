@@ -29,6 +29,7 @@ import os
 import re
 import sys
 from typing import cast
+from xml.etree.ElementTree import Element, tostring
 
 import dulwich.objects
 import dulwich.repo
@@ -1318,6 +1319,12 @@ class LinkFixerTreeprocessor(Treeprocessor):
         for i, html in enumerate(self.md.htmlStash.rawHtmlBlocks):
             outf = StringIO()
             parser = TagProcessingHTMLParser(outf, self.process_tag)
+
+            # According to
+            # https://github.com/python/typeshed/blob/61ba4de28f1469d6a642c983d5a7674479c12444/stubs/Markdown/markdown/util.pyi#L44
+            # this should not happen, but... *shrug*
+            if isinstance(html, Element):
+                html = tostring(html).decode("utf-8")
             parser.feed(html)
 
             self.md.htmlStash.rawHtmlBlocks[i] = outf.getvalue()
