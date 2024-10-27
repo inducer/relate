@@ -1482,6 +1482,8 @@ def markup_to_html(
                     "pre"],
                 attributes=filter_html_attributes)
 
+    result = f"<div class='relate-markup'>{result}</div>"
+
     assert isinstance(result, str)
     if cache_key is not None:
         def_cache.add(cache_key, result, None)
