@@ -141,7 +141,7 @@ sphinx-copybutton = "^0.5.2"
 django-upgrade = "^1.22.1"
 pyright = "^1"
 
-types-bleach = "^0.1.2"
+types-bleach = "^6.1.0"
 types-paramiko = "^0.1.3"
 types-Markdown = "^3.7"
 types-PyYAML = "^6.0.12"
