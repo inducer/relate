@@ -2978,12 +2978,13 @@ types-cryptography = "*"
 
 [[package]]
 name = "types-pyyaml"
-version = "0.1.9"
+version = "6.0.12.20240917"
 description = "Typing stubs for PyYAML"
 optional = false
-python-versions = "*"
+python-versions = ">=3.8"
 files = [
-    {file = "types_PyYAML-0.1.9-py2.py3-none-any.whl", hash = "sha256:0ad719fa27fb97ee0aef7866ae90f80aaba226a7e6b900b3e1eb562a85c0e4da"},
+    {file = "types-PyYAML-6.0.12.20240917.tar.gz", hash = "sha256:d1405a86f9576682234ef83bcb4e6fff7c9305c8b1fbad5e0bcd4f7dbdc9c587"},
+    {file = "types_PyYAML-6.0.12.20240917-py3-none-any.whl", hash = "sha256:392b267f1c0fe6022952462bf5d6523f31e37f6cea49b14cee7ad634b6301570"},
 ]
 
 [[package]]
@@ -3152,4 +3153,4 @@ postgres = ["psycopg2"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.10,<4"
-content-hash = "c38d4286832f6235b37bcf012be0a45c0f3be78a19599a9e74380b9326a6c74a"
+content-hash = "f2915b5f0d68ff89c21ee8f213043671f0b57c1ac8eb8f0226ab5ea3921cee62"
