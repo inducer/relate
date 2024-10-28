@@ -739,13 +739,13 @@ typing-extensions = "*"
 
 [[package]]
 name = "django-upgrade"
-version = "1.21.0"
+version = "1.22.1"
 description = "Automatically upgrade your Django project code."
 optional = false
-python-versions = ">=3.8"
+python-versions = ">=3.9"
 files = [
-    {file = "django_upgrade-1.21.0-py3-none-any.whl", hash = "sha256:a0a7b11d5108fb2d3038cea2382c1332c9be4ff5059a38357fbd28116ebf3803"},
-    {file = "django_upgrade-1.21.0.tar.gz", hash = "sha256:e65021029e7d18b407bd128a8ccb31e5e06685068b37b6b1eaf2f77aa3d3df98"},
+    {file = "django_upgrade-1.22.1-py3-none-any.whl", hash = "sha256:ae8d66f87829855baef8ac2a23a220e0e160e2236461bd79dcc97debfbe786e5"},
+    {file = "django_upgrade-1.22.1.tar.gz", hash = "sha256:8f003387595824e47aae1c5373d9ade7641145b9aac9f87ea1c4ddfa7aa375e0"},
 ]
 
 [package.dependencies]
@@ -3152,4 +3152,4 @@ postgres = ["psycopg2"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.10,<4"
-content-hash = "aa5670ada1fa395cab94c5caa37815eb539fe779516022837cc3e88d644328f3"
+content-hash = "c38d4286832f6235b37bcf012be0a45c0f3be78a19599a9e74380b9326a6c74a"
