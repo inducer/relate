@@ -23,6 +23,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
+
 from collections.abc import Collection
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, cast
@@ -40,6 +41,7 @@ from django.core.exceptions import (  # noqa
 )
 from django.db import transaction
 from django.db.models import Q
+from django.http.request import HttpRequest
 from django.shortcuts import get_object_or_404, redirect, render  # noqa
 from django.urls import reverse
 from django.utils.html import escape
@@ -695,15 +697,19 @@ def check_in_for_exam(request: http.HttpRequest) -> http.HttpResponse:
 # }}}
 
 
-def is_from_exams_only_facility(request):
-    from course.utils import get_facilities_config
-    for name, props in get_facilities_config(request).items():
-        if not props.get("exams_only", False):
-            continue
+def is_from_exams_only_facility(request: HttpRequest) -> bool:
+    request = cast(RelateHttpRequest, request)
 
-        # By now we know that this facility is exams-only
-        if name in request.relate_facilities:
-            return True
+    from course.utils import get_facilities_config
+    facilities_config = get_facilities_config(request)
+    if facilities_config:
+        for name, props in facilities_config.items():
+            if not props.get("exams_only", False):
+                continue
+
+            # By now we know that this facility is exams-only
+            if name in request.relate_facilities:
+                return True
 
     return False
 
@@ -723,7 +729,7 @@ class ExamFacilityMiddleware:
     def __init__(self, get_response):
         self.get_response = get_response
 
-    def __call__(self, request):
+    def __call__(self, request: http.HttpRequest) -> http.HttpResponse:
         exams_only = is_from_exams_only_facility(request)
 
         if not exams_only:
