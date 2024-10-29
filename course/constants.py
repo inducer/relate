@@ -567,4 +567,11 @@ ATTRIBUTES_FILENAME = ".attributes.yml"
 DEFAULT_ACCESS_KINDS = ["public", "in_exam", "student", "ta",
                         "unenrolled", "instructor"]
 
+
+# {{{ session attributes
+
+SESSION_LOCKED_TO_FLOW_PK = "relate_session_locked_to_exam_flow_session_pk"
+
+# }}}
+
 # vim: foldmethod=marker

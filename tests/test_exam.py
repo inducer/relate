@@ -696,7 +696,7 @@ class ExamFacilityMiddlewareTest(SingleCoursePageTestMixin,
         fs = factories.FlowSessionFactory(
             participation=self.student_participation, flow_id=self.flow_id)
         session = self.client.session
-        session["relate_session_locked_to_exam_flow_session_pk"] = fs.pk
+        session[constants.SESSION_LOCKED_TO_FLOW_PK] = fs.pk
         session.save()
 
         resp = self.client.get(self.course_page_url)
@@ -833,7 +833,7 @@ class ExamLockdownMiddlewareTest(SingleCoursePageTestMixin,
 
     def tweak_session_to_lock_down(self, flow_session_id=None):
         session = self.client.session
-        session["relate_session_locked_to_exam_flow_session_pk"] = (
+        session[constants.SESSION_LOCKED_TO_FLOW_PK] = (
             flow_session_id or FlowSession.objects.last().pk)
         session.save()
 

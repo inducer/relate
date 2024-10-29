@@ -50,6 +50,7 @@ from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.debug import sensitive_post_parameters
 
 from course.constants import (
+    SESSION_LOCKED_TO_FLOW_PK,
     exam_ticket_states,
     participation_permission as pperm,
     participation_status,
@@ -728,10 +729,7 @@ class ExamFacilityMiddleware:
         if not exams_only:
             return self.get_response(request)
 
-        if (exams_only
-                and (
-                    "relate_session_locked_to_exam_flow_session_pk"
-                    in request.session)):
+        if (exams_only and (SESSION_LOCKED_TO_FLOW_PK in request.session)):
             # ExamLockdownMiddleware is in control.
             return self.get_response(request)
 
@@ -805,9 +803,8 @@ class ExamLockdownMiddleware:
     def __call__(self, request):
         request.relate_exam_lockdown = False
 
-        if "relate_session_locked_to_exam_flow_session_pk" in request.session:
-            exam_flow_session_pk = request.session[
-                    "relate_session_locked_to_exam_flow_session_pk"]
+        if SESSION_LOCKED_TO_FLOW_PK in request.session:
+            exam_flow_session_pk = request.session[SESSION_LOCKED_TO_FLOW_PK]
 
             try:
                 exam_flow_session = FlowSession.objects.get(pk=exam_flow_session_pk)
