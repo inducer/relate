@@ -38,6 +38,7 @@ from django.utils.timezone import now, timedelta
 
 from course import constants, flow, models
 from course.constants import (
+    SESSION_LOCKED_TO_FLOW_PK,
     flow_permission as fperm,
     grade_aggregation_strategy as g_strategy,
 )
@@ -2959,9 +2960,7 @@ class LockDownIfNeededTest(unittest.TestCase):
         flow_permissions = ["other_flow_permission"]
         flow.lock_down_if_needed(self.request, flow_permissions, self.flow_session)
 
-        self.assertIsNone(
-            self.request.session.get(
-                "relate_session_locked_to_exam_flow_session_pk"))
+        self.assertIsNone(self.request.session.get(SESSION_LOCKED_TO_FLOW_PK))
 
     def test_has_lock_down_as_exam_session_flow_permission(self):
         flow_permissions = [fperm.lock_down_as_exam_session,
@@ -2969,8 +2968,7 @@ class LockDownIfNeededTest(unittest.TestCase):
         flow.lock_down_if_needed(self.request, flow_permissions, self.flow_session)
 
         self.assertEqual(
-            self.request.session.get(
-                "relate_session_locked_to_exam_flow_session_pk"),
+            self.request.session.get(SESSION_LOCKED_TO_FLOW_PK),
             self.flow_session.pk
         )
 

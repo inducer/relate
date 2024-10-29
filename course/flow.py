@@ -48,6 +48,7 @@ from django_select2.forms import Select2Widget
 from course.constants import (
     FLOW_SESSION_EXPIRATION_MODE_CHOICES,
     GRADE_AGGREGATION_STRATEGY_CHOICES,
+    SESSION_LOCKED_TO_FLOW_PK,
     flow_permission,
     flow_session_expiration_mode,
     flow_session_interaction_kind,
@@ -1372,9 +1373,7 @@ def lock_down_if_needed(
         ) -> None:
 
     if flow_permission.lock_down_as_exam_session in permissions:
-        request.session[
-                "relate_session_locked_to_exam_flow_session_pk"] = \
-                        flow_session.pk
+        request.session[SESSION_LOCKED_TO_FLOW_PK] = flow_session.pk
 
 
 # {{{ view: start flow
