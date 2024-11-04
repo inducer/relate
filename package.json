@@ -32,7 +32,7 @@
     "katex": "^0.16.11",
     "markdown-it": "^14.1.0",
     "mathjax": "^3.2.2",
-    "prosemirror-commands": "^1.6.1",
+    "prosemirror-commands": "^1.6.2",
     "prosemirror-example-setup": "^1.2.3",
     "prosemirror-inputrules": "^1.4.0",
     "prosemirror-keymap": "^1.2.2",
