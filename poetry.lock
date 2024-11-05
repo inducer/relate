@@ -2882,17 +2882,6 @@ files = [
 types-html5lib = "*"
 
 [[package]]
-name = "types-cryptography"
-version = "3.3.23.2"
-description = "Typing stubs for cryptography"
-optional = false
-python-versions = "*"
-files = [
-    {file = "types-cryptography-3.3.23.2.tar.gz", hash = "sha256:09cc53f273dd4d8c29fa7ad11fefd9b734126d467960162397bc5e3e604dea75"},
-    {file = "types_cryptography-3.3.23.2-py3-none-any.whl", hash = "sha256:b965d548f148f8e87f353ccf2b7bd92719fdf6c845ff7cedf2abb393a0643e4f"},
-]
-
-[[package]]
 name = "types-html5lib"
 version = "1.1.11.20241018"
 description = "Typing stubs for html5lib"
@@ -2916,17 +2905,17 @@ files = [
 
 [[package]]
 name = "types-paramiko"
-version = "0.1.9"
+version = "3.5.0.20240928"
 description = "Typing stubs for paramiko"
 optional = false
-python-versions = "*"
+python-versions = ">=3.8"
 files = [
-    {file = "types-paramiko-0.1.9.tar.gz", hash = "sha256:161f368940648230d5a3b7982b5cfc7995c893ee5f2f1c3b24af5d0a86739f12"},
-    {file = "types_paramiko-0.1.9-py3-none-any.whl", hash = "sha256:e176389cd6c8884a90e2d0d0eaad5a4ec549a43d863308ff9ea0324925f65407"},
+    {file = "types-paramiko-3.5.0.20240928.tar.gz", hash = "sha256:79dd9b2ee510b76a3b60d8ac1f3f348c45fcecf01347ca79e14db726bbfc442d"},
+    {file = "types_paramiko-3.5.0.20240928-py3-none-any.whl", hash = "sha256:cda0aff4905fe8efe4b5448331a80e943d42a796bd4beb77a3eed3485bc96a85"},
 ]
 
 [package.dependencies]
-types-cryptography = "*"
+cryptography = ">=37.0.0"
 
 [[package]]
 name = "types-pyyaml"
@@ -3105,4 +3094,4 @@ postgres = ["psycopg2"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.10,<4"
-content-hash = "979190e7ca60fc7986556ac78742bbebfdf231576b0342411a52cc2c28c3beee"
+content-hash = "461c269f867d77a2bcabad35b0b137078495b5ea390b39fba617a00141162f1d"
