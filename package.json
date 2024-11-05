@@ -45,7 +45,7 @@
     "prosemirror-view": "^1.34.3",
     "select2": "^4.0.5",
     "select2-bootstrap-theme": "^0.1.0-beta.10",
-    "video.js": "^7.14.3"
+    "video.js": "^8.19.1"
   },
   "//devDependencies": {
     "sass": "https://github.com/twbs/bootstrap/issues/40849"
