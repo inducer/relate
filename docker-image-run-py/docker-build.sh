@@ -2,7 +2,7 @@
 
 if test "$1" = "-f"; then
         RLCONTAINER=full
-        IMGNAME=inducer/relate-runcode-python-amd64-tf-opencl-loopy
+        IMGNAME=inducer/relate-runcode-python-amd64-full
 else
         RLCONTAINER=base
         IMGNAME=inducer/relate-runcode-python-amd64

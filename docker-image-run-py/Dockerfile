@@ -35,7 +35,8 @@ RUN if [ "$RLCONTAINER" = "full" ] ; then  apt-get -o APT::Install-Recommends=0 
   git; \
   fi
 
-RUN if [ "$RLCONTAINER" = "full" ] ; then python3 -m pip install git+https://github.com/inducer/loopy.git; fi
+RUN if [ "$RLCONTAINER" = "full" ] ; then python3 -m pip install --break-system-packages git+https://github.com/inducer/pymbolic.git; fi
+RUN if [ "$RLCONTAINER" = "full" ] ; then python3 -m pip install --break-system-packages git+https://github.com/inducer/loopy.git; fi
 
 RUN apt-get clean
 RUN fc-cache
@@ -50,7 +51,8 @@ RUN sed -i s/TkAgg/Agg/ /etc/matplotlibrc
 RUN echo "savefig.dpi : 80" >> /etc/matplotlibrc
 RUN echo "savefig.bbox : tight" >> /etc/matplotlibrc
 
-RUN if [ "$RLCONTAINER" = "full" ] ; then pip3 install --upgrade tensorflow; fi
+# RUN if [ "$RLCONTAINER" = "full" ] ; then pip3 install --upgrade tensorflow; fi
+RUN if [ "$RLCONTAINER" = "full" ] ; then pip3 install --break-system-packages --upgrade jax; fi
 RUN rm -Rf /root/.cache
 
 # may use ./flatten-container.sh to reduce disk space
