@@ -1490,7 +1490,7 @@ def markup_to_html(
                 tags=[*bleach.ALLOWED_TAGS, "div", "span", "p", "img",
                     "h1", "h2", "h3", "h4", "h5", "h6",
                     "table", "td", "tr", "th",
-                    "pre"],
+                    "pre", "details", "summary", "thead", "tbody"],
                 attributes=filter_html_attributes)
 
     result = f"<div class='relate-markup'>{result}</div>"
