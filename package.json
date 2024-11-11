@@ -2,7 +2,7 @@
   "dependencies": {
     "@benrbray/prosemirror-math": "^1.0.0",
     "@codemirror/autocomplete": "^6.18.1",
-    "@codemirror/commands": "^6.7.0",
+    "@codemirror/commands": "^6.7.1",
     "@codemirror/lang-markdown": "^6.2.0",
     "@codemirror/lang-python": "^6.1.6",
     "@codemirror/language": "^6.8.0",
