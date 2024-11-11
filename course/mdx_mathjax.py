@@ -11,7 +11,6 @@ class MathJaxPattern(Pattern):
         super().__init__(r"(?<!\\)(\$\$?)(.+?)\2")
 
     def handleMatch(self, m):
-        print(f"{m.group(0)=}")
         from xml.etree.ElementTree import Element
         node = Element("mathjax")
         from markdown.util import AtomicString

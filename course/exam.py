@@ -472,7 +472,6 @@ def batch_issue_exam_tickets(pctx):
                                     "checkin_uri": checkin_uri,
                                     })
             except minijinja.TemplateError as e:
-                print(e)
                 messages.add_message(request, messages.ERROR,
                     mark_safe(string_concat(
                         _("Template rendering failed"),
