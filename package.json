@@ -27,7 +27,7 @@
     "datatables.net-fixedcolumns-bs5": "^4.3.0",
     "datatables.net-plugins": "^2.1.7",
     "htmx.org": "^2",
-    "jquery": "^3.5.1",
+    "jquery": "^3.7.1",
     "jstree": "^3.3.17",
     "katex": "^0.16.11",
     "markdown-it": "^14.1.0",
