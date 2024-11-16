@@ -1022,6 +1022,7 @@ def validate_flow_desc(vctx, location, flow_desc):
                 ("groups", list),
                 ("pages", list),
                 ("notify_on_submit", list),
+                ("external_resources", list),
 
                 # deprecated (moved to grading rule)
                 ("max_points", (int, float)),

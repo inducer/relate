@@ -371,6 +371,27 @@
 
   {# }}} #}
 
+  {# {{{ external resources #}
+  
+  {# if flow_desc.external_resources > #}
+  <p class="d-inline-flex gap-1">
+    {% for resource_desc in flow_desc.external_resources %}
+    <button class="btn btn-primary" data-bs-toggle="collapse" role="button" aria-expanded="false"
+      href="#externalResource{{ forloop.counter }}" aria-controls="externalResource{{ forloop.counter }}">
+      {{resource_desc.title }}</button>
+    {% endfor %}
+  </p>
+  
+  {% for resource_desc in flow_desc.external_resources %}
+  <div class="collapse multi-collapse" id="externalResource{{ forloop.counter }}">
+    <div class="card card-body">
+      <iframe width="100%" height="1000" src="{{resource_desc.url}}" frameborder="0" allowfullscreen>
+      </iframe>
+    </div>
+  </div>
+  {% endfor %}
+  
+  {# }}} #}
   {# {{{ feedback #}
 
   {% if show_correctness and feedback %}

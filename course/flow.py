@@ -56,7 +56,7 @@ from course.constants import (
     is_expiration_mode_allowed,
     participation_permission as pperm,
 )
-from course.content import FlowPageDesc
+from course.content import FlowPageDesc, ExternalResourcesDesc
 from course.exam import get_login_exam_ticket
 from course.models import (
     Course,

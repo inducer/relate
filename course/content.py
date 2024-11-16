@@ -527,6 +527,14 @@ class FlowRulesDesc(Struct):
 
 # {{{ mypy: flow
 
+class ExternalResourcesDesc(Struct):
+    def __init__(self, title: str, url: str) -> None:
+        self.title = title
+        self.url = url
+
+    title: str
+    url: str
+
 class FlowPageDesc(Struct):
     id: str
     type: str
@@ -594,6 +602,11 @@ class FlowDesc(Struct):
         A list of :ref:`pages <flow-page>`. If you specify this, a single
         :class:`FlowPageGroupDesc` will be implicitly created. Exactly one of
         :attr:`groups` or :class:`pages` must be given.
+
+    .. attribute:: external_resources
+
+        A list of :class:`ExternalResourcesDesc`. These are links to external
+        resources that are displayed on the bottom of the flow page.
     """
 
     title: str
@@ -601,6 +614,7 @@ class FlowDesc(Struct):
     rules: FlowRulesDesc
     pages: list[FlowPageDesc]
     groups: list[FlowPageGroupDesc]
+    external_resources: list[ExternalResourcesDesc]
     notify_on_submit: list[str] | None
 
 # }}}
