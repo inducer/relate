@@ -129,7 +129,7 @@ def has_access_to_exam(
             exam_uuid: str,
             now: datetime,
             ip_address: IPv4Address | IPv6Address
-        ) -> None | AllowEvent:
+        ) -> AllowEvent | None:
     facility_id_to_most_recent_allow_event: dict[int, AllowEvent] = {}
     for allow_event in AllowEvent.objects.filter(
                 facility__course=course,

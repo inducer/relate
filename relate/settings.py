@@ -269,9 +269,9 @@ SESSION_COOKIE_AGE = 12096000  # 20 weeks
 # {{{ app defaults
 
 RELATE_FACILITIES: (
-    None
-    | dict[str, dict[str, Any]]
+    dict[str, dict[str, Any]]
     | Callable[..., dict[str, dict[str, Any]]]
+    | None
 ) = {}
 
 RELATE_TICKET_MINUTES_VALID_AFTER_USE = 0
