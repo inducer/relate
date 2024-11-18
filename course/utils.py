@@ -1224,8 +1224,7 @@ def csv_data_importable(file_contents, column_idx_list, header_count):
     return True, ""
 
 
-def will_use_masked_profile_for_email(
-        recipient_email: None | str | list[str]) -> bool:
+def will_use_masked_profile_for_email(recipient_email: str | list[str] | None) -> bool:
     if not recipient_email:
         return False
     if not isinstance(recipient_email, list):
