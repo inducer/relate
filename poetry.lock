@@ -1048,6 +1048,17 @@ files = [
 ]
 
 [[package]]
+name = "immutabledict"
+version = "4.2.1"
+description = "Immutable wrapper around dictionaries (a fork of frozendict)"
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "immutabledict-4.2.1-py3-none-any.whl", hash = "sha256:c56a26ced38c236f79e74af3ccce53772827cef5c3bce7cab33ff2060f756373"},
+    {file = "immutabledict-4.2.1.tar.gz", hash = "sha256:d91017248981c72eb66c8ff9834e99c2f53562346f23e7f51e7a5ebcf66a3bcc"},
+]
+
+[[package]]
 name = "inflection"
 version = "0.5.1"
 description = "A port of Ruby on Rails inflector to Python"
@@ -1954,19 +1965,24 @@ files = [
 
 [[package]]
 name = "pymbolic"
-version = "2022.2"
+version = "2024.1"
 description = "A package for symbolic computation"
 optional = false
-python-versions = "~=3.8"
+python-versions = ">=3.10"
 files = [
-    {file = "pymbolic-2022.2.tar.gz", hash = "sha256:f82776942bb3cb72329fa1f1aa2b68ec09f237db9178c95cfdc92a6aea7cec89"},
+    {file = "pymbolic-2024.1.tar.gz", hash = "sha256:c698a4541d7be23ac289d41e300c41056b7b3e879266a898c2e8290e6e96675f"},
 ]
 
 [package.dependencies]
-pytools = ">=2"
+immutabledict = "*"
+pytools = ">=2022.1.14"
+typing-extensions = ">=4.5"
+useful-types = "*"
 
 [package.extras]
-test = ["pytest (>=2.3)"]
+matchpy = ["matchpy"]
+numpy = ["numpy (>=1.6)"]
+test = ["mypy", "pytest", "ruff"]
 
 [[package]]
 name = "pynacl"
@@ -3019,6 +3035,20 @@ urwid = "*"
 
 [package.extras]
 dev = ["black", "pytest"]
+
+[[package]]
+name = "useful-types"
+version = "0.2.1"
+description = "A collection of useful types."
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "useful_types-0.2.1-py3-none-any.whl", hash = "sha256:0dca32763d7271b5c8c7c395c44c10d09dba47a41aec97dcb085041ad096e0e9"},
+    {file = "useful_types-0.2.1.tar.gz", hash = "sha256:870a0bcc8fcb7d0b2f14055438c1cab7e248fded942b0943a4d7019e7fbbdacd"},
+]
+
+[package.dependencies]
+typing_extensions = ">=4.7"
 
 [[package]]
 name = "vine"
