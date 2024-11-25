@@ -861,10 +861,10 @@ JINJA_YAML_RE = re.compile(
     re.MULTILINE | re.DOTALL)
 YAML_BLOCK_START_SCALAR_RE = re.compile(
     r"(:\s*[|>])"
-    "(J?)"
-    "((?:[0-9][-+]?|[-+][0-9]?)?)"
+    r"(J?)"
+    r"((?:[0-9][-+]?|[-+][0-9]?)?)"
     r"(?:\s*\#.*)?"
-    "$")
+    r"$")
 
 IN_BLOCK_END_RAW_RE = re.compile(r"(.*)({%-?\s*endraw\s*-?%})(.*)")
 GROUP_COMMENT_START = re.compile(r"^\s*#\s*\{\{\{")
@@ -1578,7 +1578,7 @@ class AtTimePostprocessor(DatespecPostprocessor):
 
 
 PLUS_DELTA_RE = re.compile(r"^(.*)\s*([+-])\s*([0-9]+)\s+"
-    "(weeks?|days?|hours?|minutes?)$")
+    r"(weeks?|days?|hours?|minutes?)$")
 
 
 class PlusDeltaPostprocessor(DatespecPostprocessor):

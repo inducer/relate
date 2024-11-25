@@ -81,7 +81,7 @@ if TYPE_CHECKING:
 import re
 
 
-CODE_CELL_DIV_ATTRS_RE = re.compile('(<div class="[^>]*code_cell[^>"]*")(>)')
+CODE_CELL_DIV_ATTRS_RE = re.compile(r'(<div class="[^>]*code_cell[^>"]*")(>)')
 
 
 def getattr_with_fallback(

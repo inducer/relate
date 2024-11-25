@@ -904,7 +904,7 @@ def view_single_grade(pctx: CoursePageContext, participation_id: str,
 
     request = pctx.request
     if pctx.request.method == "POST":
-        action_re = re.compile("^([a-z]+)_([0-9]+)$")
+        action_re = re.compile(r"^([a-z]+)_([0-9]+)$")
         action_match = None
         for key in request.POST.keys():
             action_match = action_re.match(key)
