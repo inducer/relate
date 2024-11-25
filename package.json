@@ -42,7 +42,7 @@
     "prosemirror-schema-basic": "^1.2.3",
     "prosemirror-schema-list": "^1.4.1",
     "prosemirror-state": "^1.4.3",
-    "prosemirror-view": "^1.34.3",
+    "prosemirror-view": "^1.37.0",
     "select2": "^4.0.5",
     "select2-bootstrap-theme": "^0.1.0-beta.10",
     "video.js": "^8.19.1"
