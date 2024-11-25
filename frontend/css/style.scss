@@ -5,7 +5,8 @@
 
 table.past-flow-session-table th {
   margin-right:1em;
-  border-bottom: 1px solid black;
+  @extend .border-bottom;
+  @extend .border-secondary-subtle;
 }
 
 table.past-flow-session-table td {
