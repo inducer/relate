@@ -2192,13 +2192,13 @@ postgresql = ["psycopg2"]
 
 [[package]]
 name = "pytools"
-version = "2024.1.15"
+version = "2024.1.16"
 description = "A collection of tools for Python"
 optional = false
 python-versions = ">=3.10"
 files = [
-    {file = "pytools-2024.1.15-py3-none-any.whl", hash = "sha256:f16f4a14501cb1e6f2989a424699edb258b7ae8bf403a8fc5ae243022a438874"},
-    {file = "pytools-2024.1.15.tar.gz", hash = "sha256:7fb2f18bcaf36eb1ea32189e9752bb8dcb5b9010887bbd2edede15ac40b243f0"},
+    {file = "pytools-2024.1.16-py3-none-any.whl", hash = "sha256:9c0f55fd1fd3cd392586ba8d4df97f68994878141e7e09fa7a313bd93f944338"},
+    {file = "pytools-2024.1.16.tar.gz", hash = "sha256:8f1ad6231782e83e13e049a21e9b9bd1be109768725210ac92e1f2b647d57977"},
 ]
 
 [package.dependencies]
