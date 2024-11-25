@@ -47,7 +47,7 @@ from course.validation import Blob_ish, Tree_ish
 from relate.utils import Struct, SubdirRepoWrapper, dict_to_struct
 
 
-CACHE_KEY_ROOT = "py3"
+CACHE_KEY_ROOT = "py4"
 
 
 # {{{ mypy
