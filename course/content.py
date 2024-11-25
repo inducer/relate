@@ -993,7 +993,8 @@ def expand_yaml_macros(repo: Repo_ish, commit_sha: bytes, yaml_str: str) -> str:
     from minijinja import Environment
     jinja_env = Environment(
             loader=YamlBlockEscapingGitTemplateLoader(repo, commit_sha),
-            undefined_behavior="strict")
+            undefined_behavior="strict",
+            auto_escape_callback=lambda fn: False)
 
     # {{{ process explicit [JINJA] tags (deprecated)
 
@@ -1099,8 +1100,7 @@ def get_yaml_from_repo(
         raise ValueError("File uses tabs in indentation. "
                 "This is not allowed.")
 
-    expanded = expand_yaml_macros(
-            repo, commit_sha, yaml_bytestream)
+    expanded = expand_yaml_macros(repo, commit_sha, yaml_bytestream)
 
     yaml_data = load_yaml(expanded)  # type:ignore
     result = dict_to_struct(yaml_data)
