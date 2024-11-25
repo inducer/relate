@@ -24,7 +24,7 @@
     "datatables.net": "^1.13.5",
     "datatables.net-bs5": "^2.1.8",
     "datatables.net-fixedcolumns": "^5.0.3",
-    "datatables.net-fixedcolumns-bs5": "^4.3.0",
+    "datatables.net-fixedcolumns-bs5": "^5.0.4",
     "datatables.net-plugins": "^2.1.7",
     "htmx.org": "^2",
     "jquery": "^3.7.1",
