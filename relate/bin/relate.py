@@ -86,7 +86,9 @@ def expand_yaml(yml_file, repo_root):
     from minijinja import Environment
     jinja_env = Environment(
             loader=YamlBlockEscapingFileSystemLoader(repo_root),
-            undefined_behavior="strict")
+            undefined_behavior="strict",
+            auto_escape_callback=lambda fn: False,
+        )
 
     return jinja_env.render_str(data)
 
