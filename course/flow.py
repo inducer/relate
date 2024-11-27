@@ -56,7 +56,7 @@ from course.constants import (
     is_expiration_mode_allowed,
     participation_permission as pperm,
 )
-from course.content import FlowPageDesc
+from course.content import FlowPageDesc, TabDesc
 from course.exam import get_login_exam_ticket
 from course.models import (
     Course,
@@ -2105,6 +2105,43 @@ def view_flow_page(
             allow_instant_flow_requests=False)
 
     # }}}
+
+
+@course_view
+def view_flow_page_with_ext_resource_tabs(
+        pctx: CoursePageContext,
+        flow_session_id: int,
+        page_ordinal: int) -> http.HttpResponse:
+    request = pctx.request
+
+    flow_session_id = int(flow_session_id)
+    flow_session = get_and_check_flow_session(pctx, flow_session_id)
+
+    assert flow_session is not None
+
+    flow_id = flow_session.flow_id
+
+    adjust_flow_session_page_data(pctx.repo, flow_session, pctx.course.identifier,
+            respect_preview=True)
+
+    fctx = FlowContext(pctx.repo, pctx.course, flow_id,
+                            participation=pctx.participation)
+
+    assert fctx.flow_desc.external_resources is not None
+
+    target_url = reverse(
+        "relate-view_flow_page",
+        args=[pctx.course.identifier, flow_session_id, page_ordinal],
+    )
+
+    return render(
+        request,
+        "course/tabbed-page.html",
+        {"tabs": [
+            TabDesc(str(_("Relate")), target_url),
+            *fctx.flow_desc.external_resources
+        ]},
+    )
 
 
 @course_view

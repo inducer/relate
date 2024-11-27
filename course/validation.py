@@ -1009,26 +1009,26 @@ def validate_flow_permission(
 
 def validate_flow_desc(vctx, location, flow_desc):
     validate_struct(
-            vctx,
-            location,
-            flow_desc,
-            required_attrs=[
-                ("title", str),
-                ("description", "markup"),
-                ],
-            allowed_attrs=[
-                ("completion_text", "markup"),
-                ("rules", Struct),
-                ("groups", list),
-                ("pages", list),
-                ("notify_on_submit", list),
-
-                # deprecated (moved to grading rule)
-                ("max_points", (int, float)),
-                ("max_points_enforced_cap", (int, float)),
-                ("bonus_points", (int, float)),
-                ]
-            )
+        vctx,
+        location,
+        flow_desc,
+        required_attrs=[
+            ("title", str),
+            ("description", "markup"),
+        ],
+        allowed_attrs=[
+            ("completion_text", "markup"),
+            ("rules", Struct),
+            ("groups", list),
+            ("pages", list),
+            ("notify_on_submit", list),
+            ("external_resources", list),
+            # deprecated (moved to grading rule)
+            ("max_points", (int, float)),
+            ("max_points_enforced_cap", (int, float)),
+            ("bonus_points", (int, float)),
+        ],
+    )
 
     if hasattr(flow_desc, "rules"):
         validate_flow_rules(vctx, location, flow_desc.rules)
