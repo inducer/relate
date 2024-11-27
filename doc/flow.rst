@@ -110,6 +110,12 @@ An Example
         - Green
         - ~CORRECT~ Yellow
 
+    external_resources:
+
+    -
+        title: Numpy
+        url: https://numpy.org/doc/
+
     completion_text: |
 
         # See you in class!
@@ -294,6 +300,33 @@ For example, to grant permission to revise an answer on a
         add_permissions:
             - change_answer
     value: 1
+
+.. _tabbed-page-view:
+
+Tabbed page view
+^^^^^^^^^^^^^^^^^^^^
+
+A flow page can be displayed in a tabbed view, where the first tab is the
+flow page itself, and the subsequent tabs are additional external websites. 
+
+An example use case is when the participant does not have access to
+browser-native tab functionality. This is the case when using the
+"Guardian" browser with the "ProctorU" proctoring service.
+
+To access the tabbed page for a flow, append `/ext-resource-tabs` to the URL.
+Alternatively, you can create a link to allow users to navigate to the tabbed 
+page directly. For example, `[Open tabs](ext-resource-tabs)`.
+
+You might need to set `X_FRAME_OPTIONS` in your Django settings to allow embedding
+the flow page and external websites in iframes, depending on your site's configuration.
+For example, you can add the following to your `local_settings.py`:
+
+.. code-block:: python
+
+    X_FRAME_OPTIONS = 'ALLOWALL'  # or specify a domain like 'ALLOW-FROM https://www.yourwebsite.com'
+
+
+.. autoclass:: TabDesc
 
 .. _flow-life-cycle:
 
