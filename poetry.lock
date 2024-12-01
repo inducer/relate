@@ -1967,17 +1967,18 @@ files = [
 
 [[package]]
 name = "pymbolic"
-version = "2024.1"
+version = "2024.2"
 description = "A package for symbolic computation"
 optional = false
 python-versions = ">=3.10"
 files = [
-    {file = "pymbolic-2024.1.tar.gz", hash = "sha256:c698a4541d7be23ac289d41e300c41056b7b3e879266a898c2e8290e6e96675f"},
+    {file = "pymbolic-2024.2-py3-none-any.whl", hash = "sha256:a175bd4bf93e937493b35b1e7ac1449721e17dd061220d472ccebbc156cb2733"},
+    {file = "pymbolic-2024.2.tar.gz", hash = "sha256:869b11d52c956782c4581b404eae0828c0279be49bcfe32c7e5bf9d756be0036"},
 ]
 
 [package.dependencies]
 immutabledict = "*"
-pytools = ">=2022.1.14"
+pytools = ">=2024.1.16"
 typing-extensions = ">=4.5"
 useful-types = "*"
 
