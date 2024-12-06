@@ -965,10 +965,7 @@ class GitTemplateLoader:
         self.commit_sha = commit_sha
 
     def __call__(self, template):
-        try:
-            data = get_repo_blob_data_cached(self.repo, template, self.commit_sha)
-        except ObjectDoesNotExist:
-            return None
+        data = get_repo_blob_data_cached(self.repo, template, self.commit_sha)
 
         return data.decode("utf-8")
 
@@ -995,11 +992,8 @@ class YamlBlockEscapingFileSystemLoader:
         self.root = root
 
     def __call__(self, template):
-        try:
-            with open(os.path.join(self.root, template)) as inf:
-                source = inf.read()
-        except FileNotFoundError:
-            return None
+        with open(os.path.join(self.root, template)) as inf:
+            source = inf.read()
 
         _, ext = os.path.splitext(template)
         ext = ext.lower()
