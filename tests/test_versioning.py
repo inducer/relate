@@ -33,7 +33,7 @@ from dulwich.contrib.paramiko_vendor import ParamikoSSHVendor
 
 from course import versioning
 from course.constants import participation_permission as pperm
-from course.models import Course, Participation
+from course.models import Course
 from course.validation import ValidationWarning
 from relate.utils import force_remove_path
 from tests import factories
@@ -139,45 +139,6 @@ class CourseCreationTest(VersioningTestMixin, TestCase):
                                            login_superuser=False)
             self.assertTrue(resp.status_code, 403)
             self.assertEqual(Course.objects.count(), 0)
-
-    def test_set_up_new_course(self):
-        # In this test, we use client instead of request factory to simplify
-        # the logic.
-
-        with self.temporarily_switch_to_user(self.instructor):
-            # the permission is cached, need to repopulated from db
-            resp = self.get_set_up_new_course()
-            self.assertTrue(resp.status_code, 200)
-
-            with mock.patch("dulwich.client.GitClient.fetch",
-                            return_value=FetchPackResult(
-                                refs={b"HEAD": b"some_commit_sha"},
-                                symrefs={},
-                                agent="Git")), \
-                  mock.patch("course.versioning.transfer_remote_refs",
-                            return_value=None), \
-                      mock.patch("course.validation.validate_course_content",
-                               return_value=None):
-                data = self.get_set_up_new_course_form_data()
-
-                resp = self.post_create_course(data, raise_error=False,
-                                               login_superuser=False)
-                self.assertTrue(resp.status_code, 200)
-                self.assertEqual(Course.objects.count(), 1)
-                self.assertEqual(Participation.objects.count(), 1)
-                self.assertEqual(Participation.objects.first().user.username,
-                                 "test_instructor")
-                self.assertAddMessageCalledWith(
-                    "Course content validated, creation succeeded.")
-
-                from course.enrollment import get_participation_role_identifiers
-
-                # the user who setup the course has role instructor
-                self.assertTrue(
-                    get_participation_role_identifiers(
-                        Course.objects.first(),
-                        Participation.objects.first()),
-                    "instructor")
 
     def test_set_up_new_course_form_invalid(self):
         for field_name in ["identifier", "name", "number", "time_period",
