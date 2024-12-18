@@ -323,7 +323,7 @@ For example, you can add the following to your `local_settings.py`:
 
 .. code-block:: python
 
-    X_FRAME_OPTIONS = 'ALLOWALL'  # or specify a domain like 'ALLOW-FROM https://www.yourwebsite.com'
+    X_FRAME_OPTIONS = 'SAMEORIGIN'
 
 
 .. autoclass:: TabDesc
