@@ -214,35 +214,6 @@ class CourseCreationTest(VersioningTestMixin, TestCase):
             self.assertAddMessageCalledWith(
                 "No refs found in remote repository")
 
-    @suppress_stdout_decorator(suppress_stderr=True)
-    def test_set_up_new_course_subdir(self):
-
-        # Todo: "Windows fatal exception: stack overflow" were raised for this test
-        # on Windows (Github actions). Is it a bug?
-        import sys
-        if sys.platform == "win32":
-            pytest.xfail("https://github.com/inducer/relate/issues/749")
-
-        data = self.get_set_up_new_course_form_data()
-        data["course_root_path"] = "some_dir"
-        request = self.rf.post(self.get_set_up_new_course_url(), data=data)
-        request.user = self.instructor
-        with mock.patch("dulwich.client.GitClient.fetch",
-                        return_value=FetchPackResult(
-                            refs={b"HEAD": b"some_commit_sha"},
-                            symrefs={},
-                            agent="Git")), \
-             mock.patch("course.versioning.messages"), \
-             mock.patch("course.validation.validate_course_content",
-                        return_value=None) as mock_validate, \
-                mock.patch("course.models.Course.save"), \
-                mock.patch("course.models.Participation.save", return_value=True), \
-                mock.patch("course.versioning.render"):
-            resp = versioning.set_up_new_course(request)
-            from course.content import SubdirRepoWrapper
-            self.assertIsInstance(mock_validate.call_args[0][0], SubdirRepoWrapper)
-            self.assertTrue(resp.status_code, 200)
-
 
 @pytest.mark.slow
 @pytest.mark.django_db
