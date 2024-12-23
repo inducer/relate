@@ -1,6 +1,7 @@
 # See https://docs.djangoproject.com/en/dev/howto/deployment/checklist/
 
 import os.path as path
+import os
 
 _BASEDIR = path.dirname(path.abspath(__file__))
 
@@ -58,7 +59,7 @@ DATABASES = {
 # }
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
 TIME_ZONE = "Europe/Copenhagen"
 
@@ -208,10 +209,10 @@ RELATE_SESSION_RESTART_COOLDOWN_SECONDS = 10
 
 # {{{ sign-in methods
 
-RELATE_SIGN_IN_BY_EMAIL_ENABLED = True
+RELATE_SIGN_IN_BY_EMAIL_ENABLED = False
 RELATE_SIGN_IN_BY_USERNAME_ENABLED = True
 RELATE_REGISTRATION_ENABLED = False
-RELATE_SIGN_IN_BY_EXAM_TICKETS_ENABLED = True
+RELATE_SIGN_IN_BY_EXAM_TICKETS_ENABLED = False
 
 # If you enable this, you must also have saml_config.py in this directory.
 # See saml_config.py.example for help.
@@ -220,18 +221,30 @@ RELATE_SIGN_IN_BY_SAML2_ENABLED = False
 RELATE_SOCIAL_AUTH_BACKENDS = (
         # See https://python-social-auth.readthedocs.io/en/latest/
         # for full list.
-        # "social_core.backends.google.GoogleOAuth2",
-
+        'social_core.backends.keycloak.KeycloakOAuth2',
+        'django.contrib.auth.backends.ModelBackend',
         # CAUTION: Relate uses emails returned by the backend to match
         # users. Only use backends that return verified emails.
         )
 
-# Your Google "Client ID"
-# SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = ''
-# Your Google "Client Secret"
-# SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = ''
-SOCIAL_AUTH_GOOGLE_OAUTH2_USE_UNIQUE_USER_ID = True
+# you can configure your social auth by referencing this https://python-social-auth.readthedocs.io/en/latest/backends/ 
+# we configured it for keyclaok as a demo
+SOCIAL_AUTH_KEYCLOAK_ID_KEY = 'email'
+SOCIAL_AUTH_KEYCLOAK_PUBLIC_KEY= os.environ.get('KEYCLOAK_PUBLICKEY')
+SOCIAL_AUTH_KEYCLOAK_KEY = 'relate'  
+SOCIAL_AUTH_KEYCLOAK_SECRET = os.environ.get('KEYCLOAK_SECRET')
+SOCIAL_AUTH_KEYCLOAK_SERVER_URL = 'https://<need-to-update-hostname>/realms/test-relate/'  # required to fill
+SOCIAL_AUTH_KEYCLOAK_AUTHORIZATION_URL = \
+    'https://<need-to-update-hostname>/auth/realms/test-relate/protocol/openid-connect/auth' # required to fill
+SOCIAL_AUTH_KEYCLOAK_ACCESS_TOKEN_URL = \
+    'https://<need-to-update-hostname>/auth/realms/test-relate/protocol/openid-connect/token' # required to fill
+SOCIAL_AUTH_REDIRECT_IS_HTTPS = True
+SOCIAL_AUTH_SESSION_EXPIRATION = True
 
+
+
+# Set the "SOCIAL_AUTH_LOGIN_REDIRECT_URL" to a page you want to redirect to after login
+# SOCIAL_AUTH_LOGIN_REDIRECT_URL = 'https://relate.kbm.obmondo.com/social-auth/complete/keycloak/'
 # When registering your OAuth2 app (and consent screen) with Google,
 # specify the following authorized redirect URI:
 # https://sitename.edu/social-auth/complete/google-oauth2/
@@ -377,7 +390,7 @@ RELATE_SHOW_EDITOR_FORM = True
 
 # A string containing the image ID of the docker image to be used to run
 # student Python code. Docker should download the image on first run.
-RELATE_DOCKER_RUNPY_IMAGE = "inducer/relate-runcode-python"
+RELATE_DOCKER_RUNPY_IMAGE = "inducer/relate-runcode-python-amd64"
 # RELATE_DOCKER_RUNPY_IMAGE = "inducer/relate-runpy-amd64-tensorflow"
 # (bigger, but includes TensorFlow)
 

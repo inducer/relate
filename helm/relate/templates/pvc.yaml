@@ -3,6 +3,7 @@ kind: PersistentVolumeClaim
 apiVersion: v1
 metadata:
   name: {{ template "relate.fullname" . }}
+  namespace: {{ include "relate.namespace" . }}
   labels:
     app: {{ template "relate.name" . }}
     chart: "{{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}"

@@ -1,19 +1,102 @@
-apiVersion: "acid.zalan.do/v1"
-kind: postgresql
+{{- if not (.Values.postgresql).enabled }}
+
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
 metadata:
-  name: obmondo-postgresql
-  namespace: relate
+  {{ if (.Values.cnpg).recover }}
+  name: relate-pgsql-recover
+  {{ else }}
+  name: relate-pgsql
+  {{ end }}
 spec:
-  teamId: obmondo
-  volume:
-    size: 2Gi
-  numberOfInstances: 1
-  users:
-    relate_admin: # database owner
-      - superuser
-      - createdb
-  databases:
-    relate: relate_admin
-  postgresql:
-    version: "14"
-  enableMasterLoadBalancer: false
+  instances: {{ ((.Values.cnpg).instance) | default 1 }}
+  {{ if (.Values.cnpg).recover }}
+  bootstrap:
+    recovery: 
+      source: relate-pgsql
+  {{ else }}
+  bootstrap:
+    initdb:
+      database: relate
+      owner: relate
+  {{ end }}
+  resources:
+    limits:
+      memory: {{ (((.Values.cnpg).resources).limits).memory | default "800Mi" }}
+    requests:
+      memory: {{ (((.Values.cnpg).resources).requests).memory | default "500Mi" }}
+      cpu: {{ (((.Values.cnpg).resources).requests).cpu | default "100m" }}
+  storage:
+    size: {{ (.Values.cnpg).size | default "4Gi" }}
+    {{- if (.Values.cnpg).storageClass }}
+    storageClass: {{ (.Values.cnpg).storageClass }}
+    {{- end }}
+  {{- if (.Values.cnpg).recover }}
+  externalClusters:
+    - name: relate-pgsql
+      barmanObjectStore:
+        destinationPath: {{ ((.Values.cnpg).backup).destinationPath }}
+        endpointURL: {{ ((.Values.cnpg).backup).endpointURL }}
+        {{- if eq ((.Values.cnpg).backup).cloud "aws" }}
+        s3Credentials:
+          accessKeyId:
+            name: relate-pgsql-backup-creds
+            key: ACCESS_KEY_ID
+          secretAccessKey:
+            name: relate-pgsql-backup-creds
+            key: ACCESS_SECRET_KEY
+        {{- end }}
+      {{- if eq ((.Values.cnpg).backup).cloud "azure" }}
+        azureCredentials:
+          connectionString:
+            name: relate-pgsql-backup-creds
+            key: AZURE_CONNECTION_STRING
+          storageAccount:
+            name: relate-pgsql-backup-creds
+            key: AZURE_STORAGE_ACCOUNT
+          storageKey:
+            name: relate-pgsql-backup-creds
+            key: AZURE_STORAGE_KEY
+          storageSasToken:
+            name: relate-pgsql-backup-creds
+            key: AZURE_STORAGE_SAS_TOKEN
+      {{- end }}
+        wal:
+          maxParallel: 8
+  {{- end }}
+  {{- if (.Values.cnpg).backup }}
+  backup:
+    barmanObjectStore:
+      destinationPath: {{ ((.Values.cnpg).backup).destinationPath }}
+      endpointURL: {{ ((.Values.cnpg).backup).endpointURL }}
+      {{- if eq ((.Values.cnpg).backup).cloud "aws" }}
+      s3Credentials:
+        accessKeyId:
+          name: relate-secret
+          key: ACCESS_KEY_ID
+        secretAccessKey:
+          name: relate-secret
+          key: ACCESS_SECRET_KEY
+      {{- end }}
+      {{- if eq ((.Values.cnpg).backup).cloud "azure" }}
+      azureCredentials:
+        connectionString:
+          name: relate-pgsql-backup-creds
+          key: AZURE_CONNECTION_STRING
+        storageAccount:
+          name: relate-pgsql-backup-creds
+          key: AZURE_STORAGE_ACCOUNT
+        storageKey:
+          name: relate-pgsql-backup-creds
+          key: AZURE_STORAGE_KEY
+        storageSasToken:
+          name: relate-pgsql-backup-creds
+          key: AZURE_STORAGE_SAS_TOKEN
+      {{- end }}
+      wal:
+        encryption: ""
+      data:
+        encryption: ""
+    retentionPolicy: "30d"
+  {{ end  }}
+{{ end }}

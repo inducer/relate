@@ -1,0 +1,10 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: ScheduledBackup
+metadata:
+  name: relate-pg-backup # Name of the backup
+spec:
+  immediate: true # Backup starts immediately after ScheduledBackup has been created
+  backupOwnerReference: self
+  schedule: "0 0 0 * * *"
+  cluster:
+    name: relate-pgsql # Cluster name
