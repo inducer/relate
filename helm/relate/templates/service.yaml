@@ -18,4 +18,11 @@ spec:
       {{- else if eq .Values.service.type "ClusterIP" }}
       nodePort: null
       {{- end }}
+    - name: nginx
+      port: {{ .Values.service.port }}
+      targetPort: 8001
+      port: 8001
   selector: {{- include "relate.matchLabels" . | nindent 4 }}
+
+
+

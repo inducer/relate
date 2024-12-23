@@ -3,6 +3,7 @@ kind: PersistentVolumeClaim
 apiVersion: v1
 metadata:
   name: {{ template "relate.fullname" . }}
+  namespace: {{ include "relate.namespace" . }}
   labels:
     app: {{ template "relate.name" . }}
     chart: "{{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}"
@@ -28,3 +29,17 @@ spec:
 {{- end }}
 {{- end }}
 {{- end }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ .Release.Name }}-staticdata 
+spec:
+  accessModes:
+    - ReadWriteOnce 
+  resources:
+    requests:
+      storage: {{ default "300Mi" .Values.nginx.pvcStorage }} 
+  {{- if .Values.nginx.storageClass }}
+  storageClassName: {{ .Values.nginx.storageClass }}
+  {{- end }}
