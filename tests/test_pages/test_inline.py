@@ -724,7 +724,7 @@ class InlineMultiQuestionTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
         self.assertSandboxNotHasValidPage(resp)
         self.assertResponseContextContains(
             resp, PAGE_ERRORS,
-            "blank1: 'width': unrecogonized width attribute string: '-4em'")
+            "blank1: 'width': unrecognized width attribute string: '-4em'")
 
     def test_negative_weight(self):
         markdown = (INLINE_MULTI_MARKDOWN_EMBEDDED_ATTR_PATTERN
@@ -895,7 +895,7 @@ class InlineMultiQuestionTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
         self.assertSandboxNotHasValidPage(resp)
         self.assertResponseContextContains(
             resp, PAGE_ERRORS,
-            "unrecogonized width attribute string: 'one'")
+            "unrecognized width attribute string: 'one'")
 
         markdown = (INLINE_MULTI_MARKDOWN_EMBEDDED_ATTR_PATTERN
                     % {"attr1": "width: 15 pt",
