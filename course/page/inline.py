@@ -241,7 +241,7 @@ class ShortAnswer(AnswerBase):
             raise ValidationError(
                     string_concat(
                         "%(location)s: ",
-                        _("unrecogonized width attribute string: "
+                        _("unrecognized width attribute string: "
                         "'%(width_attr)s'"))
                     % {
                         "location": location,
