@@ -1960,25 +1960,24 @@ files = [
 
 [[package]]
 name = "pymbolic"
-version = "2024.2"
+version = "2024.2.2"
 description = "A package for symbolic computation"
 optional = false
 python-versions = ">=3.10"
 files = [
-    {file = "pymbolic-2024.2-py3-none-any.whl", hash = "sha256:a175bd4bf93e937493b35b1e7ac1449721e17dd061220d472ccebbc156cb2733"},
-    {file = "pymbolic-2024.2.tar.gz", hash = "sha256:869b11d52c956782c4581b404eae0828c0279be49bcfe32c7e5bf9d756be0036"},
+    {file = "pymbolic-2024.2.2-py3-none-any.whl", hash = "sha256:d6eea7e585c880a6801387a7e24417c801103b9f1903c29d5b0386cc83bdeea5"},
+    {file = "pymbolic-2024.2.2.tar.gz", hash = "sha256:976ccff0ed1b9d5ad3471cf2baa0d02e2301c1ebed5e577b2e05f633c2f53fec"},
 ]
 
 [package.dependencies]
 immutabledict = "*"
 pytools = ">=2024.1.16"
 typing-extensions = ">=4.5"
-useful-types = "*"
 
 [package.extras]
 matchpy = ["matchpy"]
 numpy = ["numpy (>=1.6)"]
-test = ["mypy", "pytest", "ruff"]
+test = ["mypy", "pytest", "ruff", "useful-types"]
 
 [[package]]
 name = "pynacl"
@@ -3031,20 +3030,6 @@ urwid = "*"
 
 [package.extras]
 dev = ["black", "pytest"]
-
-[[package]]
-name = "useful-types"
-version = "0.2.1"
-description = "A collection of useful types."
-optional = false
-python-versions = ">=3.8"
-files = [
-    {file = "useful_types-0.2.1-py3-none-any.whl", hash = "sha256:0dca32763d7271b5c8c7c395c44c10d09dba47a41aec97dcb085041ad096e0e9"},
-    {file = "useful_types-0.2.1.tar.gz", hash = "sha256:870a0bcc8fcb7d0b2f14055438c1cab7e248fded942b0943a4d7019e7fbbdacd"},
-]
-
-[package.dependencies]
-typing_extensions = ">=4.7"
 
 [[package]]
 name = "vine"
