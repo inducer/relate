@@ -121,7 +121,7 @@ pylibmc = { version = "^1.6.0", optional = true }
 
 # urllib3 2.x seems incompatible with dulwich?
 # "urllib3.exceptions.LocationValueError: No host specified."
-urllib3 = "^1.26.19,<2"
+urllib3 = "^2.3.0"
 
 [tool.poetry.dev-dependencies]
 factory_boy = "^3.3.1"
