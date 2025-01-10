@@ -52,6 +52,8 @@ jobs:
         run: poetry run ./.ci/run-mypy.sh
       - name: "Safety"
         run: poetry run ./.ci/run-safety.sh
+        env:
+          SAFETY_API_KEY: ${{ secrets.SAFETY_API_KEY }}
       - name: "Sphinx"
         run: |
             (cd doc; poetry run make html SPHINXOPTS="-W --keep-going -n")
