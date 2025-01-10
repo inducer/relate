@@ -1639,7 +1639,7 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
                         flow_session_id=None, page_ordinal=None, page_id=None,
                         **kwargs):
         query_kwargs = {}
-        if kwargs.get("answer_visit", False):
+        if kwargs.get("answer_visit"):
             query_kwargs.update({"answer__isnull": False})
         flow_params = cls.get_flow_params(course_identifier, flow_session_id)
         query_kwargs.update({"flow_session_id": flow_params["flow_session_id"]})

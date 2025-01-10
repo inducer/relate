@@ -25,6 +25,7 @@ THE SOFTWARE.
 
 from abc import ABC, abstractmethod
 from collections.abc import Callable, Sequence
+from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
 import django.forms as forms
@@ -97,6 +98,7 @@ Automatic Feedback
 """
 
 
+@dataclass
 class PageContext:
     """
     .. attribute:: course
@@ -113,24 +115,13 @@ class PageContext:
     which is used internally by the flow views.
     """
 
-    def __init__(
-            self,
-            course: Course,
-            repo: Repo_ish,
-            commit_sha: bytes,
-            flow_session: FlowSession,
-            in_sandbox: bool = False,
-            page_uri: str | None = None,
-            request: django.http.HttpRequest | None = None,
-            ) -> None:
-
-        self.course = course
-        self.repo = repo
-        self.commit_sha = commit_sha
-        self.flow_session = flow_session
-        self.in_sandbox = in_sandbox
-        self.page_uri = page_uri
-        self.request = request
+    course: Course
+    repo: Repo_ish
+    commit_sha: bytes
+    flow_session: FlowSession
+    in_sandbox: bool = False
+    page_uri: str | None = None
+    request: django.http.HttpRequest | None = None
 
 
 class PageBehavior:
@@ -194,11 +185,11 @@ def round_point_count_to_quarters(
         return int(value)
 
     import math
-    _atol = atol * 4
+    actual_atol = atol * 4
     v = value * 4
-    if abs(v - math.floor(v)) < _atol:
+    if abs(v - math.floor(v)) < actual_atol:
         v = math.floor(v)
-    elif abs(v - math.ceil(v)) < _atol:
+    elif abs(v - math.ceil(v)) < actual_atol:
         v = math.ceil(v)
     else:
         return value

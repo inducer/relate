@@ -26,6 +26,7 @@ THE SOFTWARE.
 import datetime
 import io
 import unittest
+from dataclasses import dataclass
 
 import pytest
 from django.test import Client, TestCase
@@ -659,9 +660,9 @@ fake_access_rules_tag = "fake_tag"
 fake_task_id = "abcdef123"
 
 
+@dataclass
 class MockAsyncRes:
-    def __init__(self):
-        self.id = fake_task_id
+    id: str = fake_task_id
 
 
 class ViewGradesByOpportunityTest(GradesTestMixin, TestCase):

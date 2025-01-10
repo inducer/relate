@@ -27,6 +27,7 @@ import datetime
 import re
 import sys
 from collections.abc import Sequence
+from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Literal, TypeAlias
 
 import dulwich.objects
@@ -226,10 +227,10 @@ datespec_types = (datetime.date, str, datetime.datetime)
 # }}}
 
 
+@dataclass
 class ValidationWarning:
-    def __init__(self, location: str | None, text: str) -> None:
-        self.location = location
-        self.text = text
+    location: str | None
+    text: str
 
 
 class ValidationContext:
@@ -1588,10 +1589,10 @@ class FileSystemFakeRepo:  # pragma: no cover
         return FileSystemFakeRepoTree(self.root)
 
 
+@dataclass
 class FileSystemFakeRepoTreeEntry:  # pragma: no cover
-    def __init__(self, path: bytes, mode: int) -> None:
-        self.path = path
-        self.mode = mode
+    path: bytes
+    mode: int
 
 
 class FileSystemFakeRepoTree:  # pragma: no cover
