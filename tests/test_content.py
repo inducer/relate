@@ -28,6 +28,7 @@ import os
 import stat
 import unittest
 from copy import deepcopy
+from dataclasses import dataclass
 from zoneinfo import ZoneInfo
 
 import pytest
@@ -334,9 +335,9 @@ class GetYamlFromRepoTest(SingleCourseTestMixin, TestCase):
     def test_file_uses_tab_in_indentation(self):
         fake_yaml_bytestream = b"\tabcd\n"
 
+        @dataclass
         class _Blob:
-            def __init__(self):
-                self.data = fake_yaml_bytestream
+            data: bytes = fake_yaml_bytestream
 
         with mock.patch("course.content.get_repo_blob") as mock_get_repo_blob:
             mock_get_repo_blob.return_value = _Blob()

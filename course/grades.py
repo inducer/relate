@@ -24,6 +24,7 @@ THE SOFTWARE.
 """
 
 import re
+from dataclasses import dataclass
 from decimal import Decimal
 from typing import (
     TYPE_CHECKING,
@@ -210,11 +211,10 @@ def view_grading_opportunity_list(pctx):
 
 # {{{ teacher grade book
 
+@dataclass
 class GradeInfo:
-    def __init__(self, opportunity: GradingOpportunity,
-            grade_state_machine: GradeStateMachine) -> None:
-        self.opportunity = opportunity
-        self.grade_state_machine = grade_state_machine
+    opportunity: GradingOpportunity
+    grade_state_machine: GradeStateMachine
 
 
 def get_grade_table(course: Course) -> tuple[

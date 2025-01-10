@@ -28,6 +28,7 @@ import html.parser as html_parser
 import os
 import re
 import sys
+from dataclasses import dataclass
 from typing import cast
 from xml.etree.ElementTree import Element, tostring
 
@@ -1195,9 +1196,9 @@ class TagProcessingHTMLParser(html_parser.HTMLParser):
         self.out_file.write(f"<![{data}]>")
 
 
+@dataclass
 class PreserveFragment:
-    def __init__(self, s: str) -> None:
-        self.s = s
+    s: str
 
 
 class LinkFixerTreeprocessor(Treeprocessor):
