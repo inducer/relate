@@ -23,6 +23,13 @@ spec:
           {{- if .Values.ingress.extraPaths }}
           {{- toYaml .Values.ingress.extraPaths | nindent 10 }}
           {{- end }}
+          - path: /static/
+            pathType: Prefix
+            backend:
+              service:
+                name: relate
+                port:
+                  number: 8001
           - path: {{ .Values.ingress.path }}
             {{- if eq "true" (include "relate.supportsPathType" .) }}
             pathType: {{ .Values.ingress.pathType }}

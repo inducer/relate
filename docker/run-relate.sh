@@ -46,7 +46,9 @@ envsubst </var/www/relate/local_settings_template.py >/var/www/relate/local_sett
 cd /var/www/relate
 
 # create initial db setup if necessary - and superuser
-poetry run python manage.py migrate
+find /var/www/relate/static -mindepth 1 -delete || true
+poetry run python manage.py collectstatic
+poetry run python manage.py migrate --verbosity 3
 poetry run python manage.py createsuperuser --username=relateadmin
 
 # run directly instead of via uwsgi

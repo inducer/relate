@@ -34,6 +34,17 @@ spec:
       priorityClassName: {{ .Values.priorityClassName | quote }}
       {{- end }}
       containers:
+        - name: nginx
+          image: {{  .Values.nginx.image | default "nginx:latest" }}
+          imagePullPolicy: {{  .Values.nginx.pullPolicy | default "IfNotPresent"}}  # Default pull policy if not provided
+          volumeMounts:
+            - name: nginx-config-volume
+              mountPath: /etc/nginx/nginx.conf
+              subPath: nginx.conf
+            - name: shared-static-data
+              mountPath: /var/www/relate/static
+          ports:
+            - containerPort: 8001
         - name: relate
           command:
               - /run-relate.sh
@@ -49,6 +60,11 @@ spec:
               httpHeaders:
                 - name: Host
                   value: relate
+            initialDelaySeconds: 10        
+            periodSeconds: 60             
+            timeoutSeconds: 300             
+            failureThreshold: 30           
+            successThreshold: 1
           readinessProbe:
             httpGet:
               path: /
@@ -56,6 +72,11 @@ spec:
               httpHeaders:
                 - name: Host
                   value: relate
+            initialDelaySeconds: 10
+            periodSeconds: 160
+            timeoutSeconds: 300
+            failureThreshold: 30
+            successThreshold: 1
           {{- if .Values.resources }}
           resources: {{- toYaml .Values.resources | nindent 12 }}
           {{- end }}
@@ -67,6 +88,9 @@ spec:
           volumeMounts:
             - mountPath: /var/www/relate/git-roots
               name: data
+            - name: shared-static-data
+              mountPath:  /var/www/relate/static
+
       volumes:
         - name: data
           {{- if .Values.persistence.enabled }}
@@ -75,3 +99,10 @@ spec:
           {{- else }}
           emptyDir: {{- toYaml .Values.emptyDir | nindent 10 }}
           {{- end  }}
+        - name: shared-static-data
+          persistentVolumeClaim:
+            claimName: {{ .Release.Name }}-staticdata
+        - name: nginx-config-volume
+          configMap:
+            name: {{ .Release.Name }}-nginx-config
+
