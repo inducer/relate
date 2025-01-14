@@ -4,7 +4,7 @@ from django.db import migrations, models
 
 
 def trust_existing_courses_for_markup(apps, schema_editor):
-    Course = apps.get_model("course", "Course")  # noqa: N806
+    Course = apps.get_model("course", "Course")
     for course in Course.objects.all():
         # Existing courses are grandfathered in.
         course.trusted_for_markup = True

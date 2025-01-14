@@ -8,7 +8,7 @@
 {% block content %}
   <h1>{% trans "Analytics" %}: <tt>{{ flow_identifier}} - {{ group_id }}/{{ page_id }}</tt></h1>
 
-  <div class="well">
+  <div class="relate-well">
     {{ body|safe }}
   </div>
 
@@ -48,13 +48,13 @@
       <div class="progress">
         <div class="progress-bar
           {% if astats.correctness == 0 %}
-            progress-bar-danger
+            bg-danger
           {% elif astats.correctness == 1 %}
-            progress-bar-success
+            bg-success
           {% elif astats.correctness == None %}
-            progress-bar-info
+            bg-info
           {% else %}
-            progress-bar-warning
+            bg-warning
           {% endif %}"
           role="progressbar"
           aria-valuenow="{{ astats.percentage }}" aria-valuemin="0" aria-valuemax="100"

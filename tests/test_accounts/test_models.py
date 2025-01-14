@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+
 __copyright__ = "Copyright (C) 2018 Dong Zhuang"
 
 __license__ = """
@@ -20,10 +23,10 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
+from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.db.utils import IntegrityError
 from django.test import TestCase, override_settings
-from django.contrib.auth import get_user_model
 
 from tests.factories import UserFactory
 from tests.utils import mock
@@ -88,6 +91,7 @@ class UserModelTest(TestCase):
                 RELATE_USER_FULL_NAME_FORMAT_METHOD=custom_get_full_name_path):
 
             from accounts.utils import relate_user_method_settings
+
             # clear cached value
             relate_user_method_settings.__dict__ = {}
 
@@ -121,6 +125,7 @@ class UserModelTest(TestCase):
                 RELATE_USER_FULL_NAME_FORMAT_METHOD=custom_get_full_name_path):
 
             from accounts.utils import relate_user_method_settings
+
             # clear cached value
             relate_user_method_settings.__dict__ = {}
 

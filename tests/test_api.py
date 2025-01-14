@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+
 __copyright__ = "Copyright (C) 2020 Dong Zhuang"
 
 __license__ = """
@@ -22,10 +25,8 @@ THE SOFTWARE.
 
 from django.test import TestCase
 
-from tests.base_test_mixins import (
-    SingleCourseQuizPageTestMixin, APITestMixin
-)
 from tests import factories
+from tests.base_test_mixins import APITestMixin, SingleCourseQuizPageTestMixin
 
 
 class GetFlowSessionsTest(APITestMixin, TestCase):
@@ -88,7 +89,7 @@ class GetFlowSessionContentTest(
 
     def test_success_with_visit(self):
         self.start_flow(self.flow_id)
-        self.submit_page_answer_by_page_id_and_test("proof")
+        self.submit_page_answer_by_page_id_and_test("proof_upload")
         self.submit_page_answer_by_page_id_and_test("age_group")
         self.submit_page_answer_by_page_id_and_test("half")
         self.submit_page_answer_by_page_id_and_test("addition")

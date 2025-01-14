@@ -1,12 +1,14 @@
-from django.db import models, migrations
+from django.db import migrations, models
 
 
 def set_course_metadata(apps, schema_editor):
-    Course = apps.get_model("course", "Course")  # noqa
+    Course = apps.get_model("course", "Course")
     for course in Course.objects.all():
         from course.content import (
-                get_course_repo, get_course_desc,
-                get_course_commit_sha)
+            get_course_commit_sha,
+            get_course_desc,
+            get_course_repo,
+        )
 
         repo = get_course_repo(course)
         course_desc = get_course_desc(

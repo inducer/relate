@@ -11,7 +11,7 @@
 
   {% if unanswered_count %}
     <div class="alert alert-danger">
-      <i class="fa fa-warning"></i>
+      <i class="bi bi-exclamation-triangle"></i>
       {% trans "You have left the following question(s) unanswered:" %}
           <ul>
             {% for page_data in unanswered_page_data_list %}
@@ -19,7 +19,7 @@
                 <a href="{% url "relate-view_flow_page" course.identifier flow_session.id page_data.page_ordinal %}">
                   {{ page_data.human_readable_ordinal }}: {{ page_data.title|safe }}
                   {% if page_data.bookmarked %}
-                    <i class="fa fa-star" aria-hidden="true"></i>
+                    <i class="bi bi-star-filled" aria-hidden="true"></i>
                   {% endif %}
                 </a>
               </li>
@@ -54,11 +54,11 @@
     {% endif %}
   </ul>
 
-  <div class="well flow-well">
+  <div class="relate-well flow-well">
     <form method="POST" id="submit-form">
       {% csrf_token %}
 
-      <a class="btn btn-default"
+      <a class="btn btn-secondary"
         href="{% url "relate-view_flow_page" course.identifier flow_session.id last_page_nr %}"
         role="button">&laquo; {% trans "Go back" %}</a>
 
@@ -68,12 +68,12 @@
         </a>
         <button id="submit" type="submit" name="submit" class="btn btn-danger"
                 style="display:none"
-                data-content='<p>{% trans "Are you sure you will submit this session with questions unanswered?" %}</p>
-                        <button id="cancel-button" type="reset" name="cancel" class="btn btn-primary btn-sm" style="float: right;">
+                data-bs-content='<p>{% trans "Are you sure you would like to submit this session with questions unanswered?" %}</p>
+                        <a href="#" id="cancel-button" class="btn btn-primary btn-sm">
                         {% trans "Cancel" %}</button>'
-                data-html="true"
-                data-container="body"
-                data-placement="right"
+                data-bs-html="true"
+                data-bs-container="body"
+                data-bs-placement="right"
           >
             {% trans "I am sure" %} &raquo;
         </button>

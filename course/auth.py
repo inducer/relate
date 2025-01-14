@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+
 __copyright__ = "Copyright (C) 2014 Andreas Kloeckner"
 
 __license__ = """
@@ -23,52 +24,70 @@ THE SOFTWARE.
 """
 
 import re
-from typing import cast
-from django.utils.translation import gettext_lazy as _
-from django.shortcuts import (  # noqa
-        render, get_object_or_404, redirect, resolve_url)
-from django.contrib import messages
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    cast,
+)
+
 import django.forms as forms
-from django.core.exceptions import (PermissionDenied, SuspiciousOperation,
-        ObjectDoesNotExist, MultipleObjectsReturned)
 from crispy_forms.helper import FormHelper
-from crispy_forms.layout import Submit, Layout, Div, Button
+from crispy_forms.layout import Button, Div, Layout, Submit
+from django import http
 from django.conf import settings
-from django.contrib.auth import (get_user_model, REDIRECT_FIELD_NAME,
-        login as auth_login, logout as auth_logout)
-from django.contrib.auth.forms import \
-        AuthenticationForm as AuthenticationFormBase
-from django.contrib.auth.decorators import user_passes_test, login_required
-from django.urls import reverse
+from django.contrib import messages
+from django.contrib.auth import (
+    REDIRECT_FIELD_NAME,
+    get_user_model,
+    login as auth_login,
+    logout as auth_logout,
+)
+from django.contrib.auth.decorators import login_required, user_passes_test
+from django.contrib.auth.forms import AuthenticationForm as AuthenticationFormBase
 from django.contrib.auth.validators import ASCIIUsernameValidator
-from django.utils.http import url_has_allowed_host_and_scheme
+from django.core.exceptions import (
+    MultipleObjectsReturned,
+    ObjectDoesNotExist,
+    PermissionDenied,
+    SuspiciousOperation,
+)
 from django.http import HttpResponseRedirect
+from django.shortcuts import get_object_or_404, redirect, render, resolve_url
 from django.template.response import TemplateResponse
-from django.views.decorators.debug import sensitive_post_parameters
+from django.urls import reverse
+from django.utils.http import url_has_allowed_host_and_scheme
+from django.utils.translation import gettext_lazy as _
 from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_protect
-from django import http  # noqa
-
+from django.views.decorators.debug import sensitive_post_parameters
+from django_select2.forms import ModelSelect2Widget
 from djangosaml2.backends import Saml2Backend
 
-from bootstrap_datepicker_plus.widgets import DateTimePickerInput
-
-from course.constants import (
-        user_status,
-        participation_status,
-        participation_permission as pperm,
-        )
-from course.models import Participation, ParticipationRole, AuthenticationToken  # noqa
 from accounts.models import User
-from course.utils import render_course_page, course_view
+from course.constants import (
+    participation_permission as pperm,
+    participation_status,
+    user_status,
+)
+from course.models import (
+    AuthenticationToken,
+    Participation,
+    ParticipationRole,
+)
+from course.utils import CoursePageContext, course_view, render_course_page
+from relate.utils import (
+    HTML5DateTimeInput,
+    StyledForm,
+    StyledModelForm,
+    get_site_name,
+    string_concat,
+)
 
-from relate.utils import StyledForm, StyledModelForm, string_concat, get_site_name
-from django_select2.forms import ModelSelect2Widget
 
-from typing import Any, Text, Optional, Dict, Union, Tuple, TYPE_CHECKING  # noqa
 if TYPE_CHECKING:
-    from django.db.models import query  # noqa
-    import datetime # noqa
+    import datetime
+
+    from django.db.models import query
 
 
 # {{{ impersonation
@@ -164,20 +183,11 @@ class UserSearchWidget(ModelSelect2Widget):
     def label_from_instance(self, u):
         if u.first_name and u.last_name:
             return (
-                    "%(full_name)s (%(username)s - %(email)s)"
-                    % {
-                        "full_name": u.get_full_name(),
-                        "email": u.email,
-                        "username": u.username
-                        })
+                    f"{u.get_full_name()} ({u.username} - {u.email})")
         else:
             # for users with "None" fullname
             return (
-                    "%(username)s (%(email)s)"
-                    % {
-                        "email": u.email,
-                        "username": u.username
-                        })
+                    f"{u.username} ({u.email})")
 
 
 class ImpersonateForm(StyledForm):
@@ -298,8 +308,8 @@ def impersonation_context_processor(request):
 
 def make_sign_in_key(user: User) -> str:
     # Try to ensure these hashes aren't guessable.
-    import random
     import hashlib
+    import random
     from time import time
     m = hashlib.sha1()
     m.update(user.email.encode("utf-8"))
@@ -493,7 +503,7 @@ def sign_up(request):
 
                 from django.core.mail import EmailMessage
                 msg = EmailMessage(
-                        string_concat("[%s] " % _(get_site_name()),
+                        string_concat(f"[{_(get_site_name())}] ",
                                       _("Verify your email")),
                         message,
                         getattr(settings, "NO_REPLY_EMAIL_FROM",
@@ -632,7 +642,7 @@ def reset_password(request, field="email"):
                             })
                         from django.core.mail import EmailMessage
                         msg = EmailMessage(
-                                string_concat("[%s] " % _(get_site_name()),
+                                string_concat(f"[{_(get_site_name())}] ",
                                               _("Password reset")),
                                 message,
                                 getattr(settings, "NO_REPLY_EMAIL_FROM",
@@ -784,7 +794,7 @@ def sign_in_by_email(request):
             email = form.cleaned_data["email"]
             user, created = get_user_model().objects.get_or_create(
                     email__iexact=email,
-                    defaults=dict(username=email, email=email))
+                    defaults={"username": email, "email": email})
 
             if created:
                 user.set_unusable_password()
@@ -915,8 +925,8 @@ class UserForm(StyledModelForm):
                     "<b>Once %(submitted_or_verified)s, it cannot be "
                     "changed</b>.")
                 % {"submitted_or_verified":
-                   is_inst_id_editable_before_validation()
-                   and _("verified") or _("submitted")})
+                   (is_inst_id_editable_before_validation()
+                   and _("verified")) or _("submitted")})
 
         # {{{ build layout
 
@@ -947,8 +957,7 @@ class UserForm(StyledModelForm):
         self.helper.add_input(
                 Button("signout", _("Sign out"), css_class="btn btn-danger",
                        onclick=(
-                           "window.location.href='%s'"
-                           % reverse("relate-logout"))))
+                           "window.location.href='{}'".format(reverse("relate-logout")))))
 
         # }}}
 
@@ -1177,15 +1186,22 @@ class APIError(Exception):
 
 
 def find_matching_token(
-        course_identifier: str = None,
-        token_id: int = None,
-        token_hash_str: str = None,
-        now_datetime: datetime.datetime = None) -> Optional[AuthenticationToken]:
+        course_identifier: str | None = None,
+        token_id: int | None = None,
+        token_hash_str: str | None = None,
+        now_datetime: datetime.datetime | None = None
+        ) -> AuthenticationToken | None:
+    if token_id is None:
+        return None
+
     try:
         token = AuthenticationToken.objects.get(
                 id=token_id,
                 participation__course__identifier=course_identifier)
     except AuthenticationToken.DoesNotExist:
+        return None
+
+    if token.token_hash is None:
         return None
 
     from django.contrib.auth.hashers import check_password
@@ -1194,8 +1210,11 @@ def find_matching_token(
 
     if token.revocation_time is not None:
         return None
-    if token.valid_until is not None and now_datetime > token.valid_until:
-        return None
+    if token.valid_until is not None:
+        if now_datetime is None:
+            return None
+        if now_datetime > token.valid_until:
+            return None
 
     return token
 
@@ -1245,7 +1264,7 @@ class APIContext:
 
         self.restrict_to_role = restrict_to_role
 
-    def has_permission(self, perm: str, argument: Optional[str] = None) -> bool:
+    def has_permission(self, perm: str, argument: str | None = None) -> bool:
         if self.restrict_to_role is None:
             return self.participation.has_permission(perm, argument)
         else:
@@ -1264,7 +1283,7 @@ def auth_course_with_token(method, func, request,
     now_datetime = now()
 
     try:
-        auth_header = request.META.get("HTTP_AUTHORIZATION", None)
+        auth_header = request.headers.get("authorization", None)
         if auth_header is None:
             raise PermissionDenied("No Authorization header provided")
 
@@ -1280,8 +1299,8 @@ def auth_course_with_token(method, func, request,
             match = TOKEN_AUTH_DATA_RE.match(auth_data)
 
         elif method == "Basic":
-            from base64 import b64decode
             import binascii
+            from base64 import b64decode
             try:
                 auth_data = b64decode(auth_data.strip()).decode(
                         "utf-8", errors="replace")
@@ -1298,9 +1317,11 @@ def auth_course_with_token(method, func, request,
         token_id = int(match.group("token_id"))
         token_hash_str = match.group("token_hash")
 
-        auth_data_dict = dict(course_identifier=course_identifier,
-            token_id=token_id, token_hash_str=token_hash_str,
-            now_datetime=now_datetime)
+        auth_data_dict = {
+                "course_identifier": course_identifier,
+                "token_id": token_id,
+                "token_hash_str": token_hash_str,
+                "now_datetime": now_datetime}
 
         # FIXME: Redundant db roundtrip
         token = find_matching_token(**auth_data_dict)
@@ -1326,7 +1347,7 @@ def auth_course_with_token(method, func, request,
             realm = _(f"Relate direct git access for {course_identifier}")
             response = http.HttpResponse("Forbidden: " + str(e),
                         content_type="text/plain")
-            response["WWW-Authenticate"] = 'Basic realm="%s"' % (realm)
+            response["WWW-Authenticate"] = f'Basic realm="{realm}"'
             response.status_code = 401
             return response
 
@@ -1370,7 +1391,7 @@ class AuthenticationTokenForm(StyledModelForm):
                 )
 
         widgets = {
-                "valid_until": DateTimePickerInput(options={"format": "YYYY-MM-DD"})
+                "valid_until": HTML5DateTimeInput()
                 }
 
     def __init__(
@@ -1388,7 +1409,7 @@ class AuthenticationTokenForm(StyledModelForm):
                             pperm.impersonate_role, prole.identifier)}
                 )
 
-        self.fields["restrict_to_participation_role"].queryset = (
+        self.fields["restrict_to_participation_role"].queryset = (  # type:ignore[attr-defined]
                 ParticipationRole.objects.filter(
                     id__in=list(allowable_role_ids)
                     ))
@@ -1397,8 +1418,7 @@ class AuthenticationTokenForm(StyledModelForm):
 
 
 @course_view
-def manage_authentication_tokens(pctx: http.HttpRequest) -> http.HttpResponse:
-
+def manage_authentication_tokens(pctx: CoursePageContext) -> http.HttpResponse:
     request = pctx.request
 
     if not request.user.is_authenticated:
@@ -1406,6 +1426,7 @@ def manage_authentication_tokens(pctx: http.HttpRequest) -> http.HttpResponse:
 
     if not pctx.has_permission(pperm.view_analytics):
         raise PermissionDenied()
+    assert pctx.participation is not None
 
     from course.views import get_now_or_fake_time
     now_datetime = get_now_or_fake_time(request)
@@ -1434,7 +1455,7 @@ def manage_authentication_tokens(pctx: http.HttpRequest) -> http.HttpResponse:
 
                 from django.contrib.auth.hashers import make_password
                 auth_token = AuthenticationToken(
-                        user=pctx.request.user,
+                        user=request.user,
                         participation=pctx.participation,
                         restrict_to_participation_role=form.cleaned_data[
                             "restrict_to_participation_role"],
@@ -1457,9 +1478,9 @@ def manage_authentication_tokens(pctx: http.HttpRequest) -> http.HttpResponse:
     else:
         form = AuthenticationTokenForm(pctx.participation)
 
-    from django.db.models import Q
-
     from datetime import timedelta
+
+    from django.db.models import Q
     tokens = AuthenticationToken.objects.filter(
             user=request.user,
             participation__course=pctx.course,

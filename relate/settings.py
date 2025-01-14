@@ -1,19 +1,24 @@
 """
 Django settings for RELATE.
 """
+from __future__ import annotations
 
-from typing import Callable, Any, Union, Dict  # noqa
+import os
+
+# Build paths inside the project like this: os.path.join(BASE_DIR, ...)
+import sys
+from collections.abc import Callable
+from os.path import join
+from typing import Any
+
+from django.conf.global_settings import STORAGES
+from django.utils.translation import gettext_noop
+
 
 # Do not change this file. All these settings can be overridden in
 # local_settings.py.
 
-from django.conf.global_settings import STATICFILES_FINDERS
-from django.utils.translation import gettext_noop
 
-# Build paths inside the project like this: os.path.join(BASE_DIR, ...)
-import sys
-import os
-from os.path import join
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 
 RELATE_EMAIL_SMTP_ALLOW_NONAUTHORIZED_SENDER = True
@@ -27,15 +32,13 @@ if os.environ.get("RELATE_LOCAL_TEST_SETTINGS", None):
 
 if not os.path.isfile(_local_settings_file):
     raise RuntimeError(
-        "Management command '%(cmd_name)s' failed to run "
-        "because '%(local_settings_file)s' is missing."
-        % {"cmd_name": sys.argv[1],
-           "local_settings_file": _local_settings_file})
+        f"Management command '{sys.argv[1]}' failed to run "
+        f"because '{_local_settings_file}' is missing.")
 
 local_settings_module_name, ext = (
     os.path.splitext(os.path.split(_local_settings_file)[-1]))
 assert ext == ".py"
-exec("import %s as local_settings_module" % local_settings_module_name)
+exec(f"import {local_settings_module_name} as local_settings_module")
 
 local_settings = local_settings_module.__dict__  # type: ignore  # noqa
 
@@ -49,21 +52,23 @@ INSTALLED_APPS = (
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "social_django",
+
     "crispy_forms",
+    "crispy_bootstrap5",
+
     "jsonfield",
     "django_select2",
-
-    "bootstrap_datepicker_plus",
 
     # message queue
     "django_celery_results",
 
     "accounts",
     "course",
+    "prairietest",
 )
 
 if local_settings.get("RELATE_SIGN_IN_BY_SAML2_ENABLED"):
-    INSTALLED_APPS = INSTALLED_APPS + ("djangosaml2",)  # type: ignore
+    INSTALLED_APPS = (*INSTALLED_APPS, "djangosaml2",)  # type: ignore
 
 SOCIAL_AUTH_POSTGRES_JSONFIELD = (
         "DATABASES" in local_settings
@@ -90,7 +95,7 @@ MIDDLEWARE = (
     "social_django.middleware.SocialAuthExceptionMiddleware",
 )
 if local_settings.get("RELATE_SIGN_IN_BY_SAML2_ENABLED"):
-    MIDDLEWARE = MIDDLEWARE + (  # type: ignore
+    MIDDLEWARE = (*MIDDLEWARE,   # type: ignore
         "djangosaml2.middleware.SamlSessionMiddleware",)
 
 CSRF_COOKIE_NAME = "relate_csrftoken"
@@ -109,7 +114,7 @@ AUTHENTICATION_BACKENDS = (
     )
 
 if local_settings.get("RELATE_SIGN_IN_BY_SAML2_ENABLED"):
-    AUTHENTICATION_BACKENDS = AUTHENTICATION_BACKENDS + (  # type: ignore
+    AUTHENTICATION_BACKENDS = (*AUTHENTICATION_BACKENDS,   # type: ignore
             "course.auth.RelateSaml2Backend",
             )
 
@@ -144,16 +149,6 @@ LOGIN_ERROR_URL = "/"
 
 # }}}
 
-# {{{ django-npm
-
-STATICFILES_FINDERS = tuple(STATICFILES_FINDERS) + (
-    "npm.finders.NpmFinder",
-    )
-
-CODEMIRROR_PATH = "codemirror"
-
-# }}}
-
 ROOT_URLCONF = "relate.urls"
 
 CRISPY_FAIL_SILENTLY = False
@@ -177,7 +172,8 @@ RELATE_EXTRA_CONTEXT_PROCESSORS = (
 
 # {{{ templates
 
-CRISPY_TEMPLATE_PACK = "bootstrap3"
+CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"
+CRISPY_TEMPLATE_PACK = "bootstrap5"
 
 TEMPLATES = [
     {
@@ -191,12 +187,12 @@ TEMPLATES = [
                 "django.contrib.auth.context_processors.auth",
                 "django.template.context_processors.debug",
                 "django.template.context_processors.i18n",
-                "django.template.context_processors.media",
-                "django.template.context_processors.static",
-                "django.template.context_processors.tz",
-                "django.template.context_processors.request",
-                "django.contrib.messages.context_processors.messages",
-                ) + RELATE_EXTRA_CONTEXT_PROCESSORS,
+                 "django.template.context_processors.media",
+                 "django.template.context_processors.static",
+                 "django.template.context_processors.tz",
+                 "django.template.context_processors.request",
+                 "django.contrib.messages.context_processors.messages",
+                 *RELATE_EXTRA_CONTEXT_PROCESSORS),
             "builtins": ["course.templatetags.coursetags"],
             }
     },
@@ -206,13 +202,13 @@ RELATE_OVERRIDE_TEMPLATES_DIRS = (
     local_settings.get("RELATE_OVERRIDE_TEMPLATES_DIRS", []))
 if RELATE_OVERRIDE_TEMPLATES_DIRS:
     TEMPLATES[0]["DIRS"] = (
-        tuple(RELATE_OVERRIDE_TEMPLATES_DIRS) + TEMPLATES[0]["DIRS"])   # type: ignore  # noqa
+        tuple(RELATE_OVERRIDE_TEMPLATES_DIRS) + TEMPLATES[0]["DIRS"])   # type: ignore
 
 # }}}
 
 # {{{ database
 
-# default, likely overriden by local_settings.py
+# default, likely overridden by local_settings.py
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
@@ -228,10 +224,8 @@ LANGUAGE_CODE = "en-us"
 
 USE_I18N = True
 
-USE_L10N = True
 
 USE_TZ = True
-USE_DEPRECATED_PYTZ = True
 
 # }}}
 
@@ -248,12 +242,20 @@ LOGIN_REDIRECT_URL = "/"
 
 STATICFILES_DIRS = (
         join(BASE_DIR, "relate", "static"),
+        join(BASE_DIR, "node_modules", "mathjax", "es5"),
         join(BASE_DIR, "frontend-dist"),
         )
 
 STATIC_URL = "/static/"
 
 STATIC_ROOT = join(BASE_DIR, "static")
+
+STORAGES = {
+    **STORAGES,
+    "staticfiles": {
+        "BACKEND": "django.contrib.staticfiles.storage.ManifestStaticFilesStorage",
+    },
+}
 
 # bundled select2 "static" resources instead of from CDN
 SELECT2_JS = ""
@@ -266,7 +268,11 @@ SESSION_COOKIE_AGE = 12096000  # 20 weeks
 
 # {{{ app defaults
 
-RELATE_FACILITIES: Union[None,Dict[str, Dict[str, Any]], Callable[..., Dict[str, Dict[str, Any]]], ] = {}  # noqa
+RELATE_FACILITIES: (
+    dict[str, dict[str, Any]]
+    | Callable[..., dict[str, dict[str, Any]]]
+    | None
+) = {}
 
 RELATE_TICKET_MINUTES_VALID_AFTER_USE = 0
 

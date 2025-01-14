@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+
 __copyright__ = "Copyright (C) 2018 Dong Zhuang, Zesheng Wang, Andreas Kloeckner"
 
 __license__ = """
@@ -20,31 +23,36 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-import pytest
-import io
 import datetime
-from django.test import TestCase, Client
+import io
+import unittest
+from dataclasses import dataclass
+
+import pytest
+from django.test import Client, TestCase
 from django.urls import reverse
 from django.utils.timezone import now, timedelta
-import unittest
 
-from relate.utils import local_now
-
-from course import models, grades, constants
+from course import constants, grades, models
 from course.constants import (
-    grade_aggregation_strategy as g_stragety,
+    grade_aggregation_strategy as g_strategy,
     grade_state_change_types as g_state,
-    participation_permission as pperm)
+    participation_permission as pperm,
+)
 from course.flow import reopen_session
 from course.grades import (
-    get_single_grade_changes_and_state_machine as get_gc_and_machine)
-
-from tests.utils import mock
-from tests.base_test_mixins import (
-    SingleCoursePageTestMixin, SingleCourseQuizPageTestMixin,
-    HackRepoMixin, MockAddMessageMixing)
+    get_single_grade_changes_and_state_machine as get_gc_and_machine,
+)
+from relate.utils import local_now
 from tests import factories
+from tests.base_test_mixins import (
+    HackRepoMixin,
+    MockAddMessageMixing,
+    SingleCoursePageTestMixin,
+    SingleCourseQuizPageTestMixin,
+)
 from tests.constants import QUIZ_FLOW_ID
+from tests.utils import mock
 
 
 def get_session_grading_rule_use_last_activity_as_cmplt_time_side_effect(
@@ -60,16 +68,16 @@ class GradesTestMixin(SingleCoursePageTestMixin, MockAddMessageMixing):
     time = now() - timedelta(days=10)
 
     @classmethod
-    def setUpTestData(cls):  # noqa
+    def setUpTestData(cls):
         super().setUpTestData()
         cls.gopp = factories.GradingOpportunityFactory(
-            course=cls.course, aggregation_strategy=g_stragety.use_latest)
+            course=cls.course, aggregation_strategy=g_strategy.use_latest)
 
     def setUp(self):
         super().setUp()
         self.gopp.refresh_from_db()
 
-    def use_default_setup(self):  # noqa
+    def use_default_setup(self):
         self.session1 = factories.FlowSessionFactory.create(
             participation=self.student_participation, completion_time=self.time)
         self.time_increment()
@@ -163,15 +171,14 @@ class GradesTestMixin(SingleCoursePageTestMixin, MockAddMessageMixing):
             expected_percentage = None
 
         not_equal_msg = (
-                "%s does not have equal value with '%s'"
-                % (state_string, str(expected_percentage))
+            f"{state_string} does not have equal value with '{expected_percentage!s}'"
         )
 
         if percentage is not None and expected_percentage is not None:
             self.assertTrue(
                 abs(percentage - expected_percentage) < 1e-4, msg=not_equal_msg)
         else:
-            if type(percentage) != type(expected_percentage):
+            if type(percentage) is not type(expected_percentage):
                 self.fail(not_equal_msg)
 
         if percentage is None and expected_percentage is None:
@@ -373,7 +380,7 @@ class GetGradeTableTest(GradesTestMixin, TestCase):
     # test grades.get_grade_table
 
     @classmethod
-    def setUpTestData(cls):  # noqa
+    def setUpTestData(cls):
         super().setUpTestData()
         # 2 more participations
         (cls.ptpt1, cls.ptpt2) = factories.ParticipationFactory.create_batch(
@@ -653,9 +660,9 @@ fake_access_rules_tag = "fake_tag"
 fake_task_id = "abcdef123"
 
 
+@dataclass
 class MockAsyncRes:
-    def __init__(self):
-        self.id = fake_task_id
+    id: str = fake_task_id
 
 
 class ViewGradesByOpportunityTest(GradesTestMixin, TestCase):
@@ -757,7 +764,7 @@ class ViewGradesByOpportunityTest(GradesTestMixin, TestCase):
                         self.mock_recalculate_ended_sessions.call_count, 0)
 
     def test_batch_op_no_permission2(self):
-        # with partitial permission
+        # with partial permission
         permission_ops = [
             (pperm.batch_end_flow_session, "end"),
             (pperm.batch_impose_flow_session_deadline, "expire"),
@@ -870,9 +877,9 @@ class ViewGradesByOpportunityTest(GradesTestMixin, TestCase):
         # There're 3 participations, student has 2 finished session,
         # 1 in-progress session
 
-        not_started = '<span class="label label-danger">not started</span>'
-        finished = '<span class="label label-success">finished</span>'
-        unfinished = '<span class="label label-warning">unfinished</span>'
+        not_started = '<span class="badge bg-danger">not started</span>'
+        finished = '<span class="badge bg-success">finished</span>'
+        unfinished = '<span class="badge bg-warning">unfinished</span>'
 
         resp = self.get_gradebook_by_opp_view(self.gopp_id)
         self.assertEqual(resp.status_code, 200)
@@ -964,13 +971,13 @@ class GradesChangeStateMachineTest(GradesTestMixin, TestCase):
 
     def test_change_aggregate_strategy_average(self):
         self.use_default_setup()
-        self.update_gopp_strategy(g_stragety.avg_grade)
+        self.update_gopp_strategy(g_strategy.avg_grade)
         self.assertGradeChangeMachineReadableStateEqual(4.333)
         self.assertGradeChangeStateEqual("4.3% (/3)")
 
     def test_change_aggregate_strategy_earliest(self):
         self.use_default_setup()
-        self.update_gopp_strategy(g_stragety.use_earliest)
+        self.update_gopp_strategy(g_strategy.use_earliest)
         self.assertGradeChangeMachineReadableStateEqual(0)
         self.assertGradeChangeStateEqual("0.0% (/3)")
 
@@ -981,7 +988,7 @@ class GradesChangeStateMachineTest(GradesTestMixin, TestCase):
 
     def test_change_aggregate_strategy_max(self):
         self.use_default_setup()
-        self.update_gopp_strategy(g_stragety.max_grade)
+        self.update_gopp_strategy(g_strategy.max_grade)
         self.assertGradeChangeMachineReadableStateEqual(7)
         self.assertGradeChangeStateEqual("7.0% (/3)")
 
@@ -992,7 +999,7 @@ class GradesChangeStateMachineTest(GradesTestMixin, TestCase):
 
     def test_change_aggregate_strategy_max_none(self):
         # when no grade change has percentage
-        self.update_gopp_strategy(g_stragety.max_grade)
+        self.update_gopp_strategy(g_strategy.max_grade)
         self.assertGradeChangeMachineReadableStateEqual("NONE")
         self.assertGradeChangeStateEqual("- ∅ -")
 
@@ -1007,13 +1014,13 @@ class GradesChangeStateMachineTest(GradesTestMixin, TestCase):
 
     def test_change_aggregate_strategy_min(self):
         self.use_default_setup()
-        self.update_gopp_strategy(g_stragety.min_grade)
+        self.update_gopp_strategy(g_strategy.min_grade)
         self.assertGradeChangeMachineReadableStateEqual(0)
         self.assertGradeChangeStateEqual("0.0% (/3)")
 
     def test_change_aggregate_strategy_min_none(self):
         # when no grade change has percentage
-        self.update_gopp_strategy(g_stragety.min_grade)
+        self.update_gopp_strategy(g_strategy.min_grade)
         self.assertGradeChangeMachineReadableStateEqual("NONE")
         self.assertGradeChangeStateEqual("- ∅ -")
 
@@ -1073,7 +1080,7 @@ class GradesChangeStateMachineTest(GradesTestMixin, TestCase):
         self.assertGradeChangeMachineReadableStateEqual(10)
         self.assertGradeChangeStateEqual("10.0% (/3)")
 
-    def test_update_ealiest_gc_of_ealier_finished_session(self):
+    def test_update_earliest_gc_of_earlier_finished_session(self):
         self.use_default_setup()
         self.assertGradeChangeMachineReadableStateEqual(6)
 
@@ -1083,7 +1090,7 @@ class GradesChangeStateMachineTest(GradesTestMixin, TestCase):
 
     def test_gc_without_attempt_id(self):
         # TODO: Is it a bug? percentage of GradeChanges without attempt_id are
-        # put at the begining of the valid_percentages list.
+        # put at the beginning of the valid_percentages list.
 
         # Uncomment the following to see the failure
         # self.use_default_setup()
@@ -1093,8 +1100,8 @@ class GradesChangeStateMachineTest(GradesTestMixin, TestCase):
         # self.time_increment()
 
         # create a gc without attempt_id
-        gc = factories.GradeChangeFactory.create(  # noqa
-            **(self.gc(points=8.5, null_attempt_id=True)))  # noqa
+        gc = factories.GradeChangeFactory.create(
+            **(self.gc(points=8.5, null_attempt_id=True)))
         # print(gc.grade_time)
 
         machine = self.get_gc_machine()
@@ -1230,12 +1237,12 @@ class ViewParticipantGradesTest2(GradesTestMixin, TestCase):
         super().setUp()
         self.use_default_setup()
         self.gopp_hidden_in_gradebook = factories.GradingOpportunityFactory(
-            course=self.course, aggregation_strategy=g_stragety.use_latest,
+            course=self.course, aggregation_strategy=g_strategy.use_latest,
             flow_id=None, shown_in_grade_book=False,
             identifier="hidden_in_instructor_grade_book")
 
         self.gopp_hidden_in_gradebook = factories.GradingOpportunityFactory(
-            course=self.course, aggregation_strategy=g_stragety.use_latest,
+            course=self.course, aggregation_strategy=g_strategy.use_latest,
             flow_id=None, shown_in_grade_book=False,
             identifier="only_hidden_in_grade_book")
 
@@ -1243,13 +1250,13 @@ class ViewParticipantGradesTest2(GradesTestMixin, TestCase):
             factories.GradingOpportunityFactory(
                 course=self.course,
                 shown_in_participant_grade_book=False,
-                aggregation_strategy=g_stragety.use_latest,
+                aggregation_strategy=g_strategy.use_latest,
                 flow_id=None, identifier="all_hidden_in_ptcp_gradebook"))
 
         self.gopp_result_hidden_in_participation_gradebook = (
             factories.GradingOpportunityFactory(
                 course=self.course, result_shown_in_participant_grade_book=False,
-                aggregation_strategy=g_stragety.use_latest,
+                aggregation_strategy=g_strategy.use_latest,
                 flow_id=None, identifier="result_hidden_in_ptcp_gradebook"))
 
         self.gc_gopp_result_hidden = factories.GradeChangeFactory(
@@ -1293,7 +1300,7 @@ class ViewParticipantGradesTest2(GradesTestMixin, TestCase):
             self.assertEqual((len(grade_table)), 3)
             self.assertEqual([g_info.opportunity.identifier
                               for g_info in grade_table],
-                             ['all_hidden_in_ptcp_gradebook',
+                             ["all_hidden_in_ptcp_gradebook",
                               factories.DEFAULT_GRADE_IDENTIFIER,
                               "result_hidden_in_ptcp_gradebook"])
 
@@ -1342,9 +1349,9 @@ class ViewReopenSessionTest(GradesTestMixin, TestCase):
     def test_already_in_progress(self):
         # not unsubmit, because we don't have previoius grade visit (which will
         # result in error)
-        data = {'set_access_rules_tag': ['<<<NONE>>>'],
-                'comment': ['test reopen'],
-                'reopen': ''}
+        data = {"set_access_rules_tag": ["<<<NONE>>>"],
+                "comment": ["test reopen"],
+                "reopen": ""}
 
         resp = self.post_reopen_session_view(
             self.gopp_id, flow_session_id=self.fs2.pk, data=data)
@@ -1362,9 +1369,9 @@ class ViewReopenSessionTest(GradesTestMixin, TestCase):
 
         # not unsubmit, because we don't have previoius grade visit (which will
         # result in error)
-        data = {'set_access_rules_tag': ['<<<NONE>>>'],
-                'comment': ['test reopen'],
-                'reopen': ''}
+        data = {"set_access_rules_tag": ["<<<NONE>>>"],
+                "comment": ["test reopen"],
+                "reopen": ""}
 
         resp = self.post_reopen_session_view(
             self.gopp_id, flow_session_id=self.fs1.pk, data=data)
@@ -1382,9 +1389,9 @@ class ViewReopenSessionTest(GradesTestMixin, TestCase):
 
             # not unsubmit, because we don't have previoius grade visit (which will
             # result in error)
-            data = {'set_access_rules_tag': ['blahblah'],
-                    'comment': ['test reopen'],
-                    'reopen': ''}
+            data = {"set_access_rules_tag": ["blahblah"],
+                    "comment": ["test reopen"],
+                    "reopen": ""}
 
             resp = self.post_reopen_session_view(
                 self.gopp_id, flow_session_id=self.fs1.pk, data=data)
@@ -1392,7 +1399,7 @@ class ViewReopenSessionTest(GradesTestMixin, TestCase):
 
         self.fs1.refresh_from_db()
         self.assertTrue(self.fs1.in_progress)
-        self.assertEqual(self.fs1.access_rules_tag, 'blahblah')
+        self.assertEqual(self.fs1.access_rules_tag, "blahblah")
 
 
 class ViewSingleGradeTest(GradesTestMixin, TestCase):
@@ -1506,14 +1513,14 @@ class ViewSingleGradeTest(GradesTestMixin, TestCase):
             with self.subTest(op=op):
                 resp = self.post_view_single_grade(
                     self.student_participation, self.gopp,
-                    data={"%s_%d" % (op, fs.pk): ''},
+                    data={"%s_%d" % (op, fs.pk): ""},
                     force_login_instructor=False)
                 self.assertEqual(resp.status_code, 403)
 
     def test_post_no_action_match(self):
         resp = self.post_view_single_grade(
             self.student_participation, self.gopp,
-            data={"blablabal": ''})
+            data={"blablabal": ""})
         self.assertEqual(resp.status_code, 400)
 
     def test_post(self):
@@ -1532,7 +1539,7 @@ class ViewSingleGradeTest(GradesTestMixin, TestCase):
             with self.subTest(op=op):
                 resp = self.post_view_single_grade(
                     self.student_participation, self.gopp,
-                    data={"%s_%d" % (op, fs.pk): ''})
+                    data={"%s_%d" % (op, fs.pk): ""})
                 self.assertEqual(resp.status_code, 200)
                 self.assertEqual(mock_func.call_count, 1)
                 self.assertAddMessageCalledWith(msg, reset=True)
@@ -1544,7 +1551,7 @@ class ViewSingleGradeTest(GradesTestMixin, TestCase):
 
         resp = self.post_view_single_grade(
             self.student_participation, self.gopp,
-            data={"blablabal_%d" % fs.pk: ''})
+            data={"blablabal_%d" % fs.pk: ""})
         self.assertEqual(resp.status_code, 400)
 
     def test_post_keyboard_interrupt(self):
@@ -1569,11 +1576,11 @@ class ViewSingleGradeTest(GradesTestMixin, TestCase):
             with self.subTest(op=op):
                 resp = self.post_view_single_grade(
                     self.student_participation, self.gopp,
-                    data={"%s_%d" % (op, fs.pk): ''})
+                    data={"%s_%d" % (op, fs.pk): ""})
                 self.assertEqual(resp.status_code, 200)
                 self.assertAddMessageNotCalledWith(msg, reset=False)
                 self.assertAddMessageCalledWith(
-                    "Error: KeyboardInterrupt %s" % err, reset=True)
+                    f"Error: KeyboardInterrupt {err}", reset=True)
 
                 mock_func.reset_mock()
 
@@ -1684,18 +1691,18 @@ class EditGradingOpportunityTest(GradesTestMixin, TestCase):
     def edit_grading_opportunity_post_data(
             self, name, identifier, page_scores_in_participant_gradebook=False,
             hide_superseded_grade_history_before=None,
-            op="sumbit", shown_in_participant_grade_book=True,
+            op="submit", shown_in_participant_grade_book=True,
             aggregation_strategy=constants.grade_aggregation_strategy.use_latest,
             shown_in_grade_book=True, result_shown_in_participant_grade_book=True,
             **kwargs):
 
         data = {"name": name,
                 "identifier": identifier,
-                op: '',
+                op: "",
                 "aggregation_strategy": aggregation_strategy}
 
         if page_scores_in_participant_gradebook:
-            data["page_scores_in_participant_gradebook"] = ''
+            data["page_scores_in_participant_gradebook"] = ""
 
         if hide_superseded_grade_history_before:
             if isinstance(hide_superseded_grade_history_before, datetime.datetime):
@@ -1706,11 +1713,11 @@ class EditGradingOpportunityTest(GradesTestMixin, TestCase):
             data["hide_superseded_grade_history_before"] = (
                 hide_superseded_grade_history_before)
         if shown_in_participant_grade_book:
-            data["shown_in_participant_grade_book"] = ''
+            data["shown_in_participant_grade_book"] = ""
         if shown_in_grade_book:
-            data["shown_in_grade_book"] = ''
+            data["shown_in_grade_book"] = ""
         if result_shown_in_participant_grade_book:
-            data["result_shown_in_participant_grade_book"] = ''
+            data["result_shown_in_participant_grade_book"] = ""
 
         data.update(kwargs)
         return data
@@ -1789,7 +1796,7 @@ class DownloadAllSubmissionsTest(SingleCourseQuizPageTestMixin,
     my_access_rule_tag = "my_access_rule_tag"
 
     @classmethod
-    def setUpTestData(cls):  # noqa
+    def setUpTestData(cls):
         super().setUpTestData()
 
         # with this faked commit_sha, we may do multiple submissions
@@ -1810,14 +1817,14 @@ class DownloadAllSubmissionsTest(SingleCourseQuizPageTestMixin,
         fs.save()
 
         cls.start_flow(client, cls.flow_id)
-        cls.submit_page_answer_by_page_id_and_test(client, "proof")
+        cls.submit_page_answer_by_page_id_and_test(client, "proof_upload")
         cls.submit_page_answer_by_page_id_and_test(client, cls.page_id)
         cls.end_flow(client)
 
         # create an in_progress flow, with the same page submitted
-        another_particpation = factories.ParticipationFactory(
+        another_participation = factories.ParticipationFactory(
             course=cls.course)
-        client.force_login(another_particpation.user)
+        client.force_login(another_participation.user)
         cls.start_flow(client, cls.flow_id)
         cls.submit_page_answer_by_page_id_and_test(client, cls.page_id)
 
@@ -1839,12 +1846,12 @@ class DownloadAllSubmissionsTest(SingleCourseQuizPageTestMixin,
         assert isinstance(extensions, list)
         assert isinstance(counts, list)
         assert len(extensions) == len(counts)
-        prefix, zip_file = resp["Content-Disposition"].split('=')
+        prefix, zip_file = resp["Content-Disposition"].split("=")
         self.assertEqual(prefix, "attachment; filename")
-        self.assertEqual(resp.get('Content-Type'), "application/zip")
+        self.assertEqual(resp.get("Content-Type"), "application/zip")
         buf = io.BytesIO(resp.content)
         import zipfile
-        with zipfile.ZipFile(buf, 'r') as zf:
+        with zipfile.ZipFile(buf, "r") as zf:
             self.assertIsNone(zf.testzip())
 
             for f in zf.filelist:
@@ -1900,7 +1907,7 @@ class DownloadAllSubmissionsTest(SingleCourseQuizPageTestMixin,
     def test_download_include_feedback_no_feedback(self):
         with self.temporarily_switch_to_user(self.instructor_participation.user):
             another_group_page_id = (
-                self.group_page_id.replace(self.page_id, "proof"))
+                self.group_page_id.replace(self.page_id, "proof_upload"))
             resp = self.post_download_all_submissions_by_group_page_id(
                 group_page_id=another_group_page_id, flow_id=self.flow_id,
                 include_feedback=True)
@@ -1914,8 +1921,8 @@ class DownloadAllSubmissionsTest(SingleCourseQuizPageTestMixin,
             import os
             with open(
                     os.path.join(os.path.dirname(__file__),
-                                 '../resource',
-                                 'test_file.pdf'), 'rb') as extra_file:
+                                 "../resource",
+                                 "test_file.pdf"), "rb") as extra_file:
                 resp = self.post_download_all_submissions_by_group_page_id(
                     group_page_id=self.group_page_id, flow_id=self.flow_id,
                     extra_file=extra_file)
@@ -1958,10 +1965,10 @@ class PointsEqualTest(unittest.TestCase):
     def test(self):
         from decimal import Decimal
         self.assertTrue(grades.points_equal(None, None))
-        self.assertFalse(grades.points_equal(Decimal(1.11), None))
-        self.assertFalse(grades.points_equal(None, Decimal(1.11)))
-        self.assertTrue(grades.points_equal(Decimal(1.11), Decimal(1.11)))
-        self.assertFalse(grades.points_equal(Decimal(1.11), Decimal(1.12)))
+        self.assertFalse(grades.points_equal(Decimal("1.11"), None))
+        self.assertFalse(grades.points_equal(None, Decimal("1.11")))
+        self.assertTrue(grades.points_equal(Decimal("1.11"), Decimal("1.11")))
+        self.assertFalse(grades.points_equal(Decimal("1.11"), Decimal("1.12")))
 
 
 @unittest.SkipTest
@@ -2022,7 +2029,7 @@ class FixingTest(GradesTestMixin, TestCase):
 
             # create a flow page visit, then there should be last_activity() for
             # the session.
-            self.post_answer_by_ordinal(1, {"answer": ['0.5']})
+            self.post_answer_by_ordinal(1, {"answer": ["0.5"]})
             self.assertEqual(
                 models.FlowPageVisit.objects.filter(answer__isnull=False).count(),
                 1)
@@ -2035,7 +2042,7 @@ class FixingTest(GradesTestMixin, TestCase):
             with mock.patch("course.flow.get_session_grading_rule") as \
                     mock_get_grading_rule:
                 mock_get_grading_rule.side_effect = (
-                    get_session_grading_rule_use_last_activity_as_cmplt_time_side_effect)  # noqa
+                    get_session_grading_rule_use_last_activity_as_cmplt_time_side_effect)
                 resp = self.end_flow()
                 self.assertEqual(resp.status_code, 200)
 
@@ -2050,7 +2057,7 @@ class FixingTest(GradesTestMixin, TestCase):
 
     # {{{ Fixed issue #263 and #417
 
-    def test_update_latest_gc_of_ealier_finished_session(self):
+    def test_update_latest_gc_of_earlier_finished_session(self):
         self.use_default_setup()
         self.assertGradeChangeMachineReadableStateEqual(6)
 
@@ -2185,7 +2192,7 @@ class FixingTest(GradesTestMixin, TestCase):
         exist_flow_session_count = models.FlowSession.objects.count()
         flow_session_delete_url = self._get_admin_flow_session_delete_url(
             args=(flow_session.id,))
-        delete_dict = {'post': 'yes'}
+        delete_dict = {"post": "yes"}
         with self.temporarily_switch_to_user(self.superuser):
             resp = self.client.get(flow_session_delete_url)
             self.assertEqual(resp.status_code, 200)
@@ -2265,7 +2272,7 @@ class FixingTest(GradesTestMixin, TestCase):
             with mock.patch("course.flow.get_session_grading_rule") as \
                     mock_get_grading_rule:
                 mock_get_grading_rule.side_effect = (
-                    get_session_grading_rule_use_last_activity_as_cmplt_time_side_effect)  # noqa
+                    get_session_grading_rule_use_last_activity_as_cmplt_time_side_effect)
                 resp = self.end_flow()
                 self.assertEqual(resp.status_code, 200)
 
@@ -2303,7 +2310,7 @@ class FixingTest(GradesTestMixin, TestCase):
 
             # create a flow page visit, then there should be last_activity() for
             # the session.
-            self.post_answer_by_ordinal(1, {"answer": ['0.5']})
+            self.post_answer_by_ordinal(1, {"answer": ["0.5"]})
             self.assertEqual(
                 models.FlowPageVisit.objects.filter(answer__isnull=False).count(),
                 1)

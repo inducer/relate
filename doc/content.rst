@@ -138,11 +138,12 @@ export :ref:`markup` to essentially any other markup format under the sun,
 including LaTeX, HTML, MediaWiki, Microsoft Word, and many more.
 
 Further, YAML files are quite easy to read and traverse in most programming languages,
-facilitating automated coversion.  `This example Python script
+facilitating automated conversion.  `This example Python script
 <https://github.com/inducer/relate/blob/main/contrib/flow-to-worksheet>`_
 provided as part of RELATE takes a flow and converts it to a paper-based
 worksheet. To do so, it makes use of `pypandoc
 <https://pypi.python.org/pypi/pypandoc>`_ and `PyYAML <http://pyyaml.org/>`_.
+
 
 Validation
 ----------
@@ -156,15 +157,8 @@ These rules are automatically checked as part of setting a new revision of the
 This helps avoid mistakes and ensures that the students always see a working
 site.
 
-RELATE validation is also available as a stand-alone script :command:`relate-validate`.
-This runs independently of git and the web site on the content developer's
-computer and provides validation feedback without having to commit and
-upload the content to a RELATE site. This script can be installed by running::
-
-    sudo pip install -r requirements.txt
-    sudo python setup.py install
-
-in the root directory of the RELATE distribution.
+See :ref:`cli` for how to use validation from the command line while
+developing content.
 
 .. _markup:
 
@@ -319,11 +313,10 @@ in ``$$...$$``::
 Symbols and Icons
 ^^^^^^^^^^^^^^^^^
 
-RELATE includes `FontAwesome <http://fontawesome.io/>`_,
-a comprehensive symbol set by Dave Gandy.
-Symbols from `that set <http://fontawesome.io/icons/>`_ can be included as follows::
+RELATE includes `Bootstrap Icons <https://icons.getbootstrap.com/>`_,
+a comprehensive symbol set.  Symbols from that set can be included as follows::
 
-      <i class="fa fa-heart"></i>
+      <i class="bi bi-heart"></i>
 
 In-line HTML
 ^^^^^^^^^^^^
@@ -335,9 +328,9 @@ present arbitrary HTML to participants" enabled. This setting is available
 in the admin functionality.
 
 When enabled, Markdown and HTML may also be mixed. For example, the
-following creates a box with a recessed appearance around the content::
+following creates a box with a border around the content::
 
-    <div class="well" markdown="1">
+    <div style="border: 1px solid black" markdown="1">
       Exam 2 takes place **next week**. Make sure to [prepare early](flow:exam2-prep).
     </div>
 
@@ -359,35 +352,6 @@ The following snippet shows an interactive video viewer::
       <source src="/video/cs357-f14/encoded/myvideo.mp4" type='video/mp4' />
       <p class="vjs-no-js">To view this video please enable JavaScript, and consider upgrading to a web browser that <a href="http://videojs.com/html5-video-support/" target="_blank">supports HTML5 video</a></p>
     </video>
-
-
-Ipython notebook to HTML
-^^^^^^^^^^^^^^^^^^^^^^^^
-
-RELATE provides the functionality of rendering `Ipython Notebooks
-<https://ipython.org/ipython-doc/3/notebook/>`_ in course pages, by using
-`nbconvert <http://nbconvert.readthedocs.io>`_.
-
-.. function:: render_notebook_cells(ipynb_path, indices=None, clear_output=False,
-                                  clear_markdown=False)
-
-    :param ipynb_path: :class:`str`, the path of the ipython notebook in
-        the repo.
-    :param indices: :class:`list`, the indices of cells which are expected to
-        be rendered. For example, ``[1, 2, 3, 6]`` or ``range(3, -1)``. If not
-        specified, all cells will be rendered.
-    :param clear_output: :class:`bool`, indicating whether existing execution
-        output of code cells should be removed. Default: `False`.
-    :param clear_markdown: :class:`bool`, indicating whether all text cells
-        will be removed. Default: `False`.
-    :rtype: :class:`str`, rendered markdown which will be consequently
-     converted to HTML.
-
-For example, the following snippet shows the HTML version of ``test.ipynb`` in repo
-folder ``code``, with markdown (``text_cells``) and output (execution result of
-``code_cells``) removed::
-
-    {{ render_notebook_cells("code/test.ipynb", clear_markdown=True, clear_output=True) }}
 
 
 Macros
@@ -521,7 +485,7 @@ Here's an example:
 
     .. attribute:: id
 
-        An identifer used as page anchors and for tracking. Not
+        An identifier used as page anchors and for tracking. Not
         user-visible otherwise.
 
     .. attribute:: rules
@@ -601,7 +565,7 @@ Events serve two purposes:
 * They are (optionally) shown in the class calendar.
 
 For example, to create contiguously numbered ``lecture`` events for a
-lecture occuring on a Tuesday/Thursday schedule, perform the following
+lecture occurring on a Tuesday/Thursday schedule, perform the following
 sequence of steps:
 
 * Create a recurring, weekly event for the Tuesday lectures, with a
@@ -684,7 +648,7 @@ by the 'ordinal' of each event.
 
 The secondsection, ``events``, can be used to provide a more verbose
 description for each event that appears below the main calendar. Titles and
-colors can also be overriden for each event specifically.
+colors can also be overridden for each event specifically.
 
 All attributes in each section (as well as the entire calendar information
 file) are optional.

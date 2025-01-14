@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+
 __copyright__ = "Copyright (C) 2015 Andreas Kloeckner, Dong Zhuang"
 
 __license__ = """
@@ -20,38 +23,40 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from typing import cast
-from django.utils.translation import (
-        gettext_lazy as _, gettext)
-from django.utils.safestring import mark_safe
-from course.validation import validate_struct, validate_markup, ValidationError
-from course.content import remove_prefix
-import django.forms as forms
-
-from relate.utils import Struct, StyledInlineForm, string_concat
-from course.page.base import (
-        AnswerFeedback, PageBaseWithValue, markup_to_html)
-
-from course.page.text import TextQuestionBase, parse_matcher
-
 import re
+from typing import cast
+
+import django.forms as forms
+from crispy_forms.bootstrap import PrependedAppendedText
+from crispy_forms.layout import HTML, Layout
+from django.utils.safestring import mark_safe
+from django.utils.translation import gettext, gettext_lazy as _
+
+from course.content import remove_prefix
+from course.page.base import (
+    AnswerFeedback,
+    PageBaseWithoutHumanGrading,
+    PageBaseWithValue,
+    markup_to_html,
+)
+from course.page.text import TextQuestionBase, parse_matcher
+from course.validation import ValidationError, validate_markup, validate_struct
+from relate.utils import Struct, string_concat
+
 
 # {{{ for mypy
 
-from typing import Tuple, Text, Optional, Any, Iterable, List  # noqa
 
 # }}}
 
 # {{{ multiple text question
 
-from crispy_forms.layout import Layout, HTML
-from crispy_forms.bootstrap import PrependedAppendedText
-
-
-class InlineMultiQuestionForm(StyledInlineForm):
+class InlineMultiQuestionForm(forms.Form):
     no_offset_labels = True
 
     def __init__(self, read_only, dict_for_form, page_context, *args, **kwargs):
+        from crispy_forms.helper import FormHelper
+        self.helper = FormHelper()
         super().__init__(*args, **kwargs)
         html_list = dict_for_form["html_list"]
         self.answer_instance_list = answer_instance_list = \
@@ -99,7 +104,6 @@ class InlineMultiQuestionForm(StyledInlineForm):
                         # Then it should be a TextInput widget
                         self.fields[field_name].widget.attrs["readonly"] \
                             = "readonly"
-        self.helper.layout.extend([HTML("<br/><br/>")])
 
     def clean(self):
         cleaned_data = super().clean()
@@ -118,7 +122,7 @@ class InlineMultiQuestionForm(StyledInlineForm):
                         if i + 1 == len(instance_idx.matchers):
                             # last one, and we flunked -> not valid
                             import sys
-                            tp, e, _ = sys.exc_info()
+                            _tp, e, _ = sys.exc_info()
                             self.add_error(field_name_idx, e)
                     else:
                         # Found one that will take the input. Good enough.
@@ -147,7 +151,7 @@ def parse_question(vctx, location, name, answers_desc):
         raise ValidationError(
                 string_concat(
                     "%s: ",
-                    _("Embedded question '%s' must be a struct" % name))
+                    _("Embedded question '{}' must be a struct".format(name)))
                 % location)
 
 
@@ -164,7 +168,7 @@ class AnswerBase:
         self.required = getattr(answers_desc, "required", False)
 
     def get_answer_text(self, page_context, answer):
-        return answer
+        raise NotImplementedError()
 
     def get_correct_answer_text(self, page_context):
         raise NotImplementedError()
@@ -178,12 +182,13 @@ class AnswerBase:
         return self.weight * self.get_correctness(answer)
 
     def get_field_layout(self, correctness=None):
-        kwargs = {}
-        kwargs["prepended_text"] = getattr(self.answers_desc, "prepended_text", "")
-        kwargs["appended_text"] = getattr(self.answers_desc, "appended_text", "")
-        kwargs["use_popover"] = "true"
-        kwargs["popover_title"] = getattr(self.answers_desc, "hint_title", "")
-        kwargs["popover_content"] = getattr(self.answers_desc, "hint", "")
+        kwargs = {
+            "template": "course/custom_crispy_inline_prepended_appended_text.html",
+            "prepended_text": getattr(self.answers_desc, "prepended_text", ""),
+            "appended_text": getattr(self.answers_desc, "appended_text", ""),
+            "use_popover": "true",
+            "popover_title": getattr(self.answers_desc, "hint_title", ""),
+            "popover_content": getattr(self.answers_desc, "hint", "")}
         if correctness is None:
             kwargs["style"] = self.get_width_str()
         else:
@@ -198,7 +203,7 @@ class AnswerBase:
 
 # length unit used is "em"
 DEFAULT_WIDTH = 10
-MINIMUN_WIDTH = 4
+MINIMUM_WIDTH = 4
 
 EM_LEN_DICT = {
         "em": 1,
@@ -217,7 +222,7 @@ class ShortAnswer(AnswerBase):
     form_field_class = forms.CharField
 
     @staticmethod
-    def get_length_attr_em(location: str, width_attr: str) -> Optional[float]:
+    def get_length_attr_em(location: str, width_attr: str) -> float | None:
         """
         generate the length for input box, the unit is 'em'
         """
@@ -225,7 +230,7 @@ class ShortAnswer(AnswerBase):
         if width_attr is None:
             return None
 
-        if isinstance(width_attr, (int, float)):
+        if isinstance(width_attr, int | float):
             return width_attr
 
         width_re_match = WIDTH_STR_RE.match(width_attr)
@@ -236,7 +241,7 @@ class ShortAnswer(AnswerBase):
             raise ValidationError(
                     string_concat(
                         "%(location)s: ",
-                        _("unrecogonized width attribute string: "
+                        _("unrecognized width attribute string: "
                         "'%(width_attr)s'"))
                     % {
                         "location": location,
@@ -311,7 +316,7 @@ class ShortAnswer(AnswerBase):
 
         self.width = 0
         if parsed_length is not None:
-            self.width = max(MINIMUN_WIDTH, parsed_length)
+            self.width = max(MINIMUM_WIDTH, parsed_length)
         else:
             self.width = DEFAULT_WIDTH
 
@@ -323,7 +328,7 @@ class ShortAnswer(AnswerBase):
                     string_concat("%s, ",
                                   # Translators: refers to optional
                                   # correct answer for checking
-                                  # correctness sumbitted by students.
+                                  # correctness submitted by students.
                                   _("answer"),
                                   " %d") % (location, i+1),
                     answer)
@@ -341,17 +346,21 @@ class ShortAnswer(AnswerBase):
     def get_width_str(self, opt_width=0):
         return "width: " + str(max(self.width, opt_width)) + "em"
 
+    def get_answer_text(self, page_context, answer):
+        from django.utils.html import escape
+        return escape(answer)
+
     def get_correct_answer_text(self, page_context):
 
         unspec_correct_answer_text = None
-        for matcher in self.matchers:  # pragma: no branch  # noqa
+        for matcher in self.matchers:  # pragma: no branch
             unspec_correct_answer_text = matcher.correct_answer_text()
             if unspec_correct_answer_text is not None:
                 break
 
         assert unspec_correct_answer_text is not None
-        return ("%s%s%s"
-                % (getattr(self.answers_desc, "prepended_text", "").strip(),
+        return ("{}{}{}".format(
+                   getattr(self.answers_desc, "prepended_text", "").strip(),
                    unspec_correct_answer_text,
                    getattr(self.answers_desc, "appended_text", "").strip())
                 )
@@ -377,7 +386,7 @@ class ShortAnswer(AnswerBase):
                     required=self.required or force_required,
                     widget=None,
                     help_text=None,
-                    label=self.name
+                    label=""
                 )
 
 
@@ -478,8 +487,7 @@ class ChoicesAnswer(AnswerBase):
 
     def get_correct_answer_text(self, page_context):
         corr_idx = self.correct_indices()[0]
-        return ("%s%s%s"
-                % (
+        return ("{}{}{}".format(
                     getattr(self.answers_desc, "prepended_text", "").strip(),
                     self.process_choice_string(
                         page_context, self.answers_desc.choices[corr_idx]).lstrip(),
@@ -487,9 +495,9 @@ class ChoicesAnswer(AnswerBase):
                 )
 
     def get_max_correct_answer_len(self, page_context):
-        return max([len(answer) for answer in
+        return max(len(answer) for answer in
             [self.process_choice_string(page_context, processed)
-                for processed in self.answers_desc.choices]])
+                for processed in self.answers_desc.choices])
 
     def get_correctness(self, answer):
         if answer == "":
@@ -504,8 +512,8 @@ class ChoicesAnswer(AnswerBase):
                 page_context, self.answers_desc.choices[i]))
             for i, src_i in enumerate(self.answers_desc.choices))
         choices = (
-                (None, "-"*self.get_max_correct_answer_len(page_context)),
-                ) + choices
+            (None, "-" * self.get_max_correct_answer_len(page_context)),
+            *choices)
         return (self.form_field_class)(
             required=self.required or force_required,
             choices=tuple(choices),
@@ -523,10 +531,14 @@ ALLOWED_EMBEDDED_QUESTION_CLASSES = [
 
 WRAPPED_NAME_RE = re.compile(r"[^{](?=(\[\[[^\[\]]*\]\]))[^}]")
 NAME_RE = re.compile(r"[^{](?=\[\[([^\[\]]*)\]\])[^}]")
-NAME_VALIDATE_RE = re.compile("^[a-zA-Z]+[a-zA-Z0-9_]{0,}$")
+NAME_VALIDATE_RE = re.compile(r"^[a-zA-Z]+[a-zA-Z0-9_]{0,}$")
 
 
-class InlineMultiQuestion(TextQuestionBase, PageBaseWithValue):
+class InlineMultiQuestion(
+            TextQuestionBase,
+            PageBaseWithValue,
+            PageBaseWithoutHumanGrading
+        ):
     r"""
     An auto-graded page with cloze like questions.
 
@@ -720,7 +732,7 @@ class InlineMultiQuestion(TextQuestionBase, PageBaseWithValue):
                  string_concat(
                      "%s: ",
                      _("embedded question name %s not unique."))
-                 % (location, ", ".join(["'%s'" % d for d in sorted(duplicated)])))
+                 % (location, ", ".join([f"'{d}'" for d in sorted(duplicated)])))
 
         redundant_answer_list = list(set(answers_name_list)
                 - set(self.embedded_name_list))
@@ -763,26 +775,44 @@ class InlineMultiQuestion(TextQuestionBase, PageBaseWithValue):
                 parse_question(vctx, location, name, answers_desc)
 
     def required_attrs(self):
-        return super().required_attrs() + (
-                ("question", "markup"), ("answers", Struct),
-                )
+        return (*super().required_attrs(), ("question", "markup"), ("answers", Struct))
 
     def allowed_attrs(self):
-        return super().allowed_attrs() + (
-                ("answer_explanation", "markup"),
-                )
+        return (*super().allowed_attrs(), ("answer_explanation", "markup"))
 
     def body(self, page_context, page_data):
         return markup_to_html(page_context, self.page_desc.prompt)
 
     def get_question(self, page_context, page_data):
         # for correct render of question with more than one
-        # paragraph, remove heading <p> tags and change </p>
-        # to line break.
-        return markup_to_html(
-                page_context,
-                self.page_desc.question,
-                ).replace("<p>", "").replace("</p>", "<br/>")
+        # paragraph, replace <p> tags to new input-group.
+
+        div_start_css_class_list = [
+            "input-group",
+            # ensure spacing between input and text, mathjax and text
+            "gap-1",
+            "align-items-center"
+        ]
+
+        replace_p_start = f"<div class=\"{' '.join(div_start_css_class_list)}\">"
+
+        question_html = markup_to_html(
+            page_context,
+            self.page_desc.question
+        ).replace(
+            "<p>",
+            replace_p_start
+        ).replace("</p>", "</div>")
+
+        # add mb-4 class to the last paragraph so as to add spacing before
+        # submit buttons.
+        last_div_start = (
+            f"<div class=\"{' '.join([*div_start_css_class_list, 'mb-4'])}\">")
+
+        # https://stackoverflow.com/a/59082116/3437454
+        question_html = last_div_start.join(question_html.rsplit(replace_p_start, 1))
+
+        return question_html
 
     def get_dict_for_form(self, page_context, page_data):
         remainder_html = self.get_question(page_context, page_data)
@@ -794,7 +824,7 @@ class InlineMultiQuestion(TextQuestionBase, PageBaseWithValue):
 
         # remainder_html should at least include "</p>"
         assert remainder_html, (
-            "remainder_html is unexpected not empty: %s" % remainder_html)
+            f"remainder_html is unexpected not empty: {remainder_html}")
         html_list.append(remainder_html)
 
         return {
@@ -860,7 +890,7 @@ class InlineMultiQuestion(TextQuestionBase, PageBaseWithValue):
                 wrapped,
                 "<strong>" + correct_answer_i + "</strong>")
 
-        CA_PATTERN = string_concat(_("A correct answer is"), ": <br/> %s")  # noqa
+        CA_PATTERN = string_concat(_("A correct answer is"), ": %s")  # noqa
 
         result = CA_PATTERN % cor_answer_output
 

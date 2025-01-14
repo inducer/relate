@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+
 __copyright__ = "Copyright (C) 2014 Andreas Kloeckner"
 
 __license__ = """
@@ -22,50 +23,54 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from typing import cast, Union, Text
-
-from django.conf import settings
-from django.utils.translation import gettext as _
-
+import datetime
+import html.parser as html_parser
 import os
 import re
-import datetime
 import sys
+from dataclasses import dataclass
+from typing import cast
+from xml.etree.ElementTree import Element, tostring
 
-from django.utils.timezone import now
-from django.core.exceptions import ObjectDoesNotExist, ImproperlyConfigured
+import dulwich.objects
+import dulwich.repo
+from django.conf import settings
+from django.core.exceptions import ImproperlyConfigured, ObjectDoesNotExist
 from django.urls import NoReverseMatch
-
+from django.utils.timezone import now
+from django.utils.translation import gettext as _
 from markdown.extensions import Extension
 from markdown.treeprocessors import Treeprocessor
-
-import html.parser as html_parser
-
-from jinja2 import (
-        BaseLoader as BaseTemplateLoader, TemplateNotFound, FileSystemLoader)
-
-from relate.utils import dict_to_struct, Struct, SubdirRepoWrapper
-from course.constants import ATTRIBUTES_FILENAME
-
 from yaml import safe_load as load_yaml
 
-CACHE_KEY_ROOT = "py3"
+from course.constants import ATTRIBUTES_FILENAME
+from course.validation import Blob_ish, Tree_ish
+from relate.utils import Struct, SubdirRepoWrapper, dict_to_struct
+
+
+CACHE_KEY_ROOT = "py4"
 
 
 # {{{ mypy
 
-from typing import (  # noqa
-    Any, List, Tuple, Optional, Callable, Text, Dict, FrozenSet, TYPE_CHECKING)
+from collections.abc import Callable, Collection, Mapping
+from typing import (
+    TYPE_CHECKING,
+    Any,
+)
+
+
 if TYPE_CHECKING:
     # for mypy
-    from course.models import Course, Participation  # noqa
-    import dulwich  # noqa
-    from course.validation import ValidationContext, FileSystemFakeRepoTree  # noqa
-    from course.page.base import PageBase  # noqa
-    from relate.utils import Repo_ish  # noqa
+    import dulwich
 
-Date_ish = Union[datetime.datetime, datetime.date]
-Datespec = Union[datetime.datetime, datetime.date, str]
+    from course.models import Course, Participation
+    from course.page.base import PageBase
+    from course.validation import FileSystemFakeRepoTree, ValidationContext
+    from relate.utils import Repo_ish
+
+Date_ish = datetime.datetime | datetime.date
+Datespec = datetime.datetime | datetime.date | str
 
 
 class ChunkRulesDesc(Struct):
@@ -386,7 +391,9 @@ class FlowSessionGradingRuleDesc(Struct):
     .. attribute:: credit_percent
 
         (Optional) A number indicating the percentage of credit assigned for
-        this flow.  Defaults to 100 if not present.
+        this flow.  Defaults to 100 if not present. This is applied *after*
+        point modifiers such as :attr:`bonus_points` and
+        :attr:`max_points_enforced_cap`.
 
     .. attribute:: due
 
@@ -521,6 +528,25 @@ class FlowRulesDesc(Struct):
 
 # {{{ mypy: flow
 
+class TabDesc(Struct):
+    """
+    .. attribute:: title
+
+        (Required) Title to be displayed on the tab.
+
+    .. attribute:: url
+
+        (Required) The URL of the external web page.
+    """
+
+    def __init__(self, title: str, url: str) -> None:
+        self.title = title
+        self.url = url
+
+    title: str
+    url: str
+
+
 class FlowPageDesc(Struct):
     id: str
     type: str
@@ -588,12 +614,19 @@ class FlowDesc(Struct):
         A list of :ref:`pages <flow-page>`. If you specify this, a single
         :class:`FlowPageGroupDesc` will be implicitly created. Exactly one of
         :attr:`groups` or :class:`pages` must be given.
+
+    .. attribute:: external_resources
+
+        A list of :class:`TabDesc`. These are links to external
+        resources that are displayed as tabs on the flow tabbed page.
     """
 
     title: str
+    description: str
     rules: FlowRulesDesc
     pages: list[FlowPageDesc]
     groups: list[FlowPageGroupDesc]
+    external_resources: list[TabDesc]
     notify_on_submit: list[str] | None
 
 # }}}
@@ -601,7 +634,7 @@ class FlowDesc(Struct):
 
 # {{{ repo blob getting
 
-def get_true_repo_and_path(repo: Repo_ish, path: str) -> tuple[dulwich.Repo, str]:
+def get_true_repo_and_path(repo: Repo_ish, path: str) -> tuple[dulwich.repo.Repo, str]:
 
     if isinstance(repo, SubdirRepoWrapper):
         if path:
@@ -631,8 +664,8 @@ def get_course_repo(course: Course) -> Repo_ish:
         return repo
 
 
-def look_up_git_object(repo: dulwich.Repo,
-        root_tree: Union[dulwich.objects.Tree, FileSystemFakeRepoTree],
+def look_up_git_object(repo: dulwich.repo.Repo,
+        root_tree: dulwich.objects.Tree | FileSystemFakeRepoTree,
         full_name: str, _max_symlink_depth: int | None = None):
     """Traverse git directory tree from *root_tree*, respecting symlinks."""
 
@@ -649,13 +682,14 @@ def look_up_git_object(repo: dulwich.Repo,
     processed_name_parts: list[str] = []
 
     from dulwich.objects import Tree
+
     from course.validation import FileSystemFakeRepoTree
 
     cur_lookup = root_tree
 
     from stat import S_ISLNK
     while name_parts:
-        if not isinstance(cur_lookup, (Tree, FileSystemFakeRepoTree)):
+        if not isinstance(cur_lookup, Tree | FileSystemFakeRepoTree):
             raise ObjectDoesNotExist(
                     _("'%s' is not a directory, cannot lookup nested names")
                     % os.sep.join(processed_name_parts))
@@ -677,8 +711,8 @@ def look_up_git_object(repo: dulwich.Repo,
         mode, cur_lookup_sha = mode_sha
 
         if S_ISLNK(mode):
-            link_target = os.sep.join(processed_name_parts + [
-                repo[cur_lookup_sha].data.decode()])
+            link_target = os.sep.join(
+                        [*processed_name_parts, repo[cur_lookup_sha].data.decode()])
             cur_lookup = look_up_git_object(repo, root_tree, link_target,
                     _max_symlink_depth=_max_symlink_depth-1)
         else:
@@ -688,8 +722,7 @@ def look_up_git_object(repo: dulwich.Repo,
     return cur_lookup
 
 
-def get_repo_blob(repo: Repo_ish, full_name: str, commit_sha: bytes,
-        allow_tree: bool = True) -> dulwich.Blob:
+def get_repo_tree(repo: Repo_ish, full_name: str, commit_sha: bytes) -> Tree_ish:
     """
     :arg full_name: A Unicode string indicating the file name.
     :arg commit_sha: A byte string containing the commit hash
@@ -707,19 +740,43 @@ def get_repo_blob(repo: Repo_ish, full_name: str, commit_sha: bytes,
     git_obj = look_up_git_object(
             dul_repo, root_tree=dul_repo[tree_sha], full_name=full_name)
 
-    from course.validation import FileSystemFakeRepoTree, FileSystemFakeRepoFile
-    from dulwich.objects import Tree, Blob
+    from dulwich.objects import Tree
+
+    from course.validation import FileSystemFakeRepoTree
 
     msg_full_name = full_name if full_name else _("(repo root)")
 
-    if isinstance(git_obj, (Tree, FileSystemFakeRepoTree)):
-        if allow_tree:
-            return git_obj
-        else:
-            raise ObjectDoesNotExist(
-                    _("resource '%s' is a directory, not a file") % msg_full_name)
+    if isinstance(git_obj, Tree | FileSystemFakeRepoTree):
+        return git_obj
+    else:
+        raise ObjectDoesNotExist(_("resource '%s' is not a tree") % msg_full_name)
 
-    if isinstance(git_obj, (Blob, FileSystemFakeRepoFile)):
+
+def get_repo_blob(repo: Repo_ish, full_name: str, commit_sha: bytes) -> Blob_ish:
+    """
+    :arg full_name: A Unicode string indicating the file name.
+    :arg commit_sha: A byte string containing the commit hash
+    :arg allow_tree: Allow the resulting object to be a directory
+    """
+
+    dul_repo, full_name = get_true_repo_and_path(repo, full_name)
+
+    try:
+        tree_sha = dul_repo[commit_sha].tree
+    except KeyError:
+        raise ObjectDoesNotExist(
+                _("commit sha '%s' not found") % commit_sha.decode())
+
+    git_obj = look_up_git_object(
+            dul_repo, root_tree=dul_repo[tree_sha], full_name=full_name)
+
+    from dulwich.objects import Blob
+
+    from course.validation import FileSystemFakeRepoFile
+
+    msg_full_name = full_name if full_name else _("(repo root)")
+
+    if isinstance(git_obj, Blob | FileSystemFakeRepoFile):
         return git_obj
     else:
         raise ObjectDoesNotExist(_("resource '%s' is not a file") % msg_full_name)
@@ -750,8 +807,7 @@ def get_repo_blob_data_cached(
 
     result: bytes | None = None
     if cache_key is None:
-        result = get_repo_blob(repo, full_name, commit_sha,
-                allow_tree=False).data
+        result = get_repo_blob(repo, full_name, commit_sha).data
         assert isinstance(result, bytes)
         return result
 
@@ -770,8 +826,7 @@ def get_repo_blob_data_cached(
             assert isinstance(result, bytes), cache_key
             return result
 
-    result = get_repo_blob(repo, full_name, commit_sha,
-            allow_tree=False).data
+    result = get_repo_blob(repo, full_name, commit_sha).data
     assert result is not None
 
     if len(result) <= getattr(settings, "RELATE_CACHE_MAX_BYTES", 0):
@@ -832,10 +887,10 @@ JINJA_YAML_RE = re.compile(
     re.MULTILINE | re.DOTALL)
 YAML_BLOCK_START_SCALAR_RE = re.compile(
     r"(:\s*[|>])"
-    "(J?)"
-    "((?:[0-9][-+]?|[-+][0-9]?)?)"
+    r"(J?)"
+    r"((?:[0-9][-+]?|[-+][0-9]?)?)"
     r"(?:\s*\#.*)?"
-    "$")
+    r"$")
 
 IN_BLOCK_END_RAW_RE = re.compile(r"(.*)({%-?\s*endraw\s*-?%})(.*)")
 GROUP_COMMENT_START = re.compile(r"^\s*#\s*\{\{\{")
@@ -905,34 +960,22 @@ def process_yaml_for_expansion(yaml_str: str) -> str:
     return "\n".join(jinja_lines)
 
 
-class GitTemplateLoader(BaseTemplateLoader):
+class GitTemplateLoader:
     def __init__(self, repo: Repo_ish, commit_sha: bytes) -> None:
         self.repo = repo
         self.commit_sha = commit_sha
 
-    def get_source(self, environment, template):
-        try:
-            data = get_repo_blob_data_cached(self.repo, template, self.commit_sha)
-        except ObjectDoesNotExist:
-            raise TemplateNotFound(template)
+    def __call__(self, template):
+        data = get_repo_blob_data_cached(self.repo, template, self.commit_sha)
 
-        source = data.decode("utf-8")
-
-        def is_up_to_date():
-            # There's not much point to caching here, because we create
-            # a new loader for every request anyhow...
-            return False
-
-        return source, None, is_up_to_date
+        return data.decode("utf-8")
 
 
 class YamlBlockEscapingGitTemplateLoader(GitTemplateLoader):
     # https://github.com/inducer/relate/issues/130
 
-    def get_source(self, environment, template):
-        source, path, is_up_to_date = \
-                super().get_source(
-                        environment, template)
+    def __call__(self, template):
+        source = super().__call__(template)
 
         _, ext = os.path.splitext(template)
         ext = ext.lower()
@@ -940,16 +983,18 @@ class YamlBlockEscapingGitTemplateLoader(GitTemplateLoader):
         if ext in [".yml", ".yaml"]:
             source = process_yaml_for_expansion(source)
 
-        return source, path, is_up_to_date
+        return source
 
 
-class YamlBlockEscapingFileSystemLoader(FileSystemLoader):
+class YamlBlockEscapingFileSystemLoader:
     # https://github.com/inducer/relate/issues/130
 
-    def get_source(self, environment, template):
-        source, path, is_up_to_date = \
-                super().get_source(
-                        environment, template)
+    def __init__(self, root):
+        self.root = root
+
+    def __call__(self, template):
+        with open(os.path.join(self.root, template)) as inf:
+            source = inf.read()
 
         _, ext = os.path.splitext(template)
         ext = ext.lower()
@@ -957,7 +1002,7 @@ class YamlBlockEscapingFileSystemLoader(FileSystemLoader):
         if ext in [".yml", ".yaml"]:
             source = process_yaml_for_expansion(source)
 
-        return source, path, is_up_to_date
+        return source
 
 
 def expand_yaml_macros(repo: Repo_ish, commit_sha: bytes, yaml_str: str) -> str:
@@ -965,16 +1010,16 @@ def expand_yaml_macros(repo: Repo_ish, commit_sha: bytes, yaml_str: str) -> str:
     if isinstance(yaml_str, bytes):
         yaml_str = yaml_str.decode("utf-8")
 
-    from jinja2 import Environment, StrictUndefined
+    from minijinja import Environment
     jinja_env = Environment(
             loader=YamlBlockEscapingGitTemplateLoader(repo, commit_sha),
-            undefined=StrictUndefined)
+            undefined_behavior="strict",
+            auto_escape_callback=lambda fn: False)
 
     # {{{ process explicit [JINJA] tags (deprecated)
 
     def compute_replacement(match):  # pragma: no cover  # deprecated
-        template = jinja_env.from_string(match.group(1))
-        return template.render()
+        return jinja_env.render_str(match.group(1))
 
     yaml_str, count = JINJA_YAML_RE.subn(compute_replacement, yaml_str)
 
@@ -986,8 +1031,7 @@ def expand_yaml_macros(repo: Repo_ish, commit_sha: bytes, yaml_str: str) -> str:
     # }}}
 
     jinja_str = process_yaml_for_expansion(yaml_str)
-    template = jinja_env.from_string(jinja_str)
-    yaml_str = template.render()
+    yaml_str = jinja_env.render_str(jinja_str)
 
     return yaml_str
 
@@ -1022,8 +1066,7 @@ def get_raw_yaml_from_repo(
 
     yaml_str = expand_yaml_macros(
                 repo, commit_sha,
-                get_repo_blob(repo, full_name, commit_sha,
-                    allow_tree=False).data)
+                get_repo_blob(repo, full_name, commit_sha).data)
 
     result = load_yaml(yaml_str)  # type: ignore
 
@@ -1070,15 +1113,14 @@ def get_yaml_from_repo(
                 return result
 
     yaml_bytestream = get_repo_blob(
-            repo, full_name, commit_sha, allow_tree=False).data
+            repo, full_name, commit_sha).data
     yaml_text = yaml_bytestream.decode("utf-8")
 
     if not tolerate_tabs and LINE_HAS_INDENTING_TABS_RE.search(yaml_text):
         raise ValueError("File uses tabs in indentation. "
                 "This is not allowed.")
 
-    expanded = expand_yaml_macros(
-            repo, commit_sha, yaml_bytestream)
+    expanded = expand_yaml_macros(repo, commit_sha, yaml_bytestream)
 
     yaml_data = load_yaml(expanded)  # type:ignore
     result = dict_to_struct(yaml_data)
@@ -1104,7 +1146,11 @@ def _attr_to_string(key, val):
 
 
 class TagProcessingHTMLParser(html_parser.HTMLParser):
-    def __init__(self, out_file, process_tag_func):
+    def __init__(
+                self,
+                out_file,
+                process_tag_func: Callable[[str, Mapping[str, str]], Mapping[str, str]]
+            ) -> None:
         html_parser.HTMLParser.__init__(self)
 
         self.out_file = out_file
@@ -1118,7 +1164,7 @@ class TagProcessingHTMLParser(html_parser.HTMLParser):
             _attr_to_string(k, v) for k, v in attrs.items())))
 
     def handle_endtag(self, tag):
-        self.out_file.write("</%s>" % tag)
+        self.out_file.write(f"</{tag}>")
 
     def handle_startendtag(self, tag, attrs):
         attrs = dict(attrs)
@@ -1131,28 +1177,28 @@ class TagProcessingHTMLParser(html_parser.HTMLParser):
         self.out_file.write(data)
 
     def handle_entityref(self, name):
-        self.out_file.write("&%s;" % name)
+        self.out_file.write(f"&{name};")
 
     def handle_charref(self, name):
-        self.out_file.write("&#%s;" % name)
+        self.out_file.write(f"&#{name};")
 
     def handle_comment(self, data):
-        self.out_file.write("<!--%s-->" % data)
+        self.out_file.write(f"<!--{data}-->")
 
     def handle_decl(self, decl):
-        self.out_file.write("<!%s>" % decl)
+        self.out_file.write(f"<!{decl}>")
 
     def handle_pi(self, data):
         raise NotImplementedError(
                 _("I have no idea what a processing instruction is."))
 
     def unknown_decl(self, data):
-        self.out_file.write("<![%s]>" % data)
+        self.out_file.write(f"<![{data}]>")
 
 
+@dataclass
 class PreserveFragment:
-    def __init__(self, s):
-        self.s = s
+    s: str
 
 
 class LinkFixerTreeprocessor(Treeprocessor):
@@ -1163,7 +1209,7 @@ class LinkFixerTreeprocessor(Treeprocessor):
         self.commit_sha = commit_sha
         self.reverse_func = reverse_func
 
-    def reverse(self, viewname, args):
+    def reverse(self, viewname: str, args: tuple[Any, ...]) -> str:
         frag = None
 
         new_args = []
@@ -1186,13 +1232,13 @@ class LinkFixerTreeprocessor(Treeprocessor):
 
         return result
 
-    def get_course_identifier(self):
+    def get_course_identifier(self) -> str:
         if self.course is None:
             return "bogus-course-identifier"
         else:
             return self.course.identifier
 
-    def process_url(self, url):
+    def process_url(self, url: str) -> str | None:
         try:
             if url.startswith("course:"):
                 course_id = url[7:]
@@ -1250,7 +1296,7 @@ class LinkFixerTreeprocessor(Treeprocessor):
             message = ("Invalid character in RELATE URL: " + url).encode("utf-8")
             return "data:text/plain;base64,"+b64encode(message).decode()
 
-    def process_tag(self, tag_name, attrs):
+    def process_tag(self, tag_name: str, attrs: Mapping[str, str]) -> Mapping[str, str]:
         changed_attrs = {}
 
         if tag_name == "table" and attrs.get("bootstrap") != "no":
@@ -1276,30 +1322,36 @@ class LinkFixerTreeprocessor(Treeprocessor):
 
         return changed_attrs
 
-    def process_etree_element(self, element):
+    def process_etree_element(self, element: Element) -> None:
         changed_attrs = self.process_tag(element.tag, element.attrib)
 
         for key, val in changed_attrs.items():
             element.set(key, val)
 
-    def walk_and_process_tree(self, root):
+    def walk_and_process_tree(self, root: Element) -> None:
         self.process_etree_element(root)
 
         for child in root:
             self.walk_and_process_tree(child)
 
-    def run(self, root):
+    def run(self, root: Element) -> None:
         self.walk_and_process_tree(root)
 
         # root through and process Markdown's HTML stash (gross!)
         from io import StringIO
 
-        for i, (html, safe) in enumerate(self.md.htmlStash.rawHtmlBlocks):
+        for i, html in enumerate(self.md.htmlStash.rawHtmlBlocks):
             outf = StringIO()
             parser = TagProcessingHTMLParser(outf, self.process_tag)
+
+            # According to
+            # https://github.com/python/typeshed/blob/61ba4de28f1469d6a642c983d5a7674479c12444/stubs/Markdown/markdown/util.pyi#L44
+            # this should not happen, but... *shrug*
+            if isinstance(html, Element):
+                html = tostring(html).decode("utf-8")
             parser.feed(html)
 
-            self.md.htmlStash.rawHtmlBlocks[i] = (outf.getvalue(), safe)
+            self.md.htmlStash.rawHtmlBlocks[i] = outf.getvalue()
 
 
 class LinkFixerExtension(Extension):
@@ -1311,10 +1363,11 @@ class LinkFixerExtension(Extension):
         self.commit_sha = commit_sha
         self.reverse_func = reverse_func
 
-    def extendMarkdown(self, md, md_globals):  # noqa
-        md.treeprocessors["relate_link_fixer"] = \
-                LinkFixerTreeprocessor(md, self.course, self.commit_sha,
-                        reverse_func=self.reverse_func)
+    def extendMarkdown(self, md):  # noqa
+        md.treeprocessors.register(
+            LinkFixerTreeprocessor(md, self.course, self.commit_sha,
+                                    reverse_func=self.reverse_func),
+            "relate_link_fixer", 0)
 
 
 def remove_prefix(prefix: str, s: str) -> str:
@@ -1333,7 +1386,7 @@ def expand_markup(
         commit_sha: bytes,
         text: str,
         use_jinja: bool = True,
-        jinja_env: Optional[dict] = None,
+        jinja_env: dict | None = None,
         ) -> str:
 
     if jinja_env is None:
@@ -1345,20 +1398,17 @@ def expand_markup(
     # {{{ process through Jinja
 
     if use_jinja:
-        from jinja2 import Environment, StrictUndefined
+        from minijinja import Environment
         env = Environment(
                 loader=GitTemplateLoader(repo, commit_sha),
-                undefined=StrictUndefined)
+                undefined_behavior="strict")
 
-        template = env.from_string(text)
-        kwargs = {}
-        if jinja_env:
-            kwargs.update(jinja_env)
+        def render_notebook_cells(*args, **kwargs):
+            return "[The ability to render notebooks was removed.]"
 
-        from course.utils import IpynbJinjaMacro
-        kwargs[IpynbJinjaMacro.name] = IpynbJinjaMacro(course, repo, commit_sha)
+        env.add_function("render_notebook_cells", render_notebook_cells)
 
-        text = template.render(**kwargs)
+        text = env.render_str(text, **jinja_env)
 
     # }}}
 
@@ -1380,7 +1430,7 @@ def filter_html_attributes(tag, name, value):
     elif tag == "div":
         result = result or (name == "class" and value == "well")
     elif tag == "i":
-        result = result or (name == "class" and value.startswith("fa fa-"))
+        result = result or (name == "class" and value.startswith("bi bi-"))
     elif tag == "table":
         result = (result or (name == "class") or (name == "bootstrap"))
 
@@ -1392,10 +1442,10 @@ def markup_to_html(
         repo: Repo_ish,
         commit_sha: bytes,
         text: str,
-        reverse_func: Optional[Callable] = None,
+        reverse_func: Callable | None = None,
         validate_only: bool = False,
         use_jinja: bool = True,
-        jinja_env: Optional[dict] = None,
+        jinja_env: dict | None = None,
         ) -> str:
 
     if jinja_env is None:
@@ -1412,7 +1462,7 @@ def markup_to_html(
             cache_key = None
         else:
             import hashlib
-            cache_key = ("markup:v8:%s:%d:%s:%s:%s%s"
+            cache_key = ("markup:v9:%s:%d:%s:%s:%s%s"
                     % (CACHE_KEY_ROOT,
                        course.id, course.trusted_for_markup, str(commit_sha),
                        hashlib.md5(text.encode("utf-8")).hexdigest(),
@@ -1440,26 +1490,15 @@ def markup_to_html(
     if validate_only:
         return ""
 
-    from course.mdx_mathjax import MathJaxExtension
-    from course.utils import NBConvertExtension
     import markdown
+
+    from course.mdx_mathjax import MathJaxExtension
 
     extensions: list[markdown.Extension | str] = [
         LinkFixerExtension(course, commit_sha, reverse_func=reverse_func),
         MathJaxExtension(),
-        NBConvertExtension(),
         "markdown.extensions.extra",
     ]
-
-    if not disable_codehilite:
-        # Note: no matter whether disable_codehilite, the code in
-        # the rendered ipython notebook will be highlighted.
-        # "css_class=highlight" is to ensure that, when codehilite extension
-        # is enabled, code out side of notebook uses the same html class
-        # attribute as the default highlight class (i.e., `highlight`)
-        # used by rendered ipynb notebook cells, Thus we don't need to
-        # make 2 copies of css for the highlight.
-        extensions += ["markdown.extensions.codehilite(css_class=highlight)"]
 
     result = markdown.markdown(text,
         extensions=extensions,
@@ -1468,12 +1507,13 @@ def markup_to_html(
     if course is None or not course.trusted_for_markup:
         import bleach
         result = bleach.clean(result,
-                tags=bleach.ALLOWED_TAGS + [
-                    "div", "span", "p", "img",
+                tags=[*bleach.ALLOWED_TAGS, "div", "span", "p", "img",
                     "h1", "h2", "h3", "h4", "h5", "h6",
                     "table", "td", "tr", "th",
-                    ],
+                    "pre", "details", "summary", "thead", "tbody"],
                 attributes=filter_html_attributes)
+
+    result = f"<div class='relate-markup'>{result}</div>"
 
     assert isinstance(result, str)
     if cache_key is not None:
@@ -1547,9 +1587,9 @@ class AtTimePostprocessor(DatespecPostprocessor):
         else:
             return s, None
 
-    def apply(self, dtm):
-        from pytz import timezone
-        server_tz = timezone(settings.TIME_ZONE)
+    def apply(self, dtm: datetime.datetime) -> datetime.datetime:
+        from zoneinfo import ZoneInfo
+        server_tz = ZoneInfo(settings.TIME_ZONE)
 
         return dtm.astimezone(server_tz).replace(
                     hour=self.hour,
@@ -1558,7 +1598,7 @@ class AtTimePostprocessor(DatespecPostprocessor):
 
 
 PLUS_DELTA_RE = re.compile(r"^(.*)\s*([+-])\s*([0-9]+)\s+"
-    "(weeks?|days?|hours?|minutes?)$")
+    r"(weeks?|days?|hours?|minutes?)$")
 
 
 class PlusDeltaPostprocessor(DatespecPostprocessor):
@@ -1680,7 +1720,7 @@ def parse_date_spec(
 
     if vctx is not None:
         from course.validation import validate_identifier
-        validate_identifier(vctx, "%s: event kind" % location, event_kind)
+        validate_identifier(vctx, f"{location}: event kind", event_kind)
 
     if course is None:
         return now()
@@ -1730,7 +1770,7 @@ def compute_chunk_weight_and_shown(
         chunk: ChunkDesc,
         roles: list[str],
         now_datetime: datetime.datetime,
-        facilities: frozenset[str],
+        facilities: Collection[str],
         ) -> tuple[float, bool]:
     if not hasattr(chunk, "rules"):
         return 0, True
@@ -1788,7 +1828,7 @@ def get_processed_page_chunks(
         page_desc: StaticPageDesc,
         roles: list[str],
         now_datetime: datetime.datetime,
-        facilities: frozenset[str],
+        facilities: Collection[str],
         ) -> list[ChunkDesc]:
     for chunk in page_desc.chunks:
         chunk.weight, chunk.shown = \
@@ -1813,7 +1853,7 @@ def get_processed_page_chunks(
 def normalize_page_desc(page_desc: StaticPageDesc) -> StaticPageDesc:
     if hasattr(page_desc, "content"):
         content = page_desc.content
-        from relate.utils import struct_to_dict, Struct
+        from relate.utils import Struct, struct_to_dict
         d = struct_to_dict(page_desc)
         del d["content"]
         d["chunks"] = [Struct({"id": "main", "content": content})]
@@ -1842,7 +1882,7 @@ def normalize_flow_desc(flow_desc: FlowDesc) -> FlowDesc:
 
     if hasattr(flow_desc, "pages"):
         pages = flow_desc.pages
-        from relate.utils import struct_to_dict, Struct
+        from relate.utils import Struct, struct_to_dict
         d = struct_to_dict(flow_desc)
         del d["pages"]
         d["groups"] = [Struct({"id": "main", "pages": pages})]
@@ -1877,13 +1917,11 @@ def get_flow_desc(
     """
 
     # FIXME: extension should be case-insensitive
-    flow_desc = get_yaml_from_repo(repo, "flows/%s.yml" % flow_id, commit_sha,
+    flow_desc = get_yaml_from_repo(repo, f"flows/{flow_id}.yml", commit_sha,
             tolerate_tabs=tolerate_tabs)
 
     flow_desc = normalize_flow_desc(flow_desc)
 
-    flow_desc.description_html = markup_to_html(
-            course, repo, commit_sha, getattr(flow_desc, "description", None))
     return flow_desc
 
 
@@ -1918,19 +1956,29 @@ def import_class(name: str) -> type:
         # need at least one module plus class name
         raise ClassNotFoundError(name)
 
-    module_name = ".".join(components[:-1])
-    try:
-        mod = __import__(module_name)
-    except ImportError:
-        raise ClassNotFoundError(name)
-
-    for comp in components[1:]:
+    from importlib import import_module
+    mod_components = len(components) - 1
+    while mod_components:
+        module_name = ".".join(components[:mod_components])
         try:
-            mod = getattr(mod, comp)
-        except AttributeError:
-            raise ClassNotFoundError(name)
+            mod = import_module(module_name)
+        except ImportError:
+            mod_components -= 1
+            continue
 
-    return mod
+        sym = mod
+        for cls_comp in components[mod_components:]:
+            try:
+                sym = getattr(sym, cls_comp)
+            except AttributeError:
+                raise ClassNotFoundError(name)
+
+        if isinstance(sym, type):
+            return sym
+        else:
+            raise ClassNotFoundError(f"'{name}' does not name a type")
+
+    raise ClassNotFoundError(name)
 
 
 def get_flow_page_class(repo: Repo_ish, typename: str, commit_sha: bytes) -> type:
@@ -1955,6 +2003,10 @@ def instantiate_flow_page(
         location: str, repo: Repo_ish, page_desc: FlowPageDesc, commit_sha: bytes
         ) -> PageBase:
     class_ = get_flow_page_class(repo, page_desc.type, commit_sha)
+
+    from course.page.base import PageBase
+    if not issubclass(class_, PageBase):
+        raise ClassNotFoundError(f"'{page_desc.type}' is not a PageBase subclass")
 
     return class_(None, location, page_desc)
 
@@ -1981,9 +2033,8 @@ def get_course_commit_sha(
         except KeyError:
             if raise_on_nonexistent_preview_commit:
                 raise CourseCommitSHADoesNotExist(
-                    _("Preview revision '%s' does not exist--"
-                      "showing active course content instead."
-                      % commit_sha))
+                    _("Preview revision '{}' does not exist--"
+                      "showing active course content instead.").format(commit_sha))
             return False
 
         return True
@@ -1993,15 +2044,12 @@ def get_course_commit_sha(
             preview_sha = participation.preview_git_commit_sha
 
             if repo is not None:
-                commit_sha_valid = is_commit_sha_valid(repo, preview_sha)
+                preview_sha_valid = is_commit_sha_valid(repo, preview_sha)
             else:
                 with get_course_repo(course) as repo:
-                    commit_sha_valid = is_commit_sha_valid(repo, preview_sha)
+                    preview_sha_valid = is_commit_sha_valid(repo, preview_sha)
 
-            if not commit_sha_valid:
-                preview_sha = None
-
-            if preview_sha is not None:
+            if preview_sha_valid:
                 sha = preview_sha
 
     return sha.encode()
@@ -2010,7 +2058,7 @@ def get_course_commit_sha(
 def list_flow_ids(repo: Repo_ish, commit_sha: bytes) -> list[str]:
     flow_ids = []
     try:
-        flows_tree = get_repo_blob(repo, "flows", commit_sha)
+        flows_tree = get_repo_tree(repo, "flows", commit_sha)
     except ObjectDoesNotExist:
         # That's OK--no flows yet.
         pass

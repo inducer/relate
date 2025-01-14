@@ -12,19 +12,23 @@ defaults:
     # required by https://github.com/snok/install-poetry#windows
     shell: bash
 
+concurrency:
+    group: ${{ github.head_ref || github.ref_name }}
+    cancel-in-progress: true
+
 jobs:
   lint:
     name: Lint and typecheck Python
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-python@v1
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.x'
       - name: Install Poetry
-        uses: snok/install-poetry@v1.3.1
+        uses: snok/install-poetry@v1.4.1
         with:
-          version: "1.1.13"
+          version: "1.8.2"
           virtualenvs-create: true
 
       #- name: Cache python dependencies
@@ -38,17 +42,20 @@ jobs:
       - name: Install Dependencies
         run: poetry install
       #  if: steps.cache.outputs.cache-hit != 'true'
-      - name: "Flake8"
+      - name: "Ruff"
         run: |
-          poetry run flake8 relate course accounts
-          poetry run flake8 --extend-ignore Q000 tests
+          poetry run ruff check
+      - uses: crate-ci/typos@master
+      - name: "Set up local settings"
+        run: cp local_settings_example.py local_settings.py
       - name: "Mypy"
-        run: poetry run mypy relate course
+        run: poetry run ./.ci/run-mypy.sh
       - name: "Safety"
-        run: bash ./.ci/run-safety.sh
+        run: poetry run ./.ci/run-safety.sh
+        env:
+          SAFETY_API_KEY: ${{ secrets.SAFETY_API_KEY }}
       - name: "Sphinx"
         run: |
-            cp local_settings_example.py local_settings.py
             (cd doc; poetry run make html SPHINXOPTS="-W --keep-going -n")
 
   frontend:
@@ -56,17 +63,17 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node-version: ['12', '14', '16']
+        node-version: ['16', '18', '20']
     steps:
-    - uses: actions/checkout@v2
-    - uses: actions/setup-node@v2
+    - uses: actions/checkout@v4
+    - uses: actions/setup-node@v4
       with:
           node-version: ${{ matrix.node-version }}
     - name: Install
       run: npm install
 
     - name: ESLint
-      run: npx eslint relate/static/js/*.js
+      run: npx eslint frontend/js/*.js
 
     - name: Rollup build
       run: npm run build
@@ -76,7 +83,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ['3.8', '3.9', '3.x']
+        python-version: ['3.10', '3.11', '3.x']
         suite: ['base', 'postgres', 'expensive']
     services:
         postgres:
@@ -92,14 +99,14 @@ jobs:
           ports:
               - 5432:5432
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-python@v1
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install Poetry
-        uses: snok/install-poetry@v1.2.1
+        uses: snok/install-poetry@v1.4.1
         with:
-          version: "1.1.11"
+          version: "1.8.2"
           virtualenvs-create: true
 
       #- name: Cache python dependencies
@@ -137,26 +144,23 @@ jobs:
     name: Python - Windows
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-python@v1
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.x'
       - name: Install Poetry
-        uses: snok/install-poetry@v1.3.1
+        uses: snok/install-poetry@v1.4.1
         with:
-          version: "1.1.13"
+          version: "1.8.2"
           virtualenvs-create: true
       - name: Configure Poetry
         run: |
           poetry config virtualenvs.in-project true
       - name: Install Dependencies
-        env:
-          SETUPTOOLS_USE_DISTUTILS: stdlib
-        run: poetry install
-      - name: Run test suite
-        env:
-          RELATE_LOCAL_TEST_SETTINGS: "local_settings_example.py"
         run: |
-          poetry run pytest -rxsw --cov-config=setup.cfg --cov-report=xml --cov=. --tb=native
+          poetry install
+      - name: Run test suite
+        run: |
+          bash ./.ci/run-tests-for-ci.sh
 
 # vim: sw=2

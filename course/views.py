@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+
 __copyright__ = "Copyright (C) 2014 Andreas Kloeckner"
 
 __license__ = """
@@ -22,79 +23,81 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from typing import cast, List, Text
-
 import datetime
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    cast,
+)
 
-from django.shortcuts import (  # noqa
-        render, get_object_or_404, redirect)
-from django.contrib import messages  # noqa
-from django.core.exceptions import (
-        PermissionDenied, ObjectDoesNotExist, SuspiciousOperation)
 import django.forms as forms
 import django.views.decorators.http as http_dec
+from crispy_forms.layout import Div, Layout, Submit
 from django import http
-from django.utils.safestring import mark_safe
-from django.db import transaction
-from django.utils.translation import (
-        gettext_lazy as _,
-        gettext,
-        pgettext,
-        pgettext_lazy,
-        )
-from django.utils.functional import lazy
+from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-
+from django.core.exceptions import (
+    ObjectDoesNotExist,
+    PermissionDenied,
+    SuspiciousOperation,
+)
+from django.db import transaction
+from django.shortcuts import get_object_or_404, redirect, render
+from django.utils.safestring import mark_safe
+from django.utils.translation import (
+    gettext as _,
+    pgettext,
+    pgettext_lazy,
+)
+from django.views.decorators.cache import cache_control
 from django_select2.forms import Select2Widget
 
-mark_safe_lazy = lazy(mark_safe, str)
-
-from django.views.decorators.cache import cache_control
-
-from crispy_forms.layout import Submit, Layout, Div
-
-from relate.utils import StyledForm, StyledModelForm, string_concat
-from bootstrap_datepicker_plus.widgets import DateTimePickerInput
-
 from course.auth import get_pre_impersonation_user
-from course.enrollment import (
-        get_participation_for_request,
-        get_participation_permissions)
 from course.constants import (
-        participation_permission as pperm,
-        participation_status,
-        FLOW_PERMISSION_CHOICES,
-        flow_rule_kind, FLOW_RULE_KIND_CHOICES
-        )
-from course.models import (
-        Course,
-        InstantFlowRequest,
-        Participation,
-        FlowSession,
-        FlowRuleException)
-
+    FLOW_PERMISSION_CHOICES,
+    FLOW_RULE_KIND_CHOICES,
+    flow_rule_kind,
+    participation_permission as pperm,
+    participation_status,
+)
 from course.content import get_course_repo
+from course.enrollment import (
+    get_participation_for_request,
+    get_participation_permissions,
+)
+from course.models import (
+    Course,
+    FlowRuleException,
+    FlowSession,
+    InstantFlowRequest,
+    Participation,
+)
+from course.utils import (
+    CoursePageContext,
+    course_view,
+    get_course_specific_language_choices,
+    render_course_page,
+)
+from relate.utils import (
+    HTML5DateInput,
+    HTML5DateTimeInput,
+    RelateHttpRequest,
+    StyledForm,
+    StyledModelForm,
+    string_concat,
+)
 
-from course.utils import (  # noqa
-        course_view,
-        render_course_page,
-        CoursePageContext,
-        get_course_specific_language_choices)
 
 # {{{ for mypy
 
-from typing import Tuple, Text, Any, Iterable, Dict, Optional, TYPE_CHECKING  # noqa
 if TYPE_CHECKING:
-    from course.content import (  # noqa
-        FlowDesc,
-        )
-
-    from accounts.models import User  # noqa
+    from accounts.models import User
+    from course.content import FlowDesc
 
 # }}}
 
 
-NONE_SESSION_TAG = string_concat("<<<", _("NONE"), ">>>")  # noqa
+NONE_SESSION_TAG = string_concat("<<<", _("NONE"), ">>>")
 
 
 # {{{ home
@@ -158,7 +161,7 @@ def check_course_state(
 
 @course_view
 def course_page(pctx: CoursePageContext) -> http.HttpResponse:
-    from course.content import get_processed_page_chunks, get_course_desc
+    from course.content import get_course_desc, get_processed_page_chunks
     page_desc = get_course_desc(pctx.repo, pctx.course, pctx.course_commit_sha)
 
     chunks = get_processed_page_chunks(
@@ -215,7 +218,7 @@ def course_page(pctx: CoursePageContext) -> http.HttpResponse:
 
 @course_view
 def static_page(pctx: CoursePageContext, page_path: str) -> http.HttpResponse:
-    from course.content import get_staticpage_desc, get_processed_page_chunks
+    from course.content import get_processed_page_chunks, get_staticpage_desc
     try:
         page_desc = get_staticpage_desc(pctx.repo, pctx.course,
                 pctx.course_commit_sha, "staticpages/"+page_path+".yml")
@@ -302,7 +305,6 @@ def get_repo_file_backend(
         commit_sha: bytes,
         path: str,
         ) -> http.HttpResponse:
-    # noqa
     """
     Check if a file should be accessible.  Then call for it if
     the permission is not denied.
@@ -311,6 +313,8 @@ def get_repo_file_backend(
 
     Note: an access_role of "public" is equal to "unenrolled"
     """
+
+    request = cast(RelateHttpRequest, request)
 
     # check to see if the course is hidden
     check_course_state(course, participation)
@@ -362,8 +366,7 @@ def get_repo_file_response(
 
 class FakeTimeForm(StyledForm):
     time = forms.DateTimeField(
-            widget=DateTimePickerInput(
-                options={"format": "YYYY-MM-DD HH:mm", "sideBySide": True}),
+            widget=HTML5DateTimeInput(),
             label=_("Time"))
 
     def __init__(self, *args, **kwargs):
@@ -377,21 +380,19 @@ class FakeTimeForm(StyledForm):
                 Submit("unset", _("Unset")))
 
 
-def get_fake_time(request: http.HttpRequest) -> datetime.datetime | None:
-
+def get_fake_time(request: http.HttpRequest | None) -> datetime.datetime | None:
     if request is not None and "relate_fake_time" in request.session:
+        from zoneinfo import ZoneInfo
+
         from django.conf import settings
-        from pytz import timezone
-        tz = timezone(settings.TIME_ZONE)
-        return tz.localize(  # type: ignore
-                datetime.datetime.fromtimestamp(
-                    request.session["relate_fake_time"]))
+        tz = ZoneInfo(settings.TIME_ZONE)
+        return datetime.datetime.fromtimestamp(
+                    request.session["relate_fake_time"], tz=tz)
     else:
         return None
 
 
-def get_now_or_fake_time(request: http.HttpRequest) -> datetime.datetime:
-
+def get_now_or_fake_time(request: http.HttpRequest | None) -> datetime.datetime:
     fake_time = get_fake_time(request)
     if fake_time is None:
         from django.utils.timezone import now
@@ -657,7 +658,7 @@ class FlowTestForm(StyledForm):
         self.helper.add_input(
                 Submit(
                     "test",
-                    mark_safe_lazy(
+                    mark_safe(
                         string_concat(
                             pgettext("Start an activity", "Go"),
                             " &raquo;")),
@@ -700,11 +701,7 @@ class ParticipationChoiceField(forms.ModelChoiceField):
     def label_from_instance(self, obj):
         user = obj.user
         return (
-                "%(user_email)s - %(user_fullname)s"
-                % {
-                    "user_email": user.email,
-                    "user_fullname": user.get_full_name()
-                })
+                f"{user.email} - {user.get_full_name()}")
 
 
 class ExceptionStage1Form(StyledForm):
@@ -731,7 +728,7 @@ class ExceptionStage1Form(StyledForm):
         self.helper.add_input(
                 Submit(
                     "next",
-                    mark_safe_lazy(
+                    mark_safe(
                         string_concat(
                             pgettext("Next step", "Next"),
                             " &raquo;"))))
@@ -767,6 +764,7 @@ def grant_exception(pctx):
 def strify_session_for_exception(session: FlowSession) -> str:
 
     from relate.utils import as_local_time, format_datetime_local
+
     # Translators: %s is the string of the start time of a session.
     result = (_("started at %s") % format_datetime_local(
         as_local_time(session.start_time)))
@@ -822,7 +820,7 @@ class ExceptionStage2Form(StyledForm):
         self.helper.add_input(
                 Submit(
                     "next",
-                    mark_safe_lazy(
+                    mark_safe(
                         string_concat(
                             pgettext("Next step", "Next"),
                             " &raquo;"))))
@@ -842,7 +840,7 @@ def grant_exception_stage_2(
 
     form_text = (
             string_concat(
-                "<div class='well'>",
+                "<div class='relate-well'>",
                 _("Granting exception to '%(participation)s' for "
                 "'%(flow_id)s'."),
                 "</div>")
@@ -871,9 +869,8 @@ def grant_exception_stage_2(
     create_session_is_override = False
     if not session_start_rule.may_start_new_session:
         create_session_is_override = True
-        form_text += ("<div class='alert alert-info'>%s</div>" % (
-            string_concat(
-                "<i class='fa fa-info-circle'></i> ",
+        form_text += ("<div class='alert alert-info'>{}</div>".format(string_concat(
+                "<i class='bi bi-info-circle'></i> ",
                 _("Creating a new session is (technically) not allowed "
                 "by course rules. Clicking 'Create Session' anyway will "
                 "override this rule."))))
@@ -970,7 +967,7 @@ class ExceptionStage3Form(StyledForm):
             self,
             default_data: dict,
             flow_desc: FlowDesc,
-            base_session_tag: str,
+            base_session_tag: str | None,
             *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
 
@@ -980,7 +977,7 @@ class ExceptionStage3Form(StyledForm):
         layout = []
 
         if tags:
-            tags = [NONE_SESSION_TAG] + tags
+            tags = [NONE_SESSION_TAG, *tags]
             if base_session_tag is not None and base_session_tag not in tags:
                 tags.append(base_session_tag)
 
@@ -998,7 +995,7 @@ class ExceptionStage3Form(StyledForm):
 
             layout.append(
                     Div("set_access_rules_tag", "restrict_to_same_tag",
-                        css_class="well"))
+                        css_class="relate-well"))
 
         access_fields = ["create_access_exception", "access_expires"]
 
@@ -1008,9 +1005,7 @@ class ExceptionStage3Form(StyledForm):
             label=_("Create access rule exception"))
 
         self.fields["access_expires"] = forms.DateTimeField(
-            widget=DateTimePickerInput(
-                options={"format": "YYYY-MM-DD HH:mm", "sideBySide": True,
-                    "showClear": True}),
+            widget=HTML5DateTimeInput(),
             required=False,
             label=pgettext_lazy("Time when access expires", "Access expires"),
             help_text=_("At the specified time, the special access granted below "
@@ -1028,7 +1023,7 @@ class ExceptionStage3Form(StyledForm):
 
             access_fields.append(key)
 
-        layout.append(Div(*access_fields, css_class="well"))
+        layout.append(Div(*access_fields, css_class="relate-well"))
 
         self.fields["create_grading_exception"] = forms.BooleanField(
                 required=False, help_text=_("If set, an exception for the "
@@ -1040,8 +1035,7 @@ class ExceptionStage3Form(StyledForm):
                 initial=default_data.get("due_same_as_access_expiration") or False,
                 label=_("Due same as access expiration"))
         self.fields["due"] = forms.DateTimeField(
-                widget=DateTimePickerInput(
-                    options={"format": "YYYY-MM-DD HH:mm", "sideBySide": True}),
+                widget=HTML5DateTimeInput(),
                 required=False,
                 help_text=_("The due time shown to the student. Also, the "
                 "time after which "
@@ -1070,7 +1064,7 @@ class ExceptionStage3Form(StyledForm):
             "generates_grade",
             "credit_percent", "bonus_points", "max_points",
             "max_points_enforced_cap",
-            css_class="well"))
+            css_class="relate-well"))
 
         self.fields["comment"] = forms.CharField(
                 widget=forms.Textarea, required=True,
@@ -1105,6 +1099,7 @@ def grant_exception_stage_3(
         session_id: int) -> http.HttpResponse:
     if not pctx.has_permission(pperm.grant_exception):
         raise PermissionDenied(_("may not grant exceptions"))
+    assert pctx.request.user.is_authenticated
 
     participation = get_object_or_404(Participation, id=participation_id)
 
@@ -1118,9 +1113,7 @@ def grant_exception_stage_3(
     session = FlowSession.objects.get(id=int(session_id))
 
     now_datetime = get_now_or_fake_time(pctx.request)
-    from course.utils import (
-            get_session_access_rule,
-            get_session_grading_rule)
+    from course.utils import get_session_access_rule, get_session_grading_rule
     access_rule = get_session_access_rule(session, flow_desc, now_datetime)
     grading_rule = get_session_grading_rule(session, flow_desc, now_datetime)
 
@@ -1136,9 +1129,10 @@ def grant_exception_stage_3(
                     if form.cleaned_data[key]]
 
             from course.validation import (
-                    validate_session_access_rule,
-                    validate_session_grading_rule,
-                    ValidationContext)
+                ValidationContext,
+                validate_session_access_rule,
+                validate_session_grading_rule,
+            )
             from relate.utils import dict_to_struct
             vctx = ValidationContext(
                     repo=pctx.repo,
@@ -1150,7 +1144,7 @@ def grant_exception_stage_3(
 
             tags: list[str] = []
             if hasattr(flow_desc, "rules"):
-                tags = cast(List[str], getattr(flow_desc.rules, "tags", []))
+                tags = cast(list[str], getattr(flow_desc.rules, "tags", []))
 
             exceptions_created = []
 
@@ -1161,7 +1155,7 @@ def grant_exception_stage_3(
             # {{{ put together access rule
 
             if form.cleaned_data["create_access_exception"]:
-                new_access_rule = {"permissions": permissions}
+                new_access_rule: dict[str, Any] = {"permissions": permissions}
 
                 if restricted_to_same_tag:
                     new_access_rule["if_has_tag"] = session.access_rules_tag
@@ -1211,9 +1205,9 @@ def grant_exception_stage_3(
                 if form.cleaned_data["due_same_as_access_expiration"]:
                     due = form.cleaned_data["access_expires"]
 
-                descr = gettext("Granted exception")
+                descr = _("Granted exception")
                 if form.cleaned_data["credit_percent"] is not None:
-                    descr += string_concat(" (%.1f%% ", gettext("credit"), ")") \
+                    descr += string_concat(" (%.1f%% ", _("credit"), ")") \
                             % form.cleaned_data["credit_percent"]
 
                 due_local_naive = due
@@ -1223,9 +1217,7 @@ def grant_exception_stage_3(
                             as_local_time(due_local_naive)
                             .replace(tzinfo=None))
 
-                new_grading_rule = {
-                    "description": descr,
-                    }
+                new_grading_rule: dict[str, Any] = {"description": descr}
 
                 if due_local_naive is not None:
                     new_grading_rule["due"] = due_local_naive
@@ -1293,7 +1285,7 @@ def grant_exception_stage_3(
     else:
         data = {
                 "restrict_to_same_tag": session.access_rules_tag is not None,
-                #"due_same_as_access_expiration": True,
+                # "due_same_as_access_expiration": True,
                 "due": grading_rule.due,
                 "generates_grade": grading_rule.generates_grade,
                 "credit_percent": grading_rule.credit_percent,
@@ -1310,7 +1302,7 @@ def grant_exception_stage_3(
         "form": form,
         "form_description": _("Grant Exception"),
         "form_text": string_concat(
-            "<div class='well'>",
+            "<div class='relate-well'>",
             _("Granting exception to '%(participation)s' "
             "for '%(flow_id)s' (session %(session)s)."),
             "</div>")
@@ -1357,8 +1349,8 @@ def generate_ssh_keypair(request):
 
 @login_required
 def monitor_task(request, task_id):
-    from celery.result import AsyncResult
     from celery import states
+    from celery.result import AsyncResult
     async_res = AsyncResult(task_id)
 
     progress_percent = None
@@ -1412,8 +1404,8 @@ class EditCourseForm(StyledModelForm):
                 "trusted_for_markup",
                 )
         widgets = {
-                "start_date": DateTimePickerInput(options={"format": "YYYY-MM-DD"}),
-                "end_date": DateTimePickerInput(options={"format": "YYYY-MM-DD"}),
+                "start_date": HTML5DateInput(),
+                "end_date": HTML5DateInput(),
                 "force_lang": forms.Select(
                     choices=get_course_specific_language_choices()),
                 }

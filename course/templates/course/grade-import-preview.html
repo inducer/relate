@@ -2,7 +2,7 @@
 
 {% if log_lines %}
   <div class="alert alert-warning">
-    <i class="fa fa-warning"></i>
+    <i class="bi bi-exclamation-triangle"></i>
     <ul>
     {% for line in log_lines %}
     <li>{{ line }}</li>
@@ -11,7 +11,7 @@
   </div>
 {% endif %}
 {% if show_grade_changes %}
-  <div class="well">
+  <div class="relate-well">
   <h2 class="start-well-title">{% trans "Preview" %}</h2>
   <table class="table">
     <thead>

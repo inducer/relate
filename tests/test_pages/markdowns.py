@@ -8,6 +8,8 @@ markdowns for page sandbox tests
 # }}}
 
 # {{{ code questions
+from __future__ import annotations
+
 
 CODE_MARKDWON = """
 type: PythonCodeQuestion
@@ -331,7 +333,7 @@ test_code: |
 correct_code: |
 
     c = a + b
-"""  # noqa
+"""
 
 FEEDBACK_POINTS_CODE_MARKDWON_PATTERN = """
 type: PythonCodeQuestion
@@ -367,7 +369,7 @@ test_code: |
 correct_code: |
 
     c = a + b
-"""  # noqa
+"""
 
 CODE_WITH_HUMAN_FEEDBACK_MARKDWON_PATTERN = """
 type: PythonCodeQuestionWithHumanTextFeedback
@@ -414,7 +416,7 @@ rubric: |
 
     The code has to be squeaky-clean.
 
-"""  # noqa
+"""
 
 # }}}
 

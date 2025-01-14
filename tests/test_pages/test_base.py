@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+
 __copyright__ = "Copyright (C) 2018 Dong Zhuang"
 
 __license__ = """
@@ -20,23 +23,24 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from django.test import TestCase, Client
 import unittest
 
-from relate.utils import dict_to_struct
+from django.test import Client, TestCase
 
 from course.page.base import (
-    create_default_point_scale, HumanTextFeedbackForm, get_editor_interaction_mode,
-    PageBehavior, PageBase
+    HumanTextFeedbackForm,
+    PageBehavior,
+    create_default_point_scale,
+    get_editor_interaction_mode,
 )
-
+from course.page.static import Page
+from relate.utils import dict_to_struct
 from tests.base_test_mixins import SingleCourseQuizPageTestMixin
-from tests.test_sandbox import (
-    SingleCoursePageSandboxTestBaseMixin
-)
 from tests.constants import PAGE_ERRORS
 from tests.test_grading import SingleCourseQuizPageGradeInterfaceTestMixin
+from tests.test_sandbox import SingleCoursePageSandboxTestBaseMixin
 from tests.utils import mock
+
 
 SANDBOX_TITLE_PATTERN = "<title>[SB] %s - RELATE </title>"
 
@@ -186,7 +190,7 @@ class PageBaseAPITest(SingleCourseQuizPageTestMixin, TestCase):
     page_id = "half"
 
     @classmethod
-    def setUpTestData(cls):  # noqa
+    def setUpTestData(cls):
         super().setUpTestData()
         client = Client()
         client.force_login(cls.student_participation.user)
@@ -229,26 +233,6 @@ class PageBaseAPITest(SingleCourseQuizPageTestMixin, TestCase):
                 do_grading=True)
 
 
-class PageBasePageDescBackwardCompatibilityTest(unittest.TestCase):
-    def test_page_desc_not_struct_warn(self):
-        with mock.patch("warnings.warn") as mock_warn:
-            PageBase(None, "", "abcd")
-            self.assertTrue(mock_warn.call_count >= 1)
-
-            expected_warn_msg = (
-                "Not passing page_desc to PageBase.__init__ is deprecated")
-
-            warned_with_expected_msg = False
-
-            for args in mock_warn.call_args_list:
-                if expected_warn_msg in args[0]:
-                    warned_with_expected_msg = True
-                    break
-
-            if not warned_with_expected_msg:
-                self.fail("'%s' is not warned as expected" % expected_warn_msg)
-
-
 class PageBaseGetModifiedPermissionsForPageTest(unittest.TestCase):
     # test page_base.get_modified_permissions_for_page
     def test_get_modified_permissions_for_page(self):
@@ -257,14 +241,17 @@ class PageBaseGetModifiedPermissionsForPageTest(unittest.TestCase):
             "lock_down_as_exam_session"]
         access_rule_permissions = frozenset(access_rule_permissions_list)
 
+        page_base_desc = {
+                "id": "abcd",
+                "type": "SomePageType",
+                "content": "Um?",
+                "title": "Title",
+            }
         with self.subTest(access_rules="Not present"):
             page_desc = dict_to_struct(
-                {
-                    "id": "abcd",
-                    "type": "SomePageType",
-                }
+                page_base_desc
             )
-            page = PageBase(None, "", page_desc)
+            page = Page(None, "", page_desc)
             self.assertSetEqual(
                 page.get_modified_permissions_for_page(access_rule_permissions),
                 access_rule_permissions)
@@ -272,12 +259,11 @@ class PageBaseGetModifiedPermissionsForPageTest(unittest.TestCase):
         with self.subTest(access_rules={}):
             page_desc = dict_to_struct(
                 {
-                    "id": "abcd",
-                    "type": "SomePageType",
-                    "access_rules": {}
+                    **page_base_desc,
+                    "access_rules": {},
                 }
             )
-            page = PageBase(None, "", page_desc)
+            page = Page(None, "", page_desc)
             self.assertSetEqual(
                 page.get_modified_permissions_for_page(access_rule_permissions),
                 access_rule_permissions)
@@ -286,13 +272,12 @@ class PageBaseGetModifiedPermissionsForPageTest(unittest.TestCase):
                                         "remove_permissions": []}):
             page_desc = dict_to_struct(
                 {
-                    "id": "abcd",
-                    "type": "SomePageType",
+                    **page_base_desc,
                     "access_rules": {"add_permissions": [],
                                      "remove_permissions": []}
                 }
             )
-            page = PageBase(None, "", page_desc)
+            page = Page(None, "", page_desc)
             self.assertSetEqual(
                 page.get_modified_permissions_for_page(access_rule_permissions),
                 access_rule_permissions)
@@ -301,26 +286,24 @@ class PageBaseGetModifiedPermissionsForPageTest(unittest.TestCase):
                                         "remove_permissions": []}):
             page_desc = dict_to_struct(
                 {
-                    "id": "abcd",
-                    "type": "SomePageType",
+                    **page_base_desc,
                     "access_rules": {"add_permissions": ["some_perm"],
                                      "remove_permissions": []}
                 }
             )
-            page = PageBase(None, "", page_desc)
+            page = Page(None, "", page_desc)
             self.assertSetEqual(
                 page.get_modified_permissions_for_page(access_rule_permissions),
-                frozenset(access_rule_permissions_list + ["some_perm"]))
+                frozenset([*access_rule_permissions_list, "some_perm"]))
 
         with self.subTest(access_rules={"remove_permissions": ["none_exist_perm"]}):
             page_desc = dict_to_struct(
                 {
-                    "id": "abcd",
-                    "type": "SomePageType",
+                    **page_base_desc,
                     "access_rules": {"remove_permissions": ["none_exist_perm"]}
                 }
             )
-            page = PageBase(None, "", page_desc)
+            page = Page(None, "", page_desc)
 
             self.assertSetEqual(
                 page.get_modified_permissions_for_page(access_rule_permissions),
@@ -330,13 +313,12 @@ class PageBaseGetModifiedPermissionsForPageTest(unittest.TestCase):
                 "remove_permissions": [access_rule_permissions_list[0]]}):
             page_desc = dict_to_struct(
                 {
-                    "id": "abcd",
-                    "type": "SomePageType",
+                    **page_base_desc,
                     "access_rules": {
                         "remove_permissions": [access_rule_permissions_list[0]]}
                 }
             )
-            page = PageBase(None, "", page_desc)
+            page = Page(None, "", page_desc)
 
             self.assertSetEqual(
                 page.get_modified_permissions_for_page(access_rule_permissions),
@@ -374,7 +356,7 @@ class HumanTextFeedbackFormTest(unittest.TestCase):
         form = HumanTextFeedbackForm(5, form_data)
         self.assertFalse(form.is_valid())
         self.assertEqual(form.non_field_errors(),
-                         ['Grade (percent) and Grade (points) disagree'])
+                         ["Grade (percent) and Grade (points) disagree"])
 
     def test_form_points_percentage_valid(self):
         form_data = {"grade_percent": 30, "grade_points": 1.50001}
@@ -433,7 +415,7 @@ class PageBaseDeprecationTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
             self.assertTrue(mock_warn.call_count >= 1)
 
             expected_warn_msg = (
-                "TextQuestion is using the make_page_data compatiblity "
+                "TextQuestion is using the make_page_data compatibility "
                 "hook, which is deprecated.")
 
             warned_with_expected_msg = False
@@ -444,7 +426,7 @@ class PageBaseDeprecationTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
                     break
 
             if not warned_with_expected_msg:
-                self.fail("'%s' is not warned as expected" % expected_warn_msg)
+                self.fail(f"'{expected_warn_msg}' is not warned as expected")
 
 
 def update_grade_data_from_grading_form_v2_side_effect_super(
@@ -512,7 +494,7 @@ class PageBaseGradeDeprecationTest(SingleCourseQuizPageTestMixin, TestCase):
             expected_warn_msg = (
                 "HumanGradedTextQuestion is using the "
                 "update_grade_data_from_grading_form "
-                "compatiblity hook, which is deprecated.")
+                "compatibility hook, which is deprecated.")
 
             warned_with_expected_msg = False
 
@@ -522,43 +504,7 @@ class PageBaseGradeDeprecationTest(SingleCourseQuizPageTestMixin, TestCase):
                     break
 
             if not warned_with_expected_msg:
-                self.fail("'%s' is not warned as expected" % expected_warn_msg)
-
-    def test_post_form_deprecated(self):
-        page_id = "half"
-
-        with mock.patch(
-                "course.page.text.TextQuestionBase.process_form_post",
-                autospec=True
-        ) as mock_process_form_post, mock.patch(
-                "course.page.text.TextQuestionBase.post_form",
-                autospec=True) as mock_post_form, mock.patch(
-                "warnings.warn") as mock_warn:
-
-            mock_process_form_post.side_effect = process_form_post_side_effect_super
-            mock_post_form.side_effect = post_form_side_effect
-
-            self.post_answer_by_page_id(
-                page_id, answer_data={"answer": "1/2"})
-
-            self.assertTrue(mock_warn.call_count >= 1)
-
-            expected_warn_msg = (
-                "TextQuestion is using the post_form compatiblity hook, "
-                "which is deprecated.")
-
-            warned_with_expected_msg = False
-
-            for args in mock_warn.call_args_list:
-                if expected_warn_msg in args[0]:
-                    warned_with_expected_msg = True
-                    break
-
-            if not warned_with_expected_msg:
-                self.fail("'%s' is not warned as expected" % expected_warn_msg)
-
-        self.assertEqual(self.end_flow().status_code, 200)
-        self.assertSessionScoreEqual(5)
+                self.fail(f"'{expected_warn_msg}' is not warned as expected")
 
 
 def grading_form_to_html_side_effect_super(
@@ -582,7 +528,7 @@ def human_feedback_point_value_side_effect_super(self, page_context, page_data):
 class PageBaseWithHumanTextFeedbackTest(SingleCourseQuizPageGradeInterfaceTestMixin,
                                     TestCase):
     @classmethod
-    def setUpTestData(cls):  # noqa
+    def setUpTestData(cls):
         super().setUpTestData()
         cls.page_id = "anyup"
         client = Client()
@@ -682,7 +628,7 @@ class PageBaseWithTitleTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
 
     def test_markup_body_for_title_not_implemented(self):
         with mock.patch("course.page.static.Page.markup_body_for_title")\
-                as mock_markup_body_for_title,\
+                as mock_markup_body_for_title, \
                 mock.patch("warnings.warn") as mock_warn:
             mock_markup_body_for_title.side_effect = NotImplementedError
 
@@ -709,7 +655,7 @@ class PageBaseWithTitleTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
                     break
 
             if not warned_with_expected_msg:
-                self.fail("%s is not warned as expected" % expected_warn_msg)
+                self.fail(f"{expected_warn_msg} is not warned as expected")
 
     def test_no_title(self):
         markdown = (
@@ -750,7 +696,7 @@ class PageBaseWithTitleTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
         expected_title_str = "This is attribute title"
         markdown = (
                 PAGE_WITH_TITLE_MARKDOWN_PATTERN
-                % {"attr_title": "title: %s" % expected_title_str,
+                % {"attr_title": f"title: {expected_title_str}",
                    "content_title": ""})
         resp = self.get_page_sandbox_preview_response(markdown)
         self.assertEqual(resp.status_code, 200)
@@ -764,7 +710,7 @@ class PageBaseWithTitleTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
         markdown = (
                 PAGE_WITH_TITLE_MARKDOWN_PATTERN
                 % {"attr_title": "",
-                   "content_title": "# %s" % expected_title_str})
+                   "content_title": f"# {expected_title_str}"})
         resp = self.get_page_sandbox_preview_response(markdown)
         self.assertEqual(resp.status_code, 200)
         self.assertSandboxHasValidPage(resp)
@@ -778,8 +724,8 @@ class PageBaseWithTitleTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
         content_title_str = "This is content title"
         markdown = (
                 PAGE_WITH_TITLE_MARKDOWN_PATTERN
-                % {"attr_title": "title: %s" % expected_title_str,
-                   "content_title": "# %s" % content_title_str})
+                % {"attr_title": f"title: {expected_title_str}",
+                   "content_title": f"# {content_title_str}"})
         resp = self.get_page_sandbox_preview_response(markdown)
         self.assertEqual(resp.status_code, 200)
         self.assertSandboxHasValidPage(resp)
@@ -793,7 +739,7 @@ class PageBaseWithTitleTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
         markdown = (
                 PAGE_WITH_TITLE_MARKDOWN_PATTERN
                 % {"attr_title": "",
-                   "content_title": "# %s" % title_str})
+                   "content_title": f"# {title_str}"})
         resp = self.get_page_sandbox_preview_response(markdown)
         self.assertEqual(resp.status_code, 200)
         self.assertSandboxHasValidPage(resp)
@@ -807,7 +753,7 @@ class PageBaseWithTitleTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
         markdown = (
                 PAGE_WITH_TITLE_MARKDOWN_PATTERN
                 % {"attr_title": "",
-                   "content_title": "# %s" % title_str})
+                   "content_title": f"# {title_str}"})
         resp = self.get_page_sandbox_preview_response(markdown)
         self.assertEqual(resp.status_code, 200)
         self.assertSandboxHasValidPage(resp)
@@ -822,7 +768,7 @@ class PageBaseWithTitleTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
         markdown = (
                 PAGE_WITH_TITLE_MARKDOWN_PATTERN
                 % {"attr_title": "",
-                   "content_title": "# %s" % title_str})
+                   "content_title": f"# {title_str}"})
         resp = self.get_page_sandbox_preview_response(markdown)
         self.assertEqual(resp.status_code, 200)
         self.assertSandboxHasValidPage(resp)
@@ -835,7 +781,7 @@ class PageBaseWithTitleTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
         markdown = (
                 PAGE_WITH_TITLE_MARKDOWN_PATTERN
                 % {"attr_title": "",
-                   "content_title": "# %s" % title_str})
+                   "content_title": f"# {title_str}"})
         resp = self.get_page_sandbox_preview_response(markdown)
         self.assertEqual(resp.status_code, 200)
         self.assertSandboxHasValidPage(resp)

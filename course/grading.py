@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+
 __copyright__ = "Copyright (C) 2014 Andreas Kloeckner"
 
 __license__ = """
@@ -23,44 +24,49 @@ THE SOFTWARE.
 """
 
 
-from django.utils.translation import gettext as _
-from django.shortcuts import (  # noqa
-        get_object_or_404, redirect)
-from relate.utils import (
-        retry_transaction_decorator,
-        as_local_time, format_datetime_local)
-from django.contrib import messages
-from django.core.exceptions import (  # noqa
-        PermissionDenied, SuspiciousOperation,
-        ObjectDoesNotExist)
+from typing import TYPE_CHECKING, Any
+
 from django import http
+from django.contrib import messages
+from django.core.exceptions import (
+    ObjectDoesNotExist,
+    PermissionDenied,
+    SuspiciousOperation,
+)
+from django.shortcuts import get_object_or_404, redirect, render  # noqa
+from django.utils.translation import gettext as _
 
+from course.constants import participation_permission as pperm
 from course.models import (
-        FlowSession, FlowPageVisitGrade,
-        get_flow_grading_opportunity,
-        get_feedback_for_grade,
-        update_bulk_feedback)
-from course.utils import (
-        course_view, render_course_page,
-        get_session_grading_rule,
-        FlowPageContext)
-from course.views import get_now_or_fake_time
+    FlowPageVisitGrade,
+    FlowSession,
+    get_feedback_for_grade,
+    get_flow_grading_opportunity,
+    update_bulk_feedback,
+)
 from course.page import InvalidPageData
+from course.utils import (
+    FlowPageContext,
+    course_view,
+    get_session_grading_rule,
+    render_course_page,
+)
+from course.views import get_now_or_fake_time
+from relate.utils import (
+    StyledForm,
+    retry_transaction_decorator,
+)
 
-from course.constants import (
-        participation_permission as pperm,
-        )
 
 # {{{ for mypy
 
-from typing import Text, Any, Optional, Dict, List, TYPE_CHECKING  # noqa
 if TYPE_CHECKING:
-    from course.models import (  # noqa
-            GradingOpportunity)
-    from course.utils import (  # noqa
-            CoursePageContext)
-    import datetime  # noqa
-    from django.db.models import query  # noqa
+    import datetime
+
+    from django.db.models import query
+
+    from course.models import GradingOpportunity
+    from course.utils import CoursePageContext
 
 # }}}
 
@@ -69,9 +75,9 @@ def get_prev_visit_grades(
             course_identifier: str,
             flow_session_id: int,
             page_ordinal: int,
-            reversed_on_visit_time_and_grade_time: Optional[bool] = False
+            reversed_on_visit_time_and_grade_time: bool | None = False
         ) -> query.QuerySet:
-    order_by_args: List[str] = []
+    order_by_args: list[str] = []
     if reversed_on_visit_time_and_grade_time:
         order_by_args = ["-visit__visit_time", "-grade_time"]
     return (FlowPageVisitGrade.objects
@@ -85,7 +91,8 @@ def get_prev_visit_grades(
 
 
 @course_view
-def get_prev_grades_dropdown_content(pctx, flow_session_id, page_ordinal):
+def get_prev_grades_dropdown_content(pctx, flow_session_id, page_ordinal,
+                                     prev_grade_id):
     """
     :return: serialized prev_grades items for rendering past-grades-dropdown
     """
@@ -104,17 +111,13 @@ def get_prev_grades_dropdown_content(pctx, flow_session_id, page_ordinal):
     prev_grades = get_prev_visit_grades(pctx.course_identifier,
                                         flow_session_id, page_ordinal, True)
 
-    def serialize(obj):
-        return {
-            "id": obj.id,
-            "visit_time": (
-                format_datetime_local(as_local_time(obj.visit.visit_time))),
-            "grade_time": format_datetime_local(as_local_time(obj.grade_time)),
-            "value": obj.value(),
-        }
-
-    return http.JsonResponse(
-        {"result": [serialize(pgrade) for pgrade in prev_grades]})
+    return render(pctx.request, "course/prev-grades-dropdown.html", {
+                      "prev_grades": prev_grades,
+                      "prev_grade_id": (
+                          None
+                          if prev_grade_id == "None" else
+                          int(prev_grade_id)),
+                  })
 
 
 # {{{ grading driver
@@ -130,16 +133,19 @@ def grade_flow_page(
     page_ordinal = int(page_ordinal)
 
     viewing_prev_grade = False
-    prev_grade_id = pctx.request.GET.get("grade_id")
-    if prev_grade_id is not None:
+    prev_grade_id_str = pctx.request.GET.get("grade_id")
+    if prev_grade_id_str is not None:
         try:
-            prev_grade_id = int(prev_grade_id)
+            prev_grade_id = int(prev_grade_id_str)
             viewing_prev_grade = True
         except ValueError:
             raise SuspiciousOperation("non-integer passed for 'grade_id'")
+    else:
+        prev_grade_id = None
 
     if not pctx.has_permission(pperm.view_gradebook):
         raise PermissionDenied(_("may not view grade book"))
+    assert pctx.request.user.is_authenticated
 
     flow_session = get_object_or_404(FlowSession, id=int(flow_session_id))
 
@@ -264,6 +270,8 @@ def grade_flow_page(
 
     # {{{ grading form
 
+    grading_form: StyledForm | None = None
+
     if (page_expects_answer
             and fpctx.page.is_answer_gradable()
             and fpctx.prev_answer_visit is not None
@@ -293,8 +301,8 @@ def grade_flow_page(
                 else:
                     correctness = None
 
-                feedback_json: Optional[Dict[str, Any]] = None
-                bulk_feedback_json: Optional[Dict[str, Any]] = None
+                feedback_json: dict[str, Any] | None = None
+                bulk_feedback_json: dict[str, Any] | None = None
 
                 if feedback is not None:
                     feedback_json, bulk_feedback_json = feedback.as_json()
@@ -304,7 +312,7 @@ def grade_flow_page(
                 most_recent_grade = FlowPageVisitGrade(
                         visit=fpctx.prev_answer_visit,
                         grader=pctx.request.user,
-                        graded_at_git_commit_sha=pctx.course_commit_sha,
+                        graded_at_git_commit_sha=pctx.course_commit_sha.decode(),
 
                         grade_data=grade_data,
 
@@ -321,7 +329,7 @@ def grade_flow_page(
     else:
         grading_form = None
 
-    grading_form_html: Optional[str] = None
+    grading_form_html: str | None = None
 
     if grading_form is not None:
         from crispy_forms.layout import Submit
@@ -329,7 +337,6 @@ def grade_flow_page(
         grading_form.helper.add_input(
                 Submit(
                     "submit", _("Submit"),
-                    accesskey="s",
                     css_class="relate-grading-save-button"))
 
         grading_form_html = fpctx.page.grading_form_to_html(
@@ -353,7 +360,7 @@ def grade_flow_page(
             flow_session, fpctx.flow_desc, get_now_or_fake_time(pctx.request))
 
     if grading_rule.grade_identifier is not None:
-        grading_opportunity: Optional[GradingOpportunity] = \
+        grading_opportunity: GradingOpportunity | None = \
                 get_flow_grading_opportunity(
                         pctx.course, flow_session.flow_id, fpctx.flow_desc,
                         grading_rule.grade_identifier,
@@ -392,12 +399,6 @@ def grade_flow_page(
                 "correct_answer": fpctx.page.correct_answer(
                     fpctx.page_context, fpctx.page_data.data,
                     answer_data, grade_data),
-
-
-                # Wrappers used by JavaScript template (tmpl) so as not to
-                # conflict with Django template's tag wrapper
-                "JQ_OPEN": "{%",
-                "JQ_CLOSE": "%}",
             })
 
 
@@ -511,7 +512,8 @@ def show_grader_statistics(pctx, flow_id):
                 "flow_id": flow_id,
                 "pages": pages,
                 "graders": graders,
-                "pages_stats_counts": list(zip(pages, stats_table, page_counts)),
+                "pages_stats_counts":
+                    list(zip(pages, stats_table, page_counts, strict=True)),
                 "grader_counts": grader_counts,
             })
 

@@ -1,0 +1,15 @@
+$color-mode-type: media-query;
+
+@import "node_modules/bootstrap/scss/bootstrap.scss";
+@import "node_modules/select2/dist/css/select2";
+
+// work around spurious extra quoting in woff include
+$bootstrap-icons-font-file: "./fonts/bootstrap-icons";
+
+@import 'node_modules/bootstrap-icons/font/bootstrap-icons.scss';
+
+@import "./style.scss";
+
+// Ideally, these should be separate, but they use Bootstrap classes.
+@import "./codemirror.scss";
+@import "./prosemirror.scss";

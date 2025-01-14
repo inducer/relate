@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+
 __copyright__ = "Copyright (C) 2016 Dong Zhuang, Andreas Kloeckner"
 
 __license__ = """
@@ -23,6 +26,7 @@ THE SOFTWARE.
 from django.template import Library, Node, TemplateSyntaxError
 from django.utils import translation
 
+
 register = Library()
 
 
@@ -44,7 +48,7 @@ def do_get_current_js_lang_name(parser, token):
     """
     This will store the current language in the context, in js lang format.
     This is different with built-in do_get_current_language, which returns
-    languange name like "en-us", "zh-hans". This method return lang name
+    language name like "en-us", "zh-hans". This method return lang name
     "en-US", "zh-Hans",  with the country code capitallized if country code
     has 2 characters, and capitalize first if country code has more than 2
     characters.
@@ -61,7 +65,7 @@ def do_get_current_js_lang_name(parser, token):
     args = token.contents.split()
     if len(args) != 3 or args[1] != "as":
         raise TemplateSyntaxError("'get_current_js_lang_name' requires "
-                "'as variable' (got %r)" % args)
+                f"'as variable' (got {args!r})")
     return GetCurrentLanguageJsFmtNode(args[2])
 
 # }}}

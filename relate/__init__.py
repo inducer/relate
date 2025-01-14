@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 import os
+
 
 if "RELATE_COMMAND_LINE" not in os.environ:
     # This will make sure the app is always imported when

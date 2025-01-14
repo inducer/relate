@@ -2,35 +2,50 @@
 
 set -e
 
-PY_EXE=${PY_EXE:-$(poetry run which python)}
-
-echo "-----------------------------------------------"
-echo "Current directory: $(pwd)"
-echo "Python executable: ${PY_EXE}"
-echo "-----------------------------------------------"
-
-echo "i18n"
-# Testing i18n needs a local_settings file even though the rest of the tests
-#   don't use it
+# collectstatic and i18n a local_settings file
 cp local_settings_example.py local_settings.py
 
-# Make sure i18n literals marked correctly
-poetry run python manage.py makemessages --all
-poetry run python manage.py compilemessages
+echo "OSTYPE: $OSTYPE"
+if [[ "$OSTYPE" != msys ]]; then
+    echo "i18n"
+    # Make sure i18n literals marked correctly
+    poetry run python manage.py makemessages --all
+    poetry run python manage.py compilemessages
+fi
 
-echo "Starts testing"
+staticfiles=(
+  bundle-base.js
+  bundle-base-with-markup.js
+  bundle-codemirror.js
+  bundle-datatables.js
+  bundle-fullcalendar.js
+  bundle-prosemirror.js
+  bundle-prosemirror.js
+  tex-svg.js
+)
+
+mkdir -p frontend-dist
+for i in "${staticfiles[@]}"; do
+    touch "frontend-dist/$i"
+done
+
+poetry run python manage.py collectstatic
+
+rm local_settings.py
+
+echo "Start testing"
 export RELATE_LOCAL_TEST_SETTINGS="local_settings_example.py"
 
-PYTEST_COMMON_FLAGS=(--cov-config=setup.cfg --cov-report=xml --cov=. --tb=native)
+PYTEST_COMMON_FLAGS=()
 
 if test "$CI_SERVER_NAME" = "GitLab"; then
-        # I don't *really* know what's going on, but I observed EADDRNOTAVAIL
-        # when the tests try to connect to the code grading process.
-        #
-        # Sample failed job:
-        # https://gitlab.tiker.net/inducer/relate/-/jobs/159522
-        # -AK, 2020-09-01
-        PYTEST_COMMON_FLAGS+=(-k "not LanguageOverrideTest")
+    # I don't *really* know what's going on, but I observed EADDRNOTAVAIL
+    # when the tests try to connect to the code grading process.
+    #
+    # Sample failed job:
+    # https://gitlab.tiker.net/inducer/relate/-/jobs/159522
+    # -AK, 2020-09-01
+    PYTEST_COMMON_FLAGS+=(-k "not LanguageOverrideTest")
 fi
 
 if [[ "$RL_CI_TEST" = "expensive" ]]; then

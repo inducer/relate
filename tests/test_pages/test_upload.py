@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+
 __copyright__ = "Copyright (C) 2018 Dong Zhuang"
 
 __license__ = """
@@ -20,12 +23,13 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from django.test import TestCase
 import pytest
+from django.test import TestCase
 
-from tests.base_test_mixins import SingleCourseQuizPageTestMixin, HackRepoMixin
-from tests.test_sandbox import SingleCoursePageSandboxTestBaseMixin
+from tests.base_test_mixins import HackRepoMixin, SingleCourseQuizPageTestMixin
 from tests.constants import PAGE_ERRORS
+from tests.test_sandbox import SingleCoursePageSandboxTestBaseMixin
+
 
 UPLOAD_WITH_NEGATIVE_MAXIMUM_SIZE_MARKDOWN = """
 type: FileUploadQuestion
@@ -164,7 +168,7 @@ class FileUploadQuestionSandBoxTest(SingleCoursePageSandboxTestBaseMixin, TestCa
     def test_upload_file_with_size_exceed(self):
         markdown = UPLOAD_WITH_SMALL_MAX_ALLOWED_SIZE
         from tests.constants import TEST_PDF_FILE_PATH
-        with open(TEST_PDF_FILE_PATH, 'rb') as fp:
+        with open(TEST_PDF_FILE_PATH, "rb") as fp:
             answer_data = {"uploaded_file": fp}
             resp = self.get_page_sandbox_submit_answer_response(
                 markdown,

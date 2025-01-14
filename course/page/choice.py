@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+
 __copyright__ = "Copyright (C) 2014 Andreas Kloeckner"
 
 __license__ = """
@@ -22,13 +25,18 @@ THE SOFTWARE.
 
 import django.forms as forms
 from django.utils.safestring import mark_safe
-from django.utils.translation import (
-        gettext_lazy as _, gettext)
+from django.utils.translation import gettext, gettext_lazy as _
 
-from relate.utils import StyledForm, string_concat
 from course.page.base import (
-        AnswerFeedback, PageBaseWithTitle, PageBaseWithValue, markup_to_html)
-from course.validation import validate_markup, ValidationError
+    AnswerFeedback,
+    PageBaseUngraded,
+    PageBaseWithoutHumanGrading,
+    PageBaseWithTitle,
+    PageBaseWithValue,
+    markup_to_html,
+)
+from course.validation import AttrSpec, ValidationError, validate_markup
+from relate.utils import StyledForm, string_concat
 
 
 class ChoiceAnswerForm(StyledForm):
@@ -49,13 +57,6 @@ class MultipleChoiceAnswerForm(StyledForm):
         # Translators: "Choice" in Choice Answer Form in a multiple
         # choice question in which multiple answers can be chosen.
         self.fields["choice"].label = _("Select all that apply:")
-
-
-def markup_to_html_plain(page_context, s):
-    s = markup_to_html(page_context, s)
-    if s.startswith("<p>") and s.endswith("</p>"):
-        s = s[3:-4]
-    return s
 
 
 # {{{ choice data model
@@ -145,7 +146,7 @@ class ChoiceInfo:
 class ChoiceQuestionBase(PageBaseWithTitle, PageBaseWithValue):
     @classmethod
     def process_choice_string(cls, page_context, s):
-        s = markup_to_html_plain(page_context, s)
+        s = markup_to_html(page_context, s)
         # allow HTML in option
         s = mark_safe(s)
 
@@ -178,21 +179,16 @@ class ChoiceQuestionBase(PageBaseWithTitle, PageBaseWithValue):
             if choice.mode == ChoiceModes.ALWAYS_CORRECT:
                 self.always_correct_choice_count += 1
 
-    def required_attrs(self):
-        return super().required_attrs() + (
-                ("prompt", "markup"),
-                ("choices", list),
-                )
+    def required_attrs(self) -> AttrSpec:
+        return (*super().required_attrs(), ("prompt", "markup"), ("choices", list))
 
-    def allowed_attrs(self):
-        return super().allowed_attrs() + (
-                ("shuffle", bool),
-                )
+    def allowed_attrs(self) -> AttrSpec:
+        return (*super().allowed_attrs(), ("shuffle", bool))
 
-    def markup_body_for_title(self):
+    def markup_body_for_title(self) -> str:
         return self.page_desc.prompt
 
-    def body(self, page_context, page_data):
+    def body(self, page_context, page_data) -> str:
         return markup_to_html(page_context, self.page_desc.prompt)
 
     def initialize_page_data(self, page_context):
@@ -249,7 +245,7 @@ class ChoiceQuestionBase(PageBaseWithTitle, PageBaseWithValue):
 
 # {{{ choice question
 
-class ChoiceQuestion(ChoiceQuestionBase):
+class ChoiceQuestion(ChoiceQuestionBase, PageBaseWithoutHumanGrading):
     """
     A page asking the participant to choose one of multiple answers.
 
@@ -348,10 +344,8 @@ class ChoiceQuestion(ChoiceQuestionBase):
                         "marked 'always_correct'"))
                     % {"location": location})
 
-    def allowed_attrs(self):
-        return super().allowed_attrs() + (
-                ("answer_explanation", "markup"),
-                )
+    def allowed_attrs(self) -> AttrSpec:
+        return (*super().allowed_attrs(), ("answer_explanation", "markup"))
 
     def make_choice_form(
             self, page_context, page_data, page_behavior, *args, **kwargs):
@@ -394,7 +388,7 @@ class ChoiceQuestion(ChoiceQuestionBase):
 
     def correct_answer(self, page_context, page_data, answer_data, grade_data):
         corr_idx = self.unpermuted_correct_indices()[0]
-        result = (string_concat(_("A correct answer is"), ": '%s'.")
+        result = (string_concat(_("A correct answer is"), ": %s")
                 % self.process_choice_string(
                     page_context,
                     self.choices[corr_idx].text))
@@ -437,7 +431,7 @@ class ChoiceQuestion(ChoiceQuestionBase):
 
 # {{{ multiple choice question
 
-class MultipleChoiceQuestion(ChoiceQuestionBase):
+class MultipleChoiceQuestion(ChoiceQuestionBase, PageBaseWithoutHumanGrading):
     """
     A page asking the participant to choose a few of multiple available answers.
 
@@ -572,12 +566,11 @@ class MultipleChoiceQuestion(ChoiceQuestionBase):
         self.credit_mode = credit_mode
 
     def allowed_attrs(self):
-        return super().allowed_attrs() + (
-                ("allow_partial_credit", bool),
-                ("allow_partial_credit_subset_only", bool),
-                ("credit_mode", str),
-                ("answer_explanation", "markup"),
-                )
+        return (*super().allowed_attrs(),
+            ("allow_partial_credit", bool),
+            ("allow_partial_credit_subset_only", bool),
+            ("credit_mode", str),
+            ("answer_explanation", "markup"))
 
     def make_choice_form(self, page_context, page_data, page_behavior,
             *args, **kwargs):
@@ -721,7 +714,7 @@ class MultipleChoiceQuestion(ChoiceQuestionBase):
 
 # {{{ survey choice question
 
-class SurveyChoiceQuestion(PageBaseWithTitle):
+class SurveyChoiceQuestion(PageBaseWithTitle, PageBaseUngraded):
     """
     A page asking the participant to choose one of multiple answers.
 
@@ -758,7 +751,7 @@ class SurveyChoiceQuestion(PageBaseWithTitle):
     def process_choice_string(cls, page_context, s):
         if not isinstance(s, str):
             s = str(s)
-        s = markup_to_html_plain(page_context, s)
+        s = markup_to_html(page_context, s)
         # allow HTML in option
         s = mark_safe(s)
 
@@ -782,15 +775,10 @@ class SurveyChoiceQuestion(PageBaseWithTitle):
                 validate_markup(vctx, location, choice)
 
     def required_attrs(self):
-        return super().required_attrs() + (
-                ("prompt", "markup"),
-                ("choices", list),
-                )
+        return (*super().required_attrs(), ("prompt", "markup"), ("choices", list))
 
     def allowed_attrs(self):
-        return super().allowed_attrs() + (
-                ("answer_comment", "markup"),
-                )
+        return (*super().allowed_attrs(), ("answer_comment", "markup"))
 
     def correct_answer(self, page_context, page_data, answer_data, grade_data):
         if hasattr(self.page_desc, "answer_comment"):

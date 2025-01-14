@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+
 __copyright__ = "Copyright (C) 2014 Andreas Kloeckner"
 
 __license__ = """
@@ -22,28 +23,32 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-import re
 import datetime
+import re
 import sys
+from collections.abc import Sequence
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, Any, Literal, TypeAlias
 
+import dulwich.objects
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.html import escape
-from django.utils.translation import (
-        gettext_lazy as _, gettext)
-from course.constants import (
-        FLOW_SESSION_EXPIRATION_MODE_CHOICES,
-        ATTRIBUTES_FILENAME, DEFAULT_ACCESS_KINDS,
-        participation_permission as pperm)
+from django.utils.translation import gettext as _
 
-from course.content import get_repo_blob
+from course.constants import (
+    ATTRIBUTES_FILENAME,
+    DEFAULT_ACCESS_KINDS,
+    FLOW_SESSION_EXPIRATION_MODE_CHOICES,
+    participation_permission as pperm,
+)
 from relate.utils import Struct, string_concat
+
 
 # {{{ mypy
 
-from typing import Any, Tuple, Optional, Text, List, TYPE_CHECKING  # noqa
 if TYPE_CHECKING:
-    from relate.utils import Repo_ish  # noqa
-    from course.models import Course  # noqa
+    from course.models import Course
+    from relate.utils import Repo_ish
 
 # }}}
 
@@ -148,12 +153,15 @@ def validate_participationtag(
                 })
 
 
+AttrSpec: TypeAlias = Sequence[tuple[str, type | tuple[type, ...] | Literal["markup"]]]
+
+
 def validate_struct(
         vctx: ValidationContext,
         location: str,
         obj: Any,
-        required_attrs: list[tuple[str, Any]],
-        allowed_attrs: list[tuple[str, Any]],
+        required_attrs: AttrSpec,
+        allowed_attrs: AttrSpec,
         ) -> None:
 
     """
@@ -168,7 +176,7 @@ def validate_struct(
 
     if not isinstance(obj, Struct):
         raise ValidationError(
-                "%s: not a key-value map" % location)
+                f"{location}: not a key-value map")
 
     present_attrs = {name for name in dir(obj) if not name.startswith("_")}
 
@@ -176,13 +184,7 @@ def validate_struct(
             (True, required_attrs),
             (False, allowed_attrs),
             ]:
-        for attr_rec in attr_list:
-            if isinstance(attr_rec, tuple):
-                attr, allowed_types = attr_rec
-            else:
-                attr = attr_rec
-                allowed_types = None
-
+        for attr, allowed_types in attr_list:
             if attr not in present_attrs:
                 if required:
                     raise ValidationError(
@@ -225,10 +227,10 @@ datespec_types = (datetime.date, str, datetime.datetime)
 # }}}
 
 
+@dataclass
 class ValidationWarning:
-    def __init__(self, location: str | None, text: str) -> None:
-        self.location = location
-        self.text = text
+    location: str | None
+    text: str
 
 
 class ValidationContext:
@@ -286,10 +288,7 @@ def validate_markup(
         assert tp is not None
 
         raise ValidationError(
-                "{location}: {err_type}: {err_str}".format(
-                    location=location,
-                    err_type=tp.__name__,
-                    err_str=str(e)))
+                f"{location}: {tp.__name__}: {e!s}")
 
 # }}}
 
@@ -464,7 +463,7 @@ def validate_flow_page(
         raise ValidationError(
                 string_concat(
                     "%s: ",
-                    gettext("flow page has no ID"))
+                    _("flow page has no ID"))
                 % location)
 
     validate_identifier(vctx, location, page_desc.id)
@@ -576,6 +575,7 @@ def validate_session_start_rule(
                 ("if_has_fewer_sessions_than", int),
                 ("if_has_fewer_tagged_sessions_than", int),
                 ("if_signed_in_with_matching_exam_ticket", bool),
+                ("if_has_prairietest_exam_access", str),
                 ("tag_session", (str, type(None))),
                 ("may_start_new_session", bool),
                 ("may_list_existing_sessions", bool),
@@ -608,7 +608,7 @@ def validate_session_start_rule(
 
     if hasattr(nrule, "if_has_session_tagged"):
         if nrule.if_has_session_tagged is not None:
-            validate_identifier(vctx, "%s: if_has_session_tagged" % location,
+            validate_identifier(vctx, f"{location}: if_has_session_tagged",
                     nrule.if_has_session_tagged)
 
     if not hasattr(nrule, "may_start_new_session"):
@@ -628,7 +628,7 @@ def validate_session_start_rule(
 
     if hasattr(nrule, "tag_session"):
         if nrule.tag_session is not None:
-            validate_identifier(vctx, "%s: tag_session" % location,
+            validate_identifier(vctx, f"{location}: tag_session",
                     nrule.tag_session,
                     warning_only=True)
 
@@ -673,6 +673,7 @@ def validate_session_access_rule(
                 ("if_expiration_mode", str),
                 ("if_session_duration_shorter_than_minutes", (int, float)),
                 ("if_signed_in_with_matching_exam_ticket", bool),
+                ("if_has_prairietest_exam_access", str),
                 ("message", str),
                 ]
             )
@@ -704,7 +705,7 @@ def validate_session_access_rule(
 
     if hasattr(arule, "if_has_tag"):
         if arule.if_has_tag is not None:
-            validate_identifier(vctx, "%s: if_has_tag" % location,
+            validate_identifier(vctx, f"{location}: if_has_tag",
                     arule.if_has_tag,
                     warning_only=True)
 
@@ -830,7 +831,7 @@ def validate_session_grading_rule(
 
     if hasattr(grule, "if_has_tag"):
         if grule.if_has_tag is not None:
-            validate_identifier(vctx, "%s: if_has_tag" % location,
+            validate_identifier(vctx, f"{location}: if_has_tag",
                     grule.if_has_tag,
                     warning_only=True)
 
@@ -919,7 +920,7 @@ def validate_flow_rules(vctx, location, rules):
     # {{{ grade_id
 
     if rules.grade_identifier:
-        validate_identifier(vctx, "%s: grade_identifier" % location,
+        validate_identifier(vctx, f"{location}: grade_identifier",
                 rules.grade_identifier)
         if not hasattr(rules, "grade_aggregation_strategy"):
             raise ValidationError(
@@ -940,7 +941,7 @@ def validate_flow_rules(vctx, location, rules):
         raise ValidationError(
                 string_concat("%s: ",
                     _("invalid grade aggregation strategy"),
-                    ": %s" % rules.grade_aggregation_strategy)
+                    f": {rules.grade_aggregation_strategy}")
                 % location)
 
     # }}}
@@ -1009,26 +1010,26 @@ def validate_flow_permission(
 
 def validate_flow_desc(vctx, location, flow_desc):
     validate_struct(
-            vctx,
-            location,
-            flow_desc,
-            required_attrs=[
-                ("title", str),
-                ("description", "markup"),
-                ],
-            allowed_attrs=[
-                ("completion_text", "markup"),
-                ("rules", Struct),
-                ("groups", list),
-                ("pages", list),
-                ("notify_on_submit", list),
-
-                # deprecated (moved to grading rule)
-                ("max_points", (int, float)),
-                ("max_points_enforced_cap", (int, float)),
-                ("bonus_points", (int, float)),
-                ]
-            )
+        vctx,
+        location,
+        flow_desc,
+        required_attrs=[
+            ("title", str),
+            ("description", "markup"),
+        ],
+        allowed_attrs=[
+            ("completion_text", "markup"),
+            ("rules", Struct),
+            ("groups", list),
+            ("pages", list),
+            ("notify_on_submit", list),
+            ("external_resources", list),
+            # deprecated (moved to grading rule)
+            ("max_points", (int, float)),
+            ("max_points_enforced_cap", (int, float)),
+            ("bonus_points", (int, float)),
+        ],
+    )
 
     if hasattr(flow_desc, "rules"):
         validate_flow_rules(vctx, location, flow_desc.rules)
@@ -1194,10 +1195,7 @@ def get_yaml_from_repo_safely(repo, full_name, commit_sha):
         tp, e, _ = sys.exc_info()
 
         raise ValidationError(
-                "{fullname}: {err_type}: {err_str}".format(
-                    fullname=full_name,
-                    err_type=tp.__name__,
-                    err_str=str(e)))
+                f"{full_name}: {tp.__name__}: {e!s}")
 
 
 def check_attributes_yml(
@@ -1230,7 +1228,7 @@ def check_attributes_yml(
     # {{{ analyze attributes file
 
     try:
-        dummy, attr_blob_sha = tree[ATTRIBUTES_FILENAME.encode()]
+        _dummy, attr_blob_sha = tree[ATTRIBUTES_FILENAME.encode()]
     except KeyError:
         # no .attributes.yml here
         pass
@@ -1238,8 +1236,9 @@ def check_attributes_yml(
         # the path root only contains a directory
         pass
     else:
-        from relate.utils import dict_to_struct
         from yaml import safe_load as load_yaml
+
+        from relate.utils import dict_to_struct
 
         yaml_data = load_yaml(true_repo[attr_blob_sha].data)  # type: ignore
         att_yml = dict_to_struct(yaml_data)
@@ -1266,8 +1265,8 @@ def check_attributes_yml(
 
         for access_kind in access_kinds:
             if hasattr(att_yml, access_kind):
-                for i, l in enumerate(getattr(att_yml, access_kind)):
-                    if not isinstance(l, str):
+                for i, ln in enumerate(getattr(att_yml, access_kind)):
+                    if not isinstance(ln, str):
                         raise ValidationError(
                             "%s: entry %d in '%s' is not a string"
                             % (loc, i+1, access_kind))
@@ -1279,7 +1278,7 @@ def check_attributes_yml(
     gitignore_lines: list[str] = []
 
     try:
-        dummy, gitignore_sha = tree[b".gitignore"]
+        _dummy, gitignore_sha = tree[b".gitignore"]
     except KeyError:
         # no .gitignore here
         pass
@@ -1305,7 +1304,7 @@ def check_attributes_yml(
             subpath = entry_name
 
         if stat.S_ISDIR(entry.mode):
-            dummy, blob_sha = tree[entry.path]
+            _dummy, blob_sha = tree[entry.path]
             subtree = true_repo[blob_sha]
             check_attributes_yml(vctx, true_repo, subpath, subtree, access_kinds)
 
@@ -1367,7 +1366,9 @@ def check_for_page_type_changes(vctx, location, course, flow_id, flow_desc):
                 raise ValidationError(
                         _("%(loc)s, group '%(group)s', page '%(page)s': "
                             "page type ('%(type_new)s') differs from "
-                            "type used in database ('%(type_old)s')")
+                            "type used in database ('%(type_old)s'). "
+                            "You must change the question ID if you change the "
+                            "question type.")
                         % {"loc": location, "group": grp.id,
                             "page": page_desc.id,
                             "type_new": page_desc.type,
@@ -1437,8 +1438,9 @@ def validate_course_content(repo, course_file, events_file,
 
     if vctx.course is not None:
         from course.models import (
-                ParticipationPermission,
-                ParticipationRolePermission)
+            ParticipationPermission,
+            ParticipationRolePermission,
+        )
         access_kinds = frozenset(
                 ParticipationPermission.objects
                 .filter(
@@ -1458,13 +1460,15 @@ def validate_course_content(repo, course_file, events_file,
     else:
         access_kinds = DEFAULT_ACCESS_KINDS
 
+    from course.content import get_repo_tree
+
     check_attributes_yml(
             vctx, repo, "",
-            get_repo_blob(repo, "", validate_sha),
+            get_repo_tree(repo, "", validate_sha),
             access_kinds)
 
     try:
-        flows_tree = get_repo_blob(repo, "media", validate_sha)
+        get_repo_tree(repo, "media", validate_sha)
     except ObjectDoesNotExist:
         # That's great--no media directory.
         pass
@@ -1478,7 +1482,7 @@ def validate_course_content(repo, course_file, events_file,
     # {{{ flows
 
     try:
-        flows_tree = get_repo_blob(repo, "flows", validate_sha)
+        flows_tree = get_repo_tree(repo, "flows", validate_sha)
     except ObjectDoesNotExist:
         # That's OK--no flows yet.
         pass
@@ -1494,7 +1498,7 @@ def validate_course_content(repo, course_file, events_file,
             location = entry_path
             validate_flow_id(vctx, location, flow_id)
 
-            location = "flows/%s" % entry_path
+            location = f"flows/{entry_path}"
             flow_desc = get_yaml_from_repo_safely(repo, location,
                     commit_sha=validate_sha)
 
@@ -1531,6 +1535,8 @@ def validate_course_content(repo, course_file, events_file,
 
     # }}}
 
+    from course.content import get_repo_blob
+
     # {{{ static pages
 
     try:
@@ -1548,7 +1554,7 @@ def validate_course_content(repo, course_file, events_file,
             location = entry_path
             validate_static_page_name(vctx, location, page_name)
 
-            location = "staticpages/%s" % entry_path
+            location = f"staticpages/{entry_path}"
             page_desc = get_yaml_from_repo_safely(repo, location,
                     commit_sha=validate_sha)
 
@@ -1573,7 +1579,7 @@ class FileSystemFakeRepo:  # pragma: no cover
         return sha
 
     def __str__(self):
-        return "<FAKEREPO:%s>" % self.root
+        return f"<FAKEREPO:{self.root}>"
 
     def decode(self):
         return self
@@ -1583,10 +1589,10 @@ class FileSystemFakeRepo:  # pragma: no cover
         return FileSystemFakeRepoTree(self.root)
 
 
+@dataclass
 class FileSystemFakeRepoTreeEntry:  # pragma: no cover
-    def __init__(self, path, mode):
-        self.path = path
-        self.mode = mode
+    path: bytes
+    mode: int
 
 
 class FileSystemFakeRepoTree:  # pragma: no cover
@@ -1598,7 +1604,7 @@ class FileSystemFakeRepoTree:  # pragma: no cover
         if not name:
             raise KeyError("<empty filename>")
 
-        from os.path import join, exists
+        from os.path import exists, join
         name = join(self.root, name)
 
         if not exists(name):
@@ -1613,7 +1619,7 @@ class FileSystemFakeRepoTree:  # pragma: no cover
         else:
             return stat_result.st_mode, FileSystemFakeRepoFile(name)
 
-    def items(self):
+    def items(self) -> list[FileSystemFakeRepoTreeEntry]:
         import os
         return [
                 FileSystemFakeRepoTreeEntry(
@@ -1630,6 +1636,10 @@ class FileSystemFakeRepoFile:  # pragma: no cover
     def data(self):
         with open(self.name, "rb") as inf:
             return inf.read()
+
+
+Blob_ish = dulwich.objects.Blob | FileSystemFakeRepoFile
+Tree_ish = dulwich.objects.Tree | FileSystemFakeRepoTree
 
 
 def validate_course_on_filesystem(

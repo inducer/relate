@@ -1,11 +1,12 @@
-# -*- coding: utf-8 -*-
-from __future__ import unicode_literals
+from __future__ import annotations
 
 import django
+
 
 django.setup()
 
 from course.models import GradeChange
+
 
 for gchange in GradeChange.objects.all():
     if gchange.flow_session is not None:

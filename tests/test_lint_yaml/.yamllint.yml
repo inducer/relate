@@ -1,0 +1,11 @@
+extends: default
+rules:
+  line-length:
+    max: 200
+    level: warning
+  document-start: disable
+  indentation: disable
+  empty-lines: disable
+  commas: disable
+  hyphens: disable
+  comments: disable

@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+
 __copyright__ = "Copyright (C) 2014 Andreas Kloeckner"
 
 __license__ = """
@@ -20,35 +23,35 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from django.urls import include, re_path, path
 from django.contrib import admin
+from django.urls import include, path, re_path
 
-from course.constants import COURSE_ID_REGEX, FLOW_ID_REGEX, STATICPAGE_PATH_REGEX
-
+import course.analytics
+import course.api
 import course.auth
-import course.views
-import course.im
-import course.sandbox
+import course.calendar
+import course.exam
+import course.flow
 import course.grades
 import course.grading
-import course.calendar
+import course.im
+import course.sandbox
 import course.versioning
-import course.flow
-import course.analytics
-import course.exam
-import course.api
+import course.views
+from course.constants import COURSE_ID_REGEX, FLOW_ID_REGEX, STATICPAGE_PATH_REGEX
+
 
 urlpatterns = [
-    re_path(r"^login/$",
+    path("login/",
         course.auth.sign_in_choice,
         name="relate-sign_in_choice"),
-    re_path(r"^login/user-password/$",
+    path("login/user-password/",
         course.auth.sign_in_by_user_pw,
         name="relate-sign_in_by_user_pw"),
-    re_path(r"^login/sign-up/$",
+    path("login/sign-up/",
         course.auth.sign_up,
         name="relate-sign_up"),
-    re_path(r"^login/reset-password/$",
+    path("login/reset-password/",
         course.auth.reset_password,
         name="relate-reset_password"),
     re_path(r"^login/reset-password/(?P<field>instid)/$",
@@ -59,7 +62,7 @@ urlpatterns = [
         "/(?P<sign_in_key>[a-zA-Z0-9]+)",
         course.auth.reset_password_stage2,
         name="relate-reset_password_stage2"),
-    re_path(r"^login/by-email/$",
+    path("login/by-email/",
         course.auth.sign_in_by_email,
         name="relate-sign_in_by_email"),
     re_path(r"^login/token"
@@ -68,13 +71,13 @@ urlpatterns = [
         "/$",
         course.auth.sign_in_stage2_with_token,
         name="relate-sign_in_stage2_with_token"),
-    re_path(r"^logout/$",
+    path("logout/",
         course.auth.sign_out,
         name="relate-logout"),
-    re_path(r"^logout-confirmation/$",
+    path("logout-confirmation/",
         course.auth.sign_out_confirmation,
         name="relate-logout-confirmation"),
-    re_path(r"^profile/$",
+    path("profile/",
         course.auth.user_profile,
         name="relate-user_profile"),
     re_path(
@@ -84,7 +87,7 @@ urlpatterns = [
         course.auth.manage_authentication_tokens,
         name="relate-manage_authentication_tokens"),
 
-    re_path(r"^generate-ssh-key/$",
+    path("generate-ssh-key/",
         course.views.generate_ssh_keypair,
         name="relate-generate_ssh_keypair"),
 
@@ -96,19 +99,19 @@ urlpatterns = [
 
     # {{{ troubleshooting
 
-    re_path(r"^user/impersonate/$",
+    path("user/impersonate/",
         course.auth.impersonate,
         name="relate-impersonate"),
 
-    re_path(r"^user/stop_impersonating/$",
+    path("user/stop_impersonating/",
         course.auth.stop_impersonating,
         name="relate-stop_impersonating"),
 
-    re_path(r"^time/set-fake-time/$",
+    path("time/set-fake-time/",
         course.views.set_fake_time,
         name="relate-set_fake_time"),
 
-    re_path(r"^time/set-pretend-facilities/$",
+    path("time/set-pretend-facilities/",
         course.views.set_pretend_facilities,
         name="relate-set_pretend_facilities"),
 
@@ -116,7 +119,7 @@ urlpatterns = [
 
     # {{{ course
 
-    re_path(r"^$", course.views.home, name="relate-home"),
+    path("", course.views.home, name="relate-home"),
 
     re_path(r"^course"
         "/" + COURSE_ID_REGEX
@@ -153,7 +156,7 @@ urlpatterns = [
         course.sandbox.view_page_sandbox,
         name="relate-view_page_sandbox"),
 
-    re_path("^purge-pageview-data/$",
+    path("purge-pageview-data/",
         course.flow.purge_page_view_data,
         name="relate-purge_page_view_data"),
 
@@ -241,6 +244,7 @@ urlpatterns = [
         "/flow-page"
         "/(?P<flow_session_id>[0-9]+)"
         "/(?P<page_ordinal>[0-9]+)"
+        "/(?P<prev_grade_id>[0-9]+|None)"
         "/$",
         course.grading.get_prev_grades_dropdown_content,
         name="relate-get_prev_grades_dropdown_content"),
@@ -347,7 +351,7 @@ urlpatterns = [
 
     # {{{ versioning
 
-    re_path(r"^new-course/$",
+    path("new-course/",
         course.versioning.set_up_new_course,
         name="relate-set_up_new_course"),
     re_path(r"^course"
@@ -393,10 +397,20 @@ urlpatterns = [
         name="relate-view_flow_page"),
     re_path(r"^course"
         "/" + COURSE_ID_REGEX
+        + "/flow-session"
+        "/(?P<flow_session_id>[0-9]+)"
+        "/(?P<page_ordinal>[0-9]+)"
+        "/ext-resource-tabs"
+        "/$",
+        course.flow.view_flow_page_with_ext_resource_tabs,
+        name="relate-view_flow_page_with_ext_resource_tabs"),
+    re_path(r"^course"
+        "/" + COURSE_ID_REGEX
         + "/prev_answers"
         "/flow-page"
         "/(?P<flow_session_id>[0-9]+)"
         "/(?P<page_ordinal>[0-9]+)"
+        "/(?P<prev_visit_id>[0-9]+|None)"
         "/$",
         course.flow.get_prev_answer_visits_dropdown_content,
         name="relate-get_prev_answer_visits_dropdown_content"),
@@ -519,8 +533,7 @@ urlpatterns = [
 
     # {{{ exams
 
-    re_path(r"^issue-exam-ticket"
-        "/$",
+    path("issue-exam-ticket/",
         course.exam.issue_exam_ticket,
         name="relate-issue_exam_ticket"),
     re_path(r"^course"
@@ -529,12 +542,20 @@ urlpatterns = [
         "/$",
         course.exam.batch_issue_exam_tickets,
         name="relate-batch_issue_exam_tickets"),
-    re_path(r"^exam-check-in/$",
+    path("exam-check-in/",
         course.exam.check_in_for_exam,
         name="relate-check_in_for_exam"),
-    re_path(r"^list-available-exams/$",
+    path("list-available-exams/",
         course.exam.list_available_exams,
         name="relate-list_available_exams"),
+    re_path(r"^course"
+        "/" + COURSE_ID_REGEX
+        + "/access-exam"
+        "/$",
+        course.exam.access_exam,
+        name="relate-access_exam"),
+
+    path("prairietest/", include("prairietest.urls")),
 
     # }}}
 

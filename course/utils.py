@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+
 __copyright__ = "Copyright (C) 2014 Andreas Kloeckner"
 
 __license__ = """
@@ -22,61 +23,65 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from typing import cast, Text
-
-import datetime  # noqa
-import markdown
-
-from django.shortcuts import (  # noqa
-        render, get_object_or_404)
-from django import http
-from django.core.exceptions import ObjectDoesNotExist
-from django.utils import translation
-from django.utils.translation import (
-        gettext as _, pgettext_lazy)
+import datetime
+from collections.abc import Collection, Iterable
 from contextlib import ContextDecorator
+from dataclasses import dataclass
+from ipaddress import IPv4Address, IPv6Address
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    cast,
+)
 
-from relate.utils import string_concat
+from django import forms, http
+from django.core.exceptions import ObjectDoesNotExist
+from django.shortcuts import get_object_or_404, render
+from django.utils import translation
+from django.utils.safestring import SafeString, mark_safe
+from django.utils.translation import gettext as _, pgettext_lazy
+
+from course.constants import flow_permission, flow_rule_kind
 from course.content import (
-    get_course_repo, get_flow_desc,
-    parse_date_spec, get_course_commit_sha,
-    CourseCommitSHADoesNotExist)
-from course.constants import (
-        flow_permission, flow_rule_kind)
-from course.content import (  # noqa
-        FlowDesc,
-        FlowPageDesc,
-        FlowSessionStartRuleDesc,
-        FlowSessionAccessRuleDesc,
-        FlowSessionGradingRuleDesc,
-        )
-from course.page.base import (  # noqa
-        PageBase,
-        PageContext,
-        )
+    CourseCommitSHADoesNotExist,
+    FlowDesc,
+    FlowPageDesc,
+    FlowSessionAccessRuleDesc,
+    FlowSessionGradingRuleDesc,
+    FlowSessionStartRuleDesc,
+    get_course_commit_sha,
+    get_course_repo,
+    get_flow_desc,
+    parse_date_spec,
+)
+from course.page.base import PageBase, PageContext
+from relate.utils import (
+    RelateHttpRequest,
+    not_none,
+    remote_address_from_request,
+    string_concat,
+)
+
+
 # {{{ mypy
 
-from typing import (  # noqa
-    Tuple, List, Iterable, Any, Optional, Union, Dict, FrozenSet, Text,
-    TYPE_CHECKING)
 if TYPE_CHECKING:
-    from course.models import (  # noqa
-            Course,
-            Participation,
-            ExamTicket,
-            FlowSession,
-            FlowPageData,
-            )
-
+    from course.content import Repo_ish
+    from course.models import (
+        Course,
+        ExamTicket,
+        FlowPageData,
+        FlowSession,
+        Participation,
+    )
     from relate.utils import Repo_ish  # noqa
-    from course.content import Repo_ish  # noqa
-    from codemirror import CodeMirrorTextarea  # noqa
-
 
 # }}}
 
 import re
-CODE_CELL_DIV_ATTRS_RE = re.compile('(<div class="[^>]*code_cell[^>"]*")(>)')
+
+
+CODE_CELL_DIV_ATTRS_RE = re.compile(r'(<div class="[^>]*code_cell[^>"]*")(>)')
 
 
 def getattr_with_fallback(
@@ -159,6 +164,8 @@ def _eval_generic_conditions(
         now_datetime: datetime.datetime,
         flow_id: str,
         login_exam_ticket: ExamTicket | None,
+        *,
+        remote_ip_address: IPv4Address | IPv6Address | None = None,
         ) -> bool:
 
     if hasattr(rule, "if_before"):
@@ -182,6 +189,24 @@ def _eval_generic_conditions(
         if login_exam_ticket is None:
             return False
         if login_exam_ticket.exam.flow_id != flow_id:
+            return False
+        if login_exam_ticket.participation != participation:
+            return False
+
+    if hasattr(rule, "if_has_prairietest_exam_access"):
+        if remote_ip_address is None:
+            return False
+        if participation is None:
+            return False
+
+        from prairietest.utils import has_access_to_exam
+        if not has_access_to_exam(
+                    course,
+                    participation.user.email,
+                    rule.if_has_prairietest_exam_access,
+                    now_datetime,
+                    remote_ip_address,
+                ):
             return False
 
     return True
@@ -243,7 +268,7 @@ def get_flow_rules(
         flow_id: str,
         now_datetime: datetime.datetime,
         consider_exceptions: bool = True,
-        default_rules_desc: Optional[list[Any]] = None
+        default_rules_desc: list[Any] | None = None
         ) -> list[Any]:
     if default_rules_desc is None:
         default_rules_desc = []
@@ -281,9 +306,11 @@ def get_session_start_rule(
         flow_id: str,
         flow_desc: FlowDesc,
         now_datetime: datetime.datetime,
-        facilities: frozenset[str] | None = None,
+        facilities: Collection[str] | None = None,
         for_rollover: bool = False,
         login_exam_ticket: ExamTicket | None = None,
+        *,
+        remote_ip_address: IPv4Address | IPv6Address | None = None,
         ) -> FlowSessionStartRule:
 
     """Return a :class:`FlowSessionStartRule` if a new session is
@@ -298,15 +325,16 @@ def get_session_start_rule(
             flow_desc, flow_rule_kind.start,
             participation, flow_id, now_datetime,
             default_rules_desc=[
-                dict_to_struct(dict(
-                    may_start_new_session=True,
-                    may_list_existing_sessions=False))])
+                dict_to_struct({
+                    "may_start_new_session": True,
+                    "may_list_existing_sessions": False})])
 
-    from course.models import FlowSession  # noqa
+    from course.models import FlowSession
     for rule in rules:
         if not _eval_generic_conditions(rule, course, participation,
                 now_datetime, flow_id=flow_id,
-                login_exam_ticket=login_exam_ticket):
+                login_exam_ticket=login_exam_ticket,
+                remote_ip_address=remote_ip_address):
             continue
 
         if not _eval_participation_tags_conditions(rule, participation):
@@ -374,8 +402,10 @@ def get_session_access_rule(
         session: FlowSession,
         flow_desc: FlowDesc,
         now_datetime: datetime.datetime,
-        facilities: frozenset[str] | None = None,
+        facilities: Collection[str] | None = None,
         login_exam_ticket: ExamTicket | None = None,
+        *,
+        remote_ip_address: IPv4Address | IPv6Address | None = None,
         ) -> FlowSessionAccessRule:
 
     if facilities is None:
@@ -386,15 +416,17 @@ def get_session_access_rule(
             flow_desc, flow_rule_kind.access,
             session.participation, session.flow_id, now_datetime,
             default_rules_desc=[
-                dict_to_struct(dict(
-                    permissions=[flow_permission.view],
-                    ))])
+                dict_to_struct({
+                    "permissions": [flow_permission.view],
+                    })])
 
     for rule in rules:
         if not _eval_generic_conditions(
-                rule, session.course, session.participation,
-                now_datetime, flow_id=session.flow_id,
-                login_exam_ticket=login_exam_ticket):
+                    rule, session.course, session.participation,
+                    now_datetime, flow_id=session.flow_id,
+                    login_exam_ticket=login_exam_ticket,
+                    remote_ip_address=remote_ip_address,
+                ):
             continue
 
         if not _eval_participation_tags_conditions(rule, session.participation):
@@ -471,9 +503,9 @@ def get_session_grading_rule(
             flow_desc, flow_rule_kind.grading,
             session.participation, session.flow_id, now_datetime,
             default_rules_desc=[
-                dict_to_struct(dict(
-                    generates_grade=False,
-                    ))])
+                dict_to_struct({
+                    "generates_grade": False,
+                    })])
 
     from course.enrollment import get_participation_role_identifiers
     roles = get_participation_role_identifiers(session.course, session.participation)
@@ -507,14 +539,17 @@ def get_session_grading_rule(
                 if session.in_progress:
                     completion_time = now_datetime
                 else:
-                    completion_time = session.completion_time
+                    completion_time = not_none(session.completion_time)
 
             if completion_time > ds:
                 continue
 
-        due = parse_date_spec(session.course, getattr(rule, "due", None))
-        if due is not None:
+        due_str = getattr(rule, "due", None)
+        if due_str is not None:
+            due = parse_date_spec(session.course, due_str)
             assert due.tzinfo is not None
+        else:
+            due = None
 
         generates_grade = getattr(rule, "generates_grade", True)
 
@@ -555,7 +590,7 @@ def get_session_grading_rule(
 
 # {{{ contexts
 
-class AnyArgumentType:  # noqa
+class AnyArgumentType:
     pass
 
 
@@ -565,16 +600,18 @@ ANY_ARGUMENT = AnyArgumentType()
 class CoursePageContext:
     def __init__(self, request: http.HttpRequest, course_identifier: str) -> None:
 
-        self.request = request
+        # account for monkeypatching
+        self.request = cast(RelateHttpRequest, request)
+
         self.course_identifier = course_identifier
-        self._permissions_cache: frozenset[tuple[str, str | None]] | None = None  # noqa
+        self._permissions_cache: frozenset[tuple[str, str | None]] | None = None
         self._role_identifiers_cache: list[str] | None = None
-        self.old_language = None
+        self.old_language: str | None = None
 
         # using this to prevent nested using as context manager
         self._is_in_context_manager = False
 
-        from course.models import Course  # noqa
+        from course.models import Course
         self.course = get_object_or_404(Course, identifier=course_identifier)
 
         from course.enrollment import get_participation_for_request
@@ -710,10 +747,10 @@ class FlowPageContext(FlowContext):
             ) -> None:
         super().__init__(repo, course, flow_id, participation)
 
-        if page_ordinal >= flow_session.page_count:
+        if page_ordinal >= not_none(flow_session.page_count):
             raise PageOrdinalOutOfRange()
 
-        from course.models import FlowPageData  # noqa
+        from course.models import FlowPageData
         page_data = self.page_data = get_object_or_404(
                 FlowPageData, flow_session=flow_session, page_ordinal=page_ordinal)
 
@@ -741,7 +778,8 @@ class FlowPageContext(FlowContext):
                     course=self.course, repo=self.repo,
                     commit_sha=self.course_commit_sha,
                     flow_session=flow_session,
-                    page_uri=page_uri)
+                    page_uri=page_uri,
+                    request=request)
 
         self._prev_answer_visit = False
 
@@ -768,15 +806,15 @@ def instantiate_flow_page_with_ctx(
 
     from course.content import instantiate_flow_page
     return instantiate_flow_page(
-            "course '%s', flow '%s', page '%s/%s'"
-            % (fctx.course.identifier, fctx.flow_id,
-                page_data.group_id, page_data.page_id),
+            f"course '{fctx.course.identifier}', "
+            f"flow '{fctx.flow_id}', page '{page_data.group_id}/{page_data.page_id}'",
             fctx.repo, page_desc, fctx.course_commit_sha)
 
 # }}}
 
 
-# {{{ utilties for course-based views
+# {{{ utilities for course-based views
+
 def course_view(f):
     def wrapper(request, course_identifier, *args, **kwargs):
         with CoursePageContext(request, course_identifier) as pctx:
@@ -800,7 +838,7 @@ class ParticipationPermissionWrapper:
         try:
             getattr(participation_permission, perm)
         except AttributeError:
-            raise ValueError("permission name '%s' not valid" % perm)
+            raise ValueError(f"permission name '{perm}' not valid")
 
         return self.pctx.has_permission(perm, ANY_ARGUMENT)
 
@@ -877,8 +915,9 @@ class PageInstanceCache:
                     group_id, page_id)
 
             page = instantiate_flow_page(
-                    location="flow '%s', group, '%s', page '%s'"
-                    % (self.flow_id, group_id, page_id),
+                    location=(
+                        f"flow '{self.flow_id}', "
+                        f"group '{group_id}', page '{page_id}'"),
                     repo=self.repo, page_desc=page_desc,
                     commit_sha=commit_sha)
 
@@ -890,104 +929,170 @@ class PageInstanceCache:
 
 # {{{ codemirror config
 
+@dataclass(frozen=True)
+class JsLiteral:
+    js: str
+
+
+def repr_js(obj: Any) -> str:
+    if isinstance(obj, list):
+        return "[{}]".format(", ".join(repr_js(ch) for ch in obj))
+    elif isinstance(obj, dict):
+        return "{{{}}}".format(", ".join(f"{k}: {repr_js(v)}" for k, v in obj.items()))
+    elif isinstance(obj, bool):
+        return repr(obj).lower()
+    elif isinstance(obj, int | float):
+        return repr(obj)
+    elif isinstance(obj, str):
+        return repr(obj)
+    elif isinstance(obj, JsLiteral):
+        return obj.js
+    else:
+        raise ValueError(f"unsupported object type: {type(obj)}")
+
+
+class CodeMirrorTextarea(forms.Textarea):
+    @property
+    def media(self):
+        return forms.Media(js=["bundle-codemirror.js"])
+
+    def __init__(self, attrs=None,
+                 *,
+                 language_mode=None, interaction_mode,
+                 indent_unit: int,
+                 autofocus: bool,
+                 additional_keys: dict[str, JsLiteral],
+                 **kwargs):
+        super().__init__(attrs, **kwargs)
+        self.language_mode = language_mode
+        self.interaction_mode = interaction_mode
+        self.indent_unit = indent_unit
+        self.autofocus = autofocus
+        self.additional_keys = additional_keys
+
+    # TODO: Maybe add VSCode keymap?
+    # https://github.com/replit/codemirror-vscode-keymap
+    def render(self, name, value, attrs=None, renderer=None) -> SafeString:
+        # based on
+        # https://github.com/codemirror/basic-setup/blob/b3be7cd30496ee578005bd11b1fa6a8b21fcbece/src/codemirror.ts
+        extensions = [
+                JsLiteral(f"rlCodemirror.indentUnit.of({' ' * self.indent_unit !r})"),
+                ]
+
+        if self.interaction_mode == "vim":
+            extensions.insert(0, JsLiteral("rlCodemirror.vim()"))
+        elif self.interaction_mode == "emacs":
+            extensions.insert(0, JsLiteral("rlCodemirror.emacs()"))
+        else:
+            pass
+
+        if self.language_mode is not None:
+            extensions.append(JsLiteral(f"rlCodemirror.{self.language_mode}()"))
+
+        additional_keys = [
+            {
+                "key": key,
+                "run": func,
+            }
+            for key, func in self.additional_keys.items()
+        ]
+        output = [super().render(
+                        name, value, attrs, renderer),
+                  f"""
+                  <script type="text/javascript">
+                    rlCodemirror.editorFromTextArea(
+                        document.getElementById('id_{name}'),
+                        {repr_js(extensions)},
+                        {repr_js(self.autofocus)},
+                        {repr_js(additional_keys)}
+                        )
+                  </script>
+                  """]
+
+        return mark_safe("\n".join(output))
+
+
 def get_codemirror_widget(
         language_mode: str,
-        interaction_mode: str,
-        config: dict | None = None,
-        addon_css: tuple = (),
-        addon_js: tuple = (),
-        dependencies: tuple = (),
-        read_only: bool = False,
+        interaction_mode: str | None,
+        *,
         autofocus: bool = False,
+        additional_keys: dict[str, JsLiteral] | None = None,
         ) -> tuple[CodeMirrorTextarea, str]:
-    from codemirror import CodeMirrorTextarea, CodeMirrorJavascript  # noqa
-
-    theme = "default"
-    if read_only:
-        theme += " relate-readonly"
+    if additional_keys is None:
+        additional_keys = {}
 
     from django.urls import reverse
-    help_text = (_("Press F9 to toggle full-screen mode. ")
+    help_text = (_("Press Esc then Tab to leave the editor. ")
             + _("Set editor mode in <a href='%s'>user profile</a>.")
             % reverse("relate-user_profile"))
 
-    actual_addon_css = (
-        "dialog/dialog",
-        "display/fullscreen",
-        ) + addon_css
-    actual_addon_js = (
-        "search/searchcursor",
-        "dialog/dialog",
-        "search/search",
-        "comment/comment",
-        "edit/matchbrackets",
-        "display/fullscreen",
-        "selection/active-line",
-        "edit/trailingspace",
-        ) + addon_js
-
-    if language_mode == "python":
+    if language_mode in ["python", "yaml"]:
         indent_unit = 4
     else:
         indent_unit = 2
 
-    actual_config = {
-            "fixedGutter": True,
-            "matchBrackets": True,
-            "styleActiveLine": True,
-            "showTrailingSpace": True,
-            "indentUnit": indent_unit,
-            "readOnly": read_only,
-            "extraKeys": CodeMirrorJavascript("""
-                {
-                  "Ctrl-/": "toggleComment",
-                  "Tab": function(cm)
-                  {
-                    // from https://github.com/codemirror/CodeMirror/issues/988
-
-                    if (cm.doc.somethingSelected()) {
-                        return CodeMirror.Pass;
-                    }
-                    var spacesPerTab = cm.getOption("indentUnit");
-                    var spacesToInsert = (
-                        spacesPerTab
-                        - (cm.doc.getCursor("start").ch % spacesPerTab));
-                    var spaces = Array(spacesToInsert + 1).join(" ");
-                    cm.replaceSelection(spaces, "end", "+input");
-                  },
-                  "Shift-Tab": "indentLess",
-                  "F9": function(cm) {
-                      cm.setOption("fullScreen",
-                        !cm.getOption("fullScreen"));
-                  }
-                }
-            """)
-            }
-
-    if autofocus:
-        actual_config["autofocus"] = True
-
-    if interaction_mode == "vim":
-        actual_config["vimMode"] = True
-        actual_addon_js += ("../keymap/vim",)
-    elif interaction_mode == "emacs":
-        actual_config["keyMap"] = "emacs"
-        actual_addon_js += ("../keymap/emacs",)
-    elif interaction_mode == "sublime":
-        actual_config["keyMap"] = "sublime"
-        actual_addon_js += ("../keymap/sublime",)
-    # every other interaction mode goes to default
-
-    if config is not None:
-        actual_config.update(config)
-
     return CodeMirrorTextarea(
-                    mode=language_mode,
-                    dependencies=dependencies,
-                    theme=theme,
-                    addon_css=actual_addon_css,
-                    addon_js=actual_addon_js,
-                    config=actual_config), help_text
+                    language_mode=language_mode,
+                    interaction_mode=interaction_mode,
+                    indent_unit=indent_unit,
+                    autofocus=autofocus,
+                    additional_keys=additional_keys,
+                    ), help_text
+
+# }}}
+
+
+# {{{ prosemirror
+
+class ProseMirrorTextarea(forms.Textarea):
+    @property
+    def media(self):
+        return forms.Media(js=["bundle-prosemirror.js"])
+
+    def render(self, name, value, attrs=None, renderer=None) -> SafeString:
+        output = [super().render(
+                        name, value, attrs, renderer),
+                  f"""
+                  <script type="text/javascript">
+                    rlProsemirror.editorFromTextArea(
+                        document.getElementById('id_{name}'),
+                        )
+                  </script>
+                  """]
+
+        return mark_safe("\n".join(output))
+
+    math_help_text = mark_safe(r"""
+    See the <a href="https://katex.org/docs/supported.html"
+            >list of supported math commands</a>.
+    More tips for using this editor to type math:
+    <ul>
+        <li>
+        You may paste in Markdown-with-math (as accepted by
+        <a
+        href="https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/writing-mathematical-expressions"
+        >Github</a>,
+        <a href="https://pandoc.org/MANUAL.html#math">Pandoc</a>, or
+        <a href="https://meta.discourse.org/t/discourse-math/65770">Discourse</a>).
+        <li>
+        Inline math nodes are delimited with <code>$</code>.
+        After typing the closing dollar sign in
+        an expression like <code>$\int_a^b f(x) dx$</code>, a math node will appear.
+        </li>
+
+        <li>
+        To start a block math node, press Enter to create a blank line,
+        then type <code>$$</code> followed by Space. You can type multi-line math
+        expressions, and the result will render in display style.
+        </li>
+        <li>
+        Math nodes behave like regular text when using arrow keys or Backspace.
+        From within a math node, press Ctrl-Backspace to delete the entire node.
+        You can select, copy, and paste math nodes just like regular text!
+        </li>
+    </ul>
+    """)
 
 # }}}
 
@@ -1022,24 +1127,28 @@ class FacilityFindingMiddleware:
     def __init__(self, get_response):
         self.get_response = get_response
 
-    def __call__(self, request):
+    def __call__(self, request: http.HttpRequest) -> http.HttpResponse:
         pretend_facilities = request.session.get("relate_pretend_facilities")
 
         if pretend_facilities is not None:
             facilities = pretend_facilities
         else:
-            import ipaddress
-            remote_address = ipaddress.ip_address(
-                    str(request.META["REMOTE_ADDR"]))
+            remote_address = remote_address_from_request(request)
 
             facilities = set()
 
-            for name, props in get_facilities_config(request).items():
+            facilities_config = get_facilities_config(request)
+            if facilities_config is None:
+                facilities_config = {}
+
+            from ipaddress import ip_network
+            for name, props in facilities_config.items():
                 ip_ranges = props.get("ip_ranges", [])
                 for ir in ip_ranges:
-                    if remote_address in ipaddress.ip_network(str(ir)):
+                    if remote_address in ip_network(str(ir)):
                         facilities.add(name)
 
+        request = cast(RelateHttpRequest, request)
         request.relate_facilities = frozenset(facilities)
 
         return self.get_response(request)
@@ -1082,7 +1191,7 @@ def csv_data_importable(file_contents, column_idx_list, header_count):
         return False, (
             string_concat(
                 pgettext_lazy("Starting of Error message", "Error"),
-                ": %s" % err_msg))
+                f": {err_msg}"))
 
     from itertools import chain
 
@@ -1115,19 +1224,18 @@ def csv_data_importable(file_contents, column_idx_list, header_count):
     return True, ""
 
 
-def will_use_masked_profile_for_email(
-        recipient_email: None | str | list[str]) -> bool:
+def will_use_masked_profile_for_email(recipient_email: str | list[str] | None) -> bool:
     if not recipient_email:
         return False
     if not isinstance(recipient_email, list):
         recipient_email = [recipient_email]
-    from course.models import Participation  # noqa
-    recepient_participations = (
+    from course.models import Participation
+    recipient_participations = (
         Participation.objects.filter(
             user__email__in=recipient_email
         ))
     from course.constants import participation_permission as pperm
-    for part in recepient_participations:
+    for part in recipient_participations:
         if part.has_permission(pperm.view_participant_masked_profile):
             return True
     return False
@@ -1135,10 +1243,11 @@ def will_use_masked_profile_for_email(
 
 def get_course_specific_language_choices() -> tuple[tuple[str, Any], ...]:
 
-    from django.conf import settings
     from collections import OrderedDict
 
-    all_options = ((settings.LANGUAGE_CODE, None),) + tuple(settings.LANGUAGES)
+    from django.conf import settings
+
+    all_options = ((settings.LANGUAGE_CODE, None), *tuple(settings.LANGUAGES))
     filtered_options_dict = OrderedDict(all_options)
 
     def get_default_option() -> tuple[str, str]:
@@ -1150,7 +1259,7 @@ def get_course_specific_language_choices() -> tuple[tuple[str, Any], ...]:
         else:
             formatted_descr = _("disabled (i.e., displayed language is "
                                 "determined by user's browser preference)")
-        return "", string_concat("%s: " % _("Default"), formatted_descr)
+        return "", string_concat("{}: ".format(_("Default")), formatted_descr)
 
     def get_formatted_options(
             lang_code: str, lang_descr: str | None) -> tuple[str, str]:
@@ -1164,7 +1273,7 @@ def get_course_specific_language_choices() -> tuple[tuple[str, Any], ...]:
                     return (lang_code.strip(), lang_code)
 
         return (lang_code.strip(),
-                string_concat(_(lang_descr), " (%s)" % lang_code))
+                string_concat(_(lang_descr), f" ({lang_code})"))
 
     filtered_options = (
         [get_default_option()]
@@ -1224,116 +1333,5 @@ class RelateJinjaMacroBase:
     def __call__(self, *args: Any, **kwargs: Any) -> str:
         raise NotImplementedError()
 
-
-# {{{ ipynb utilities
-
-class IpynbJinjaMacro(RelateJinjaMacroBase):
-    name = "render_notebook_cells"
-
-    def _render_notebook_cells(self,
-            ipynb_path: str,
-            indices: Any | None = None,
-            clear_output: bool | None = False,
-            clear_markdown: bool | None = False,
-            **kwargs: Any) -> str:
-        from course.content import get_repo_blob_data_cached
-        try:
-            ipynb_source = get_repo_blob_data_cached(self.repo, ipynb_path,
-                                                     self.commit_sha).decode()
-
-            return self._render_notebook_from_source(
-                ipynb_source,
-                indices=indices,
-                clear_output=clear_output,
-                clear_markdown=clear_markdown,
-                **kwargs
-            )
-        except ObjectDoesNotExist:
-            raise
-
-    __call__ = _render_notebook_cells  # type: ignore
-
-    def _render_notebook_from_source(
-            self, ipynb_source: str, indices: Any | None = None,
-            clear_output: bool | None = False,
-            clear_markdown: bool | None = False, **kwargs: Any) -> str:
-        """
-        Get HTML format of ipython notebook so as to be rendered in RELATE flow
-        pages.
-        :param ipynb_source: the :class:`text` read from a ipython notebook.
-        :param indices: a :class:`list` instance, 0-based indices of notebook cells
-        which are expected to be rendered.
-        :param clear_output: a :class:`bool` instance, indicating whether existing
-        execution output of code cells should be removed.
-        :param clear_markdown: a :class:`bool` instance, indicating whether markdown
-        cells will be ignored..
-        :return:
-        """
-        import nbformat
-        from nbformat.reader import parse_json
-        nb_source_dict = parse_json(ipynb_source)
-
-        if indices:
-            nb_source_dict.update(
-                {"cells": [nb_source_dict["cells"][idx] for idx in indices]})
-
-        if clear_markdown:
-            nb_source_dict.update(
-                {"cells": [cell for cell in nb_source_dict["cells"]
-                           if cell["cell_type"] != "markdown"]})
-
-        nb_source_dict.update({"cells": nb_source_dict["cells"]})
-
-        import json
-        ipynb_source = json.dumps(nb_source_dict)
-        notebook = nbformat.reads(ipynb_source, as_version=4)
-
-        from traitlets.config import Config
-        c = Config()
-
-        # This is to prevent execution of arbitrary code from note book
-        c.ExecutePreprocessor.enabled = False
-        if clear_output:
-            c.ClearOutputPreprocessor.enabled = True
-
-        c.CSSHTMLHeaderPreprocessor.enabled = False
-        c.HighlightMagicsPreprocessor.enabled = False
-
-        import os
-
-        # Place the template in course template dir
-        import course
-        template_path = os.path.join(
-                os.path.dirname(course.__file__),
-                "templates", "course", "jinja2")
-        c.TemplateExporter.template_path.append(template_path)
-
-        from nbconvert import HTMLExporter
-        html_exporter = HTMLExporter(
-            config=c,
-            template_file="nbconvert_template.tpl"
-        )
-
-        (body, resources) = html_exporter.from_notebook_node(notebook)
-
-        return "<div class='relate-notebook-container'>%s</div>" % body
-
-
-NBCONVERT_PRE_OPEN_RE = re.compile(r"<pre\s*>\s*<relate_ipynb\s*>")
-NBCONVERT_PRE_CLOSE_RE = re.compile(r"</relate_ipynb\s*>\s*</pre\s*>")
-
-
-class NBConvertHTMLPostprocessor(markdown.postprocessors.Postprocessor):
-    def run(self, text):
-        text = NBCONVERT_PRE_OPEN_RE.sub("", text)
-        text = NBCONVERT_PRE_CLOSE_RE.sub("", text)
-        return text
-
-
-class NBConvertExtension(markdown.Extension):
-    def extendMarkdown(self, md, md_globals):  # noqa
-        md.postprocessors["relate_nbconvert"] = NBConvertHTMLPostprocessor(md)
-
-# }}}
 
 # vim: foldmethod=marker

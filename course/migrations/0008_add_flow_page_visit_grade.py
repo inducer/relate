@@ -1,7 +1,7 @@
-from django.db import models, migrations
+import django.utils.timezone
 import jsonfield.fields
 from django.conf import settings
-import django.utils.timezone
+from django.db import migrations, models
 
 
 def store_grading_results(apps, schema_editor):

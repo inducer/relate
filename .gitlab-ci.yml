@@ -25,8 +25,8 @@ stages:
   tags:
     - docker-runner
   before_script:
-    - curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python3
-    - export PATH="$HOME/.poetry/bin:$PATH"
+    - curl -sSL https://install.python-poetry.org | python3 -
+    - export PATH="$HOME/.local/bin:$PATH"
     - poetry install
 
 .quality-template: &quality
@@ -49,19 +49,20 @@ setup:
   stage: setup
   script: poetry config --list
 
-flake8:
+ruff:
   <<: *quality
   script: |
-    poetry run flake8 relate course accounts
-    poetry run flake8 --extend-ignore Q000 tests
+    poetry run ruff check
 
 mypy:
   <<: *quality
-  script: poetry run mypy relate course
+  variables:
+    RELATE_LOCAL_TEST_SETTINGS: './local_settings_example.py'
+  script: poetry run ./.ci/run-mypy.sh
 
 safety:
   <<: *quality
-  script: bash ./.ci/run-safety.sh
+  script: poetry run ./.ci/run-safety.sh
 
 Python 3:
   <<: *test

@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+
 __copyright__ = "Copyright (C) 2017 Dong Zhuang"
 
 __license__ = """
@@ -23,16 +26,15 @@ THE SOFTWARE.
 import os
 from datetime import datetime
 
+from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 from django.test import SimpleTestCase
 from django.test.utils import override_settings
 from django.utils.translation import gettext_lazy as _
-from django.conf import settings
 
 from relate.checks import register_startup_checks_extra
-
-from tests.utils import mock
 from tests.factories import UserFactory
+from tests.utils import mock
 
 
 class CheckRelateSettingsBase(SimpleTestCase):
@@ -64,7 +66,7 @@ class CheckRelateSettingsBase(SimpleTestCase):
             filter_message_id_prefixes = self.msg_id_prefix
             if isinstance(filter_message_id_prefixes, str):
                 filter_message_id_prefixes = [filter_message_id_prefixes]
-            assert isinstance(filter_message_id_prefixes, (list, tuple))
+            assert isinstance(filter_message_id_prefixes, list | tuple)
 
         if expected_ids is None and expected_msgs is None and length is None:
             raise RuntimeError("At least one parameter should be specified "
@@ -79,20 +81,21 @@ class CheckRelateSettingsBase(SimpleTestCase):
         try:
             result_ids, result_msgs = (
                 list(zip(*[(r.id, r.msg) for r in result
-                      if is_id_in_filter(r.id, filter_message_id_prefixes)])))
+                      if is_id_in_filter(r.id, filter_message_id_prefixes)],
+                      strict=True)))
 
             if expected_ids is not None:
-                assert isinstance(expected_ids, (list, tuple))
+                assert isinstance(expected_ids, list | tuple)
                 if ignore_order:
-                    result_ids = tuple(sorted(list(result_ids)))
-                    expected_ids = sorted(list(expected_ids))
+                    result_ids = tuple(sorted(result_ids))
+                    expected_ids = sorted(expected_ids)
                 self.assertEqual(result_ids, tuple(expected_ids))
 
             if expected_msgs is not None:
-                assert isinstance(expected_msgs, (list, tuple))
+                assert isinstance(expected_msgs, list | tuple)
                 if ignore_order:
-                    result_msgs = tuple(sorted(list(result_msgs)))
-                    expected_msgs = sorted(list(expected_msgs))
+                    result_msgs = tuple(sorted(result_msgs))
+                    expected_msgs = sorted(expected_msgs)
                 self.assertEqual(result_msgs, tuple(expected_msgs))
 
             if length is not None:
@@ -133,7 +136,7 @@ class CheckRelateURL(CheckRelateSettingsBase):
 class CheckRelateUserProfileMaskMethod(CheckRelateSettingsBase):
     # This TestCase is not pure for check, but also make sure it returned
     # expected result
-    databases = '__all__'
+    databases = "__all__"
 
     msg_id_prefix = "relate_user_profile_mask_method"
 
@@ -187,7 +190,8 @@ class CheckRelateUserProfileMaskMethod(CheckRelateSettingsBase):
                         ".my_custom_get_masked_profile_method_valid")):
             self.assertCheckMessages([])
             from tests.resource import (
-                my_custom_get_masked_profile_method_valid as custom_method)
+                my_custom_get_masked_profile_method_valid as custom_method,
+            )
             self.assertEqual(self.user.get_masked_profile(),
                              custom_method(self.user))
 
@@ -197,7 +201,7 @@ class CheckRelateUserProfileMaskMethod(CheckRelateSettingsBase):
             return "profile"
 
         with override_settings(RELATE_USER_PROFILE_MASK_METHOD=custom_method):
-            self.assertCheckMessages(['relate_user_profile_mask_method.E003'])
+            self.assertCheckMessages(["relate_user_profile_mask_method.E003"])
 
     def test_get_masked_profile_param_invalid2(self):
         # the method has 2 args/kwargs
@@ -205,7 +209,7 @@ class CheckRelateUserProfileMaskMethod(CheckRelateSettingsBase):
             return "{}{}".format("User", str(u.pk + 1))
 
         with override_settings(RELATE_USER_PROFILE_MASK_METHOD=custom_method):
-            self.assertCheckMessages(['relate_user_profile_mask_method.E003'])
+            self.assertCheckMessages(["relate_user_profile_mask_method.E003"])
 
     def test_get_masked_profile_param_invalid3(self):
         # the method has 2 args/kwargs
@@ -213,28 +217,28 @@ class CheckRelateUserProfileMaskMethod(CheckRelateSettingsBase):
             return "{}{}".format("User", str(u.pk + 1))
 
         with override_settings(RELATE_USER_PROFILE_MASK_METHOD=custom_method):
-            self.assertCheckMessages(['relate_user_profile_mask_method.E003'])
+            self.assertCheckMessages(["relate_user_profile_mask_method.E003"])
 
     def test_get_masked_profile_invalid_path(self):
         with override_settings(RELATE_USER_PROFILE_MASK_METHOD="invalid path"):
-            self.assertCheckMessages(['relate_user_profile_mask_method.E001'])
+            self.assertCheckMessages(["relate_user_profile_mask_method.E001"])
 
     def test_get_masked_profile_valid_path_not_callable(self):
         with override_settings(
                 RELATE_USER_PROFILE_MASK_METHOD=(
                         "tests.resource"
                         ".my_custom_get_masked_profile_method_invalid_str")):
-            self.assertCheckMessages(['relate_user_profile_mask_method.E002'])
+            self.assertCheckMessages(["relate_user_profile_mask_method.E002"])
 
     def test_passed_check_but_return_none(self):
         with override_settings(
                 RELATE_USER_PROFILE_MASK_METHOD=(
                         "tests.resource"
-                        ".my_custom_get_masked_profile_method_valid_but_return_none")):  # noqa
+                        ".my_get_masked_profile_method_return_none")):
             self.assertCheckMessages([])
             from tests.resource import (
-                my_custom_get_masked_profile_method_valid_but_return_none
-                as custom_method)
+                my_get_masked_profile_method_return_none as custom_method,
+            )
 
             # test method can run
             custom_method(self.user)
@@ -246,11 +250,11 @@ class CheckRelateUserProfileMaskMethod(CheckRelateSettingsBase):
         with override_settings(
                 RELATE_USER_PROFILE_MASK_METHOD=(
                         "tests.resource"
-                        ".my_custom_get_masked_profile_method_valid_but_return_emtpy_string")):  # noqa
+                        ".my_get_masked_profile_method_return_empty_string")):
             self.assertCheckMessages([])
             from tests.resource import (
-                my_custom_get_masked_profile_method_valid_but_return_emtpy_string
-                as custom_method)
+                my_get_masked_profile_method_return_empty_string as custom_method,
+            )
 
             # test method can run
             custom_method(self.user)
@@ -262,7 +266,7 @@ class CheckRelateUserProfileMaskMethod(CheckRelateSettingsBase):
 class CheckRelateUserFullNameFormatMethod(CheckRelateSettingsBase):
     # This TestCase is not pure for check, but also make sure it returned
     # expected result
-    databases = '__all__'
+    databases = "__all__"
 
     msg_id_prefix = "relate_user_full_name_format_method"
 
@@ -295,7 +299,7 @@ class CheckRelateUserFullNameFormatMethod(CheckRelateSettingsBase):
             ({"id": 1,
               "custom_method": None,
               "user_dict": {},
-              "default": '',
+              "default": "",
               "not_allow_blank": None,
               "force_verbose_blank": "(blank) (blank)"}),
             ({"id": 2,
@@ -316,49 +320,49 @@ class CheckRelateUserFullNameFormatMethod(CheckRelateSettingsBase):
               "default": default_result,
               "not_allow_blank": default_result,
               "force_verbose_blank": default_result,
-              "check_messages": ['relate_user_full_name_format_method.W003']}),
+              "check_messages": ["relate_user_full_name_format_method.W003"]}),
             ({"id": 5,
               "custom_method": invalid_method2,
               "user_dict": default_user_dict,
               "default": default_result,
               "not_allow_blank": default_result,
               "force_verbose_blank": default_result,
-              "check_messages": ['relate_user_full_name_format_method.W004']}),
+              "check_messages": ["relate_user_full_name_format_method.W004"]}),
             ({"id": 6,
               "custom_method": invalid_method3,
               "user_dict": default_user_dict,
               "default": default_result,
               "not_allow_blank": default_result,
               "force_verbose_blank": default_result,
-              "check_messages": ['relate_user_full_name_format_method.W004']}),
+              "check_messages": ["relate_user_full_name_format_method.W004"]}),
             ({"id": 7,
               "custom_method": invalid_method4,
               "user_dict": default_user_dict,
               "default": default_result,
               "not_allow_blank": default_result,
               "force_verbose_blank": default_result,
-              "check_messages": ['relate_user_full_name_format_method.W004']}),
+              "check_messages": ["relate_user_full_name_format_method.W004"]}),
             ({"id": 8,
               "custom_method": invalid_method5,
               "user_dict": default_user_dict,
               "default": default_result,
               "not_allow_blank": default_result,
               "force_verbose_blank": default_result,
-              "check_messages": ['relate_user_full_name_format_method.W005']}),
+              "check_messages": ["relate_user_full_name_format_method.W005"]}),
             ({"id": 9,
               "custom_method": invalid_method6,
               "user_dict": default_user_dict,
               "default": default_result,
               "not_allow_blank": default_result,
               "force_verbose_blank": default_result,
-              "check_messages": ['relate_user_full_name_format_method.W004']}),
+              "check_messages": ["relate_user_full_name_format_method.W004"]}),
             ({"id": 10,
               "custom_method": "abcd",  # a string
               "user_dict": default_user_dict,
               "default": default_result,
               "not_allow_blank": default_result,
               "force_verbose_blank": default_result,
-              "check_messages": ['relate_user_full_name_format_method.W001']}),
+              "check_messages": ["relate_user_full_name_format_method.W001"]}),
             ({"id": 11,
               "custom_method":
                   "tests.resource.my_customized_get_full_name_method",
@@ -373,7 +377,7 @@ class CheckRelateUserFullNameFormatMethod(CheckRelateSettingsBase):
               "default": default_result,
               "not_allow_blank": default_result,
               "force_verbose_blank": default_result,
-              "check_messages": ['relate_user_full_name_format_method.W004']}),
+              "check_messages": ["relate_user_full_name_format_method.W004"]}),
             ({"id": 13,
               "custom_method":
                   "tests.resource.my_customized_get_full_name_method_invalid_str",
@@ -381,7 +385,7 @@ class CheckRelateUserFullNameFormatMethod(CheckRelateSettingsBase):
               "default": default_result,
               "not_allow_blank": default_result,
               "force_verbose_blank": default_result,
-              "check_messages": ['relate_user_full_name_format_method.W002']}),
+              "check_messages": ["relate_user_full_name_format_method.W002"]}),
             ({"id": 14,
               "custom_method":
                   "tests.resource.my_customized_get_full_name_method",
@@ -458,30 +462,30 @@ class CheckRelateEmailConnections(CheckRelateSettingsBase):
     VALID_CONF_EMPTY_DICT = {}
     VALID_CONF = {
         "robot": {
-            'backend': 'django.core.mail.backends.console.EmailBackend',
-            'host': 'smtp.gmail.com',
-            'username': 'blah@blah.com',
-            'password': 'password',
-            'port': 587,
-            'use_tls': True,
+            "backend": "django.core.mail.backends.console.EmailBackend",
+            "host": "smtp.gmail.com",
+            "username": "blah@blah.com",
+            "password": "password",
+            "port": 587,
+            "use_tls": True,
         },
         "other": {}
     }
     INVALID_CONF_EMPTY_LIST = []
     INVALID_CONF_LIST = [VALID_CONF]
     INVALID_CONF_LIST_AS_ITEM_VALUE = {
-        "robot": ['blah@blah.com'],
+        "robot": ["blah@blah.com"],
         "other": [],
         "yet_another": {}
     }
     INVALID_CONF_INVALID_BACKEND = {
         "robot": {
-            'backend': 'an.invalid.emailBackend',  # invalid backend
-            'host': 'smtp.gmail.com',
-            'username': 'blah@blah.com',
-            'password': 'password',
-            'port': 587,
-            'use_tls': True,
+            "backend": "an.invalid.emailBackend",  # invalid backend
+            "host": "smtp.gmail.com",
+            "username": "blah@blah.com",
+            "password": "password",
+            "port": 587,
+            "use_tls": True,
         },
         "other": {}
     }
@@ -491,7 +495,7 @@ class CheckRelateEmailConnections(CheckRelateSettingsBase):
         self.assertCheckMessages([])
 
     @override_settings(EMAIL_CONNECTIONS=VALID_CONF_EMPTY_DICT)
-    def test_valid_email_connections_emtpy_dict(self):
+    def test_valid_email_connections_empty_dict(self):
         self.assertCheckMessages([])
 
     @override_settings(EMAIL_CONNECTIONS=VALID_CONF)
@@ -580,12 +584,12 @@ class CheckRelateFacilities(CheckRelateSettingsBase):
             self.assertCheckMessages([])
 
     def test_valid_relate_facilities_callable_with_empty_ip_ranges(self):
-        def valid_func_though_return_emtpy_ip_ranges(now_datetime):
-            # this won't result in warnning, because the facility is defined
+        def valid_func_though_return_empty_ip_ranges(now_datetime):
+            # this won't result in warning, because the facility is defined
             # by a callable.
             return self.WARNING_CONF_IP_RANGES_NOT_CONFIGURED
         with override_settings(
-                RELATE_FACILITIES=valid_func_though_return_emtpy_ip_ranges):
+                RELATE_FACILITIES=valid_func_though_return_empty_ip_ranges):
             self.assertCheckMessages([])
 
     @override_settings(RELATE_FACILITIES=INVALID_CONF_LIST)
@@ -653,7 +657,7 @@ class CheckRelateMaintenanceModeExceptions(CheckRelateSettingsBase):
         self.assertCheckMessages([])
 
     @override_settings(RELATE_MAINTENANCE_MODE_EXCEPTIONS=VALID_CONF_EMPTY_LIST)
-    def test_valid_maintenance_mode_exceptions_emtpy_list(self):
+    def test_valid_maintenance_mode_exceptions_empty_list(self):
         self.assertCheckMessages([])
 
     @override_settings(RELATE_MAINTENANCE_MODE_EXCEPTIONS=VALID_CONF)
@@ -776,7 +780,7 @@ def side_effect_os_access(*args, **kwargs):
     return True
 
 
-@mock.patch('os.access', side_effect=side_effect_os_access)
+@mock.patch("os.access", side_effect=side_effect_os_access)
 @mock.patch("os.path.isdir", side_effect=side_effect_os_path_is_dir)
 class CheckGitRoot(CheckRelateSettingsBase):
     msg_id_prefix = "git_root"
@@ -837,34 +841,34 @@ class CheckRelateCourseLanguages(CheckRelateSettingsBase):
     msg_id_prefix = "relate_languages"
 
     VALID_CONF1 = [
-        ('en', _('my English')),
-        ('zh-hans', _('Simplified Chinese')),
-        ('de', _('German'))]
+        ("en", _("my English")),
+        ("zh-hans", _("Simplified Chinese")),
+        ("de", _("German"))]
     VALID_CONF2 = (
-        ('en', _('English')),
-        ('zh-hans', _('Simplified Chinese')),
-        ('de', _('German')))
+        ("en", _("English")),
+        ("zh-hans", _("Simplified Chinese")),
+        ("de", _("German")))
     VALID_CONF3 = (
-        ('en', 'English'),
-        ('zh-hans', 'Simplified Chinese'),
-        ('de', _('German')))
+        ("en", "English"),
+        ("zh-hans", "Simplified Chinese"),
+        ("de", _("German")))
 
-    VALID_WITH_WARNNING_CONF = (
-        ('en', 'English'),
-        ('zh-hans', 'Simplified Chinese'),
-        ('zh-hans', 'my Simplified Chinese'),
-        ('de', _('German')))
+    VALID_WITH_WARNING_CONF = (
+        ("en", "English"),
+        ("zh-hans", "Simplified Chinese"),
+        ("zh-hans", "my Simplified Chinese"),
+        ("de", _("German")))
 
-    VALID_CONF4 = [('en', ('English',)), ]
-    VALID_CONF5 = (['en', 'English'],)
-    VALID_CONF6 = [(('en',), _('English')), ]
+    VALID_CONF4 = [("en", ("English",)), ]
+    VALID_CONF5 = (["en", "English"],)
+    VALID_CONF6 = [(("en",), _("English")), ]
 
     INVALID_CONF1 = {
-        'en': 'English',
-        'zh-hans': 'Simplified Chinese',
-        'de': _('German')}
-    INVALID_CONF2 = (('en',),)
-    INVALID_CONF3 = [('en',), ([], 'English'), ["1", "2"]]
+        "en": "English",
+        "zh-hans": "Simplified Chinese",
+        "de": _("German")}
+    INVALID_CONF2 = (("en",),)
+    INVALID_CONF3 = [("en",), ([], "English"), ["1", "2"]]
     INVALID_CONF4 = "some thing"
 
     def test_valid(self):
@@ -909,7 +913,7 @@ class CheckRelateCourseLanguages(CheckRelateSettingsBase):
             self.assertCheckMessages([])
 
     def test_item_duplicated_inside_settings_languages(self):
-        with override_settings(LANGUAGES=self.VALID_WITH_WARNNING_CONF,
+        with override_settings(LANGUAGES=self.VALID_WITH_WARNING_CONF,
                                LANGUAGE_CODE="en-us"):
             self.assertCheckMessages(
                 expected_ids=["relate_languages.W001"],
@@ -1059,8 +1063,8 @@ class CheckRelateDisableCodehiliteMarkdownExtensions(CheckRelateSettingsBase):
 class RelateStartupChecksExtraCheckTest(CheckRelateSettingsBase):
     msg_id_prefix = "my_custom_check_msg"
 
-    INSTANCE_WRONG1 = "tests.resouce.my_check_func"
-    INSTANCE_WRONG2 = {"path": "tests.resouce.my_check_func"}
+    INSTANCE_WRONG1 = "tests.resource.my_check_func"
+    INSTANCE_WRONG2 = {"path": "tests.resource.my_check_func"}
 
     @override_settings()
     def test_not_configured(self):

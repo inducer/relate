@@ -2,6 +2,7 @@
 
 from __future__ import print_function
 from os.path import join, basename
+from urllib.parse import quote_plus
 from glob import glob
 import re
 
@@ -270,12 +271,12 @@ def main():
     parser.add_argument("--ipynb-as-py", action="store_true")
     parser.add_argument("--ipynb-as-ipynb", action="store_true")
 
-    parser.add_argument("--binder-urlroot", metavar="URL",
+    parser.add_argument("--interactive-nb-urlroot", metavar="URL",
             help="(without the trailing slash)")
-    parser.add_argument("--binder-cleared-urlroot", metavar="URL",
+    parser.add_argument("--interactive-nb-cleared-urlroot", metavar="URL",
             help="(without the trailing slash)")
     parser.add_argument("--ipynb-main-link",
-            choices=["static", "binder", "binder-cleared"],
+            choices=["static", "interactive", "interactive-cleared"],
             default="static")
 
     parser.add_argument("--source-dir", metavar="DIRECTORY")
@@ -288,9 +289,9 @@ def main():
             help="(without the trailing slash)")
 
     parser.add_argument("--default-icon", metavar="ICON_STR",
-            default="fa fa-file-o")
+            default="bi bi-file-earmark")
     parser.add_argument("--text-icon", metavar="ICON_STR",
-            default="fa fa-file-o")
+            default="bi bi-file-earmark")
     parser.add_argument("--number-sections", action="store_true")
     parser.add_argument("--blacklist-file", metavar="PATTERN_FILE")
 
@@ -350,50 +351,51 @@ def main():
             sub_nodes = [{
                         "text": "View on the web",
                         "link": link_html,
-                        "icon": "fa fa-newspaper-o",
+                        "icon": "bi bi-newspaper",
                         }]
 
-            if args.binder_urlroot:
-                binder_url = args.binder_urlroot + trunk
+            if args.interactive_nb_urlroot:
+                interactive_nb_url = args.interactive_nb_urlroot + quote_plus(trunk)
 
                 sub_nodes.append({
                     "text": "Run interactively",
-                    "link": binder_url,
-                    "icon": "fa fa-keyboard-o",
+                    "link": interactive_nb_url,
+                    "icon": "bi bi-keyboard",
                     })
-                if args.ipynb_main_link == "binder":
-                    main_link = binder_url
+                if args.ipynb_main_link == "interactive":
+                    main_link = interactive_nb_url
 
-            if args.binder_cleared_urlroot:
-                binder_url = args.binder_cleared_urlroot + trunk
+            if args.interactive_nb_cleared_urlroot:
+                interactive_nb_url = (args.interactive_nb_cleared_urlroot
+                                      + quote_plus(trunk))
 
                 sub_nodes.append({
                     "text": "Run interactively with cleared input",
-                    "link": binder_url,
-                    "icon": "fa fa-keyboard-o",
+                    "link": interactive_nb_url,
+                    "icon": "bi bi-keyboard",
                     })
-                if args.ipynb_main_link == "binder-cleared":
-                    main_link = binder_url
+                if args.ipynb_main_link == "interactive-cleared":
+                    main_link = interactive_nb_url
 
             if args.ipynb_as_py:
                 link_py = link_ipynb.replace(".ipynb", ".py")
                 sub_nodes.append({
                     "text": "Download Python script",
                     "link": link_py,
-                    "icon": "fa fa-terminal",
+                    "icon": "bi bi-terminal",
                     })
 
             if args.ipynb_as_ipynb:
                 sub_nodes.append({
                     "text": "Download Jupyter notebook",
                     "link": link_ipynb,
-                    "icon": "fa fa-download",
+                    "icon": "bi bi-download",
                     })
 
             demo_node = {
                 "text": "Demo: " + display_name,
                 "link": main_link,
-                "icon": "fa fa-keyboard-o",
+                "icon": "bi bi-keyboard",
                 "nodes": sub_nodes,
                 }
 
@@ -415,7 +417,7 @@ def main():
                 src_node = {
                     "text": "Code: " + display_name,
                     "link": args.source_urlroot + "/" + trunk,
-                    "icon": "fa fa-file-text-o",
+                    "icon": "bi bi-file-earmark-text",
                 }
                 if section_id in section_dict:
                     section_dict[section_id]["nodes"].append(src_node)
@@ -437,7 +439,7 @@ def main():
             notes_node = {
                 "text": "PDF: " + basename(display_name),
                 "link": args.pdf_urlroot + "/" + trunk,
-                "icon": "fa fa-book",
+                "icon": "bi bi-book",
                 }
 
             if section_id in section_dict:

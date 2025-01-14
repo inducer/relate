@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+
 __copyright__ = "Copyright (C) 2018 Dong Zhuang"
 
 __license__ = """
@@ -20,47 +23,44 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-import io
 import unittest
-from django.test import TestCase, override_settings, RequestFactory, Client
+from socket import error as socket_error
 
-from docker.errors import APIError as DockerAPIError
-from socket import error as socket_error, timeout as sock_timeout
-import errno
-
-from course.models import FlowSession
-from course.page.code import (
-    CODE_QUESTION_CONTAINER_PORT, request_run_with_retries, InvalidPingResponse,
-    is_nuisance_failure, PythonCodeQuestionWithHumanTextFeedback)
-from course.utils import FlowPageContext, CoursePageContext
+from django.test import Client, RequestFactory, TestCase, override_settings
 
 from course.constants import MAX_EXTRA_CREDIT_FACTOR
-
-from tests.constants import MESSAGE_ANSWER_SAVED_TEXT, PAGE_ERRORS
-
-from tests.base_test_mixins import (
-    SubprocessRunpyContainerMixin, SingleCoursePageTestMixin,
-    SingleCourseQuizPageTestMixin, MockAddMessageMixing)
-from tests.test_sandbox import (
-    SingleCoursePageSandboxTestBaseMixin
+from course.models import FlowSession
+from course.page.code import (
+    PythonCodeQuestionWithHumanTextFeedback,
+    is_nuisance_failure,
 )
-from tests.utils import LocmemBackendTestsMixin, mock, mail
+from course.utils import CoursePageContext, FlowPageContext
+from tests.base_test_mixins import (
+    MockAddMessageMixing,
+    SingleCoursePageTestMixin,
+    SingleCourseQuizPageTestMixin,
+    SubprocessRunpyContainerMixin,
+)
+from tests.constants import MESSAGE_ANSWER_SAVED_TEXT, PAGE_ERRORS
+from tests.test_sandbox import SingleCoursePageSandboxTestBaseMixin
+from tests.utils import LocmemBackendTestsMixin, mail, mock
 
 from . import markdowns
+
 
 NO_CORRECTNESS_INFO_MSG = "No information on correctness of answer."
 
 NOT_ALLOW_MULTIPLE_SUBMISSION_WARNING = (
     "code question does not explicitly "
     "allow multiple submission. Either add "
-    "access_rules/add_permssions/change_answer "
+    "access_rules/add_permissions/change_answer "
     "or add 'single_submission: True' to confirm that you intend "
     "for only a single submission to be allowed. "
     "While you're at it, consider adding "
-    "access_rules/add_permssions/see_correctness."
+    "access_rules/add_permissions/see_correctness."
 )
 
-MAX_AUTO_FEEDBACK_POINTS_VALICATION_ERROR_MSG_PATTERN = (  # noqa
+MAX_AUTO_FEEDBACK_POINTS_VALICATION_ERROR_MSG_PATTERN = (
     "'max_auto_feedback_points' is invalid: expecting "
     "a value within [0, %(max_extra_credit_factor)s], "
     "got %(invalid_value)s."
@@ -85,7 +85,7 @@ class SingleCourseQuizPageCodeQuestionTest(
     skip_code_question = False
 
     @classmethod
-    def setUpTestData(cls):  # noqa
+    def setUpTestData(cls):
         super().setUpTestData()
 
         client = Client()
@@ -103,7 +103,7 @@ class SingleCourseQuizPageCodeQuestionTest(
         page_id = "addition"
         submit_answer_response, post_grade_response = (
             self.default_submit_page_answer_by_page_id_and_test(
-                page_id, answer_data={"answer": 'c = a - b\r'},
+                page_id, answer_data={"answer": "c = a - b\r"},
                 expected_grade=0))
         self.assertAddMessageCalledWith(MESSAGE_ANSWER_SAVED_TEXT)
 
@@ -111,7 +111,7 @@ class SingleCourseQuizPageCodeQuestionTest(
         page_id = "addition"
         submit_answer_response, post_grade_response = (
             self.default_submit_page_answer_by_page_id_and_test(
-                page_id, answer_data={"answer": 'c = a + b\r'},
+                page_id, answer_data={"answer": "c = a + b\r"},
                 expected_grade=1))
         self.assertAddMessageCalledWith(MESSAGE_ANSWER_SAVED_TEXT)
 
@@ -132,7 +132,7 @@ class SingleCourseQuizPageCodeQuestionTest(
 
         submit_answer_response, post_grade_response = (
             self.default_submit_page_answer_by_page_id_and_test(
-                page_id, answer_data={"answer": 'c = b * a\r'},
+                page_id, answer_data={"answer": "c = b * a\r"},
                 expected_grade=4))
 
         self.assertResponseContextAnswerFeedbackContainsFeedback(
@@ -146,7 +146,7 @@ class SingleCourseQuizPageCodeQuestionTest(
         feedback_text = "This is the feedback from instructor."
         submit_answer_response, post_grade_response = (
             self.default_submit_page_answer_by_page_id_and_test(
-                page_id, answer_data={"answer": 'c = a / b\r'},
+                page_id, answer_data={"answer": "c = a / b\r"},
                 grade_data_extra_kwargs={"feedback_text": feedback_text},
                 expected_grade=2))
 
@@ -167,7 +167,7 @@ class SingleCourseQuizPageCodeQuestionTest(
 
         submit_answer_response, post_grade_response = (
             self.default_submit_page_answer_by_page_id_and_test(
-                page_id, answer_data={"answer": 'b = [a + 1] * 50\r'},
+                page_id, answer_data={"answer": "b = [a + 1] * 50\r"},
                 do_grading=False))
 
         # this is testing feedback.finish(0.3, feedback_msg)
@@ -218,13 +218,13 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
         file_name = "foo"
         markdown = (
                 markdowns.CODE_MARKDWON_PATTERN_WITH_DATAFILES
-                % {"extra_data_file": "- %s" % file_name}
+                % {"extra_data_file": f"- {file_name}"}
         )
         resp = self.get_page_sandbox_preview_response(markdown)
         self.assertEqual(resp.status_code, 200)
         self.assertSandboxNotHasValidPage(resp)
         self.assertResponseContextContains(
-            resp, PAGE_ERRORS, "data file '%s' not found" % file_name)
+            resp, PAGE_ERRORS, f"data file '{file_name}' not found")
 
     def test_data_files_missing_random_question_data_file_bad_format(self):
         markdown = markdowns.CODE_MARKDWON_WITH_DATAFILES_BAD_FORMAT
@@ -232,7 +232,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
         self.assertEqual(resp.status_code, 200)
         self.assertSandboxNotHasValidPage(resp)
         self.assertResponseContextContains(
-            resp, PAGE_ERRORS, "data file '%s' not found" % "['foo', 'bar']")
+            resp, PAGE_ERRORS, "data file '{}' not found".format("['foo', 'bar']"))
 
     def test_not_multiple_submit_warning(self):
         markdown = (
@@ -274,7 +274,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
         self.assertSandboxHasValidPage(resp)
         self.assertSandboxWarningTextContain(resp, None)
 
-    def test_explicity_not_allow_multiple_submit(self):
+    def test_explicitly_not_allow_multiple_submit(self):
         markdown = (
                 markdowns.CODE_MARKDWON_PATTERN_EXPLICITLY_NOT_ALLOW_MULTI_SUBMIT
                 % {"extra_data_file": ""}
@@ -293,7 +293,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
 
         resp = self.get_page_sandbox_submit_answer_response(
             markdown,
-            answer_data={"answer": ['c = b + a\r']})
+            answer_data={"answer": ["c = b + a\r"]})
         self.assertEqual(resp.status_code, 200)
         self.assertResponseContextAnswerFeedbackCorrectnessEquals(resp, None)
         self.assertResponseContextAnswerFeedbackContainsFeedback(
@@ -308,7 +308,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
 
         resp = self.get_page_sandbox_submit_answer_response(
             markdown,
-            answer_data={"answer": ['c = b + a\r']})
+            answer_data={"answer": ["c = b + a\r"]})
         self.assertEqual(resp.status_code, 200)
         self.assertResponseContextAnswerFeedbackCorrectnessEquals(resp, 1)
 
@@ -418,14 +418,15 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
 
             # correct_code_explanation and correct_code
             expected_feedback = (
+                "<div class='relate-markup'>"
                 '<p>This is the <a href="http://example.com/1">explanation'
-                '</a>.</p>The following code is a valid answer: '
+                '</a>.</p></div>The following code is a valid answer: '
                 '<pre>\nc = 2 + 1\n</pre>')
             mock_runpy.side_effect = RuntimeError(expected_error_str)
 
             resp = self.get_page_sandbox_submit_answer_response(
                 markdowns.CODE_MARKDWON,
-                answer_data={"answer": ['c = 1 + 2\r']})
+                answer_data={"answer": ["c = 1 + 2\r"]})
             self.assertEqual(resp.status_code, 200)
             self.assertResponseContextAnswerFeedbackCorrectnessEquals(resp,
                                                                       None)
@@ -447,7 +448,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
             with override_settings(DEBUG=True):
                 resp = self.get_page_sandbox_submit_answer_response(
                     markdowns.CODE_MARKDWON,
-                    answer_data={"answer": ['c = 1 + 2\r']})
+                    answer_data={"answer": ["c = 1 + 2\r"]})
                 self.assertEqual(resp.status_code, 200)
                 self.assertResponseContextAnswerFeedbackCorrectnessEquals(resp,
                                                                           None)
@@ -474,7 +475,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
 
                 resp = self.get_page_sandbox_submit_answer_response(
                     markdowns.CODE_MARKDWON,
-                    answer_data={"answer": ['c = 1 + 2\r']})
+                    answer_data={"answer": ["c = 1 + 2\r"]})
                 self.assertEqual(resp.status_code, 200)
                 self.assertResponseContextAnswerFeedbackCorrectnessEquals(resp,
                                                                           None)
@@ -504,7 +505,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
 
                     resp = self.get_page_sandbox_submit_answer_response(
                         markdowns.CODE_MARKDWON,
-                        answer_data={"answer": ['c = 1 + 2\r']})
+                        answer_data={"answer": ["c = 1 + 2\r"]})
                     self.assertContains(resp, expected_error_str)
                     self.assertEqual(resp.status_code, 200)
                     self.assertResponseContextAnswerFeedbackCorrectnessEquals(resp,
@@ -522,7 +523,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
 
             resp = self.get_page_sandbox_submit_answer_response(
                 markdowns.CODE_MARKDWON,
-                answer_data={"answer": ['c = 1 + 2\r']})
+                answer_data={"answer": ["c = 1 + 2\r"]})
 
             if expected_msgs is not None:
                 if isinstance(expected_msgs, str):
@@ -602,7 +603,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
             mock_get_host.side_effect = lambda x: (resolved, [], [])
             self.assert_runpy_result_and_response(
                 "user_error",
-                execpted_msgs="Your code ran on %s" % resolved,
+                execpted_msgs=f"Your code ran on {resolved}",
                 exec_host=ip
             )
 
@@ -612,7 +613,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
             mock_get_host.side_effect = socket_error
             self.assert_runpy_result_and_response(
                 "user_error",
-                execpted_msgs="Your code ran on %s" % ip,
+                execpted_msgs=f"Your code ran on {ip}",
                 exec_host=ip
             )
 
@@ -633,10 +634,10 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
                     "2RlZmdoaWpzdHV2d3h5eoOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmq"
                     "srO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4eLj5OXm5+jp6vHy8/T"
                     "19vf4+fr/xAAfAQADAQEBAQEBAQEBAAAAAAAAAQIDBAUGBwgJCgv/xA"
-                    "C1EQACAQIEBAMEBwUEBAABAncAAQIDEQQFITEGEkFRB2FxEyIygQgUQp"
+                    "C1EQACAQIEBAMEBwUEBAABAncAAQIDEQQFITEGEkFRB2FxEyIygQgUQp"  # spellchecker: disable-line  # noqa: E501
                     "GhscEJIzNS8BVictEKFiQ04SXxFxgZGiYnKCkqNTY3ODk6Q0RFRkdIS"
                     "UpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqCg4SFhoeIiYqSk5SVlpeY"
-                    "mZqio6Slpqeoqaqys7S1tre4ubrCw8TFxsfIycrS09TV1tfY2dri4+T"
+                    "mZqio6Slpqeoqaqys7S1tre4ubrCw8TFxsfIycrS09TV1tfY2dri4+T"  # spellchecker: disable-line  # noqa: E501
                     "l5ufo6ery8/T19vf4+fr/2gAMAwEAAhEDEQA/AP38ooooA//Z")
         png_b64 = (
             "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAACAQMAAAB"
@@ -677,24 +678,24 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
         b64_data = "T2dnUwACAAAAAAAAAAA+HAAAAAAAAGyawCEBQGZpc2h"
         audio_valid1 = (
             '<audio controls><source src="data:audio/wav;base64,'
-            '%s" type="audio/wav">'
-            '</audio>' % b64_data)
+            f'{b64_data}" type="audio/wav">'
+            '</audio>')
         audio_valid2 = (
             '<audio><source src="data:audio/wav;base64,'
-            '%s" type="audio/wav">'
-            '</audio>' % b64_data)
+            f'{b64_data}" type="audio/wav">'
+            '</audio>')
         audio_invalid1 = (
             '<audio control><source src="data:audio/wav;base64,'
-            '%s" type="audio/wav">'
-            '</audio>' % b64_data)
+            f'{b64_data}" type="audio/wav">'
+            '</audio>')
         audio_invalid2 = (
             '<audio controls><source href="data:audio/wav;base64,'
-            '%s" type="audio/wav">'
-            '</audio>' % b64_data)
+            f'{b64_data}" type="audio/wav">'
+            '</audio>')
         audio_invalid3 = (
             '<audio controls><source src="data:audio/ogg;base64,'
-            '%s" type="audio/ogg">'
-            '</audio>' % b64_data)
+            f'{b64_data}" type="audio/ogg">'
+            '</audio>')
         audio_invalid4 = (
             '<audio controls><source src="hosse.wav" type="audio/wav">'
             '</audio>')
@@ -809,7 +810,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
 
         resp = self.get_page_sandbox_submit_answer_response(
             markdown,
-            answer_data={"answer": ['c = b + a\r']})
+            answer_data={"answer": ["c = b + a\r"]})
         self.assertEqual(resp.status_code, 200)
         self.assertResponseContextAnswerFeedbackCorrectnessEquals(resp, 1)
 
@@ -826,7 +827,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
 
         resp = self.get_page_sandbox_submit_answer_response(
             markdown,
-            answer_data={"answer": ['c = b + a\r']})
+            answer_data={"answer": ["c = b + a\r"]})
         self.assertEqual(resp.status_code, 200)
         self.assertResponseContextAnswerFeedbackCorrectnessEquals(resp, 1.1)
 
@@ -849,7 +850,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
         # Post a wrong answer
         resp = self.get_page_sandbox_submit_answer_response(
             markdown,
-            answer_data={"answer": ['c = b - a\r']})
+            answer_data={"answer": ["c = b - a\r"]})
         self.assertEqual(resp.status_code, 200)
         self.assertResponseContextAnswerFeedbackCorrectnessEquals(resp, 0)
 
@@ -867,7 +868,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
         # Post a wrong answer
         resp = self.get_page_sandbox_submit_answer_response(
             markdown,
-            answer_data={"answer": ['c = b - a\r']})
+            answer_data={"answer": ["c = b - a\r"]})
         self.assertEqual(resp.status_code, 200)
         self.assertResponseContextAnswerFeedbackCorrectnessEquals(resp, 0)
 
@@ -884,7 +885,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
 
         resp = self.get_page_sandbox_submit_answer_response(
             markdown,
-            answer_data={"answer": ['c = b + a\r']})
+            answer_data={"answer": ["c = b + a\r"]})
         self.assertEqual(resp.status_code, 200)
         self.assertResponseContextAnswerFeedbackCorrectnessEquals(
             resp, MAX_EXTRA_CREDIT_FACTOR)
@@ -902,7 +903,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
 
         resp = self.get_page_sandbox_submit_answer_response(
             markdown,
-            answer_data={"answer": ['c = b + a\r']})
+            answer_data={"answer": ["c = b + a\r"]})
         self.assertEqual(resp.status_code, 200)
         self.assertResponseContextAnswerFeedbackCorrectnessEquals(
             resp, MAX_EXTRA_CREDIT_FACTOR)
@@ -921,7 +922,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
         # Post a wrong answer
         resp = self.get_page_sandbox_submit_answer_response(
             markdown,
-            answer_data={"answer": ['c = b - a\r']})
+            answer_data={"answer": ["c = b - a\r"]})
         self.assertEqual(resp.status_code, 200)
         self.assertResponseContextAnswerFeedbackCorrectnessEquals(resp, None)
 
@@ -947,7 +948,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
 
         resp = self.get_page_sandbox_submit_answer_response(
             markdown,
-            answer_data={"answer": ['c = b + a\r']})
+            answer_data={"answer": ["c = b + a\r"]})
         self.assertEqual(resp.status_code, 200)
         self.assertResponseContextAnswerFeedbackCorrectnessEquals(resp, None)
         error_msg = (AUTO_FEEDBACK_POINTS_OUT_OF_RANGE_ERROR_MSG_PATTERN
@@ -981,7 +982,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
 
             resp = self.get_page_sandbox_submit_answer_response(
                 markdown,
-                answer_data={"answer": ['c = b + a\r']})
+                answer_data={"answer": ["c = b + a\r"]})
             self.assertEqual(resp.status_code, 200)
             self.assertResponseContextAnswerFeedbackCorrectnessEquals(resp, None)
             error_msg = (AUTO_FEEDBACK_POINTS_OUT_OF_RANGE_ERROR_MSG_PATTERN
@@ -999,286 +1000,6 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
     # }}}
 
 
-class RequestPythonRunWithRetriesTest(unittest.TestCase):
-    # Testing course.page.code.request_run_with_retries,
-    # adding tests for use cases that didn't cover in other tests
-
-    @override_settings(RELATE_DOCKER_RUNPY_IMAGE="some_other_image")
-    def test_image_none(self):
-        # Testing if image is None, settings.RELATE_DOCKER_RUNPY_IMAGE is used
-        with mock.patch("docker.client.Client.create_container") as mock_create_ctn:
-
-            # this will raise KeyError
-            mock_create_ctn.return_value = {}
-
-            with self.assertRaises(KeyError):
-                request_run_with_retries(
-                    run_req={}, run_timeout=0.1)
-                self.assertEqual(mock_create_ctn.call_count, 1)
-                self.assertIn("some_other_image", mock_create_ctn.call_args[0])
-
-    @override_settings(RELATE_DOCKER_RUNPY_IMAGE="some_other_image")
-    def test_image_not_none(self):
-        # Testing if image is None, settings.RELATE_DOCKER_RUNPY_IMAGE is used
-        with mock.patch("docker.client.Client.create_container") as mock_create_ctn:
-
-            # this will raise KeyError
-            mock_create_ctn.return_value = {}
-
-            my_image = "my_runpy_image"
-
-            with self.assertRaises(KeyError):
-                request_run_with_retries(
-                    run_req={}, image=my_image, run_timeout=0.1)
-                self.assertEqual(mock_create_ctn.call_count, 1)
-                self.assertIn(my_image, mock_create_ctn.call_args[0])
-
-    def test_docker_container_ping_failure(self):
-        with (
-                mock.patch("docker.client.Client.create_container")) as mock_create_ctn, (  # noqa
-                mock.patch("docker.client.Client.start")) as mock_ctn_start, (
-                mock.patch("docker.client.Client.logs")) as mock_ctn_logs, (
-                mock.patch("docker.client.Client.remove_container")) as mock_remove_ctn, (  # noqa
-                mock.patch("docker.client.Client.inspect_container")) as mock_inpect_ctn, (  # noqa
-                mock.patch("http.client.HTTPConnection.request")) as mock_ctn_request:  # noqa
-
-            mock_create_ctn.return_value = {"Id": "someid"}
-            mock_ctn_start.side_effect = lambda x: None
-            mock_ctn_logs.side_effect = lambda x: None
-            mock_remove_ctn.return_value = None
-            fake_host_ip = "192.168.1.100"
-            fake_host_port = "69999"
-
-            mock_inpect_ctn.return_value = {
-                "NetworkSettings": {
-                    "Ports": {"%d/tcp" % CODE_QUESTION_CONTAINER_PORT: (
-                        {"HostIp": fake_host_ip, "HostPort": fake_host_port},
-                    )}
-                }}
-
-            with self.subTest(case="Docker ping timeout with BadStatusLine Error"):
-                from http.client import BadStatusLine
-                fake_bad_statusline_msg = "my custom bad status"
-                mock_ctn_request.side_effect = BadStatusLine(fake_bad_statusline_msg)
-
-                # force timeout
-                with mock.patch("course.page.code.DOCKER_TIMEOUT", 0.0001):
-                    res = request_run_with_retries(
-                        run_req={}, run_timeout=0.1, retry_count=0)
-                    self.assertEqual(res["result"], "uncaught_error")
-                    self.assertEqual(res['message'],
-                                     "Timeout waiting for container.")
-                    self.assertEqual(res["exec_host"], fake_host_ip)
-                    self.assertIn(fake_bad_statusline_msg, res["traceback"])
-
-            with self.subTest(
-                    case="Docker ping timeout with InvalidPingResponse Error"):
-                invalid_ping_resp_msg = "my custom invalid ping response exception"
-                mock_ctn_request.side_effect = (
-                    InvalidPingResponse(invalid_ping_resp_msg))
-
-                # force timeout
-                with mock.patch("course.page.code.DOCKER_TIMEOUT", 0.0001):
-                    res = request_run_with_retries(
-                        run_req={}, run_timeout=0.1, retry_count=0)
-                    self.assertEqual(res["result"], "uncaught_error")
-                    self.assertEqual(res['message'],
-                                     "Timeout waiting for container.")
-                    self.assertEqual(res["exec_host"], fake_host_ip)
-                    self.assertIn(InvalidPingResponse.__name__, res["traceback"])
-                    self.assertIn(invalid_ping_resp_msg, res["traceback"])
-
-            with self.subTest(
-                    case="Docker ping socket error with erron ECONNRESET"):
-                my_socket_error = socket_error()
-                my_socket_error.errno = errno.ECONNRESET
-                mock_ctn_request.side_effect = my_socket_error
-
-                # force timeout
-                with mock.patch("course.page.code.DOCKER_TIMEOUT", 0.0001):
-                    res = request_run_with_retries(
-                        run_req={}, run_timeout=0.1, retry_count=0)
-                    self.assertEqual(res["result"], "uncaught_error")
-                    self.assertEqual(res['message'],
-                                     "Timeout waiting for container.")
-                    self.assertEqual(res["exec_host"], fake_host_ip)
-                    self.assertIn(type(my_socket_error).__name__, res["traceback"])
-
-            with self.subTest(
-                    case="Docker ping socket error with erron ECONNREFUSED"):
-                my_socket_error = socket_error()
-                my_socket_error.errno = errno.ECONNREFUSED
-                mock_ctn_request.side_effect = my_socket_error
-
-                # force timeout
-                with mock.patch("course.page.code.DOCKER_TIMEOUT", 0.0001):
-                    res = request_run_with_retries(
-                        run_req={}, run_timeout=0.1, retry_count=0)
-                    self.assertEqual(res["result"], "uncaught_error")
-                    self.assertEqual(res['message'],
-                                     "Timeout waiting for container.")
-                    self.assertEqual(res["exec_host"], fake_host_ip)
-                    self.assertIn(type(my_socket_error).__name__, res["traceback"])
-
-            with self.subTest(
-                    case="Docker ping socket error with erron EAFNOSUPPORT"):
-                my_socket_error = socket_error()
-
-                # This errno should raise error
-                my_socket_error.errno = errno.EAFNOSUPPORT
-                mock_ctn_request.side_effect = my_socket_error
-
-                # force timeout
-                with mock.patch("course.page.code.DOCKER_TIMEOUT", 0.0001):
-                    with self.assertRaises(socket_error) as e:
-                        request_run_with_retries(
-                            run_req={}, run_timeout=0.1, retry_count=0)
-                        self.assertEqual(e.exception.errno, my_socket_error.errno)
-
-                with self.assertRaises(socket_error) as e:
-                    request_run_with_retries(
-                        run_req={}, run_timeout=0.1, retry_count=0)
-                    self.assertEqual(e.exception.errno, my_socket_error.errno)
-
-            # This should be the last subTest, because this will the behavior of
-            # change mock_remove_ctn
-            with self.subTest(
-                    case="Docker ping timeout with InvalidPingResponse and "
-                         "remove container failed with APIError"):
-                invalid_ping_resp_msg = "my custom invalid ping response exception"
-                fake_host_ip = "0.0.0.0"
-
-                mock_inpect_ctn.return_value = {
-                    "NetworkSettings": {
-                        "Ports": {"%d/tcp" % CODE_QUESTION_CONTAINER_PORT: (
-                            {"HostIp": fake_host_ip, "HostPort": fake_host_port},
-                        )}
-                    }}
-
-                mock_ctn_request.side_effect = (
-                    InvalidPingResponse(invalid_ping_resp_msg))
-                mock_remove_ctn.reset_mock()
-                from django.http import HttpResponse
-                fake_response_content = "this should not appear"
-                mock_remove_ctn.side_effect = DockerAPIError(
-                    message="my custom docker api error",
-                    response=HttpResponse(content=fake_response_content))
-
-                # force timeout
-                with mock.patch("course.page.code.DOCKER_TIMEOUT", 0.0001):
-                    res = request_run_with_retries(
-                        run_req={}, run_timeout=0.1, retry_count=0)
-                    self.assertEqual(res["result"], "uncaught_error")
-                    self.assertEqual(res['message'],
-                                     "Timeout waiting for container.")
-                    self.assertEqual(res["exec_host"], "localhost")
-                    self.assertIn(InvalidPingResponse.__name__, res["traceback"])
-                    self.assertIn(invalid_ping_resp_msg, res["traceback"])
-
-                    # No need to bother the students with this nonsense.
-                    self.assertNotIn(DockerAPIError.__name__, res["traceback"])
-                    self.assertNotIn(fake_response_content, res["traceback"])
-
-    def test_docker_container_ping_return_not_ok(self):
-        with (
-                mock.patch("docker.client.Client.create_container")) as mock_create_ctn, (  # noqa
-                mock.patch("docker.client.Client.start")) as mock_ctn_start, (
-                mock.patch("docker.client.Client.logs")) as mock_ctn_logs, (
-                mock.patch("docker.client.Client.remove_container")) as mock_remove_ctn, (  # noqa
-                mock.patch("docker.client.Client.inspect_container")) as mock_inpect_ctn, (  # noqa
-                mock.patch("http.client.HTTPConnection.request")) as mock_ctn_request, (  # noqa
-                mock.patch("http.client.HTTPConnection.getresponse")) as mock_ctn_get_response:  # noqa
-
-            mock_create_ctn.return_value = {"Id": "someid"}
-            mock_ctn_start.side_effect = lambda x: None
-            mock_ctn_logs.side_effect = lambda x: None
-            mock_remove_ctn.return_value = None
-            fake_host_ip = "192.168.1.100"
-            fake_host_port = "69999"
-
-            mock_inpect_ctn.return_value = {
-                "NetworkSettings": {
-                    "Ports": {"%d/tcp" % CODE_QUESTION_CONTAINER_PORT: (
-                        {"HostIp": fake_host_ip, "HostPort": fake_host_port},
-                    )}
-                }}
-
-            # force timeout
-            with mock.patch("course.page.code.DOCKER_TIMEOUT", 0.0001):
-                with self.subTest(
-                        case="Docker ping response not OK"):
-                    mock_ctn_request.side_effect = lambda x, y: None
-                    mock_ctn_get_response.return_value = io.BytesIO(b"NOT OK")
-
-                    res = request_run_with_retries(
-                        run_req={}, run_timeout=0.1, retry_count=0)
-                    self.assertEqual(res["result"], "uncaught_error")
-                    self.assertEqual(res['message'],
-                                     "Timeout waiting for container.")
-                    self.assertEqual(res["exec_host"], fake_host_ip)
-                    self.assertIn(InvalidPingResponse.__name__, res["traceback"])
-
-    def test_docker_container_runpy_timeout(self):
-        with (
-                mock.patch("docker.client.Client.create_container")) as mock_create_ctn, (  # noqa
-                mock.patch("docker.client.Client.start")) as mock_ctn_start, (
-                mock.patch("docker.client.Client.logs")) as mock_ctn_logs, (
-                mock.patch("docker.client.Client.remove_container")) as mock_remove_ctn, (  # noqa
-                mock.patch("docker.client.Client.inspect_container")) as mock_inpect_ctn, (  # noqa
-                mock.patch("http.client.HTTPConnection.request")) as mock_ctn_request, (  # noqa
-                mock.patch("http.client.HTTPConnection.getresponse")) as mock_ctn_get_response:  # noqa
-
-            mock_create_ctn.return_value = {"Id": "someid"}
-            mock_ctn_start.side_effect = lambda x: None
-            mock_ctn_logs.side_effect = lambda x: None
-            mock_remove_ctn.return_value = None
-            fake_host_ip = "192.168.1.100"
-            fake_host_port = "69999"
-
-            mock_inpect_ctn.return_value = {
-                "NetworkSettings": {
-                    "Ports": {"%d/tcp" % CODE_QUESTION_CONTAINER_PORT: (
-                        {"HostIp": fake_host_ip, "HostPort": fake_host_port},
-                    )}
-                }}
-
-            with self.subTest(
-                    case="Docker ping passed by runpy timed out"):
-
-                # first request is ping, second request raise socket.timeout
-                mock_ctn_request.side_effect = [None, sock_timeout]
-                mock_ctn_get_response.return_value = io.BytesIO(b"OK")
-
-                res = request_run_with_retries(
-                    run_req={}, run_timeout=0.1, retry_count=0)
-                self.assertEqual(res["result"], "timeout")
-                self.assertEqual(res["exec_host"], fake_host_ip)
-
-    def test_docker_container_runpy_retries_count(self):
-        with (
-                mock.patch("course.page.code.request_run")) as mock_req_run, (  # noqa
-                mock.patch("course.page.code.is_nuisance_failure")) as mock_is_nuisance_failure:  # noqa
-            expected_result = "this is my custom result"
-            mock_req_run.return_value = {"result": expected_result}
-            with self.subTest(actual_retry_count=4):
-                mock_is_nuisance_failure.side_effect = [True, True, True, False]
-                res = request_run_with_retries(
-                    run_req={}, run_timeout=0.1, retry_count=5)
-                self.assertEqual(res["result"], expected_result)
-                self.assertEqual(mock_req_run.call_count, 4)
-                self.assertEqual(mock_is_nuisance_failure.call_count, 4)
-
-            mock_req_run.reset_mock()
-            mock_is_nuisance_failure.reset_mock()
-            with self.subTest(actual_retry_count=2):
-                mock_is_nuisance_failure.side_effect = [True, True, True, False]
-                res = request_run_with_retries(
-                    run_req={}, run_timeout=0.1, retry_count=1)
-                self.assertEqual(res["result"], expected_result)
-                self.assertEqual(mock_req_run.call_count, 2)
-                self.assertEqual(mock_is_nuisance_failure.call_count, 1)
-
-
 class IsNuisanceFailureTest(unittest.TestCase):
     # Testing is_nuisance_failure
 
@@ -1290,7 +1011,7 @@ class IsNuisanceFailureTest(unittest.TestCase):
         result = {"result": "uncaught_error"}
         self.assertFalse(is_nuisance_failure(result))
 
-    def test_traceback_unkown(self):
+    def test_traceback_unknown(self):
         result = {"result": "uncaught_error",
                   "traceback": "unknow traceback"}
         self.assertFalse(is_nuisance_failure(result))
@@ -1329,11 +1050,11 @@ class CodeQuestionWithHumanTextFeedbackSpecialCase(
         SingleCoursePageTestMixin, SubprocessRunpyContainerMixin, TestCase):
     """
     https://github.com/inducer/relate/issues/269
-    https://github.com/inducer/relate/commit/2af0ad7aa053b735620b2cf0bae0b45822bfb87f  # noqa
+    https://github.com/inducer/relate/commit/2af0ad7aa053b735620b2cf0bae0b45822bfb87f
     """
 
     @classmethod
-    def setUpTestData(cls):  # noqa
+    def setUpTestData(cls):
         super().setUpTestData()
 
         client = Client()
@@ -1341,7 +1062,7 @@ class CodeQuestionWithHumanTextFeedbackSpecialCase(
 
         cls.start_flow(client, cls.flow_id)
 
-    def setUp(self):  # noqa
+    def setUp(self):
         super().setUp()
         self.rf = RequestFactory()
 
@@ -1375,9 +1096,9 @@ class CodeQuestionWithHumanTextFeedbackSpecialCase(
         page = PythonCodeQuestionWithHumanTextFeedback(None, None, page_desc)
 
         page_context = fpctx.page_context
-        grade_data.setdefault('grade_percent', None)
-        grade_data.setdefault('released', True)
-        grade_data.setdefault('feedback_text', "")
+        grade_data.setdefault("grade_percent", None)
+        grade_data.setdefault("released", True)
+        grade_data.setdefault("feedback_text", "")
         page_data = fpctx.page_data
         feedback = page.grade(
             page_context=page_context,
@@ -1388,7 +1109,7 @@ class CodeQuestionWithHumanTextFeedbackSpecialCase(
         return feedback
 
     def test_code_with_human_feedback(self):
-        answer_data = {"answer": 'b = [a + 0] * 50'}
+        answer_data = {"answer": "b = [a + 0] * 50"}
         grade_data = {"grade_percent": 100}
         page_value = 4
         human_feedback_percentage = 60
@@ -1401,7 +1122,7 @@ class CodeQuestionWithHumanTextFeedbackSpecialCase(
             "The human grader assigned 2.40/2.40 points.", feedback.feedback)
 
     def test_code_with_human_feedback_full_percentage(self):
-        answer_data = {"answer": 'b = [a + 0] * 50'}
+        answer_data = {"answer": "b = [a + 0] * 50"}
         grade_data = {"grade_percent": 100}
         page_value = 0
         human_feedback_percentage = 100
@@ -1420,7 +1141,7 @@ class CodeQuestionWithHumanTextFeedbackSpecialCase(
                 "The human grader assigned 0/0 points.", feedback.feedback)
 
     def test_code_with_human_feedback_zero_percentage(self):
-        answer_data = {"answer": 'b = [a + 0] * 50'}
+        answer_data = {"answer": "b = [a + 0] * 50"}
         grade_data = {}
         page_value = 0
         human_feedback_percentage = 0

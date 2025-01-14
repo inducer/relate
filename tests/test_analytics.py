@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+
 __copyright__ = "Copyright (C) 2018 Dong Zhuang"
 
 __license__ = """
@@ -21,20 +24,23 @@ THE SOFTWARE.
 """
 
 import pytest
-from django.test import TestCase, Client
 from django.core.exceptions import ObjectDoesNotExist
+from django.test import Client, TestCase
 from django.urls import reverse
 
-from relate.utils import dict_to_struct
-
-from course.models import FlowSession
 from course import analytics
-
-from tests.base_test_mixins import (  # noqa
-    SingleCourseTestMixin, CoursesTestMixinBase, SingleCoursePageTestMixin,
-    SingleCourseQuizPageTestMixin, MockAddMessageMixing, HackRepoMixin)
-from tests.utils import mock
+from course.models import FlowSession
+from relate.utils import dict_to_struct
 from tests import factories
+from tests.base_test_mixins import (
+    CoursesTestMixinBase,
+    HackRepoMixin,
+    MockAddMessageMixing,
+    SingleCoursePageTestMixin,
+    SingleCourseQuizPageTestMixin,
+    SingleCourseTestMixin,
+)
+from tests.utils import mock
 
 
 def _dummy_histogram(*args):
@@ -164,7 +170,7 @@ class IsFlowMultipleSubmitTest(SingleCourseTestMixin, TestCase):
 class IsPageMultipleSubmitTest(SingleCoursePageTestMixin, HackRepoMixin, TestCase):
     """test course.analytics.is_page_multiple_submit"""
     @classmethod
-    def setUpTestData(cls):  # noqa
+    def setUpTestData(cls):
         super().setUpTestData()
         cls.course.active_git_commit_sha = "my_fake_commit_sha_for_page_analytics"
         cls.course.save()
@@ -264,7 +270,7 @@ class FlowAnalyticsTest(SingleCourseQuizPageTestMixin, HackRepoMixin,
     """analytics.flow_analytics"""
 
     @classmethod
-    def setUpTestData(cls):  # noqa
+    def setUpTestData(cls):
         super().setUpTestData()
         cls.course.active_git_commit_sha = "my_fake_commit_sha_for_flow_analytics"
         cls.course.save()
@@ -415,8 +421,7 @@ class FlowAnalyticsTest(SingleCourseQuizPageTestMixin, HackRepoMixin,
             resp = self.get_flow_analytics_view(flow_id=self.flow_id)
             self.assertEqual(resp.status_code, 404)
             self.assertAddMessageCalledWith(
-                ("Flow '%s' was not found in the repository, but it exists in "
+                f"Flow '{self.flow_id}' was not found in the repository, but it exists in "  # noqa: E501
                     "the database--maybe it was deleted?")
-                % self.flow_id)
 
 # vim: fdm=marker

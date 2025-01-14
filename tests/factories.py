@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+
 __copyright__ = "Copyright (C) 2018 Dong Zhuang"
 
 __license__ = """
@@ -20,23 +23,25 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-import pytz
 from datetime import datetime
+from zoneinfo import ZoneInfo
 
-from django.utils.timezone import now, timedelta
 import factory
-from factory import fuzzy
 from django.contrib.auth import get_user_model
-from django.utils.translation import gettext_lazy as _
 from django.contrib.auth.hashers import make_password
+from django.utils.timezone import now, timedelta
+from django.utils.translation import gettext_lazy as _
+from factory import fuzzy
 
-from course import models
-from course import constants
-from course.constants import participation_permission as pperm
+from course import constants, models
 from course.auth import make_sign_in_key
-
+from course.constants import participation_permission as pperm
 from tests.base_test_mixins import SINGLE_COURSE_SETUP_LIST
 from tests.constants import QUIZ_FLOW_ID
+
+
+UTC = ZoneInfo("UTC")
+
 
 DEFAULT_COURSE_IDENTIFIER = SINGLE_COURSE_SETUP_LIST[0]["course"]["identifier"]
 DEFAULT_FLOW_ID = QUIZ_FLOW_ID
@@ -65,7 +70,7 @@ class UserFactory(factory.django.DjangoModelFactory):
 class CourseFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = models.Course
-        django_get_or_create = ('identifier', 'git_source')
+        django_get_or_create = ("identifier", "git_source")
 
     identifier = DEFAULT_COURSE_IDENTIFIER
     name = "test-course"
@@ -80,7 +85,7 @@ class CourseFactory(factory.django.DjangoModelFactory):
 class ParticipationRoleFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = models.ParticipationRole
-        django_get_or_create = ('course', 'identifier',)
+        django_get_or_create = ("course", "identifier",)
 
     course = factory.SubFactory(CourseFactory)
     identifier = "student"
@@ -134,7 +139,7 @@ class ParticipationFactory(factory.django.DjangoModelFactory):
 class ParticipationTagFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = models.ParticipationTag
-        django_get_or_create = ('course', 'name', 'shown_to_participant')
+        django_get_or_create = ("course", "name", "shown_to_participant")
 
     course = factory.SubFactory(CourseFactory)
     name = fuzzy.FuzzyText()
@@ -161,7 +166,7 @@ class FlowSessionFactory(factory.django.DjangoModelFactory):
 class GradingOpportunityFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = models.GradingOpportunity
-        django_get_or_create = ('course', 'identifier',)
+        django_get_or_create = ("course", "identifier",)
 
     course = factory.SubFactory(CourseFactory)
     identifier = DEFAULT_GRADE_IDENTIFIER
@@ -326,8 +331,8 @@ class FlowRuleExceptionFactory(factory.django.DjangoModelFactory):
     flow_id = DEFAULT_FLOW_ID
     participation = factory.SubFactory(ParticipationFactory)
     creation_time = fuzzy.FuzzyDateTime(
-        datetime(2019, 1, 1, tzinfo=pytz.UTC),
-        datetime(2019, 1, 31, tzinfo=pytz.UTC))
+        datetime(2019, 1, 1, tzinfo=UTC),
+        datetime(2019, 1, 31, tzinfo=UTC))
 
     kind = constants.flow_rule_kind.start
     rule = {
@@ -339,19 +344,19 @@ class FlowRuleExceptionFactory(factory.django.DjangoModelFactory):
 class InstantMessageFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = models.InstantMessage
-        django_get_or_create = ('participation', 'text')
+        django_get_or_create = ("participation", "text")
 
     participation = factory.SubFactory(ParticipationFactory)
     text = fuzzy.FuzzyText()
     time = fuzzy.FuzzyDateTime(
-        datetime(2019, 2, 1, tzinfo=pytz.UTC),
-        datetime(2019, 3, 1, tzinfo=pytz.UTC))
+        datetime(2019, 2, 1, tzinfo=UTC),
+        datetime(2019, 3, 1, tzinfo=UTC))
 
 
 class ExamFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = models.Exam
-        django_get_or_create = ('course', 'description')
+        django_get_or_create = ("course", "description")
 
     course = factory.SubFactory(CourseFactory)
     description = "desc of exam"
@@ -360,17 +365,17 @@ class ExamFactory(factory.django.DjangoModelFactory):
     listed = True
 
     no_exams_before = fuzzy.FuzzyDateTime(
-        datetime(2019, 1, 1, tzinfo=pytz.UTC),
-        datetime(2019, 1, 31, tzinfo=pytz.UTC))
+        datetime(2019, 1, 1, tzinfo=UTC),
+        datetime(2019, 1, 31, tzinfo=UTC))
     no_exams_after = fuzzy.FuzzyDateTime(
-        datetime(2019, 2, 1, tzinfo=pytz.UTC),
-        datetime(2019, 3, 1, tzinfo=pytz.UTC))
+        datetime(2019, 2, 1, tzinfo=UTC),
+        datetime(2019, 3, 1, tzinfo=UTC))
 
 
 class ExamTicketFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = models.ExamTicket
-        django_get_or_create = ('exam', 'participation')
+        django_get_or_create = ("exam", "participation")
 
     exam = factory.SubFactory(ExamFactory)
 
@@ -380,9 +385,9 @@ class ExamTicketFactory(factory.django.DjangoModelFactory):
     state = constants.exam_ticket_states.valid
     code = fuzzy.FuzzyText()
     valid_start_time = fuzzy.FuzzyDateTime(
-        datetime(2019, 1, 1, tzinfo=pytz.UTC),
-        datetime(2019, 1, 31, tzinfo=pytz.UTC))
+        datetime(2019, 1, 1, tzinfo=UTC),
+        datetime(2019, 1, 31, tzinfo=UTC))
     valid_end_time = fuzzy.FuzzyDateTime(
-        datetime(2019, 2, 1, tzinfo=pytz.UTC),
-        datetime(2019, 3, 1, tzinfo=pytz.UTC))
+        datetime(2019, 2, 1, tzinfo=UTC),
+        datetime(2019, 3, 1, tzinfo=UTC))
     restrict_to_facility = ""

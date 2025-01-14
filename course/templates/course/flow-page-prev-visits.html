@@ -1,0 +1,21 @@
+{% load i18n %}
+
+{% if not prev_answer_visits %}
+  <li><h6 class="dropdown-header">{% trans 'No submission history' %}</h6> </li>
+{% else %}
+  {% for visit in prev_answer_visits %}
+    <li>
+      {% if forloop.first %}
+      <a class="dropdown-item" href="?">
+      {% else %}
+      <a class="dropdown-item" href="?visit_id={{ visit.id }}">
+      {% endif %}
+        {% if visit.id == prev_visit_id %}<b>{% endif %}
+        {{ visit.visit_time }}
+        {% if forloop.first %}(current){% endif %}
+        {% if visit.id == prev_visit_id %}</b>{% endif %}
+        {% if visit.is_submitted_answer %}(submitted){% endif %}
+      </a>
+    </li>
+  {% endfor %}
+{% endif %}

@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+
 __copyright__ = "Copyright (C) 2018 Dong Zhuang"
 
 __license__ = """
@@ -21,32 +24,35 @@ THE SOFTWARE.
 """
 
 import itertools
+import unittest
 
 import pytest
-import unittest
 from django import http
-from django.urls import reverse
-from django.contrib.sessions.middleware import SessionMiddleware
 from django.contrib.auth.models import AnonymousUser
-from django.core.exceptions import PermissionDenied
-from django.test import Client, TestCase, RequestFactory
-from django.utils.timezone import now, timedelta
+from django.contrib.sessions.middleware import SessionMiddleware
 from django.core import mail
+from django.core.exceptions import PermissionDenied
+from django.test import Client, RequestFactory, TestCase
+from django.urls import reverse
+from django.utils.timezone import now, timedelta
 
-from relate.utils import dict_to_struct, StyledForm
-
-from course import models, flow
-from course import constants
-from course.constants import grade_aggregation_strategy as g_strategy
-from course.constants import flow_permission as fperm
-from course.utils import FlowSessionStartRule, FlowSessionGradingRule
-
+from course import constants, flow, models
+from course.constants import (
+    SESSION_LOCKED_TO_FLOW_PK,
+    flow_permission as fperm,
+    grade_aggregation_strategy as g_strategy,
+)
+from course.utils import FlowSessionGradingRule, FlowSessionStartRule
+from relate.utils import StyledForm, dict_to_struct
+from tests import factories
 from tests.base_test_mixins import (
-    CoursesTestMixinBase, SingleCourseQuizPageTestMixin, SingleCourseTestMixin,
-    HackRepoMixin)
+    CoursesTestMixinBase,
+    HackRepoMixin,
+    SingleCourseQuizPageTestMixin,
+    SingleCourseTestMixin,
+)
 from tests.constants import QUIZ_FLOW_ID
 from tests.utils import mock
-from tests import factories
 
 
 def get_flow_permissions_list(excluded=None):
@@ -56,7 +62,7 @@ def get_flow_permissions_list(excluded=None):
     return [fp for fp in all_flow_permissions if fp not in excluded]
 
 
-#{{{ test flow.adjust_flow_session_page_data
+# {{{ test flow.adjust_flow_session_page_data
 
 def flow_page_data_save_side_effect(self, *args, **kwargs):
     if self.page_id == "half1":
@@ -70,7 +76,7 @@ class AdjustFlowSessionPageDataTest(
     initial_commit_sha = "my_fake_commit_sha_1"
 
     @classmethod
-    def setUpTestData(cls):  # noqa
+    def setUpTestData(cls):
         super().setUpTestData()
         client = Client()
         client.force_login(cls.student_participation.user)
@@ -93,28 +99,26 @@ class AdjustFlowSessionPageDataTest(
         resp = self.client.get(self.get_page_url_by_ordinal(0))
         self.assertEqual(resp.status_code, 200)
 
-        fpds_2nd = models.FlowPageData.objects.all()
-        welcome_page_title_2nd = fpds_2nd.get(page_id="welcome").title
-        fpd_ids_2nd = list(fpds_2nd.values_list("page_id", flat=True))
+        fpds_2and = models.FlowPageData.objects.all()
+        welcome_page_title_2and = fpds_2and.get(page_id="welcome").title
+        fpd_ids_2and = list(fpds_2and.values_list("page_id", flat=True))
 
         # the page (with page_id "welcome") has changed title
-        self.assertNotEqual(welcome_page_title_1st, welcome_page_title_2nd)
+        self.assertNotEqual(welcome_page_title_1st, welcome_page_title_2and)
 
         # these two pages have removed page_ordinal
         # (those in group2 are not considered)
-        page_ids_removed_in_2nd = {"half1", "lsq2"}
+        page_ids_removed_in_2and = {"half1", "lsq2"}
         self.assertTrue(
-            page_ids_removed_in_2nd
-            < set(list(
-                fpds_2nd.filter(
+            page_ids_removed_in_2and
+            < set(fpds_2and.filter(
                     page_ordinal=None).values_list("page_id", flat=True)))
-        )
 
-        page_ids_introduced_in_2nd = {"half1_id_renamed", "half_again2"}
-        self.assertNotIn(page_ids_introduced_in_2nd, fpd_ids_1st)
-        self.assertTrue(page_ids_introduced_in_2nd < set(fpd_ids_2nd))
+        page_ids_introduced_in_2and = {"half1_id_renamed", "half_again2"}
+        self.assertNotIn(page_ids_introduced_in_2and, fpd_ids_1st)
+        self.assertTrue(page_ids_introduced_in_2and < set(fpd_ids_2and))
 
-        self.assertTrue(set(fpd_ids_2nd) > set(fpd_ids_1st))
+        self.assertTrue(set(fpd_ids_2and) > set(fpd_ids_1st))
         # }}}
 
         # {{{ 3rd round: revive back
@@ -126,17 +130,16 @@ class AdjustFlowSessionPageDataTest(
 
         fpds_3rd = models.FlowPageData.objects.all()
         fpd_ids_3rd = list(fpds_3rd.values_list("page_id", flat=True))
-        welcome_page_title_3rd = fpds_2nd.get(page_id="welcome").title
+        welcome_page_title_3rd = fpds_2and.get(page_id="welcome").title
         self.assertEqual(welcome_page_title_1st, welcome_page_title_3rd)
 
         # no page_data instances are removed
-        self.assertSetEqual(set(fpd_ids_2nd), set(fpd_ids_3rd))
+        self.assertSetEqual(set(fpd_ids_2and), set(fpd_ids_3rd))
         self.assertSetEqual(
-            page_ids_introduced_in_2nd,
-            set(list(
-                fpds_3rd.filter(
-                    page_ordinal=None).values_list("page_id", flat=True))))
-        for page_id in page_ids_removed_in_2nd:
+            page_ids_introduced_in_2and,
+            set(fpds_3rd.filter(
+                    page_ordinal=None).values_list("page_id", flat=True)))
+        for page_id in page_ids_removed_in_2and:
             self.assertIsNotNone(
                 models.FlowPageData.objects.get(page_id=page_id).page_ordinal)
             # }}}
@@ -205,7 +208,7 @@ class GradePageVisitTest(SingleCourseQuizPageTestMixin, TestCase):
                 "Unexpectedly created FlowPageVisitGrade objects for "
                 "ungradedable questions which expects answer.")
 
-    def test_answer_feeback_is_none(self):
+    def test_answer_feedback_is_none(self):
         with self.temporarily_switch_to_user(self.student_participation.user):
             with mock.patch(
                     "course.page.upload.FileUploadQuestion.grade") as mock_grade:
@@ -394,7 +397,7 @@ class AssemblePageGradesTest(HackRepoMixin,
     def get_grades_of_opps(self, opp_identifiers=None, as_dict=False,
                            with_grade_time=False):
         if opp_identifiers is not None:
-            assert isinstance(opp_identifiers, (list, tuple))
+            assert isinstance(opp_identifiers, list | tuple)
         resp = self.get_my_grades_view()
         self.assertEqual(resp.status_code, 200)
         grade_tables = resp.context["grade_table"]
@@ -717,7 +720,7 @@ class FakePageData:
 
 
 def instantiate_flow_page_with_ctx_get_interaction_kind_side_effect(fctx,
-                                                                    page_data):  # noqa
+                                                                    page_data):
     # side effect when testing get_interaction_kind
     return page_data.mock_page_attribute()
 
@@ -993,7 +996,7 @@ class FinishFlowSessionViewTest(HackRepoMixin,
 
         for page_id in page_ids:
             self.submit_page_human_grading_by_page_id_and_test(
-                page_id, do_session_score_equal_assersion=False)
+                page_id, do_session_score_equal_assertion=False)
 
         expected_grade_info_dict = {
             "fully_correct_count": 3,
@@ -1049,15 +1052,15 @@ class FinishFlowSessionViewTest(HackRepoMixin,
             if page_id == "anyup":
                 self.submit_page_human_grading_by_page_id_and_test(
                     page_id, grade_data={"grade_percent": "0", "released": "on"},
-                    do_session_score_equal_assersion=False)
-            if page_id == "proof":
+                    do_session_score_equal_assertion=False)
+            if page_id == "proof_upload":
                 self.submit_page_human_grading_by_page_id_and_test(
                     page_id,
                     grade_data={"grade_percent": "70", "released": "on"},
-                    do_session_score_equal_assersion=False)
+                    do_session_score_equal_assertion=False)
             else:
                 self.submit_page_human_grading_by_page_id_and_test(
-                    page_id, do_session_score_equal_assersion=False)
+                    page_id, do_session_score_equal_assertion=False)
 
         expected_grade_info_dict = {
             "fully_correct_count": 1,
@@ -1077,7 +1080,7 @@ class FinishFlowSessionViewTest(HackRepoMixin,
         self.assertEqual(resp.status_code, 200)
         self.assertGradeInfoEqual(resp, expected_grade_info_dict)
 
-    def test_submit_with_bonus(self):  # noqa
+    def test_submit_with_bonus(self):
         with mock.patch(
                 "course.flow.get_session_grading_rule") as mock_get_grule:
             mock_get_grule.return_value = \
@@ -1104,15 +1107,15 @@ class FinishFlowSessionViewTest(HackRepoMixin,
                     self.submit_page_human_grading_by_page_id_and_test(
                         page_id,
                         grade_data={"grade_percent": "0", "released": "on"},
-                        do_session_score_equal_assersion=False)
-                if page_id == "proof":
+                        do_session_score_equal_assertion=False)
+                if page_id == "proof_upload":
                     self.submit_page_human_grading_by_page_id_and_test(
                         page_id,
                         grade_data={"grade_percent": "70", "released": "on"},
-                        do_session_score_equal_assersion=False)
+                        do_session_score_equal_assertion=False)
                 else:
                     self.submit_page_human_grading_by_page_id_and_test(
-                        page_id, do_session_score_equal_assersion=False)
+                        page_id, do_session_score_equal_assertion=False)
 
             expected_grade_info_dict = {
                 "fully_correct_count": 1,
@@ -1288,11 +1291,11 @@ class FinishFlowSessionViewTest(HackRepoMixin,
             "Cannot end a session that's already ended",
             self.mock_add_message.call_args[0])
 
-    def test_notify_on_submit_emtpy(self):
+    def test_notify_on_submit_empty(self):
         with mock.patch("course.utils.get_flow_desc") as mock_get_flow_desc:
             mock_get_flow_desc.return_value = (
                 self.get_hacked_flow_desc(
-                    # no recepient
+                    # no recipient
                     notify_on_submit=[])
             )
             self.start_flow(self.flow_id)
@@ -1376,7 +1379,7 @@ class FinishFlowSessionViewTest(HackRepoMixin,
         self.assertEqual(len(mail.outbox), 1)
         self.assertEqual(
             mail.outbox[0].recipients(),
-            notify_on_submit_emails + [self.course.notify_email])
+            [*notify_on_submit_emails, self.course.notify_email])
 
         self.assertIn(
             self.student_participation.user.username,
@@ -1563,7 +1566,7 @@ class FinishFlowSessionTest(SingleCourseTestMixin, TestCase):
             participation=self.student_participation, in_progress=True)
         grading_rule = FlowSessionGradingRule(
             grade_identifier="la_quiz",
-            grade_aggregation_strategy=g_strategy.use_latest,  # noqa
+            grade_aggregation_strategy=g_strategy.use_latest,
             due=None,
             generates_grade=True,
             use_last_activity_as_completion_time=False
@@ -1602,7 +1605,7 @@ class FinishFlowSessionTest(SingleCourseTestMixin, TestCase):
 
         grading_rule = FlowSessionGradingRule(
             grade_identifier="la_quiz",
-            grade_aggregation_strategy=g_strategy.use_latest,  # noqa
+            grade_aggregation_strategy=g_strategy.use_latest,
             due=None,
             generates_grade=True,
             use_last_activity_as_completion_time=True
@@ -1658,7 +1661,7 @@ class FinishFlowSessionTest(SingleCourseTestMixin, TestCase):
 
         grading_rule = FlowSessionGradingRule(
             grade_identifier="la_quiz",
-            grade_aggregation_strategy=g_strategy.use_latest,  # noqa
+            grade_aggregation_strategy=g_strategy.use_latest,
             due=None,
             generates_grade=True,
             use_last_activity_as_completion_time=True
@@ -1712,9 +1715,9 @@ class ExpireFlowSessionTest(SingleCourseTestMixin, TestCase):
         self.mock_get_session_start_rule = fake_get_session_start_rule.start()
         self.addCleanup(fake_get_session_start_rule.stop)
 
-        self.now_datatime = now()
+        self.now_datetime = now()
 
-    def test_expire_non_in_progess_session(self):
+    def test_expire_non_in_progress_session(self):
         flow_session = factories.FlowSessionFactory(
             participation=self.student_participation, in_progress=False)
         grading_rule = mock.MagicMock()
@@ -1722,7 +1725,7 @@ class ExpireFlowSessionTest(SingleCourseTestMixin, TestCase):
         expected_error_msg = "Can't expire a session that's not in progress"
         with self.assertRaises(RuntimeError) as cm:
             flow.expire_flow_session(
-                self.fctx, flow_session, grading_rule, self.now_datatime)
+                self.fctx, flow_session, grading_rule, self.now_datetime)
 
         self.assertIn(expected_error_msg, str(cm.exception))
 
@@ -1738,7 +1741,7 @@ class ExpireFlowSessionTest(SingleCourseTestMixin, TestCase):
         expected_error_msg = "Can't expire an anonymous flow session"
         with self.assertRaises(RuntimeError) as cm:
             flow.expire_flow_session(
-                self.fctx, flow_session, grading_rule, self.now_datatime)
+                self.fctx, flow_session, grading_rule, self.now_datetime)
 
         self.assertIn(expected_error_msg, str(cm.exception))
 
@@ -1751,14 +1754,14 @@ class ExpireFlowSessionTest(SingleCourseTestMixin, TestCase):
             participation=self.student_participation, in_progress=True)
         grading_rule = FlowSessionGradingRule(
             grade_identifier="la_quiz",
-            grade_aggregation_strategy=g_strategy.use_latest,  # noqa
+            grade_aggregation_strategy=g_strategy.use_latest,
             due=None,
             generates_grade=True,
             use_last_activity_as_completion_time=False
         )
 
         self.assertFalse(flow.expire_flow_session(
-            self.fctx, flow_session, grading_rule, self.now_datatime,
+            self.fctx, flow_session, grading_rule, self.now_datetime,
             past_due_only=True))
 
         self.assertEqual(self.mock_adjust_flow_session_page_data.call_count, 0)
@@ -1769,7 +1772,7 @@ class ExpireFlowSessionTest(SingleCourseTestMixin, TestCase):
         flow_session = factories.FlowSessionFactory(
             participation=self.student_participation, in_progress=True)
 
-        due = self.now_datatime + timedelta(hours=1)
+        due = self.now_datetime + timedelta(hours=1)
 
         grading_rule = FlowSessionGradingRule(
             grade_identifier="la_quiz",
@@ -1780,7 +1783,7 @@ class ExpireFlowSessionTest(SingleCourseTestMixin, TestCase):
         )
 
         self.assertFalse(flow.expire_flow_session(
-            self.fctx, flow_session, grading_rule, self.now_datatime,
+            self.fctx, flow_session, grading_rule, self.now_datetime,
             past_due_only=True))
 
         self.assertEqual(self.mock_adjust_flow_session_page_data.call_count, 0)
@@ -1791,7 +1794,7 @@ class ExpireFlowSessionTest(SingleCourseTestMixin, TestCase):
         flow_session = factories.FlowSessionFactory(
             participation=self.student_participation, in_progress=True)
 
-        due = self.now_datatime - timedelta(hours=1)
+        due = self.now_datetime - timedelta(hours=1)
 
         grading_rule = FlowSessionGradingRule(
             grade_identifier="la_quiz",
@@ -1802,7 +1805,7 @@ class ExpireFlowSessionTest(SingleCourseTestMixin, TestCase):
         )
 
         flow.expire_flow_session(
-            self.fctx, flow_session, grading_rule, self.now_datatime,
+            self.fctx, flow_session, grading_rule, self.now_datetime,
             past_due_only=True)
 
         self.assertEqual(self.mock_adjust_flow_session_page_data.call_count, 1)
@@ -1830,7 +1833,7 @@ class ExpireFlowSessionTest(SingleCourseTestMixin, TestCase):
         )
 
         self.assertTrue(flow.expire_flow_session(
-            self.fctx, flow_session, grading_rule, self.now_datatime))
+            self.fctx, flow_session, grading_rule, self.now_datetime))
 
         self.assertEqual(self.mock_adjust_flow_session_page_data.call_count, 1)
         self.assertEqual(self.mock_finish_flow_session.call_count, 1)
@@ -1853,7 +1856,7 @@ class ExpireFlowSessionTest(SingleCourseTestMixin, TestCase):
         )
 
         self.assertTrue(flow.expire_flow_session(
-            self.fctx, flow_session, grading_rule, self.now_datatime))
+            self.fctx, flow_session, grading_rule, self.now_datetime))
 
         self.assertEqual(self.mock_adjust_flow_session_page_data.call_count, 1)
         self.assertEqual(self.mock_finish_flow_session.call_count, 1)
@@ -1865,7 +1868,7 @@ class ExpireFlowSessionTest(SingleCourseTestMixin, TestCase):
             expiration_mode="unknown"
         )
 
-        due = self.now_datatime - timedelta(hours=1)
+        due = self.now_datetime - timedelta(hours=1)
 
         grading_rule = FlowSessionGradingRule(
             grade_identifier="la_quiz",
@@ -1879,7 +1882,7 @@ class ExpireFlowSessionTest(SingleCourseTestMixin, TestCase):
                               "on flow session ID %i" % flow_session.pk)
         with self.assertRaises(ValueError) as cm:
             flow.expire_flow_session(
-                self.fctx, flow_session, grading_rule, self.now_datatime)
+                self.fctx, flow_session, grading_rule, self.now_datetime)
 
         self.assertIn(expected_error_msg, str(cm.exception))
 
@@ -2204,7 +2207,7 @@ class GradeFlowSessionTest(SingleCourseQuizPageTestMixin,
         grade_info = self.get_test_grade_info()
         self.mock_gather_grade_info.return_value = grade_info
 
-        # create an indentical previous_grade_changes
+        # create an identical previous_grade_changes
         grade_time1 = now() - timedelta(days=1)
         grade_time2 = grade_time1 + timedelta(hours=1)
 
@@ -2854,8 +2857,6 @@ class RegradeSessionTest(SingleCourseTestMixin, TestCase):
 
         self.assertEqual(self.mock_reopen_session.call_count, 1)
         self.assertTrue(
-            self.mock_reopen_session.call_args[1]["force"])
-        self.assertTrue(
             self.mock_reopen_session.call_args[1]["suppress_log"])
 
         self.assertEqual(self.mock_finish_flow_session_standalone.call_count, 1)
@@ -2930,8 +2931,6 @@ class RecalculateSessionGradeTest(SingleCourseTestMixin, TestCase):
 
         self.assertEqual(self.mock_reopen_session.call_count, 1)
         self.assertTrue(
-            self.mock_reopen_session.call_args[1]["force"])
-        self.assertTrue(
             self.mock_reopen_session.call_args[1]["suppress_log"])
 
         self.assertEqual(self.mock_finish_flow_session_standalone.call_count, 1)
@@ -2949,7 +2948,7 @@ class LockDownIfNeededTest(unittest.TestCase):
         self.flow_session.id = 1
         self.flow_session.pk = 1
         self.request = mock.MagicMock()
-        self.request.session = dict()
+        self.request.session = {}
 
         def remove_all_course():
             for course in models.Course.objects.all():
@@ -2961,9 +2960,7 @@ class LockDownIfNeededTest(unittest.TestCase):
         flow_permissions = ["other_flow_permission"]
         flow.lock_down_if_needed(self.request, flow_permissions, self.flow_session)
 
-        self.assertIsNone(
-            self.request.session.get(
-                "relate_session_locked_to_exam_flow_session_pk"))
+        self.assertIsNone(self.request.session.get(SESSION_LOCKED_TO_FLOW_PK))
 
     def test_has_lock_down_as_exam_session_flow_permission(self):
         flow_permissions = [fperm.lock_down_as_exam_session,
@@ -2971,8 +2968,7 @@ class LockDownIfNeededTest(unittest.TestCase):
         flow.lock_down_if_needed(self.request, flow_permissions, self.flow_session)
 
         self.assertEqual(
-            self.request.session.get(
-                "relate_session_locked_to_exam_flow_session_pk"),
+            self.request.session.get(SESSION_LOCKED_TO_FLOW_PK),
             self.flow_session.pk
         )
 
@@ -3214,7 +3210,7 @@ class PostStartFlowTest(SingleCourseTestMixin, TestCase):
             mock_session.pk = 0
             self.mock_start_flow.return_value = mock_session
 
-            # create an exising session started recently
+            # create an existing session started recently
             factories.FlowSessionFactory(participation=self.student_participation)
 
             self.start_flow(self.flow_id, ignore_cool_down=False,
@@ -3234,7 +3230,7 @@ class PostStartFlowTest(SingleCourseTestMixin, TestCase):
             mock_session.pk = 0
             self.mock_start_flow.return_value = mock_session
 
-            # create an exising session started recently
+            # create an existing session started recently
             factories.FlowSessionFactory(
                 participation=self.student_participation,
                 start_time=now() - timedelta(seconds=11))
@@ -3530,18 +3526,18 @@ class GetPageBehaviorTest(unittest.TestCase):
     def assertShowCorrectness(self, behavior, perms, show=True):  # noqa
         self.assertEqual(
             behavior.show_correctness, show,
-            "behavior.show_correctness unexpected to be %s with %s"
-            % (not show, ", ".join(perms)))
+            "behavior.show_correctness unexpected to be {} with {}"
+            .format(not show, ", ".join(perms)))
 
     def assertShowAnswer(self, behavior, perms, show=True):  # noqa
         self.assertEqual(behavior.show_answer, show,
-                         "behavior.show_answer unexpected to be %s with %s"
-                         % (not show, ", ".join(perms)))
+                         "behavior.show_answer unexpected to be {} with {}"
+                         .format(not show, ", ".join(perms)))
 
     def assertMayChangeAnswer(self, behavior, perms, may_change=True):  # noqa
         self.assertEqual(behavior.may_change_answer, may_change,
-                         "behavior.may_change_answer unexpected to be %s with %s"
-                         % (not may_change, ", ".join(perms)))
+                         "behavior.may_change_answer unexpected to be {} with {}"
+                         .format(not may_change, ", ".join(perms)))
 
     def test_show_correctness1(self):
         # not expects_answer
@@ -4410,7 +4406,7 @@ class PostFlowPageTest(HackRepoMixin, SingleCourseQuizPageTestMixin, TestCase):
     page_id = "half"
 
     @classmethod
-    def setUpTestData(cls):  # noqa
+    def setUpTestData(cls):
         super().setUpTestData()
 
         # We only concern one page, so it can be put here to speed up
@@ -4571,10 +4567,10 @@ class SendEmailAboutFlowPageTest(HackRepoMixin,
     page_id = "half"
 
     @classmethod
-    def setUpTestData(cls):  # noqa
+    def setUpTestData(cls):
         super().setUpTestData()
 
-        # We only conern one page, so it can be put here to speed up
+        # We only concern one page, so it can be put here to speed up
         client = Client()
         client.force_login(cls.student_participation.user)
         cls.start_flow(client, cls.flow_id)
@@ -4973,9 +4969,9 @@ class RegradeFlowsViewTest(SingleCourseQuizPageTestMixin, TestCase):
         self.mock_redirect = fake_redirect.start()
         self.addCleanup(fake_redirect.stop)
 
-    def get_regrade_flows_view_url(self, course_identfier=None):
-        course_identfier = course_identfier or self.get_default_course_identifier()
-        return reverse("relate-regrade_flows_view", args=(course_identfier,))
+    def get_regrade_flows_view_url(self, course_identifier=None):
+        course_identifier = course_identifier or self.get_default_course_identifier()
+        return reverse("relate-regrade_flows_view", args=(course_identifier,))
 
     def test_no_pperm(self):
         with self.temporarily_switch_to_user(self.student_participation.user):
@@ -5064,7 +5060,7 @@ class ViewUnsubmitFlowPageTest(SingleCourseQuizPageTestMixin, TestCase):
     page_id = "half"
 
     @classmethod
-    def setUpTestData(cls):  # noqa
+    def setUpTestData(cls):
         super().setUpTestData()
         client = Client()
         client.force_login(cls.student_participation.user)

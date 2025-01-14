@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+
 __copyright__ = "Copyright (C) 2014 Andreas Kloeckner"
 
 __license__ = """
@@ -20,12 +23,23 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
+from typing import Any
+
+from django import forms
 
 from course.page.base import (
-        PageBaseWithCorrectAnswer, PageBaseWithTitle, markup_to_html)
+    PageBaseUngraded,
+    PageBaseWithCorrectAnswer,
+    PageBaseWithTitle,
+    PageBehavior,
+    PageContext,
+    markup_to_html,
+)
+from course.validation import AttrSpec
+from relate.utils import StyledForm
 
 
-class Page(PageBaseWithCorrectAnswer, PageBaseWithTitle):
+class Page(PageBaseWithCorrectAnswer, PageBaseWithTitle, PageBaseUngraded):
     """
     A page showing static content.
 
@@ -56,16 +70,45 @@ class Page(PageBaseWithCorrectAnswer, PageBaseWithTitle):
         (see :ref:`flow-permissions`). Written in :ref:`markup`.
     """
 
-    def required_attrs(self):
-        return super().required_attrs() + (
-            ("content", "markup"),
-            )
+    def required_attrs(self) -> AttrSpec:
+        return (*super().required_attrs(), ("content", "markup"))
 
-    def markup_body_for_title(self):
+    def markup_body_for_title(self) -> str:
         return self.page_desc.content
 
-    def body(self, page_context, page_data):
+    def body(self, page_context, page_data) -> str:
         return markup_to_html(page_context, self.page_desc.content)
 
-    def expects_answer(self):
+    def expects_answer(self) -> bool:
         return False
+
+    def max_points(self, page_data: Any) -> float:
+        raise NotImplementedError()
+
+    def answer_data(
+            self,
+            page_context: PageContext,
+            page_data: Any,
+            form: forms.Form,
+            files_data: Any,
+            ) -> Any:
+        raise NotImplementedError()
+
+    def make_form(
+            self,
+            page_context: PageContext,
+            page_data: Any,
+            answer_data: Any,
+            page_behavior: Any,
+            ) -> StyledForm:
+        raise NotImplementedError()
+
+    def process_form_post(
+            self,
+            page_context: PageContext,
+            page_data: Any,
+            post_data: Any,
+            files_data: Any,
+            page_behavior: PageBehavior,
+            ) -> StyledForm:
+        raise NotImplementedError()

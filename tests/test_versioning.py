@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+
 __copyright__ = "Copyright (C) 2017 Dong Zhuang"
 
 __license__ = """
@@ -20,25 +23,28 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-import pytest
-from copy import deepcopy
 import unittest
-from django.test import TestCase, RequestFactory
-from dulwich.contrib.paramiko_vendor import ParamikoSSHVendor
+from copy import deepcopy
+
+import pytest
+from django.test import RequestFactory, TestCase
 from dulwich.client import FetchPackResult
+from dulwich.contrib.paramiko_vendor import ParamikoSSHVendor
 
-from relate.utils import force_remove_path
-
-from course.models import Course, Participation
 from course import versioning
-from course.validation import ValidationWarning
 from course.constants import participation_permission as pperm
-
-from tests.base_test_mixins import (
-    SingleCourseTestMixin, MockAddMessageMixing,
-    CoursesTestMixinBase, SINGLE_COURSE_SETUP_LIST)
-from tests.utils import suppress_stdout_decorator, mock
+from course.models import Course
+from course.validation import ValidationWarning
+from relate.utils import force_remove_path
 from tests import factories
+from tests.base_test_mixins import (
+    SINGLE_COURSE_SETUP_LIST,
+    CoursesTestMixinBase,
+    MockAddMessageMixing,
+    SingleCourseTestMixin,
+)
+from tests.utils import mock, suppress_stdout_decorator
+
 
 TEST_PRIVATE_KEY = """\
 -----BEGIN RSA PRIVATE KEY-----
@@ -75,7 +81,7 @@ class VersioningTestMixin(CoursesTestMixinBase, MockAddMessageMixing):
     courses_setup_list = []
 
     @classmethod
-    def setUpTestData(cls):  # noqa
+    def setUpTestData(cls):
         super().setUpTestData()
         cls.instructor = cls.create_user(
             SINGLE_COURSE_SETUP_LIST[0]["participations"][0]["user"])
@@ -134,45 +140,6 @@ class CourseCreationTest(VersioningTestMixin, TestCase):
             self.assertTrue(resp.status_code, 403)
             self.assertEqual(Course.objects.count(), 0)
 
-    def test_set_up_new_course(self):
-        # In this test, we use client instead of request factory to simplify
-        # the logic.
-
-        with self.temporarily_switch_to_user(self.instructor):
-            # the permission is cached, need to repopulated from db
-            resp = self.get_set_up_new_course()
-            self.assertTrue(resp.status_code, 200)
-
-            with mock.patch("dulwich.client.GitClient.fetch",
-                            return_value=FetchPackResult(
-                                refs={b"HEAD": b"some_commit_sha"},
-                                symrefs={},
-                                agent="Git")), \
-                  mock.patch("course.versioning.transfer_remote_refs",
-                            return_value=None), \
-                      mock.patch("course.validation.validate_course_content",
-                               return_value=None):
-                data = self.get_set_up_new_course_form_data()
-
-                resp = self.post_create_course(data, raise_error=False,
-                                               login_superuser=False)
-                self.assertTrue(resp.status_code, 200)
-                self.assertEqual(Course.objects.count(), 1)
-                self.assertEqual(Participation.objects.count(), 1)
-                self.assertEqual(Participation.objects.first().user.username,
-                                 "test_instructor")
-                self.assertAddMessageCalledWith(
-                    "Course content validated, creation succeeded.")
-
-                from course.enrollment import get_participation_role_identifiers
-
-                # the user who setup the course has role instructor
-                self.assertTrue(
-                    get_participation_role_identifiers(
-                        Course.objects.first(),
-                        Participation.objects.first()),
-                    "instructor")
-
     def test_set_up_new_course_form_invalid(self):
         for field_name in ["identifier", "name", "number", "time_period",
                            "git_source", "from_email", "notify_email"]:
@@ -214,7 +181,7 @@ class CourseCreationTest(VersioningTestMixin, TestCase):
         with mock.patch(
                 "dulwich.client.GitClient.fetch"
         ) as mock_fetch, mock.patch(
-                'relate.utils.force_remove_path'
+                "relate.utils.force_remove_path"
         )as mock_force_remove_path:
             mock_fetch.side_effect = RuntimeError("my fetch error")
             mock_force_remove_path.side_effect = force_remove_path_side_effect
@@ -247,35 +214,6 @@ class CourseCreationTest(VersioningTestMixin, TestCase):
             self.assertAddMessageCalledWith(
                 "No refs found in remote repository")
 
-    @suppress_stdout_decorator(suppress_stderr=True)
-    def test_set_up_new_course_subdir(self):
-
-        # Todo: "Windows fatal exception: stack overflow" were raised for this test
-        # on Windows (Github actions). Is it a bug?
-        import sys
-        if sys.platform == "win32":
-            pytest.xfail("https://github.com/inducer/relate/issues/749")
-
-        data = self.get_set_up_new_course_form_data()
-        data["course_root_path"] = "some_dir"
-        request = self.rf.post(self.get_set_up_new_course_url(), data=data)
-        request.user = self.instructor
-        with mock.patch("dulwich.client.GitClient.fetch",
-                        return_value=FetchPackResult(
-                            refs={b"HEAD": b"some_commit_sha"},
-                            symrefs={},
-                            agent="Git")), \
-             mock.patch('course.versioning.messages'), \
-             mock.patch("course.validation.validate_course_content",
-                        return_value=None) as mock_validate, \
-                mock.patch("course.models.Course.save"), \
-                mock.patch("course.models.Participation.save", return_value=True), \
-                mock.patch("course.versioning.render"):
-            resp = versioning.set_up_new_course(request)
-            from course.content import SubdirRepoWrapper
-            self.assertIsInstance(mock_validate.call_args[0][0], SubdirRepoWrapper)
-            self.assertTrue(resp.status_code, 200)
-
 
 @pytest.mark.slow
 @pytest.mark.django_db
@@ -283,23 +221,26 @@ class ParamikoSSHVendorTest(TestCase):
     # A simple integration tests, making sure ParamikoSSHVendor is used
     # for ssh protocol.
 
-    @classmethod
-    def setUpTestData(cls):  # noqa
-        course = factories.CourseFactory.create(**cls.prepare_data())
-        cls.git_client, _ = (
-            versioning.get_dulwich_client_and_remote_path_from_course(course))
-        cls.ssh_vendor = cls.git_client.ssh_vendor
-        assert isinstance(cls.ssh_vendor, ParamikoSSHVendor)
-
-    @classmethod
-    def prepare_data(cls):
+    @staticmethod
+    def prepare_data():
         data = deepcopy(SINGLE_COURSE_SETUP_LIST[0]["course"])
         data["identifier"] = "my-private-course"
         data["git_source"] = "git+ssh://foo.com:1234/bar/baz"
         data["ssh_private_key"] = TEST_PRIVATE_KEY
         return data
 
+    @classmethod
+    def make_ssh_vendor(cls):
+        course = factories.CourseFactory.create(**cls.prepare_data())
+        git_client, _ = (
+            versioning.get_dulwich_client_and_remote_path_from_course(course))
+        ssh_vendor = git_client.ssh_vendor
+        assert isinstance(ssh_vendor, ParamikoSSHVendor)
+        return ssh_vendor
+
     def test_invalid(self):
+        ssh_vendor = self.make_ssh_vendor()
+
         from paramiko.ssh_exception import SSHException
 
         expected_error_msgs = [
@@ -312,7 +253,7 @@ class ParamikoSSHVendorTest(TestCase):
         with self.assertRaises(SSHException) as cm:
             # This is also used to ensure paramiko.client.MissingHostKeyPolicy
             # is added to the client
-            self.ssh_vendor.run_command(
+            ssh_vendor.run_command(
                 host="github.com",
                 command="git-upload-pack '/bar/baz'",
                 username=None,
@@ -321,7 +262,7 @@ class ParamikoSSHVendorTest(TestCase):
             msg in str(cm.exception) for msg in expected_error_msgs))
 
         with self.assertRaises(SSHException) as cm:
-            self.ssh_vendor.run_command(
+            ssh_vendor.run_command(
                 host="github.com",
                 command="git-upload-pack '/bar/baz'",
                 username="me",
@@ -334,7 +275,7 @@ class ParamikoSSHVendorTest(TestCase):
         expected_error_msg = "Bad authentication type"
 
         with self.assertRaises(SSHException) as cm:
-            self.ssh_vendor.run_command(
+            ssh_vendor.run_command(
                 host="github.com",
                 command="git-upload-pack '/bar/baz'",
                 password="mypass")
@@ -342,7 +283,7 @@ class ParamikoSSHVendorTest(TestCase):
         self.assertIn(expected_error_msg, str(cm.exception))
 
         with self.assertRaises(FileNotFoundError) as cm:
-            self.ssh_vendor.run_command(
+            ssh_vendor.run_command(
                 host="github.com",
                 command="git-upload-pack '/bar/baz'",
                 key_filename="key_file")
@@ -351,13 +292,15 @@ class ParamikoSSHVendorTest(TestCase):
         self.assertIn(expected_error_msg, str(cm.exception))
 
         with self.assertRaises(AttributeError) as cm:
-            self.ssh_vendor.run_command(
+            ssh_vendor.run_command(
                 host="github.com",
                 command="git-upload-pack '/bar/baz'",
                 pkey="invalid_key")
 
     @suppress_stdout_decorator(suppress_stderr=True)
     def test_set_up_ensure_get_transport_called(self):
+        ssh_vendor = self.make_ssh_vendor()
+
         with mock.patch(
                 "course.versioning.paramiko.SSHClient.connect"
         ) as mock_connect, mock.patch(
@@ -370,7 +313,7 @@ class ParamikoSSHVendorTest(TestCase):
             mock_channel.recv_stderr.side_effect = [b"my custom error", "", ""]
 
             try:
-                self.ssh_vendor.run_command(
+                ssh_vendor.run_command(
                     host="github.com",
                     command="git-upload-pack '/bar/baz'")
             except StopIteration:
@@ -407,7 +350,7 @@ class FakeCommit:
         self.id = id
 
     def __repr__(self):
-        return "%s: %s" % self.__class__.__name__ + str(self.name)
+        return "{}: {}".format(*self.__class__.__name__) + str(self.name)
 
 
 class IsParentCommitTest(unittest.TestCase):
@@ -503,8 +446,10 @@ class DirectGitEndpointTest(TestCase):
 
     def test_auth_student(self):
         from base64 import b64encode
-        from course.models import AuthenticationToken
+
         from django.contrib.auth.hashers import make_password
+
+        from course.models import AuthenticationToken
 
         course = factories.CourseFactory()
         student = factories.UserFactory()
@@ -575,9 +520,11 @@ class DirectGitEndpointTest(TestCase):
 
     def test_auth_instructor(self):
         from base64 import b64encode
-        from course.models import ParticipationRolePermission, AuthenticationToken
-        from course.constants import participation_permission as pp
+
         from django.contrib.auth.hashers import make_password
+
+        from course.constants import participation_permission as pp
+        from course.models import AuthenticationToken, ParticipationRolePermission
 
         course = factories.CourseFactory()
         instructor = factories.UserFactory()
@@ -609,7 +556,7 @@ class DirectGitEndpointTest(TestCase):
                                                 auth_token.id, "spam").encode()
         auth_data = b64encode(auth_data_unencoded).decode("utf-8")
         request = mock.MagicMock()
-        request.META.get.return_value = f"Basic {auth_data}"
+        request.headers.get.return_value = f"Basic {auth_data}"
         request.environ = request.META
         versioning.git_endpoint(request, course.identifier, "")
         self.assertEqual(mock_call_wsgi_app.call_count, 1)
@@ -620,7 +567,7 @@ class DirectGitEndpointTest(TestCase):
         mock_dulwich_web_backend = fake_dulwich_web_backend.start()
         self.addCleanup(fake_dulwich_web_backend.stop)
         request = mock.MagicMock()
-        request.META.get.return_value = f"Basic {auth_data}"
+        request.headers.get.return_value = f"Basic {auth_data}"
         request.environ = request.META
         versioning.git_endpoint(request, course.identifier, "")
         self.assertEqual(mock_dulwich_web_backend.call_count, 1)
@@ -637,8 +584,8 @@ NOT_UPDATED_LITERAL = "Update not applied."
 FAILURE_MSG = "my validation error."
 LOCATION1 = "location1"
 LOCATION2 = "location2"
-WARNING1 = "some waring1"
-WARNING2 = "some waring2"
+WARNING1 = "some warning1"
+WARNING2 = "some warning2"
 
 
 @pytest.mark.django_db
@@ -648,7 +595,7 @@ class RunCourseUpdateCommandTest(MockAddMessageMixing, unittest.TestCase):
     default_preview_sha = "preview_sha"
     default_old_sha = "old_sha"
     default_switch_to_sha = "switch_sha"
-    default_lastest_sha = "latest_sha"
+    default_latest_sha = "latest_sha"
 
     def setUp(self):
         super().setUp()
@@ -737,12 +684,12 @@ class RunCourseUpdateCommandTest(MockAddMessageMixing, unittest.TestCase):
                     prevent_discarding_revisions)
                 if will_check and self.mock_is_ancestor_commit.call_count != 1:
                     self.fail(
-                        "'is_ancestor_commit' is expected for command '%s' to "
-                        "be called while not" % command)
+                        f"'is_ancestor_commit' is expected for command '{command}' to "
+                        "be called while not")
                 elif not will_check and self.mock_is_ancestor_commit.call_count > 0:
                     self.fail(
-                        "'is_ancestor_commit' is not expected for command '%s' to "
-                        "be called while called" % command)
+                        f"'is_ancestor_commit' is not expected for command '{command}' to "  # noqa: E501
+                        "be called while called")
 
         # when not prevent_discarding_revisions, is_ancestor_commit
         # should not be checked (expensive operation)
@@ -759,12 +706,12 @@ class RunCourseUpdateCommandTest(MockAddMessageMixing, unittest.TestCase):
                     may_update, prevent_discarding_revisions)
                 if self.mock_is_ancestor_commit.call_count > 0:
                     self.fail(
-                        "'is_ancestor_commit' is not expected for command '%s' to "
-                        "be called while called (expensive)" % command)
+                        f"'is_ancestor_commit' is not expected for command '{command}' to "  # noqa: E501
+                        "be called while called (expensive)")
                 elif self.mock_is_ancestor_commit.call_count > 0:
                     self.fail(
-                        "'is_ancestor_commit' is not expected for command '%s' to "
-                        "be called while called" % command)
+                        f"'is_ancestor_commit' is not expected for command '{command}' to "  # noqa: E501
+                        "be called while called")
 
     def test_is_content_validated(self):
         may_update = True
@@ -788,12 +735,12 @@ class RunCourseUpdateCommandTest(MockAddMessageMixing, unittest.TestCase):
                         and self.mock_validate_course_content.call_count != 1):
                     self.fail(
                         "'validate_course_content' is expected for "
-                        "command '%s' to be called while not" % command)
+                        f"command '{command}' to be called while not")
                 elif (not will_validate
                       and self.mock_validate_course_content.call_count > 0):
                     self.fail(
                         "'validate_course_content' is not expected for "
-                        "command '%s' to be called while called" % command)
+                        f"command '{command}' to be called while called")
 
     def test_unknown_command(self):
         command = "unknown"
@@ -886,7 +833,7 @@ class RunCourseUpdateCommandTest(MockAddMessageMixing, unittest.TestCase):
 
     def test_fetch_not_prevent_discarding_revisions(self):
         self.mock_client.fetch.return_value = FetchPackResult(
-                refs={b"HEAD": self.default_lastest_sha.encode()},
+                refs={b"HEAD": self.default_latest_sha.encode()},
                 symrefs={},
                 agent="Git")
 
@@ -895,7 +842,7 @@ class RunCourseUpdateCommandTest(MockAddMessageMixing, unittest.TestCase):
              self.default_old_sha),
             ("fetch_update", 3, [FETCHED_LITERAL, UPDATE_APPLIED_LITERAL,
                                  VALIDATE_SUCCESS_LITERAL], [],
-             self.default_lastest_sha)
+             self.default_latest_sha)
         )
 
         for (command, add_message_call_count, expected, not_expected,
@@ -941,7 +888,7 @@ class RunCourseUpdateCommandTest(MockAddMessageMixing, unittest.TestCase):
 
     def test_fetch_update_success_with_warnings(self):
         self.mock_client.fetch.return_value = FetchPackResult(
-                refs={b"HEAD": self.default_lastest_sha.encode()},
+                refs={b"HEAD": self.default_latest_sha.encode()},
                 symrefs={},
                 agent="Git")
         self.mock_validate_course_content.return_value = (
@@ -959,11 +906,11 @@ class RunCourseUpdateCommandTest(MockAddMessageMixing, unittest.TestCase):
             not_expected_add_message_literals=[PREVIEW_END_LITERAL])
         self.assertIsNone(self.participation.preview_git_commit_sha)
         self.assertEqual(
-            self.course.active_git_commit_sha, self.default_lastest_sha)
+            self.course.active_git_commit_sha, self.default_latest_sha)
 
     def test_fetch_update_success_with_warnings_previewing(self):
         self.mock_client.fetch.return_value = FetchPackResult(
-                refs={b"HEAD": self.default_lastest_sha.encode()},
+                refs={b"HEAD": self.default_latest_sha.encode()},
                 symrefs={},
                 agent="Git")
 
@@ -983,7 +930,7 @@ class RunCourseUpdateCommandTest(MockAddMessageMixing, unittest.TestCase):
             ])
         self.assertIsNone(self.participation.preview_git_commit_sha)
         self.assertEqual(
-            self.course.active_git_commit_sha, self.default_lastest_sha)
+            self.course.active_git_commit_sha, self.default_latest_sha)
 
     def test_fetch_update_with_validation_error(self):
         from course.validation import ValidationError
@@ -1038,7 +985,7 @@ class RunCourseUpdateCommandTest(MockAddMessageMixing, unittest.TestCase):
 
     def test_fetch_not_may_update(self):
         self.mock_client.fetch.return_value = FetchPackResult(
-                refs={b"HEAD": self.default_lastest_sha.encode()},
+                refs={b"HEAD": self.default_latest_sha.encode()},
                 symrefs={},
                 agent="Git")
 
@@ -1075,7 +1022,7 @@ class RunCourseUpdateCommandTest(MockAddMessageMixing, unittest.TestCase):
 
 class VersioningRepoMixin:
     @classmethod
-    def setUpTestData(cls):  # noqa
+    def setUpTestData(cls):
         super().setUpTestData()
         cls.rf = RequestFactory()
         request = cls.rf.get(cls.get_update_course_url())
@@ -1205,7 +1152,7 @@ class UpdateCourseTest(SingleCourseTestMixin, MockAddMessageMixing, TestCase):
                 self.assertEqual(resp.status_code, 403)
 
     def test_participation_with_preview_permission(self):
-        # Just to make sure it won't fail, Todo: assersion on form kwargs
+        # Just to make sure it won't fail, Todo: assertion on form kwargs
         from course.models import ParticipationPermission
         pp = ParticipationPermission(
             participation=self.student_participation,
@@ -1221,7 +1168,7 @@ class UpdateCourseTest(SingleCourseTestMixin, MockAddMessageMixing, TestCase):
                 self.assertEqual(resp.status_code, 200, command)
 
     def test_participation_with_update_permission(self):
-        # Just to make sure it won't fail, Todo: assersion on form kwargs
+        # Just to make sure it won't fail, Todo: assertion on form kwargs
         from course.models import ParticipationPermission
         pp = ParticipationPermission(
             participation=self.student_participation,
@@ -1257,7 +1204,7 @@ class UpdateCourseTest(SingleCourseTestMixin, MockAddMessageMixing, TestCase):
                 self.course.active_git_commit_sha, command="update")
             self.assertEqual(resp.status_code, 200)
             self.assertAddMessageCallCount(1)
-            expected_error_msg = "Error: RuntimeError %s" % error_msg
+            expected_error_msg = f"Error: RuntimeError {error_msg}"
             self.assertAddMessageCalledWith(expected_error_msg)
 
     def test_form_not_valid(self):
@@ -1276,7 +1223,7 @@ class UpdateCourseTest(SingleCourseTestMixin, MockAddMessageMixing, TestCase):
         self.course.course_root_path = "/subdir"
         self.course.save()
 
-        from course.content import get_course_repo, SubdirRepoWrapper
+        from course.content import SubdirRepoWrapper, get_course_repo
         self.assertIsInstance(get_course_repo(self.course), SubdirRepoWrapper)
 
         with mock.patch(
@@ -1287,6 +1234,7 @@ class UpdateCourseTest(SingleCourseTestMixin, MockAddMessageMixing, TestCase):
 
             self.assertEqual(mock_run_update.call_count, 1)
 
-            from course.content import SubdirRepoWrapper
             from dulwich.repo import Repo
+
+            from course.content import SubdirRepoWrapper
             self.assertIsInstance(mock_run_update.call_args[0][1], Repo)

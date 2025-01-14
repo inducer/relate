@@ -1,0 +1,27 @@
+{% load i18n %}
+
+{% if not prev_grades %}
+  <li><h6 class="dropdown-header">{% trans 'No submission/grade history' %}</h6><li>
+{% else %}
+  {% for grade in prev_grades %}
+    <li>
+      {% if forloop.first %}
+        <a class="dropdown-item" href="?">
+      {% else %}
+        <a class="dropdown-item" href="?grade_id={{ grade.id }}">
+      {% endif %}
+        {% if grade.id == prev_grade_id %}<b>{% endif %}
+        {{ grade.visit.visit_time }}
+        &middot;
+        {% trans "Grade:" %} {{ grade.grade_time }}
+        {% if grade.id == prev_grade_id %}</b>{% endif %}
+        {% if grade.value == none %}
+          [{% trans "no grade" %}]
+        {% else %}
+          [{{ grade.value }} {% trans "points" %}]
+        {% endif %}
+        {% if forloop.first %}(current){% endif %}
+      </a>
+    </li>
+  {% endfor %}
+{% endif %}

@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+
 __copyright__ = "Copyright (C) 2014 Andreas Kloeckner"
 
 __license__ = """
@@ -20,9 +23,10 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-import typing  # noqa
 
-from django.utils.translation import pgettext_lazy, gettext
+from django.utils.translation import gettext, pgettext_lazy
+
+
 # Allow 10x extra credit at the very most.
 MAX_EXTRA_CREDIT_FACTOR = 10
 DEFAULT_EMAIL_APPELLATION_PRIORITY_LIST = [
@@ -213,7 +217,7 @@ PARTICIPATION_PERMISSION_CHOICES = (
                 "Recalculate flow session grade")),
         (participation_permission.batch_recalculate_flow_session_grade,
             pgettext_lazy("Participation permission",
-                "Batch-recalculate flow sesssion grades")),
+                "Batch-recalculate flow session grades")),
 
         (participation_permission.reopen_flow_session,
             pgettext_lazy("Participation permission", "Reopen flow session")),
@@ -294,7 +298,7 @@ FLOW_SESSION_EXPIRATION_MODE_CHOICES = (
 
 
 def is_expiration_mode_allowed(
-        expmode: str, permissions: typing.FrozenSet[str]
+        expmode: str, permissions: frozenset[str]
         ) -> bool:
     if expmode == flow_session_expiration_mode.roll_over:
         if (flow_permission.set_roll_over_expiration_mode
@@ -562,5 +566,12 @@ EXAM_TICKET_STATE_CHOICES = (
 ATTRIBUTES_FILENAME = ".attributes.yml"
 DEFAULT_ACCESS_KINDS = ["public", "in_exam", "student", "ta",
                         "unenrolled", "instructor"]
+
+
+# {{{ session attributes
+
+SESSION_LOCKED_TO_FLOW_PK = "relate_session_locked_to_exam_flow_session_pk"
+
+# }}}
 
 # vim: foldmethod=marker

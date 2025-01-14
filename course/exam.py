@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+
 __copyright__ = "Copyright (C) 2015 Andreas Kloeckner"
 
 __license__ = """
@@ -22,44 +23,62 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from django.contrib.auth import get_user_model
+
+from collections.abc import Collection
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, cast
+
 import django.forms as forms
-from django.utils.translation import (
-        gettext, gettext_lazy as _, pgettext)
-from django.shortcuts import (  # noqa
-        render, get_object_or_404, redirect)
-from django.core.exceptions import (  # noqa
-        PermissionDenied, ObjectDoesNotExist, SuspiciousOperation)
-from django.contrib import messages  # noqa
+from crispy_forms.layout import Submit
+from django import http
+from django.contrib import messages
+from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import permission_required
-from django import http  # noqa
+from django.core.exceptions import (  # noqa
+    ObjectDoesNotExist,
+    PermissionDenied,
+    SuspiciousOperation,
+)
 from django.db import transaction
 from django.db.models import Q
+from django.http.request import HttpRequest
+from django.shortcuts import get_object_or_404, redirect, render  # noqa
 from django.urls import reverse
-
-from django.views.decorators.debug import sensitive_post_parameters
+from django.utils.html import escape
+from django.utils.safestring import mark_safe
+from django.utils.translation import gettext, gettext_lazy as _, pgettext
 from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_protect
+from django.views.decorators.debug import sensitive_post_parameters
 
-from crispy_forms.layout import Submit
-from bootstrap_datepicker_plus.widgets import DateTimePickerInput
-
-from course.models import (Exam, ExamTicket, Participation,
-        FlowSession)
-from course.utils import course_view, render_course_page
 from course.constants import (
-        exam_ticket_states,
-        participation_status,
-        participation_permission as pperm)
-
-from relate.utils import StyledForm, string_concat
+    SESSION_LOCKED_TO_FLOW_PK,
+    exam_ticket_states,
+    participation_permission as pperm,
+    participation_status,
+)
+from course.models import (
+    Course,
+    Exam,
+    ExamTicket,
+    FlowSession,
+    Participation,
+    ParticipationTag,
+)
+from course.utils import course_view, render_course_page
+from relate.utils import (
+    HTML5DateTimeInput,
+    RelateHttpRequest,
+    StyledForm,
+    not_none,
+    string_concat,
+)
 
 
 # {{{ mypy
 
-from typing import Optional, Text, Tuple, FrozenSet, TYPE_CHECKING  # noqa
 if TYPE_CHECKING:
-    import datetime  # noqa
+    import datetime
 
 # }}}
 
@@ -108,19 +127,27 @@ class IssueTicketForm(StyledForm):
 
         self.fields["valid_start_time"] = forms.DateTimeField(
                 label=_("Start validity"),
-                widget=DateTimePickerInput(
-                    options={"format": "YYYY-MM-DD HH:mm", "sideBySide": True}),
+                widget=HTML5DateTimeInput(),
                 required=False)
         self.fields["valid_end_time"] = forms.DateTimeField(
                 label=_("End validity"),
-                widget=DateTimePickerInput(
-                    options={"format": "YYYY-MM-DD HH:mm", "sideBySide": True}),
+                widget=HTML5DateTimeInput(),
                 required=False)
         self.fields["restrict_to_facility"] = forms.CharField(
                 label=_("Restrict to facility"),
                 help_text=_("If not blank, the exam ticket may only be used in the "
                     "given facility"),
                 required=False)
+
+        self.fields["require_login"] = forms.BooleanField(
+                required=False,
+                help_text=_(
+                    "If set, the exam ticket can only be used once logged in"))
+        self.fields["code"] = forms.CharField(
+                help_text=_(
+                    "If non-empty, this code will be used for the exam ticket"),
+                required=False,
+                widget=forms.PasswordInput())
 
         self.fields["revoke_prior"] = forms.BooleanField(
                 label=_("Revoke prior exam tickets for this user"),
@@ -172,19 +199,29 @@ def issue_exam_ticket(request):
                 ticket.participation = participation
                 ticket.creator = request.user
                 ticket.state = exam_ticket_states.valid
-                ticket.code = gen_ticket_code()
+                if form.cleaned_data["code"]:
+                    ticket.code = form.cleaned_data["code"]
+                else:
+                    ticket.code = gen_ticket_code()
+
                 ticket.valid_start_time = form.cleaned_data["valid_start_time"]
                 ticket.valid_end_time = form.cleaned_data["valid_end_time"]
                 ticket.restrict_to_facility = \
                         form.cleaned_data["restrict_to_facility"]
+                ticket.require_login = form.cleaned_data["require_login"]
                 ticket.save()
 
-                messages.add_message(request, messages.SUCCESS,
-                        _(
-                            "Ticket issued for <b>%(participation)s</b>. "
-                            "The ticket code is <b>%(ticket_code)s</b>."
-                            ) % {"participation": participation,
-                                 "ticket_code": ticket.code})
+                if form.cleaned_data["code"]:
+                    messages.add_message(request, messages.SUCCESS,
+                            _(
+                                f"Ticket issued for <b>{participation}</b>. "
+                                ))
+                else:
+                    messages.add_message(request, messages.SUCCESS,
+                            _(
+                                f"Ticket issued for <b>{participation}</b>. "
+                                f"The ticket code is <b>{ticket.code}</b>."
+                                ))
 
                 form = IssueTicketForm(now_datetime, initial_exam=exam)
 
@@ -217,10 +254,10 @@ INITIAL_EXAM_TICKET_TEMPLATE = string_concat("""\
   {% for ticket in tickets %}
     <tr>
       <td>
-        {{ ticket.participation.user.username }}
+        {{ ticket.user_name }}
       </td>
       <td>
-        {{ ticket.participation.user.get_full_name }}
+        {{ ticket.full_name }}
       </td>
       <td>
         {{ ticket.code }}
@@ -233,12 +270,12 @@ INITIAL_EXAM_TICKET_TEMPLATE = string_concat("""\
 
 {% for ticket in tickets %}
 <h2 style="page-break-before: always">""",
-_("Instructions for "  # noqa
-  "{{ ticket.exam.description }}"), """
+_("Instructions for "
+  "{{ ticket.exam_description }}"), """
 </h2>
 
 """, _("These are personalized instructions for "
-"{{ ticket.participation.user.get_full_name }}."), """
+"{{ ticket.full_name }}."), """
 
 """, _("If this is not you, please let the proctor know "
 "so that you can get the correct set of instructions."), """
@@ -253,9 +290,10 @@ _("Instructions for "  # noqa
 
 """, _("Enter the following information"), ":", """
 
-""", _("User name"), """: **`{{ ticket.participation.user.username }}`**
+""", _("User name"), """: **`{{ ticket.user_name }}`**
 
-""", pgettext("ticket code required to login exam", "Code"), """: **`{{ ticket.code }}`**
+""", pgettext("ticket code required to login exam", "Code"),
+        """: **`{{ ticket.code }}`**
 
 """, _("You have one hour to complete the exam."), """
 
@@ -273,9 +311,8 @@ class BatchIssueTicketsForm(StyledForm):
         super().__init__(*args, **kwargs)
 
         from course.utils import get_codemirror_widget
-        cm_widget, cm_help_text = get_codemirror_widget(
-                language_mode={"name": "markdown", "xml": True},
-                dependencies=("xml",),
+        cm_widget, _cm_help_text = get_codemirror_widget(
+                language_mode="markdown",
                 interaction_mode=editor_mode)
 
         help_text = (gettext('Enter <a href="http://documen.tician.de/'
@@ -285,7 +322,8 @@ class BatchIssueTicketsForm(StyledForm):
                 "data structures "
                 "containing ticket information. For each entry <tt>tkt</tt>  "
                 "in this list, "
-                "use <tt>{{ tkt.participation.user.user_name }}</tt>, "
+                "use <tt>{{ tkt.user_name }}</tt>, "
+                "<tt>{{ tkt.full_name }}</tt>, "
                 "<tt>{{ tkt.code }}</tt>, <tt>{{ tkt.exam.description }}</tt>, "
                 "and <tt>{{ checkin_uri }}</tt> as placeholders. "
                 "See the example for how to use this."))
@@ -299,15 +337,23 @@ class BatchIssueTicketsForm(StyledForm):
                 required=True,
                 label=_("Exam"))
 
+        self.fields["limit_to_tag"] = forms.ModelChoiceField(
+                queryset=(
+                    ParticipationTag.objects.filter(
+                        course=course,
+                        )),
+                label=_("Limit to tag"),
+                required=False,
+                help_text=_("If set, only issue tickets for participants having "
+                            "this tag"))
+
         self.fields["valid_start_time"] = forms.DateTimeField(
                 label=_("Start validity"),
-                widget=DateTimePickerInput(
-                    options={"format": "YYYY-MM-DD HH:mm", "sideBySide": True}),
+                widget=HTML5DateTimeInput(),
                 required=False)
         self.fields["valid_end_time"] = forms.DateTimeField(
                 label=_("End validity"),
-                widget=DateTimePickerInput(
-                    options={"format": "YYYY-MM-DD HH:mm", "sideBySide": True}),
+                widget=HTML5DateTimeInput(),
                 required=False)
         self.fields["restrict_to_facility"] = forms.CharField(
                 label=_("Restrict to facility"),
@@ -327,12 +373,28 @@ class BatchIssueTicketsForm(StyledForm):
                 initial=INITIAL_EXAM_TICKET_TEMPLATE,
                 required=True)
 
-        self.style_codemirror_widget()
+        self.fields["require_login"] = forms.BooleanField(
+                required=False,
+                help_text=_(
+                    "If set, exam tickets can only be used once logged in"))
+        self.fields["code"] = forms.CharField(
+                help_text=_(
+                    "If non-empty, this code will be used for all exam tickets"),
+                required=False,
+                widget=forms.PasswordInput())
 
         self.helper.add_input(
                 Submit(
                     "issue",
                     _("Issue tickets")))
+
+
+@dataclass(frozen=True)
+class TicketInfo:
+    user_name: str
+    full_name: str
+    code: str
+    exam_description: str
 
 
 @course_view
@@ -350,7 +412,8 @@ def batch_issue_exam_tickets(pctx):
         if form.is_valid():
             exam = form.cleaned_data["exam"]
 
-            from jinja2 import TemplateSyntaxError
+            import minijinja
+
             from course.content import markup_to_html
             try:
                 with transaction.atomic():
@@ -364,18 +427,26 @@ def batch_issue_exam_tickets(pctx):
                                 ).update(state=exam_ticket_states.revoked)
 
                     tickets = []
-                    for participation in (
+                    participation_qset = (
                             Participation.objects.filter(
                                 course=pctx.course,
                                 status=participation_status.active)
-                            .order_by("user__last_name")
-                            ):
+                            .order_by("user__last_name"))
+                    if form.cleaned_data["limit_to_tag"]:
+                        participation_qset = participation_qset.filter(
+                                tags__pk=form.cleaned_data["limit_to_tag"].pk)
+
+                    for participation in participation_qset:
                         ticket = ExamTicket()
                         ticket.exam = exam
                         ticket.participation = participation
                         ticket.creator = request.user
                         ticket.state = exam_ticket_states.valid
-                        ticket.code = gen_ticket_code()
+                        if form.cleaned_data["code"]:
+                            ticket.code = form.cleaned_data["code"]
+                        else:
+                            ticket.code = gen_ticket_code()
+                        ticket.require_login = form.cleaned_data["require_login"]
                         ticket.valid_start_time = \
                                 form.cleaned_data["valid_start_time"]
                         ticket.valid_end_time = form.cleaned_data["valid_end_time"]
@@ -383,7 +454,14 @@ def batch_issue_exam_tickets(pctx):
                                 form.cleaned_data["restrict_to_facility"]
                         ticket.save()
 
-                        tickets.append(ticket)
+                        tickets.append(
+                               TicketInfo(
+                                   user_name=ticket.participation.user.username,
+                                   full_name=(
+                                       ticket.participation.user.get_full_name()),
+                                   code=ticket.code,
+                                   exam_description=ticket.exam.description,
+                               ))
 
                     checkin_uri = pctx.request.build_absolute_uri(
                             reverse("relate-check_in_for_exam"))
@@ -393,21 +471,19 @@ def batch_issue_exam_tickets(pctx):
                                     "tickets": tickets,
                                     "checkin_uri": checkin_uri,
                                     })
-            except TemplateSyntaxError as e:
+            except minijinja.TemplateError as e:
                 messages.add_message(request, messages.ERROR,
-                    string_concat(
+                    mark_safe(string_concat(
                         _("Template rendering failed"),
-                        ": line %(lineno)d: %(err_str)s")
-                    % {
-                        "lineno": e.lineno,
-                        "err_str": e.message.decode("utf-8")})
+                        ": <pre>%(err_str)s</pre>")
+                        % {"err_str": escape(str(e))}))
             except Exception as e:
                 messages.add_message(request, messages.ERROR,
                     string_concat(
                         _("Template rendering failed"),
                         ": %(err_type)s: %(err_str)s")
                     % {"err_type": type(e).__name__,
-                        "err_str": str(e)})
+                        "err_str": escape(str(e))})
             else:
                 messages.add_message(request, messages.SUCCESS,
                         _("%d tickets issued.") % len(tickets))
@@ -426,76 +502,116 @@ def batch_issue_exam_tickets(pctx):
 
 # {{{ check in
 
+def _redirect_to_exam(
+        request: http.HttpRequest,
+        ticket: ExamTicket,
+        now_datetime: datetime.datetime) -> http.HttpResponse:
+    """Assumes ticket is checked and valid."""
+
+    if ticket.state == exam_ticket_states.valid:
+        ticket.state = exam_ticket_states.used
+        ticket.usage_time = now_datetime
+        ticket.save()
+
+    pretend_facilities = request.session.get(
+            "relate_pretend_facilities", None)
+
+    if pretend_facilities:
+        # Make pretend-facilities survive exam login.
+        request.session["relate_pretend_facilities"] = pretend_facilities
+
+    request.session["relate_exam_ticket_pk_used_for_login"] = ticket.pk
+
+    return redirect("relate-view_start_flow",
+            ticket.exam.course.identifier,
+            ticket.exam.flow_id)
+
+
 def check_exam_ticket(
-        username: Optional[str],
-        code: Optional[str],
+        username: str | None,
+        code: str | None,
         now_datetime: datetime.datetime,
-        facilities: Optional[FrozenSet[str]]
-        ) -> Tuple[bool, str]:
+        facilities: Collection[str] | None,
+        logged_in: bool,
+        restrict_to_course: Course | None = None
+        ) -> tuple[bool, ExamTicket | None, str]:
     """
     :returns: (is_valid, msg)
     """
+    _ = gettext
 
     try:
         user = get_user_model().objects.get(
                 username=username,
                 is_active=True)
+
+        ticket_kwargs = {}
+        if restrict_to_course is not None:
+            ticket_kwargs["participation__course"] = restrict_to_course
+
         ticket = ExamTicket.objects.get(
                 participation__user=user,
                 code=code,
+                **ticket_kwargs
                 )
     except ObjectDoesNotExist:
-        return (False, _("User name or ticket code not recognized."))
+        return (False, None, _("User name or ticket code not recognized."))
 
     if ticket.state not in [
             exam_ticket_states.valid,
             exam_ticket_states.used
             ]:
-        return (False, _("Ticket is not in usable state. (Has it been revoked?)"))
+        return (False, ticket,
+                _("Ticket is not in usable state. (Has it been revoked?)"))
+
+    from datetime import timedelta
 
     from django.conf import settings
-    from datetime import timedelta
 
     validity_period = timedelta(
             minutes=settings.RELATE_TICKET_MINUTES_VALID_AFTER_USE)
 
     if (ticket.state == exam_ticket_states.used
-            and now_datetime >= ticket.usage_time + validity_period):
-        return (False, _("Ticket has exceeded its validity period."))
+            and now_datetime >= not_none(ticket.usage_time) + validity_period):
+        return (False, ticket, _("Ticket has exceeded its validity period."))
 
     if not ticket.exam.active:
-        return (False, _("Exam is not active."))
+        return (False, ticket, _("Exam is not active."))
 
     if now_datetime < ticket.exam.no_exams_before:
-        return (False, _("Exam has not started yet."))
+        return (False, ticket, _("Exam has not started yet."))
     if (
             ticket.exam.no_exams_after is not None
             and ticket.exam.no_exams_after <= now_datetime):
-        return (False, _("Exam has ended."))
+        return (False, ticket, _("Exam has ended."))
 
     if (ticket.restrict_to_facility
             and (
                 facilities is None
                 or ticket.restrict_to_facility not in facilities)):
-        return (False,
+        return (False, ticket,
                 _("Exam ticket requires presence in facility '%s'.")
                 % ticket.restrict_to_facility)
     if (
             ticket.valid_start_time is not None
             and now_datetime < ticket.valid_start_time):
-        return (False, _("Exam ticket is not yet valid."))
+        return (False, ticket, _("Exam ticket is not yet valid."))
     if (
             ticket.valid_end_time is not None
             and ticket.valid_end_time < now_datetime):
-        return (False, _("Exam ticket has expired."))
+        return (False, ticket, _("Exam ticket has expired."))
 
-    return True, _("Ticket is valid.")
+    if not logged_in and ticket.require_login:
+        return (False, ticket, _("Exam ticket can only be used after logging in."))
+
+    return True, ticket, _("Ticket is valid.")
 
 
 class ExamTicketBackend:
     def authenticate(self, request, username=None, code=None, now_datetime=None,
             facilities=None):
-        is_valid, msg = check_exam_ticket(username, code, now_datetime, facilities)
+        is_valid, _ticket, _msg = check_exam_ticket(
+                username, code, now_datetime, facilities, logged_in=False)
 
         if not is_valid:
             return None
@@ -523,7 +639,7 @@ class ExamCheckInForm(StyledForm):
                 "given to you by a staff member. If you do not have one, "
                 "please follow the link above to log in."))
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
 
         self.helper.add_input(
@@ -533,7 +649,9 @@ class ExamCheckInForm(StyledForm):
 @sensitive_post_parameters()
 @csrf_protect
 @never_cache
-def check_in_for_exam(request):
+def check_in_for_exam(request: http.HttpRequest) -> http.HttpResponse:
+    request = cast(RelateHttpRequest, request)
+
     # must import locally for mock to work
     from course.views import get_now_or_fake_time
     now_datetime = get_now_or_fake_time(request)
@@ -544,12 +662,10 @@ def check_in_for_exam(request):
             username = form.cleaned_data["username"]
             code = form.cleaned_data["code"]
 
-            pretend_facilities = request.session.get(
-                    "relate_pretend_facilities", None)
-
-            is_valid, msg = check_exam_ticket(
+            is_valid, ticket, msg = check_exam_ticket(
                     username, code, now_datetime,
-                    request.relate_facilities)
+                    request.relate_facilities,
+                    logged_in=False)
             if not is_valid:
                 messages.add_message(request, messages.ERROR, msg)
             else:
@@ -564,28 +680,9 @@ def check_in_for_exam(request):
 
                 login(request, user)
 
-                ticket = ExamTicket.objects.get(
-                        participation__user=user,
-                        code=code,
-                        state__in=(
-                            exam_ticket_states.valid,
-                            exam_ticket_states.used,
-                            )
-                        )
-                if ticket.state == exam_ticket_states.valid:
-                    ticket.state = exam_ticket_states.used
-                    ticket.usage_time = now_datetime
-                    ticket.save()
+                assert ticket is not None
 
-                if pretend_facilities:
-                    # Make pretend-facilities survive exam login.
-                    request.session["relate_pretend_facilities"] = pretend_facilities
-
-                request.session["relate_exam_ticket_pk_used_for_login"] = ticket.pk
-
-                return redirect("relate-view_start_flow",
-                        ticket.exam.course.identifier,
-                        ticket.exam.flow_id)
+                return _redirect_to_exam(request, ticket, now_datetime)
 
     else:
         form = ExamCheckInForm()
@@ -599,20 +696,24 @@ def check_in_for_exam(request):
 # }}}
 
 
-def is_from_exams_only_facility(request):
-    from course.utils import get_facilities_config
-    for name, props in get_facilities_config(request).items():
-        if not props.get("exams_only", False):
-            continue
+def is_from_exams_only_facility(request: HttpRequest) -> bool:
+    request = cast(RelateHttpRequest, request)
 
-        # By now we know that this facility is exams-only
-        if name in request.relate_facilities:
-            return True
+    from course.utils import get_facilities_config
+    facilities_config = get_facilities_config(request)
+    if facilities_config:
+        for name, props in facilities_config.items():
+            if not props.get("exams_only", False):
+                continue
+
+            # By now we know that this facility is exams-only
+            if name in request.relate_facilities:
+                return True
 
     return False
 
 
-def get_login_exam_ticket(request: http.HttpRequest) -> Optional[ExamTicket]:
+def get_login_exam_ticket(request: http.HttpRequest) -> ExamTicket | None:
     exam_ticket_pk = request.session.get("relate_exam_ticket_pk_used_for_login")
 
     if exam_ticket_pk is None:
@@ -627,28 +728,32 @@ class ExamFacilityMiddleware:
     def __init__(self, get_response):
         self.get_response = get_response
 
-    def __call__(self, request):
+    def __call__(self, request: http.HttpRequest) -> http.HttpResponse:
         exams_only = is_from_exams_only_facility(request)
 
         if not exams_only:
             return self.get_response(request)
 
-        if (exams_only
-                and (
-                    "relate_session_locked_to_exam_flow_session_pk"
-                    in request.session)):
+        if (exams_only and (SESSION_LOCKED_TO_FLOW_PK in request.session)):
             # ExamLockdownMiddleware is in control.
             return self.get_response(request)
 
         from django.urls import resolve
         resolver_match = resolve(request.path)
 
+        from course.auth import (
+            impersonate,
+            sign_in_by_email,
+            sign_in_by_user_pw,
+            sign_in_choice,
+            sign_in_stage2_with_token,
+            sign_out,
+            stop_impersonating,
+            user_profile,
+        )
         from course.exam import check_in_for_exam, issue_exam_ticket
-        from course.auth import (user_profile, sign_in_choice, sign_in_by_email,
-                sign_in_stage2_with_token, sign_in_by_user_pw, sign_out, impersonate,
-                stop_impersonating)
+        from course.flow import view_flow_page, view_resume_flow, view_start_flow
         from course.views import set_pretend_facilities
-        from course.flow import view_start_flow, view_resume_flow, view_flow_page
 
         ok = False
         if resolver_match.func in [
@@ -703,9 +808,8 @@ class ExamLockdownMiddleware:
     def __call__(self, request):
         request.relate_exam_lockdown = False
 
-        if "relate_session_locked_to_exam_flow_session_pk" in request.session:
-            exam_flow_session_pk = request.session[
-                    "relate_session_locked_to_exam_flow_session_pk"]
+        if SESSION_LOCKED_TO_FLOW_PK in request.session:
+            exam_flow_session_pk = request.session[SESSION_LOCKED_TO_FLOW_PK]
 
             try:
                 exam_flow_session = FlowSession.objects.get(pk=exam_flow_session_pk)
@@ -720,13 +824,24 @@ class ExamLockdownMiddleware:
             from django.urls import resolve
             resolver_match = resolve(request.path)
 
-            from course.views import (get_repo_file, get_current_repo_file)
+            from course.auth import (
+                sign_in_by_email,
+                sign_in_by_user_pw,
+                sign_in_choice,
+                sign_in_stage2_with_token,
+                sign_out,
+                user_profile,
+            )
             from course.flow import (
-                    view_start_flow, view_resume_flow, view_flow_page,
-                    update_expiration_mode, update_page_bookmark_state,
-                    finish_flow_session_view)
-            from course.auth import (user_profile, sign_in_choice, sign_in_by_email,
-                    sign_in_stage2_with_token, sign_in_by_user_pw, sign_out)
+                finish_flow_session_view,
+                update_expiration_mode,
+                update_page_bookmark_state,
+                view_flow_page,
+                view_flow_page_with_ext_resource_tabs,
+                view_resume_flow,
+                view_start_flow,
+            )
+            from course.views import get_current_repo_file, get_repo_file
 
             ok = False
             if resolver_match.func in [
@@ -754,6 +869,7 @@ class ExamLockdownMiddleware:
                     resolver_match.func in [
                         view_resume_flow,
                         view_flow_page,
+                        view_flow_page_with_ext_resource_tabs,
                         update_expiration_mode,
                         update_page_bookmark_state,
                         finish_flow_session_view]
@@ -829,5 +945,60 @@ def exam_lockdown_context_processor(request):
 
 # }}}
 
+
+# {{{ access exam (with ticket, when logged in)
+
+class ExamAccessForm(StyledForm):
+    code = forms.CharField(required=True, label=_("Code"),
+            widget=forms.PasswordInput(),
+            help_text=_("This is not your password, but a code that was "
+                "given to you by a staff member."))
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.helper.add_input(
+                Submit("submit", _("Go to exam")))
+
+
+@course_view
+def access_exam(pctx):
+    if pctx.participation is None:
+        raise PermissionDenied(_("must be logged in to access an exam"))
+
+    from course.views import get_now_or_fake_time
+    now_datetime = get_now_or_fake_time(pctx.request)
+
+    if pctx.request.method == "POST":
+        form = ExamAccessForm(pctx.request.POST)
+        if form.is_valid():
+            is_valid, ticket, msg = check_exam_ticket(
+                    pctx.request.user.username,
+                    form.cleaned_data["code"],
+                    now_datetime,
+                    pctx.request.relate_facilities,
+                    logged_in=True,
+                    restrict_to_course=pctx.course)
+
+            if not is_valid:
+                messages.add_message(pctx.request, messages.ERROR, msg)
+                raise PermissionDenied(msg)
+
+            assert ticket is not None
+            assert ticket.participation.pk == pctx.participation.pk
+
+            return _redirect_to_exam(pctx.request, ticket, now_datetime)
+
+    else:
+        form = ExamAccessForm()
+
+    return render(pctx.request, "course/generic-course-form.html", {
+        "course": pctx.course,
+        "form_description":
+            _("Access an Exam"),
+        "form": form
+        })
+
+# }}}
 
 # vim: foldmethod=marker

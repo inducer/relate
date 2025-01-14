@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+
 __copyright__ = "Copyright (C) 2017 Dong Zhuang"
 
 __license__ = """
@@ -20,33 +23,35 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
+import unittest
 from copy import deepcopy
 
-import unittest
-from django.test import SimpleTestCase, TestCase, RequestFactory, Client
-from django.utils.timezone import now, timedelta
-from django.test.utils import override_settings
 from django import VERSION as DJANGO_VERSION
-from django.utils import translation
-from django.utils.translation import gettext_noop
 from django.conf import settings
+from django.test import Client, RequestFactory, SimpleTestCase, TestCase
+from django.test.utils import override_settings
+from django.utils import translation
+from django.utils.timezone import now, timedelta
+from django.utils.translation import gettext_noop
 
-from relate.utils import struct_to_dict, dict_to_struct
-
-from course import utils
-from course.content import parse_date_spec
-from course import constants  # noqa
+from course import (
+    constants,
+    utils,
+)
 from course.constants import flow_permission as fperm
-
-from tests.constants import QUIZ_FLOW_ID
+from course.content import parse_date_spec
+from relate.utils import dict_to_struct, struct_to_dict
+from tests import factories
 from tests.base_test_mixins import (
     CoursesTestMixinBase,
-    SingleCoursePageTestMixin, SubprocessRunpyContainerMixin,
-    SingleCourseTestMixin,  MockAddMessageMixing,
+    MockAddMessageMixing,
+    SingleCoursePageTestMixin,
     SingleCourseQuizPageTestMixin,
+    SingleCourseTestMixin,
+    SubprocessRunpyContainerMixin,
 )
+from tests.constants import QUIZ_FLOW_ID
 from tests.utils import mock
-from tests import factories
 
 
 if DJANGO_VERSION < (2, 0):
@@ -65,17 +70,17 @@ class GetCourseSpecificLanguageChoicesTest(SimpleTestCase):
     # test course.utils.get_course_specific_language_choices
 
     LANGUAGES_CONF1 = [
-        ('en', 'English'),
-        ('zh-hans', 'Simplified Chinese'),
-        ('de', 'German')]
+        ("en", "English"),
+        ("zh-hans", "Simplified Chinese"),
+        ("de", "German")]
     LANGUAGES_CONF2 = [
-        ('en', 'English'),
-        ('zh-hans', 'Simplified Chinese'),
-        ('zh-hans', 'my Simplified Chinese'),
-        ('de', 'German')]
+        ("en", "English"),
+        ("zh-hans", "Simplified Chinese"),
+        ("zh-hans", "my Simplified Chinese"),
+        ("de", "German")]
 
     @override_settings(USE_I18N=False, LANGUAGES=LANGUAGES_CONF1,
-                       LANGUAGE_CODE='ko')
+                       LANGUAGE_CODE="ko")
     def test_i18n_disabled(self):
         choices = utils.get_course_specific_language_choices()
         self.assertTrue(choices[0][1].startswith("Default:"))
@@ -84,7 +89,7 @@ class GetCourseSpecificLanguageChoicesTest(SimpleTestCase):
         self.assertIn("(ko)", choices[0][1])
 
     @override_settings(USE_I18N=False, LANGUAGES=LANGUAGES_CONF1,
-                       LANGUAGE_CODE='en')
+                       LANGUAGE_CODE="en")
     def test_i18n_disabled_lang_items_has_same_lang_code_with_language_code(self):
         choices = utils.get_course_specific_language_choices()
         self.assertTrue(choices[0][1].startswith("Default:"))
@@ -92,7 +97,7 @@ class GetCourseSpecificLanguageChoicesTest(SimpleTestCase):
         self.assertEqual(len(choices), 3)
 
     @override_settings(USE_I18N=False, LANGUAGES=LANGUAGES_CONF2,
-                       LANGUAGE_CODE='en-us')
+                       LANGUAGE_CODE="en-us")
     def test_i18n_disabled_lang_items_having_duplicated_lang_code(self):
         choices = utils.get_course_specific_language_choices()
         self.assertTrue(choices[0][1].startswith("Default:"))
@@ -100,7 +105,7 @@ class GetCourseSpecificLanguageChoicesTest(SimpleTestCase):
         self.assertEqual(len(choices), 4)
 
     @override_settings(USE_I18N=True, LANGUAGES=LANGUAGES_CONF1,
-                       LANGUAGE_CODE='ko')
+                       LANGUAGE_CODE="ko")
     def test_i18n_enabled(self):
         choices = utils.get_course_specific_language_choices()
         self.assertTrue(choices[0][1].startswith("Default: disabled"))
@@ -108,14 +113,14 @@ class GetCourseSpecificLanguageChoicesTest(SimpleTestCase):
         self.assertIn("(ko)", choices[1][1])
 
     @override_settings(USE_I18N=True, LANGUAGES=LANGUAGES_CONF1,
-                       LANGUAGE_CODE='en')
+                       LANGUAGE_CODE="en")
     def test_i18n_enabled_lang_items_has_same_lang_code_with_language_code(self):
         choices = utils.get_course_specific_language_choices()
         self.assertTrue(choices[0][1].startswith("Default: disabled"))
         self.assertEqual(len(choices), 4)
 
     @override_settings(USE_I18N=True, LANGUAGES=LANGUAGES_CONF2,
-                       LANGUAGE_CODE='en-us')
+                       LANGUAGE_CODE="en-us")
     def test_i18n_enabled_lang_items_having_duplicated_lang_code(self):
         choices = utils.get_course_specific_language_choices()
         self.assertEqual(len(choices), 5)
@@ -148,16 +153,16 @@ class GetCourseSpecificLanguageChoicesTest(SimpleTestCase):
 
     def test_lang_descr_translated(self):
         with override_settings(USE_I18N=True, LANGUAGES=self.LANGUAGES_CONF2,
-                       LANGUAGE_CODE='en-us'):
+                       LANGUAGE_CODE="en-us"):
             self.lang_descr_get_translated(choice_count=5)
 
         with override_settings(USE_I18N=True, LANGUAGES=self.LANGUAGES_CONF2,
-                       LANGUAGE_CODE='en-us'):
+                       LANGUAGE_CODE="en-us"):
             self.lang_descr_get_translated(choice_count=5)
 
     def test_user_customized_lang_code_as_settings_language_code(self):
         with override_settings(USE_I18N=True, LANGUAGES=self.LANGUAGES_CONF2,
-                       LANGUAGE_CODE='user_customized_lang_code'):
+                       LANGUAGE_CODE="user_customized_lang_code"):
             with self.assertRaises(IOError):
                 # because there's no file named "user_customized_lang_code.mo"
                 utils.get_course_specific_language_choices()
@@ -171,7 +176,7 @@ class GetCourseSpecificLanguageChoicesTest(SimpleTestCase):
                 self.assertEqual(choices[1][1], "user_customized_lang_code")
 
         with override_settings(USE_I18N=False, LANGUAGES=self.LANGUAGES_CONF2,
-                               LANGUAGE_CODE='user_customized_lang_code'):
+                               LANGUAGE_CODE="user_customized_lang_code"):
             with mock.patch(REAL_TRANSLATION_FUNCTION_TO_MOCK) as mock_gettext:
                 mock_gettext.side_effect = real_trans_side_effect
                 choices = utils.get_course_specific_language_choices()
@@ -188,14 +193,14 @@ class LanguageOverrideTest(SingleCoursePageTestMixin,
     force_login_student_for_each_test = False
 
     @classmethod
-    def setUpTestData(cls):  # noqa
+    def setUpTestData(cls):
         super().setUpTestData()
 
         client = Client()
         client.force_login(cls.student_participation.user)
         cls.start_flow(client, cls.flow_id)
 
-    def setUp(self):  # noqa
+    def setUp(self):
         super().setUp()
         self.client.force_login(self.instructor_participation.user)
 
@@ -432,7 +437,17 @@ class EvalGenericConditionsTest(unittest.TestCase):
         self.flow_id = "bar"
         self.login_exam_ticket.exam = mock.MagicMock()
         self.login_exam_ticket.exam.flow_id = "foo"
+        self.login_exam_ticket.participation = self.participation
         self.assertFalse(
+            utils._eval_generic_conditions(
+                rule, self.course, self.participation,
+                now_datetime, self.flow_id, self.login_exam_ticket))
+
+        # participation does not match
+        self.flow_id = "foo"
+        self.login_exam_ticket.exam = mock.MagicMock()
+        self.login_exam_ticket.exam.flow_id = "foo"
+        self.assertTrue(
             utils._eval_generic_conditions(
                 rule, self.course, self.participation,
                 now_datetime, self.flow_id, self.login_exam_ticket))
@@ -441,6 +456,7 @@ class EvalGenericConditionsTest(unittest.TestCase):
         self.flow_id = "foo"
         self.login_exam_ticket.exam = mock.MagicMock()
         self.login_exam_ticket.exam.flow_id = "foo"
+        self.login_exam_ticket.participation = self.participation
         self.assertTrue(
             utils._eval_generic_conditions(
                 rule, self.course, self.participation,
@@ -494,7 +510,7 @@ class EvalGenericSessionConditionsTest(unittest.TestCase):
 class EvalParticipationTagsConditionsTest(CoursesTestMixinBase, TestCase):
     # test utils._eval_participation_tags_conditions
     @classmethod
-    def setUpTestData(cls):  # noqa
+    def setUpTestData(cls):
         course = factories.CourseFactory()
         cls.participation1 = factories.ParticipationFactory(
             course=course)
@@ -572,7 +588,7 @@ class GetFlowRulesTest(SingleCourseTestMixin, TestCase):
 
     def test_no_rules(self):
 
-        # emtpy rules
+        # empty rules
         flow_desc = self.get_hacked_flow_desc(del_rules=True)
 
         default_rules_desc = [mock.MagicMock(), mock.MagicMock()]
@@ -1054,7 +1070,7 @@ class GetSessionStartRuleTest(GetSessionRuleMixin, SingleCourseTestMixin, TestCa
         result = self.get_result()
         self.assertRuleEqual(self.fallback_rule, result)
 
-    def test_not_passing_not_for_rollover_and_if_has_fewer_tagged_sessions_than(self):  # noqa
+    def test_not_passing_not_for_rollover_and_if_has_fewer_tagged_sessions_than(self):
         factories.FlowSessionFactory.create_batch(size=2,
             participation=self.student_participation, flow_id=self.flow_id,
             access_rules_tag="atag1")
@@ -1066,7 +1082,7 @@ class GetSessionStartRuleTest(GetSessionRuleMixin, SingleCourseTestMixin, TestCa
         result = self.get_result()
         self.assertRuleEqual(self.fallback_rule, result)
 
-    def test_passing_not_for_rollover_and_if_has_fewer_tagged_sessions_than(self):  # noqa
+    def test_passing_not_for_rollover_and_if_has_fewer_tagged_sessions_than(self):
         factories.FlowSessionFactory.create_batch(size=2,
             participation=self.student_participation, flow_id=self.flow_id,
             access_rules_tag="atag1")
@@ -1160,7 +1176,7 @@ class GetSessionAccessRuleTest(GetSessionRuleMixin, SingleCourseTestMixin, TestC
         }
 
     @classmethod
-    def setUpTestData(cls):  # noqa
+    def setUpTestData(cls):
         super().setUpTestData()
 
         cls.now = now() - timedelta(days=1)
@@ -1407,7 +1423,7 @@ class GetSessionGradingRuleTest(GetSessionRuleMixin,
         }
 
     @classmethod
-    def setUpTestData(cls):  # noqa
+    def setUpTestData(cls):
         super().setUpTestData()
 
         cls.now = now() - timedelta(days=1)
@@ -1658,20 +1674,20 @@ class CoursePageContextTest(SingleCourseTestMixin, MockAddMessageMixing, TestCas
 
         self.assertAddMessageCallCount(1)
         expected_error_msg = (
-                "Preview revision '%s' does not exist--"
-                "showing active course content instead." % commit_sha)
+                f"Preview revision '{commit_sha}' does not exist--"
+                "showing active course content instead.")
 
         self.assertAddMessageCalledWith(expected_error_msg)
 
     def test_role_identifiers(self):
         self.request.user = self.ta_participation.user
         pctx = utils.CoursePageContext(self.request, self.course.identifier)
-        self.assertEqual(pctx.role_identifiers(), ['ta'])
+        self.assertEqual(pctx.role_identifiers(), ["ta"])
 
         with mock.patch(
                 "course.enrollment.get_participation_role_identifiers"
         ) as mock_get_prole_identifiers:
-            self.assertEqual(pctx.role_identifiers(), ['ta'])
+            self.assertEqual(pctx.role_identifiers(), ["ta"])
 
             # This is to ensure _role_identifiers_cache is working
             self.assertEqual(mock_get_prole_identifiers.call_count, 0)
@@ -1729,7 +1745,7 @@ class ParticipationPermissionWrapperTest(SingleCourseTestMixin, TestCase):
             ppwraper[invalid_perm]
 
         expected_error_msg = (
-            "permission name '%s' not valid" % invalid_perm)
+            f"permission name '{invalid_perm}' not valid")
 
         self.assertIn(expected_error_msg, str(cm.exception))
 
@@ -1742,67 +1758,6 @@ class ParticipationPermissionWrapperTest(SingleCourseTestMixin, TestCase):
             "ParticipationPermissionWrapper is not iterable.")
 
         self.assertIn(expected_error_msg, str(cm.exception))
-
-
-class GetCodemirrorWidgetTest(unittest.TestCase):
-    # test utils.get_codemirror_widget (for cases not covered by other tests)
-    def setUp(self):
-        self.language_mode = "python"
-        fake_code_mirror_textarea = mock.patch("codemirror.CodeMirrorTextarea")
-        self.mock_code_mirror_textarea = fake_code_mirror_textarea.start()
-        self.addCleanup(fake_code_mirror_textarea.stop)
-
-    def test_interaction_mode_vim(self):
-        interaction_mode = "vim"
-        utils.get_codemirror_widget(
-            self.language_mode, interaction_mode=interaction_mode)
-
-        addon_js = self.mock_code_mirror_textarea.call_args[1]["addon_js"]
-        self.assertIn("../keymap/vim", addon_js)
-
-        config = self.mock_code_mirror_textarea.call_args[1]["config"]
-        self.assertEqual(config["vimMode"], True)
-
-    def test_interaction_mode_emacs(self):
-        interaction_mode = "emacs"
-        utils.get_codemirror_widget(
-            self.language_mode, interaction_mode=interaction_mode)
-
-        addon_js = self.mock_code_mirror_textarea.call_args[1]["addon_js"]
-        self.assertIn("../keymap/emacs", addon_js)
-
-        config = self.mock_code_mirror_textarea.call_args[1]["config"]
-        self.assertEqual(config["keyMap"], "emacs")
-
-    def test_interaction_mode_sublime(self):
-        interaction_mode = "sublime"
-        utils.get_codemirror_widget(
-            self.language_mode, interaction_mode=interaction_mode)
-
-        addon_js = self.mock_code_mirror_textarea.call_args[1]["addon_js"]
-        self.assertIn("../keymap/sublime", addon_js)
-
-        config = self.mock_code_mirror_textarea.call_args[1]["config"]
-        self.assertEqual(config["keyMap"], "sublime")
-
-    def test_interaction_mode_other(self):
-        # just ensure no errors
-        interaction_mode = "other"
-        utils.get_codemirror_widget(
-            self.language_mode, interaction_mode=interaction_mode)
-
-    def test_update_config(self):
-        interaction_mode = "vim"
-        utils.get_codemirror_widget(
-            self.language_mode, interaction_mode=interaction_mode,
-            config={"foo": "bar"})
-
-        addon_js = self.mock_code_mirror_textarea.call_args[1]["addon_js"]
-        self.assertIn("../keymap/vim", addon_js)
-
-        config = self.mock_code_mirror_textarea.call_args[1]["config"]
-        self.assertEqual(config["vimMode"], True)
-        self.assertEqual(config["foo"], "bar")
 
 
 class WillUseMaskedProfileForEmailTest(SingleCourseTestMixin, TestCase):
@@ -1820,8 +1775,8 @@ class WillUseMaskedProfileForEmailTest(SingleCourseTestMixin, TestCase):
                 ["foo@bar.com"]))
 
     def test_any(self):
-        from course.models import ParticipationPermission
         from course.constants import participation_permission as pperm
+        from course.models import ParticipationPermission
 
         pp = ParticipationPermission(
             participation=self.ta_participation,

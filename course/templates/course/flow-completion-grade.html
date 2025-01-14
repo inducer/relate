@@ -11,7 +11,7 @@
   {% if grade_info != None %}
       {% if grade_info.total_count or grade_info.optional_total_count %}
           <h1>{% trans "Results" %}: {{flow_desc.title}}</h1>
-          <div class="well flow-well">
+          <div class="relate-well flow-well">
               {% if grade_info.total_count %}
                   <p>
                       {# Translators: the following 5 blocks of literals make a sentence. PartI #}
@@ -42,11 +42,11 @@
                   {% if grade_info.total_points_percent < 100.001 %}
                       {# otherwise we'll have trouble drawing the bar #}
                       <div class="progress">
-                          <div class="progress-bar progress-bar-success"
+                          <div class="progress-bar bg-success"
                                style="width: {{ grade_info.points_percent|stringformat:".8f" }}%"></div>
-                          <div class="progress-bar progress-bar-danger"
+                          <div class="progress-bar bg-danger"
                                style="width: {{ grade_info.missed_points_percent|stringformat:".8f" }}%"></div>
-                          <div class="progress-bar progress-bar-info"
+                          <div class="progress-bar bg-info"
                                style="width: {{ grade_info.unreachable_points_percent|stringformat:".8f" }}%"></div>
                       </div>
                   {% endif %}
@@ -64,13 +64,13 @@
                       {% endif %}
                   </p>
                   <div class="progress">
-                      <div class="progress-bar progress-bar-success"
+                      <div class="progress-bar bg-success"
                            style="width: {{ grade_info.fully_correct_percent|stringformat:".8f" }}%"></div>
-                      <div class="progress-bar progress-bar-warning"
+                      <div class="progress-bar bg-warning"
                            style="width: {{ grade_info.partially_correct_percent|stringformat:".8f" }}%"></div>
-                      <div class="progress-bar progress-bar-danger"
+                      <div class="progress-bar bg-danger"
                            style="width: {{ grade_info.incorrect_percent|stringformat:".8f" }}%"></div>
-                      <div class="progress-bar progress-bar-info"
+                      <div class="progress-bar bg-info"
                            style="width: {{ grade_info.unknown_percent|stringformat:".8f" }}%"></div>
                   </div>
               {% endif %}
@@ -89,13 +89,13 @@
                       {% endif %}
                   </p>
                   <div class="progress">
-                      <div class="progress-bar progress-bar-success"
+                      <div class="progress-bar bg-success"
                            style="width: {{ grade_info.optional_fully_correct_percent|stringformat:".8f" }}%"></div>
-                      <div class="progress-bar progress-bar-warning"
+                      <div class="progress-bar bg-warning"
                            style="width: {{ grade_info.optional_partially_correct_percent|stringformat:".8f" }}%"></div>
-                      <div class="progress-bar progress-bar-danger"
+                      <div class="progress-bar bg-danger"
                            style="width: {{ grade_info.optional_incorrect_percent|stringformat:".8f" }}%"></div>
-                      <div class="progress-bar progress-bar-info"
+                      <div class="progress-bar bg-info"
                            style="width: {{ grade_info.optional_unknown_percent|stringformat:".8f" }}%"></div>
                   </div>
               {% endif %}
@@ -105,10 +105,8 @@
 
   {{ completion_text|safe }}
 
-  <div class="well flow-well">
-    <a class="btn btn-default"
-      href="{% url "relate-view_start_flow" course.identifier flow_identifier %}"
-      role="button">&laquo; {% trans "Back to start page" %}</a>
-  </div>
+  <a class="btn btn-secondary"
+    href="{% url "relate-view_start_flow" course.identifier flow_identifier %}"
+    role="button">&laquo; {% trans "Back to start page" %}</a>
 
 {% endblock %}

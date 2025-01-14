@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+
 __copyright__ = "Copyright (C) 2017 Zesheng Wang, Andreas Kloeckner, Zhuang Dong"
 
 __license__ = """
@@ -21,20 +24,21 @@ THE SOFTWARE.
 """
 
 import pytest
-from django.urls import reverse, NoReverseMatch
-from django.test import TestCase, Client
+from django.test import Client, TestCase
+from django.urls import NoReverseMatch, reverse
 
 from course.models import (
-    Participation, GradingOpportunity, FlowSession,
-    FlowRuleException
+    FlowRuleException,
+    FlowSession,
+    GradingOpportunity,
+    Participation,
 )
-
 from tests.base_test_mixins import SingleCoursePageTestMixin, classmethod_with_client
 
 
 class GradeGenericTestMixin(SingleCoursePageTestMixin):
     @classmethod
-    def setUpTestData(cls):  # noqa
+    def setUpTestData(cls):
         super().setUpTestData()
         client = Client()
         cls.flow_session_ids = []
@@ -50,7 +54,7 @@ class GradeGenericTestMixin(SingleCoursePageTestMixin):
         cls.flow_session_ids.append(
             int(cls.default_flow_params["flow_session_id"]))
 
-    # Seperate the test here
+    # Separate the test here
     def test_grading_opportunity(self):
         # Should only have one grading opportunity object
         self.assertEqual(GradingOpportunity.objects.all().count(), 1)
@@ -188,8 +192,8 @@ class GradeGenericTestMixin(SingleCoursePageTestMixin):
     # Helper method for testing grant exceptions for new session
     def check_grant_new_exception(self, params):
         # Grant a new one
-        data = {'access_rules_tag_for_new_session': ['<<<NONE>>>'],
-                    'create_session': ['Create session']}
+        data = {"access_rules_tag_for_new_session": ["<<<NONE>>>"],
+                    "create_session": ["Create session"]}
         resp = self.client.post(reverse("relate-grant_exception_stage_2",
                                                 kwargs=params), data)
         self.assertEqual(resp.status_code, 200)
@@ -201,7 +205,7 @@ class GradeGenericTestMixin(SingleCoursePageTestMixin):
         self.assertTrue(flow_session.id in self.flow_session_ids)
 
         # Grant an existing one
-        data = {'session': [str(flow_session.id)], 'next': ['Next \xbb']}
+        data = {"session": [str(flow_session.id)], "next": ["Next \xbb"]}
         resp = self.client.post(reverse("relate-grant_exception_stage_2",
                                                 kwargs=params), data)
         self.assertEqual(resp.status_code, 302)
@@ -218,14 +222,14 @@ class GradeGenericTestMixin(SingleCoursePageTestMixin):
         self.assertEqual(resp.status_code, 200)
 
         # Create a new exception rule
-        data = {'comment': ['test-rule'], 'save': ['Save'], 'view': ['on'],
-                'see_answer_after_submission': ['on'],
-                'create_grading_exception': ['on'],
-                'create_access_exception': ['on'],
-                'access_expires': [''], 'due': [''],
-                'bonus_points': ['0.0'], 'max_points': [''],
-                'credit_percent': ['100.0'], 'max_points_enforced_cap': [''],
-                'generates_grade': ['on'], 'see_correctness': ['on']}
+        data = {"comment": ["test-rule"], "save": ["Save"], "view": ["on"],
+                "see_answer_after_submission": ["on"],
+                "create_grading_exception": ["on"],
+                "create_access_exception": ["on"],
+                "access_expires": [""], "due": [""],
+                "bonus_points": ["0.0"], "max_points": [""],
+                "credit_percent": ["100.0"], "max_points_enforced_cap": [""],
+                "generates_grade": ["on"], "see_correctness": ["on"]}
         resp = self.client.post(reverse("relate-grant_exception_stage_3",
                                                 kwargs=params), data)
         self.assertEqual(resp.status_code, 302)
@@ -248,10 +252,10 @@ class GradeGenericTestMixin(SingleCoursePageTestMixin):
         self.assertEqual(resp.status_code, 200)
 
         # Reopen session
-        data = {'set_access_rules_tag': ['<<<NONE>>>'],
-                'comment': ['test-reopen'],
-                'unsubmit_pages': ['on'],
-                'reopen': ['Reopen']}
+        data = {"set_access_rules_tag": ["<<<NONE>>>"],
+                "comment": ["test-reopen"],
+                "unsubmit_pages": ["on"],
+                "reopen": ["Reopen"]}
         resp = self.client.post(
             reverse("relate-view_reopen_session", kwargs=params), data)
 
@@ -312,7 +316,7 @@ class GradeTwoQuizTakerTest(GradeGenericTestMixin, TestCase):
 
     def setUp(self):
         super().setUp()
-        # Make sure the instructor is logged in after all quizes finished
+        # Make sure the instructor is logged in after all quizzes finished
         self.client.force_login(self.instructor_participation.user)
 
 
@@ -332,14 +336,14 @@ class GradeThreeQuizTakerTest(GradeGenericTestMixin, TestCase):
 
     def setUp(self):
         super().setUp()
-        # Make sure the instructor is logged in after all quizes finished
+        # Make sure the instructor is logged in after all quizzes finished
         self.client.force_login(self.instructor_participation.user)
 
 
 @pytest.mark.slow
 class GradePermissionsTests(SingleCoursePageTestMixin, TestCase):
     @classmethod
-    def setUpTestData(cls):  # noqa
+    def setUpTestData(cls):
         super().setUpTestData()
 
         client = Client()
@@ -388,8 +392,8 @@ class GradePermissionsTests(SingleCoursePageTestMixin, TestCase):
                     url = reverse(urlname, kwargs=kwargs)
                 except NoReverseMatch:
                     self.fail(
-                        "Reversal of url named '%s' failed with "
-                        "NoReverseMatch" % urlname)
+                        f"Reversal of url named '{urlname}' failed with "
+                        "NoReverseMatch")
                 with self.subTest(user=user, urlname=urlname, method="GET"):
                     resp = self.client.get(url)
                     self.assertEqual(

@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+
 __copyright__ = "Copyright (C) 2017 Dong Zhuang"
 
 __license__ = """
@@ -21,10 +24,13 @@ THE SOFTWARE.
 """
 
 import os
+from collections.abc import Iterable
+
 from django.conf import settings
 from django.core.checks import Critical, Warning, register
 from django.core.exceptions import ImproperlyConfigured
 from django.utils.module_loading import import_string
+
 
 REQUIRED_CONF_ERROR_PATTERN = (
     "You must configure %(location)s for RELATE to run properly.")
@@ -89,13 +95,13 @@ def check_relate_settings(app_configs, **kwargs):
         ))
     elif not relate_base_url.strip():
         errors.append(RelateCriticalCheckMessage(
-            msg="%(location)s should not be an empty string"
-                % {"location": RELATE_BASE_URL},
+            msg=f"{RELATE_BASE_URL} should not be an empty string",
             id="relate_base_url.E003"
         ))
     # }}}
 
     from accounts.utils import relate_user_method_settings
+
     # check RELATE_EMAIL_APPELLATION_PRIORITY_LIST
     errors.extend(
         relate_user_method_settings.check_email_appellation_priority_list())
@@ -123,8 +129,7 @@ def check_relate_settings(app_configs, **kwargs):
                     errors.append(RelateCriticalCheckMessage(
                         msg=(
                             INSTANCE_ERROR_PATTERN
-                            % {"location": "'%s' in '%s'"
-                                           % (label, EMAIL_CONNECTIONS),
+                            % {"location": f"'{label}' in '{EMAIL_CONNECTIONS}'",
                                "types": "dict"}),
                         id="email_connections.E002"
                     ))
@@ -138,8 +143,7 @@ def check_relate_settings(app_configs, **kwargs):
                                     GENERIC_ERROR_PATTERN
                                     % {
                                         "location":
-                                            "'%s' in %s"
-                                            % (label, RELATE_FACILITIES),
+                                            f"'{label}' in {RELATE_FACILITIES}",
                                         "error_type": type(e).__name__,
                                         "error_str": str(e)
                                     }),
@@ -169,8 +173,7 @@ def check_relate_settings(app_configs, **kwargs):
             if not isinstance(facilities, dict):
                 errors.append(RelateCriticalCheckMessage(
                     msg=(
-                        "'%(location)s' must either be or return a dictionary"
-                        % {"location": RELATE_FACILITIES}),
+                        f"'{RELATE_FACILITIES}' must either be or return a dictionary"),
                     id="relate_facilities.E002")
                 )
             else:
@@ -180,21 +183,19 @@ def check_relate_settings(app_configs, **kwargs):
                             msg=(
                                 INSTANCE_ERROR_PATTERN
                                 % {"location":
-                                       "Facility `%s` in %s"
-                                       % (facility, RELATE_FACILITIES),
+                                       f"Facility `{facility}` in {RELATE_FACILITIES}",
                                    "types": "dict"}),
                             id="relate_facilities.E003")
                         )
                     else:
                         ip_ranges = conf.get("ip_ranges", [])
                         if ip_ranges:
-                            if not isinstance(ip_ranges, (list, tuple)):
+                            if not isinstance(ip_ranges, list | tuple):
                                 errors.append(RelateCriticalCheckMessage(
                                     msg=(
                                         INSTANCE_ERROR_PATTERN
                                         % {"location":
-                                               "'ip_ranges' in facility `%s` in %s"
-                                               % (facilities, RELATE_FACILITIES),
+                                               f"'ip_ranges' in facility `{facilities}` in {RELATE_FACILITIES}",  # noqa: E501
                                            "types": "list or tuple"}),
                                     id="relate_facilities.E004")
                                 )
@@ -209,9 +210,7 @@ def check_relate_settings(app_configs, **kwargs):
                                                 % {
                                                     "location":
                                                         "'ip_ranges' in "
-                                                        "facility `%s` in %s"
-                                                        % (facility,
-                                                           RELATE_FACILITIES),
+                                                        f"facility `{facility}` in {RELATE_FACILITIES}",  # noqa: E501
                                                     "error_type": type(e).__name__,
                                                     "error_str": str(e)
                                                 }),
@@ -221,9 +220,8 @@ def check_relate_settings(app_configs, **kwargs):
                             if not callable(relate_facilities_conf):
                                 errors.append(Warning(
                                     msg=(
-                                        "Faclity `%s` in %s is an open facility "
+                                        f"Faclity `{facility}` in {RELATE_FACILITIES} is an open facility "  # noqa: E501
                                         "as it has no configured `ip_ranges`"
-                                        % (facility, RELATE_FACILITIES)
                                     ),
                                     id="relate_facilities.W001"
                                 ))
@@ -234,7 +232,7 @@ def check_relate_settings(app_configs, **kwargs):
     relate_maintenance_mode_exceptions = getattr(
         settings, RELATE_MAINTENANCE_MODE_EXCEPTIONS, None)
     if relate_maintenance_mode_exceptions is not None:
-        if not isinstance(relate_maintenance_mode_exceptions, (list, tuple)):
+        if not isinstance(relate_maintenance_mode_exceptions, list | tuple):
             errors.append(RelateCriticalCheckMessage(
                 msg=(INSTANCE_ERROR_PATTERN
                      % {"location": RELATE_MAINTENANCE_MODE_EXCEPTIONS,
@@ -250,8 +248,7 @@ def check_relate_settings(app_configs, **kwargs):
                         msg=(
                             GENERIC_ERROR_PATTERN
                             % {"location":
-                                   "ip/ip_ranges '%s' in %s"
-                                   % (ip, RELATE_FACILITIES),
+                                   f"ip/ip_ranges '{ip}' in {RELATE_FACILITIES}",
                                "error_type": type(e).__name__,
                                "error_str": str(e)
                                }),
@@ -263,7 +260,7 @@ def check_relate_settings(app_configs, **kwargs):
     relate_session_restart_cooldown_seconds = getattr(
         settings, RELATE_SESSION_RESTART_COOLDOWN_SECONDS, None)
     if relate_session_restart_cooldown_seconds is not None:
-        if not isinstance(relate_session_restart_cooldown_seconds, (int, float)):
+        if not isinstance(relate_session_restart_cooldown_seconds, int | float):
             errors.append(RelateCriticalCheckMessage(
                 msg=(INSTANCE_ERROR_PATTERN
                      % {"location": RELATE_SESSION_RESTART_COOLDOWN_SECONDS,
@@ -274,10 +271,8 @@ def check_relate_settings(app_configs, **kwargs):
             if relate_session_restart_cooldown_seconds < 0:
                 errors.append(RelateCriticalCheckMessage(
                     msg=(
-                        "%(location)s must be a positive number, "
-                        "got %(value)s instead"
-                        % {"location": RELATE_SESSION_RESTART_COOLDOWN_SECONDS,
-                           "value": relate_session_restart_cooldown_seconds}),
+                        f"{RELATE_SESSION_RESTART_COOLDOWN_SECONDS} must be a positive number, "  # noqa: E501
+                        f"got {relate_session_restart_cooldown_seconds} instead"),
                     id="relate_session_restart_cooldown_seconds.E002")
                 )
 
@@ -287,7 +282,7 @@ def check_relate_settings(app_configs, **kwargs):
     relate_ticket_minutes_valid_after_use = getattr(
         settings, RELATE_TICKET_MINUTES_VALID_AFTER_USE, None)
     if relate_ticket_minutes_valid_after_use is not None:
-        if not isinstance(relate_ticket_minutes_valid_after_use, (int, float)):
+        if not isinstance(relate_ticket_minutes_valid_after_use, int | float):
             errors.append(RelateCriticalCheckMessage(
                 msg=(INSTANCE_ERROR_PATTERN
                      % {"location": RELATE_TICKET_MINUTES_VALID_AFTER_USE,
@@ -298,10 +293,8 @@ def check_relate_settings(app_configs, **kwargs):
             if relate_ticket_minutes_valid_after_use < 0:
                 errors.append(RelateCriticalCheckMessage(
                     msg=(
-                        "%(location)s must be a positive number, "
-                        "got %(value)s instead"
-                        % {"location": RELATE_TICKET_MINUTES_VALID_AFTER_USE,
-                           "value": relate_ticket_minutes_valid_after_use}),
+                        f"{RELATE_TICKET_MINUTES_VALID_AFTER_USE} must be a positive number, "  # noqa: E501
+                        f"got {relate_ticket_minutes_valid_after_use} instead"),
                     id="relate_ticket_minutes_valid_after_use.E002")
                 )
 
@@ -322,23 +315,20 @@ def check_relate_settings(app_configs, **kwargs):
     else:
         if not os.path.isdir(git_root):
             errors.append(RelateCriticalCheckMessage(
-                msg=("`%(path)s` configured in %(location)s is not a valid path"
-                     % {"path": git_root, "location": GIT_ROOT}),
+                msg=(f"`{git_root}` configured in {GIT_ROOT} is not a valid path"),
                 id="git_root.E003"
             ))
         else:
             if not os.access(git_root, os.W_OK):
                 errors.append(RelateCriticalCheckMessage(
-                    msg=("`%(path)s` configured in %(location)s is not writable "
-                         "by RELATE"
-                         % {"path": git_root, "location": GIT_ROOT}),
+                    msg=(f"`{git_root}` configured in {GIT_ROOT} is not writable "
+                         "by RELATE"),
                     id="git_root.E004"
                 ))
             if not os.access(git_root, os.R_OK):
                 errors.append(RelateCriticalCheckMessage(
-                    msg=("`%(path)s` configured in %(location)s is not readable "
-                         "by RELATE"
-                         % {"path": git_root, "location": GIT_ROOT}),
+                    msg=(f"`{git_root}` configured in {GIT_ROOT} is not readable "
+                         "by RELATE"),
                     id="git_root.E005"
                 ))
 
@@ -370,12 +360,8 @@ def check_relate_settings(app_configs, **kwargs):
         if not isinstance(relate_disable_codehilite_markdown_extension, bool):
             errors.append(
                 Warning(
-                    msg="%(location)s is not a Boolean value: `%(value)s`, "
-                        "assuming True"
-                        % {"location":
-                               RELATE_DISABLE_CODEHILITE_MARKDOWN_EXTENSION,
-                           "value":
-                               repr(relate_disable_codehilite_markdown_extension)},
+                    msg=f"{RELATE_DISABLE_CODEHILITE_MARKDOWN_EXTENSION} is not a Boolean value: `{relate_disable_codehilite_markdown_extension!r}`, "  # noqa: E501
+                        "assuming True",
                     id="relate_disable_codehilite_markdown_extension.W001"))
         elif not relate_disable_codehilite_markdown_extension:
             errors.append(
@@ -395,10 +381,8 @@ def check_relate_settings(app_configs, **kwargs):
 
     languages = settings.LANGUAGES
 
-    from django.utils.itercompat import is_iterable
-
     if (isinstance(languages, str)
-            or not is_iterable(languages)):
+            or not isinstance(languages, Iterable)):
         errors.append(RelateCriticalCheckMessage(
             msg=(INSTANCE_ERROR_PATTERN
                  % {"location": LANGUAGES,
@@ -407,14 +391,14 @@ def check_relate_settings(app_configs, **kwargs):
         )
     else:
         if any(isinstance(choice, str)
-                       or not is_iterable(choice) or len(choice) != 2
+                       or not isinstance(choice, Iterable) or len(choice) != 2
                for choice in languages):
             errors.append(RelateCriticalCheckMessage(
-                msg=("'%s' must be an iterable containing "
+                msg=(f"'{LANGUAGES}' must be an iterable containing "
                      "(language code, language description) tuples, just "
                      "like the format of LANGUAGES setting ("
                      "https://docs.djangoproject.com/en/dev/ref/settings/"
-                     "#languages)" % LANGUAGES),
+                     "#languages)"),
                 id="relate_languages.E002")
             )
         else:
@@ -427,9 +411,8 @@ def check_relate_settings(app_configs, **kwargs):
                     errors.append(Warning(
                         msg=(
                             "Duplicate language entries were found in "
-                            "settings.LANGUAGES for '%s', '%s' will be used "
-                            "as its language_description"
-                            % (lang_code, options_dict[lang_code])),
+                            f"settings.LANGUAGES for '{lang_code}', '{options_dict[lang_code]}' will be used "  # noqa: E501
+                            "as its language_description"),
                         id="relate_languages.W001"
                     ))
 
@@ -441,20 +424,19 @@ def check_relate_settings(app_configs, **kwargs):
         if site_name is None:
             errors.append(
                 RelateCriticalCheckMessage(
-                    msg=("%s must not be None" % RELATE_SITE_NAME),
+                    msg=(f"{RELATE_SITE_NAME} must not be None"),
                     id="relate_site_name.E002")
             )
         else:
             if not isinstance(site_name, str):
                 errors.append(RelateCriticalCheckMessage(
                     msg=(INSTANCE_ERROR_PATTERN
-                         % {"location": "{}/{}".format(RELATE_SITE_NAME,
-                                                   RELATE_CUTOMIZED_SITE_NAME),
+                         % {"location": f"{RELATE_SITE_NAME}/{RELATE_CUTOMIZED_SITE_NAME}",  # noqa: E501
                             "types": "string"}),
                     id="relate_site_name.E003"))
             elif not site_name.strip():
                 errors.append(RelateCriticalCheckMessage(
-                    msg=("%s must not be an empty string" % RELATE_SITE_NAME),
+                    msg=(f"{RELATE_SITE_NAME} must not be an empty string"),
                     id="relate_site_name.E004"))
     except AttributeError:
         # This happens when RELATE_SITE_NAME is DELETED from settings.
@@ -472,7 +454,7 @@ def check_relate_settings(app_configs, **kwargs):
                                              RELATE_OVERRIDE_TEMPLATES_DIRS, None)
     if relate_override_templates_dirs is not None:
         if (isinstance(relate_override_templates_dirs, str)
-                or not is_iterable(relate_override_templates_dirs)):
+                or not isinstance(relate_override_templates_dirs, Iterable)):
             errors.append(RelateCriticalCheckMessage(
                 msg=(INSTANCE_ERROR_PATTERN
                      % {"location": RELATE_OVERRIDE_TEMPLATES_DIRS,
@@ -482,8 +464,7 @@ def check_relate_settings(app_configs, **kwargs):
             if any(not isinstance(directory, str)
                    for directory in relate_override_templates_dirs):
                 errors.append(RelateCriticalCheckMessage(
-                    msg=("'%s' must contain only string of paths."
-                         % RELATE_OVERRIDE_TEMPLATES_DIRS),
+                    msg=(f"'{RELATE_OVERRIDE_TEMPLATES_DIRS}' must contain only string of paths."),  # noqa: E501
                     id="relate_override_templates_dirs.E002"))
             else:
                 for directory in relate_override_templates_dirs:
@@ -491,9 +472,8 @@ def check_relate_settings(app_configs, **kwargs):
                         errors.append(
                             Warning(
                                 msg=(
-                                    "Invalid Templates Dirs item '%s' in '%s', "
-                                    "it will be ignored."
-                                    % (directory, RELATE_OVERRIDE_TEMPLATES_DIRS)),
+                                    f"Invalid Templates Dirs item '{directory}' in '{RELATE_OVERRIDE_TEMPLATES_DIRS}', "  # noqa: E501
+                                    "it will be ignored."),
                                 id="relate_override_templates_dirs.W001"
                             ))
 
@@ -528,7 +508,7 @@ def register_startup_checks_extra():
     """
     startup_checks_extra = getattr(settings, RELATE_STARTUP_CHECKS_EXTRA, None)
     if startup_checks_extra is not None:
-        if not isinstance(startup_checks_extra, (list, tuple)):
+        if not isinstance(startup_checks_extra, list | tuple):
             raise ImproperlyConfigured(
                 INSTANCE_ERROR_PATTERN
                 % {"location": RELATE_STARTUP_CHECKS_EXTRA,

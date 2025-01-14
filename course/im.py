@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+
 __copyright__ = "Copyright (C) 2014 Andreas Kloeckner"
 
 __license__ = """
@@ -22,28 +23,22 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from django.utils.translation import (
-        gettext as _, pgettext_lazy)
-from django.shortcuts import (  # noqa
-        render, get_object_or_404, redirect)
-from django.contrib import messages  # noqa
-from django.core.exceptions import PermissionDenied
 import django.forms as forms
-
+import slixmpp
+from asgiref.sync import async_to_sync
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Submit
+from django.contrib import messages
+from django.core.exceptions import PermissionDenied
+from django.shortcuts import get_object_or_404, redirect, render  # noqa
+from django.utils.translation import gettext as _, pgettext_lazy
 
-from course.models import InstantMessage
-from course.constants import (
-        participation_permission as pperm,
-        )
-from course.models import Course  # noqa
+from course.constants import participation_permission as pperm
+from course.models import (
+    Course,  # noqa
+    InstantMessage,
+)
 from course.utils import course_view, render_course_page
-
-import slixmpp
-
-from typing import List, Dict  # noqa
-from asgiref.sync import async_to_sync
 
 
 # {{{ instant message

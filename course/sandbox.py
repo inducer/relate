@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+
 __copyright__ = "Copyright (C) 2014 Andreas Kloeckner"
 
 __license__ = """
@@ -20,27 +23,24 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from typing import cast, Tuple
+from collections.abc import Mapping
+from typing import Any, cast
 
 import django.forms as forms
-from django.utils.safestring import mark_safe
-from django.contrib import messages  # noqa
-from django.core.exceptions import PermissionDenied
-from django.utils.translation import gettext, gettext_lazy as _
-from django import http  # noqa
-
 from crispy_forms.layout import Submit
-
-from course.utils import course_view, render_course_page
+from django import http
+from django.contrib import messages
+from django.core.exceptions import PermissionDenied
+from django.utils.safestring import mark_safe
+from django.utils.translation import gettext, gettext_lazy as _
 
 from course.constants import participation_permission as pperm
-from course.utils import (  # noqa
-        CoursePageContext)
 from course.content import FlowPageDesc
+from course.utils import CoursePageContext, course_view, render_course_page
+
 
 # {{{ for mypy
 
-from typing import Text, Optional, Any, Iterable, Dict  # noqa
 
 # }}}
 
@@ -59,7 +59,7 @@ class SandboxForm(forms.Form):
     # prevents form submission with codemirror's empty textarea
     use_required_attribute = False
 
-    def __init__(self, initial_text: str,
+    def __init__(self, initial_text: str | None,
             language_mode: str, interaction_mode: str, help_text: str,
             *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
@@ -71,7 +71,8 @@ class SandboxForm(forms.Form):
         from course.utils import get_codemirror_widget
         cm_widget, cm_help_text = get_codemirror_widget(
                 language_mode=language_mode,
-                interaction_mode=interaction_mode)
+                interaction_mode=interaction_mode,
+                autofocus=True)
 
         self.fields["content"] = forms.CharField(
                 required=False,
@@ -83,17 +84,14 @@ class SandboxForm(forms.Form):
                     + gettext("Press Alt/Cmd+(Shift+)P to preview.")
                     + " "
                     + cm_help_text),
-                label=_("Content"))
-
-        # 'strip' attribute was added to CharField in Django 1.9
-        # with 'True' as default value.
-        self.fields["content"].strip = False
+                label=_("Content"),
+                strip=False)
 
         self.helper.add_input(
                 Submit("preview", _("Preview"), accesskey="p"),
                 )
         self.helper.add_input(
-                Submit("clear", _("Clear"), css_class="btn-default"),
+                Submit("clear", _("Clear"), css_class="btn-secondary"),
                 )
 
 # }}}
@@ -134,8 +132,7 @@ def view_markup_sandbox(pctx):
                 messages.add_message(pctx.request, messages.ERROR,
                         gettext("Markup failed to render")
                         + ": "
-                        + "{err_type}: {err_str}".format(
-                            err_type=tp.__name__, err_str=e))
+                        + f"{tp.__name__}: {e}")
 
         form = make_form(request.POST)
 
@@ -157,10 +154,10 @@ def get_sandbox_data_for_page(
     stored_data_tuple = pctx.request.session.get(key)
 
     # Session storage uses JSON and may turn tuples into lists.
-    if (isinstance(stored_data_tuple, (list, tuple))
+    if (isinstance(stored_data_tuple, list | tuple)
             and len(stored_data_tuple) == 3):
         stored_data_page_type, stored_data_page_id, \
-            stored_data = cast(Tuple, stored_data_tuple)
+            stored_data = cast(tuple, stored_data_tuple)
 
         if (
                 stored_data_page_type == page_desc.type
@@ -175,7 +172,7 @@ def get_sandbox_data_for_page(
 # {{{ page sandbox form
 
 class PageSandboxForm(SandboxForm):
-    def __init__(self, initial_text: str,
+    def __init__(self, initial_text: str | None,
             language_mode: str, interaction_mode: str, help_text: str,
             *args: Any, **kwargs: Any) -> None:
         super().__init__(
@@ -184,7 +181,7 @@ class PageSandboxForm(SandboxForm):
 
         self.helper.add_input(
                 Submit("clear_response", _("Clear Response Data"),
-                    css_class="btn-default"),
+                    css_class="btn-secondary"),
                 )
 
 # }}}
@@ -196,6 +193,21 @@ def make_sandbox_session_key(prefix: str, course_identifier: str) -> str:
     return f"{prefix}:{course_identifier}"
 
 
+def page_desc_from_yaml_string(pctx: CoursePageContext, source: str) -> FlowPageDesc:
+    import yaml
+    from pytools.py_codegen import remove_common_indentation
+
+    from course.content import expand_yaml_macros
+    from relate.utils import dict_to_struct
+    new_page_source = remove_common_indentation(
+            source, require_leading_newline=False)
+    new_page_source = expand_yaml_macros(
+            pctx.repo, pctx.course_commit_sha, new_page_source)
+
+    yaml_data = yaml.safe_load(new_page_source)  # type: ignore
+    return cast(FlowPageDesc, dict_to_struct(yaml_data))
+
+
 @course_view
 def view_page_sandbox(pctx: CoursePageContext) -> http.HttpResponse:
 
@@ -203,8 +215,7 @@ def view_page_sandbox(pctx: CoursePageContext) -> http.HttpResponse:
         raise PermissionDenied()
 
     from course.validation import ValidationError
-    from relate.utils import dict_to_struct, Struct
-    import yaml
+    from relate.utils import Struct
 
     page_session_key = make_sandbox_session_key(
         PAGE_SESSION_KEY_PREFIX, pctx.course.identifier)
@@ -214,7 +225,8 @@ def view_page_sandbox(pctx: CoursePageContext) -> http.HttpResponse:
         PAGE_DATA_SESSION_KEY_PREFIX, pctx.course.identifier)
 
     request = pctx.request
-    page_source = pctx.request.session.get(page_session_key)
+
+    page_source = cast(str | None, pctx.request.session.get(page_session_key))
 
     page_errors = None
     page_warnings = None
@@ -224,7 +236,8 @@ def view_page_sandbox(pctx: CoursePageContext) -> http.HttpResponse:
             and "clear_response" in request.POST)
     is_preview_post = (request.method == "POST" and "preview" in request.POST)
 
-    def make_form(data: Optional[str] = None) -> PageSandboxForm:
+    def make_form(data: Mapping[str, Any] | None = None) -> PageSandboxForm:
+        assert request.user.is_authenticated
         return PageSandboxForm(
                 page_source, "yaml", request.user.editor_mode,
                 gettext("Enter YAML markup for a flow page."),
@@ -237,22 +250,14 @@ def view_page_sandbox(pctx: CoursePageContext) -> http.HttpResponse:
         if edit_form.is_valid():
             form_content = edit_form.cleaned_data["content"]
             try:
-                from pytools.py_codegen import remove_common_indentation
-                new_page_source = remove_common_indentation(
-                        form_content, require_leading_newline=False)
-                from course.content import expand_yaml_macros
-                new_page_source = expand_yaml_macros(
-                        pctx.repo, pctx.course_commit_sha, new_page_source)
-
-                yaml_data = yaml.safe_load(new_page_source)  # type: ignore
-                page_desc = dict_to_struct(yaml_data)
+                page_desc = page_desc_from_yaml_string(pctx, form_content)
 
                 if not isinstance(page_desc, Struct):
                     raise ValidationError("Provided page source code is not "
                             "a dictionary. Do you need to remove a leading "
                             "list marker ('-') or some stray indentation?")
 
-                from course.validation import validate_flow_page, ValidationContext
+                from course.validation import ValidationContext, validate_flow_page
                 vctx = ValidationContext(
                         repo=pctx.repo,
                         commit_sha=pctx.course_commit_sha)
@@ -268,8 +273,7 @@ def view_page_sandbox(pctx: CoursePageContext) -> http.HttpResponse:
                 page_errors = (
                         gettext("Page failed to load/validate")
                         + ": "
-                        + "{err_type}: {err_str}".format(
-                            err_type=tp.__name__, err_str=e))  # type: ignore
+                        + f"{tp.__name__}: {e}")  # type: ignore
 
             else:
                 # Yay, it did validate.
@@ -301,8 +305,8 @@ def view_page_sandbox(pctx: CoursePageContext) -> http.HttpResponse:
 
     have_valid_page = page_source is not None
     if have_valid_page:
-        yaml_data = yaml.safe_load(page_source)  # type: ignore
-        page_desc = cast(FlowPageDesc, dict_to_struct(yaml_data))
+        assert page_source is not None
+        page_desc = page_desc_from_yaml_string(pctx, page_source)
 
         from course.content import instantiate_flow_page
         try:
@@ -315,8 +319,7 @@ def view_page_sandbox(pctx: CoursePageContext) -> http.HttpResponse:
             page_errors = (
                     gettext("Page failed to load/validate")
                     + ": "
-                    + "{err_type}: {err_str}".format(
-                        err_type=tp.__name__, err_str=e))  # type: ignore
+                    + f"{tp.__name__}: {e}")  # type: ignore
             have_valid_page = False
 
     if have_valid_page:
@@ -390,8 +393,7 @@ def view_page_sandbox(pctx: CoursePageContext) -> http.HttpResponse:
                             gettext("Page failed to load/validate "
                                 "(change page ID to clear faults)")
                             + ": "
-                            + "{err_type}: {err_str}".format(
-                                err_type=tp.__name__, err_str=e))  # type: ignore  # noqa: E501
+                            + f"{tp.__name__}: {e}")  # type: ignore
 
                     page_form = None
 

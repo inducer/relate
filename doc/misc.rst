@@ -11,24 +11,26 @@ Install `Node.js <https://nodejs.org>`__ and NPM.
 Install `poetry <https://python-poetry.org>`__ to manage dependencies and virtual
 environments::
 
-    curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python3
+    curl -sSL https://install.python-poetry.org | python3 -
 
 Note that this will put poetry in ``$HOME/.poetry/bin`` and modify your
 ``$HOME/.profile``. If you don't like that, see the
 `poetry docs <https://python-poetry.org/docs/>`__ for alternate installation options.
 
-To install, clone the repository::
+To install, clone the repository and enter it::
 
     git clone https://github.com/inducer/relate.git
-
-Enter the relate directory::
-
     cd relate
 
 Install the dependencies. Poetry will automatically create a virtualenv
-(somewhere under ``$HOME/.poetry``) for this:
+(somewhere under ``$HOME/.poetry``) for this::
 
     poetry install
+
+If this installation step encounters hangs or errors that implicate access to a
+keyring, setting a keyring backend may help::
+
+    export PYTHON_KEYRING_BACKEND=keyring.backends.fail.Keyring
 
 Activate the virtual environment::
 
@@ -185,17 +187,20 @@ Additional Setup Steps for Deploying to Production
     will use and enter the details (database name, user name, password) into
     :file:`local_settings.py`. You will also need to::
 
-        pip install psycopg2
+        poetry install -E postgres
 
 *   The directory specified under ``GIT_ROOT`` must be owned by the user
     running Relate.
 
 *   Run::
 
-        python manage.py collectstatic
+        ./collectstatic.sh
 
     to assemble the required collection of static files to be served, as the
     production app server will not serve them (unlike the dev server).
+
+    (Do not run ``python manage.py collectstatic`` directly; it will fail
+    because it cannot resolve some source map URLs in mathjax.)
 
 Configuring uwsgi
 ^^^^^^^^^^^^^^^^^
@@ -328,7 +333,7 @@ Next, install Relate and its dependencies::
 
     poetry install
 
-In order to use the ``relate`` comand, you need to activate the virtualenv that
+In order to use the ``relate`` command, you need to activate the virtualenv that
 was created::
 
     source ~/path/to/relate/checkout/.venv/bin/activate
@@ -373,8 +378,94 @@ language.
 For more instructions, please refer to `Localization: how to create
 language files <https://docs.djangoproject.com/en/dev/topics/i18n/translation/#localization-how-to-create-language-files>`_.
 
+.. _cli:
+
+Installing the Command Line Interface
+-------------------------------------
+
+RELATE validation (and a number of other functionalities) are also via the
+:command:`relate` command. This may be installed as follows.
+
+Install `poetry <https://python-poetry.org>`__ to manage dependencies and virtual
+environments::
+
+    curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python3
+
+Clone the relate repository and enter it::
+
+    git clone https://github.com/inducer/relate.git
+    cd relate
+
+Create a file ``poetry.toml`` containing the lines::
+
+    [virtualenvs]
+    in-project = true
+
+and running::
+
+    poetry install --no-dev
+
+in the root directory of the RELATE distribution. The ``relate`` command is
+then available at ``relate/.venv/bin/relate`` and can be used in a course
+repository by running::
+
+    relate validate .
+
+A number of additional functionalities (such as ``relate test-code``) are
+also available from the ``relate`` command.
+
 User-visible Changes
 ====================
+
+Version 2022.1
+--------------
+
+* In March 2022 (specifically, with
+  `this pull request <https://github.com/inducer/relate/pull/892>`__),
+  Relate adopted Bootstrap 5, which brought with it some changes that might
+  affect courses that relied on CSS or other markup features specific to
+  Bootstrap 3. For comprehensive advice on how to port your content to
+  the upgraded CSS framework, see the `official porting guide
+  <https://getbootstrap.com/docs/4.6/migration/>`__.  Here are some specific
+  tips on migrating your course content that may suffice for simple cases:
+
+  * The CSS class ``btn-default`` was removed. Use ``btn-secondary`` instead.
+    Potentially consider the new ``btn-outline-{primary,secondary}``.
+
+  * If you have collapsing panels in your course content, you may use markup
+    like the following instead:
+
+    .. code:: html
+
+        <div class="card mb-3" markdown="block">
+          <div class="card-header">
+            <h5 class="card-title dropdown-toggle">
+              <a class="text-decoration-none link-secondary"
+                data-bs-toggle="collapse" href="#starter-code" aria-expanded="false" aria-controls="starter-code">
+                  Header
+              </a>
+            </h5>
+          </div>
+          <div id="starter-code" class="collapse">
+           <div class="card-body">
+             Content
+           </div>
+          </div>
+        </div>
+
+    If you are looking for an updated version of the ``collapsible`` macro from
+    the sample content, you may find it `here
+    <https://github.com/inducer/relate-sample/blob/0a7019584fda7ea0b91cc3fd370b799df249460a/content-macros.jinja#L18-L34>`__.
+
+  * Relate has also dropped "Font Awesome" (which is no longer maintained in
+    open-source form) in favor of `Bootstrap Icons
+    <https://icons.getbootstrap.com/>`__, which provides a similar icons with a
+    look consistent with Bootstrap. In many cases, all that is required is
+    to switch ``fa fa-key`` CSS classes to ``bi bi-key`` (or similar).
+    See the full list of available icons `here <https://icons.getbootstrap.com/>`__.
+
+* Relate can now automatically compute point counts/percentages from
+  human-provided feedback. See :ref:`points-from-feedback`.
 
 Version 2015.1
 --------------
@@ -384,27 +475,4 @@ First public release.
 License
 =======
 
-RELATE is licensed to you under the MIT/X Consortium license:
-
-Copyright (c) 2014-15 Andreas Klöckner and Contributors.
-
-Permission is hereby granted, free of charge, to any person
-obtaining a copy of this software and associated documentation
-files (the "Software"), to deal in the Software without
-restriction, including without limitation the rights to use,
-copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the
-Software is furnished to do so, subject to the following
-conditions:
-
-The above copyright notice and this permission notice shall be
-included in all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
-OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
-NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
-HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
-WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
-FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
-OTHER DEALINGS IN THE SOFTWARE.
+.. include:: ../LICENSE

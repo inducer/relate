@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+
 __copyright__ = "Copyright (C) 2018 Dong Zhuang"
 
 __license__ = """
@@ -21,11 +24,12 @@ THE SOFTWARE.
 """
 
 try:
-    from test.support import EnvironmentVarGuard  # noqa
+    from test.support import EnvironmentVarGuard
 except ImportError:
     from test.test_support import EnvironmentVarGuard  # noqa
 
 from django.test import override_settings
+
 
 # Switch for test locally
 Debug = False
@@ -42,7 +46,7 @@ def _skip_real_docker_test():
     # Skipping CI
     for skipped_ci in [GITLAB_CI]:
         if os.environ.get(skipped_ci):
-            print("Running on %s" % skipped_ci)
+            print(f"Running on {skipped_ci}")
             return True
 
     # For debugging on local Windows or Mac
@@ -78,7 +82,7 @@ class RealDockerTestMixin:
     """
 
     @classmethod
-    def setUpClass(cls):  # noqa
+    def setUpClass(cls):
         from unittest import SkipTest
         if skip_real_docker_test:
             raise SkipTest(SKIP_REAL_DOCKER_REASON)
@@ -93,7 +97,7 @@ class RealDockerTestMixin:
         cls.make_sure_docker_image_pulled()
 
     @classmethod
-    def tearDownClass(cls):  # noqa
+    def tearDownClass(cls):
         super().tearDownClass()
         cls.override_docker_settings.disable()
 

@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+
 __copyright__ = "Copyright (C) 2018 Dong Zhuang"
 
 __license__ = """
@@ -21,26 +24,25 @@ THE SOFTWARE.
 """
 
 import stat
-from dulwich.repo import Tree
 
 from django.core.exceptions import ObjectDoesNotExist
 from django.test import TestCase
+from dulwich.repo import Tree
 
-from relate.utils import dict_to_struct
-
-from course.models import (
-    ParticipationRole,
-    ParticipationPermission, ParticipationRolePermission)
 from course import validation
-from course.validation import ValidationError
-from course.content import get_yaml_from_repo, get_repo_blob, load_yaml
-from course.validation import get_yaml_from_repo_safely
-from course.constants import (
-    DEFAULT_ACCESS_KINDS, participation_permission as pperm)
-
+from course.constants import DEFAULT_ACCESS_KINDS, participation_permission as pperm
+from course.content import get_repo_blob, get_yaml_from_repo, load_yaml
+from course.models import (
+    ParticipationPermission,
+    ParticipationRole,
+    ParticipationRolePermission,
+)
+from course.validation import ValidationError, get_yaml_from_repo_safely
+from relate.utils import dict_to_struct
 from tests import factories
 from tests.base_test_mixins import CoursesTestMixinBase
 from tests.utils import mock
+
 
 FLOW_WITHOUT_RULE_YAML = """
 title: "Flow 1 without rule"
@@ -366,10 +368,16 @@ class ValidateCourseContentTest(CoursesTestMixinBase, TestCase):
         self.addCleanup(fake_check_grade_identifier_link.stop)
 
         fake_get_repo_blob = (
-            mock.patch("course.validation.get_repo_blob"))
+            mock.patch("course.content.get_repo_blob"))
         self.mock_get_repo_blob = fake_get_repo_blob.start()
         self.mock_get_repo_blob.side_effect = get_repo_blob_side_effect
         self.addCleanup(fake_get_repo_blob.stop)
+
+        fake_get_repo_tree = (
+            mock.patch("course.content.get_repo_tree"))
+        self.mock_get_repo_tree = fake_get_repo_tree.start()
+        self.mock_get_repo_tree.side_effect = get_repo_blob_side_effect
+        self.addCleanup(fake_get_repo_tree.stop)
 
         fake_validate_static_page_name = (
             mock.patch("course.validation.validate_static_page_name"))
@@ -562,6 +570,8 @@ class ValidateCourseContentTest(CoursesTestMixinBase, TestCase):
 
     def test_get_repo_blob_media_dir_not_empty(self):
         self.mock_get_repo_blob.side_effect = get_repo_blob_side_effect1
+        self.mock_get_repo_tree.side_effect = get_repo_blob_side_effect1
+
         validation.validate_course_content(
             self.repo, course_file, events_file, validate_sha, course=self.course)
         self.assertEqual(self.mock_vctx_add_warning.call_count, 1)
@@ -596,6 +606,8 @@ class ValidateCourseContentTest(CoursesTestMixinBase, TestCase):
 
     def test_get_repo_blob_flows_dir_empty(self):
         self.mock_get_repo_blob.side_effect = get_repo_blob_side_effect2
+        self.mock_get_repo_tree.side_effect = get_repo_blob_side_effect2
+
         validation.validate_course_content(
             self.repo, course_file, events_file, validate_sha, course=self.course)
         self.assertEqual(self.mock_vctx_add_warning.call_count, 0)
@@ -623,6 +635,8 @@ class ValidateCourseContentTest(CoursesTestMixinBase, TestCase):
 
     def test_get_repo_blob_staticpages_empty(self):
         self.mock_get_repo_blob.side_effect = get_repo_blob_side_effect3
+        self.mock_get_repo_tree.side_effect = get_repo_blob_side_effect3
+
         validation.validate_course_content(
             self.repo, course_file, events_file, validate_sha, course=self.course)
         self.assertEqual(self.mock_vctx_add_warning.call_count, 0)

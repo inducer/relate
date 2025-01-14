@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+
 __copyright__ = "Copyright (C) 2014 Andreas Kloeckner"
 
 __license__ = """
@@ -22,44 +23,57 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from typing import cast
-
-from django.db import models
-from django.utils.timezone import now
-from django.urls import reverse
-from django.core.exceptions import (
-        ValidationError, ObjectDoesNotExist)
-from django.utils.translation import (
-        gettext_lazy as _, pgettext_lazy)
-from django.core.validators import RegexValidator
-from django.db.models.signals import post_save
-from django.dispatch import receiver
+from collections.abc import Iterable
+from decimal import Decimal
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    cast,
+)
 
 from django.conf import settings
+from django.core.exceptions import ObjectDoesNotExist, ValidationError
+from django.core.validators import RegexValidator
+from django.db import models
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+from django.urls import reverse
+from django.utils.timezone import now
+from django.utils.translation import gettext_lazy as _, pgettext_lazy
 
-from relate.utils import string_concat
 from course.constants import (  # noqa
-        user_status, USER_STATUS_CHOICES,
-        participation_status, PARTICIPATION_STATUS_CHOICES,
-        flow_permission, FLOW_PERMISSION_CHOICES,
-        flow_session_expiration_mode, FLOW_SESSION_EXPIRATION_MODE_CHOICES,
-        grade_aggregation_strategy, GRADE_AGGREGATION_STRATEGY_CHOICES,
-        grade_state_change_types, GRADE_STATE_CHANGE_CHOICES,
-        flow_rule_kind, FLOW_RULE_KIND_CHOICES,
-        exam_ticket_states, EXAM_TICKET_STATE_CHOICES,
-        participation_permission, PARTICIPATION_PERMISSION_CHOICES,
-
-        COURSE_ID_REGEX, GRADING_OPP_ID_REGEX, EVENT_KIND_REGEX
-        )
+    COURSE_ID_REGEX,
+    EVENT_KIND_REGEX,
+    EXAM_TICKET_STATE_CHOICES,
+    FLOW_PERMISSION_CHOICES,
+    FLOW_RULE_KIND_CHOICES,
+    FLOW_SESSION_EXPIRATION_MODE_CHOICES,
+    GRADE_AGGREGATION_STRATEGY_CHOICES,
+    GRADE_STATE_CHANGE_CHOICES,
+    GRADING_OPP_ID_REGEX,
+    PARTICIPATION_PERMISSION_CHOICES,
+    PARTICIPATION_STATUS_CHOICES,
+    USER_STATUS_CHOICES,
+    exam_ticket_states,
+    flow_permission,
+    flow_rule_kind,
+    flow_session_expiration_mode,
+    grade_aggregation_strategy,
+    grade_state_change_types,
+    participation_permission,
+    participation_status,
+    user_status,
+)
+from relate.utils import not_none, string_concat
 
 
 # {{{ mypy
 
-from typing import List, Dict, Any, Optional, Text, Iterable, Tuple, FrozenSet, TYPE_CHECKING  # noqa
 if TYPE_CHECKING:
-    from course.content import FlowDesc  # noqa
-    import datetime # noqa
-    from course.page.base import AnswerFeedback  # noqa: F401
+    import datetime
+
+    from course.content import FlowDesc
+    from course.page.base import AnswerFeedback
 
 # }}}
 
@@ -231,7 +245,7 @@ class Course(models.Model):
             verbose_name=_("Active git commit SHA"))
 
     participants = models.ManyToManyField(settings.AUTH_USER_MODEL,
-            through="Participation")
+            through="course.Participation")
 
     trusted_for_markup = models.BooleanField(
             default=False,
@@ -241,19 +255,17 @@ class Course(models.Model):
         verbose_name = _("Course")
         verbose_name_plural = _("Courses")
 
-    def __unicode__(self):
+    def __str__(self) -> str:
         return self.identifier
 
-    __str__ = __unicode__
-
-    def clean(self):
+    def clean(self) -> None:
         if self.force_lang:
             self.force_lang = self.force_lang.strip()
 
-    def get_absolute_url(self):
+    def get_absolute_url(self) -> str:
         return reverse("relate-course_page", args=(self.identifier,))
 
-    def get_from_email(self):
+    def get_from_email(self) -> str:
         if settings.RELATE_EMAIL_SMTP_ALLOW_NONAUTHORIZED_SENDER:
             return self.from_email
         else:
@@ -261,7 +273,7 @@ class Course(models.Model):
                 settings, "NOTIFICATION_EMAIL_FROM",
                 settings.ROBOT_EMAIL_FROM)
 
-    def get_reply_to_email(self):
+    def get_reply_to_email(self) -> str:
         # this functionality need more fields in Course model,
         # about the preference of the course.
         if settings.RELATE_EMAIL_SMTP_ALLOW_NONAUTHORIZED_SENDER:
@@ -320,7 +332,7 @@ class Event(models.Model):
         ordering = ("course", "time")
         unique_together = (("course", "kind", "ordinal"))
 
-    def __unicode__(self):
+    def __str__(self) -> str:
         if self.ordinal is not None:
             return f"{self.kind} {self.ordinal}"
         else:
@@ -330,7 +342,7 @@ class Event(models.Model):
         super().clean()
 
         try:
-            self.course
+            self.course  # noqa: B018
         except ObjectDoesNotExist:
             raise ValidationError(
                 {"course":
@@ -361,8 +373,6 @@ class Event(models.Model):
         self.full_clean()
         return super().save(*args, **kwargs)
 
-    __str__ = __unicode__
-
 # }}}
 
 
@@ -388,10 +398,8 @@ class ParticipationTag(models.Model):
                 {field_name:
                      _("'%s' contains invalid characters.") % field_name})
 
-    def __unicode__(self):
+    def __str__(self) -> str:
         return f"{self.name} ({self.course})"
-
-    __str__ = __unicode__
 
     class Meta:
         verbose_name = _("Participation tag")
@@ -428,7 +436,7 @@ class ParticipationRole(models.Model):
                 {field_name:
                      _("'%s' contains invalid characters.") % field_name})
 
-    def __unicode__(self):
+    def __str__(self) -> str:
         return _("%(identifier)s in %(course)s") % {
             "identifier": self.identifier,
             "course": self.course}
@@ -457,7 +465,6 @@ class ParticipationRole(models.Model):
         return (perm, argument) in self.permission_tuples()
 
     # }}}
-    __str__ = __unicode__
 
     class Meta:
         verbose_name = _("Participation role")
@@ -477,13 +484,11 @@ class ParticipationPermissionBase(models.Model):
     class Meta:
         abstract = True
 
-    def __unicode__(self):
+    def __str__(self) -> str:
         if self.argument:
             return f"{self.permission} {self.argument}"
         else:
             return self.permission
-
-    __str__ = __unicode__
 
 
 class ParticipationRolePermission(ParticipationPermissionBase):
@@ -491,13 +496,11 @@ class ParticipationRolePermission(ParticipationPermissionBase):
             verbose_name=_("Role"), on_delete=models.CASCADE,
             related_name="permissions")
 
-    def __unicode__(self):
+    def __str__(self) -> str:
         # Translators: permissions for roles
         return _("%(permission)s for %(role)s") % {
-            "permission": super().__unicode__(),
+            "permission": super().__str__(),
             "role": self.role}
-
-    __str__ = __unicode__
 
     class Meta:
         verbose_name = _("Participation role permission")
@@ -539,7 +542,7 @@ class Participation(models.Model):
     notes = models.TextField(blank=True, null=True,
             verbose_name=_("Notes"))
 
-    def __unicode__(self):
+    def __str__(self) -> str:
         # Translators: displayed format of Participation: some user in some
         # course as some role
         return _("%(user)s in %(course)s as %(role)s") % {
@@ -548,8 +551,6 @@ class Participation(models.Model):
                     role.identifier
                     for role in self.roles.all())
                 }
-
-    __str__ = __unicode__
 
     class Meta:
         verbose_name = _("Participation")
@@ -621,7 +622,7 @@ class ParticipationPreapproval(models.Model):
     creation_time = models.DateTimeField(default=now, db_index=True,
             verbose_name=_("Creation time"))
 
-    def __unicode__(self):
+    def __str__(self) -> str:
         if self.email:
             # Translators: somebody's email in some course in Participation
             # Preapproval
@@ -635,8 +636,6 @@ class ParticipationPreapproval(models.Model):
         else:
             return _("Preapproval with pk %(pk)s in %(course)s") % {
                     "pk": self.pk, "course": self.course}
-
-    __str__ = __unicode__
 
     class Meta:
         verbose_name = _("Participation preapproval")
@@ -807,13 +806,11 @@ class AuthenticationToken(models.Model):
             null=True, blank=True, unique=True,
             verbose_name=_("Hash of git authentication token"))
 
-    def __unicode__(self):
+    def __str__(self) -> str:
         return _("Token %(id)d for %(participation)s: %(description)s") % {
                 "id": self.id,
                 "participation": self.participation,
                 "description": self.description}
-
-    __str__ = __unicode__
 
     class Meta:
         verbose_name = _("Authentication token")
@@ -841,7 +838,7 @@ class InstantFlowRequest(models.Model):
         verbose_name = _("Instant flow request")
         verbose_name_plural = _("Instant flow requests")
 
-    def __unicode__(self):
+    def __str__(self) -> str:
         return _("Instant flow request for "
                 "%(flow_id)s in %(course)s at %(start_time)s") \
                 % {
@@ -849,8 +846,6 @@ class InstantFlowRequest(models.Model):
                         "course": self.course,
                         "start_time": self.start_time,
                         }
-
-    __str__ = __unicode__
 
 # }}}
 
@@ -924,7 +919,7 @@ class FlowSession(models.Model):
         verbose_name_plural = _("Flow sessions")
         ordering = ("course", "-start_time")
 
-    def __unicode__(self):
+    def __str__(self) -> str:
         if self.participation is None:
             return _("anonymous session %(session_id)d on '%(flow_id)s'") % {
                     "session_id": self.id,
@@ -934,8 +929,6 @@ class FlowSession(models.Model):
                     "user": self.participation.user,
                     "session_id": self.id,
                     "flow_id": self.flow_id}
-
-    __str__ = __unicode__
 
     def append_comment(self, s: str | None) -> None:
         if s is None:
@@ -960,6 +953,9 @@ class FlowSession(models.Model):
         return assemble_answer_visits(self)
 
     def last_activity(self) -> datetime.datetime | None:
+        if self.pk is None:
+            return None
+
         for visit in (FlowPageVisit.objects
                 .filter(
                     flow_session=self,
@@ -1013,7 +1009,7 @@ class FlowPageData(models.Model):
         verbose_name = _("Flow page data")
         verbose_name_plural = _("Flow page data")
 
-    def __unicode__(self):
+    def __str__(self) -> str:
         # flow page data
         return (_("Data for page '%(group_id)s/%(page_id)s' "
                 "(page ordinal %(page_ordinal)s) in %(flow_session)s") % {
@@ -1021,8 +1017,6 @@ class FlowPageData(models.Model):
                     "page_id": self.page_id,
                     "page_ordinal": self.page_ordinal,
                     "flow_session": self.flow_session})
-
-    __str__ = __unicode__
 
     # Django's templates are a little daft. No arithmetic--really?
     def previous_ordinal(self):
@@ -1087,7 +1081,7 @@ class FlowPageVisit(models.Model):
             verbose_name=_("Is submitted answer"),
             null=True)
 
-    def __unicode__(self):
+    def __str__(self) -> str:
         result = (
                 # Translators: flow page visit
                 _("'%(group_id)s/%(page_id)s' in '%(session)s' "
@@ -1103,8 +1097,6 @@ class FlowPageVisit(models.Model):
             result += str(_(" (with answer)"))
 
         return result
-
-    __str__ = __unicode__
 
     class Meta:
         verbose_name = _("Flow page visit")
@@ -1185,7 +1177,7 @@ class FlowPageVisitGrade(models.Model):
             # Translators: "Feedback" stands for the feedback of answers.
             verbose_name=_("Feedback"))
 
-    def percentage(self):
+    def percentage(self) -> float | None:
         if self.correctness is not None:
             return 100*self.correctness
         else:
@@ -1205,14 +1197,12 @@ class FlowPageVisitGrade(models.Model):
 
         ordering = ("visit", "grade_time")
 
-    def __unicode__(self):
+    def __str__(self) -> str:
         # information on FlowPageVisitGrade class
         # Translators: return the information of the grade of a user
         # by percentage.
         return _("grade of %(visit)s: %(percentage)s") % {
                 "visit": self.visit, "percentage": self.percentage()}
-
-    __str__ = __unicode__
 
 # }}}
 
@@ -1318,7 +1308,7 @@ def get_feedback_for_grade(
         except FileNotFoundError:
             bulk_feedback_json = None
 
-    from course.page.base import AnswerFeedback  # noqa: F811
+    from course.page.base import AnswerFeedback
     return AnswerFeedback.from_json(grade.feedback, bulk_feedback_json)
 
 # }}}
@@ -1341,7 +1331,7 @@ def validate_stipulations(stip):  # pragma: no cover (deprecated and not tested)
                 % ", ".join(set(stip.keys()) - allowed_keys))
 
     if "credit_percent" in stip and not isinstance(
-            stip["credit_percent"], (int, float)):
+            stip["credit_percent"], int | float):
         raise ValidationError(_("credit_percent must be a float"))
     if ("allowed_session_count" in stip
             and (
@@ -1389,7 +1379,7 @@ class FlowAccessException(models.Model):  # pragma: no cover (deprecated and not
     comment = models.TextField(blank=True, null=True,
             verbose_name=_("Comment"))
 
-    def __unicode__(self):
+    def __str__(self) -> str:
         return (
                 # Translators: flow access exception in admin (deprecated)
                 _("Access exception for '%(user)s' to '%(flow_id)s' "
@@ -1399,8 +1389,6 @@ class FlowAccessException(models.Model):  # pragma: no cover (deprecated and not
                     "flow_id": self.flow_id,
                     "course": self.participation.course
                     })
-
-    __str__ = __unicode__
 
 
 class FlowAccessExceptionEntry(models.Model):  # pragma: no cover (deprecated and not tested)  # noqa
@@ -1417,10 +1405,8 @@ class FlowAccessExceptionEntry(models.Model):  # pragma: no cover (deprecated an
         # Translators: FlowAccessExceptionEntry (deprecated)
         verbose_name_plural = _("Flow access exception entries")
 
-    def __unicode__(self):
+    def __str__(self) -> str:
         return self.permission
-
-    __str__ = __unicode__
 
 # }}}
 
@@ -1452,7 +1438,7 @@ class FlowRuleException(models.Model):
             verbose_name=pgettext_lazy(
                 "Is the flow rule exception activated?", "Active"))
 
-    def __unicode__(self):
+    def __str__(self) -> str:
         return (
                 # Translators: For FlowRuleException
                 _("%(kind)s exception %(exception_id)s for '%(user)s' to "
@@ -1464,8 +1450,6 @@ class FlowRuleException(models.Model):
                     "course": self.participation.course,
                     "exception_id":
                         " id %d" % self.id if self.id is not None else ""})
-
-    __str__ = __unicode__
 
     def clean(self) -> None:
         super().clean()
@@ -1479,16 +1463,18 @@ class FlowRuleException(models.Model):
                 and self.expiration is not None):
             raise ValidationError(_("grading rules may not expire"))
 
+        from course.content import (
+            get_course_commit_sha,
+            get_course_repo,
+            get_flow_desc,
+        )
         from course.validation import (
-                ValidationError as ContentValidationError,
-                validate_session_start_rule,
-                validate_session_access_rule,
-                validate_session_grading_rule,
-                ValidationContext)
-        from course.content import (get_course_repo,
-                get_course_commit_sha,
-                get_flow_desc)
-
+            ValidationContext,
+            ValidationError as ContentValidationError,
+            validate_session_access_rule,
+            validate_session_grading_rule,
+            validate_session_start_rule,
+        )
         from relate.utils import dict_to_struct
         rule = dict_to_struct(self.rule)
 
@@ -1562,7 +1548,7 @@ class GradingOpportunity(models.Model):
 
     aggregation_strategy = models.CharField(max_length=20,
             choices=GRADE_AGGREGATION_STRATEGY_CHOICES,
-            # Translators: strategy on how the grading of mutiple sessioins
+            # Translators: strategy on how the grading of multiple sessioins
             # are aggregated.
             verbose_name=_("Aggregation strategy"))
 
@@ -1599,7 +1585,7 @@ class GradingOpportunity(models.Model):
         ordering = ("course", "due_time", "identifier")
         unique_together = (("course", "identifier"),)
 
-    def __unicode__(self):
+    def __str__(self) -> str:
         return (
                 # Translators: For GradingOpportunity
                 _("%(opportunity_name)s (%(opportunity_id)s) in %(course)s")
@@ -1607,8 +1593,6 @@ class GradingOpportunity(models.Model):
                     "opportunity_name": self.name,
                     "opportunity_id": self.identifier,
                     "course": self.course})
-
-    __str__ = __unicode__
 
     def get_aggregation_strategy_descr(self):
         return dict(GRADE_AGGREGATION_STRATEGY_CHOICES).get(
@@ -1668,24 +1652,21 @@ class GradeChange(models.Model):
         verbose_name_plural = _("Grade changes")
         ordering = ("opportunity", "participation", "grade_time")
 
-    def __unicode__(self):
+    def str(self):
         # Translators: information for GradeChange
         return _("%(participation)s %(state)s on %(opportunityname)s") % {
             "participation": self.participation,
             "state": self.state,
             "opportunityname": self.opportunity.name}
 
-    __str__ = __unicode__
-
-    def clean(self):
+    def clean(self) -> None:
         super().clean()
 
         if self.opportunity.course != self.participation.course:
             raise ValidationError(_("Participation and opportunity must live "
                     "in the same course"))
 
-    def percentage(self) -> float | None:
-
+    def percentage(self) -> Decimal | None:
         if (self.max_points is not None
                 and self.points is not None
                 and self.max_points != 0):
@@ -1697,12 +1678,26 @@ class GradeChange(models.Model):
         return dict(GRADE_STATE_CHANGE_CHOICES).get(
                 self.state)
 
+    # may be set by GradeStateMachine
+    # FIXME: This is kind of a nasty thing to do
+    is_superseded: bool
+
 # }}}
 
 
 # {{{ grade state machine
 
 class GradeStateMachine:
+    opportunity: GradingOpportunity | None
+    state: str | None
+    due_time: datetime.datetime | None
+    last_graded_time: datetime.datetime | None
+    last_report_time: datetime.datetime | None
+    _last_grade_change_time: datetime.datetime | None
+
+    valid_percentages: list[float | Decimal]
+    attempt_id_to_gchange: dict[str, GradeChange]
+
     def __init__(self) -> None:
         self.opportunity = None
 
@@ -1719,7 +1714,7 @@ class GradeStateMachine:
 
         self.state = None
         self.last_grade_time = None
-        self.valid_percentages: list[GradeChange] = []
+        self.valid_percentages = []
         self.attempt_id_to_gchange: dict[str, GradeChange] = {}
 
     def _consume_grade_change(self,
@@ -1749,8 +1744,8 @@ class GradeStateMachine:
                         _("cannot accept grade once opportunity has been "
                         "marked 'exempt'"))
 
-            #if self.due_time is not None and gchange.grade_time > self.due_time:
-                #raise ValueError("cannot accept grade after due date")
+            # if self.due_time is not None and gchange.grade_time > self.due_time:
+                # raise ValueError("cannot accept grade after due date")
 
             self.state = gchange.state
             if gchange.attempt_id is not None:
@@ -1758,10 +1753,9 @@ class GradeStateMachine:
                         and gchange.attempt_id in self.attempt_id_to_gchange):
                     self.attempt_id_to_gchange[gchange.attempt_id] \
                             .is_superseded = True
-                self.attempt_id_to_gchange[gchange.attempt_id] \
-                        = gchange
+                self.attempt_id_to_gchange[gchange.attempt_id] = gchange
             else:
-                self.valid_percentages.append(gchange.percentage())
+                self.valid_percentages.append(not_none(gchange.percentage()))
 
             self.last_graded_time = gchange.grade_time
 
@@ -1805,15 +1799,14 @@ class GradeStateMachine:
                 key=lambda gchange: gchange.grade_time)
 
         self.valid_percentages.extend(
-                cast(GradeChange, gchange.percentage())
+                not_none(gchange.percentage())
                 for gchange in valid_grade_changes)
 
         del self.attempt_id_to_gchange
 
         return self
 
-    def percentage(self) -> float | None:
-
+    def percentage(self) -> float | Decimal | None:
         """
         :return: a percentage of achieved points, or *None*
         """
@@ -1843,7 +1836,7 @@ class GradeStateMachine:
             return _("(exempt)")
         elif self.state == grade_state_change_types.graded:
             if self.valid_percentages:
-                result = "%.1f%%" % self.percentage()
+                result = f"{self.percentage():.1f}%"
                 if len(self.valid_percentages) > 1:
                     result += " (/%d)" % len(self.valid_percentages)
                 return result
@@ -1859,7 +1852,7 @@ class GradeStateMachine:
             return "EXEMPT"
         elif self.state == grade_state_change_types.graded:
             if self.valid_percentages:
-                return "%.3f" % self.percentage()
+                return f"{self.percentage():.3f}"
             else:
                 return "NONE"
         else:
@@ -1868,7 +1861,7 @@ class GradeStateMachine:
     def stringify_percentage(self):
         if self.state == grade_state_change_types.graded:
             if self.valid_percentages:
-                return "%.1f" % self.percentage()
+                return f"{self.percentage():.1f}"
             else:
                 return ""
         else:
@@ -1891,11 +1884,11 @@ def get_flow_grading_opportunity(
     gopp, created = GradingOpportunity.objects.get_or_create(
             course=course,
             identifier=grade_identifier,
-            defaults=dict(
-                name=default_name,
-                flow_id=flow_id,
-                aggregation_strategy=grade_aggregation_strategy,
-                ))
+            defaults={
+                "name": default_name,
+                "flow_id": flow_id,
+                "aggregation_strategy": grade_aggregation_strategy,
+                })
 
     # update gopp.name when flow_desc.title changed
     if not created:
@@ -1923,10 +1916,8 @@ class InstantMessage(models.Model):
         verbose_name_plural = _("Instant messages")
         ordering = ("participation__course", "time")
 
-    def __unicode__(self):
+    def __str__(self) -> str:
         return f"{self.participation}: {self.text}"
-
-    __str__ = __unicode__
 
 # }}}
 
@@ -1962,13 +1953,11 @@ class Exam(models.Model):
         verbose_name_plural = _("Exams")
         ordering = ("course", "no_exams_before",)
 
-    def __unicode__(self):
+    def __str__(self) -> str:
         return _("Exam  %(description)s in %(course)s") % {
                 "description": self.description,
                 "course": self.course,
                 }
-
-    __str__ = __unicode__
 
 
 class ExamTicket(models.Model):
@@ -1991,7 +1980,7 @@ class ExamTicket(models.Model):
             choices=EXAM_TICKET_STATE_CHOICES,
             verbose_name=_("Exam ticket state"))
 
-    code = models.CharField(max_length=50, db_index=True, unique=True)
+    code = models.CharField(max_length=50)
 
     valid_start_time = models.DateTimeField(
             verbose_name=_("End valid period"),
@@ -2008,6 +1997,10 @@ class ExamTicket(models.Model):
             help_text=_("If not blank, this exam ticket may only be used in the "
                 "given facility"))
 
+    require_login = models.BooleanField(
+            default=False,
+            help_text=_("If set, the exam ticket can only be used once logged in"))
+
     class Meta:
         verbose_name = _("Exam ticket")
         verbose_name_plural = _("Exam tickets")
@@ -2016,13 +2009,11 @@ class ExamTicket(models.Model):
                 ("can_issue_exam_tickets", _("Can issue exam tickets to student")),
                 )
 
-    def __unicode__(self):
+    def __str__(self) -> str:
         return _("Exam  ticket for %(participation)s in %(exam)s") % {
                 "participation": self.participation,
                 "exam": self.exam,
                 }
-
-    __str__ = __unicode__
 
     def clean(self):
         super().clean()

@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+
 __copyright__ = "Copyright (C) 2018 Dong Zhuang"
 
 __license__ = """
@@ -21,16 +24,16 @@ THE SOFTWARE.
 """
 
 import copy
+
 from django.test import TestCase
 from django.urls import reverse
-from tests.utils import mock
-
-from tests.base_test_mixins import (
-    TwoCoursePageTestMixin, TWO_COURSE_SETUP_LIST)
 
 from course import models
 from course.constants import participation_permission as pperm
 from course.flow import get_pv_purgeable_courses_for_user_qs
+from tests.base_test_mixins import TWO_COURSE_SETUP_LIST, TwoCoursePageTestMixin
+from tests.utils import mock
+
 
 # {{{ make sure the second course has a different instructor
 second_course_instructor_dict = {
@@ -52,7 +55,7 @@ class PurgeViewMixin(TwoCoursePageTestMixin):
     courses_setup_list = PURGE_VIEW_TWO_COURSE_SETUP_LIST
 
     @classmethod
-    def setUpTestData(cls):  # noqa
+    def setUpTestData(cls):
         super().setUpTestData()
         assert cls.course1_instructor_participation.has_permission(
             pperm.use_admin_interface)
@@ -147,7 +150,7 @@ class PurgePageViewDataTest(PurgeViewMixin, TestCase):
                 resp.context.get("form").fields["course"].queryset.count(), 2)
 
             with mock.patch("celery.app.task.Task.delay") \
-                    as mocked_delay,\
+                    as mocked_delay, \
                     mock.patch("course.views.monitor_task"):
                 # post without "submit"
                 resp = self.post_purget_page_view(self.course1.pk, add_submit=False)
@@ -192,5 +195,5 @@ class PurgePageViewDataTest(PurgeViewMixin, TestCase):
                 expected_form_field_error_msg = (
                     "Select a valid choice. That choice is not one of "
                     "the available choices.")
-                self.assertFormError(resp, "form", "course",
+                self.assertFormError(resp.context["form"], "course",
                                      expected_form_field_error_msg)

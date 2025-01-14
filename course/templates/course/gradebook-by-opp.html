@@ -45,27 +45,27 @@
     <tr>
       <td>{% trans "Operations" %}</td>
       <td>
-        <a class="btn btn-default" role="button"
+        <a class="btn btn-secondary" role="button"
           href="{% url "relate-flow_analytics" course.identifier opportunity.flow_id %}">{% trans "View analytics" %}</a>
         {% if pperm.view_grader_stats %}
-          <a class="btn btn-default" role="button"
+          <a class="btn btn-secondary" role="button"
             href="{% url "relate-show_grader_statistics" course.identifier opportunity.flow_id %}">{% trans "View grader statistics" %}</a>
         {% endif %}
         {% if not view_page_grades %}
-            <a class="btn btn-default" role="button"
+            <a class="btn btn-secondary" role="button"
               href="{% url "relate-view_grades_by_opportunity" course.identifier opportunity.id %}?view_page_grades=1">
               {% trans "View page grades" %}</a>
         {% else %}
-            <a class="btn btn-default" role="button"
+            <a class="btn btn-secondary" role="button"
               href="{% url "relate-view_grades_by_opportunity" course.identifier opportunity.id %}">
               {% trans "Hide page grades" %}</a>
         {% endif %}
         {% if pperm.batch_download_submission %}
-          <a class="btn btn-default" href="{% url "relate-download_all_submissions" course.identifier opportunity.flow_id %}"
+          <a class="btn btn-secondary" href="{% url "relate-download_all_submissions" course.identifier opportunity.flow_id %}"
               role="button">{% trans "Download submissions" %}</a>
         {% endif %}
         {% if pperm.edit_grading_opportunity %}
-          <a class="btn btn-default" href="{% url "relate-edit_grading_opportunity" course.identifier opportunity.id %}"
+          <a class="btn btn-outline-secondary" href="{% url "relate-edit_grading_opportunity" course.identifier opportunity.id %}"
               role="button">{% trans "Edit" %}</a>
         {% endif %}
       </td>
@@ -74,7 +74,7 @@
   </table>
 
   {% if batch_session_ops_form %}
-    <div class="well" style="margin-top: 20px">
+    <div class="relate-well" style="margin-top: 20px">
       <h3 class="start-well-title">{% trans "Modify many sessions at once" %}</h3>
       {% crispy batch_session_ops_form %}
 
@@ -255,7 +255,7 @@
         "paging": false,
         "ordering": true,
         "columnDefs": [{ type: 'name', targets: 1 }],
-        "language": {url: '{% static "datatables-i18n/i18n/" %}{{LANG}}.json'},
+        "language": rlDataTables.getI18nTable('{{ LANG}}'),
     } );
     new $.fn.dataTable.FixedColumns(tbl);
   </script>

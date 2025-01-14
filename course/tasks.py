@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+
 __copyright__ = "Copyright (C) 2015 Andreas Kloeckner"
 
 __license__ = """
@@ -21,12 +24,11 @@ THE SOFTWARE.
 """
 
 from celery import shared_task
-
-from django.utils.translation import gettext as _
 from django.db import transaction
+from django.utils.translation import gettext as _
 
-from course.models import (Course, FlowSession, FlowPageVisit)
 from course.content import get_course_repo
+from course.models import Course, FlowPageVisit, FlowSession
 
 
 @shared_task(bind=True)

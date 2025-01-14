@@ -7,15 +7,13 @@
 {% endblock %}
 
 {% block content %}
-  {% if flow_desc.description %}
-  {{flow_desc.description_html|safe}}
-  {% endif %}
+  {{ flow_description_html|safe }}
 
   <form method="POST">
     {% csrf_token %}
 
     {% if past_sessions_and_properties %}
-      <div class="well">
+      <div class="relate-well">
         <h3 class="start-well-title">{% trans "Past sessions" %}</h3>
 
         <table class="past-flow-session-table">
@@ -68,7 +66,7 @@
               </td>
               <td>
                 {% if session_properties.may_view %}
-                  <a href="{% url "relate-view_resume_flow" course.identifier flow_session.id %}" class="btn btn-primary btn-xs">
+                  <a href="{% url "relate-view_resume_flow" course.identifier flow_session.id %}" class="btn btn-primary btn-sm">
                     {% if session_properties.may_modify %}
                       {% trans "Resume" %} &raquo;
                     {% else %}
@@ -77,7 +75,7 @@
                   </a>
 
                   {% if not flow_session.in_progress %}
-                    <a href="{% url "relate-finish_flow_session_view" course.identifier flow_session.id %}" class="btn btn-primary btn-xs">
+                    <a href="{% url "relate-finish_flow_session_view" course.identifier flow_session.id %}" class="btn btn-primary btn-sm">
                         {% trans "Results" %}
                     </a>
                   {% endif %}
@@ -119,7 +117,7 @@
                   {% blocktrans trimmed %}
                     This is not your first session. If you start another one,
                     for your overall grade we will '<b>{{ grade_aggregation_strategy_descr }}</b>'
-                    among all your sessions.
+                    among all your graded sessions.
                   {% endblocktrans %}
               </li>
             {% endif%}
@@ -135,12 +133,12 @@
         </a>
         <button id="start-button" type="submit" name="start" class="btn btn-danger"
           style="display:none"
-          data-content='<p>{% trans "I understand that starting a new session could lower my overall grade." %}</p>
-                        <button id="cancel-button" type="reset" name="cancel" class="btn btn-primary btn-sm" style="float: right;">
-                        {% trans "Cancel" %}</button>'
-          data-html="true"
-          data-container="body"
-          data-placement="right"
+          data-bs-content='<p>{% trans "I understand that starting a new session could lower my overall grade." %}</p>
+                        <a href="#" id="cancel-button" name="cancel" class="btn btn-primary btn-sm">
+                        {% trans "Cancel" %}</a>'
+          data-bs-html="true"
+          data-bs-container="body"
+          data-bs-placement="right"
           >
             {# Translators: student should confirm to start another session. #}
             {% trans "I am sure" %} &raquo;
@@ -195,7 +193,7 @@
     {% else %}
       <div class="alert alert-info">
         <p>
-        <i class="fa fa-exclamation-triangle"></i>
+        <i class="bi bi-exclamation-triangle"></i>
         {% blocktrans trimmed %}
         You do not have any existing/viewable sessions and are not allowed to start
         a new one.
@@ -212,7 +210,7 @@
         {% blocktrans trimmed %}
           You're not currently signed in. Access to the resource is restricted,
           and since the site has no way of knowing who you are, it may have denied
-          you accesss.
+          you access.
           Once you're signed in, navigate back to your course from the
           <a href="{{ relate-home }}"> home page </a> and retry your last
           action.

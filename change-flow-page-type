@@ -1,13 +1,17 @@
 #! /usr/bin/env python
 from __future__ import print_function
+
 import os
+
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "relate.settings")
 
 import django
+
 django.setup()
 
-from course.models import FlowPageData
 import sys
+
+from course.models import FlowPageData
 
 course_identifier = sys.argv[1]
 flow_id = sys.argv[2]
@@ -32,6 +36,7 @@ print(fpages.count(), "pages total")
 raw_input("[Enter to continue]")
 
 from django.db import transaction
+
 with transaction.atomic():
     for fpd in fpages:
         assert fpd.page_type == old_type

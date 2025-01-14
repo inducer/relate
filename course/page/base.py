@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+
 __copyright__ = "Copyright (C) 2014 Andreas Kloeckner"
 
 __license__ = """
@@ -22,32 +23,35 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-import django.forms as forms
-from django import http
+from abc import ABC, abstractmethod
+from collections.abc import Callable, Sequence
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, Any
 
-from course.validation import validate_struct, ValidationError
-from course.constants import MAX_EXTRA_CREDIT_FACTOR
-from relate.utils import StyledForm, Struct, string_concat
+import django.forms as forms
+import django.http
+from django.conf import settings
 from django.forms import ValidationError as FormValidationError
 from django.utils.safestring import mark_safe
-from django.utils.functional import lazy
-from django.utils.translation import (
-        gettext_lazy as _,
-        gettext_noop,
-        )
-from django.conf import settings
+from django.utils.translation import gettext, gettext_lazy as _, gettext_noop
+
+from course.constants import MAX_EXTRA_CREDIT_FACTOR
+from course.validation import (
+    AttrSpec,
+    ValidationContext,
+    ValidationError,
+    validate_struct,
+)
+from relate.utils import Struct, StyledForm, string_concat
+
 
 # {{{ mypy
 
-from typing import (Any, Callable, TYPE_CHECKING)
 
 if TYPE_CHECKING:
     # FIXME There seem to be some cyclic imports that prevent importing these
     # outright.
-    from course.models import (  # noqa
-            Course,
-            FlowSession
-            )
+    from course.models import Course, FlowSession
     from relate.utils import Repo_ish
 
 # }}}
@@ -93,9 +97,8 @@ Automatic Feedback
 .. autofunction:: get_auto_feedback
 """
 
-mark_safe_lazy = lazy(mark_safe, str)
 
-
+@dataclass
 class PageContext:
     """
     .. attribute:: course
@@ -106,27 +109,19 @@ class PageContext:
         May be None.
 
     .. attribute:: page_uri
+    .. attribute:: request
 
     Note that this is different from :class:`course.utils.FlowPageContext`,
     which is used internally by the flow views.
     """
 
-    def __init__(
-            self,
-            course: Course,
-            repo: Repo_ish,
-            commit_sha: bytes,
-            flow_session: FlowSession,
-            in_sandbox: bool = False,
-            page_uri: str | None = None,
-            ) -> None:
-
-        self.course = course
-        self.repo = repo
-        self.commit_sha = commit_sha
-        self.flow_session = flow_session
-        self.in_sandbox = in_sandbox
-        self.page_uri = page_uri
+    course: Course
+    repo: Repo_ish
+    commit_sha: bytes
+    flow_session: FlowSession
+    in_sandbox: bool = False
+    page_uri: str | None = None
+    request: django.http.HttpRequest | None = None
 
 
 class PageBehavior:
@@ -148,7 +143,7 @@ class PageBehavior:
         self.may_change_answer = may_change_answer
 
     def __bool__(self):
-        # This is for compatiblity: page_behavior used to be a bool argument
+        # This is for compatibility: page_behavior used to be a bool argument
         # 'answer_is_final'.
         return not self.may_change_answer
 
@@ -159,7 +154,7 @@ def markup_to_html(
         page_context: PageContext,
         text: str,
         use_jinja: bool = True,
-        reverse_func: Callable = None,
+        reverse_func: Callable | None = None,
         ) -> str:
     from course.content import markup_to_html as mth
 
@@ -190,11 +185,11 @@ def round_point_count_to_quarters(
         return int(value)
 
     import math
-    _atol = atol * 4
+    actual_atol = atol * 4
     v = value * 4
-    if abs(v - math.floor(v)) < _atol:
+    if abs(v - math.floor(v)) < actual_atol:
         v = math.floor(v)
-    elif abs(v - math.ceil(v)) < _atol:
+    elif abs(v - math.ceil(v)) < actual_atol:
         v = math.ceil(v)
     else:
         return value
@@ -331,7 +326,7 @@ class InvalidPageData(RuntimeError):
     pass
 
 
-class PageBase:
+class PageBase(ABC):
     """The abstract interface of a flow page.
 
     .. attribute:: location
@@ -377,7 +372,11 @@ class PageBase:
     .. automethod:: normalized_bytes_answer
     """
 
-    def __init__(self, vctx, location, page_desc):
+    def __init__(self,
+                 vctx: ValidationContext | None,
+                 location: str,
+                 page_desc: Any
+             ) -> None:
         """
         :arg vctx: a :class:`course.validation.ValidationContext`, or None
             if no validation is desired
@@ -397,7 +396,7 @@ class PageBase:
                 # {{{ validate access_rules
 
                 if hasattr(page_desc, "access_rules"):
-                    ar_loc = "%s: access rules" % location
+                    ar_loc = f"{location}: access rules"
                     validate_struct(
                             vctx,
                             ar_loc,
@@ -419,19 +418,19 @@ class PageBase:
 
                     # }}}
 
-            self.page_desc = page_desc
-            self.is_optional_page = getattr(page_desc, "is_optional_page", False)
+            self.page_desc: Any = page_desc
+            self.is_optional_page: bool = getattr(page_desc, "is_optional_page", False)
 
         else:
             from warnings import warn
-            warn(_("Not passing page_desc to PageBase.__init__ is deprecated"),
+            warn(gettext("Not passing page_desc to PageBase.__init__ is deprecated"),
                     DeprecationWarning)
             id = page_desc
             del page_desc
 
-            self.id = id
+            self.id: str = id
 
-    def required_attrs(self):
+    def required_attrs(self) -> AttrSpec:
         """Required attributes, as accepted by
         :func:`course.validation.validate_struct`.
         Subclasses should only add to, not remove entries from this.
@@ -442,7 +441,7 @@ class PageBase:
             ("type", str),
             )
 
-    def allowed_attrs(self):
+    def allowed_attrs(self) -> AttrSpec:
         """Allowed attributes, as accepted by
         :func:`course.validation.validate_struct`.
         Subclasses should only add to, not remove entries from this.
@@ -482,12 +481,13 @@ class PageBase:
         data = self.make_page_data()
         if data:
             from warnings import warn
-            warn(_("%s is using the make_page_data compatiblity hook, which "
+            warn(_("%s is using the make_page_data compatibility hook, which "
                  "is deprecated.") % type(self).__name__,
                  DeprecationWarning)
 
         return data
 
+    @abstractmethod
     def title(self, page_context: PageContext, page_data: dict) -> str:
 
         """Return the (non-HTML) title of this page."""
@@ -502,19 +502,21 @@ class PageBase:
 
         return self.body(page_context, page_data)
 
+    @abstractmethod
     def body(self, page_context: PageContext, page_data: dict) -> str:
 
         """Return the (HTML) body of the page."""
 
-        raise NotImplementedError()
+        ...
 
+    @abstractmethod
     def expects_answer(self) -> bool:
 
         """
         :return: a :class:`bool` indicating whether this page lets the
             user provide an answer of some type.
         """
-        raise NotImplementedError()
+        ...
 
     def is_answer_gradable(self) -> bool:
         """
@@ -525,15 +527,17 @@ class PageBase:
         """
         return True
 
+    @abstractmethod
     def max_points(self, page_data: Any) -> float:
         """
         :return: a :class:`int` or :class:`float` indicating how many points
             are achievable on this page.
         """
-        raise NotImplementedError()
+        ...
 
     # {{{ student input
 
+    @abstractmethod
     def answer_data(
             self,
             page_context: PageContext,
@@ -544,15 +548,16 @@ class PageBase:
         """Return a JSON-persistable object reflecting the user's answer on the
         form. This will be passed to methods below as *answer_data*.
         """
-        raise NotImplementedError()
+        ...
 
+    @abstractmethod
     def make_form(
             self,
             page_context: PageContext,
             page_data: Any,
             answer_data: Any,
             page_behavior: Any,
-            ):
+            ) -> StyledForm:
         """
         :arg answer_data: value returned by :meth:`answer_data`.
              May be *None*.
@@ -563,17 +568,9 @@ class PageBase:
             be read-only.
         """
 
-        raise NotImplementedError()
+        ...
 
-    def post_form(
-            self,
-            page_context: PageContext,
-            page_data: Any,
-            post_data: Any,
-            files_data: Any,
-            ) -> forms.Form:
-        raise NotImplementedError()
-
+    @abstractmethod
     def process_form_post(
             self,
             page_context: PageContext,
@@ -581,7 +578,7 @@ class PageBase:
             post_data: Any,
             files_data: Any,
             page_behavior: PageBehavior,
-            ) -> forms.Form:
+            ) -> StyledForm:
         """Return a form with the POST response from *post_data* and *files_data*
         filled in.
 
@@ -591,17 +588,11 @@ class PageBase:
             If ``page_behavior.may_change_answer`` is *False*, the form should
             be read-only.
         """
-
-        from warnings import warn
-        warn(_("%s is using the post_form compatiblity hook, which "
-                "is deprecated.") % type(self).__name__,
-                DeprecationWarning)
-
-        return self.post_form(page_context, page_data, post_data, files_data)
+        ...
 
     def form_to_html(
             self,
-            request: http.HttpRequest,
+            request: django.http.HttpRequest,
             page_context: PageContext,
             form: StyledForm,
             answer_data: Any,
@@ -619,20 +610,22 @@ class PageBase:
 
     # {{{ grader input
 
+    @abstractmethod
     def make_grading_form(
             self,
             page_context: PageContext,
             page_data: Any,
             grade_data: Any,
-            ) -> forms.Form:
+            ) -> StyledForm | None:
         """
         :arg grade_data: value returned by
             :meth:`update_grade_data_from_grading_form_v2`.  May be *None*.
         :return:
             a :class:`django.forms.Form` instance with *grade_data* prepopulated.
         """
-        return None
+        ...
 
+    @abstractmethod
     def post_grading_form(
             self,
             page_context: PageContext,
@@ -640,18 +633,18 @@ class PageBase:
             grade_data: Any,
             post_data: Any,
             files_data: Any,
-            ) -> forms.Form:
+            ) -> StyledForm:
         """Return a form with the POST response from *post_data* and *files_data*
         filled in.
 
         :return: a
             :class:`django.forms.Form` instance with *grade_data* prepopulated.
         """
-        raise NotImplementedError()
+        ...
 
     def update_grade_data_from_grading_form_v2(
             self,
-            request: http.HttpRequest,
+            request: django.http.HttpRequest,
             page_context: PageContext,
             page_data: Any,
             grade_data: Any,
@@ -665,7 +658,7 @@ class PageBase:
 
         from warnings import warn
         warn(_("%s is using the update_grade_data_from_grading_form "
-               "compatiblity hook, which "
+               "compatibility hook, which "
                 "is deprecated.") % type(self).__name__,
                 DeprecationWarning)
 
@@ -685,14 +678,14 @@ class PageBase:
 
     def grading_form_to_html(
             self,
-            request: http.HttpRequest,
+            request: django.http.HttpRequest,
             page_context: PageContext,
             grading_form: Any,
             grade_data: Any
             ) -> str:
         """Returns an HTML rendering of *grading_form*."""
 
-        # http://bit.ly/2GxzWr1
+        # https://django-crispy-forms.readthedocs.io/en/latest/crispy_tag_forms.html#render-a-form-within-python-code
         from crispy_forms.utils import render_crispy_form
         from django.template.context_processors import csrf
         ctx: dict = {}
@@ -703,6 +696,7 @@ class PageBase:
 
     # {{{ grading/feedback
 
+    @abstractmethod
     def grade(
             self,
             page_context: PageContext,
@@ -719,9 +713,9 @@ class PageBase:
         :return: a :class:`AnswerFeedback` instanstance, or *None* if the
             grade is not yet available.
         """
+        ...
 
-        raise NotImplementedError()
-
+    @abstractmethod
     def correct_answer(
             self,
             page_context: PageContext,
@@ -734,6 +728,7 @@ class PageBase:
         """
         return None
 
+    @abstractmethod
     def normalized_answer(
             self,
             page_context: PageContext,
@@ -741,10 +736,12 @@ class PageBase:
             answer_data: Any
             ) -> str | None:
         """An HTML-formatted answer to be used for summarization and
-        display in analytics.
+        display in analytics. Since this may include user input, it is
+        expected to be sanitized.
         """
         return None
 
+    @abstractmethod
     def normalized_bytes_answer(
             self,
             page_context: PageContext,
@@ -755,7 +752,7 @@ class PageBase:
         to be stuffed in a zip file.
 
         :returns: a tuple of ``(file_ext, data)`` where *file_ext* is a suggested
-            file extension (inlcuding the leading period, if applicable).
+            file extension (including the leading period, if applicable).
             May also return *None*.
 
         One use case of this function is to work as input for a plagiarism
@@ -770,9 +767,79 @@ class PageBase:
 
 # {{{ utility base classes
 
+class PageBaseWithoutHumanGrading(PageBase):
+    def make_grading_form(
+                self,
+                page_context: PageContext,
+                page_data: Any,
+                grade_data: Any,
+                ) -> StyledForm | None:
+        return None
+
+    def post_grading_form(
+                self,
+                page_context: PageContext,
+                page_data: Any,
+                grade_data: Any,
+                post_data: Any,
+                files_data: Any,
+                ) -> StyledForm:
+        raise NotImplementedError()
+
+
+class PageBaseUngraded(PageBaseWithoutHumanGrading):
+    def is_answer_gradable(self) -> bool:
+        return False
+
+    def max_points(self, page_data: Any) -> float:
+        """
+        :return: a :class:`int` or :class:`float` indicating how many points
+            are achievable on this page.
+        """
+        raise NotImplementedError()
+
+    def grade(
+            self,
+            page_context: PageContext,
+            page_data: Any,
+            answer_data: Any,
+            grade_data: Any,
+            ) -> AnswerFeedback | None:
+        return None
+
+    def correct_answer(
+                self,
+                page_context: PageContext,
+                page_data: Any,
+                answer_data: Any,
+                grade_data: Any,
+                ) -> str | None:
+        return None
+
+    def normalized_answer(
+            self,
+            page_context: PageContext,
+            page_data: Any,
+            answer_data: Any
+            ) -> str | None:
+        return None
+
+    def normalized_bytes_answer(
+            self,
+            page_context: PageContext,
+            page_data: Any,
+            answer_data: Any,
+            ) -> tuple[str, bytes] | None:
+        return None
+
 
 class PageBaseWithTitle(PageBase):
-    def __init__(self, vctx, location, page_desc):
+    def __init__(
+                 self,
+                 vctx: ValidationContext | None,
+                 location: str,
+                 page_desc: Any
+             ) -> None:
         super().__init__(vctx, location, page_desc)
 
         title = None
@@ -800,24 +867,23 @@ class PageBaseWithTitle(PageBase):
                         _("no title found in body or title attribute"))
                     % (location))
 
-        from markdown import markdown
         from django.utils.html import strip_tags
+        from markdown import markdown
         title = strip_tags(markdown(title))
 
         if not title and vctx is not None:
-            vctx.add_warning(location, _("the rendered title is an empty string"))
+            vctx.add_warning(location, gettext("the rendered title is an empty string"))
 
         self._title = title
 
-    def allowed_attrs(self):
-        return super().allowed_attrs() + (
-                ("title", str),
-                )
+    def allowed_attrs(self) -> AttrSpec:
+        return (*super().allowed_attrs(), ("title", str))
 
-    def markup_body_for_title(self):
-        raise NotImplementedError()
+    @abstractmethod
+    def markup_body_for_title(self) -> str:
+        ...
 
-    def title(self, page_context, page_data):
+    def title(self, page_context: PageContext, page_data: Any):
         return self._title
 
 
@@ -840,15 +906,13 @@ class PageBaseWithValue(PageBase):
                         _("Attribute 'value' expects a non-negative value, "
                           "got %s instead") % str(page_desc.value)))
 
-    def allowed_attrs(self):
-        return super().allowed_attrs() + (
-                ("value", (int, float)),
-                )
+    def allowed_attrs(self) -> AttrSpec:
+        return (*super().allowed_attrs(), ("value", (int, float)))
 
-    def expects_answer(self):
+    def expects_answer(self) -> bool:
         return True
 
-    def max_points(self, page_data):
+    def max_points(self, page_data) -> float:
         if self.is_optional_page:
             return 0
         return getattr(self.page_desc, "value", 1)
@@ -859,7 +923,7 @@ class PageBaseWithValue(PageBase):
 
 # {{{ human text feedback page base
 
-def create_default_point_scale(total_points):
+def create_default_point_scale(total_points: float | int) -> Sequence[float]:
     """
     Return a scale that has sensible intervals for assigning points.
     """
@@ -872,7 +936,7 @@ def create_default_point_scale(total_points):
     else:
         incr = 5
 
-    def as_int(x):
+    def as_int(x: float | int) -> float | int:
         return int(x) if int(x) == x else x
 
     points = [as_int(idx*incr) for idx in range(int(total_points/incr))]
@@ -882,42 +946,50 @@ def create_default_point_scale(total_points):
 
 class TextInputWithButtons(forms.TextInput):
 
-    def __init__(self, button_values, *args, **kwargs):
+    def __init__(self,
+                 button_values: Sequence[float | int],
+                 *args: Any,
+                 **kwargs: Any
+             ) -> None:
         self.button_values = button_values
         super().__init__(*args, **kwargs)
 
     def render(self, name, value, attrs=None, renderer=None):
         html = super().render(name, value, attrs,
                                                         renderer)
-        from django.utils.html import format_html, mark_safe, escapejs
+        from django.utils.html import escapejs, format_html, mark_safe
         id = attrs["id"]
 
         def make_feedback_func(feedback):
-            return "'$(\"#{id}\").val(\"{feedback}\")'".format(
-                                 id=id, feedback=escapejs(feedback))
+            return f"'$(\"#{id}\").val(\"{escapejs(feedback)}\")'"
 
         buttons = []
         # Add buttons.
         for button_value in self.button_values:
             buttons.append(format_html(
-                "<button class='btn btn-xs btn-default' "
+                "<button class='btn btn-sm btn-outline-secondary me-1' "
                 "type='button' onclick={func}>{val}</button>",
                 func=mark_safe(make_feedback_func(button_value)),
                 val=button_value))
 
         # Add a clear button.
         buttons.append(format_html(
-            "<button class='btn btn-xs btn-default' "
+            "<button class='btn btn-sm btn-outline-danger' "
             "type='button' onclick={func}>Clear</button>",
             func=mark_safe(make_feedback_func(""))))
 
-        return format_html("{html}<p>{button_row}</p>",
+        return format_html("{html}<div class='lh-lg'>{button_row}</div>",
                            html=html, button_row=mark_safe("".join(buttons)))
 
 
 class HumanTextFeedbackForm(StyledForm):
-    def __init__(self, point_value, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self,
+                 point_value: float | None,
+                 *args: Any,
+                editor_interaction_mode: str | None = None,
+                rubric: str | None = None
+            ) -> None:
+        super().__init__(*args)
 
         self.point_value = point_value
 
@@ -946,15 +1018,35 @@ class HumanTextFeedbackForm(StyledForm):
                         create_default_point_scale(point_value)),
                     label=_("Grade points"))
 
+        from course.utils import JsLiteral, get_codemirror_widget
+        cm_widget, cm_help_text = get_codemirror_widget(
+                    language_mode="markdown",
+                    interaction_mode=editor_interaction_mode,
+                    additional_keys={
+                        "Ctrl-;":
+                        JsLiteral("rlUtils.goToNextPointsField"),
+                        "Shift-Ctrl-;":
+                        JsLiteral("rlUtils.goToPreviousPointsField"),
+                        })
         self.fields["feedback_text"] = forms.CharField(
-                widget=forms.Textarea(),
+                widget=cm_widget,
                 required=False,
-                help_text=mark_safe_lazy(
+                initial=rubric,
+                help_text=mark_safe(
                     _("Feedback to be shown to student, using "
                     "<a href='http://documen.tician.de/"
                     "relate/content.html#relate-markup'>"
-                    "RELATE-flavored Markdown</a>")),
-                label=_("Feedback text"))
+                    "RELATE-flavored Markdown</a>. "
+                    "See RELATE documentation for automatic computation of point "
+                    "count from <tt>[pts:N/N]</tt> and <tt>[pts:N]</tt>. "
+                    "Use Ctrl-Semicolon/Ctrl-Shift-Semicolon "
+                    "to move between <tt>[pts:]</tt> fields. ")
+                    + cm_help_text),
+                label=_("Feedback text (Ctrl+Shift+F)"))
+        self.fields["rubric_text"] = forms.CharField(
+                widget=forms.HiddenInput(attrs={"value": rubric}),
+                initial=rubric,
+                required=False)
         self.fields["notify"] = forms.BooleanField(
                 initial=False, required=False,
                 help_text=_("Checking this box and submitting the form "
@@ -1028,43 +1120,72 @@ class HumanTextFeedbackForm(StyledForm):
 class PageBaseWithHumanTextFeedback(PageBase):
     """
     .. automethod:: human_feedback_point_value
+
+    Supports automatic computation of point values from textual feedback.
+    See :ref:`points-from-feedback`.
     """
     grade_data_attrs = ["released", "grade_percent", "feedback_text", "notes"]
 
-    def required_attrs(self):
-        return super().required_attrs() + (
-                ("rubric", "markup"),
-                )
+    def required_attrs(self) -> AttrSpec:
+        return (*super().required_attrs(), ("rubric", "markup"))
 
-    def human_feedback_point_value(self, page_context, page_data):
-        """Subclasses can override this to make the point value of the human feedback known,
-        which will enable grade entry in points.
+    def human_feedback_point_value(self,
+                page_context: PageContext,
+                page_data: Any
+            ) -> float | None:
+        """Subclasses can override this to make the point value of the human
+        feedback known, which will enable grade entry in points.
         """
         return None
 
-    def make_grading_form(self, page_context, page_data, grade_data):
+    def make_grading_form(
+            self,
+            page_context: PageContext,
+            page_data: Any,
+            grade_data: Any,
+            ) -> StyledForm | None:
         human_feedback_point_value = self.human_feedback_point_value(
                 page_context, page_data)
 
+        editor_interaction_mode = get_editor_interaction_mode(page_context)
         if grade_data is not None:
             form_data = {}
             for k in self.grade_data_attrs:
                 form_data[k] = grade_data[k]
 
-            return HumanTextFeedbackForm(human_feedback_point_value, form_data)
+            return HumanTextFeedbackForm(human_feedback_point_value, form_data,
+                    editor_interaction_mode=editor_interaction_mode,
+                    rubric=self.page_desc.rubric)
         else:
-            return HumanTextFeedbackForm(human_feedback_point_value)
+            return HumanTextFeedbackForm(human_feedback_point_value,
+                    editor_interaction_mode=editor_interaction_mode,
+                    rubric=self.page_desc.rubric)
 
-    def post_grading_form(self, page_context, page_data, grade_data,
-            post_data, files_data):
+    def post_grading_form(
+            self,
+            page_context: PageContext,
+            page_data: Any,
+            grade_data: Any,
+            post_data: Any,
+            files_data: Any,
+            ) -> StyledForm:
         human_feedback_point_value = self.human_feedback_point_value(
                 page_context, page_data)
+        editor_interaction_mode = get_editor_interaction_mode(page_context)
         return HumanTextFeedbackForm(
-                human_feedback_point_value, post_data, files_data)
+                human_feedback_point_value, post_data, files_data,
+                editor_interaction_mode=editor_interaction_mode,
+                rubric=self.page_desc.rubric)
 
-    def update_grade_data_from_grading_form_v2(self, request, page_context,
-            page_data, grade_data, grading_form, files_data):
-
+    def update_grade_data_from_grading_form_v2(
+            self,
+            request: django.http.HttpRequest,
+            page_context: PageContext,
+            page_data: Any,
+            grade_data: Any,
+            grading_form: Any,
+            files_data: Any
+            ):
         if grade_data is None:
             grade_data = {}
         for k in self.grade_data_attrs:
@@ -1076,8 +1197,12 @@ class PageBaseWithHumanTextFeedback(PageBase):
         if grading_form.cleaned_data["notify"] and page_context.flow_session:
             from course.utils import LanguageOverride
             with LanguageOverride(page_context.course):
-                from relate.utils import render_email_template
                 from course.utils import will_use_masked_profile_for_email
+                from relate.utils import render_email_template
+
+                assert request.user.is_authenticated
+                assert page_context.flow_session.participation is not None
+
                 staff_email = [page_context.course.notify_email, request.user.email]
                 message = render_email_template("course/grade-notify.txt", {
                     "page_title": self.title(page_context, page_data),
@@ -1115,8 +1240,12 @@ class PageBaseWithHumanTextFeedback(PageBase):
                 and page_context.flow_session):
             from course.utils import LanguageOverride
             with LanguageOverride(page_context.course):
-                from relate.utils import render_email_template
                 from course.utils import will_use_masked_profile_for_email
+                from relate.utils import render_email_template
+
+                assert request.user.is_authenticated
+                assert page_context.flow_session.user is not None
+
                 staff_email = [page_context.course.notify_email, request.user.email]
                 use_masked_profile = will_use_masked_profile_for_email(staff_email)
                 if use_masked_profile:
@@ -1196,7 +1325,7 @@ class PageBaseWithHumanTextFeedback(PageBase):
                 or grade_data["feedback_text"]):
             if grade_data["grade_percent"] is not None:
                 correctness = grade_data["grade_percent"]/100
-                feedback_text = "<p>%s</p>" % get_auto_feedback(correctness)
+                feedback_text = f"<p>{get_auto_feedback(correctness)}</p>"
 
             else:
                 correctness = None
@@ -1220,12 +1349,16 @@ class PageBaseWithHumanTextFeedback(PageBase):
 
 
 class PageBaseWithCorrectAnswer(PageBase):
-    def allowed_attrs(self):
-        return super().allowed_attrs() + (
-            ("correct_answer", "markup"),
-            )
+    def allowed_attrs(self) -> AttrSpec:
+        return (*super().allowed_attrs(), ("correct_answer", "markup"))
 
-    def correct_answer(self, page_context, page_data, answer_data, grade_data):
+    def correct_answer(
+            self,
+            page_context: PageContext,
+            page_data: Any,
+            answer_data: Any,
+            grade_data: Any,
+            ) -> str | None:
         if hasattr(self.page_desc, "correct_answer"):
             return markup_to_html(page_context, self.page_desc.correct_answer)
         else:
@@ -1234,8 +1367,11 @@ class PageBaseWithCorrectAnswer(PageBase):
 # }}}
 
 
-def get_editor_interaction_mode(page_context):
-    if (page_context.flow_session is not None
+def get_editor_interaction_mode(page_context: PageContext) -> str:
+    if (page_context.request is not None
+            and not page_context.request.user.is_anonymous):
+        return page_context.request.user.editor_mode
+    elif (page_context.flow_session is not None
             and page_context.flow_session.participation is not None):
         return page_context.flow_session.participation.user.editor_mode
     else:

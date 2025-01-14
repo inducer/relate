@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+
 __copyright__ = "Copyright (C) 2014 Andreas Kloeckner"
 
 __license__ = """
@@ -21,12 +24,15 @@ THE SOFTWARE.
 """
 
 
-from django.db import models
-from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
-from django.utils.translation import gettext_lazy as _, pgettext_lazy
-from django.utils import timezone
-from django.contrib.auth.models import UserManager
+from django.contrib.auth.models import (
+    AbstractBaseUser,
+    PermissionsMixin,
+    UserManager,
+)
 from django.contrib.auth.validators import ASCIIUsernameValidator
+from django.db import models
+from django.utils import timezone
+from django.utils.translation import gettext, gettext_lazy as _, pgettext_lazy
 
 from course.constants import USER_STATUS_CHOICES
 
@@ -36,10 +42,10 @@ from course.constants import USER_STATUS_CHOICES
 class User(AbstractBaseUser, PermissionsMixin):
     username = models.CharField(
         _("username"),
-        max_length=30,
+        max_length=200,
         unique=True,
         help_text=_(
-            "Required. 30 characters or fewer. Letters, digits and @/./+/-/_ only."),
+            "Required. Letters, digits and @/./+/-/_ only."),
         validators=[ASCIIUsernameValidator()],
         error_messages={
             "unique": _("A user with that username already exists."),
@@ -48,7 +54,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     first_name = models.CharField(_("first name"), max_length=100, blank=True)
     last_name = models.CharField(_("last name"), max_length=100, blank=True)
     email = models.EmailField(_("email address"), blank=True,
-            max_length=100)
+            max_length=200)
     name_verified = models.BooleanField(
         _("Name verified"),
         default=False,
@@ -110,7 +116,6 @@ class User(AbstractBaseUser, PermissionsMixin):
                         "leave it as 'Default'.)"),
             choices=(
                 ("default", _("Default")),
-                ("sublime", "Sublime text"),
                 ("emacs", "Emacs"),
                 ("vim", "Vim"),
                 ),
@@ -125,26 +130,27 @@ class User(AbstractBaseUser, PermissionsMixin):
         verbose_name = _("user")
         verbose_name_plural = _("users")
 
-    def get_full_name(self, allow_blank=True, force_verbose_blank=False):
+    def get_full_name(
+                self, allow_blank=True, force_verbose_blank=False
+            ) -> str | None:
         if (not allow_blank
                 and (not self.first_name or not self.last_name)):
             return None
 
-        def verbose_blank(s):
+        def verbose_blank(s: str) -> str:
             if force_verbose_blank:
                 if not s:
-                    return _("(blank)")
+                    return gettext("(blank)")
                 else:
                     return s
             return s
 
-        def default_fullname(first_name, last_name):
+        def default_fullname(first_name: str, last_name: str) -> str:
             """
             Returns the first_name plus the last_name, with a space in
             between.
             """
-            return "{} {}".format(
-                verbose_blank(first_name), verbose_blank(last_name))
+            return f"{verbose_blank(first_name)} {verbose_blank(last_name)}"
 
         from accounts.utils import relate_user_method_settings
         format_method = relate_user_method_settings.custom_full_name_method
@@ -160,7 +166,7 @@ class User(AbstractBaseUser, PermissionsMixin):
 
         return full_name.strip()
 
-    def get_masked_profile(self):
+    def get_masked_profile(self) -> str:
         """
         Returns the masked user profile.
         """
@@ -184,11 +190,11 @@ class User(AbstractBaseUser, PermissionsMixin):
                                "an empty string.")
         return result
 
-    def get_short_name(self):
+    def get_short_name(self) -> str:
         """Returns the short name for the user."""
         return self.first_name
 
-    def get_email_appellation(self):
+    def get_email_appellation(self) -> str:
         """Return the appellation of the receiver in email."""
 
         from accounts.utils import relate_user_method_settings
@@ -206,9 +212,9 @@ class User(AbstractBaseUser, PermissionsMixin):
 
             return appellation
 
-        return _("user")
+        return gettext("user")
 
-    def clean(self):
+    def clean(self) -> None:
         super().clean()
 
         # email can be None in Django admin when create new user

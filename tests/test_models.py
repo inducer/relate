@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+
 __doc__ = """
 This is testing uncovering part of course.models by other tests
 """
@@ -24,24 +27,25 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from datetime import datetime, timedelta
-import pytest
 import unittest
-import pytz_deprecation_shim as pytz
+from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 
+import pytest
 from django.conf import settings
-from django.test import TestCase, override_settings
 from django.core.exceptions import ValidationError
+from django.test import TestCase, override_settings
 from django.utils.timezone import now
 
-from course import models
+from course import constants, models
 from course.constants import participation_permission as pperm
-from course import constants
 from course.content import dict_to_struct
-
-from tests.base_test_mixins import CoursesTestMixinBase
 from tests import factories
+from tests.base_test_mixins import CoursesTestMixinBase
 from tests.utils import mock
+
+
+UTC = ZoneInfo("UTC")
 
 
 @pytest.mark.django_db
@@ -488,17 +492,17 @@ class FlowSessionTest(RelateModelTestMixin, unittest.TestCase):
         fpdata = factories.FlowPageDataFactory(flow_session=fs)
         factories.FlowPageVisitFactory(
             page_data=fpdata, answer=None,
-            visit_time=datetime(2019, 1, 1, tzinfo=pytz.UTC)
+            visit_time=datetime(2019, 1, 1, tzinfo=UTC)
         )
         factories.FlowPageVisitFactory(
             page_data=fpdata, answer=None,
-            visit_time=datetime(2019, 1, 2, tzinfo=pytz.UTC)
+            visit_time=datetime(2019, 1, 2, tzinfo=UTC)
         )
         self.assertEqual(fs.last_activity(), None)
 
         fpv = factories.FlowPageVisitFactory(
             page_data=fpdata, answer={"answer": "hi"},
-            visit_time=datetime(2018, 12, 31, tzinfo=pytz.UTC)
+            visit_time=datetime(2018, 12, 31, tzinfo=UTC)
         )
 
         self.assertEqual(fs.last_activity(), fpv.visit_time)
@@ -531,11 +535,11 @@ class FlowPageVisitTest(RelateModelTestMixin, unittest.TestCase):
     def test_unicode(self):
         visit1 = factories.FlowPageVisitFactory(
             page_data=self.fpdata, answer=None,
-            visit_time=datetime(2019, 1, 1, tzinfo=pytz.UTC)
+            visit_time=datetime(2019, 1, 1, tzinfo=UTC)
         )
         visit2 = factories.FlowPageVisitFactory(
             page_data=self.fpdata, answer=None,
-            visit_time=datetime(2019, 1, 2, tzinfo=pytz.UTC)
+            visit_time=datetime(2019, 1, 2, tzinfo=UTC)
         )
 
         self.assertNotEqual(str(visit1), str(visit2))
@@ -544,11 +548,11 @@ class FlowPageVisitTest(RelateModelTestMixin, unittest.TestCase):
     def test_unicode_with_answer(self):
         visit1 = factories.FlowPageVisitFactory(
             page_data=self.fpdata, answer={"answer": "hi"},
-            visit_time=datetime(2019, 1, 1, tzinfo=pytz.UTC)
+            visit_time=datetime(2019, 1, 1, tzinfo=UTC)
         )
         visit2 = factories.FlowPageVisitFactory(
             page_data=self.fpdata, answer={"answer": "hi"},
-            visit_time=datetime(2019, 1, 2, tzinfo=pytz.UTC)
+            visit_time=datetime(2019, 1, 2, tzinfo=UTC)
         )
 
         self.assertNotEqual(str(visit1), str(visit2))
@@ -568,7 +572,7 @@ class FlowPageVisitGradeTest(RelateModelTestMixin, unittest.TestCase):
     def test_percentage_none(self):
         visit = factories.FlowPageVisitFactory(
             page_data=self.fpdata, answer=None,
-            visit_time=datetime(2019, 1, 1, tzinfo=pytz.UTC),
+            visit_time=datetime(2019, 1, 1, tzinfo=UTC),
         )
         fpvg = factories.FlowPageVisitGradeFactory(
             visit=visit, correctness=None
@@ -578,7 +582,7 @@ class FlowPageVisitGradeTest(RelateModelTestMixin, unittest.TestCase):
     def test_percentage(self):
         visit = factories.FlowPageVisitFactory(
             page_data=self.fpdata, answer={"answer": "hi"},
-            visit_time=datetime(2019, 1, 1, tzinfo=pytz.UTC),
+            visit_time=datetime(2019, 1, 1, tzinfo=UTC),
         )
         fpvg = factories.FlowPageVisitGradeFactory(
             visit=visit, correctness=0.5
@@ -588,7 +592,7 @@ class FlowPageVisitGradeTest(RelateModelTestMixin, unittest.TestCase):
     def test_uniqueness(self):
         visit = factories.FlowPageVisitFactory(
             page_data=self.fpdata, answer=None,
-            visit_time=datetime(2019, 1, 1, tzinfo=pytz.UTC),
+            visit_time=datetime(2019, 1, 1, tzinfo=UTC),
         )
 
         factories.FlowPageVisitGradeFactory(
@@ -603,11 +607,11 @@ class FlowPageVisitGradeTest(RelateModelTestMixin, unittest.TestCase):
     def test_unicode(self):
         visit = factories.FlowPageVisitFactory(
             page_data=self.fpdata, answer=None,
-            visit_time=datetime(2019, 1, 1, tzinfo=pytz.UTC),
+            visit_time=datetime(2019, 1, 1, tzinfo=UTC),
         )
         visit2 = factories.FlowPageVisitFactory(
             page_data=self.fpdata, answer=None,
-            visit_time=datetime(2019, 1, 2, tzinfo=pytz.UTC),
+            visit_time=datetime(2019, 1, 2, tzinfo=UTC),
         )
 
         fpvg = factories.FlowPageVisitGradeFactory(
@@ -670,7 +674,7 @@ class FlowRuleExceptionTest(RelateModelTestMixin, TestCase):
         self.assertNotEqual(str(fre1), str(fre2))
 
     def test_clean_success_null_exception_rule(self):
-        rule = dict()
+        rule = {}
         fre = models.FlowRuleException(
             flow_id=factories.DEFAULT_FLOW_ID,
             participation=self.participation,
@@ -685,7 +689,7 @@ class FlowRuleExceptionTest(RelateModelTestMixin, TestCase):
         self.assertEqual(self.mock_validate_session_start_rule.call_count, 1)
 
     def test_clean_failure_with_invalid_existing_session_rules(self):
-        rule = dict()
+        rule = {}
         fre = models.FlowRuleException(
             flow_id=factories.DEFAULT_FLOW_ID,
             participation=self.participation,
@@ -701,7 +705,7 @@ class FlowRuleExceptionTest(RelateModelTestMixin, TestCase):
         with self.assertRaises(ValidationError) as cm:
             fre.clean()
 
-        expected_error_msg = "invalid existing_session_rules: %s" % my_custom_error
+        expected_error_msg = f"invalid existing_session_rules: {my_custom_error}"
         self.assertIn(expected_error_msg, str(cm.exception))
         self.assertEqual(self.mock_get_course_repo.call_count, 1)
         self.assertEqual(self.mock_get_flow_desc.call_count, 1)
@@ -710,7 +714,7 @@ class FlowRuleExceptionTest(RelateModelTestMixin, TestCase):
     def test_clean_success_no_existing_rules(self):
         self.mock_get_flow_desc.return_value = dict_to_struct(
             {"id": "no_existing_flow"})
-        rule = dict()
+        rule = {}
         fre = models.FlowRuleException(
             flow_id=factories.DEFAULT_FLOW_ID,
             participation=self.participation,

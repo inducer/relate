@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+
 __copyright__ = "Copyright (C) 2014 Andreas Kloeckner"
 
 __license__ = """
@@ -23,46 +24,57 @@ THE SOFTWARE.
 """
 
 import re
+from dataclasses import dataclass
 from decimal import Decimal
-from typing import cast
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    cast,
+)
 
-from django.utils.translation import (
-        gettext_lazy as _, pgettext_lazy, gettext)
-from django.shortcuts import (  # noqa
-        render, redirect, get_object_or_404)
-from django.contrib import messages  # noqa
-from django.core.exceptions import (
-        PermissionDenied, SuspiciousOperation, ObjectDoesNotExist)
-from django.db import connection
-from django import forms
-from django.db import transaction
-from django.utils.timezone import now
-from django import http
-
-from django.urls import reverse
-from relate.utils import StyledForm, StyledModelForm, string_concat
 from crispy_forms.layout import Submit
-from bootstrap_datepicker_plus.widgets import DateTimePickerInput
+from django import forms, http
+from django.contrib import messages
+from django.core.exceptions import (
+    ObjectDoesNotExist,
+    PermissionDenied,
+    SuspiciousOperation,
+)
+from django.db import connection, transaction
+from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
+from django.utils.timezone import now
+from django.utils.translation import gettext, gettext_lazy as _, pgettext_lazy
 
-from course.utils import course_view, render_course_page
-from course.models import (
-        Participation, participation_status,
-        GradingOpportunity, GradeChange, GradeStateMachine,
-        grade_state_change_types,
-        FlowSession, FlowPageVisit)
+from course.constants import participation_permission as pperm
 from course.flow import adjust_flow_session_page_data
+from course.models import (
+    FlowPageVisit,
+    FlowSession,
+    GradeChange,
+    GradeStateMachine,
+    GradingOpportunity,
+    Participation,
+    grade_state_change_types,
+    participation_status,
+)
+from course.utils import course_view, render_course_page
 from course.views import get_now_or_fake_time
-from course.constants import (
-        participation_permission as pperm,
-        )
+from relate.utils import (
+    HTML5DateTimeInput,
+    StyledForm,
+    StyledModelForm,
+    not_none,
+    string_concat,
+)
+
 
 # {{{ for mypy
 
-from typing import Tuple, Text, Optional, Any, Iterable, List, Union, TYPE_CHECKING  # noqa
 if TYPE_CHECKING:
-    from course.utils import CoursePageContext  # noqa
-    from course.content import FlowDesc  # noqa
-    from course.models import Course, FlowPageVisitGrade  # noqa
+    from course.content import FlowDesc
+    from course.models import Course, FlowPageVisitGrade
+    from course.utils import CoursePageContext
 
 # }}}
 
@@ -199,16 +211,14 @@ def view_grading_opportunity_list(pctx):
 
 # {{{ teacher grade book
 
+@dataclass
 class GradeInfo:
-    def __init__(self, opportunity: GradingOpportunity,
-            grade_state_machine: GradeStateMachine) -> None:
-        self.opportunity = opportunity
-        self.grade_state_machine = grade_state_machine
+    opportunity: GradingOpportunity
+    grade_state_machine: GradeStateMachine
 
 
-def get_grade_table(course: Course) -> Tuple[
-        List[Participation], List[GradingOpportunity], List[List[GradeInfo]]]:
-    # noqa
+def get_grade_table(course: Course) -> tuple[
+        list[Participation], list[GradingOpportunity], list[list[GradeInfo]]]:
 
     # NOTE: It's important that these queries are sorted consistently,
     # also consistently with the code below.
@@ -285,11 +295,11 @@ def view_gradebook(pctx):
     participations, grading_opps, grade_table = get_grade_table(pctx.course)
 
     def grade_key(entry):
-        (participation, grades) = entry
+        (participation, _grades) = entry
         return (participation.user.last_name.lower(),
                     participation.user.first_name.lower())
 
-    grade_table = sorted(zip(participations, grade_table), key=grade_key)
+    grade_table = sorted(zip(participations, grade_table, strict=True), key=grade_key)
 
     return render_course_page(pctx, "course/gradebook.html", {
         "grade_table": grade_table,
@@ -318,7 +328,7 @@ def export_gradebook_csv(pctx):
 
     writer.writerow(fieldnames)
 
-    for participation, grades in zip(participations, grade_table):
+    for participation, grades in zip(participations, grade_table, strict=True):
         writer.writerow([
             participation.user.username,
             participation.user.last_name,
@@ -330,8 +340,7 @@ def export_gradebook_csv(pctx):
             csvfile.getvalue().encode("utf-8"),
             content_type="text/plain; charset=utf-8")
     response["Content-Disposition"] = (
-            'attachment; filename="grades-%s.csv"'
-            % pctx.course.identifier)
+            f'attachment; filename="grades-{pctx.course.identifier}.csv"')
     return response
 
 # }}}
@@ -354,7 +363,7 @@ class OpportunitySessionGradeInfo:
         whether the instance is created by a flow-session-related opportunity.
         :param grades: optional, a :class:`list:` of float or None, representing the
         percentage grades of each page in the flow session.
-        :param has_finished_session:  a :class:`bool:`, respresent whether
+        :param has_finished_session:  a :class:`bool:`, represent whether
         the related participation has finished a flow-session, if the opportunity
         is a flow-session related one. This is used to correctly order flow state,
         if the participation has at least one finished flow session, the in-progress
@@ -368,7 +377,7 @@ class OpportunitySessionGradeInfo:
 
 
 class ModifySessionsForm(StyledForm):
-    def __init__(self, session_rule_tags: List[str],
+    def __init__(self, session_rule_tags: list[str],
             *args: Any, **kwargs: Any) -> None:
 
         super().__init__(*args, **kwargs)
@@ -399,7 +408,7 @@ class ModifySessionsForm(StyledForm):
 RULE_TAG_NONE_STRING = "<<<NONE>>>"
 
 
-def mangle_session_access_rule_tag(rule_tag: Optional[str]) -> str:
+def mangle_session_access_rule_tag(rule_tag: str | None) -> str:
     if rule_tag is None:
         return RULE_TAG_NONE_STRING
     else:
@@ -430,7 +439,7 @@ def view_grades_by_opportunity(
             or pctx.has_permission(pperm.batch_recalculate_flow_session_grade)
             )
 
-    batch_session_ops_form: Optional[ModifySessionsForm] = None
+    batch_session_ops_form: ModifySessionsForm | None = None
     if batch_ops_allowed and opportunity.flow_id:
         cursor = connection.cursor()
         cursor.execute("select distinct access_rules_tag from course_flowsession "
@@ -478,10 +487,11 @@ def view_grades_by_opportunity(
                     rule_tag = None
 
                 from course.tasks import (
-                        expire_in_progress_sessions,
-                        finish_in_progress_sessions,
-                        regrade_flow_sessions,
-                        recalculate_ended_sessions)
+                    expire_in_progress_sessions,
+                    finish_in_progress_sessions,
+                    recalculate_ended_sessions,
+                    regrade_flow_sessions,
+                )
 
                 if op == "expire":
                     async_res = expire_in_progress_sessions.delay(
@@ -539,7 +549,7 @@ def view_grades_by_opportunity(
             .select_related("opportunity"))
 
     if opportunity.flow_id:
-        flow_sessions: Optional[List[FlowSession]] = list(FlowSession.objects
+        flow_sessions: list[FlowSession] | None = list(FlowSession.objects
                 .filter(
                     flow_id=opportunity.flow_id,
                     )
@@ -558,7 +568,7 @@ def view_grades_by_opportunity(
     finished_sessions = 0
     total_sessions = 0
 
-    grade_table: List[Tuple[Participation, OpportunitySessionGradeInfo]] = []
+    grade_table: list[tuple[Participation, OpportunitySessionGradeInfo]] = []
     for participation in participations:
         # Advance in grade change list
         while (
@@ -588,7 +598,7 @@ def view_grades_by_opportunity(
                     and (
                         flow_sessions[fsess_idx].participation is None
                         or (
-                            flow_sessions[fsess_idx].participation.pk
+                            not_none(flow_sessions[fsess_idx].participation).pk
                             < participation.pk))):
                 fsess_idx += 1
 
@@ -598,7 +608,7 @@ def view_grades_by_opportunity(
                     fsess_idx < len(flow_sessions)
                     and flow_sessions[fsess_idx].participation is not None
                     and (
-                        flow_sessions[fsess_idx].participation.pk
+                        not_none(flow_sessions[fsess_idx].participation).pk
                         == participation.pk)):
                 my_flow_sessions.append(flow_sessions[fsess_idx])
                 fsess_idx += 1
@@ -634,15 +644,18 @@ def view_grades_by_opportunity(
                 for _dummy1, info in grade_table]
 
         assert all(all_flow_sessions)
-        max_page_count = max(fsess.page_count for fsess in all_flow_sessions)
+        max_page_count = max(not_none(fsess.page_count) for fsess in all_flow_sessions)
         page_numbers = list(range(1, 1 + max_page_count))
 
         from course.flow import assemble_page_grades
-        page_grades: List[List[Optional[FlowPageVisitGrade]]] = assemble_page_grades(all_flow_sessions)  # noqa
+        page_grades: list[list[FlowPageVisitGrade | None]] \
+            = assemble_page_grades(all_flow_sessions)
 
-        for (_dummy2, grade_info), grade_list in zip(grade_table, page_grades):  # type: ignore  # noqa
+        for (_dummy2, grade_info), grade_list in \
+                zip(grade_table, page_grades, strict=True):  # type: ignore
             # Not all pages exist in all sessions
-            grades: List[Tuple[Optional[int], Optional[FlowPageVisitGrade]]] = list(enumerate(grade_list))  # noqa
+            grades: list[tuple[int | None, FlowPageVisitGrade | None]] \
+                = list(enumerate(grade_list))
             if len(grades) < max_page_count:
                 grades.extend([(None, None)] * (max_page_count - len(grades)))
             grade_info.grades = grades
@@ -669,11 +682,11 @@ def view_grades_by_opportunity(
 
 # {{{ reopen session UI
 
-NONE_SESSION_TAG = "<<<NONE>>>"  # noqa
+NONE_SESSION_TAG = "<<<NONE>>>"
 
 
 class ReopenSessionForm(StyledForm):
-    def __init__(self, flow_desc: FlowDesc, current_tag: str,
+    def __init__(self, flow_desc: FlowDesc, current_tag: str | None,
             *args: Any, **kwargs: Any) -> None:
 
         super().__init__(*args, **kwargs)
@@ -681,7 +694,7 @@ class ReopenSessionForm(StyledForm):
         rules = getattr(flow_desc, "rules", object())
         tags = getattr(rules, "tags", [])
 
-        tags = [NONE_SESSION_TAG] + tags
+        tags = [NONE_SESSION_TAG, *tags]
         self.fields["set_access_rules_tag"] = forms.ChoiceField(
                 choices=[(tag, tag) for tag in tags],
                 initial=(current_tag
@@ -739,9 +752,7 @@ def view_reopen_session(pctx: CoursePageContext, flow_session_id: str,
 
             session.access_rules_tag = new_access_rules_tag
 
-            from relate.utils import (
-                    local_now, as_local_time,
-                    format_datetime_local)
+            from relate.utils import as_local_time, format_datetime_local, local_now
             now_datetime = local_now()
 
             session.append_comment(
@@ -751,7 +762,7 @@ def view_reopen_session(pctx: CoursePageContext, flow_session_id: str,
                             "now": format_datetime_local(now_datetime),
                             "user": pctx.request.user,
                             "completion_time": format_datetime_local(
-                                as_local_time(session.completion_time)),
+                                as_local_time(not_none(session.completion_time))),
                             "comment": form.cleaned_data["comment"]
                             })
             session.save()
@@ -759,6 +770,9 @@ def view_reopen_session(pctx: CoursePageContext, flow_session_id: str,
             from course.flow import reopen_session
             reopen_session(now_datetime, session, suppress_log=True,
                     unsubmit_pages=form.cleaned_data["unsubmit_pages"])
+
+            # anonymous sessions do not appear in the grading interface
+            assert session.participation is not None
 
             return redirect("relate-view_single_grade",
                     pctx.course.identifier,
@@ -778,7 +792,9 @@ def view_reopen_session(pctx: CoursePageContext, flow_session_id: str,
 
 # {{{ view single grade
 
-def average_grade(opportunity: GradingOpportunity) -> Tuple[Optional[float], int]:
+def average_grade(
+            opportunity: GradingOpportunity
+        ) -> tuple[float | Decimal | None, int]:
 
     grade_changes = (GradeChange.objects
             .filter(
@@ -792,7 +808,7 @@ def average_grade(opportunity: GradingOpportunity) -> Tuple[Optional[float], int
             .select_related("opportunity"))
 
     grades = []
-    my_grade_changes: List[GradeChange] = []
+    my_grade_changes: list[GradeChange] = []
 
     def finalize() -> None:
 
@@ -825,8 +841,7 @@ def average_grade(opportunity: GradingOpportunity) -> Tuple[Optional[float], int
 
 
 def get_single_grade_changes_and_state_machine(opportunity: GradingOpportunity,
-        participation: Participation) -> Tuple[List[GradeChange], GradeStateMachine]:
-    # noqa
+        participation: Participation) -> tuple[list[GradeChange], GradeStateMachine]:
 
     grade_changes = list(
         GradeChange.objects.filter(
@@ -889,7 +904,7 @@ def view_single_grade(pctx: CoursePageContext, participation_id: str,
 
     request = pctx.request
     if pctx.request.method == "POST":
-        action_re = re.compile("^([a-z]+)_([0-9]+)$")
+        action_re = re.compile(r"^([a-z]+)_([0-9]+)$")
         action_match = None
         for key in request.POST.keys():
             action_match = action_re.match(key)
@@ -907,10 +922,11 @@ def view_single_grade(pctx: CoursePageContext, participation_id: str,
                 respect_preview=False)
 
         from course.flow import (
-                regrade_session,
-                recalculate_session_grade,
-                expire_flow_session_standalone,
-                finish_flow_session_standalone)
+            expire_flow_session_standalone,
+            finish_flow_session_standalone,
+            recalculate_session_grade,
+            regrade_session,
+        )
 
         try:
             if op == "imposedl":
@@ -977,18 +993,19 @@ def view_single_grade(pctx: CoursePageContext, participation_id: str,
                 .order_by("start_time"))
 
         from collections import namedtuple
-        SessionProperties = namedtuple(  # noqa
+        SessionProperties = namedtuple(
                 "SessionProperties",
                 ["due", "grade_description"])
 
-        from course.utils import get_session_grading_rule
         from course.content import get_flow_desc
+        from course.utils import get_session_grading_rule
 
         try:
             flow_desc = get_flow_desc(pctx.repo, pctx.course,
                     opportunity.flow_id, pctx.course_commit_sha)
         except ObjectDoesNotExist:
-            flow_sessions_and_session_properties: Optional[List[Tuple[Any, SessionProperties]]] = None  # noqa
+            flow_sessions_and_session_properties: \
+                list[tuple[Any, SessionProperties]] | None = None
         else:
             flow_sessions_and_session_properties = []
             for session in flow_sessions:
@@ -1130,9 +1147,9 @@ class ImportGradesForm(StyledForm):
             has_header = data["format"] == "csvhead"
             header_count = 1 if has_header else 0
 
-            from course.utils import csv_data_importable
-
             import io
+
+            from course.utils import csv_data_importable
             importable, err_msg = csv_data_importable(
                     io.StringIO(
                         file_contents.read().decode("utf-8", errors="replace")),
@@ -1232,7 +1249,7 @@ def fix_decimal(s):
         return s
 
 
-def points_equal(num: Optional[Decimal], other: Optional[Decimal]) -> bool:
+def points_equal(num: Decimal | None, other: Decimal | None) -> bool:
     if num is None and other is None:
         return True
     if ((num is None and other is not None)
@@ -1240,7 +1257,7 @@ def points_equal(num: Optional[Decimal], other: Optional[Decimal]) -> bool:
         return False
     assert num is not None
     assert other is not None
-    return abs(num - other) < 1e-2
+    return abs(num - other) < Decimal("0.01")
 
 
 def csv_to_grade_changes(
@@ -1398,9 +1415,9 @@ def import_grades(pctx):
             else:
                 if total_count != len(grade_changes):
                     messages.add_message(pctx.request, messages.INFO,
-                            _("%(total)d grades found, %(unchaged)d unchanged.")
+                            _("%(total)d grades found, %(unchanged)d unchanged.")
                             % {"total": total_count,
-                               "unchaged": total_count - len(grade_changes)})
+                               "unchanged": total_count - len(grade_changes)})
 
                 from django.template.loader import render_to_string
 
@@ -1603,8 +1620,7 @@ def download_all_submissions(pctx, flow_id):
                         feedback_lines = []
 
                         feedback_lines.append(
-                            "scores: %s" % (
-                                ", ".join(
+                            "scores: {}".format(", ".join(
                                     str(g.correctness)
                                     for g in visit_grades)))
 
@@ -1628,9 +1644,9 @@ def download_all_submissions(pctx, flow_id):
                     bio.getvalue(),
                     content_type="application/zip")
             response["Content-Disposition"] = (
-                    'attachment; filename="submissions_%s_%s_%s_%s_%s.zip"'
-                    % (pctx.course.identifier, flow_id, group_id, page_id,
-                        now().date().strftime("%Y-%m-%d")))
+                    f'attachment; filename="submissions_{pctx.course.identifier}_'
+                    f'{flow_id}_{group_id}_{page_id}_'
+                    f'{now().date().strftime("%Y-%m-%d")}.zip"')
             return response
 
     else:
@@ -1668,9 +1684,7 @@ class EditGradingOpportunityForm(StyledModelForm):
                 "due_time",
                 )
         widgets = {
-                "hide_superseded_grade_history_before":
-                DateTimePickerInput(
-                    options={"format": "YYYY-MM-DD HH:mm", "sideBySide": True}),
+                "hide_superseded_grade_history_before": HTML5DateTimeInput(),
                 }
 
 

@@ -2,76 +2,76 @@
 {{ prompt_html|safe }}
 
 {% if show_setup_code and setup_code%}
-  <div class="panel panel-default" markdown="block">
-    <div class="panel-heading">
-      <h4 class="panel-title">
-      <a data-toggle="collapse" href="#grading-setup-code">
-        {# Translators: "set-up" stands for set-up code for code question #}
-        {% trans "Problem set-up code" %}
-        <span style="font-size:x-small">{% trans "(click to view)" %}</span>
+  <div class="card mb-3" markdown="block">
+    <div class="card-header">
+      <h5 class="card-title dropdown-toggle">
+        <a class="text-decoration-none link-secondary"
+          data-bs-toggle="collapse" href="#grading-setup-code">
+          {# Translators: "set-up" stands for set-up code for code question #}
+          {% trans "Problem set-up code" %}
       </a>
       </h4>
     </div>
-    <div id="grading-setup-code" class="panel-collapse collapse">
-     <div class="panel-body">
-       <p>
-         {% blocktrans trimmed %}
-           This is the code that is used to set up the problem and produce
-           test data for your submission. It is reproduced here for your
-           information, or if you would like to run your submission outside
-           of {{ relate_site_name }}.
-           You should <em>not</em> copy/paste this code into the
-           code box below. This code is run automatically
-           'behind the scenes' before your submitted code.
-         {% endblocktrans%}
-       </p>
-       <pre>{{ setup_code }}</pre>
-     </div>
+    <div id="grading-setup-code" class="collapse">
+      <div class="card-body">
+        <p>
+        {% blocktrans trimmed %}
+          This is the code that is used to set up the problem and produce
+          test data for your submission. It is reproduced here for your
+          information, or if you would like to run your submission outside
+          of {{ relate_site_name }}.
+          You should <em>not</em> copy/paste this code into the
+          code box below. This code is run automatically
+          'behind the scenes' before your submitted code.
+        {% endblocktrans%}
+        </p>
+        <pre>{{ setup_code }}</pre>
+      </div>
     </div>
   </div>
 {% endif %}
 
 {% if show_test_code and test_code %}
-  <div class="panel panel-default" markdown="block">
-    <div class="panel-heading">
-      <h4 class="panel-title">
-      <a data-toggle="collapse" href="#grading-test-code">
-        {% trans "Testing code" %}
-        <span style="font-size:x-small">{% trans "(click to view)" %}</span>
-      </a>
-      </h4>
+  <div class="card mb-3" markdown="block">
+    <div class="card-header">
+      <h5 class="card-title dropdown-toggle">
+        <a class="text-decoration-none link-secondary"
+          data-bs-toggle="collapse" href="#grading-test-code" aria-expanded="false" aria-controls="starter-code">
+          {% trans "Testing code" %}
+        </a>
+      </h5>
     </div>
-    <div id="grading-test-code" class="panel-collapse collapse">
-     <div class="panel-body">
-       <p>
-         {% blocktrans trimmed %}
-           This is the code that is used to generate feedback for your
-           submission. It is reproduced here for your information, or
-           if you would like to run your submission outside of {{ relate_site_name }}.
-           You should <em>not</em> copy/paste this code into the
-           code box below. This code is run automatically
-           'behind the scenes' after your submitted code.
-         {% endblocktrans%}
-       </p>
-       <pre>{{ test_code }}</pre>
-     </div>
+    <div id="grading-test-code" class="collapse">
+      <div class="card-body">
+        <p>
+        {% blocktrans trimmed %}
+          This is the code that is used to generate feedback for your
+          submission. It is reproduced here for your information, or
+          if you would like to run your submission outside of {{ relate_site_name }}.
+          You should <em>not</em> copy/paste this code into the
+          code box below. This code is run automatically
+          'behind the scenes' after your submitted code.
+        {% endblocktrans%}
+        </p>
+        <pre>{{ test_code }}</pre>
+      </div>
     </div>
   </div>
 {% endif %}
 
 {% if initial_code %}
-  <div class="panel panel-default" markdown="block">
-    <div class="panel-heading">
-      <h4 class="panel-title">
-      <a data-toggle="collapse" href="#starter-code">
-        {# Translators: starter code for code question #}
-        {% trans "Starter code" %}
-        <span style="font-size:x-small">{% trans "(click to view)" %}</span>
-      </a>
-      </h4>
+  <div class="card mb-3" markdown="block">
+    <div class="card-header">
+      <h5 class="card-title dropdown-toggle">
+        <a class="text-decoration-none link-secondary"
+          data-bs-toggle="collapse" href="#starter-code" aria-expanded="false" aria-controls="starter-code">
+          {# Translators: starter code for code question #}
+          {% trans "Starter code" %}
+        </a>
+      </h5>
     </div>
-    <div id="starter-code" class="panel-collapse collapse">
-     <div class="panel-body">
+    <div id="starter-code" class="collapse">
+     <div class="card-body">
        <pre>{{ initial_code }}</pre>
      </div>
     </div>

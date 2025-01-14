@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+
 __copyright__ = "Copyright (C) 2018 Dong Zhuang"
 
 __license__ = """
@@ -20,21 +23,24 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-import unittest
-import stat
 import hashlib
-from dulwich.repo import Tree
+import stat
+import unittest
+
 from django.test import TestCase
+from dulwich.repo import Tree
 
 from course import validation
-from course.validation import ValidationError
-from course.content import dict_to_struct
 from course.constants import (
-    flow_permission, grade_aggregation_strategy, ATTRIBUTES_FILENAME)
-
-from tests.utils import mock, suppress_stdout_decorator
-from tests.base_test_mixins import CoursesTestMixinBase
+    ATTRIBUTES_FILENAME,
+    flow_permission,
+    grade_aggregation_strategy,
+)
+from course.content import dict_to_struct
+from course.validation import ValidationError
 from tests import factories
+from tests.base_test_mixins import CoursesTestMixinBase
+from tests.utils import mock, suppress_stdout_decorator
 
 
 location = "some_where"
@@ -62,7 +68,7 @@ class ValidateIdentifierTest(ValidationTestMixin, unittest.TestCase):
     def test_id_re_not_matched(self):
         identifier = "test identifier"
         expected_warn_msg = expected_error_msg = (
-            "invalid identifier '%s'" % identifier)
+            f"invalid identifier '{identifier}'")
         validation.validate_identifier(
             vctx, location, identifier, warning_only=True)
         self.assertEqual(vctx.add_warning.call_count, 1)
@@ -166,7 +172,7 @@ class ValidateParticipationtagTest(CoursesTestMixinBase, TestCase):
 
 
 required_attrs = [("ra1", int), ("ra2", str)]
-allowed_attrs = [("aa1", float), ("aa2", bool), "aa3", ("aa4", "markup")]
+allowed_attrs = [("aa1", float), ("aa2", bool), ("aa4", "markup")]
 rule1 = dict_to_struct({"ra1": 1, "ra2": "abcd"})
 rule2 = dict_to_struct({"ra2": "abcd"})
 rule3 = dict_to_struct(
@@ -1055,7 +1061,7 @@ class ValidateSessionStartRuleTest(ValidationTestMixin, unittest.TestCase):
                 self.get_updated_tags())
 
         expected_error_msg = (
-                "invalid default expiration mode '%s'" % mode)
+                f"invalid default expiration mode '{mode}'")
         self.assertIn(expected_error_msg, str(cm.exception))
 
         # no warnings
@@ -1333,7 +1339,7 @@ class ValidateSessionAccessRuleTest(ValidationTestMixin, unittest.TestCase):
                 self.get_updated_tags())
 
         expected_error_msg = (
-                "invalid expiration mode '%s'" % mode)
+                f"invalid expiration mode '{mode}'")
         self.assertIn(expected_error_msg, str(cm.exception))
 
         # no warnings
@@ -1944,10 +1950,9 @@ class ValidateFlowRules(ValidationTestMixin, unittest.TestCase):
                     self.get_updated_rule(no_grade_aggregation_strategy=True))
             expected_error_msg = (
                 "flows that have a grade "
-                "identifier ('%(identifier)s') "
+                f"identifier ('{self.default_grade_identifier}') "
                 "must have grading rules with a "
-                "grade_aggregation_strategy"
-                % {"identifier": self.default_grade_identifier})
+                "grade_aggregation_strategy")
 
             self.assertIn(expected_error_msg, str(cm.exception))
 
@@ -1981,7 +1986,7 @@ class ValidateFlowRules(ValidationTestMixin, unittest.TestCase):
                     self.get_updated_rule(**kwargs))
 
             expected_error_msg = (
-                "invalid grade aggregation strategy: %s" % g_strategy)
+                f"invalid grade aggregation strategy: {g_strategy}")
 
             self.assertIn(expected_error_msg, str(cm.exception))
 
@@ -2405,7 +2410,7 @@ class ValidateFlowDescTest(ValidationTestMixin, unittest.TestCase):
                     self.get_updated_flow_desc(**kwargs))
 
             expected_error_msg = (
-                "%s: no pages found" % location)
+                f"{location}: no pages found")
             self.assertIn(expected_error_msg, str(cm.exception))
 
         self.assertEqual(mock_vs.call_count, 1)
@@ -2581,8 +2586,8 @@ class ValidateFlowDescTest(ValidationTestMixin, unittest.TestCase):
                 # no warnings
 
                 expected_warn_msg = (
-                    "Attribute '%s' is deprecated as part of a flow. "
-                    "Specify it as part of a grading rule instead." % attr)
+                    f"Attribute '{attr}' is deprecated as part of a flow. "
+                    "Specify it as part of a grading rule instead.")
 
                 self.assertIn(expected_warn_msg, vctx.add_warning.call_args[0])
                 self.assertEqual(vctx.add_warning.call_count, 1)
@@ -2690,15 +2695,15 @@ class CheckGradeIdentifierLinkTest(
     # test validation.check_grade_identifier_link
 
     @classmethod
-    def setUpTestData(cls):  # noqa
+    def setUpTestData(cls):
         super().setUpTestData()
 
-        cls.default_grade_indentifier = "gopp1"
+        cls.default_grade_identifier = "gopp1"
 
         cls.course1 = factories.CourseFactory(identifier="test-course1")
         cls.course2 = factories.CourseFactory(identifier="test-course2")
         cls.course1_gopp = factories.GradingOpportunityFactory(
-            course=cls.course1, identifier=cls.default_grade_indentifier,
+            course=cls.course1, identifier=cls.default_grade_identifier,
             flow_id="flow1_id")
 
         # Ensure cross gopp independence
@@ -2708,13 +2713,13 @@ class CheckGradeIdentifierLinkTest(
 
         # Ensure cross course independence
         factories.GradingOpportunityFactory(
-            course=cls.course2, identifier=cls.default_grade_indentifier,
+            course=cls.course2, identifier=cls.default_grade_identifier,
             flow_id="flow2_id")
 
     def test_success(self):
         validation.check_grade_identifier_link(
             vctx, location, self.course1, flow_id="flow1_id",
-            flow_grade_identifier=self.default_grade_indentifier)
+            flow_grade_identifier=self.default_grade_identifier)
 
     def test_fail(self):
         new_flow_id = "flow2_id"
@@ -2724,16 +2729,12 @@ class CheckGradeIdentifierLinkTest(
                 flow_grade_identifier=self.course1_gopp.identifier)
 
         expected_error_msg = (
-            "{location}: existing grading opportunity with identifier "
-            "'{grade_identifier}' refers to flow '{other_flow_id}', however "
-            "flow code in this flow ('{new_flow_id}') specifies the same "
+            f"{location}: existing grading opportunity with identifier "
+            f"'{self.course1_gopp.identifier}' refers to flow '{self.course1_gopp.flow_id}', however "  # noqa: E501
+            f"flow code in this flow ('{new_flow_id}') specifies the same "
             "grade identifier. "
             "(Have you renamed the flow? If so, edit the grading "
-            "opportunity to match.)".format(
-                location=location,
-                grade_identifier=self.course1_gopp.identifier,
-                other_flow_id=self.course1_gopp.flow_id,
-                new_flow_id=new_flow_id))
+            "opportunity to match.)")
         self.assertIn(expected_error_msg, str(cm.exception))
 
 
@@ -2757,7 +2758,7 @@ class CheckForPageTypeChangesTest(
         return dict_to_struct(flow_desc)
 
     @classmethod
-    def setUpTestData(cls):  # noqa
+    def setUpTestData(cls):
         super().setUpTestData()
         cls.course1 = factories.CourseFactory(identifier="test-course1")
         course1_participation = factories.ParticipationFactory(course=cls.course1)

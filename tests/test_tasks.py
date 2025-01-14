@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+
 __copyright__ = "Copyright (C) 2018 Dong Zhuang"
 
 __license__ = """
@@ -20,28 +23,28 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
+import celery
 import pytest
-from django.utils.timezone import now, timedelta
 from django.test import TestCase, override_settings
+from django.utils.timezone import now, timedelta
+from pkg_resources import parse_version
 
 from course import models
 from course.tasks import (
     expire_in_progress_sessions,
     finish_in_progress_sessions,
-    regrade_flow_sessions,
-    recalculate_ended_sessions,
     purge_page_view_data,
+    recalculate_ended_sessions,
+    regrade_flow_sessions,
 )
-
-from tests.base_test_mixins import SingleCourseTestMixin, TwoCoursePageTestMixin
-from tests.test_flow.test_purge_page_view_data import (
-    PURGE_VIEW_TWO_COURSE_SETUP_LIST)
 from tests import factories
-from tests.utils import mock
+from tests.base_test_mixins import SingleCourseTestMixin, TwoCoursePageTestMixin
 from tests.constants import QUIZ_FLOW_ID
+from tests.test_flow.test_purge_page_view_data import (
+    PURGE_VIEW_TWO_COURSE_SETUP_LIST,
+)
+from tests.utils import mock
 
-from pkg_resources import parse_version
-import celery
 
 is_celery_4_or_higher = parse_version(celery.__version__) >= parse_version("4.0.0")
 
@@ -60,7 +63,7 @@ class TaskTestMixin:
             override_settings_kwargs = {
                 "CELERY_TASK_ALWAYS_EAGER": True,
                 "CELERY_EAGER_PROPAGATES_EXCEPTIONS": True,
-                "BROKER_BACKEND": 'memory'
+                "BROKER_BACKEND": "memory"
             }
         celery_fake_overriding = (
             override_settings(**override_settings_kwargs))
@@ -530,13 +533,13 @@ class PurgePageViewDataTaskTest(TwoCoursePageTestMixin,
         super().setUp()
 
         # {{{ create flow page visits
-        # all 40, null answer 25, answerd 15
+        # all 40, null answer 25, answered 15
         result1 = self.create_flow_page_visit(self.course1)
 
         (self.course1_n_all_fpv, self.course1_n_null_answer_fpv,
          self.course1_n_non_null_answer_fpv) = result1
 
-        # all 30, null answer 24, answerd 6
+        # all 30, null answer 24, answered 6
         result2 = self.create_flow_page_visit(
             self.course2,
             n_participations_per_course=3, n_sessions_per_participation=2,

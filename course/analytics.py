@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+
 __copyright__ = "Copyright (C) 2014 Andreas Kloeckner"
 
 __license__ = """
@@ -21,28 +24,19 @@ THE SOFTWARE.
 """
 
 
-from django.utils.translation import gettext as _, pgettext
-from django.shortcuts import (  # noqa
-        render, get_object_or_404, redirect)
-from django.contrib.auth.decorators import login_required
-from django.core.exceptions import PermissionDenied
-from django.db import connection
-from django.urls import reverse
-from django.core.exceptions import ObjectDoesNotExist
 from django import http
 from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from django.core.exceptions import ObjectDoesNotExist, PermissionDenied
+from django.db import connection
+from django.shortcuts import get_object_or_404, redirect, render  # noqa
+from django.urls import reverse
+from django.utils.translation import gettext as _, pgettext
 
-from course.utils import course_view, render_course_page, PageInstanceCache
-from course.models import (
-        FlowSession,
-        FlowPageVisit,
-        flow_permission)
-
-from course.constants import (
-        participation_permission as pperm,
-        )
-
+from course.constants import participation_permission as pperm
 from course.content import get_flow_desc
+from course.models import FlowPageVisit, FlowSession, flow_permission
+from course.utils import PageInstanceCache, course_view, render_course_page
 
 
 # {{{ flow list
@@ -149,7 +143,7 @@ class Histogram:
                 min_value = max(min_value, 1e-15)
                 max_value = max(max_value, 1.01*min_value)
 
-                from math import log, exp
+                from math import exp, log
                 bin_width = (log(max_value) - log(min_value))/self.num_bin_count
                 num_bin_starts = [
                         exp(log(min_value)+bin_width*i)
@@ -190,7 +184,7 @@ class Histogram:
                         100*weight/total_weight
                         if total_weight
                         else None))
-                for start, weight in zip(num_bin_starts, bins)]
+                for start, weight in zip(num_bin_starts, bins, strict=True)]
 
         str_bin_info = [
                 BinInfo(
@@ -544,8 +538,14 @@ def page_analytics(pctx, flow_id, group_id, page_id):
 
         title = page.title(grading_page_context, visit.page_data.data)
         body = page.analytic_view_body(grading_page_context, visit.page_data.data)
+
         normalized_answer = page.normalized_answer(
-                grading_page_context, visit.page_data.data, visit.answer)
+                    grading_page_context, visit.page_data.data, visit.answer)
+        if normalized_answer is None:
+            normalized_answer = _("(No answer)")
+        else:
+            import bleach
+            normalized_answer = bleach.clean(normalized_answer)
 
         answer_feedback = visit.get_most_recent_feedback()
 

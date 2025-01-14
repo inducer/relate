@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+
 __copyright__ = """
 Copyright (C) 2014 Andreas Kloeckner
 Copyright (c) 2016 Polyconseil SAS. (the WSGI wrapping bits)
@@ -27,63 +28,59 @@ THE SOFTWARE.
 """
 
 import re
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    cast,
+)
 
-from django.shortcuts import (  # noqa
-        render, get_object_or_404, redirect)
-from django.contrib import messages
 import django.forms as forms
-from django.contrib.auth.decorators import login_required, permission_required
-from django.core.exceptions import (PermissionDenied, SuspiciousOperation)
-from django.utils.translation import (
-        gettext_lazy as _,
-        gettext,
-        pgettext,
-        pgettext_lazy,
-        )
-
-from django_select2.forms import Select2Widget
-from bootstrap_datepicker_plus.widgets import DateTimePickerInput
-from django.urls import reverse
-from django.views.decorators.csrf import csrf_exempt
-
-from django.db import transaction
-
-from django import http
-
-from relate.utils import StyledForm, StyledModelForm, string_concat
-from crispy_forms.layout import Submit
-
-from course.models import (
-        Course,
-        Participation,
-        ParticipationRole)
-
-from course.auth import with_course_api_auth
-
-from course.utils import (
-    course_view, render_course_page,
-    get_course_specific_language_choices)
+import dulwich.client
 import paramiko
 import paramiko.client
-
+from crispy_forms.layout import Submit
+from django import http
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required, permission_required
+from django.core.exceptions import PermissionDenied, SuspiciousOperation
+from django.db import transaction
+from django.shortcuts import get_object_or_404, redirect, render  # noqa
+from django.urls import reverse
+from django.utils.translation import (
+    gettext,
+    gettext_lazy as _,
+    pgettext,
+    pgettext_lazy,
+)
+from django.views.decorators.csrf import csrf_exempt
+from django_select2.forms import Select2Widget
 from dulwich.repo import Repo
-import dulwich.client  # noqa
 
-from course.constants import (
-        participation_status,
-        participation_permission as pperm,
-        )
+from course.auth import with_course_api_auth
+from course.constants import participation_permission as pperm, participation_status
+from course.models import Course, Participation, ParticipationRole
+from course.utils import (
+    course_view,
+    get_course_specific_language_choices,
+    render_course_page,
+)
+from relate.utils import (
+    HTML5DateInput,
+    Repo_ish,
+    StyledForm,
+    StyledModelForm,
+    string_concat,
+)
 
-from typing import cast
 
 # {{{ for mypy
 
-from typing import Tuple, List, Text, Any, Dict, Union, Optional, TYPE_CHECKING  # noqa
 if TYPE_CHECKING:
+    import dulwich.web
     from dulwich.client import GitClient  # noqa
-    from dulwich.objects import Commit  # noqa
-    import dulwich.web # noqa
-    from course.auth import APIContext # noqa
+    from dulwich.objects import Commit
+
+    from course.auth import APIContext
 
 # }}}
 
@@ -96,7 +93,7 @@ def _remove_prefix(prefix: bytes, s: bytes) -> bytes:
 
 
 def transfer_remote_refs(
-        repo: Repo, fetch_pack_result: dulwich.client.FetchPackResult) -> None:
+        repo: Repo_ish, fetch_pack_result: dulwich.client.FetchPackResult) -> None:
 
     valid_refs = []
 
@@ -113,9 +110,8 @@ def transfer_remote_refs(
 
 
 def get_dulwich_client_and_remote_path_from_course(
-        course: Course) -> Tuple[
-                Union[dulwich.client.GitClient, dulwich.client.SSHGitClient], bytes]:
-    # noqa
+        course: Course) -> tuple[
+                dulwich.client.GitClient | dulwich.client.SSHGitClient, str]:
     ssh_kwargs = {}
     if course.ssh_private_key:
         from io import StringIO
@@ -128,7 +124,7 @@ def get_dulwich_client_and_remote_path_from_course(
         return vendor
 
     # writing to another module's global variable: gross!
-    dulwich.client.get_ssh_vendor = get_dulwich_ssh_vendor
+    dulwich.client.get_ssh_vendor = get_dulwich_ssh_vendor  # type: ignore[assignment]
 
     from dulwich.client import get_transport_and_path
     client, remote_path = get_transport_and_path(
@@ -162,8 +158,8 @@ class CourseCreationForm(StyledModelForm):
             "force_lang",
             )
         widgets = {
-                "start_date": DateTimePickerInput(options={"format": "YYYY-MM-DD"}),
-                "end_date": DateTimePickerInput(options={"format": "YYYY-MM-DD"}),
+                "start_date": HTML5DateInput(),
+                "end_date": HTML5DateInput(),
                 "force_lang": forms.Select(
                     choices=get_course_specific_language_choices()),
                 }
@@ -212,11 +208,12 @@ def set_up_new_course(request: http.HttpRequest) -> http.HttpResponse:
                         transfer_remote_refs(repo, fetch_pack_result)
                         new_sha = repo[b"HEAD"] = fetch_pack_result.refs[b"HEAD"]
 
-                        vrepo = repo
                         if new_course.course_root_path:
                             from course.content import SubdirRepoWrapper
-                            vrepo = SubdirRepoWrapper(
-                                    vrepo, new_course.course_root_path)
+                            vrepo: Repo_ish = SubdirRepoWrapper(
+                                    repo, new_course.course_root_path)
+                        else:
+                            vrepo = repo
 
                         from course.validation import validate_course_content
                         validate_course_content(  # type: ignore
@@ -229,6 +226,8 @@ def set_up_new_course(request: http.HttpRequest) -> http.HttpResponse:
                         new_course.save()
 
                         # {{{ set up a participation for the course creator
+
+                        assert request.user.is_authenticated
 
                         part = Participation()
                         part.user = request.user
@@ -253,8 +252,8 @@ def set_up_new_course(request: http.HttpRequest) -> http.HttpResponse:
                     # to delete the directory if we created it. Trust me.
 
                     # Make sure files opened for 'repo' above are actually closed.
-                    if repo is not None:  # noqa
-                        repo.close()  # noqa
+                    if repo is not None:
+                        repo.close()
 
                     from relate.utils import force_remove_path
 
@@ -304,7 +303,7 @@ def set_up_new_course(request: http.HttpRequest) -> http.HttpResponse:
 
 def is_ancestor_commit(
         repo: Repo, potential_ancestor: Commit, child: Commit,
-        max_history_check_size: Optional[int] = None) -> bool:
+        max_history_check_size: int | None = None) -> bool:
 
     queue = [repo[parent] for parent in child.parents]
 
@@ -377,7 +376,7 @@ def run_course_update_command(
 
     # {{{ validate
 
-    from course.validation import validate_course_content, ValidationError
+    from course.validation import ValidationError, validate_course_content
     try:
         warnings = validate_course_content(
                 content_repo, pctx.course.course_file, pctx.course.events_file,
@@ -398,8 +397,7 @@ def run_course_update_command(
                         _("Course content validated OK, with warnings: "),
                         "<ul>%s</ul>")
                     % ("".join(
-                        "<li><i>%(location)s</i>: %(warningtext)s</li>"
-                        % {"location": w.location, "warningtext": w.text}
+                        f"<li><i>{w.location}</i>: {w.text}</li>"
                         for w in warnings)))
 
     # }}}
@@ -616,15 +614,15 @@ def call_wsgi_app(
 
     # request.environ and request.META are the same object, so changes
     # to the headers by middlewares will be seen here.
-    assert request.environ == request.META
-    environ = request.environ.copy()
-    #if len(args) > 0:
+    assert request.environ is request.META  # type: ignore[attr-defined]
+    environ = request.environ.copy()  # type: ignore[attr-defined]
+    # if len(args) > 0:
     assert environ["PATH_INFO"].startswith(prefix)
     environ["SCRIPT_NAME"] += prefix
     environ["PATH_INFO"] = environ["PATH_INFO"][len(prefix):]
 
-    headers_set: List[Tuple[str, str]] = []
-    headers_sent: List[bool] = []
+    headers_set: list[tuple[str, str]] = []
+    headers_sent: list[bool] = []
 
     def write(data: str) -> None:
         if not headers_set:

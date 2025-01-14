@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+
 __copyright__ = "Copyright (C) 2014 Andreas Kloeckner"
 
 __license__ = """
@@ -20,21 +23,26 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from course.validation import ValidationError
 import django.forms as forms
+from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.html import escape
 from django.utils.translation import gettext as _
-from django.conf import settings
 
-from relate.utils import StyledForm, string_concat
-from course.page.base import (
-        PageBaseWithTitle, markup_to_html, PageBaseWithValue,
-        PageBaseWithHumanTextFeedback,
-        AnswerFeedback, get_auto_feedback,
-
-        get_editor_interaction_mode)
 from course.constants import flow_permission
+from course.page.base import (
+    AnswerFeedback,
+    PageBaseWithHumanTextFeedback,
+    PageBaseWithoutHumanGrading,
+    PageBaseWithTitle,
+    PageBaseWithValue,
+    get_auto_feedback,
+    get_editor_interaction_mode,
+    markup_to_html,
+)
+from course.validation import AttrSpec, ValidationError
+from relate.utils import StyledForm, string_concat
+
 
 # DEBUGGING SWITCH:
 # True for 'spawn containers' (normal operation)
@@ -130,8 +138,8 @@ def sanitize_from_code_html(s):
         return _("(Non-string in 'HTML' output filtered out)")
 
     return bleach.clean(s,
-            tags=bleach.ALLOWED_TAGS + ["audio", "video", "source"],
-            protocols=bleach.ALLOWED_PROTOCOLS + ["data"],
+            tags=[*bleach.ALLOWED_TAGS, "audio", "video", "source"],
+            protocols=[*bleach.ALLOWED_PROTOCOLS, "data"],
             attributes=filter_attributes)
 
 # }}}
@@ -151,21 +159,20 @@ class CodeForm(StyledForm):
         cm_widget, cm_help_text = get_codemirror_widget(
                 language_mode=language_mode,
                 interaction_mode=interaction_mode,
-                read_only=read_only,
 
                 # Automatically focus the text field once there has
                 # been some input.
                 autofocus=(
                     not read_only
                     and (data is not None and "answer" in data)))
+        if read_only:
+            cm_widget.attrs["readonly"] = None
 
         self.fields["answer"] = forms.CharField(required=True,
             initial=initial_code,
             help_text=cm_help_text,
             widget=cm_widget,
             label=_("Answer"))
-
-        self.style_codemirror_widget()
 
     def clean(self):
         # FIXME Should try compilation
@@ -181,11 +188,11 @@ class InvalidPingResponse(RuntimeError):
 
 
 def request_run(run_req, run_timeout, image=None):
-    import json
-    import http.client as http_client
-    import docker
-    import socket
     import errno
+    import http.client as http_client
+    import json
+
+    import docker
     from docker.errors import APIError as DockerAPIError
 
     debug = False
@@ -201,7 +208,7 @@ def request_run(run_req, run_timeout, image=None):
 
     # The following is necessary because tests don't arise from a CodeQuestion
     # object, so we provide a fallback.
-    debug_print("Image is %s." % repr(image))
+    debug_print(f"Image is {image!r}.")
     if image is None:
         image = settings.RELATE_DOCKER_RUNPY_IMAGE
 
@@ -210,42 +217,46 @@ def request_run(run_req, run_timeout, image=None):
                 "unix://var/run/docker.sock")
         docker_tls = getattr(settings, "RELATE_DOCKER_TLS_CONFIG",
                 None)
-        docker_cnx = docker.Client(
+        docker_cnx = docker.DockerClient(
                 base_url=docker_url,
                 tls=docker_tls,
                 timeout=DOCKER_TIMEOUT,
-                version="1.19")
+                version="1.24")
 
-        dresult = docker_cnx.create_container(
+        mem_limit = 384*10**6
+        container = docker_cnx.containers.create(
                 image=image,
                 command=[
                     command_path,
                     "-1"],
-                host_config={
-                    "Memory": 384*10**6,
-                    "MemorySwap": -1,
-                    "PublishAllPorts": True,
-                    # Do not enable: matplotlib stops working if enabled.
-                    # "ReadonlyRootfs": True,
-                    },
+                mem_limit=mem_limit,
+                memswap_limit=mem_limit,
+                publish_all_ports=True,
+                detach=True,
+                # Do not enable: matplotlib stops working if enabled.
+                # read_only=True,
                 user=user)
 
-        container_id = dresult["Id"]
     else:
-        container_id = None
+        container = None
 
     connect_host_ip = "localhost"
 
     try:
         # FIXME: Prohibit networking
 
-        if container_id is not None:
-            docker_cnx.start(container_id)
+        if container is not None:
+            container.start()
+            container_props = docker_cnx.api.inspect_container(container.id)
 
-            container_props = docker_cnx.inspect_container(container_id)
-            (port_info,) = (container_props
-                    ["NetworkSettings"]["Ports"]["%d/tcp" %
-                    CODE_QUESTION_CONTAINER_PORT])
+            port_infos = (container_props
+                ["NetworkSettings"]["Ports"]
+                [f"{CODE_QUESTION_CONTAINER_PORT}/tcp"])
+
+            if not port_infos:
+                raise ValueError("got empty list of container ports")
+            port_info = port_infos[0]
+
             port_host_ip = port_info.get("HostIp")
 
             if port_host_ip != "0.0.0.0":
@@ -255,7 +266,7 @@ def request_run(run_req, run_timeout, image=None):
         else:
             port = CODE_QUESTION_CONTAINER_PORT
 
-        from time import time, sleep
+        from time import sleep, time
         start_time = time()
 
         # {{{ ping until response received
@@ -273,6 +284,10 @@ def request_run(run_req, run_timeout, image=None):
                         "traceback": "".join(format_exc()),
                         "exec_host": connect_host_ip,
                         }
+
+        if not connect_host_ip:
+            # for compatibility with podman
+            connect_host_ip = "localhost"
 
         while True:
             try:
@@ -331,27 +346,27 @@ def request_run(run_req, run_timeout, image=None):
 
             result = json.loads(response_data)
 
-            result["feedback"] = (result.get("feedback", [])
-                    + ["Execution time: %.1f s -- Time limit: %.1f s"
-                        % (end_time - start_time, run_timeout)])
+            result["feedback"] = ([*result.get("feedback", []),
+                f"Execution time: {end_time - start_time:.1f} s "
+                f"-- Time limit: {run_timeout:.1f} s"])
 
             result["exec_host"] = connect_host_ip
 
             return result
 
-        except socket.timeout:
+        except TimeoutError:
             return {
                     "result": "timeout",
                     "exec_host": connect_host_ip,
                     }
     finally:
-        if container_id is not None:
-            debug_print("-----------BEGIN DOCKER LOGS for %s" % container_id)
-            debug_print(docker_cnx.logs(container_id))
-            debug_print("-----------END DOCKER LOGS for %s" % container_id)
+        if container is not None:
+            debug_print(f"-----------BEGIN DOCKER LOGS for {container.id}")
+            debug_print(container.logs())
+            debug_print(f"-----------END DOCKER LOGS for {container.id}")
 
             try:
-                docker_cnx.remove_container(container_id, force=True)
+                container.remove(force=True)
             except DockerAPIError:
                 # Oh well. No need to bother the students with this nonsense.
                 pass
@@ -365,7 +380,7 @@ def is_nuisance_failure(result):
         if "BadStatusLine" in result["traceback"]:
 
             # Occasionally, we fail to send a POST to the container, even after
-            # the inital ping GET succeeded, for (for now) mysterious reasons.
+            # the initial ping GET succeeded, for (for now) mysterious reasons.
             # Just try again.
 
             return True
@@ -583,33 +598,33 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
             if not is_multi_submit:
                 vctx.add_warning(location, _("code question does not explicitly "
                     "allow multiple submission. Either add "
-                    "access_rules/add_permssions/change_answer "
+                    "access_rules/add_permissions/change_answer "
                     "or add 'single_submission: True' to confirm that you intend "
                     "for only a single submission to be allowed. "
                     "While you're at it, consider adding "
-                    "access_rules/add_permssions/see_correctness."))
+                    "access_rules/add_permissions/see_correctness."))
 
-    def required_attrs(self):
-        return super().required_attrs() + (
-                ("prompt", "markup"),
-                ("timeout", (int, float)),
-                )
+    def required_attrs(self) -> AttrSpec:
+        return (
+            *super().required_attrs(),
+            ("prompt", "markup"),
+            ("timeout", (int, float)))
 
-    def allowed_attrs(self):
-        return super().allowed_attrs() + (
-                ("setup_code", str),
-                ("show_setup_code", bool),
-                ("names_for_user", list),
-                ("names_from_user", list),
-                ("test_code", str),
-                ("show_test_code", bool),
-                ("correct_code_explanation", "markup"),
-                ("correct_code", str),
-                ("initial_code", str),
-                ("docker_image", str),
-                ("data_files", list),
-                ("single_submission", bool),
-                )
+    def allowed_attrs(self) -> AttrSpec:
+        return (
+            *super().allowed_attrs(),
+            ("setup_code", str),
+            ("show_setup_code", bool),
+            ("names_for_user", list),
+            ("names_from_user", list),
+            ("test_code", str),
+            ("show_test_code", bool),
+            ("correct_code_explanation", "markup"),
+            ("correct_code", str),
+            ("initial_code", str),
+            ("docker_image", str),
+            ("data_files", list),
+            ("single_submission", bool))
 
     def _initial_code(self):
         result = getattr(self.page_desc, "initial_code", None)
@@ -784,13 +799,12 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
             correctness = response_dict["points"]
             try:
                 feedback_bits.append(
-                        "<p><b>%s</b></p>"
-                        % _(get_auto_feedback(correctness)))
+                        f"<p><b>{_(get_auto_feedback(correctness))}</b></p>")
             except Exception as e:
                 correctness = None
                 response_dict["result"] = "setup_error"
                 response_dict["message"] = (
-                    "{}: {}".format(type(e).__name__, str(e))
+                    f"{type(e).__name__}: {e!s}"
                 )
 
         # {{{ send email if the grading code broke
@@ -801,7 +815,7 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
                 "setup_error",
                 "test_compile_error",
                 "test_error"]:
-            error_msg_parts = ["RESULT: %s" % response_dict["result"]]
+            error_msg_parts = ["RESULT: {}".format(response_dict["result"])]
             for key, val in sorted(response_dict.items()):
                 if (key not in ["result", "figures"]
                         and val
@@ -818,8 +832,8 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
 
             error_msg = "\n".join(error_msg_parts)
 
-            from relate.utils import local_now, format_datetime_local
             from course.utils import LanguageOverride
+            from relate.utils import format_datetime_local, local_now
             with LanguageOverride(page_context.course):
                 from relate.utils import render_email_template
                 message = render_email_template(
@@ -888,9 +902,9 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
             if (normalize_code(user_code)
                     == normalize_code(self.page_desc.correct_code)):
                 feedback_bits.append(
-                        "<p><b>%s</b></p>"
-                        % _("It looks like you submitted code that is identical to "
-                            "the reference solution. This is not allowed."))
+                        "<p><b>{}</b></p>".format(
+                            _("It looks like you submitted code that is identical to "
+                            "the reference solution. This is not allowed.")))
 
         from relate.utils import dict_to_struct
         response = dict_to_struct(response_dict)
@@ -946,7 +960,7 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
 
             correctness = 0
         else:
-            raise RuntimeError("invalid run result: %s" % response.result)
+            raise RuntimeError(f"invalid run result: {response.result}")
 
         if hasattr(response, "feedback") and response.feedback:
             def sanitize(s):
@@ -958,7 +972,7 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
                 ":"
                 "<ul>%s</ul></p>"]) %
                         "".join(
-                            "<li>%s</li>" % sanitize(fb_item)
+                            f"<li>{sanitize(fb_item)}</li>"
                             for fb_item in response.feedback))
         if hasattr(response, "traceback") and response.traceback:
             feedback_bits.append("".join([
@@ -969,7 +983,7 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
         if hasattr(response, "exec_host") and response.exec_host != "localhost":
             import socket
             try:
-                exec_host_name, dummy, dummy = socket.gethostbyaddr(
+                exec_host_name, _dummy, _dummy = socket.gethostbyaddr(
                         response.exec_host)
             except OSError:
                 exec_host_name = response.exec_host
@@ -1053,7 +1067,7 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
         normalized_answer = self.get_code_from_answer_data(answer_data)
 
         from django.utils.html import escape
-        return "<pre>%s</pre>" % escape(normalized_answer)
+        return f"<pre>{escape(normalized_answer)}</pre>"
 
     def normalized_bytes_answer(self, page_context, page_data, answer_data):
         if answer_data is None:
@@ -1067,7 +1081,7 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
 
 # {{{ python code question
 
-class PythonCodeQuestion(CodeQuestion):
+class PythonCodeQuestion(CodeQuestion, PageBaseWithoutHumanGrading):
     """
     An auto-graded question allowing an answer consisting of Python code.
     All user code as well as all code specified as part of the problem
@@ -1249,7 +1263,8 @@ class PythonCodeQuestion(CodeQuestion):
 
           feedback.check_numpy_array_sanity(name, num_axes, data)
 
-          feedback.check_numpy_array_features(name, ref, data, report_failure=True)
+          feedback.check_numpy_array_features(name, ref, data, check_finite=True,
+              report_failure=True)
 
           feedback.check_numpy_array_allclose(name, ref, data,
                   accuracy_critical=True, rtol=1e-5, atol=1e-8,
@@ -1300,7 +1315,7 @@ class PythonCodeQuestion(CodeQuestion):
 # {{{ python code question with human feedback
 
 class PythonCodeQuestionWithHumanTextFeedback(
-        PythonCodeQuestion, PageBaseWithHumanTextFeedback):
+        PageBaseWithHumanTextFeedback, PythonCodeQuestion):
     """
     A question allowing an answer consisting of Python code.
     This page type allows both automatic grading and grading
@@ -1322,6 +1337,9 @@ class PythonCodeQuestionWithHumanTextFeedback(
 
     Besides those defined in :class:`PythonCodeQuestion`, the
     following additional, allowed/required attribute are introduced:
+
+    Supports automatic computation of point values from textual feedback.
+    See :ref:`points-from-feedback`.
 
     .. attribute:: human_feedback_value
 
@@ -1406,16 +1424,17 @@ class PythonCodeQuestionWithHumanTextFeedback(
                 self.page_desc.human_feedback_percentage)
 
     def required_attrs(self):
-        return super().required_attrs() + (
-                        # value is otherwise optional, but we require it here
-                        ("value", (int, float)),
-                        )
+        return (
+            *super().required_attrs(),
+            # value is otherwise optional, but we require it here
+            ("value", (int, float)),
+            )
 
     def allowed_attrs(self):
-        return super().allowed_attrs() + (
-                        ("human_feedback_value", (int, float)),
-                        ("human_feedback_percentage", (int, float)),
-                        )
+        return (
+            *super().allowed_attrs(),
+            ("human_feedback_value", (int, float)),
+            ("human_feedback_percentage", (int, float)))
 
     def human_feedback_point_value(self, page_context, page_data):
         return self.page_desc.value * self.human_feedback_percentage / 100

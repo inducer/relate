@@ -37,11 +37,11 @@
     <div class="progress">
       <div class="progress-bar
       {% if state == "FAILURE" %}
-         progress-bar-danger
+         bg-danger
       {% elif state == "SUCCESS" %}
-         progress-bar-success
+         bg-success
       {% else %}
-         progress-bar-striped active
+         progress-bar-striped progress-bar-anmiated
       {% endif %}"
       role="progressbar"
         aria-valuenow="100" aria-valuemin="0" aria-valuemax="100"

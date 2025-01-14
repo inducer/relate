@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+
 __copyright__ = "Copyright (C) 2018 Dong Zhuang"
 
 __license__ = """
@@ -20,15 +23,14 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from django.test import TestCase, RequestFactory
-from django.contrib.admin import site
-from django.utils.timezone import now
 import pytest
+from django.contrib.admin import site
+from django.test import RequestFactory, TestCase
+from django.utils.timezone import now
 
-from course import models, admin, constants
-
-from tests.base_test_mixins import AdminTestMixin
+from course import admin, constants, models
 from tests import factories
+from tests.base_test_mixins import AdminTestMixin
 from tests.constants import QUIZ_FLOW_ID
 
 
@@ -89,15 +91,15 @@ class CourseAdminTestMixin(AdminTestMixin):
 
                 if request.user == self.superuser:
                     self.assertIn(
-                        ('All', self.course1.identifier, self.course2.identifier),
+                        ("All", self.course1.identifier, self.course2.identifier),
                         filterspec_list)
                     self.assertEqual(queryset.count(), expected_counts_dict["all"])
                 elif request.user == self.instructor1:
                     self.assertNotIn(
-                        ('All', self.course1.identifier, self.course2.identifier),
+                        ("All", self.course1.identifier, self.course2.identifier),
                         filterspec_list)
                     self.assertNotIn(
-                        ('All', self.course2.identifier), filterspec_list)
+                        ("All", self.course2.identifier), filterspec_list)
                     self.assertNotIn(
                         (self.course2.identifier, ), filterspec_list)
                     self.assertEqual(queryset.count(),
@@ -105,10 +107,10 @@ class CourseAdminTestMixin(AdminTestMixin):
                 else:
                     assert request.user == self.instructor2
                     self.assertNotIn(
-                        ('All', self.course1.identifier, self.course2.identifier),
+                        ("All", self.course1.identifier, self.course2.identifier),
                         filterspec_list)
                     self.assertNotIn(
-                        ('All', self.course1.identifier), filterspec_list)
+                        ("All", self.course1.identifier), filterspec_list)
                     self.assertNotIn(
                         (self.course1.identifier, ), filterspec_list)
                     self.assertEqual(queryset.count(),
@@ -180,7 +182,7 @@ class CourseAdminGenericTest(CourseAdminTestMixin, TestCase):
 
 class CourseAdminSessionRelatedMixin(CourseAdminTestMixin):
     @classmethod
-    def setUpTestData(cls):  # noqa
+    def setUpTestData(cls):
         super().setUpTestData()
 
         course1_session = factories.FlowSessionFactory.create(
@@ -265,23 +267,23 @@ class CourseAdminSessionRelatedTest(CourseAdminSessionRelatedMixin, TestCase):
 
                 if request.user == self.superuser:
                     self.assertIn(
-                        ('All', "001-linalg-recap", QUIZ_FLOW_ID),
+                        ("All", "001-linalg-recap", QUIZ_FLOW_ID),
                         filterspec_list)
                 elif request.user == self.instructor1:
                     self.assertNotIn(
-                        ('All', "001-linalg-recap", QUIZ_FLOW_ID),
+                        ("All", "001-linalg-recap", QUIZ_FLOW_ID),
                         filterspec_list)
                     self.assertNotIn(
-                        ('All', QUIZ_FLOW_ID), filterspec_list)
+                        ("All", QUIZ_FLOW_ID), filterspec_list)
                     self.assertNotIn(
                         (QUIZ_FLOW_ID,), filterspec_list)
                 else:
                     assert request.user == self.instructor2
                     self.assertNotIn(
-                        ('All', "001-linalg-recap", QUIZ_FLOW_ID),
+                        ("All", "001-linalg-recap", QUIZ_FLOW_ID),
                         filterspec_list)
                     self.assertNotIn(
-                        ('All', "001-linalg-recap"), filterspec_list)
+                        ("All", "001-linalg-recap"), filterspec_list)
                     self.assertNotIn(
                         ("001-linalg-recap",), filterspec_list)
 
@@ -332,8 +334,8 @@ class ParticipationAdminTest(CourseAdminTestMixin, TestCase):
         from django.contrib.admin.helpers import ACTION_CHECKBOX_NAME
         action_data = {
             ACTION_CHECKBOX_NAME: [active.pk, requested1.pk],
-            'action': "approve_enrollment",
-            'index': 0,
+            "action": "approve_enrollment",
+            "index": 0,
         }
         with self.temporarily_switch_to_user(self.instructor1):
             resp = self.client.post(
@@ -360,8 +362,8 @@ class ParticipationAdminTest(CourseAdminTestMixin, TestCase):
         from django.contrib.admin.helpers import ACTION_CHECKBOX_NAME
         action_data = {
             ACTION_CHECKBOX_NAME: [active.pk, requested1.pk, requested2.pk],
-            'action': "deny_enrollment",
-            'index': 0,
+            "action": "deny_enrollment",
+            "index": 0,
         }
         with self.temporarily_switch_to_user(self.instructor1):
             resp = self.client.post(
@@ -462,8 +464,8 @@ class ParticipationPreapprovalAdminTest(CourseAdminTestMixin, TestCase):
         self.navigate_admin_view_by_model(models.ParticipationPreapproval)
 
     def test_save_model(self):
-        add_dict = {'institutional_id': '1234',
-                    'course': self.course1.pk}
+        add_dict = {"institutional_id": "1234",
+                    "course": self.course1.pk}
         with self.temporarily_switch_to_user(self.instructor1):
             self.client.post(
                 self.get_admin_course_add_view_url(
@@ -494,10 +496,10 @@ class GradeChangeAdminTest(CourseAdminSessionRelatedMixin, TestCase):
         gopp = factories.GradingOpportunityFactory(course=self.course2)
         add_dict = {
             "opportunity": gopp.pk,
-            'participation': self.course2_student_participation.pk,
-            'state': constants.grade_state_change_types.graded,
-            'attempt_id': "main",
-            'max_points': 100,
+            "participation": self.course2_student_participation.pk,
+            "state": constants.grade_state_change_types.graded,
+            "attempt_id": "main",
+            "max_points": 100,
         }
         with self.temporarily_switch_to_user(self.instructor2):
             self.client.post(
@@ -523,11 +525,11 @@ class ExamTicketAdminTest(CourseAdminTestMixin, TestCase):
     def test_save_model(self):
         add_dict = {
             "exam": self.exam.pk,
-            'participation': self.course1_student_participation.pk,
-            'state': constants.exam_ticket_states.valid,
-            'code': "abcde",
-            'creation_time_0': "2019-3-31",
-            'creation_time_1': "10:54:39",
+            "participation": self.course1_student_participation.pk,
+            "state": constants.exam_ticket_states.valid,
+            "code": "abcde",
+            "creation_time_0": "2019-3-31",
+            "creation_time_1": "10:54:39",
         }
         with self.temporarily_switch_to_user(self.instructor1):
             resp = self.client.post(
@@ -550,8 +552,8 @@ class ExamTicketAdminTest(CourseAdminTestMixin, TestCase):
         from django.contrib.admin.helpers import ACTION_CHECKBOX_NAME
         action_data = {
             ACTION_CHECKBOX_NAME: [ticket1.pk],
-            'action': "revoke_exam_tickets",
-            'index': 0,
+            "action": "revoke_exam_tickets",
+            "index": 0,
         }
         with self.temporarily_switch_to_user(self.instructor1):
             resp = self.client.post(

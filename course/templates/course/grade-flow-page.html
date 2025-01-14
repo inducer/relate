@@ -8,33 +8,28 @@
 {% endblock %}
 
 {% block root_container %}
-  <div class="grading-page-student-work container">
-    <div class="row">
+  <div class="row">
+    <div class="grading-page-student-work container pt-2">
       {# {{{ student view #}
 
-      {# {{{ past submissions #}
-      {% if expects_answer %}
-        <div style="float: right; padding-top:1.5em; margin-right:0 !important;" class="navbar-right">
-          <div class="dropdown" id="past-submission-and-grades_dropdown">
-            <button class="btn btn-default dropdown-toggle" type="button" id="past-submission-and-grades_dropdown_button"
-                    data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
-              {% trans "Past submissions/grades" %}
-              <span class="caret"></span>
-            </button>
-            <ul class="dropdown-menu" aria-labelledby="past-submission-and-grades_dropdown_button" id="past-submission-and-grades_dropdown_content">
-              <li style="list-style:none; position:relative; left:50%;">
-                <i class="fa fa-spinner fa-spin relate-icon-busy"></i>
-              </li>
-            </ul>
-          </div>
+      <div class="card mb-3" markdown="block">
+        <div class="card-header">
+          <h5 class="card-title dropdown-toggle">
+            <a class="text-decoration-none link-secondary"
+              data-bs-toggle="collapse" href="#grading-prompt" aria-expanded="false" aria-controls="grading-prompt">
+                {% trans "Prompt" %}
+            </a>
+          </h5>
         </div>
-      {% endif %}
-
-      {# }}} #}
-      {{ body|safe }}
+        <div id="grading-prompt" class="collapse">
+         <div class="card-body">
+           {{ body|safe }}
+         </div>
+        </div>
+      </div>
 
       {% if form_html %}
-        <div class="well relate-interaction-container">
+        <div class="relate-well relate-interaction-container">
           {{ form_html|safe }}
         </div>
       {% endif %}
@@ -59,24 +54,19 @@
       {# }}} #}
 
     </div>
-  </div>
-  <div class="grading-page-grade-entry container">
-    <div class="row">
+    <div class="grading-page-grade-entry container pt-2">
       <h1> {% trans "Grading" %}: <tt>{{ flow_identifier}} - {{ page_data.group_id }}/{{ page_data.page_id }}</tt> </h1>
 
       {% include "base-page-top.html" %}
 
       {# {{{ header table #}
       <table class="table table-condensed">
-        <thead>
-          <th>{% trans "Property" %}</th><th>{% trans "Value" %}</th>
-        </thead>
         <tbody>
         {% if grading_opportunity != None %}
           <tr>
             <td>{% trans "Flow session" %}</td>
             <td>
-              <tt><a href="{% url "relate-view_single_grade" course.identifier flow_session.participation.id grading_opportunity.id %}"><i class="fa fa-level-up"></i> {{ flow_identifier }}</a></tt>
+              <tt><a href="{% url "relate-view_single_grade" course.identifier flow_session.participation.id grading_opportunity.id %}"><i class="bi bi-arrow-90deg-up"></i> {{ flow_identifier }}</a></tt>
               <span class="sensitive">
               {% if not pperm.view_participant_masked_profile %}
                   {# Translators: the grade information "for" a participant #}
@@ -118,6 +108,27 @@
             {% else %}
               {% trans "(n/a)" %}
             {% endif %}
+
+            {% if expects_answer %}
+              <div class="dropdown" id="past-submission-and-grades_dropdown">
+                <button
+                    class="btn btn-sm btn-outline-secondary dropdown-toggle"
+                    type="button" id="past-submission-and-grades_dropdown_button"
+                    hx-get='{% url "relate-get_prev_grades_dropdown_content" course.identifier flow_session.id page_ordinal prev_grade_id %}'
+                    hx-target="#past-submission-and-grades_dropdown_content"
+                    data-bs-toggle="dropdown">
+                  {% trans "Past submissions/grades" %}
+                  <span class="caret"></span>
+                </button>
+                <ul class="dropdown-menu dropdown-menu shadow"
+                    aria-labelledby="past-submission-and-grades_dropdown_button"
+                    id="past-submission-and-grades_dropdown_content">
+                  <li style="list-style:none; position:relative; left:50%;">
+                    <i class="bi bi-hourglass"></i>
+                  </li>
+                </ul>
+              </div>
+            {% endif %}
           </td>
         </tr>
         <tr>
@@ -144,15 +155,15 @@
           <td>
             {% if prev_flow_session_id != None %}
               <a href="{% url "relate-grade_flow_page" course.identifier prev_flow_session_id page_data.page_ordinal %}"
-                 accesskey="p" class="btn btn-default" title="Alt/Cmd(+Shift+)p"><i class="fa fa-chevron-left"></i></a>
+                 accesskey="p" class="btn btn-secondary" title="Alt/Cmd(+Shift+)p"><i class="bi bi-chevron-left"></i></a>
             {% else %}
-              <a href="#" class="btn btn-default disabled"><i class="fa fa-chevron-left"></i></a>
+              <a href="#" class="btn btn-secondary disabled"><i class="bi bi-chevron-left"></i></a>
             {% endif %}
             {% if next_flow_session_id %}
               <a href="{% url "relate-grade_flow_page" course.identifier next_flow_session_id page_data.page_ordinal %}"
-                 accesskey="n" class="btn btn-default" title="Alt/Cmd+(Shift+)n"><i class="fa fa-chevron-right"></i></a>
+                 accesskey="n" class="btn btn-secondary" title="Alt/Cmd+(Shift+)n"><i class="bi bi-chevron-right"></i></a>
             {% else %}
-              <a href="#" class="btn btn-default disabled"><i class="fa fa-chevron-right"></i></a>
+              <a href="#" class="btn btn-secondary disabled"><i class="bi bi-chevron-right"></i></a>
             {% endif %}
             {% trans "Session" %}
           </td>
@@ -167,15 +178,15 @@
           <td>
             {% if page_data.page_ordinal > 0 %}
               <a href="{% url "relate-grade_flow_page" course.identifier flow_session.id page_data.previous_ordinal %}"
-                  class="btn btn-default"><i class="fa fa-chevron-left"></i></a>
+                  class="btn btn-secondary"><i class="bi bi-chevron-left"></i></a>
             {% else %}
-              <a href="#" class="btn btn-default disabled"><i class="fa fa-chevron-left"></i></a>
+              <a href="#" class="btn btn-secondary disabled"><i class="bi bi-chevron-left"></i></a>
             {% endif %}
             {% if page_data.next_ordinal < flow_session.page_count %}
               <a href="{% url "relate-grade_flow_page" course.identifier flow_session.id page_data.next_ordinal %}"
-                  class="btn btn-default"><i class="fa fa-chevron-right"></i></a>
+                  class="btn btn-secondary"><i class="bi bi-chevron-right"></i></a>
             {% else %}
-              <a href="#" class="btn btn-default disabled"><i class="fa fa-chevron-right"></i></a>
+              <a href="#" class="btn btn-secondary disabled"><i class="bi bi-chevron-right"></i></a>
             {% endif %}
             {% trans "Page number" %}
           </td>
@@ -199,9 +210,9 @@
       {# {{{ correct answer #}
 
       {% if correct_answer  %}
-        <div class="panel panel-default">
-          <div class="panel-heading">{% trans "Correct Answer" %}</div>
-          <div class="panel-body">
+        <div class="card mt-3">
+          <div class="card-header">{% trans "Correct Answer" %}</div>
+          <div class="card-body">
             <p>{{ correct_answer|safe }}</p>
           </div>
         </div>
@@ -216,142 +227,198 @@
 
   <script>
 
-    // http://stackoverflow.com/a/30558011
-    var SURROGATE_PAIR_REGEXP = /[\uD800-\uDBFF][\uDC00-\uDFFF]/g,
-        // Match everything outside of normal chars and " (quote character)
-        NON_ALPHANUMERIC_REGEXP = /([^\#-~| |!])/g;
-
-    function encode_entities(value)
-    {
-      return value.
-        replace(/&/g, '&amp;').
-        replace(SURROGATE_PAIR_REGEXP, function(value) {
-          var hi = value.charCodeAt(0);
-          var low = value.charCodeAt(1);
-          return '&#' + (((hi - 0xD800) * 0x400) + (low - 0xDC00) + 0x10000) + ';';
-        }).
-        replace(NON_ALPHANUMERIC_REGEXP, function(value) {
-          return '&#' + value.charCodeAt(0) + ';';
-        }).
-        replace(/</g, '&lt;').
-        replace(/>/g, '&gt;');
+    function getFeedbackCodemirror() {
+      let editorDom = document.querySelector('#div_id_feedback_text .cm-editor');
+      if (!editorDom)
+        return null;
+      return rlCodemirror.EditorView.findFromDOM(editorDom);
     }
 
-    function truncate_text(s, length)
-    {
-      if (s.length > length)
-        return s.slice(0, length) + "...";
-      else
-        return s;
+    function setFeedback(p) {
+      const view = getFeedbackCodemirror();
+      const transaction = view.state.update({
+        changes: {
+          from: 0,
+          to: view.state.doc.length,
+          insert: p,
+        },
+      });
+      view.dispatch(transaction);
     }
 
-    function set_grade_percent(p)
-    {
-      $("#id_grade_percent").val(p);
-    }
-
-    function set_grade_points(p)
-    {
-      $("#id_grade_points").val(p);
-    }
-
-    function set_feedback(p)
-    {
-      $("#id_feedback_text").val(p);
-    }
-
-    function get_feedback_items()
-    {
-      var items = localStorage["relate_grade_feedback_items"];
+    function getFeedbackItems() {
+      const items = localStorage["relate_grade_feedback_items"];
       if (items)
         return JSON.parse(items);
       else
         return [];
     }
 
-    function add_feedback(idx)
-    {
-      var items = get_feedback_items();
+    function addFeedback(idx) {
+      const items = getFeedbackItems();
+      const view = getFeedbackCodemirror();
+      const currentValue = view.state.doc.toString();
 
-      var val = $("#id_feedback_text").val();
-      if (val)
+      let val = "";
+      if (currentValue)
         val += "\n";
       val += items[idx];
-      $("#id_feedback_text").val(val);
+
+      const transaction = view.state.update({
+        changes: {
+          from: view.state.doc.length,
+          to: view.state.doc.length,
+          insert: val,
+        },
+      });
+      view.dispatch(transaction);
     }
 
-    function add_feedback_item(p)
-    {
-      var item = prompt("{%trans "Enter new feedback item:" %}");
+    function copyRubric() {
+      setFeedback(document.querySelector("#id_rubric_text").value);
+    }
+
+    function addFeedbackItem(p) {
+      const item = prompt("{%trans "Enter new feedback item:" %}");
       if (!item)
         return;
 
-      var items = get_feedback_items();
+      const items = getFeedbackItems();
       items.push(item);
       localStorage["relate_grade_feedback_items"] = JSON.stringify(items);
 
-      update_feedback_items();
+      updateFeedbackItems();
     }
 
-    function remove_feedback_item(evt)
-    {
+    function removeFeedbackItem(evt) {
       evt.stopPropagation();
 
-      var id = evt.target.parentNode.id.substr("remove_fb_".length);
-      var index = parseInt(id);
+      const id = evt.target.parentNode.id.substr("remove_fb_".length);
+      const index = parseInt(id);
 
-      var items = get_feedback_items();
+      const items = getFeedbackItems();
       items.splice(index, 1);
       localStorage["relate_grade_feedback_items"] = JSON.stringify(items);
 
-      update_feedback_items();
+      updateFeedbackItems();
     }
 
-    function update_feedback_items()
-    {
-      var buttons = "";
+    function updateFeedbackItems() {
+      let buttons = "";
 
-      var items = get_feedback_items();
+      const items = getFeedbackItems();
 
-      buttons += "<p>";
+      buttons += "<div class='lh-lg mt-1'>";
       for (var i = 0; i < items.length; ++i)
       {
         var fb = items[i];
-        buttons += ("<button class='btn btn-xs btn-default' type='button' "
-            + "onclick='add_feedback(" + i + ")'>"
-            + truncate_text(encode_entities(fb), 25)
+        buttons += ("<button class='btn btn-sm btn-outline-secondary' type='button' "
+            + "onclick='addFeedback(" + i + ")'>"
+            + rlUtils.truncateText(rlUtils.encodeEntities(fb), 25)
             + "</button>"
-            + " <a class='remove_fb_button' id='remove_fb_"+i+"' href='#'>"
-            +   "<i class='fa fa-times-circle'></i>"
+            + " <a class='remove_fb_button link-secondary' id='remove_fb_"+i+"' href='#'>"
+            +   "<i class='bi bi-x-circle'></i>"
             + "</a> "
             );
       }
-      buttons += "</p>";
+      buttons += "</div>";
 
-      buttons += "<p>";
-      buttons += ("<button class='btn btn-xs btn-default' type='button' "
-          + "onclick='add_feedback_item()'><i class='fa fa-plus'></i> {% trans "Add phrase" %}</button>");
-      buttons += ("<button class='btn btn-xs btn-default' type='button' "
-          + "onclick='set_feedback(\"\")'>{% trans "Clear" %}</button>");
-      buttons += "</p>";
+      buttons += "<div class='mt-1'>";
+      buttons += ("<button class='btn btn-sm btn-outline-secondary me-1' type='button' "
+          + "onclick='addFeedbackItem()'><i class='bi bi-plus'></i> {% trans "Add phrase" %}</button>");
+      buttons += ("<button class='btn btn-sm btn-outline-secondary me-1' type='button' "
+          + "onclick='copyRubric()'><i class='bi bi-clipboard-check'></i> {% trans "Copy rubric" %}</button>");
+      buttons += ("<button class='btn btn-sm btn-outline-danger me-1' type='button' "
+          + "onclick='setFeedback(\"\")'>{% trans "Clear" %}</button>");
+      buttons += "</div>";
 
       $("#canned_feedback_items").html(buttons);
 
-      $(".remove_fb_button").click(remove_feedback_item);
+      $(".remove_fb_button").click(removeFeedbackItem);
     }
 
-    function add_grade_ui()
-    {
-      $(".grading-page-grade-entry #div_id_feedback_text .controls textarea").each(
+
+    function processFeedbackChange(feedbackText) {
+      try {
+        let maxPoints = null;
+        let points = null;
+
+        rlUtils.parsePointsSpecs(feedbackText).forEach(
+              pspec => {
+                    if (pspec.points !== null) {
+                      if (points === null)
+                        points = 0;
+
+                      points += pspec.points;
+                    }
+                    else {
+                      throw new Error("Not applying points total when a pts spec "
+                            + "is missing a point value.");
+                    }
+
+
+                    if (pspec.maxPoints !== null)
+                    {
+                          if (maxPoints === null)
+                            maxPoints = 0;
+                          maxPoints += pspec.maxPoints;
+                        }
+                  })
+
+        if (points !== null)
+        {
+          if (maxPoints === null)
+          {
+            document.getElementById("id_grade_points").value = points;
+            document.getElementById("id_grade_percent").value = "";
+          }
+          else
+          {
+            document.getElementById("id_grade_points").value = "";
+            document.getElementById("id_grade_percent").value = 100*points/maxPoints;
+          }
+        }
+      }
+      catch (err)
+      {
+        bsUtils.showToast(err);
+      }
+    }
+
+    function listenForFocusHotkey(e) {
+      if (e.key === "F" && e.ctrlKey && e.shiftKey && !e.altKey && !e.metaKey
+          && !e.isComposing) {
+        getFeedbackCodemirror().focus();
+        e.stopPropagation();
+        e.preventDefault();
+      }
+    }
+
+    function addGradeUI() {
+      $(".grading-page-grade-entry #id_feedback_text_helptext").each(
           function()
           {
             $(this).after("<div id='canned_feedback_items'></div>");
           });
 
-      update_feedback_items();
+      updateFeedbackItems();
+
+      let fbcm = getFeedbackCodemirror();
+      if (fbcm)
+      {
+        rlCodemirror.setListener(
+          getFeedbackCodemirror(),
+          (viewUpdate) => {
+            if (viewUpdate.docChanged) {
+              processFeedbackChange(viewUpdate.view.state.doc.toString())
+            }
+          })
+      }
+
+      document.addEventListener("keydown", listenForFocusHotkey);
     }
 
-    $(document).ready(add_grade_ui);
+    $(document).ready(addGradeUI);
 
     {% if page_data.next_ordinal < flow_session.page_count %}
       var next_page_url = "{% url "relate-grade_flow_page" course.identifier flow_session.id page_data.next_ordinal %}";
@@ -365,98 +432,50 @@
       var next_session_url = null;
     {% endif %}
 
-    function save_and_next_page()
+    function saveAndNextPage()
     {
       window.open(next_page_url, "_blank");
       $("#submit-id-submit").click();
     }
 
-    function save_and_next_session()
+    function saveAndNextSession()
     {
       window.open(next_session_url, "_blank");
       $("#submit-id-submit").click();
     }
 
-    function add_submit_next()
+    function addSubmitNext()
     {
       if (next_page_url)
-        $(".grading-page-grade-entry .form-group:last .controls:last").append(
-            " <button class='btn btn-primary' id='save_next_page' type='button'>"
+        $(".grading-page-grade-entry .row:last div:last").append(
+            " <button class='btn btn-outline-primary' id='save_next_page' type='button'>"
             + "{% trans "Submit and next page" %} &raquo;"
             + "</button>");
       if (next_session_url)
-        $(".grading-page-grade-entry .form-group:last .controls:last").append(
-            " <button class='btn btn-primary' id='save_next_session' type='button'>"
-            + "{% trans "Submit and next session" %} &raquo;"
+        $(".grading-page-grade-entry .row:last div:last").append(
+            " <button class='btn btn-outline-primary' id='save_next_session' type='button'>"
+            + "{% trans "Submit and next session (Alt+S)" %} &raquo;"
             + "</button>");
 
-      $("#save_next_page").click(save_and_next_page);
-      $("#save_next_session").click(save_and_next_session);
+      $("#save_next_page").click(saveAndNextPage);
+      $("#save_next_session").click(saveAndNextSession);
 
       {# http://stackoverflow.com/a/9549716/3437454 #}
-      $(".relate-grading-form").prepend($(".form-group:last").clone(true, true));
+      $(".relate-grading-form").prepend($(".row:last").clone(true, true));
+
+      // Set only on one of the two copies, to avoid Firefox noticing
+      // an ambiguity.
+      let saveNext  =document.getElementById('save_next_session');
+      if (saveNext) {
+        saveNext.accessKey = 's';
+      }
     }
 
-    $(document).ready(add_submit_next);
+    $(document).ready(addSubmitNext);
   </script>
 
   {# }}} #}
 
-{% endblock %}
-
-{% block page_bottom_javascript_extra %}
-
-  {% if expects_answer %}
-    <script>
-
-      function generate_past_submission_and_grades_dropdown_content(){
-        var jqxhr = $.ajax({
-          url: "{% url "relate-get_prev_grades_dropdown_content" course.identifier flow_session.id page_ordinal %}"
-        }).done(function (result) {
-          if(result.result)
-          document.getElementById("past-submission-and-grades_dropdown_content").innerHTML = tmpl("tmpl-prev-grades", result.result);
-        });
-      }
-
-      $('#past-submission-and-grades_dropdown').on('shown.bs.dropdown', generate_past_submission_and_grades_dropdown_content);
-
-    </script>
-
-    {# https://github.com/blueimp/JavaScript-Templates #}
-    <script type="text/x-tmpl" id="tmpl-prev-grades">
-      {{ JQ_OPEN }} if (o.length==0) { {{ JQ_CLOSE }}
-        <li>
-          <a href="#" style="pointer-events: none; display: inline-block;">
-            {% trans 'No submission/grade history' %}
-          </a>
-        </li>
-      {{ JQ_OPEN }} } else { {{ JQ_CLOSE }}
-        {{ JQ_OPEN }} for (var i=0; i<o.length; i++) { {{ JQ_CLOSE }}
-          <li>
-            {{ JQ_OPEN }} if (i==0) { {{ JQ_CLOSE }}
-              <a href="?">
-            {{ JQ_OPEN }} } else { {{ JQ_CLOSE }}
-              <a href="?grade_id={{ JQ_OPEN }}=o[i].id{{ JQ_CLOSE }}">
-            {{ JQ_OPEN }} } {{ JQ_CLOSE }}
-              {{ JQ_OPEN }} if (o[i].id=={{ prev_grade_id }}) { {{ JQ_CLOSE }}<b>{{ JQ_OPEN }} } {{ JQ_CLOSE }}
-              {% trans "Submission:" %} {{ JQ_OPEN }}=o[i].visit_time{{ JQ_CLOSE }} &middot; {% trans "Grade:" %} {{ JQ_OPEN }}=o[i].grade_time{{ JQ_CLOSE }}
-              {{ JQ_OPEN }} if (o[i].id=={{ prev_grade_id }}) { {{ JQ_CLOSE }}</b>{{ JQ_OPEN }} } {{ JQ_CLOSE }}
-              {{ JQ_OPEN }} if (i==0) { {{ JQ_CLOSE }}
-              {% trans "(current)" %}
-              {{ JQ_OPEN }} } {{ JQ_CLOSE }}
-              {{ JQ_OPEN }} if (!o[i].value) { {{ JQ_CLOSE }}
-                [{% trans "no grade" %}]
-              {{ JQ_OPEN }} } else { {{ JQ_CLOSE }}
-                [{{ JQ_OPEN }}=o[i].value{{ JQ_CLOSE }}
-                {{ JQ_OPEN }} if (o[i].value <=1) { {{ JQ_CLOSE }}{% trans "point" %}{{ JQ_OPEN }} } else { {{ JQ_CLOSE }}{% trans "points" %}{{ JQ_OPEN }} } {{ JQ_CLOSE }}]
-              {{ JQ_OPEN }} } {{ JQ_CLOSE }}
-            </a>
-          </li>
-        {{ JQ_OPEN }} } {{ JQ_CLOSE }}
-      {{ JQ_OPEN }} } {{ JQ_CLOSE }}
-    </script>
-  {% endif %}
-  {{ block.super }}
 {% endblock %}
 
 {# vim: set foldmethod=marker: #}

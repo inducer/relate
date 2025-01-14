@@ -110,6 +110,12 @@ An Example
         - Green
         - ~CORRECT~ Yellow
 
+    external_resources:
+
+    -
+        title: Numpy
+        url: https://numpy.org/doc/
+
     completion_text: |
 
         # See you in class!
@@ -295,6 +301,33 @@ For example, to grant permission to revise an answer on a
             - change_answer
     value: 1
 
+.. _tabbed-page-view:
+
+Tabbed page view
+^^^^^^^^^^^^^^^^^^^^
+
+A flow page can be displayed in a tabbed view, where the first tab is the
+flow page itself, and the subsequent tabs are additional external websites. 
+
+An example use case is when the participant does not have access to
+browser-native tab functionality. This is the case when using the
+"Guardian" browser with the "ProctorU" proctoring service.
+
+To access the tabbed page for a flow, append `/ext-resource-tabs` to the URL.
+Alternatively, you can create a link to allow users to navigate to the tabbed 
+page directly. For example, `[Open tabs](ext-resource-tabs)`.
+
+You might need to set `X_FRAME_OPTIONS` in your Django settings to allow embedding
+the flow page and external websites in iframes, depending on your site's configuration.
+For example, you can add the following to your `local_settings.py`:
+
+.. code-block:: python
+
+    X_FRAME_OPTIONS = 'SAMEORIGIN'
+
+
+.. autoclass:: TabDesc
+
 .. _flow-life-cycle:
 
 Life cycle
@@ -303,6 +336,39 @@ Life cycle
 .. currentmodule:: course.constants
 
 .. autoclass:: flow_session_expiration_mode
+
+.. _points-from-feedback:
+
+Automatic point computation from textual feedback
+-------------------------------------------------
+
+If you write your textual feedback in a certain way, Relate can help you compute
+the grade (and update it when rubrics change):
+
+    - Crossed all t's [pts:1/1 #cross_t]
+    - Dotted all i's [pts:2/2 #dot_i]
+    - Obeyed the axiom of choice [pts:1.5/1 #ax_choice]
+
+    The hash marks (and arbitrary identifiers after) are optional. If specified,
+    they will permit Relate to automatically update the grade feedback with
+    a new rubric (while maintaining point percentages for each item, as
+    found by the identifier).
+
+    If at least one "denominator" is specified, Relate will automatically
+    compute the total and set the grade percentage. If no denominator
+    is specified anywhere, Relate will compute the sum and set the
+    point count.
+
+    ---
+
+    If there is a line with three or more hyphens on its own, everything
+    after that line is kept unchanged when updating feedback from a rubric.
+
+    - [pts:-1.5] Negative point contributions work, too.
+
+.. note::
+
+    The feedback update facility is not currently implemented (but planned!).
 
 Sample Rule Sets
 ----------------
@@ -624,7 +690,7 @@ The rules for this can be written as follows::
             message: |
               You have marked your session to roll over to 50% credit at the due
               date. If you would like to have your current answers graded as-is
-              (and recieve full credit for them), please select 'End session
+              (and receive full credit for them), please select 'End session
               and grade'.
             permissions: [view, submit_answer, end_session, see_correctness, change_answer, set_roll_over_expiration_mode]
 

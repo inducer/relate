@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+
 __copyright__ = "Copyright (C) 2014 Andreas Kloeckner"
 
 __license__ = """
@@ -24,17 +25,37 @@ THE SOFTWARE.
 
 
 import datetime
+from collections.abc import Collection, Mapping
+from ipaddress import IPv4Address, IPv6Address, ip_address, ip_network
+from typing import (
+    Any,
+    TypeVar,
+)
+from zoneinfo import ZoneInfo
 
 import django.forms as forms
-from django.utils.translation import gettext_lazy as _
-from django.utils.text import format_lazy
 import dulwich.repo
+from django.http import HttpRequest
+from django.utils.text import format_lazy
+from django.utils.translation import gettext_lazy as _
 
-from typing import Union
 
-from typing import Text, List, Dict, Tuple, Optional, Any, TYPE_CHECKING  # noqa
-if TYPE_CHECKING:
-    from django.http import HttpRequest  # noqa
+T = TypeVar("T")
+
+
+class RelateHttpRequest(HttpRequest):
+    # add monkey-patched request attributes
+
+    # added by FacilityFindingMiddleware
+    relate_facilities: Collection[str]
+
+    # added by ExamLockdownMiddleware
+    relate_exam_lockdown: bool
+
+
+def not_none(obj: T | None) -> T:
+    assert obj is not None
+    return obj
 
 
 def string_concat(*strings: Any) -> str:
@@ -54,29 +75,6 @@ class StyledForm(forms.Form):
         self.helper.label_class = "col-lg-2"
         self.helper.field_class = "col-lg-8"
 
-    def style_codemirror_widget(self):
-        from codemirror import CodeMirrorTextarea
-        from crispy_forms.layout import Div
-
-        if self.helper.layout is None:
-            from crispy_forms.helper import FormHelper
-            self.helper = FormHelper(self)
-            self._configure_helper()
-
-        self.helper.filter_by_widget(CodeMirrorTextarea).wrap(
-                Div, css_class="relate-codemirror-container")
-
-
-class StyledInlineForm(forms.Form):
-    def __init__(self, *args, **kwargs) -> None:
-
-        from crispy_forms.helper import FormHelper
-        self.helper = FormHelper()
-        self.helper.form_class = "form-inline"
-        self.helper.label_class = "sr-only"
-
-        super().__init__(*args, **kwargs)
-
 
 class StyledModelForm(forms.ModelForm):
     def __init__(self, *args, **kwargs) -> None:
@@ -93,29 +91,42 @@ class StyledModelForm(forms.ModelForm):
 # {{{ repo-ish types
 
 class SubdirRepoWrapper:
-    def __init__(self, repo: dulwich.Repo, subdir: str) -> None:
+    def __init__(self, repo: dulwich.repo.Repo, subdir: str) -> None:
         self.repo = repo
 
         # This wrapper should only get used if there is a subdir to be had.
         assert subdir
         self.subdir = subdir
 
-    def controldir(self):
+    def controldir(self) -> str:
         return self.repo.controldir()
 
-    def close(self):
+    def close(self) -> None:
         self.repo.close()
 
-    def __enter__(self):
+    def __enter__(self) -> SubdirRepoWrapper:
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
         self.close()
 
+    def get_refs(self) -> Mapping[bytes, bytes]:
+        return self.repo.get_refs()
 
-Repo_ish = Union[dulwich.repo.Repo, SubdirRepoWrapper]
+    def __setitem__(self, item: bytes, value: bytes) -> None:
+        self.repo[item] = value
+
+    def __delitem__(self, item: bytes) -> None:
+        del self.repo[item]
+
+
+Repo_ish = dulwich.repo.Repo | SubdirRepoWrapper
 
 # }}}
+
+
+def remote_address_from_request(request: HttpRequest) -> IPv4Address | IPv6Address:
+    return ip_address(str(request.META["REMOTE_ADDR"]))
 
 
 # {{{ maintenance mode
@@ -127,13 +138,10 @@ def is_maintenance_mode(request):
     if maintenance_mode:
         exceptions = getattr(settings, "RELATE_MAINTENANCE_MODE_EXCEPTIONS", [])
 
-        import ipaddress
-
-        remote_address = ipaddress.ip_address(
-                str(request.META["REMOTE_ADDR"]))
+        remote_address = remote_address_from_request(request)
 
         for exc in exceptions:
-            if remote_address in ipaddress.ip_network(str(exc)):
+            if remote_address in ip_network(str(exc)):
                 maintenance_mode = False
                 break
 
@@ -159,8 +167,8 @@ def get_site_name() -> str:
     return getattr(settings, "RELATE_SITE_NAME", "RELATE")
 
 
-def render_email_template(template_name: str, context: Optional[Dict] = None,
-        request: Optional[HttpRequest] = None, using: Optional[bool] = None) -> str:
+def render_email_template(template_name: str, context: dict | None = None,
+        request: HttpRequest | None = None, using: str | None = None) -> str:
     if context is None:
         context = {}
     context.update({"relate_site_name": _(get_site_name())})
@@ -192,26 +200,24 @@ def as_local_time(dtm: datetime.datetime) -> datetime.datetime:
     """Takes a timezone-aware datetime and applies the server timezone."""
 
     from django.conf import settings
-    import pytz_deprecation_shim as pds
-    tz = pds.timezone(settings.TIME_ZONE)
+    tz = ZoneInfo(settings.TIME_ZONE)
     return dtm.astimezone(tz)
 
 
 def localize_datetime(dtm: datetime.datetime) -> datetime.datetime:
     """Takes an timezone-naive datetime and applies the server timezone."""
 
+    assert dtm.tzinfo is None
+
     from django.conf import settings
-    import pytz_deprecation_shim as pds
-    tz = pds.timezone(settings.TIME_ZONE)
-    return tz.localize(dtm)  # type: ignore
+    tz = ZoneInfo(settings.TIME_ZONE)
+    return dtm.replace(tzinfo=tz)
 
 
 def local_now() -> datetime.datetime:
-
     from django.conf import settings
-    import pytz_deprecation_shim as pds
-    tz = pds.timezone(settings.TIME_ZONE)
-    return tz.localize(datetime.datetime.now())  # type: ignore
+    tz = ZoneInfo(settings.TIME_ZONE)
+    return datetime.datetime.now(tz)
 
 
 def format_datetime_local(
@@ -222,7 +228,7 @@ def format_datetime_local(
     Note: The datetime rendered in template is itself locale aware.
     A custom format must be defined in settings.py.
     When a custom format uses a same name with an existing built-in
-    format, it will be overrided by built-in format if l10n
+    format, it will be overridden by built-in format if l10n
     is enabled.
     """
 
@@ -240,7 +246,7 @@ def format_datetime_local(
 # {{{ dict_to_struct
 
 class Struct:
-    def __init__(self, entries: Dict) -> None:
+    def __init__(self, entries: dict) -> None:
         for name, val in entries.items():
             setattr(self, name, val)
 
@@ -250,7 +256,7 @@ class Struct:
         return repr(self.__dict__)
 
 
-def dict_to_struct(data: Dict) -> Struct:
+def dict_to_struct(data: dict) -> Struct:
     if isinstance(data, list):
         return [dict_to_struct(d) for d in data]
     elif isinstance(data, dict):
@@ -259,7 +265,7 @@ def dict_to_struct(data: Dict) -> Struct:
         return data
 
 
-def struct_to_dict(data: Struct) -> Dict:
+def struct_to_dict(data: Struct) -> dict:
     return {
             name: val
             for name, val in data.__dict__.items()
@@ -268,8 +274,8 @@ def struct_to_dict(data: Struct) -> Dict:
 # }}}
 
 
-def retry_transaction(f: Any, args: Tuple, kwargs: Optional[Dict] = None,
-        max_tries: Optional[int] = None, serializable: Optional[bool] = None) -> Any:
+def retry_transaction(f: Any, args: tuple, kwargs: dict | None = None,
+        max_tries: int | None = None, serializable: bool | None = None) -> Any:
     if kwargs is None:
         kwargs = {}
 
@@ -286,7 +292,7 @@ def retry_transaction(f: Any, args: Tuple, kwargs: Optional[Dict] = None,
         try:
             with transaction.atomic():
                 if serializable:
-                    from django.db import connections, DEFAULT_DB_ALIAS
+                    from django.db import DEFAULT_DB_ALIAS, connections
                     conn = connections[DEFAULT_DB_ALIAS]
                     if conn.vendor == "postgresql":
                         cursor = conn.cursor()
@@ -305,8 +311,8 @@ def retry_transaction(f: Any, args: Tuple, kwargs: Optional[Dict] = None,
 
 
 class retry_transaction_decorator:  # noqa
-    def __init__(self, max_tries: Optional[int] = None,
-            serializable: Optional[bool] = None) -> None:
+    def __init__(self, max_tries: int | None = None,
+            serializable: bool | None = None) -> None:
         self.max_tries = max_tries
         self.serializable = serializable
 
@@ -325,8 +331,8 @@ class retry_transaction_decorator:  # noqa
 # {{{ hang debugging
 
 def dumpstacks(signal, frame):  # pragma: no cover
-    import threading
     import sys
+    import threading
     import traceback
 
     id2name = {th.ident: th.name for th in threading.enumerate()}
@@ -336,30 +342,29 @@ def dumpstacks(signal, frame):  # pragma: no cover
         for filename, lineno, name, line in traceback.extract_stack(stack):
             code.append('File: "%s", line %d, in %s' % (filename, lineno, name))
             if line:
-                code.append("  %s" % (line.strip()))
+                code.append(f"  {line.strip()}")
     print("\n".join(code))
 
 
 if 0:
-    import signal
     import os
-    print("*** HANG DUMP HANDLER ACTIVATED: 'kill -USR1 %s' to dump stacks"
-            % os.getpid())
+    import signal
+    print(f"*** HANG DUMP HANDLER ACTIVATED: 'kill -USR1 {os.getpid()}' to dump stacks")
     signal.signal(signal.SIGUSR1, dumpstacks)
 
 # }}}
 
 
-#{{{ Allow multiple email connections
+# {{{ Allow multiple email connections
 # https://gist.github.com/niran/840999
 
-def get_outbound_mail_connection(label: Optional[str] = None, **kwargs: Any) -> Any:
+def get_outbound_mail_connection(label: str | None = None, **kwargs: Any) -> Any:
     from django.conf import settings
     if label is None:
         label = getattr(settings, "EMAIL_CONNECTION_DEFAULT", None)
 
     try:
-        connections = settings.EMAIL_CONNECTIONS
+        connections = settings.EMAIL_CONNECTIONS  # type: ignore[misc]
         options = connections[label]
     except (KeyError, AttributeError):
         # Neither EMAIL_CONNECTIONS nor
@@ -374,11 +379,11 @@ def get_outbound_mail_connection(label: Optional[str] = None, **kwargs: Any) -> 
     from django.core import mail
     return mail.get_connection(**options)
 
-#}}}
+# }}}
 
 
 def ignore_no_such_table(f, *args):
-    from django.db import connections, DEFAULT_DB_ALIAS
+    from django.db import DEFAULT_DB_ALIAS, connections
     conn = connections[DEFAULT_DB_ALIAS]
 
     if conn.vendor == "postgresql":
@@ -420,14 +425,37 @@ def force_remove_path(path: str) -> None:
     Ref: https://docs.python.org/3.5/library/shutil.html#rmtree-example
     """
     import os
-    import stat
     import shutil
+    import stat
 
-    def remove_readonly(func, path, _):  # noqa
+    def remove_readonly(func, path, _):
         """Clear the readonly bit and reattempt the removal"""
         os.chmod(path, stat.S_IWRITE)
         func(path)
 
     shutil.rmtree(path, onerror=remove_readonly)
+
+
+# {{{ date/datetime input
+
+HTML5_DATE_FORMAT = "%Y-%m-%d"
+HTML5_DATETIME_FORMAT = "%Y-%m-%dT%H:%M"
+
+
+class HTML5DateInput(forms.DateInput):
+    def __init__(self) -> None:
+        super().__init__(
+                attrs={"type": "date"},
+                format=HTML5_DATE_FORMAT)
+
+
+class HTML5DateTimeInput(forms.DateTimeInput):
+    def __init__(self) -> None:
+        super().__init__(
+                attrs={"type": "datetime-local"},
+                format=HTML5_DATETIME_FORMAT)
+
+# }}}
+
 
 # vim: foldmethod=marker

@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+from __future__ import annotations
+
 import os
 import sys
 
@@ -10,16 +12,16 @@ def get_local_test_settings_file(argv):
     local_settings_dir = os.path.split(argv[0])[0]
     assert os.path.isfile(os.path.join(local_settings_dir, "manage.py"))
 
-    from django.core.management import CommandParser, CommandError
+    from django.core.management import CommandError, CommandParser
 
     parser = CommandParser(
             usage="%(prog)s subcommand [options] [args]",
             add_help=False)
 
-    parser.add_argument('--local_test_settings',
+    parser.add_argument("--local_test_settings",
                         dest="local_test_settings")
 
-    options, args = parser.parse_known_args(argv)
+    options, _args = parser.parse_known_args(argv)
 
     if options.local_test_settings is None:
         local_settings_file = "local_settings_example.py"
@@ -39,7 +41,7 @@ def get_local_test_settings_file(argv):
 
     if not os.path.isfile(local_settings_file):
         raise CommandError(
-            "file '%s' does not exist" % local_settings_file
+            f"file '{local_settings_file}' does not exist"
         )
 
     return local_settings_file
@@ -52,6 +54,6 @@ if __name__ == "__main__":
 
     if sys.argv[1] == "test":
         local_settings_file = get_local_test_settings_file(sys.argv)
-        os.environ['RELATE_LOCAL_TEST_SETTINGS'] = local_settings_file
+        os.environ["RELATE_LOCAL_TEST_SETTINGS"] = local_settings_file
 
     execute_from_command_line(sys.argv)

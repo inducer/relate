@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+
 __copyright__ = "Copyright (C) 2014 Andreas Kloeckner"
 
 __license__ = """
@@ -20,19 +23,22 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
+from typing import Any
 
 import django.forms as forms
+from crispy_forms.layout import Field, Layout
 from django.utils.translation import gettext as _, gettext_lazy
 
 from course.page.base import (
-        PageBaseWithTitle, PageBaseWithValue, PageBaseWithHumanTextFeedback,
-        PageBaseWithCorrectAnswer,
-        markup_to_html)
-from course.validation import ValidationError
-
+    PageBaseWithCorrectAnswer,
+    PageBaseWithHumanTextFeedback,
+    PageBaseWithTitle,
+    PageBaseWithValue,
+    PageContext,
+    markup_to_html,
+)
+from course.validation import AttrSpec, ValidationError
 from relate.utils import StyledForm, string_concat
-
-from crispy_forms.layout import Layout, Field
 
 
 # {{{ upload question
@@ -84,6 +90,9 @@ class FileUploadQuestion(PageBaseWithTitle, PageBaseWithValue,
     """
     A page allowing the submission of a file upload that will be
     graded with text feedback by a human grader.
+
+    Supports automatic computation of point values from textual feedback.
+    See :ref:`points-from-feedback`.
 
     .. attribute:: id
 
@@ -178,17 +187,15 @@ class FileUploadQuestion(PageBaseWithTitle, PageBaseWithValue,
                 vctx.add_warning(location, _("upload question does not have "
                         "assigned point value"))
 
-    def required_attrs(self):
-        return super().required_attrs() + (
-                ("prompt", "markup"),
-                ("mime_types", list),
-                ("maximum_megabytes", (int, float)),
-                )
+    def required_attrs(self) -> AttrSpec:
+        return (
+            *super().required_attrs(),
+            ("prompt", "markup"),
+            ("mime_types", list),
+            ("maximum_megabytes", (int, float)))
 
-    def allowed_attrs(self):
-        return super().allowed_attrs() + (
-                ("correct_answer", "markup"),
-                )
+    def allowed_attrs(self) -> AttrSpec:
+        return (*super().allowed_attrs(), ("correct_answer", "markup"))
 
     def human_feedback_point_value(self, page_context, page_data):
         return self.max_points(page_data)
@@ -274,9 +281,7 @@ class FileUploadQuestion(PageBaseWithTitle, PageBaseWithValue,
             from base64 import b64encode
             subm_data, subm_mime = self.get_content_from_answer_data(answer_data)
             ctx["mime_type"] = subm_mime
-            ctx["data_url"] = "data:{};base64,{}".format(
-                subm_mime,
-                b64encode(subm_data).decode())
+            ctx["data_url"] = f"data:{subm_mime};base64,{b64encode(subm_data).decode()}"
 
         from django.template.loader import render_to_string
         return render_to_string(
@@ -286,6 +291,14 @@ class FileUploadQuestion(PageBaseWithTitle, PageBaseWithValue,
         uploaded_file = files_data["uploaded_file"]
         return self.file_to_answer_data(page_context, uploaded_file,
                 mime_type=uploaded_file.content_type)
+
+    def normalized_answer(
+                self,
+                page_context: PageContext,
+                page_data: Any,
+                answer_data: Any
+            ) -> str | None:
+        return None
 
     def normalized_bytes_answer(self, page_context, page_data, answer_data):
         if answer_data is None:

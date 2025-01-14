@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+
 __copyright__ = "Copyright (C) 2018 Dong Zhuang"
 
 __license__ = """
@@ -21,17 +24,16 @@ THE SOFTWARE.
 """
 
 import pytest
-from django.test import TestCase, RequestFactory
-from django.urls import reverse
-from django.utils.timezone import now
-from django.contrib.auth import get_user_model
 from django.contrib.admin import site
 from django.contrib.admin.models import LogEntry
+from django.contrib.auth import get_user_model
+from django.test import RequestFactory, TestCase
+from django.urls import reverse
+from django.utils.timezone import now
 
-from course.models import Participation
 from accounts.admin import UserAdmin
 from accounts.models import User
-
+from course.models import Participation
 from tests.base_test_mixins import AdminTestMixin
 
 
@@ -39,7 +41,7 @@ from tests.base_test_mixins import AdminTestMixin
 class AccountsAdminTest(AdminTestMixin, TestCase):
 
     @classmethod
-    def setUpTestData(cls):  # noqa
+    def setUpTestData(cls):
         super().setUpTestData()
 
         cls.user_change_list_url = cls.get_admin_change_list_view_url()
@@ -130,20 +132,20 @@ class AccountsAdminTest(AdminTestMixin, TestCase):
         # Make sure https://github.com/inducer/relate/issues/447 is fixed
         with self.temporarily_switch_to_user(self.instructor1):
             user_count = get_user_model().objects.count()
-            resp = self.client.post(reverse('admin:accounts_user_add'), {
-                'username': 'newuser',
-                'password1': 'newpassword',
-                'password2': 'newpassword',
+            resp = self.client.post(reverse("admin:accounts_user_add"), {
+                "username": "newuser",
+                "password1": "newpassword",
+                "password2": "newpassword",
             })
-            new_user = get_user_model().objects.get(username='newuser')
-            self.assertRedirects(resp, reverse('admin:accounts_user_change',
+            new_user = get_user_model().objects.get(username="newuser")
+            self.assertRedirects(resp, reverse("admin:accounts_user_change",
                                                    args=(new_user.pk,)))
             self.assertEqual(get_user_model().objects.count(), user_count + 1)
             self.assertTrue(new_user.has_usable_password())
 
     def test_admin_user_change_fieldsets(self):
         # This test is using request factory
-        change_url = reverse('admin:accounts_user_change',
+        change_url = reverse("admin:accounts_user_change",
                     args=(self.course1_student_participation3.user.pk,))
 
         common_fields = (
@@ -186,8 +188,7 @@ class AccountsAdminTest(AdminTestMixin, TestCase):
                     for f in common_fields:
                         self.assertEqual(
                             td["see_common_fields"], f in field_names,
-                            "'%s' unexpectedly %s SHOWN in %s"
-                            % (f,
+                            "'{}' unexpectedly {} SHOWN in {}".format(f,
                                "NOT" if td["see_superuser_only_fields"]
                                else "",
                                repr(field_names))
@@ -195,8 +196,7 @@ class AccountsAdminTest(AdminTestMixin, TestCase):
                     for f in superuser_only_fields:
                         self.assertEqual(
                             td["see_superuser_only_fields"], f in field_names,
-                            "'%s' unexpectedly %s SHOWN in %s"
-                            % (f,
+                            "'{}' unexpectedly {} SHOWN in {}".format(f,
                               "NOT" if td["see_superuser_only_fields"]
                               else "",
                               repr(field_names)))
@@ -257,7 +257,7 @@ class AccountsAdminTest(AdminTestMixin, TestCase):
         self.assertEqual(changelist.full_result_count, total_user_count)
 
         filterspec_list = self.get_filterspec_list(request, changelist)
-        self.assertIn(('All', self.course1.identifier, self.course2.identifier),
+        self.assertIn(("All", self.course1.identifier, self.course2.identifier),
                       filterspec_list)
 
         request = self.rf.get(self.user_change_list_url, {})
@@ -281,7 +281,7 @@ class AccountsAdminTest(AdminTestMixin, TestCase):
 
         # Although instructor 1 attended course2, the list_filter did not have that
         # choice, because he/she has no view_admin_interface pperm in that course
-        self.assertIn(('All', self.course1.identifier), filterspec_list)
+        self.assertIn(("All", self.course1.identifier), filterspec_list)
 
         # }}}
 
@@ -316,24 +316,24 @@ class AccountsAdminTest(AdminTestMixin, TestCase):
         if not user.date_joined:
             user.date_joined = now()
         return {
-            'username': user.username,
-            'password': user.password,
-            'email': user.email,
-            'is_active': user.is_active,
-            'is_staff': user.is_staff,
-            'is_superuser': user.is_superuser,
-            'last_login_0': user.last_login.strftime('%Y-%m-%d'),
-            'last_login_1': user.last_login.strftime('%H:%M:%S'),
-            'initial-last_login_0': user.last_login.strftime('%Y-%m-%d'),
-            'initial-last_login_1': user.last_login.strftime('%H:%M:%S'),
-            'date_joined_0': user.date_joined.strftime('%Y-%m-%d'),
-            'date_joined_1': user.date_joined.strftime('%H:%M:%S'),
-            'initial-date_joined_0': user.date_joined.strftime('%Y-%m-%d'),
-            'initial-date_joined_1': user.date_joined.strftime('%H:%M:%S'),
-            'first_name': user.first_name,
-            'last_name': user.last_name,
-            'editor_mode': user.editor_mode,
-            'status': user.status
+            "username": user.username,
+            "password": user.password,
+            "email": user.email,
+            "is_active": user.is_active,
+            "is_staff": user.is_staff,
+            "is_superuser": user.is_superuser,
+            "last_login_0": user.last_login.strftime("%Y-%m-%d"),
+            "last_login_1": user.last_login.strftime("%H:%M:%S"),
+            "initial-last_login_0": user.last_login.strftime("%Y-%m-%d"),
+            "initial-last_login_1": user.last_login.strftime("%H:%M:%S"),
+            "date_joined_0": user.date_joined.strftime("%Y-%m-%d"),
+            "date_joined_1": user.date_joined.strftime("%H:%M:%S"),
+            "initial-date_joined_0": user.date_joined.strftime("%Y-%m-%d"),
+            "initial-date_joined_1": user.date_joined.strftime("%H:%M:%S"),
+            "first_name": user.first_name,
+            "last_name": user.last_name,
+            "editor_mode": user.editor_mode,
+            "status": user.status
         }
 
     def test_set_superuser_and_staff_by_superuser(self):
@@ -347,7 +347,7 @@ class AccountsAdminTest(AdminTestMixin, TestCase):
             self.assertEqual(resp.status_code, 302)
             self.assertEqual(User.objects.filter(is_staff=True).count(),
                              staff_count + 1)
-            row = LogEntry.objects.latest('id')
+            row = LogEntry.objects.latest("id")
             self.assertIn("Changed", row.get_change_message())
             self.assertIn("Staff status", row.get_change_message())
 
@@ -356,7 +356,7 @@ class AccountsAdminTest(AdminTestMixin, TestCase):
             self.client.post(self.student2_change_url, data)
             self.assertEqual(User.objects.filter(is_superuser=True).count(),
                              superuser_count + 1)
-            row = LogEntry.objects.latest('id')
+            row = LogEntry.objects.latest("id")
             self.assertIn("Changed", row.get_change_message())
             self.assertIn("Staff status", row.get_change_message())
 
@@ -373,7 +373,7 @@ class AccountsAdminTest(AdminTestMixin, TestCase):
             # non-superuser staff can't post create staff
             self.assertEqual(User.objects.filter(is_staff=True).count(),
                              staff_count)
-            row = LogEntry.objects.latest('id')
+            row = LogEntry.objects.latest("id")
             self.assertNotIn("is_staff", row.get_change_message())
 
             data = self.get_user_data(user)
@@ -383,7 +383,7 @@ class AccountsAdminTest(AdminTestMixin, TestCase):
             # non-superuser staff can't post create superuser
             self.assertEqual(User.objects.filter(is_superuser=True).count(),
                              superuser_count)
-            row = LogEntry.objects.latest('id')
+            row = LogEntry.objects.latest("id")
             self.assertNotIn("Staff status", row.get_change_message())
 
     def test_add_permissions_by_superuser(self):
@@ -395,7 +395,7 @@ class AccountsAdminTest(AdminTestMixin, TestCase):
 
             self.client.post(self.student2_change_url, data)
 
-            row = LogEntry.objects.latest('id')
+            row = LogEntry.objects.latest("id")
             self.assertIn("Changed", row.get_change_message())
             self.assertIn("User permissions",  row.get_change_message())
 
@@ -408,7 +408,7 @@ class AccountsAdminTest(AdminTestMixin, TestCase):
 
             self.client.post(self.student2_change_url, data)
 
-            row = LogEntry.objects.latest('id')
+            row = LogEntry.objects.latest("id")
             self.assertIn("Changed", row.get_change_message())
 
             # no change was made to user_permissions

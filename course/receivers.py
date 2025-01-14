@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+
 __copyright__ = "Copyright (C) 2016 Dong Zhuang, Andreas Kloeckner"
 
 __license__ = """
@@ -20,17 +23,20 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from django.db.models.signals import post_save
+from typing import Any
+
 from django.db import transaction
+from django.db.models.signals import post_save
 from django.dispatch import receiver
 
 from accounts.models import User
 from course.models import (
-        Course, Participation, participation_status,
-        ParticipationPreapproval,
-        )
-
-from typing import List, Union, Text, Optional, Tuple, Any  # noqa
+    Course,
+    Participation,
+    ParticipationPreapproval,
+    ParticipationRole,
+    participation_status,
+)
 
 
 # {{{ Update enrollment status when a User/Course instance is saved
@@ -41,7 +47,7 @@ from typing import List, Union, Text, Optional, Tuple, Any  # noqa
 def update_requested_participation_status(
         sender: Any,
         created: bool,
-        instance: Union[Course, User],
+        instance: Course | User,
         **kwargs: Any) -> None:
     if created:
         return
@@ -78,7 +84,7 @@ def update_requested_participation_status(
 
 
 def may_preapprove_role(
-        course: Course, user: User) -> Tuple[bool, Optional[List[str]]]:
+        course: Course, user: User) -> tuple[bool, list[ParticipationRole] | None]:
     if not user.is_active:
         return False, None
 

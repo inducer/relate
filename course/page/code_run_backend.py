@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+
 __copyright__ = "Copyright (C) 2014 Andreas Kloeckner"
 
 __license__ = """
@@ -22,6 +25,8 @@ THE SOFTWARE.
 
 import sys
 import traceback
+from typing import Any
+
 
 try:
     from .code_feedback import Feedback, GradingComplete
@@ -134,7 +139,7 @@ class Struct:
 # }}}
 
 
-def substitute_correct_code_into_test_code(test_code, correct_code):
+def substitute_correct_code_into_test_code(test_code: str, correct_code: str) -> str:
     import re
     CORRECT_CODE_TAG = re.compile(r"^(\s*)###CORRECT_CODE###\s*$")  # noqa
 
@@ -151,10 +156,11 @@ def substitute_correct_code_into_test_code(test_code, correct_code):
     return "\n".join(new_test_code_lines)
 
 
-def package_exception(result, what):
+def package_exception(result: dict[str, Any], what: str) -> None:
     tp, val, tb = sys.exc_info()
+    assert tp is not None
     result["result"] = what
-    result["message"] = "{}: {}".format(tp.__name__, str(val))
+    result["message"] = f"{tp.__name__}: {val!s}"
     result["traceback"] = "".join(
             traceback.format_exception(tp, val, tb))
 
@@ -241,7 +247,7 @@ def run_code(result, run_req):
         for name in run_req.names_for_user:
             if name not in maint_ctx:
                 result["result"] = "setup_error"
-                result["message"] = "Setup code did not define '%s'." % name
+                result["message"] = f"Setup code did not define '{name}'."
 
             user_ctx[name] = maint_ctx[name]
 
@@ -258,9 +264,10 @@ def run_code(result, run_req):
     # {{{ export plots
 
     if "matplotlib" in sys.modules:
-        import matplotlib.pyplot as pt
-        from io import BytesIO
         from base64 import b64encode
+        from io import BytesIO
+
+        import matplotlib.pyplot as pt
 
         format = "png"
         mime = "image/png"
@@ -285,8 +292,7 @@ def run_code(result, run_req):
         for name in run_req.names_from_user:
             if name not in user_ctx:
                 feedback.add_feedback(
-                        "Required answer variable '%s' is not defined."
-                        % name)
+                        f"Required answer variable '{name}' is not defined.")
                 maint_ctx[name] = None
             else:
                 maint_ctx[name] = user_ctx[name]

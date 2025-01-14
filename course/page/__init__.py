@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+
 __copyright__ = "Copyright (C) 2014 Andreas Kloeckner"
 
 __license__ = """
@@ -21,34 +24,55 @@ THE SOFTWARE.
 """
 
 from course.page.base import (
-        InvalidPageData,
-        PageBase, AnswerFeedback, PageContext, PageBehavior,
-        get_auto_feedback,
-        markup_to_html)
+    AnswerFeedback,
+    InvalidPageData,
+    PageBase,
+    PageBehavior,
+    PageContext,
+    get_auto_feedback,
+    markup_to_html,
+)
+from course.page.choice import (
+    ChoiceQuestion,
+    MultipleChoiceQuestion,
+    SurveyChoiceQuestion,
+)
+from course.page.code import (
+    PythonCodeQuestion,
+    PythonCodeQuestionWithHumanTextFeedback,
+)
+from course.page.inline import InlineMultiQuestion
 from course.page.static import Page
 from course.page.text import (
-        TextQuestion, SurveyTextQuestion, HumanGradedTextQuestion)
-from course.page.inline import InlineMultiQuestion
-from course.page.choice import (
-        ChoiceQuestion, MultipleChoiceQuestion, SurveyChoiceQuestion)
-from course.page.code import (
-        PythonCodeQuestion, PythonCodeQuestionWithHumanTextFeedback)
+    HumanGradedRichTextQuestion,
+    HumanGradedTextQuestion,
+    SurveyTextQuestion,
+    TextQuestion,
+)
 from course.page.upload import FileUploadQuestion
 
+
 __all__ = (
-        "InvalidPageData",
-        "PageBase", "AnswerFeedback", "PageContext", "PageBehavior",
-        "get_auto_feedback",
-        "markup_to_html",
-        "Page",
-
-        "TextQuestion", "SurveyTextQuestion", "HumanGradedTextQuestion",
-        "InlineMultiQuestion",
-
-        "ChoiceQuestion", "SurveyChoiceQuestion", "MultipleChoiceQuestion",
-        "PythonCodeQuestion", "PythonCodeQuestionWithHumanTextFeedback",
-        "FileUploadQuestion",
-        )
+    "AnswerFeedback",
+    "ChoiceQuestion",
+    "FileUploadQuestion",
+    "HumanGradedRichTextQuestion",
+    "HumanGradedTextQuestion",
+    "InlineMultiQuestion",
+    "InvalidPageData",
+    "MultipleChoiceQuestion",
+    "Page",
+    "PageBase",
+    "PageBehavior",
+    "PageContext",
+    "PythonCodeQuestion",
+    "PythonCodeQuestionWithHumanTextFeedback",
+    "SurveyChoiceQuestion",
+    "SurveyTextQuestion",
+    "TextQuestion",
+    "get_auto_feedback",
+    "markup_to_html",
+)
 
 __doc__ = """
 

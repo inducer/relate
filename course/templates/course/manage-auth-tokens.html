@@ -8,23 +8,13 @@
   {% trans "Manage Authentication Tokens" %}: - {{ relate_site_name }}
 {% endblock %}
 
-{# keep this in sync with relate/templates/generic-form.html #}
-{% block head_assets_form_media %}
-  <link href="{% static 'eonasdan-bootstrap-datetimepicker/build/css/bootstrap-datetimepicker.min.css' %}" rel="stylesheet">
-
-  <script src="{% static 'moment/min/moment-with-locales.min.js' %}"></script>
-  <script src="{% static 'moment-timezone/builds/moment-timezone.min.js' %}"></script>
-  <script src="{% static 'eonasdan-bootstrap-datetimepicker/build/js/bootstrap-datetimepicker.min.js' %}"></script>
-  {{ form.media }}
-{% endblock %}
-
 {% block content %}
   <h1>{% trans "Manage Authentication Tokens" %}</h1>
 
   {{ new_token_message }}
 
   {% if not tokens %}
-    <div class="well">
+    <div class="relate-well">
       {% trans "(No tokens have been created yet.)" %}
     </div>
   {% else %}
@@ -75,7 +65,7 @@
               {% if token.revocation_time == None %}
                 <form method="POST">
                   {% csrf_token %}
-                  <button type="submit" class="btn btn-danger btn-xs" name="revoke_{{ token.id }}">
+                  <button type="submit" class="btn btn-danger btn-sm" name="revoke_{{ token.id }}">
                     Revoke
                   </button>
                 </form>
@@ -87,7 +77,7 @@
     </table>
   {% endif %}
 
-  <div class="well">
+  <div class="relate-well">
     {% crispy form %}
   </div>
 {% endblock %}

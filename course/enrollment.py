@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+
 __copyright__ = "Copyright (C) 2014 Andreas Kloeckner"
 
 __license__ = """
@@ -23,54 +24,50 @@ THE SOFTWARE.
 """
 
 from sys import intern
-
-from django.utils.translation import (
-        gettext_lazy as _,
-        pgettext)
-from django.shortcuts import (  # noqa
-        render, get_object_or_404, redirect)
-from django.contrib import messages
-from django.contrib.auth.decorators import login_required
-from django.contrib.auth import get_user_model
-from django.core.exceptions import PermissionDenied, SuspiciousOperation
-from django.conf import settings
-from django.urls import reverse
-from django.db import transaction, IntegrityError
-from django import forms
-from django import http  # noqa
-from django.utils.safestring import mark_safe
+from typing import TYPE_CHECKING, Any
 
 from crispy_forms.layout import Submit
-
-from course.models import (
-        user_status,
-        Course,
-        Participation,
-        ParticipationPreapproval,
-        ParticipationPermission,
-        ParticipationRole,
-        ParticipationTag,
-        participation_status)
-
-from course.constants import (
-        PARTICIPATION_PERMISSION_CHOICES,
-        participation_permission as pperm,
-        )
+from django import (
+    forms,
+    http,
+)
+from django.conf import settings
+from django.contrib import messages
+from django.contrib.auth import get_user_model
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import AnonymousUser
+from django.core.exceptions import PermissionDenied, SuspiciousOperation
+from django.db import IntegrityError, transaction
+from django.shortcuts import get_object_or_404, redirect, render  # noqa
+from django.urls import reverse
+from django.utils.safestring import mark_safe
+from django.utils.translation import gettext_lazy as _, pgettext
+from pytools.lex import RE as REBase  # noqa
 
 from course.auth import UserSearchWidget
-
-from course.utils import course_view, render_course_page, LanguageOverride
-
+from course.constants import (
+    PARTICIPATION_PERMISSION_CHOICES,
+    participation_permission as pperm,
+)
+from course.models import (
+    Course,
+    Participation,
+    ParticipationPermission,
+    ParticipationPreapproval,
+    ParticipationRole,
+    ParticipationTag,
+    participation_status,
+    user_status,
+)
+from course.utils import LanguageOverride, course_view, render_course_page
 from relate.utils import StyledForm, StyledModelForm, string_concat
 
-from pytools.lex import RE as REBase  # noqa
 
 # {{{ for mypy
 
-from typing import Any, Tuple, Text, Optional, List, FrozenSet, TYPE_CHECKING  # noqa
 if TYPE_CHECKING:
-    from course.utils import CoursePageContext  # noqa
-    import accounts.models  # noqa
+    import accounts.models
+    from course.utils import CoursePageContext
 
 # }}}
 
@@ -78,18 +75,8 @@ if TYPE_CHECKING:
 # {{{ get_participation_for_{user,request}
 
 def get_participation_for_user(
-        user: accounts.models.User, course: Course
-        ) -> Optional[Participation]:
-    # "wake up" lazy object
-    # http://stackoverflow.com/questions/20534577/int-argument-must-be-a-string-or-a-number-not-simplelazyobject  # noqa
-    try:
-        possible_user = user._wrapped
-    except AttributeError:
-        pass
-    else:
-        if isinstance(possible_user, get_user_model()):
-            user = possible_user
-
+        user: accounts.models.User | AnonymousUser, course: Course
+        ) -> Participation | None:
     if not user.is_authenticated:
         return None
 
@@ -109,7 +96,7 @@ def get_participation_for_user(
 
 
 def get_participation_for_request(
-        request: http.HttpRequest, course: Course) -> Optional[Participation]:
+        request: http.HttpRequest, course: Course) -> Participation | None:
     return get_participation_for_user(request.user, course)
 
 # }}}
@@ -118,9 +105,9 @@ def get_participation_for_request(
 # {{{ get_participation_role_identifiers
 
 def get_participation_role_identifiers(
-        course: Course, participation: Optional[Participation]) -> List[str]:
+        course: Course, participation: Participation | None) -> list[str]:
     if participation is None:
-        return (
+        return list(
                 ParticipationRole.objects.filter(
                     course=course,
                     is_default_for_unenrolled=True)
@@ -136,8 +123,8 @@ def get_participation_role_identifiers(
 
 def get_participation_permissions(
         course: Course,
-        participation: Optional[Participation],
-        ) -> FrozenSet[Tuple[str, Optional[str]]]:
+        participation: Participation | None,
+        ) -> frozenset[tuple[str, str | None]]:
 
     if participation is not None:
         return participation.permissions()
@@ -165,7 +152,10 @@ def get_participation_permissions(
 def enroll_view(
         request: http.HttpRequest, course_identifier: str) -> http.HttpResponse:
     course = get_object_or_404(Course, identifier=course_identifier)
+
     user = request.user
+    assert user.is_authenticated
+
     participations = Participation.objects.filter(course=course, user=user)
     if not participations.count():
         participation = None
@@ -214,10 +204,10 @@ def enroll_view(
         return redirect("relate-course_page", course_identifier)
 
     preapproval = None
-    if request.user.email:  # pragma: no branch (user email NOT NULL constraint)
+    if user.email:  # pragma: no branch (user email NOT NULL constraint)
         try:
             preapproval = ParticipationPreapproval.objects.get(
-                    course=course, email__iexact=request.user.email)
+                    course=course, email__iexact=user.email)
         except ParticipationPreapproval.DoesNotExist:
             pass
 
@@ -236,7 +226,7 @@ def enroll_view(
         if suffix.startswith("@"):
             return email.endswith(suffix)
         else:
-            return email.endswith("@%s" % suffix) or email.endswith(".%s" % suffix)
+            return email.endswith(f"@{suffix}") or email.endswith(f".{suffix}")
 
     if (preapproval is None
         and course.enrollment_required_email_suffix
@@ -248,18 +238,20 @@ def enroll_view(
                 "enroll.") % course.enrollment_required_email_suffix)
         return redirect("relate-course_page", course_identifier)
 
-    roles = ParticipationRole.objects.filter(
-            course=course,
-            is_default_for_new_participants=True)
-
     if preapproval is not None:
-        roles = list(preapproval.roles.all())
+        roles = preapproval.roles.all()
+    else:
+        roles = ParticipationRole.objects.filter(
+                course=course,
+                is_default_for_new_participants=True)
+
+    roles_list = list(roles)
 
     try:
         if course.enrollment_approval_required and preapproval is None:
             participation = handle_enrollment_request(
                     course, user, participation_status.requested,
-                    roles, request)
+                    roles_list, request)
 
             assert participation is not None
 
@@ -293,11 +285,11 @@ def enroll_view(
                 msg.send()
 
             messages.add_message(request, messages.INFO,
-                    _("Enrollment request sent. You will receive notifcation "
+                    _("Enrollment request sent. You will receive notification "
                     "by email once your request has been acted upon."))
         else:
             handle_enrollment_request(course, user, participation_status.active,
-                                      roles, request)
+                                      roles_list, request)
 
             messages.add_message(request, messages.SUCCESS,
                     _("Successfully enrolled."))
@@ -314,8 +306,8 @@ def handle_enrollment_request(
         course: Course,
         user: Any,
         status: str,
-        roles: Optional[List[ParticipationRole]],
-        request: Optional[http.HttpRequest] = None
+        roles: list[ParticipationRole] | None,
+        request: http.HttpRequest | None = None
         ) -> Participation:
     participations = Participation.objects.filter(course=course, user=user)
 
@@ -372,7 +364,7 @@ def decide_enrollment(approved, modeladmin, request, queryset):
 def send_enrollment_decision(
         participation: Participation,
         approved: bool,
-        request: Optional[http.HttpRequest] = None) -> None:
+        request: http.HttpRequest | None = None) -> None:
     course = participation.course
     with LanguageOverride(course=course):
         if request:
@@ -488,7 +480,7 @@ def create_preapprovals(pctx):
                 if not ln:
                     continue
 
-                preapp_filter_kwargs = {"%s__iexact" % preapp_type: ln}
+                preapp_filter_kwargs = {f"{preapp_type}__iexact": ln}
 
                 try:
                     ParticipationPreapproval.objects.get(
@@ -496,7 +488,7 @@ def create_preapprovals(pctx):
                 except ParticipationPreapproval.DoesNotExist:
 
                     # approve if ln is requesting enrollment
-                    user_filter_kwargs = {"user__%s__iexact" % preapp_type: ln}
+                    user_filter_kwargs = {f"user__{preapp_type}__iexact": ln}
                     if preapp_type == "institutional_id":
                         if pctx.course.preapproval_require_verified_inst_id:
                             user_filter_kwargs.update(
@@ -675,7 +667,7 @@ def parse_query(course, expr_str):
             return result
 
         elif next_tag is _tagged:
-            ptag, created = ParticipationTag.objects.get_or_create(
+            ptag, _created = ParticipationTag.objects.get_or_create(
                     course=course,
                     name=pstate.next_match_obj().group(1))
 
@@ -687,7 +679,7 @@ def parse_query(course, expr_str):
         elif next_tag is _role:
             name_map = {"teaching_assistant": "ta"}
             name = pstate.next_match_obj().group(1)
-            prole, created = ParticipationRole.objects.get_or_create(
+            prole, _created = ParticipationRole.objects.get_or_create(
                     course=course,
                     identifier=name_map.get(name, name))
 
@@ -752,7 +744,7 @@ def parse_query(course, expr_str):
                 pstate.advance()
                 left_query = left_query | inner_parse(pstate, _PREC_OR)
                 did_something = True
-            elif (next_tag in _TERMINALS + [_not, _openpar]
+            elif (next_tag in [*_TERMINALS, _not, _openpar]
                     and _PREC_AND > min_precedence):
                 left_query = left_query & inner_parse(pstate, _PREC_AND)
                 did_something = True
@@ -786,7 +778,7 @@ class ParticipationQueryForm(StyledForm):
             required=True,
             widget=forms.Textarea,
             help_text=string_concat(
-                _("Enter queries, one per line."), " ",
+                _("Enter queries, one per line. Union of results is shown."), " ",
                 _("Allowed"), ": ",
                 "<code>and</code>, "
                 "<code>or</code>, "
@@ -923,8 +915,13 @@ def query_participations(pctx):
 # {{{ edit_participation
 
 class EditParticipationForm(StyledModelForm):
+
     def __init__(self, add_new: bool, pctx: CoursePageContext,
             *args: Any, **kwargs: Any) -> None:
+        if not add_new:
+            kwargs.setdefault("initial", {})["individual_permissions"] = (
+                    list(kwargs["instance"].individual_permissions.all()))
+
         super().__init__(*args, **kwargs)
 
         participation = self.instance
@@ -938,7 +935,7 @@ class EditParticipationForm(StyledModelForm):
         else:
             participation_users = Participation.objects.filter(
                 course=participation.course).values_list("user__pk", flat=True)
-            self.fields["user"].queryset = (
+            self.fields["user"].queryset = (  # type: ignore[attr-defined]
                 get_user_model().objects.exclude(pk__in=participation_users)
             )
         self.add_new = add_new
@@ -946,12 +943,11 @@ class EditParticipationForm(StyledModelForm):
         may_edit_permissions = pctx.has_permission(pperm.edit_course_permissions)
         if not may_edit_permissions:
             self.fields["roles"].disabled = True
-            # FIXME Add individual permissions
 
-        self.fields["roles"].queryset = (
+        self.fields["roles"].queryset = (  # type: ignore[attr-defined]
                 ParticipationRole.objects.filter(
                     course=participation.course))
-        self.fields["tags"].queryset = (
+        self.fields["tags"].queryset = (  # type: ignore[attr-defined]
                 ParticipationTag.objects.filter(
                     course=participation.course))
 
@@ -961,8 +957,6 @@ class EditParticipationForm(StyledModelForm):
                 widget=forms.CheckboxSelectMultiple,
                 help_text=_("Permissions for this participant in addition to those "
                     "granted by their role"),
-                initial=self.instance.individual_permissions.values_list(
-                    "permission", flat=True),
                 required=False)
 
         self.helper.add_input(
@@ -987,9 +981,9 @@ class EditParticipationForm(StyledModelForm):
         raise forms.ValidationError(
             _("This user has not confirmed his/her email."))
 
-    def save(self) -> Participation:
+    def save(self, commit: bool = True) -> Participation:
 
-        inst = super().save()
+        inst = super().save(commit)
 
         (ParticipationPermission.objects
                 .filter(participation=self.instance)

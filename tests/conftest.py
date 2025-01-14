@@ -1,4 +1,8 @@
+from __future__ import annotations
+
 import pytest
+
+
 # from pytest_factoryboy import register
 
 
@@ -13,7 +17,7 @@ def pytest_addoption(parser):
 
 def _is_connection_psql():
     from django.db import connection
-    return connection.vendor == 'postgresql'
+    return connection.vendor == "postgresql"
 
 
 def pytest_collection_modifyitems(config, items):

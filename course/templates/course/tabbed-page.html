@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+{% load i18n %}
+{% load static %}
+
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  {% block favicon %}{% endblock %}
+
+  <title>{% block title %}{{ relate_site_name }}{% endblock %}</title>
+
+  {% block bundle_loads %}
+  <script src="{% static 'bundle-base.js' %}"></script>
+  <script src="{% static 'bundle-base-with-markup.js' %}"></script>
+  {% endblock %}
+
+<style>
+  html,
+  body {
+    height: 100%;
+    margin: 0;
+  }
+
+  .tab-content {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .tab-pane {
+    height: 100%;
+  }
+
+  iframe {
+    width: 100%;
+    height: 100%;
+  }
+</style>
+
+</head>
+
+<ul class="nav nav-tabs" id="tab-bar" role="tablist">
+  {% for tab in tabs %}
+  <li class="nav-item" role="presentation">
+    <button class="nav-link {% if forloop.first %}active{% endif %}" id="{{ tab.title }}-tab" data-bs-toggle="tab"
+      data-bs-target="#{{ tab.title }}-tab-pane" type="button" role="tab" aria-controls="{{ tab.title }}-tab-pane"
+      aria-selected="true">
+      {{ tab.title }}
+    </button>
+  </li>
+  {% endfor %}
+</ul>
+
+<div class="tab-content" id="tab-content">
+  {% for tab in tabs %}
+  <div class="tab-pane {% if forloop.first %}show active{% endif %}" id="{{ tab.title }}-tab-pane" role="tabpanel"
+    aria-labelledby="{{ tab.title }}-tab" tabindex="0">
+    <iframe src="{{ tab.url }}" frameborder="0" allowfullscreen></iframe>
+  </div>
+  {% endfor %}
+</div>
+
+</html>

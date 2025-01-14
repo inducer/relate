@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+
 __copyright__ = "Copyright (C) 2018 Dong Zhuang"
 
 __license__ = """
@@ -21,6 +24,7 @@ THE SOFTWARE.
 """
 
 import unittest
+
 from course import constants
 
 
@@ -50,7 +54,7 @@ class IsExpirationModeAllowedTest(unittest.TestCase):
         self.assertTrue(
             constants.is_expiration_mode_allowed(expmode, permissions))
 
-    def test_unkown_mode(self):
+    def test_unknown_mode(self):
         expmode = "unknown_mode"
         permissions = frozenset([])
 

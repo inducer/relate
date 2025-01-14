@@ -1,36 +1,22 @@
+from __future__ import annotations
+
 import sys
-try:
-    from importlib import reload
-except ImportError:
-    pass  # PY2
-from importlib import import_module
-from io import StringIO
 from functools import wraps
+from importlib import import_module, reload
+from io import StringIO
+from unittest import mock  # noqa: F401
 
-from django.urls import clear_url_caches
 from django.conf import settings
-from django.test import override_settings
 from django.core import mail
-try:
-    # for Django < 2.0
-    from django.test import mock  # noqa
-except ImportError:
-    # Since Django >= 2.0 only support PY3
-    from unittest import mock  # noqa
-
-    if sys.version_info < (3, 8):
-        # __round__ is missing from MagicMock before Py3.8
-        # https://github.com/python/cpython/pull/6880
-        # Work around this by monkeypatching mock:
-        mock._magics.add("__round__")
-        mock._all_magics = mock._magics | mock._non_defaults
+from django.test import override_settings
+from django.urls import clear_url_caches
 
 
 # {{{ These are copied (and maybe modified) from django official unit tests
 class BaseEmailBackendTestsMixin:
     email_backend = None
 
-    def setUp(self):  # noqa
+    def setUp(self):
         super().setUp()
         self.email_backend_settings_override = (
             override_settings(EMAIL_BACKEND=self.email_backend))
@@ -45,12 +31,12 @@ class BaseEmailBackendTestsMixin:
 
     def get_mailbox_content(self):
         raise NotImplementedError(
-            'subclasses of BaseEmailBackendTests must provide '
-            'a get_mailbox_content() method')
+            "subclasses of BaseEmailBackendTests must provide "
+            "a get_mailbox_content() method")
 
     def flush_mailbox(self):
-        raise NotImplementedError('subclasses of BaseEmailBackendTests may '
-                                  'require a flush_mailbox() method')
+        raise NotImplementedError("subclasses of BaseEmailBackendTests may "
+                                  "require a flush_mailbox() method")
 
     def get_the_email_message(self):
         mailbox = self.get_mailbox_content()
@@ -96,7 +82,7 @@ class BaseEmailBackendTestsMixin:
 
 
 class LocmemBackendTestsMixin(BaseEmailBackendTestsMixin):
-    email_backend = 'django.core.mail.backends.locmem.EmailBackend'
+    email_backend = "django.core.mail.backends.locmem.EmailBackend"
 
     def get_mailbox_content(self):
         return [m.message() for m in mail.outbox]
@@ -104,7 +90,7 @@ class LocmemBackendTestsMixin(BaseEmailBackendTestsMixin):
     def flush_mailbox(self):
         mail.outbox = []
 
-    def tearDown(self):  # noqa
+    def tearDown(self):
         super().tearDown()
         mail.outbox = []
 
@@ -144,9 +130,9 @@ def load_url_pattern_names(patterns):
     """Retrieve a list of urlpattern names"""
     url_names = []
     for pat in patterns:
-        if pat.__class__.__name__ == 'RegexURLResolver':
+        if pat.__class__.__name__ == "RegexURLResolver":
             load_url_pattern_names(pat.url_patterns)
-        elif pat.__class__.__name__ == 'RegexURLPattern':
+        elif pat.__class__.__name__ == "RegexURLPattern":
             if pat.name is not None and pat.name not in url_names:
                 url_names.append(pat.name)
         else:
@@ -171,7 +157,7 @@ def reload_urlconf(urlconf=None):
 
 def _is_connection_psql():
     from django.db import connection
-    return connection.vendor == 'postgresql'
+    return connection.vendor == "postgresql"
 
 
 is_connection_psql = _is_connection_psql()

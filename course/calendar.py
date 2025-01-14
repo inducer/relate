@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+
 __copyright__ = "Copyright (C) 2014 Andreas Kloeckner"
 
 __license__ = """
@@ -20,26 +23,25 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from django.utils.translation import (
-        gettext_lazy as _, pgettext_lazy, get_language)
-from django.contrib.auth.decorators import login_required
-from course.utils import course_view, render_course_page
-from django.core.exceptions import (
-    PermissionDenied, ObjectDoesNotExist, ValidationError)
-from django.db import transaction
-from django.contrib import messages  # noqa
-import django.forms as forms
-
-from crispy_forms.layout import Submit
-
 import datetime
-from bootstrap_datepicker_plus.widgets import DateTimePickerInput
 
-from relate.utils import StyledForm, as_local_time, string_concat
-from course.constants import (
-        participation_permission as pperm,
-        )
+import django.forms as forms
+from crispy_forms.layout import Submit
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from django.core.exceptions import (
+    ObjectDoesNotExist,
+    PermissionDenied,
+    ValidationError,
+)
+from django.db import transaction
+from django.utils.safestring import mark_safe
+from django.utils.translation import get_language, gettext_lazy as _, pgettext_lazy
+
+from course.constants import participation_permission as pperm
 from course.models import Event
+from course.utils import course_view, render_course_page
+from relate.utils import HTML5DateTimeInput, StyledForm, as_local_time, string_concat
 
 
 class ListTextWidget(forms.TextInput):
@@ -48,17 +50,17 @@ class ListTextWidget(forms.TextInput):
         super().__init__(*args, **kwargs)
         self._name = name
         self._list = data_list
-        self.attrs.update({"list": "list__%s" % self._name})
+        self.attrs.update({"list": f"list__{self._name}"})
 
     def render(self, name, value, attrs=None, renderer=None):
         text_html = super().render(
             name, value, attrs=attrs, renderer=renderer)
-        data_list = '<datalist id="list__%s">' % self._name
+        data_list = f'<datalist id="list__{self._name}">'
         for item in self._list:
-            data_list += '<option value="{}">{}</option>'.format(item[0], item[1])
+            data_list += f'<option value="{item[0]}">{item[1]}</option>'
         data_list += "</datalist>"
 
-        return (text_html + data_list)
+        return mark_safe(text_html + data_list)
 
 
 # {{{ creation
@@ -69,8 +71,7 @@ class RecurringEventForm(StyledForm):
                         "allowed."),
             label=pgettext_lazy("Kind of event", "Kind of event"))
     time = forms.DateTimeField(
-            widget=DateTimePickerInput(
-                options={"format": "YYYY-MM-DD HH:mm", "sideBySide": True}),
+            widget=HTML5DateTimeInput(),
             label=pgettext_lazy("Starting time of event", "Starting time"))
     duration_in_minutes = forms.FloatField(required=False,
             min_value=0,
@@ -153,9 +154,8 @@ def _create_recurring_events_backend(course, time, kind, starting_ordinal, inter
         else:
             raise NotImplementedError()
 
-        time = time.tzinfo.localize(
-                datetime.datetime(date.year, date.month, date.day,
-                    time.hour, time.minute, time.second))
+        time = datetime.datetime(date.year, date.month, date.day,
+                    time.hour, time.minute, time.second, tzinfo=time.tzinfo)
         del date
 
         ordinal += 1
@@ -379,7 +379,10 @@ def view_calendar(pctx):
     events_json = []
 
     from course.content import (
-        get_raw_yaml_from_repo, markup_to_html, parse_date_spec)
+        get_raw_yaml_from_repo,
+        markup_to_html,
+        parse_date_spec,
+    )
     try:
         event_descr = get_raw_yaml_from_repo(pctx.repo,
                 pctx.course.events_file, pctx.course_commit_sha)

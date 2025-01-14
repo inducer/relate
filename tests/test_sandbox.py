@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+
 __copyright__ = "Copyright (C) 2017 Zesheng Wang"
 
 __license__ = """
@@ -24,13 +27,19 @@ from django.test import TestCase
 from django.urls import reverse
 
 from course.sandbox import (
-    PAGE_SESSION_KEY_PREFIX, PAGE_DATA_SESSION_KEY_PREFIX,
-    ANSWER_DATA_SESSION_KEY_PREFIX, make_sandbox_session_key)
-
+    ANSWER_DATA_SESSION_KEY_PREFIX,
+    PAGE_DATA_SESSION_KEY_PREFIX,
+    PAGE_SESSION_KEY_PREFIX,
+    make_sandbox_session_key,
+)
 from tests.base_test_mixins import (
-    SingleCourseTestMixin, MockAddMessageMixing, classmethod_with_client)
-from tests.constants import PAGE_WARNINGS, HAVE_VALID_PAGE, PAGE_ERRORS
+    MockAddMessageMixing,
+    SingleCourseTestMixin,
+    classmethod_with_client,
+)
+from tests.constants import HAVE_VALID_PAGE, PAGE_ERRORS, PAGE_WARNINGS
 from tests.utils import mock
+
 
 QUESTION_MARKUP = """
 type: TextQuestion
@@ -80,7 +89,7 @@ content: |
 
 
 class SingleCoursePageSandboxTestBaseMixin(SingleCourseTestMixin):
-    def setUp(self):  # noqa
+    def setUp(self):
         super().setUp()
         self.client.force_login(self.instructor_participation.user)
 
@@ -140,8 +149,7 @@ class SingleCoursePageSandboxTestBaseMixin(SingleCourseTestMixin):
         if expected_text is None:
             return self.assertEqual(
                 warnings_strs, [],
-                "Page validatioin warning is not None, but %s."
-                % repr(warnings_strs))
+                f"Page validatioin warning is not None, but {warnings_strs!r}.")
         if loose:
             warnings_strs = "".join(warnings_strs)
         self.assertIn(expected_text, warnings_strs)
@@ -371,7 +379,10 @@ class ViewMarkupSandboxTest(SingleCoursePageSandboxTestBaseMixin,
         self.assertEqual(resp.status_code, 200)
         self.assertResponseContextEqual(
             resp, "preview_text",
-            '<p><a href="/course/%s/">home</a></p>' % self.course.identifier)
+            "<div class='relate-markup'>"
+            f'<p><a href="/course/{self.course.identifier}/">home</a></p>'
+            "</div>"
+        )
 
     def test_preview_failed(self):
         with mock.patch("course.content.markup_to_html") as mock_mth:

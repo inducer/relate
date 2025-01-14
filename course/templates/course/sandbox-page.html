@@ -24,14 +24,14 @@
 
       {% if page_errors %}
         <div class="alert alert-danger">
-          <i class="fa fa-ban"></i>
-          {{ page_errors }}
+          <i class="bi bi-x-circle"></i>
+          {{ page_errors | safe }}
         </div>
       {% endif %}
 
       {% if page_warnings %}
         <div class="alert alert-warning">
-          <i class="fa fa-warning"></i>
+          <i class="bi bi-exclamation-triangle"></i>
           {% blocktrans  trimmed %} Warnings were encountered when validating the page: {% endblocktrans %}
 
           <ul>
@@ -42,7 +42,7 @@
         </div>
       {% endif %}
 
-      <div class="well">
+      <div class="relate-well">
         {% crispy edit_form %}
       </div>
     </div>
@@ -53,7 +53,7 @@
         {{ body|safe }}
 
         {% if page_form_html %}
-          <div class="well">
+          <div class="relate-well">
             {{ page_form_html|safe }}
           </div>
         {% endif %}
@@ -85,27 +85,7 @@
     </div>
   </div>
 
-  {# {{{ codemirror resizing #}
-
-  <script type="text/javascript">
-    $("div.CodeMirror")
-    .resizable({
-          resize: function (event, ui)
-          {
-            $("div.CodeMirror").each(
-              function ()
-              {
-                var cm = this.CodeMirror;
-                cm.refresh();
-              });
-          }
-      });
-
-  </script>
-
-  {# }}} #}
-
-  {# {{{ codemirror save -> preview#}
+  {# {{{ codemirror save -> preview #}
 
   <script type="text/javascript">
     function do_preview()

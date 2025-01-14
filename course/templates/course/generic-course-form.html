@@ -8,16 +8,6 @@
   {{ form_description }} - {{ relate_site_name }}
 {% endblock %}
 
-{# keep this in sync with relate/templates/generic-form.html #}
-{% block head_assets_form_media %}
-  <link href="{% static 'eonasdan-bootstrap-datetimepicker/build/css/bootstrap-datetimepicker.min.css' %}" rel="stylesheet">
-
-  <script src="{% static 'moment/min/moment-with-locales.min.js' %}"></script>
-  <script src="{% static 'moment-timezone/builds/moment-timezone.min.js' %}"></script>
-  <script src="{% static 'eonasdan-bootstrap-datetimepicker/build/js/bootstrap-datetimepicker.min.js' %}"></script>
-  {{ form.media }}
-{% endblock %}
-
 {% block content %}
   {% if form_description %}
     <h1>{{ form_description }}</h1>
@@ -25,14 +15,14 @@
   {{ form_text|safe }}
 
   {% if form %}
-    <div class="well">
+    <div class="relate-well">
       {% crispy form %}
     </div>
   {% endif %}
 
   {% if forms %}
     {% for sub_form in forms %}
-      <div class="well">
+      <div class="relate-well">
         {% crispy sub_form %}
       </div>
     {% endfor %}

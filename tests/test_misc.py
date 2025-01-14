@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+
 __copyright__ = "Copyright (C) 2017 Dong Zhuang"
 
 __license__ = """
@@ -20,43 +23,48 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
+import datetime
 import re
 import unittest
-import datetime
-from django.test import TestCase, RequestFactory
-from django.test.utils import override_settings
-from django.utils.formats import date_format, get_format
-from django.utils.dateformat import format
-from django.utils.translation import gettext_lazy as _
+
 from django.core.management import CommandError
+from django.test import RequestFactory, TestCase
+from django.test.utils import override_settings
+from django.utils.dateformat import format
+from django.utils.formats import date_format, get_format
+from django.utils.translation import gettext_lazy as _
 
 from course.models import Course
-from course.views import EditCourseForm
 from course.versioning import CourseCreationForm
-from relate.utils import (
-    is_maintenance_mode, render_email_template, get_outbound_mail_connection,
-    format_datetime_local)
-
+from course.views import EditCourseForm
 from manage import get_local_test_settings_file
-
+from relate.utils import (
+    format_datetime_local,
+    get_outbound_mail_connection,
+    is_maintenance_mode,
+    render_email_template,
+)
 from tests.base_test_mixins import SingleCourseTestMixin
-from tests.utils import LocmemBackendTestsMixin, mail, mock
 from tests.constants import DATE_TIME_PICKER_TIME_FORMAT
 from tests.test_utils import (
-    REAL_TRANSLATION_FUNCTION_TO_MOCK, real_trans_side_effect)
+    REAL_TRANSLATION_FUNCTION_TO_MOCK,
+    real_trans_side_effect,
+)
+from tests.utils import LocmemBackendTestsMixin, mail, mock
+
 
 LANGUAGES = [
-    ('en', _('English')),
-    ('ko', _('Korean')),
-    ('fr', _('French')),
+    ("en", _("English")),
+    ("ko", _("Korean")),
+    ("fr", _("French")),
 ]
 
-ASSERSION_ERROR_LANGUAGE_PATTERN = (
+ASSERTION_ERROR_LANGUAGE_PATTERN = (
     "%s page visiting results don't match in terms of "
     "whether the response contains Korean characters."
 )
 
-ASSERSION_ERROR_CONTENT_LANGUAGE_PATTERN = (
+ASSERTION_ERROR_CONTENT_LANGUAGE_PATTERN = (
     "%s page visiting result don't match in terms of "
     "whether the response content-language are restored."
 )
@@ -86,27 +94,27 @@ class CourseSpecificLangTestMixin(SingleCourseTestMixin, TestCase):
         contains_korean_result = []
         response_content_language_result = []
 
-        with override_settings(USE_I18N=True, LANGUAGE_CODE='en-us'):
+        with override_settings(USE_I18N=True, LANGUAGE_CODE="en-us"):
             resp = self.client.get(url)
             self.assertEqual(resp.status_code, 200)
             contains_korean_result.append(self.response_contains_korean(resp))
-            response_content_language_result.append(resp['content-language'])
+            response_content_language_result.append(resp["content-language"])
 
-            resp = self.client.get(url, HTTP_ACCEPT_LANGUAGE='ko')
+            resp = self.client.get(url, HTTP_ACCEPT_LANGUAGE="ko")
             self.assertEqual(resp.status_code, 200)
             contains_korean_result.append(self.response_contains_korean(resp))
-            response_content_language_result.append(resp['content-language'])
+            response_content_language_result.append(resp["content-language"])
 
         with override_settings(USE_I18N=False):
             resp = self.client.get(url)
             self.assertEqual(resp.status_code, 200)
             contains_korean_result.append(self.response_contains_korean(resp))
-            response_content_language_result.append(resp['content-language'])
+            response_content_language_result.append(resp["content-language"])
 
-            resp = self.client.get(url, HTTP_ACCEPT_LANGUAGE='ko')
+            resp = self.client.get(url, HTTP_ACCEPT_LANGUAGE="ko")
             self.assertEqual(resp.status_code, 200)
             contains_korean_result.append(self.response_contains_korean(resp))
-            response_content_language_result.append(resp['content-language'])
+            response_content_language_result.append(resp["content-language"])
 
         return contains_korean_result, response_content_language_result
 
@@ -130,66 +138,66 @@ class CourseSpecificLangConfigureTest(CourseSpecificLangTestMixin, TestCase):
         fake_time = datetime.datetime(2038, 12, 31, 0, 0, 0, 0)
         set_fake_time_data = {
             "time": fake_time.strftime(DATE_TIME_PICKER_TIME_FORMAT),
-            "set": ['']}
+            "set": [""]}
         self.post_set_fake_time(set_fake_time_data)
 
     def assertResponseBehaveLikeUnconfigured(self):  # noqa
         # For each setting combinations, the response behaves the same
         # as before this functionality was introduced
         expected_result = ([False, True, False, True],
-                           ['en', 'ko', 'en', 'ko'])
+                           ["en", "ko", "en", "ko"])
         self.assertEqual(
             self.home_resp_contains_korean_with_diff_settings()[0],
             expected_result[0],
-            ASSERSION_ERROR_LANGUAGE_PATTERN % "Home"
+            ASSERTION_ERROR_LANGUAGE_PATTERN % "Home"
         )
 
         self.assertEqual(
             self.home_resp_contains_korean_with_diff_settings()[1],
             expected_result[1],
-            ASSERSION_ERROR_CONTENT_LANGUAGE_PATTERN % "Home"
+            ASSERTION_ERROR_CONTENT_LANGUAGE_PATTERN % "Home"
         )
 
         expected_result = ([False, True, False, True],
-                           ['en', 'ko', 'en', 'ko'])
+                           ["en", "ko", "en", "ko"])
         self.assertEqual(
             self.course_resp_contains_korean_with_diff_settings()[0],
             expected_result[0],
-            ASSERSION_ERROR_LANGUAGE_PATTERN % "Course"
+            ASSERTION_ERROR_LANGUAGE_PATTERN % "Course"
         )
         self.assertEqual(
             self.course_resp_contains_korean_with_diff_settings()[1],
             expected_result[1],
-            ASSERSION_ERROR_CONTENT_LANGUAGE_PATTERN % "Course"
+            ASSERTION_ERROR_CONTENT_LANGUAGE_PATTERN % "Course"
         )
 
     def assertResponseBehaveAsExpectedForCourseWithForceLang(self):  # noqa
         # For each setting combinations, the response behaves as expected
         expected_result = ([False, True, False, True],
-                           ['en', 'ko', 'en', 'ko'])
+                           ["en", "ko", "en", "ko"])
         self.assertEqual(
             self.home_resp_contains_korean_with_diff_settings()[0],
             expected_result[0],
-            ASSERSION_ERROR_LANGUAGE_PATTERN % "Home"
+            ASSERTION_ERROR_LANGUAGE_PATTERN % "Home"
         )
 
         self.assertEqual(
             self.home_resp_contains_korean_with_diff_settings()[1],
             expected_result[1],
-            ASSERSION_ERROR_CONTENT_LANGUAGE_PATTERN % "Home"
+            ASSERTION_ERROR_CONTENT_LANGUAGE_PATTERN % "Home"
         )
 
         expected_result = ([True, True, True, True],
-                           ['en', 'ko', 'en', 'ko'])
+                           ["en", "ko", "en", "ko"])
         self.assertEqual(
             self.course_resp_contains_korean_with_diff_settings()[0],
             expected_result[0],
-            ASSERSION_ERROR_LANGUAGE_PATTERN % "Course"
+            ASSERTION_ERROR_LANGUAGE_PATTERN % "Course"
         )
         self.assertEqual(
             self.course_resp_contains_korean_with_diff_settings()[1],
             expected_result[1],
-            ASSERSION_ERROR_CONTENT_LANGUAGE_PATTERN % "Course"
+            ASSERTION_ERROR_CONTENT_LANGUAGE_PATTERN % "Course"
         )
 
     def set_course_lang_to_ko(self):
@@ -218,7 +226,7 @@ class CourseSpecificLangConfigureTest(CourseSpecificLangTestMixin, TestCase):
     def test_languages_configured_course_has_force_lang_get_language_none(self):
         self.set_course_lang_to_ko()
         with mock.patch("course.utils.translation.get_language")\
-                as mock_get_language,\
+                as mock_get_language, \
                 mock.patch("course.utils.translation.deactivate_all")\
                         as mock_deactivate_all:
             mock_get_language.return_value = None
@@ -370,8 +378,7 @@ class RelateSiteNameTest(SingleCourseTestMixin, LocmemBackendTestsMixin, TestCas
     def get_translation_count(self, mocked_method, literal):
 
         return len(
-            [arg[0] for arg, kwarg in [
-                args for args in mocked_method.call_args_list]
+            [arg[0] for arg, kwarg in mocked_method.call_args_list
              if arg[0] == literal])
 
     def verify_result_with_configure(self, my_site_name):
@@ -380,7 +387,7 @@ class RelateSiteNameTest(SingleCourseTestMixin, LocmemBackendTestsMixin, TestCas
             mock_gettext.side_effect = real_trans_side_effect
             resp = self.client.get("/")
             self.assertEqual(resp.status_code, 200)
-            self.assertContains(resp, "<title>%s</title>" % my_site_name, html=True)
+            self.assertContains(resp, f"<title>{my_site_name}</title>", html=True)
 
             # Three translations in nav_bar brand, html title and
             # "Welcome to RELATE", respectively
@@ -393,7 +400,7 @@ class RelateSiteNameTest(SingleCourseTestMixin, LocmemBackendTestsMixin, TestCas
             self.assertEqual(resp.status_code, 200)
 
             test_site_name_re = re.compile(
-                ".+<title>.+-.+%s.+</title>.+" % my_site_name, re.DOTALL)
+                f".+<title>.+-.+{my_site_name}.+</title>.+", re.DOTALL)
             self.assertRegex(resp.content.decode(), test_site_name_re)
 
             # One translation in html title
@@ -407,8 +414,8 @@ class RelateSiteNameTest(SingleCourseTestMixin, LocmemBackendTestsMixin, TestCas
                     mock.patch(REAL_TRANSLATION_FUNCTION_TO_MOCK) \
                     as mock_gettext_global, \
                     mock.patch("course.auth._") as mock_gettext_auth, \
-                    mock.patch('course.auth.messages'), \
-                    mock.patch('course.auth.render'):
+                    mock.patch("course.auth.messages"), \
+                    mock.patch("course.auth.render"):
                 mock_gettext_global.return_value = "foo"
                 mock_gettext_auth.return_value = "foo"
                 with self.temporarily_switch_to_user(None):
@@ -419,7 +426,7 @@ class RelateSiteNameTest(SingleCourseTestMixin, LocmemBackendTestsMixin, TestCas
                     self.assertTrue(resp.status_code, 200)
                     self.assertEqual(len(mail.outbox), 1)
 
-                    # In the view, tranlating RELATE for email title.
+                    # In the view, translating RELATE for email title.
                     self.assertEqual(
                         self.get_translation_count(
                             mock_gettext_auth, my_site_name), 1)
@@ -455,8 +462,8 @@ class MaintenanceModeTest(SingleCourseTestMixin, TestCase):
                 RELATE_MAINTENANCE_MODE=True,
                 RELATE_MAINTENANCE_MODE_EXCEPTIONS=[
                     "192.168.1.1", "127.0.0.1"]):
-            mata = self.request.META
-            mata["REMOTE_ADDR"] = "192.168.1.1"
+            meta = self.request.META
+            meta["REMOTE_ADDR"] = "192.168.1.1"
 
             self.assertFalse(is_maintenance_mode(self.request))
             self.client.get("/")
@@ -470,7 +477,7 @@ class RenderEmailTemplateTest(unittest.TestCase):
                 "django.template.loader.render_to_string") as mock_render_to_string:
             render_email_template("abcd", context=None)
             self.assertDictEqual(mock_render_to_string.call_args[0][1],
-                                 {'relate_site_name': 'RELATE'})
+                                 {"relate_site_name": "RELATE"})
 
 
 class GetOutboundMailConnectionTest(unittest.TestCase):
@@ -564,7 +571,7 @@ class GetLocalTestSettingsFileTest(unittest.TestCase):
                  invalid_file])
 
         self.assertIn(
-            "file '%s' does not exist" % invalid_file, str(cm.exception))
+            f"file '{invalid_file}' does not exist", str(cm.exception))
 
     def test_custom_local_test_setting_file(self):
         settings_file = "foo/local_test_settings.py"

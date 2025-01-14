@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+
 __copyright__ = "Copyright (C) 2014 Andreas Kloeckner"
 
 __license__ = """
@@ -21,23 +24,31 @@ THE SOFTWARE.
 """
 
 
-from typing import Tuple, Any
-from django.utils.translation import (
-        gettext_lazy as _, gettext)
-from course.validation import validate_struct, ValidationError
-import django.forms as forms
-
-from relate.utils import StyledForm, Struct, string_concat
-from course.page.base import (
-        AnswerFeedback, PageBaseWithTitle, PageBaseWithValue, markup_to_html,
-        PageBaseWithHumanTextFeedback, PageBaseWithCorrectAnswer,
-
-        get_editor_interaction_mode)
-
 import re
 import sys
+from typing import Any
 
-CORRECT_ANSWER_PATTERN = string_concat(_("A correct answer is"), ": '%s'.")  # noqa
+import django.forms as forms
+from django.utils.translation import gettext, gettext_lazy as _
+
+from course.page.base import (
+    AnswerFeedback,
+    PageBaseUngraded,
+    PageBaseWithCorrectAnswer,
+    PageBaseWithHumanTextFeedback,
+    PageBaseWithoutHumanGrading,
+    PageBaseWithTitle,
+    PageBaseWithValue,
+    PageBehavior,
+    PageContext,
+    get_editor_interaction_mode,
+    markup_to_html,
+)
+from course.validation import AttrSpec, ValidationError, validate_struct
+from relate.utils import Struct, StyledForm, string_concat
+
+
+CORRECT_ANSWER_PATTERN = string_concat(_("A correct answer is"), ": '%s'.")
 
 
 class TextAnswerForm(StyledForm):
@@ -49,40 +60,35 @@ class TextAnswerForm(StyledForm):
             interaction_mode=None, initial_text=None):
         """Returns None if no widget found."""
 
+        help_text = None
         if widget_type in [None, "text_input"]:
             if check_only:
                 return True
 
             widget = forms.TextInput()
-            widget.attrs["autofocus"] = None
-            if read_only:
-                widget.attrs["readonly"] = None
-            return widget, None
 
         elif widget_type == "textarea":
             if check_only:
                 return True
 
             widget = forms.Textarea()
-            # widget.attrs["autofocus"] = None
-            if read_only:
-                widget.attrs["readonly"] = None
-            return widget, None
 
         elif widget_type.startswith("editor:"):
             if check_only:
                 return True
 
             from course.utils import get_codemirror_widget
-            cm_widget, cm_help_text = get_codemirror_widget(
+            widget, help_text = get_codemirror_widget(
                     language_mode=widget_type[widget_type.find(":")+1:],
-                    interaction_mode=interaction_mode,
-                    read_only=read_only)
-
-            return cm_widget, cm_help_text
+                    interaction_mode=interaction_mode)
 
         else:
             return None, None
+
+        widget.attrs["autofocus"] = None
+        if read_only:
+            widget.attrs["readonly"] = None
+        return widget, help_text
 
     def __init__(self, read_only, interaction_mode, validators, *args, **kwargs):
         widget_type = kwargs.pop("widget_type", "text_input")
@@ -99,8 +105,6 @@ class TextAnswerForm(StyledForm):
                 widget=widget,
                 help_text=help_text,
                 label=_("Answer"))
-
-        self.style_codemirror_widget()
 
     def clean(self):
         cleaned_data = super().clean()
@@ -139,14 +143,14 @@ class RELATEPageValidator:
                 )
 
     def validate(self, new_page_source):
-        from relate.utils import dict_to_struct
         import yaml
+
+        from relate.utils import dict_to_struct
 
         try:
             page_desc = dict_to_struct(yaml.safe_load(new_page_source))
 
-            from course.validation import (
-                    validate_flow_page, ValidationContext)
+            from course.validation import ValidationContext, validate_flow_page
             vctx = ValidationContext(
                     # FIXME
                     repo=None,
@@ -161,8 +165,7 @@ class RELATEPageValidator:
         except Exception:
             tp, e, _ = sys.exc_info()
 
-            raise forms.ValidationError("%(err_type)s: %(err_str)s"
-                    % {"err_type": tp.__name__, "err_str": str(e)})
+            raise forms.ValidationError(f"{tp.__name__}: {e!s}")
 
 
 TEXT_ANSWER_VALIDATOR_CLASSES = [
@@ -215,7 +218,7 @@ class TextAnswerMatcher:
         Only used for answer normalization. Matchers are responsible for
         case sensitivity themselves.
     """
-    ALLOWED_ATTRIBUTES: Tuple[Any, ...] = ()
+    ALLOWED_ATTRIBUTES: tuple[Any, ...] = ()
 
     def __init__(self, vctx, location, matcher_desc):
         self.matcher_desc = matcher_desc
@@ -228,7 +231,7 @@ class TextAnswerMatcher:
                 allowed_attrs=(
                     ("correctness", (int, float)),
                     ("feedback", str),
-                    ) + self.ALLOWED_ATTRIBUTES,
+                    *self.ALLOWED_ATTRIBUTES),
                 )
 
         assert matcher_desc.type == self.type
@@ -326,13 +329,13 @@ class RegexMatcher(TextAnswerMatcher):
 
         flags = getattr(self.matcher_desc, "flags", None)
         if flags is None:
-            self.is_case_sensitive = type(self) == CaseSensitiveRegexMatcher
+            self.is_case_sensitive = type(self) is CaseSensitiveRegexMatcher
             if self.is_case_sensitive:
                 re_flags = 0
             else:
                 re_flags = re.IGNORECASE
         else:
-            if type(self) == CaseSensitiveRegexMatcher:
+            if type(self) is CaseSensitiveRegexMatcher:
                 raise ValidationError(
                         string_concat("%s: ",
                             _("may not specify flags in CaseSensitiveRegexMatcher"))
@@ -427,20 +430,14 @@ class SymbolicExpressionMatcher(TextAnswerMatcher):
         except Exception:
             tp, e, __ = sys.exc_info()
             raise ValidationError(
-                    "%(location)s: %(err_type)s: %(err_str)s"
-                    % {
-                        "location": location,
-                        "err_type": tp.__name__,
-                        "err_str": str(e)
-                        })
+                    f"{location}: {tp.__name__}: {e!s}")
 
     def validate(self, s):
         try:
             parse_sympy(s)
         except Exception:
             tp, e, _ = sys.exc_info()
-            raise forms.ValidationError("%(err_type)s: %(err_str)s"
-                    % {"err_type": tp.__name__, "err_str": str(e)})
+            raise forms.ValidationError(f"{tp.__name__}: {e!s}")
 
     def grade(self, s):
         try:
@@ -467,7 +464,7 @@ class SymbolicExpressionMatcher(TextAnswerMatcher):
 
 
 def float_or_sympy_evalf(s):
-    if isinstance(s, (int, float,)):
+    if isinstance(s, int | float):
         return s
 
     if not isinstance(s, str):
@@ -557,8 +554,7 @@ class FloatMatcher(TextAnswerMatcher):
             float_or_sympy_evalf(s)
         except Exception:
             tp, e, _ = sys.exc_info()
-            raise forms.ValidationError("%(err_type)s: %(err_str)s"
-                    % {"err_type": tp.__name__, "err_str": str(e)})
+            raise forms.ValidationError(f"{tp.__name__}: {e!s}")
 
     def grade(self, s):
         try:
@@ -570,7 +566,7 @@ class FloatMatcher(TextAnswerMatcher):
         good_afb = AnswerFeedback(self.correctness, self.feedback)
         bad_afb = AnswerFeedback(0)
 
-        from math import isnan, isinf
+        from math import isinf, isnan
         if isinf(self.matcher_desc.value):
             return good_afb if isinf(answer_float) else bad_afb
         if isnan(self.matcher_desc.value):
@@ -716,16 +712,11 @@ class TextQuestionBase(PageBaseWithTitle):
                         "location": location,
                         "type": page_desc.widget})
 
-    def required_attrs(self):
-        return super().required_attrs() + (
-                ("prompt", "markup"),
-                )
+    def required_attrs(self) -> AttrSpec:
+        return (*super().required_attrs(), ("prompt", "markup"))
 
-    def allowed_attrs(self):
-        return super().allowed_attrs() + (
-                ("widget", str),
-                ("initial_text", str),
-                )
+    def allowed_attrs(self) -> AttrSpec:
+        return (*super().allowed_attrs(), ("widget", str), ("initial_text", str))
 
     def markup_body_for_title(self):
         return self.page_desc.prompt
@@ -783,12 +774,13 @@ class TextQuestionBase(PageBaseWithTitle):
             return None
 
         return (".txt", answer_data["answer"].encode("utf-8"))
+
 # }}}
 
 
 # {{{ survey text question
 
-class SurveyTextQuestion(TextQuestionBase):
+class SurveyTextQuestion(TextQuestionBase, PageBaseUngraded):
     """
     A page asking for a textual answer, without any notion of 'correctness'
 
@@ -833,10 +825,8 @@ class SurveyTextQuestion(TextQuestionBase):
     def get_validators(self):
         return []
 
-    def allowed_attrs(self):
-        return super().allowed_attrs() + (
-                ("answer_comment", "markup"),
-                )
+    def allowed_attrs(self) -> AttrSpec:
+        return (*super().allowed_attrs(), ("answer_comment", "markup"))
 
     def correct_answer(self, page_context, page_data, answer_data, grade_data):
         if hasattr(self.page_desc, "answer_comment"):
@@ -847,15 +837,12 @@ class SurveyTextQuestion(TextQuestionBase):
     def expects_answer(self):
         return True
 
-    def is_answer_gradable(self):
-        return False
-
 # }}}
 
 
 # {{{ text question
 
-class TextQuestion(TextQuestionBase, PageBaseWithValue):
+class TextQuestion(TextQuestionBase, PageBaseWithValue, PageBaseWithoutHumanGrading):
     """
     A page asking for a textual answer.
 
@@ -1014,14 +1001,10 @@ class TextQuestion(TextQuestionBase, PageBaseWithValue):
                     % location)
 
     def required_attrs(self):
-        return super().required_attrs() + (
-                ("answers", list),
-                )
+        return (*super().required_attrs(), ("answers", list))
 
     def allowed_attrs(self):
-        return super().allowed_attrs() + (
-                ("answer_explanation", "markup"),
-                )
+        return (*super().allowed_attrs(), ("answer_explanation", "markup"))
 
     def get_validators(self):
         return self.matchers
@@ -1084,7 +1067,10 @@ class TextQuestion(TextQuestionBase, PageBaseWithValue):
 class HumanGradedTextQuestion(TextQuestionBase, PageBaseWithValue,
         PageBaseWithHumanTextFeedback, PageBaseWithCorrectAnswer):
     """
-    A page asking for a textual answer
+    A page asking for a textual answer, with human-graded feedback.
+
+    Supports automatic computation of point values from textual feedback.
+    See :ref:`points-from-feedback`.
 
     .. attribute:: id
 
@@ -1151,15 +1137,152 @@ class HumanGradedTextQuestion(TextQuestionBase, PageBaseWithValue,
                     getattr(page_desc, "validators", []))]
 
     def allowed_attrs(self):
-        return super().allowed_attrs() + (
-                ("validators", list),
-                )
+        return (*super().allowed_attrs(), ("validators", list))
 
     def human_feedback_point_value(self, page_context, page_data):
         return self.max_points(page_data)
 
     def get_validators(self):
         return self.validators
+
+# }}}
+
+
+# {{{ rich text
+
+class RichTextAnswerForm(StyledForm):
+    # FIXME: ugh, this should be a PageBase thing
+    show_save_button = False
+
+    def __init__(self, read_only: bool, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+
+        from course.utils import ProseMirrorTextarea
+        self.fields["answer"] = forms.JSONField(
+                required=True,
+                widget=ProseMirrorTextarea(attrs={"readonly": read_only}),
+                help_text=ProseMirrorTextarea.math_help_text,
+                label=_("Answer"))
+
+
+class HumanGradedRichTextQuestion(PageBaseWithValue, PageBaseWithTitle,
+        PageBaseWithHumanTextFeedback, PageBaseWithCorrectAnswer):
+    """
+    A page asking for a textual answer, with human-graded feedback.
+
+    Supports automatic computation of point values from textual feedback.
+    See :ref:`points-from-feedback`.
+
+    .. attribute:: id
+
+        |id-page-attr|
+
+    .. attribute:: type
+
+        ``HumanGradedRichTextQuestion``
+
+    .. attribute:: is_optional_page
+
+        |is-optional-page-attr|
+
+    .. attribute:: access_rules
+
+        |access-rules-page-attr|
+
+    .. attribute:: title
+
+        |title-page-attr|
+
+    .. attribute:: value
+
+        |value-page-attr|
+
+    .. attribute:: prompt
+
+        The page's prompt, written in :ref:`markup`.
+
+    .. attribute:: correct_answer
+
+        Optional.
+        Content that is revealed when answers are visible
+        (see :ref:`flow-permissions`). Written in :ref:`markup`.
+
+    .. attribute:: rubric
+
+        Required.
+        The grading guideline for this question, in :ref:`markup`.
+    """
+    def required_attrs(self) -> AttrSpec:
+        return (*super().required_attrs(), ("prompt", "markup"))
+
+    def body(self, page_context: PageContext, page_data: Any) -> str:
+        return markup_to_html(page_context, self.page_desc.prompt)
+
+    def markup_body_for_title(self) -> str:
+        return self.page_desc.prompt
+
+    def human_feedback_point_value(self,
+                page_context: PageContext,
+                page_data: Any
+            ) -> float:
+        return self.max_points(page_data)
+
+    def make_form(
+            self,
+            page_context: PageContext,
+            page_data: Any,
+            answer_data: Any,
+            page_behavior: Any,
+            ) -> StyledForm:
+        kwargs = {}
+
+        if answer_data is not None:
+            from json import dumps
+            kwargs.update({"data": {"answer": dumps(answer_data["answer"])}})
+
+        return RichTextAnswerForm(
+            read_only=not page_behavior.may_change_answer,
+            **kwargs)
+
+    def process_form_post(
+            self,
+            page_context: PageContext,
+            page_data: Any,
+            post_data: Any,
+            files_data: Any,
+            page_behavior: PageBehavior,
+            ) -> StyledForm:
+        return RichTextAnswerForm(
+                not page_behavior.may_change_answer,
+                post_data, files_data,
+                )
+
+    def answer_data(self, page_context, page_data, form, files_data):
+        data = form.cleaned_data["answer"]
+        assert isinstance(data, dict)
+        return {"answer": data}
+
+    def normalized_answer(
+            self,
+            page_context: PageContext,
+            page_data: Any,
+            answer_data: Any
+            ) -> str | None:
+        if answer_data is None:
+            return None
+
+        from json import dumps
+
+        from django.utils.html import escape
+        return escape(dumps(answer_data["answer"]))
+
+    def normalized_bytes_answer(
+            self,
+            page_context: PageContext,
+            page_data: Any,
+            answer_data: Any,
+            ) -> tuple[str, bytes] | None:
+        return None
 
 # }}}
 

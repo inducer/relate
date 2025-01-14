@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+
 __copyright__ = "Copyright (C) 2014 Andreas Kloeckner"
 
 __license__ = """
@@ -25,10 +28,10 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as UserAdminBase
 from django.utils.translation import gettext_lazy as _
 
-from . models import User
+from course.admin import _filter_course_linked_obj_for_user, _filter_courses_for_user
 from course.models import Course, Participation
-from course.admin import (
-    _filter_courses_for_user, _filter_course_linked_obj_for_user)
+
+from .models import User
 
 
 def _get_filter_participations_for_user(user):
@@ -46,7 +49,7 @@ class CourseListFilter(admin.SimpleListFilter):
         course_identifiers = (
             _filter_courses_for_user(Course.objects, request.user)
             .values_list("identifier", flat=True))
-        return zip(course_identifiers, course_identifiers)
+        return zip(course_identifiers, course_identifiers, strict=True)
 
     def queryset(self, request, queryset):
         if self.value():
@@ -58,26 +61,31 @@ class CourseListFilter(admin.SimpleListFilter):
             return queryset
 
 
+@admin.register(User)
 class UserAdmin(UserAdminBase):
     save_on_top = True
 
-    list_display = tuple(UserAdminBase.list_display) + (
-            "name_verified",
-            "status",
-            "institutional_id", "institutional_id_verified",
-            )
+    # Fixing this type-ignore would require type.__getitem__ on Django types,
+    # which is only available via monkeypatching, ugh.
+    list_display = (
+        *UserAdminBase.list_display,  # type: ignore[misc]
+        "name_verified", "status", "institutional_id", "institutional_id_verified")
     list_editable = ("first_name", "last_name",
             "name_verified",
             "status",
             "institutional_id", "institutional_id_verified",
             "name_verified",)
-    list_filter = tuple(UserAdminBase.list_filter) + (
+    list_filter = (
+            *UserAdminBase.list_filter,
             "status", CourseListFilter)  # type: ignore
-    search_fields = tuple(UserAdminBase.search_fields) + (
-            "institutional_id",)
+    search_fields = (*tuple(UserAdminBase.search_fields), "institutional_id")
 
-    fieldsets = UserAdminBase.fieldsets[:1] + (
-            (UserAdminBase.fieldsets[1][0], {"fields": (
+    _fsets = UserAdminBase.fieldsets
+    assert _fsets is not None
+
+    fieldsets = (
+            *_fsets[:1],
+            (_fsets[1][0], {"fields": (
                 "status",
                 "first_name",
                 "last_name",
@@ -87,7 +95,8 @@ class UserAdmin(UserAdminBase):
                 "institutional_id_verified",
                 "editor_mode",)
                 }),
-            ) + UserAdminBase.fieldsets[2:]
+            *_fsets[2:],
+            )
     ordering = ["-date_joined"]
 
     def get_fieldsets(self, request, obj=None):
@@ -95,22 +104,19 @@ class UserAdmin(UserAdminBase):
         if request is not None and request.user.is_superuser:
             return fieldsets
         return tuple(
-            [fields for fields in fieldsets
+            fields for fields in fieldsets
              if "is_superuser" not in fields[1]["fields"]
              and "is_staff" not in fields[1]["fields"]
-             and "user_permissions" not in fields[1]["fields"]])
+             and "user_permissions" not in fields[1]["fields"])
 
     def get_list_display(self, request):
         list_display = super().get_list_display(request)
         if request is not None and request.user.is_superuser:
             return list_display
-        return tuple([f for f in list_display if f != "is_staff"])
+        return tuple(f for f in list_display if f != "is_staff")
 
     def get_list_filter(self, request):
         list_filter = super().get_list_filter(request)
         if request is not None and request.user.is_superuser:
             return list_filter
-        return tuple([f for f in list_filter if f != "is_staff"])
-
-
-admin.site.register(User, UserAdmin)
+        return tuple(f for f in list_filter if f != "is_staff")

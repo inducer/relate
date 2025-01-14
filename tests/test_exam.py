@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+
 __copyright__ = "Copyright (C) 2014 Andreas Kloeckner, Zesheng Wang, Dong Zhuang"
 
 __license__ = """
@@ -21,24 +24,27 @@ THE SOFTWARE.
 """
 
 import datetime
-import pytz_deprecation_shim as pytz
-
 import unittest
-from django.test import Client, TestCase, override_settings
+from zoneinfo import ZoneInfo
+
 from django import http
+from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 from django.utils.timezone import now, timedelta
 
-from course.models import ExamTicket, FlowSession
 from course import constants, exam
-
-from tests.constants import (
-    DATE_TIME_PICKER_TIME_FORMAT)
-
-from tests.base_test_mixins import (
-    SingleCourseTestMixin, MockAddMessageMixing, SingleCoursePageTestMixin)
-from tests.utils import mock, reload_urlconf
+from course.models import ExamTicket, FlowSession
 from tests import factories
+from tests.base_test_mixins import (
+    MockAddMessageMixing,
+    SingleCoursePageTestMixin,
+    SingleCourseTestMixin,
+)
+from tests.constants import DATE_TIME_PICKER_TIME_FORMAT
+from tests.utils import mock, reload_urlconf
+
+
+UTC = ZoneInfo("UTC")
 
 
 class GenTicketCodeTest(unittest.TestCase):
@@ -55,13 +61,13 @@ class GenTicketCodeTest(unittest.TestCase):
 class ExamTestMixin(SingleCourseTestMixin, MockAddMessageMixing):
     force_login_student_for_each_test = False
 
-    default_faked_now = datetime.datetime(2019, 1, 1, tzinfo=pytz.UTC)
+    default_faked_now = datetime.datetime(2019, 1, 1, tzinfo=UTC)
 
     default_valid_start_time = default_faked_now
     default_valid_end_time = default_valid_start_time + timedelta(hours=3)
 
     @classmethod
-    def setUpTestData(cls):  # noqa
+    def setUpTestData(cls):
         super().setUpTestData()
         cls.add_user_permission(
             cls.instructor_participation.user, "can_issue_exam_tickets",
@@ -234,17 +240,6 @@ class BatchIssueExamTicketsTest(ExamTestMixin, TestCase):
             self.assertEqual(resp.status_code, 200)
             self.assertEqual(ExamTicket.objects.count(), 0)
 
-    def test_template_syntax_error(self):
-        with mock.patch("course.content.markup_to_html") as mock_mth:
-            from jinja2 import TemplateSyntaxError
-            mock_mth.side_effect = TemplateSyntaxError(
-                lineno=10, message=b"my error")
-            resp = self.post_batch_issue_exam_ticket_view(data=self.get_post_data())
-            self.assertEqual(resp.status_code, 200)
-            self.assertEqual(ExamTicket.objects.count(), 0)
-            self.assertAddMessageCallCount(1)
-            self.assertAddMessageCalledWith("Template rendering failed")
-
     def test_unknown_error(self):
         with mock.patch("course.content.markup_to_html") as mock_mth:
             mock_mth.side_effect = RuntimeError("my error")
@@ -302,31 +297,34 @@ class CheckExamTicketTest(ExamTestMixin, TestCase):
         )
 
     def test_object_not_found(self):
-        result, msg = exam.check_exam_ticket(
+        result, tkt, msg = exam.check_exam_ticket(
             username="abcd",
             code=self.ticket.code,
             now_datetime=self.now,
-            facilities=self.facilities)
+            facilities=self.facilities,
+            logged_in=False)
         self.assertFalse(result)
         self.assertEqual(msg, "User name or ticket code not recognized.")
 
     def test_ticket_not_usable(self):
-        result, msg = exam.check_exam_ticket(
+        result, tkt, msg = exam.check_exam_ticket(
             username=self.student_participation.user.username,
             code=self.ticket.code,
             now_datetime=self.now,
-            facilities=self.facilities)
+            facilities=self.facilities,
+            logged_in=False)
 
         self.assertTrue(result, msg=msg)
 
         self.ticket.state = constants.exam_ticket_states.revoked
         self.ticket.save()
 
-        result, msg = exam.check_exam_ticket(
+        result, tkt, msg = exam.check_exam_ticket(
             username=self.student_participation.user.username,
             code=self.ticket.code,
             now_datetime=self.now,
-            facilities=self.facilities)
+            facilities=self.facilities,
+            logged_in=False)
         self.assertFalse(result, msg=msg)
         self.assertEqual(
             msg, "Ticket is not in usable state. (Has it been revoked?)")
@@ -335,11 +333,12 @@ class CheckExamTicketTest(ExamTestMixin, TestCase):
         self.ticket.usage_time = self.now - timedelta(days=1)
         self.ticket.state = constants.exam_ticket_states.used
         self.ticket.save()
-        result, msg = exam.check_exam_ticket(
+        result, tkt, msg = exam.check_exam_ticket(
             username=self.student_participation.user.username,
             code=self.ticket.code,
             now_datetime=self.now,
-            facilities=self.facilities)
+            facilities=self.facilities,
+            logged_in=False)
 
         self.assertFalse(result, msg=msg)
         self.assertEqual(msg, "Ticket has exceeded its validity period.")
@@ -348,30 +347,33 @@ class CheckExamTicketTest(ExamTestMixin, TestCase):
         self.exam.active = False
         self.exam.save()
 
-        result, msg = exam.check_exam_ticket(
+        result, tkt, msg = exam.check_exam_ticket(
             username=self.student_participation.user.username,
             code=self.ticket.code,
             now_datetime=self.now,
-            facilities=self.facilities)
+            facilities=self.facilities,
+            logged_in=False)
 
         self.assertFalse(result, msg=msg)
         self.assertEqual(msg, "Exam is not active.")
 
     def test_not_started(self):
-        result, msg = exam.check_exam_ticket(
+        result, tkt, msg = exam.check_exam_ticket(
             username=self.student_participation.user.username,
             code=self.ticket.code,
             now_datetime=self.now - timedelta(days=5),
-            facilities=self.facilities)
+            facilities=self.facilities,
+            logged_in=False)
         self.assertFalse(result, msg=msg)
         self.assertEqual(msg, "Exam has not started yet.")
 
     def test_ended(self):
-        result, msg = exam.check_exam_ticket(
+        result, tkt, msg = exam.check_exam_ticket(
             username=self.student_participation.user.username,
             code=self.ticket.code,
             now_datetime=self.now + timedelta(days=5),
-            facilities=self.facilities)
+            facilities=self.facilities,
+            logged_in=False)
         self.assertFalse(result, msg=msg)
         self.assertEqual(msg, "Exam has ended.")
 
@@ -379,56 +381,62 @@ class CheckExamTicketTest(ExamTestMixin, TestCase):
         self.ticket.restrict_to_facility = "my_fa1"
         self.ticket.save()
 
-        result, msg = exam.check_exam_ticket(
+        result, tkt, msg = exam.check_exam_ticket(
             username=self.student_participation.user.username,
             code=self.ticket.code,
             now_datetime=self.now,
-            facilities=frozenset(["my_fa2"]))
+            facilities=frozenset(["my_fa2"]),
+            logged_in=False)
         self.assertFalse(result, msg=msg)
         self.assertEqual(
             msg, "Exam ticket requires presence in facility 'my_fa1'.")
 
-        result, msg = exam.check_exam_ticket(
+        result, tkt, msg = exam.check_exam_ticket(
             username=self.student_participation.user.username,
             code=self.ticket.code,
             now_datetime=self.now,
-            facilities=None)
+            facilities=None,
+            logged_in=False)
         self.assertFalse(result, msg=msg)
         self.assertEqual(
             msg, "Exam ticket requires presence in facility 'my_fa1'.")
 
-        result, msg = exam.check_exam_ticket(
+        result, tkt, msg = exam.check_exam_ticket(
             username=self.student_participation.user.username,
             code=self.ticket.code,
             now_datetime=self.now,
-            facilities=self.facilities)
+            facilities=self.facilities,
+            logged_in=False)
         self.assertFalse(result, msg=msg)
         self.assertEqual(
             msg, "Exam ticket requires presence in facility 'my_fa1'.")
 
-        result, msg = exam.check_exam_ticket(
+        result, tkt, msg = exam.check_exam_ticket(
             username=self.student_participation.user.username,
             code=self.ticket.code,
             now_datetime=self.now,
-            facilities=frozenset(["my_fa1", "my_fa2"]))
+            facilities=frozenset(["my_fa1", "my_fa2"]),
+            logged_in=False)
         self.assertTrue(result, msg=msg)
 
     def test_not_yet_valid(self):
-        result, msg = exam.check_exam_ticket(
+        result, tkt, msg = exam.check_exam_ticket(
             username=self.student_participation.user.username,
             code=self.ticket.code,
             now_datetime=self.ticket.valid_start_time - timedelta(minutes=1),
-            facilities=self.facilities)
+            facilities=self.facilities,
+            logged_in=False)
         self.assertFalse(result, msg=msg)
         self.assertEqual(
             msg, "Exam ticket is not yet valid.")
 
     def test_expired(self):
-        result, msg = exam.check_exam_ticket(
+        result, tkt, msg = exam.check_exam_ticket(
             username=self.student_participation.user.username,
             code=self.ticket.code,
             now_datetime=self.ticket.valid_end_time + timedelta(minutes=1),
-            facilities=self.facilities)
+            facilities=self.facilities,
+            logged_in=False)
         self.assertFalse(result, msg=msg)
         self.assertEqual(
             msg, "Exam ticket has expired.")
@@ -441,7 +449,7 @@ class ExamTicketBackendTest(ExamTestMixin, TestCase):
 
     def test_not_authenticate(self):
         with mock.patch("course.exam.check_exam_ticket") as mock_check_ticket:
-            mock_check_ticket.return_value = False, "msg"
+            mock_check_ticket.return_value = False, None, "msg"
             self.assertIsNone(self.backend.authenticate("foo", "bar"))
 
     def test_get_user(self):
@@ -455,8 +463,8 @@ class ExamTicketBackendTest(ExamTestMixin, TestCase):
 class IsFromExamsOnlyFacilityTest(unittest.TestCase):
     """test exam.is_from_exams_only_facility"""
     def setUp(self):
-        self.requset = mock.MagicMock()
-        self.requset.relate_facilities = ["fa1", "fa2"]
+        self.request = mock.MagicMock()
+        self.request.relate_facilities = ["fa1", "fa2"]
         fake_get_facilities_config = mock.patch(
             "course.utils.get_facilities_config")
         self.mock_get_facilities_config = fake_get_facilities_config.start()
@@ -466,17 +474,17 @@ class IsFromExamsOnlyFacilityTest(unittest.TestCase):
         self.mock_get_facilities_config.return_value = {
             "fa1": {"exams_only": False, "ip_range": "foo"},
             "fa2": {"exams_only": True, "ip_range": "bar"}}
-        self.assertTrue(exam.is_from_exams_only_facility(self.requset))
+        self.assertTrue(exam.is_from_exams_only_facility(self.request))
 
     def test_false(self):
-        self.mock_get_facilities_config.return_value = dict()
-        self.assertFalse(exam.is_from_exams_only_facility(self.requset))
+        self.mock_get_facilities_config.return_value = {}
+        self.assertFalse(exam.is_from_exams_only_facility(self.request))
 
     def test_false_2(self):
         self.mock_get_facilities_config.return_value = {
             "fa1": {"exams_only": False, "ip_range": "foo"},
             "fa3": {"exams_only": True, "ip_range": "bar"}}
-        self.assertFalse(exam.is_from_exams_only_facility(self.requset))
+        self.assertFalse(exam.is_from_exams_only_facility(self.request))
 
 
 class GetLoginExamTicketTest(ExamTestMixin, TestCase):
@@ -545,7 +553,8 @@ class CheckInForExamTest(ExamTestMixin, TestCase):
         self.assertEqual(self.ticket.state, constants.exam_ticket_states.valid)
 
     def test_login_success(self):
-        self.mock_check_exam_ticket.return_value = True, "hello"
+        self.mock_check_exam_ticket.return_value = \
+                True, self.ticket, "hello"
         resp = self.post_check_in_for_exam_view(
             self.get_post_data())
 
@@ -554,7 +563,8 @@ class CheckInForExamTest(ExamTestMixin, TestCase):
         self.assertEqual(self.ticket.state, constants.exam_ticket_states.used)
 
     def test_login_failure(self):
-        self.mock_check_exam_ticket.return_value = False, "what's wrong?"
+        self.mock_check_exam_ticket.return_value = \
+                False, self.ticket, "what's wrong?"
         resp = self.post_check_in_for_exam_view(
             self.get_post_data())
 
@@ -574,7 +584,8 @@ class CheckInForExamTest(ExamTestMixin, TestCase):
     def test_login_though_ticket_not_valid(self):
         self.ticket.state = constants.exam_ticket_states.used
         self.ticket.save()
-        self.mock_check_exam_ticket.return_value = True, "hello"
+        self.mock_check_exam_ticket.return_value = \
+                True, self.ticket, "hello"
         resp = self.post_check_in_for_exam_view(
             self.get_post_data())
 
@@ -588,7 +599,8 @@ class CheckInForExamTest(ExamTestMixin, TestCase):
             session["relate_pretend_facilities"] = fa
             session.save()
 
-            self.mock_check_exam_ticket.return_value = True, "hello"
+            self.mock_check_exam_ticket.return_value = \
+                    True, self.instructor_ticket, "hello"
             resp = self.post_check_in_for_exam_view(
                 self.get_post_data(
                     username=self.instructor_participation.user.username,
@@ -684,7 +696,7 @@ class ExamFacilityMiddlewareTest(SingleCoursePageTestMixin,
         fs = factories.FlowSessionFactory(
             participation=self.student_participation, flow_id=self.flow_id)
         session = self.client.session
-        session["relate_session_locked_to_exam_flow_session_pk"] = fs.pk
+        session[constants.SESSION_LOCKED_TO_FLOW_PK] = fs.pk
         session.save()
 
         resp = self.client.get(self.course_page_url)
@@ -808,7 +820,7 @@ class ExamLockdownMiddlewareTest(SingleCoursePageTestMixin,
     """Integration tests for exam.ExamLockdownMiddleware
     """
     @classmethod
-    def setUpTestData(cls):  # noqa
+    def setUpTestData(cls):
         super(SingleCoursePageTestMixin, cls).setUpTestData()
         client = Client()
         client.force_login(cls.student_participation.user)
@@ -821,7 +833,7 @@ class ExamLockdownMiddlewareTest(SingleCoursePageTestMixin,
 
     def tweak_session_to_lock_down(self, flow_session_id=None):
         session = self.client.session
-        session["relate_session_locked_to_exam_flow_session_pk"] = (
+        session[constants.SESSION_LOCKED_TO_FLOW_PK] = (
             flow_session_id or FlowSession.objects.last().pk)
         session.save()
 
@@ -924,7 +936,7 @@ class ExamLockdownMiddlewareTest(SingleCoursePageTestMixin,
                 self.assertAddMessageCallCount(0)
 
     def test_ok_with_select2_views(self):
-        # There's curently no views using select2 when locked down.
+        # There's currently no views using select2 when locked down.
         # Here we are testing by using link from the select2 widget of
         # impersonating form
         with self.temporarily_switch_to_user(self.ta_participation.user):

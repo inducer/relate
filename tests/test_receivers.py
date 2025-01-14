@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+
 __copyright__ = "Copyright (C) 2017 Dong Zhuang"
 
 __license__ = """
@@ -24,10 +27,10 @@ import pytest
 from django.test import TestCase
 
 from course.constants import participation_status
-
 from tests import factories
-from tests.utils import mock
 from tests.base_test_mixins import SingleCourseTestMixin
+from tests.utils import mock
+
 
 HANDLE_ENROLLMENT_PATH = "course.enrollment.handle_enrollment_request"
 
@@ -128,7 +131,7 @@ class UpdateCouresOrUserSignalTest(SingleCourseTestMixin, TestCase):
         )
         with mock.patch(
                 "course.models.ParticipationPreapproval.objects.get")\
-                as mock_pprvl_get,\
+                as mock_pprvl_get, \
                 mock.patch(HANDLE_ENROLLMENT_PATH) as mock_handle_enrollment:
             self.course.listed = not self.course.listed
             self.course.save()

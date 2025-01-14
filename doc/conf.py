@@ -1,6 +1,9 @@
-import sys
+from __future__ import annotations
+
 import os
+import sys
 from urllib.request import urlopen
+
 
 _conf_url = \
         "https://raw.githubusercontent.com/inducer/sphinxconfig/main/sphinxconfig.py"
@@ -13,23 +16,26 @@ os.environ["DJANGO_SETTINGS_MODULE"] = "relate.settings"
 
 import django
 
+
 django.setup()
 
 intersphinx_mapping = {
-    "https://docs.python.org/3/": None,
-    "https://numpy.org/doc/stable/": None,
+    "python": ("https://docs.python.org/3/", None),
+    "numpy": ("https://numpy.org/doc/stable/", None),
     "django": (
         "https://docs.djangoproject.com/en/dev/",
         "https://docs.djangoproject.com/en/dev/_objects/",
     ),
-    "https://docs.sympy.org/latest": None,
+    "sympy": ("https://docs.sympy.org/latest", None),
 
-    # https://github.com/dulwich/dulwich/issues/913
-    # "https://www.dulwich.io/docs/": None,
-    "https://tiker.net/pub/dulwich-docs-stopgap/": None,
+    # https://github.com/dulwich/dulwich/issues/913 (a recurrence)
+    "dulwich": (
+        # "https://www.dulwich.io/docs/",
+        "https://tiker.net/pub/dulwich-docs-stopgap/",
+    None),
 }
 
-copyright = u"2014-21, Andreas Kloeckner"
+copyright = "2014-21, Andreas Kloeckner"
 
 version = "2021.1"
 release = version

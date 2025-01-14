@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+
 __copyright__ = "Copyright (C) 2018 Dong Zhuang"
 
 __license__ = """
@@ -20,45 +23,49 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-import pytest
-from urllib.parse import ParseResult, quote, urlparse
+import re
 import unittest
 from datetime import timedelta
-import re
+from urllib.parse import ParseResult, quote, urlparse
 
+import pytest
+from django.conf import settings
+from django.contrib.auth import REDIRECT_FIELD_NAME, SESSION_KEY
+from django.contrib.auth.hashers import check_password
+from django.core import mail
+from django.core.exceptions import PermissionDenied
+from django.http import HttpResponse, JsonResponse, QueryDict
+from django.test import Client, RequestFactory, TestCase, override_settings
+from django.urls import NoReverseMatch, re_path, reverse
 from django.utils.timezone import now
 from djangosaml2.urls import urlpatterns as djsaml2_urlpatterns
-from django.test import Client, TestCase, override_settings, RequestFactory
-from django.conf import settings
-from django.core import mail
-from django.contrib.auth import (
-    REDIRECT_FIELD_NAME, SESSION_KEY,
-)
-from django.contrib.auth.hashers import check_password
 
-from django.http import QueryDict, HttpResponse, JsonResponse
-from django.urls import NoReverseMatch, reverse
-from django.urls import re_path
-from django.core.exceptions import PermissionDenied
-
-from relate.urls import urlpatterns as base_urlpatterns, COURSE_ID_REGEX
-
-from course.auth import (
-    get_impersonable_user_qset, get_user_model,
-    EmailedTokenBackend, with_course_api_auth, APIError, APIBearerTokenBackend,
-    APIContext
-)
-from course.models import FlowPageVisit, ParticipationPermission, AuthenticationToken
 from course import constants
-
+from course.auth import (
+    APIBearerTokenBackend,
+    APIContext,
+    APIError,
+    EmailedTokenBackend,
+    get_impersonable_user_qset,
+    get_user_model,
+    with_course_api_auth,
+)
+from course.models import AuthenticationToken, FlowPageVisit, ParticipationPermission
+from relate.urls import COURSE_ID_REGEX, urlpatterns as base_urlpatterns
+from tests import factories
 from tests.base_test_mixins import (
-    CoursesTestMixinBase, SingleCoursePageTestMixin, MockAddMessageMixing,
-    APITestMixin
+    APITestMixin,
+    CoursesTestMixinBase,
+    MockAddMessageMixing,
+    SingleCoursePageTestMixin,
+)
+from tests.utils import (
+    LocmemBackendTestsMixin,
+    load_url_pattern_names,
+    mock,
+    reload_urlconf,
 )
 
-from tests.utils import (
-    LocmemBackendTestsMixin, load_url_pattern_names, reload_urlconf, mock)
-from tests import factories
 
 # settings names
 EDITABLE_INST_ID_BEFORE_VERI = "RELATE_EDITABLE_INST_ID_BEFORE_VERIFICATION"
@@ -164,7 +171,7 @@ class ImpersonateTest(SingleCoursePageTestMixin, MockAddMessageMixing, TestCase)
                 impersonatee=self.instructor_participation.user)
 
             self.assertEqual(resp.status_code, 200)
-            self.assertFormError(resp, "form", "user",
+            self.assertFormError(resp.context["form"], "user",
                                  IMPERSONATE_FORM_ERROR_NOT_VALID_USER_MSG)
             self.assertIsNone(self.client.session.get("impersonate_id"))
 
@@ -172,7 +179,7 @@ class ImpersonateTest(SingleCoursePageTestMixin, MockAddMessageMixing, TestCase)
             resp = self.post_impersonate_view(
                 impersonatee=user)
             self.assertEqual(resp.status_code, 200)
-            self.assertFormError(resp, "form", "user",
+            self.assertFormError(resp.context["form"], "user",
                                  IMPERSONATE_FORM_ERROR_NOT_VALID_USER_MSG)
             self.assertIsNone(self.client.session.get("impersonate_id"))
 
@@ -354,7 +361,7 @@ class ImpersonateTest(SingleCoursePageTestMixin, MockAddMessageMixing, TestCase)
                     if bad_string in s:
                         self.fail("label_from_instance method in "
                                   "course.auth.UserSearchWidget should not "
-                                  "return %s" % bad_string)
+                                  f"return {bad_string}")
 
             # Search ta by ta's last name
             impersonatee = self.ta_participation.user
@@ -405,7 +412,7 @@ class ImpersonateTest(SingleCoursePageTestMixin, MockAddMessageMixing, TestCase)
                     if bad_string in s:
                         self.fail("label_from_instance method in "
                                   "course.auth.UserSearchWidget should not "
-                                  "return %s" % bad_string)
+                                  f"return {bad_string}")
 
             # Search student by his email
             impersonatee = self.student_participation.user
@@ -422,7 +429,7 @@ class ImpersonateTest(SingleCoursePageTestMixin, MockAddMessageMixing, TestCase)
 class CrossCourseImpersonateTest(CoursesTestMixinBase, TestCase):
 
     @classmethod
-    def setUpTestData(cls):  # noqa
+    def setUpTestData(cls):
         super().setUpTestData()
         course1 = factories.CourseFactory()
         course2 = factories.CourseFactory(identifier="another-course")
@@ -473,7 +480,7 @@ class AuthTestMixin:
     }
 
     @classmethod
-    def setUpTestData(cls):  # noqa
+    def setUpTestData(cls):
         super().setUpTestData()
         cls.test_user = (
             get_user_model().objects.create_user(**cls._user_create_kwargs))
@@ -504,7 +511,7 @@ class AuthTestMixin:
         """
         fields = ParseResult._fields
 
-        for attr, x, y in zip(fields, urlparse(url), urlparse(expected)):
+        for attr, x, y in zip(fields, urlparse(url), urlparse(expected), strict=True):
             if parse_qs and attr == "query":
                 x, y = QueryDict(x), QueryDict(y)
             if x and y and x != y:
@@ -532,7 +539,7 @@ class AuthTestMixin:
                                 nasty_url, self.get_sign_in_data())
                         self.assertEqual(response.status_code, 302)
                         self.assertNotIn(bad_url, response.url,
-                                         "%s should be blocked" % bad_url)
+                                         f"{bad_url} should be blocked")
 
             # These URLs should pass the security check.
             good_urls = (
@@ -553,7 +560,7 @@ class AuthTestMixin:
                                 safe_url, self.get_sign_in_data())
                         self.assertEqual(response.status_code, 302)
                         self.assertIn(good_url, response.url,
-                                      "%s should be allowed" % good_url)
+                                      f"{good_url} should be allowed")
 
     def assertSessionHasUserLoggedIn(self):  # noqa
         self.assertIn(SESSION_KEY, self.client.session)
@@ -564,11 +571,7 @@ class AuthTestMixin:
     def concatenate_redirect_url(self, url, redirect_to=None):
         if not redirect_to:
             return url
-        return ("{url}?{next}={bad_url}".format(
-            url=url,
-            next=REDIRECT_FIELD_NAME,
-            bad_url=quote(redirect_to),
-        ))
+        return (f"{url}?{REDIRECT_FIELD_NAME}={quote(redirect_to)}")
 
     def get_sign_up_view_url(self, redirect_to=None):
         return self.concatenate_redirect_url(
@@ -694,8 +697,8 @@ class AuthViewNamedURLTests(AuthTestMixin, TestCase):
                     reverse(name, args=args, kwargs=kwargs)
                 except NoReverseMatch:
                     self.fail(
-                        "Reversal of url named '%s' failed with "
-                        "NoReverseMatch" % name)
+                        f"Reversal of url named '{name}' failed with "
+                        "NoReverseMatch")
 
     @override_settings(RELATE_SIGN_IN_BY_USERNAME_ENABLED=True,
                        RELATE_SIGN_IN_BY_EMAIL_ENABLED=True)
@@ -789,7 +792,7 @@ class SignInByEmailTest(CoursesTestMixinBase, MockAddMessageMixing,
     courses_setup_list = []
 
     @classmethod
-    def setUpTestData(cls):  # noqa
+    def setUpTestData(cls):
         super().setUpTestData()
 
         new_email = "somebody@example.com"
@@ -985,7 +988,7 @@ class SignUpTest(CoursesTestMixinBase, MockAddMessageMixing,
         self.client.logout()
 
     @override_settings()
-    def test_signup_registeration_not_enabled(self):
+    def test_signup_registration_not_enabled(self):
         settings.RELATE_REGISTRATION_ENABLED = False
         resp = self.get_sign_up()
         self.assertEqual(resp.status_code, 400)
@@ -1035,8 +1038,7 @@ class SignUpTest(CoursesTestMixinBase, MockAddMessageMixing,
         expected_msg = (
                 "That email address is already in use. "
                 "Would you like to "
-                "<a href='%s'>reset your password</a> instead?"
-                % reverse("relate-reset_password"))
+                "<a href='{}'>reset your password</a> instead?".format(reverse("relate-reset_password")))  # noqa: E501
 
         data = self.get_sign_up_user_dict()
         data["email"] = self.test_user.email
@@ -1283,14 +1285,18 @@ class UserProfileTest(CoursesTestMixinBase, AuthTestMixin,
 
     def test_update_profile_with_different_settings(self):
         disabled_inst_id_html_pattern = (
-            '<input type="text" name="institutional_id" value="%s" '
-            'class="textinput textInput form-control" id="id_institutional_id" '
-            'maxlength="100" disabled />')
+            '<input '
+            'aria-describedby="id_institutional_id_helptext" '
+            'type="text" name="institutional_id" value="%s" '
+            'maxlength="100" class="textinput form-control" '
+            'disabled id="id_institutional_id">')
 
         enabled_inst_id_html_pattern = (
-            '<input type="text" name="institutional_id" value="%s" '
-            'class="textinput textInput form-control" id="id_institutional_id" '
-            'maxlength="100" />')
+            '<input '
+            'aria-describedby="id_institutional_id_helptext" '
+            'type="text" name="institutional_id" value="%s" '
+            'maxlength="100" class="textinput form-control" '
+            'id="id_institutional_id">')
 
         expected_success_msg = "Profile data updated."
         expected_unchanged_msg = "No change was made on your profile."
@@ -1533,12 +1539,11 @@ class UserProfileTest(CoursesTestMixinBase, AuthTestMixin,
             pattern = field_div_with_id_pattern % field_name
             if exist:
                 self.assertRegex(resp.content.decode(), pattern,
-                                 msg=("Field Div of '%s' is expected to exist."
-                                      % field_name))
+                             msg=(f"Field Div of '{field_name}' is expected to exist."))
             else:
                 self.assertNotRegex(resp.content.decode(), pattern,
-                                    msg=("Field Div of '%s' is not expected "
-                                         "to exist." % field_name))
+                                    msg=(f"Field Div of '{field_name}' is not expected "
+                                         "to exist."))
 
         with override_settings(
                 RELATE_SHOW_INST_ID_FORM=True, RELATE_SHOW_EDITOR_FORM=True):
@@ -1594,7 +1599,7 @@ class UserProfileTest(CoursesTestMixinBase, AuthTestMixin,
 class ResetPasswordStageOneTest(CoursesTestMixinBase, MockAddMessageMixing,
                                 LocmemBackendTestsMixin, TestCase):
     @classmethod
-    def setUpTestData(cls):  # noqa
+    def setUpTestData(cls):
         super().setUpTestData()
         cls.user_email = "a_very_looooooong_email@somehost.com"
         cls.user_inst_id = "1234"
@@ -1639,9 +1644,9 @@ class ResetPasswordStageOneTest(CoursesTestMixinBase, MockAddMessageMixing,
 
     def test_reset_by_email_non_exist(self):
         expected_msg = (
-                "That %s doesn't have an "
+                "That {} doesn't have an "
                 "associated user account. Are you "
-                "sure you've registered?" % "email address")
+                "sure you've registered?".format("email address"))
         resp = self.post_reset_password(
             data={"email": "some_email@example.com"})
         self.assertTrue(resp.status_code, 200)
@@ -1650,9 +1655,9 @@ class ResetPasswordStageOneTest(CoursesTestMixinBase, MockAddMessageMixing,
 
     def test_reset_by_instid_non_exist(self):
         expected_msg = (
-                "That %s doesn't have an "
+                "That {} doesn't have an "
                 "associated user account. Are you "
-                "sure you've registered?" % "institutional ID")
+                "sure you've registered?".format("institutional ID"))
         resp = self.post_reset_password(
             data={"instid": "2345"}, use_instid=True)
         self.assertTrue(resp.status_code, 200)
@@ -1727,7 +1732,7 @@ class ResetPasswordStageTwoTest(CoursesTestMixinBase, MockAddMessageMixing,
                                 LocmemBackendTestsMixin, TestCase):
 
     @classmethod
-    def setUpTestData(cls):  # noqa
+    def setUpTestData(cls):
         super().setUpTestData()
         user = factories.UserFactory()
 
@@ -1800,7 +1805,7 @@ class ResetPasswordStageTwoTest(CoursesTestMixinBase, MockAddMessageMixing,
         self.assertAddMessageCalledWith(expected_msg)
         self.assertHasNoUserLoggedIn()
 
-    def test_reset_stage2_get_sucess(self):
+    def test_reset_stage2_get_success(self):
         resp = self.get_reset_password_stage2(self.user.id, self.user.sign_in_key)
         self.assertEqual(resp.status_code, 200)
         self.assertHasNoUserLoggedIn()
@@ -2048,29 +2053,16 @@ def api_test_func_not_allowed(api_ctx, course_identifier):
     return JsonResponse({})
 
 
-urlpatterns = base_urlpatterns + [
-    re_path(r"^course"
-        "/" + COURSE_ID_REGEX
-        + "/api/test_token$",
-        api_test_func_token,
-        name="test_api_token_method"),
-    re_path(r"^course"
-        "/" + COURSE_ID_REGEX
-        + "/api/test_basic$",
-        api_test_func_basic,
-        name="test_api_basic_method"),
-    re_path(r"^course"
-        "/" + COURSE_ID_REGEX
-        + "/api/test_not_allowed$",
-        api_test_func_not_allowed,
-        name="test_api_not_allowed_method"),
-    re_path(r"^course"
-        "/" + COURSE_ID_REGEX
-        + "/api/test_api_error$",
-        api_test_func_raise_api_error,
-        name="test_api_with_api_error"),
-
-]
+urlpatterns = [
+    *base_urlpatterns,
+    re_path("^course" "/" + COURSE_ID_REGEX + "/api/test_token$",
+            api_test_func_token, name="test_api_token_method"),
+    re_path("^course" "/" + COURSE_ID_REGEX + "/api/test_basic$",
+            api_test_func_basic, name="test_api_basic_method"),
+    re_path("^course" "/" + COURSE_ID_REGEX + "/api/test_not_allowed$",
+            api_test_func_not_allowed, name="test_api_not_allowed_method"),
+    re_path("^course" "/" + COURSE_ID_REGEX + "/api/test_api_error$",
+            api_test_func_raise_api_error, name="test_api_with_api_error")]
 
 
 @override_settings(ROOT_URLCONF=__name__)
@@ -2191,13 +2183,13 @@ class AuthCourseWithTokenTest(APITestMixin, TestCase):
     def test_basic_auth_success(self):
         resp = self.client.get(
             self.get_test_basic_url(),
-            HTTP_AUTHORIZATION="Basic %s" % self.create_basic_auth())
+            HTTP_AUTHORIZATION=f"Basic {self.create_basic_auth()}")
         self.assertEqual(resp.status_code, 200)
 
     def test_basic_auth_ill_formed(self):
         resp = self.client.get(
             self.get_test_basic_url(),
-            HTTP_AUTHORIZATION="Basic %s" % "foo:barbar")
+            HTTP_AUTHORIZATION="Basic {}".format("foo:barbar"))
         self.assertEqual(resp.status_code, 401)
 
     def test_basic_auth_no_match(self):
@@ -2206,7 +2198,7 @@ class AuthCourseWithTokenTest(APITestMixin, TestCase):
 
         resp = self.client.get(
             self.get_test_basic_url(),
-            HTTP_AUTHORIZATION="Basic %s" % bad_auth_data)
+            HTTP_AUTHORIZATION=f"Basic {bad_auth_data}")
         self.assertEqual(resp.status_code, 401)
 
     def test_basic_auth_user_not_matched(self):
@@ -2217,7 +2209,7 @@ class AuthCourseWithTokenTest(APITestMixin, TestCase):
 
         resp = self.client.get(
             self.get_test_basic_url(),
-            HTTP_AUTHORIZATION="Basic %s" % basic_auth_user_not_matched)
+            HTTP_AUTHORIZATION=f"Basic {basic_auth_user_not_matched}")
         self.assertEqual(resp.status_code, 401)
 
     # }}}
@@ -2378,7 +2370,8 @@ class ManageAuthenticationTokensTest(
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(AuthenticationToken.objects.count(), 0)
 
-        self.assertFormError(resp, "form", "description", "This field is required.")
+        self.assertFormError(
+                resp.context["form"], "description", "This field is required.")
 
     def test_post_revoke(self):
         n_exist_tokens = 3

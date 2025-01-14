@@ -1,6 +1,8 @@
 # See https://docs.djangoproject.com/en/dev/howto/deployment/checklist/
 
+import os  # noqa: F401
 import os.path as path
+
 
 _BASEDIR = path.dirname(path.abspath(__file__))
 
@@ -21,7 +23,7 @@ from django.utils.translation import gettext_noop  # noqa
 # If not configured, "RELATE" will be used as default value.
 # Use gettext_noop() if you want it to be discovered as an i18n literal
 # for translation.
-#RELATE_CUTOMIZED_SITE_NAME = gettext_noop("My RELATE")
+# RELATE_CUTOMIZED_SITE_NAME = gettext_noop("My RELATE")
 
 # Uncomment this to use a real database. If left commented out, a local SQLite3
 # database will be used, which is not recommended for production use.
@@ -73,6 +75,10 @@ TIME_ZONE = "America/Chicago"
 # apt-get install rabbitmq-server
 CELERY_BROKER_URL = "amqp://"
 
+# Set both of these to true if serving your site exclusively via HTTPS.
+SESSION_COOKIE_SECURE = False
+CSRF_COOKIE_SECURE = False
+
 # }}}
 
 # {{{ git storage
@@ -82,7 +88,7 @@ CELERY_BROKER_URL = "amqp://"
 #
 # The "course identifiers" you enter will be directory names below this root.
 
-#GIT_ROOT = "/some/where"
+# GIT_ROOT = "/some/where"
 GIT_ROOT = path.join(_BASEDIR, "git-roots")
 
 # }}}
@@ -90,6 +96,8 @@ GIT_ROOT = path.join(_BASEDIR, "git-roots")
 # {{{ bulk storage
 
 from django.core.files.storage import FileSystemStorage
+
+
 # This must be a subclass of django.core.storage.Storage.
 # This should *not* be MEDIA_ROOT, and the corresponding directory/storage location
 # should *not* be accessible under a URL.
@@ -117,13 +125,13 @@ ADMINS = (
 # If your email service do not allow nonauthorized sender, uncomment the following
 # statement and change the configurations above accordingly, noticing that all
 # emails will be sent using the EMAIL_ settings above.
-#RELATE_EMAIL_SMTP_ALLOW_NONAUTHORIZED_SENDER = False
+# RELATE_EMAIL_SMTP_ALLOW_NONAUTHORIZED_SENDER = False
 
 # Advanced email settings if you want to configure multiple SMTPs for different
 # purpose/type of emails. It is also very useful when
 # "RELATE_EMAIL_SMTP_ALLOW_NONAUTHORIZED_SENDER" is False.
 # If you want to enable this functionality, set the next line to True, and edit
-# the next block with your cofigurations.
+# the next block with your configurations.
 RELATE_ENABLE_MULTIPLE_SMTP = False
 
 if RELATE_ENABLE_MULTIPLE_SMTP:
@@ -248,7 +256,7 @@ SOCIAL_AUTH_GOOGLE_OAUTH2_USE_UNIQUE_USER_ID = True
 
 # If set to False, user won't be able to edit institutional ID
 # after submission. Set to False only when you trust your students
-# or you don't want to verfiy insitutional ID they submit.
+# or you don't want to verify insitutional ID they submit.
 RELATE_EDITABLE_INST_ID_BEFORE_VERIFICATION = True
 
 # If set to False, these fields will be hidden in the user profile form.
@@ -261,28 +269,28 @@ RELATE_SHOW_EDITOR_FORM = True
 # Default to True, as enable it sometimes crashes for some pages with code fences.
 # For this reason, there will be a warning when the attribute is set to False when
 # starting the server.
-#RELATE_DISABLE_CODEHILITE_MARKDOWN_EXTENSION = True
+# RELATE_DISABLE_CODEHILITE_MARKDOWN_EXTENSION = True
 
 # {{{ user full_name format
 
 # RELATE's default full_name format is "'%s %s' % (first_name, last_name)",
 # you can override it by supply a customized method/fuction, with
-# "firstname" and "lastname" as its paramaters, and return a string.
+# "firstname" and "lastname" as its parameters, and return a string.
 
 # For example, you can define it like this:
 
-#<code>
+# <code>
 #   def my_fullname_format(firstname, lastname):
 #         return "%s%s" % (last_name, first_name)
-#</code>
+# </code>
 
 # and then uncomment the following line and enable it with:
 
-#RELATE_USER_FULL_NAME_FORMAT_METHOD = my_fullname_format
+# RELATE_USER_FULL_NAME_FORMAT_METHOD = my_fullname_format
 
 # You can also import it from your custom module, or use a dotted path of the
 # method, i.e.:
-#RELATE_USER_FULL_NAME_FORMAT_METHOD = "path.to.my_fullname_format"
+# RELATE_USER_FULL_NAME_FORMAT_METHOD = "path.to.my_fullname_format"
 
 # }}}
 
@@ -308,40 +316,40 @@ RELATE_SHOW_EDITOR_FORM = True
 # When a participation, for example, teaching assistant, has limited access to
 # students' profile (i.e., has_permission(pperm.view_participant_masked_profile)),
 # a built-in mask method (which is based on pk of user instances) is used be
-# default. The mask method can be overriden by the following a custom method, with
+# default. The mask method can be overridden by the following a custom method, with
 # user as the args.
 
-#RELATE_USER_PROFILE_MASK_METHOD = "path.tomy_method
+# RELATE_USER_PROFILE_MASK_METHOD = "path.tomy_method
 # For example, you can define it like this:
 
-#<code>
+# <code>
 #   def my_mask_method(user):
 #         return "User_%s" % str(user.pk + 100)
-#</code>
+# </code>
 
 # and then uncomment the following line and enable it with:
 
-#RELATE_USER_PROFILE_MASK_METHOD = my_mask_method
+# RELATE_USER_PROFILE_MASK_METHOD = my_mask_method
 
 # You can also import it from your custom module, or use a dotted path of the
 # method, i.e.:
-#RELATE_USER_PROFILE_MASK_METHOD = "path.to.my_mask_method"
+# RELATE_USER_PROFILE_MASK_METHOD = "path.to.my_mask_method"
 
 # }}}
 
 # {{{ extra checks
 
-# This allow user to add customized startup checkes for user-defined modules
+# This allow user to add customized startup checks for user-defined modules
 # using Django's system checks (https://docs.djangoproject.com/en/dev/ref/checks/)
 # For example, define a `my_check_func in `my_module` with
 # <code>
 #   def my_check_func(app_configs, **kwargs):
 #         return [list of error]
-#</code>
+# </code>
 # The configuration should be
 # RELATE_STARTUP_CHECKS_EXTRA = ["my_module.my_check_func"]
 # i.e., Each item should be the path to an importable check function.
-#RELATE_STARTUP_CHECKS_EXTRA = []
+# RELATE_STARTUP_CHECKS_EXTRA = []
 
 # }}}
 
@@ -376,13 +384,13 @@ RELATE_SHOW_EDITOR_FORM = True
 
 # A string containing the image ID of the docker image to be used to run
 # student Python code. Docker should download the image on first run.
-RELATE_DOCKER_RUNPY_IMAGE = "inducer/relate-runcode-python"
-# RELATE_DOCKER_RUNPY_IMAGE = "inducer/relate-runpy-amd64-tensorflow"
-# (bigger, but includes TensorFlow)
+RELATE_DOCKER_RUNPY_IMAGE = "inducer/relate-runcode-python-amd64"
 
 # A URL pointing to the Docker command interface which RELATE should use
 # to spawn containers for student code.
 RELATE_DOCKER_URL = "unix://var/run/docker.sock"
+# for podman
+# RELATE_DOCKER_URL = f"unix://run/user/{os.getuid()}/podman/podman.sock"
 
 RELATE_DOCKER_TLS_CONFIG = None
 
@@ -421,14 +429,14 @@ RELATE_SITE_ANNOUNCEMENT = None
 # Make sure you have generated, translate and compile the message file of your
 # language. If commented, RELATE will use default language "en-us".
 
-#LANGUAGE_CODE = "en-us"
+# LANGUAGE_CODE = "en-us"
 
 # You can (and it's recommended to) override Django's built-in LANGUAGES settings
 # if you want to filter languages allowed for course-specific languages.
 # The format of languages should be a list/tuple of 2-tuples:
 # (language_code, language_description). If there are entries with the same
 # language_code, language_description will be using the one which comes latest.
-#.If LANGUAGES is not configured, django.conf.global_settings.LANGUAGES will be
+# .If LANGUAGES is not configured, django.conf.global_settings.LANGUAGES will be
 # used.
 # Note: make sure LANGUAGE_CODE you used is also in LANGUAGES, if it is not
 # the default "en-us". Otherwise translation of that language will not work.
@@ -463,6 +471,17 @@ RELATE_SITE_ANNOUNCEMENT = None
 #             "exams_only": True,
 #             },
 #     }
+#
+#    # Automatically get denied facilities from PrairieTest
+#    result = {}
+#
+#    from prairietest.utils import denied_ip_networks_at
+#    pt_facilities_networks = denied_ip_networks_at(now_datetime)
+#    for (course_id, facility_name), networks in pt_facilities_networks.items():
+#        fdata = result.setdefault(facility_name, {})
+#        fdata["exams_only"] = True
+#        fdata["ip_ranges"] = [*fdata.get("ip_ranges", []), *networks]
+#    return result
 
 
 RELATE_FACILITIES = {
@@ -484,6 +503,7 @@ RELATE_TICKET_MINUTES_VALID_AFTER_USE = 12*60
 
 if RELATE_SIGN_IN_BY_SAML2_ENABLED:
     from os import path
+
     import saml2.saml
     _BASE_URL = "https://relate.cs.illinois.edu"
 
@@ -514,13 +534,13 @@ if RELATE_SIGN_IN_BY_SAML2_ENABLED:
             "single_logout_service": {
                 # And the REDIRECT binding for the logout service here:
                 saml2.BINDING_HTTP_REDIRECT:
-                "https://shibboleth.illinois.edu/idp/logout.jsp",  # noqa
+                "https://shibboleth.illinois.edu/idp/logout.jsp",
                 },
             },
         }
 
     SAML_CONFIG = {
-        # full path to the xmlsec1 binary programm
+        # full path to the xmlsec1 binary program
         "xmlsec_binary": "/usr/bin/xmlsec1",
 
         # your entity id, usually your subdomain plus the url to the metadata view
