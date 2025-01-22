@@ -130,8 +130,6 @@ def lint_yaml(args):
         else:
             check_file(item)
 
-    print(f"{had_problems=}")
-
     return int(had_problems)
 
 # }}}
