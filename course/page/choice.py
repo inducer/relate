@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from django.utils.html import format_html_join
+
 
 __copyright__ = "Copyright (C) 2014 Andreas Kloeckner"
 
@@ -647,19 +649,15 @@ class MultipleChoiceQuestion(ChoiceQuestionBase, PageBaseWithoutHumanGrading):
         return AnswerFeedback(correctness=correctness)
 
     def get_answer_html(self, page_context, idx_list, unpermute=False):
-        answer_html_list = []
         if unpermute:
             idx_list = list(set(idx_list))
-        for idx in idx_list:
-            answer_html_list.append(
-                    "<li>"
-                    + (self.process_choice_string(
+
+        return format_html_join(
+            "\n", "{}",
+            [(self.process_choice_string(
                         page_context,
-                        self.choices[idx].text))
-                    + "</li>"
-                    )
-        answer_html = "<ul>"+"".join(answer_html_list)+"</ul>"
-        return answer_html
+                        self.choices[idx].text),)
+            for idx in idx_list])
 
     def correct_answer(self, page_context, page_data, answer_data, grade_data):
         corr_idx_list = self.unpermuted_correct_indices()

@@ -38,7 +38,7 @@
   <div class="answer-analytics">
   {% for astats in answer_stats_list %}
     <div class="answer-entry">
-      {{ astats.normalized_answer|safe }}
+      {{ astats.normalized_answer }}
       {% blocktrans trimmed with astats_count=astats.count count counter=astats.count %}
         ({{ astats_count }} response)
       {% plural %}

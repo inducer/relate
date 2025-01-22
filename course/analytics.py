@@ -543,9 +543,6 @@ def page_analytics(pctx, flow_id, group_id, page_id):
                     grading_page_context, visit.page_data.data, visit.answer)
         if normalized_answer is None:
             normalized_answer = _("(No answer)")
-        else:
-            import bleach
-            normalized_answer = bleach.clean(normalized_answer)
 
         answer_feedback = visit.get_most_recent_feedback()
 

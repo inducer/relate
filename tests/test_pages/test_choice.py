@@ -439,12 +439,11 @@ class MultiChoicesQuestionTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
         self.assertResponseContextEqual(
             resp, "correct_answer",
             "The correct answer is: "
-            "<ul><li><div class='relate-markup'><p>Sprinkles</p></div></li>"
-            "<li><div class='relate-markup'><p>Chocolate chunks</p></div></li>"
-            "<li><div class='relate-markup'><p>Almond bits</p></div></li>"
-            "</ul>"
+            "<div class='relate-markup'><p>Sprinkles</p></div>\n"
+            "<div class='relate-markup'><p>Chocolate chunks</p></div>\n"
+            "<div class='relate-markup'><p>Almond bits</p></div>"
             "Additional acceptable options are: "
-            "<ul><li><div class='relate-markup'><p>A flawed option</p></div></li></ul>")
+            "<div class='relate-markup'><p>A flawed option</p></div>")
 
     # }}}
 

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from django.utils.safestring import mark_safe
+
 
 __copyright__ = "Copyright (C) 2014 Andreas Kloeckner"
 
@@ -1067,7 +1069,7 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
         normalized_answer = self.get_code_from_answer_data(answer_data)
 
         from django.utils.html import escape
-        return f"<pre>{escape(normalized_answer)}</pre>"
+        return mark_safe(f"<pre>{escape(normalized_answer)}</pre>")
 
     def normalized_bytes_answer(self, page_context, page_data, answer_data):
         if answer_data is None:

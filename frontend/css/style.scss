@@ -118,6 +118,11 @@ label div.relate-markup p:only-child {
   margin-bottom: 0;
 }
 
+/* remove extra spacing from ChoiceQuestion options in analytics */
+div.answer-analytics div.relate-markup p:only-child {
+  margin-bottom: 0;
+}
+
 /* }}} */
 
 /* {{{ histograms */
