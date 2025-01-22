@@ -766,8 +766,7 @@ class TextQuestionBase(PageBaseWithTitle):
         if not self._is_case_sensitive():
             normalized_answer = normalized_answer.lower()
 
-        from django.utils.html import escape
-        return escape(normalized_answer)
+        return normalized_answer
 
     def normalized_bytes_answer(self, page_context, page_data, answer_data):
         if answer_data is None:

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from django.utils.html import format_html_join
+
 
 __copyright__ = "Copyright (C) 2015 Andreas Kloeckner, Dong Zhuang"
 
@@ -347,8 +349,7 @@ class ShortAnswer(AnswerBase):
         return "width: " + str(max(self.width, opt_width)) + "em"
 
     def get_answer_text(self, page_context, answer):
-        from django.utils.html import escape
-        return escape(answer)
+        return answer
 
     def get_correct_answer_text(self, page_context):
 
@@ -472,8 +473,9 @@ class ChoicesAnswer(AnswerBase):
     def get_answer_text(self, page_context, answer):
         if answer == "":
             return answer
-        return self.process_choice_string(
-            page_context, self.answers_desc.choices[int(answer)])
+        return mark_safe(
+            self.process_choice_string(
+                page_context, self.answers_desc.choices[int(answer)]))
 
     def get_width_str(self, opt_width=0):
         return None
@@ -979,9 +981,9 @@ class InlineMultiQuestion(
 
         answer_dict = answer_data["answer"]
 
-        return ", ".join(
-            [self.answer_instance_list[idx].get_answer_text(
-                page_context, answer_dict[self.embedded_name_list[idx]])
+        return format_html_join(", ", "{}",
+            [(self.answer_instance_list[idx].get_answer_text(
+                page_context, answer_dict[self.embedded_name_list[idx]]),)
                 for idx, name in enumerate(self.embedded_name_list)]
         )
 

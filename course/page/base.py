@@ -736,8 +736,10 @@ class PageBase(ABC):
             answer_data: Any
             ) -> str | None:
         """An HTML-formatted answer to be used for summarization and
-        display in analytics. Since this may include user input, it is
-        expected to be sanitized.
+        display in analytics. By default, this is escaped when included
+        in the output page, however it may use utilities such as
+        :func:`~django.utils.safestring.mark_safe` to mark the output
+        as safe and avoid escaping.
         """
         return None
 
