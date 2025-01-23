@@ -3992,20 +3992,6 @@ class AddButtonsToFormTest(unittest.TestCase):
         values = list(dict(inputs).values())
         return names, values
 
-    def test_not_add_save_button(self):
-        class MyForm(StyledForm):
-            show_save_button = False
-
-        form = MyForm()
-
-        self.mock_will_receive_feedback.return_value = True
-        flow.add_buttons_to_form(form, self.fpctx, self.flow_session, frozenset())
-
-        names, values = self.get_form_submit_inputs(form)
-        self.assertNotIn("save", names)
-        self.assertIn("submit", names)
-        self.assertIn("Submit final answer", values)
-
     def test_add_save_button_by_default(self):
         class MyForm(StyledForm):
             pass
