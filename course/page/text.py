@@ -1150,9 +1150,6 @@ class HumanGradedTextQuestion(TextQuestionBase, PageBaseWithValue,
 # {{{ rich text
 
 class RichTextAnswerForm(StyledForm):
-    # FIXME: ugh, this should be a PageBase thing
-    show_save_button = False
-
     def __init__(self, read_only: bool, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
 

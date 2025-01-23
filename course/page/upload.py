@@ -44,7 +44,6 @@ from relate.utils import StyledForm, string_concat
 # {{{ upload question
 
 class FileUploadForm(StyledForm):
-    show_save_button = False
     uploaded_file = forms.FileField(required=True,
             label=gettext_lazy("Uploaded file"))
 

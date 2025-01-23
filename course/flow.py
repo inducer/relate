@@ -1711,11 +1711,9 @@ def add_buttons_to_form(
         flow_session: FlowSession,
         permissions: frozenset[str]) -> StyledForm:
     from crispy_forms.layout import Submit
-    show_save_button = getattr(form, "show_save_button", True)
-    if show_save_button:
-        form.helper.add_input(
-                Submit("save", _("Save answer"),
-                    css_class="relate-save-button"))
+    form.helper.add_input(
+            Submit("save", _("Save answer"),
+                css_class="relate-save-button"))
 
     if will_receive_feedback(permissions):
         if flow_permission.change_answer in permissions:
