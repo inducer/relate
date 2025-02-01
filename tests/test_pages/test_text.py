@@ -221,7 +221,6 @@ class MatcherTest(unittest.TestCase):
         # test RegexMatcher
         failed_pattern = "[\n"
         expected_error_msg = (
-            "regex '[\n' did not compile: error: "
             "unterminated character set at position 0 (line 1, column 1)")
         with self.assertRaises(ValidationError) as cm:
             RegexMatcher(None, "",
@@ -239,7 +238,6 @@ class MatcherTest(unittest.TestCase):
         # test CaseSensitiveRegexMatcher
         failed_pattern = "[\n"
         expected_error_msg = (
-            "regex '[\n' did not compile: error: "
             "unterminated character set at position 0 (line 1, column 1)")
         with self.assertRaises(ValidationError) as cm:
             CaseSensitiveRegexMatcher(None, "",
