@@ -983,8 +983,6 @@ class CodeMirrorTextarea(forms.Textarea):
             extensions.insert(0, JsLiteral("rlCodemirror.vim()"))
         elif self.interaction_mode == "emacs":
             extensions.insert(0, JsLiteral("rlCodemirror.emacs()"))
-        else:
-            pass
 
         if self.language_mode is not None:
             extensions.append(JsLiteral(f"rlCodemirror.{self.language_mode}()"))
