@@ -1284,19 +1284,19 @@ files = [
 
 [[package]]
 name = "minijinja"
-version = "2.6.0"
+version = "2.7.0"
 description = "An experimental Python binding of the Rust MiniJinja template engine."
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "minijinja-2.6.0-cp38-abi3-macosx_10_12_x86_64.macosx_11_0_arm64.macosx_10_12_universal2.whl", hash = "sha256:3c531495d0fcc17bba6e0bd4d33eed146f7c9bd240e7caddd1cc1e16d755da6a"},
-    {file = "minijinja-2.6.0-cp38-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:504617531e0c139703954ee269b5a36c3a3a103ec07c4614b562e0bf3da8b5fd"},
-    {file = "minijinja-2.6.0-cp38-abi3-manylinux_2_17_armv7l.manylinux2014_armv7l.whl", hash = "sha256:859840ca29b98b3e181dc49f67f020f08d1f783547967943192b156d7c00b1b0"},
-    {file = "minijinja-2.6.0-cp38-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:496a604aea4f60faf44e480bd79baed298faf2b1d8b15bbab62b7d3841917e33"},
-    {file = "minijinja-2.6.0-cp38-abi3-manylinux_2_5_i686.manylinux1_i686.whl", hash = "sha256:d10bee630f95f553dfeeacd7c43a5697a5e0f8284d8cbc2cac0ea5cc7c59be1c"},
-    {file = "minijinja-2.6.0-cp38-abi3-win32.whl", hash = "sha256:4055be0945c2bcd7daafc02703f78cd9fcaefd865dd30f7a4d7e66c11b5e041f"},
-    {file = "minijinja-2.6.0-cp38-abi3-win_amd64.whl", hash = "sha256:7f449cc39887feb43621259d8678b30ac3d51ae462362f678b2a39067e939287"},
-    {file = "minijinja-2.6.0.tar.gz", hash = "sha256:e695a774ad9dce3357485268a8b1ca2584c6903f99926a6ab0e31bd8eabe4aab"},
+    {file = "minijinja-2.7.0-cp38-abi3-macosx_10_12_x86_64.macosx_11_0_arm64.macosx_10_12_universal2.whl", hash = "sha256:8fdf2e6a85689d6055dfd0df96257b0ab640f16df42fc00aadc3564f225995aa"},
+    {file = "minijinja-2.7.0-cp38-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:19b43600645f6a6a7e94a17497cf1aa838fd233ac1d96d2f46bf5787c7acf84d"},
+    {file = "minijinja-2.7.0-cp38-abi3-manylinux_2_17_armv7l.manylinux2014_armv7l.whl", hash = "sha256:c86702aea57cb54741fb4eaa30c4e36f809d9883b21ba555fb10852ae3da9413"},
+    {file = "minijinja-2.7.0-cp38-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:c918e9bdbe353949471147bcfeef71204a508768a2b7fb0350d732ce3397ed99"},
+    {file = "minijinja-2.7.0-cp38-abi3-manylinux_2_5_i686.manylinux1_i686.whl", hash = "sha256:d3018514fcc11c48503b25cea582ba9cea914d37c669caf04e463c72e2bdd075"},
+    {file = "minijinja-2.7.0-cp38-abi3-win32.whl", hash = "sha256:fbc552c6be7db89df16617800a782671858026ecdb2cbf52ca77f01191ec4874"},
+    {file = "minijinja-2.7.0-cp38-abi3-win_amd64.whl", hash = "sha256:d90a6bd53329cf5f1e975a14ce7544f06a700a0db24d3b1407b3547b3934e0d0"},
+    {file = "minijinja-2.7.0.tar.gz", hash = "sha256:30d20df6b8d5f32cc5fac2c8435aab13cc255b7e86b2e0a6faeff6463eb4f5c8"},
 ]
 
 [[package]]
@@ -3130,4 +3130,4 @@ postgres = ["psycopg2"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.10,<4"
-content-hash = "913cfe4bf7fab3226fc1c8e021f096c30bef5ef44957e4b939c266476c027149"
+content-hash = "681e619378375650ba39057eae65484b0e80d25c48e9ba229a21c2d19c84eead"

@@ -48,7 +48,7 @@ django-yamlfield = {git = "https://github.com/bakatrouble/django-yamlfield.git",
 # For easy content formatting:
 markdown = "^3.7"
 
-minijinja= "^2.5.0"
+minijinja= "^2.7.0"
 
 # For math/symbolic questions
 pymbolic = "*"
