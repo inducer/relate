@@ -2,7 +2,7 @@
 
 set -eo pipefail
 
-poetry install -E postgres -E memcache
+uv sync --all-extras --frozen
 npm install
 npm run build
 ./collectstatic.sh
