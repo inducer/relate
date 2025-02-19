@@ -2,10 +2,8 @@
 
 set -e
 
-# This whole script is being run inside of poetry, so no need to wrap move of
-# it in poetry calls.
-
-python -m pip install docutils sphinx
+# This whole script is being run inside of uv, so no need to wrap move of
+# it in uv calls.
 
 cp local_settings_example.py doc
 

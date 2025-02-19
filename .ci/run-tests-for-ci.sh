@@ -9,8 +9,8 @@ echo "OSTYPE: $OSTYPE"
 if [[ "$OSTYPE" != msys ]]; then
     echo "i18n"
     # Make sure i18n literals marked correctly
-    poetry run python manage.py makemessages --all
-    poetry run python manage.py compilemessages
+    uv run python manage.py makemessages --all
+    uv run python manage.py compilemessages
 fi
 
 staticfiles=(
@@ -29,7 +29,7 @@ for i in "${staticfiles[@]}"; do
     touch "frontend-dist/$i"
 done
 
-poetry run python manage.py collectstatic
+uv run python manage.py collectstatic
 
 rm local_settings.py
 
@@ -50,7 +50,7 @@ fi
 
 if [[ "$RL_CI_TEST" = "expensive" ]]; then
     echo "Expensive tests"
-    poetry run python -m pytest "${PYTEST_COMMON_FLAGS[@]}" --slow
+    uv run python -m pytest "${PYTEST_COMMON_FLAGS[@]}" --slow
 elif [[ "$RL_CI_TEST" = "postgres" ]]; then
     export PGPASSWORD=relatepgpass
 
@@ -69,10 +69,10 @@ elif [[ "$RL_CI_TEST" = "postgres" ]]; then
             },
         }" >> local_settings_example.py
 
-    poetry run pip install psycopg2
+    uv run pip install psycopg2
     echo "Database tests"
-    poetry run python -m pytest "${PYTEST_COMMON_FLAGS[@]}"
+    uv run python -m pytest "${PYTEST_COMMON_FLAGS[@]}"
 else
     echo "Base tests"
-    poetry run python -m pytest "${PYTEST_COMMON_FLAGS[@]}"
+    uv run python -m pytest "${PYTEST_COMMON_FLAGS[@]}"
 fi

@@ -8,33 +8,25 @@ Installation for Relate Development
 
 Install `Node.js <https://nodejs.org>`__ and NPM.
 
-Install `poetry <https://python-poetry.org>`__ to manage dependencies and virtual
+Install `uv <https://docs.astral.sh/uv/>`__ to manage dependencies and virtual
 environments::
 
-    curl -sSL https://install.python-poetry.org | python3 -
+    curl -LsSf https://astral.sh/uv/install.sh | sh
 
-Note that this will put poetry in ``$HOME/.poetry/bin`` and modify your
+Note that this will put uv in your home directory and modify your
 ``$HOME/.profile``. If you don't like that, see the
-`poetry docs <https://python-poetry.org/docs/>`__ for alternate installation options.
+`uv docs <https://docs.astral.sh/uv/getting-started/installation/>`__
+for alternate installation options.
 
 To install, clone the repository and enter it::
 
     git clone https://github.com/inducer/relate.git
     cd relate
 
-Install the dependencies. Poetry will automatically create a virtualenv
-(somewhere under ``$HOME/.poetry``) for this::
+Install the dependencies. Uv will automatically create a virtualenv
+(in ``.venv```) for this::
 
-    poetry install
-
-If this installation step encounters hangs or errors that implicate access to a
-keyring, setting a keyring backend may help::
-
-    export PYTHON_KEYRING_BACKEND=keyring.backends.fail.Keyring
-
-Activate the virtual environment::
-
-    poetry shell
+    uv sync --frozen
 
 Copy (and, optionally, edit) the example configuration::
 
@@ -43,8 +35,8 @@ Copy (and, optionally, edit) the example configuration::
 
 Initialize the database::
 
-    python manage.py migrate
-    python manage.py createsuperuser --username=$(whoami)
+    uv run python manage.py migrate
+    uv run python manage.py createsuperuser --username=$(whoami)
 
 Retrieve frontend (JS/CSS) dependencies and build::
 
@@ -53,7 +45,7 @@ Retrieve frontend (JS/CSS) dependencies and build::
 
 Run the server::
 
-    python manage.py runserver
+    uv run python manage.py runserver
 
 Open a browser to http://localhost:8000, sign in (your user name will be the
 same as your system user name, or whatever ``whoami`` returned above) and select
@@ -187,7 +179,7 @@ Additional Setup Steps for Deploying to Production
     will use and enter the details (database name, user name, password) into
     :file:`local_settings.py`. You will also need to::
 
-        poetry install -E postgres
+        uv sync --extra postgres
 
 *   The directory specified under ``GIT_ROOT`` must be owned by the user
     running Relate.
@@ -312,32 +304,6 @@ Then run::
 Minimal Install for Validating Course Content
 ---------------------------------------------
 
-Install poetry::
-
-    curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python3 -
-
-See the `Poetry documentation <https://python-poetry.org/docs/>`__ for other options.
-
-Then, download relate::
-
-    git clone https://github.com/inducer/relate.git
-    cd relate
-
-Poetry creates virtualenvs in your home directory by default. Create a file ``poetry.toml``
-with the following contents::
-
-    [virtualenvs]
-    in-project = true
-
-Next, install Relate and its dependencies::
-
-    poetry install
-
-In order to use the ``relate`` command, you need to activate the virtualenv that
-was created::
-
-    source ~/path/to/relate/checkout/.venv/bin/activate
-
 Enabling I18n support/Translating RELATE into other Languages
 =============================================================
 
@@ -383,33 +349,24 @@ language files <https://docs.djangoproject.com/en/dev/topics/i18n/translation/#l
 Installing the Command Line Interface
 -------------------------------------
 
-RELATE validation (and a number of other functionalities) are also via the
-:command:`relate` command. This may be installed as follows.
-
-Install `poetry <https://python-poetry.org>`__ to manage dependencies and virtual
+Install `uv <https://docs.astral.sh/uv/>`__ to manage dependencies and virtual
 environments::
 
-    curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python3
+    curl -LsSf https://astral.sh/uv/install.sh | sh
 
-Clone the relate repository and enter it::
+Then, download relate::
 
     git clone https://github.com/inducer/relate.git
     cd relate
 
-Create a file ``poetry.toml`` containing the lines::
+Next, install Relate and its dependencies::
 
-    [virtualenvs]
-    in-project = true
+    uv sync --frozen --no-dev
 
-and running::
+In order to use the ``relate`` command, you need to activate the virtualenv that
+was created::
 
-    poetry install --no-dev
-
-in the root directory of the RELATE distribution. The ``relate`` command is
-then available at ``relate/.venv/bin/relate`` and can be used in a course
-repository by running::
-
-    relate validate .
+    source ~/path/to/relate/checkout/.venv/bin/activate
 
 A number of additional functionalities (such as ``relate test-code``) are
 also available from the ``relate`` command.
