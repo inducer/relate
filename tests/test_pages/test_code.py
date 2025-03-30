@@ -1013,7 +1013,7 @@ class IsNuisanceFailureTest(unittest.TestCase):
 
     def test_traceback_unknown(self):
         result = {"result": "uncaught_error",
-                  "traceback": "unknow traceback"}
+                  "traceback": "unknown traceback"}
         self.assertFalse(is_nuisance_failure(result))
 
     def test_traceback_has_badstatusline(self):
