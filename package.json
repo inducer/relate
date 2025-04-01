@@ -17,7 +17,7 @@
     "@lezer/highlight": "^1.2.1",
     "@popperjs/core": "^2.11.2",
     "@replit/codemirror-emacs": "^6.1.0",
-    "@replit/codemirror-vim": "^6.2.1",
+    "@replit/codemirror-vim": "^6.3.0",
     "@vscode/markdown-it-katex": "^1.1.0",
     "bootstrap": "^5.3.3",
     "bootstrap-icons": "^1.8.1",
