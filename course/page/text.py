@@ -45,13 +45,13 @@ from course.page.base import (
     markup_to_html,
 )
 from course.validation import AttrSpec, ValidationError, validate_struct
-from relate.utils import Struct, StyledForm, string_concat
+from relate.utils import Struct, StyledFormBase, StyledVerticalForm, string_concat
 
 
 CORRECT_ANSWER_PATTERN = string_concat(_("A correct answer is"), ": '%s'.")
 
 
-class TextAnswerForm(StyledForm):
+class TextAnswerForm(StyledVerticalForm):
     # prevents form submission with codemirror's empty textarea
     use_required_attribute = False
 
@@ -1149,7 +1149,7 @@ class HumanGradedTextQuestion(TextQuestionBase, PageBaseWithValue,
 
 # {{{ rich text
 
-class RichTextAnswerForm(StyledForm):
+class RichTextAnswerForm(StyledVerticalForm):
     def __init__(self, read_only: bool, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
 
@@ -1229,7 +1229,7 @@ class HumanGradedRichTextQuestion(PageBaseWithValue, PageBaseWithTitle,
             page_data: Any,
             answer_data: Any,
             page_behavior: Any,
-            ) -> StyledForm:
+            ) -> StyledFormBase:
         kwargs = {}
 
         if answer_data is not None:
@@ -1247,7 +1247,7 @@ class HumanGradedRichTextQuestion(PageBaseWithValue, PageBaseWithTitle,
             post_data: Any,
             files_data: Any,
             page_behavior: PageBehavior,
-            ) -> StyledForm:
+            ) -> StyledFormBase:
         return RichTextAnswerForm(
                 not page_behavior.may_change_answer,
                 post_data, files_data,

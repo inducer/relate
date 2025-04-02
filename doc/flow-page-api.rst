@@ -31,7 +31,7 @@ Stub Docs
 
 .. currentmodule:: relate.utils
 
-.. class:: StyledForm
+.. class:: StyledFormBase
 
 Canonicalization of Django Names
 --------------------------------

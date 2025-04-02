@@ -43,7 +43,7 @@ from course.page.base import (
     markup_to_html,
 )
 from course.validation import AttrSpec, ValidationError
-from relate.utils import StyledForm, string_concat
+from relate.utils import StyledVerticalForm, string_concat
 
 
 # DEBUGGING SWITCH:
@@ -149,7 +149,7 @@ def sanitize_from_code_html(s):
 
 # {{{ base code question
 
-class CodeForm(StyledForm):
+class CodeForm(StyledVerticalForm):
     # prevents form submission with codemirror's empty textarea
     use_required_attribute = False
 

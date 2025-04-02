@@ -42,7 +42,12 @@ from course.validation import (
     ValidationError,
     validate_struct,
 )
-from relate.utils import Struct, StyledForm, string_concat
+from relate.utils import (
+    Struct,
+    StyledFormBase,
+    StyledVerticalForm,
+    string_concat,
+)
 
 
 # {{{ mypy
@@ -557,7 +562,7 @@ class PageBase(ABC):
             page_data: Any,
             answer_data: Any,
             page_behavior: Any,
-            ) -> StyledForm:
+            ) -> StyledFormBase:
         """
         :arg answer_data: value returned by :meth:`answer_data`.
              May be *None*.
@@ -578,7 +583,7 @@ class PageBase(ABC):
             post_data: Any,
             files_data: Any,
             page_behavior: PageBehavior,
-            ) -> StyledForm:
+            ) -> StyledFormBase:
         """Return a form with the POST response from *post_data* and *files_data*
         filled in.
 
@@ -594,7 +599,7 @@ class PageBase(ABC):
             self,
             request: django.http.HttpRequest,
             page_context: PageContext,
-            form: StyledForm,
+            form: StyledFormBase,
             answer_data: Any,
             ):
         """Returns an HTML rendering of *form*."""
@@ -616,7 +621,7 @@ class PageBase(ABC):
             page_context: PageContext,
             page_data: Any,
             grade_data: Any,
-            ) -> StyledForm | None:
+            ) -> StyledFormBase | None:
         """
         :arg grade_data: value returned by
             :meth:`update_grade_data_from_grading_form_v2`.  May be *None*.
@@ -633,7 +638,7 @@ class PageBase(ABC):
             grade_data: Any,
             post_data: Any,
             files_data: Any,
-            ) -> StyledForm:
+            ) -> StyledFormBase:
         """Return a form with the POST response from *post_data* and *files_data*
         filled in.
 
@@ -775,7 +780,7 @@ class PageBaseWithoutHumanGrading(PageBase):
                 page_context: PageContext,
                 page_data: Any,
                 grade_data: Any,
-                ) -> StyledForm | None:
+                ) -> StyledFormBase | None:
         return None
 
     def post_grading_form(
@@ -785,7 +790,7 @@ class PageBaseWithoutHumanGrading(PageBase):
                 grade_data: Any,
                 post_data: Any,
                 files_data: Any,
-                ) -> StyledForm:
+                ) -> StyledFormBase:
         raise NotImplementedError()
 
 
@@ -984,7 +989,7 @@ class TextInputWithButtons(forms.TextInput):
                            html=html, button_row=mark_safe("".join(buttons)))
 
 
-class HumanTextFeedbackForm(StyledForm):
+class HumanTextFeedbackForm(StyledVerticalForm):
     def __init__(self,
                  point_value: float | None,
                  *args: Any,
@@ -1079,7 +1084,7 @@ class HumanTextFeedbackForm(StyledForm):
                 "with a generic message containing the notes"),
                 label=_("Notify instructor"))
 
-    def clean(self):
+    def clean(self) -> None:
         grade_percent = self.cleaned_data.get("grade_percent")
         grade_points = self.cleaned_data.get("grade_points")
         if (self.point_value is not None
@@ -1093,7 +1098,7 @@ class HumanTextFeedbackForm(StyledForm):
                         _("Grade (percent) and Grade (points) "
                         "disagree"))
 
-        super(StyledForm, self).clean()
+        super().clean()
 
     def cleaned_percent(self):
         if self.point_value is None:
@@ -1145,7 +1150,7 @@ class PageBaseWithHumanTextFeedback(PageBase):
             page_context: PageContext,
             page_data: Any,
             grade_data: Any,
-            ) -> StyledForm | None:
+            ) -> StyledFormBase | None:
         human_feedback_point_value = self.human_feedback_point_value(
                 page_context, page_data)
 
@@ -1170,7 +1175,7 @@ class PageBaseWithHumanTextFeedback(PageBase):
             grade_data: Any,
             post_data: Any,
             files_data: Any,
-            ) -> StyledForm:
+            ) -> StyledFormBase:
         human_feedback_point_value = self.human_feedback_point_value(
                 page_context, page_data)
         editor_interaction_mode = get_editor_interaction_mode(page_context)
