@@ -53,7 +53,7 @@ from course.utils import (
 )
 from course.views import get_now_or_fake_time
 from relate.utils import (
-    StyledForm,
+    StyledFormBase,
     retry_transaction_decorator,
 )
 
@@ -270,7 +270,7 @@ def grade_flow_page(
 
     # {{{ grading form
 
-    grading_form: StyledForm | None = None
+    grading_form: StyledFormBase | None = None
 
     if (page_expects_answer
             and fpctx.page.is_answer_gradable()

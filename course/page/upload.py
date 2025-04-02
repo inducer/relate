@@ -38,12 +38,12 @@ from course.page.base import (
     markup_to_html,
 )
 from course.validation import AttrSpec, ValidationError
-from relate.utils import StyledForm, string_concat
+from relate.utils import StyledVerticalForm, string_concat
 
 
 # {{{ upload question
 
-class FileUploadForm(StyledForm):
+class FileUploadForm(StyledVerticalForm):
     uploaded_file = forms.FileField(required=True,
             label=gettext_lazy("Uploaded file"))
 

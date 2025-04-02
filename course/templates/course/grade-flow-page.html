@@ -447,12 +447,12 @@
     function addSubmitNext()
     {
       if (next_page_url)
-        $(".grading-page-grade-entry .row:last div:last").append(
+        $(".relate-grading-form > div:last div").append(
             " <button class='btn btn-outline-primary' id='save_next_page' type='button'>"
             + "{% trans "Submit and next page" %} &raquo;"
             + "</button>");
       if (next_session_url)
-        $(".grading-page-grade-entry .row:last div:last").append(
+        $(".relate-grading-form > div:last div").append(
             " <button class='btn btn-outline-primary' id='save_next_session' type='button'>"
             + "{% trans "Submit and next session (Alt+S)" %} &raquo;"
             + "</button>");
@@ -461,7 +461,7 @@
       $("#save_next_session").click(saveAndNextSession);
 
       {# http://stackoverflow.com/a/9549716/3437454 #}
-      $(".relate-grading-form").prepend($(".row:last").clone(true, true));
+      $(".relate-grading-form").prepend($(".relate-grading-form > div:last").clone(true, true));
 
       // Set only on one of the two copies, to avoid Firefox noticing
       // an ambiguity.

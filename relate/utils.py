@@ -62,14 +62,23 @@ def string_concat(*strings: Any) -> str:
     return format_lazy("{}" * len(strings), *strings)
 
 
-class StyledForm(forms.Form):
+class StyledFormBase(forms.Form):
     def __init__(self, *args, **kwargs) -> None:
         from crispy_forms.helper import FormHelper
         self.helper = FormHelper()
         self._configure_helper()
-
         super().__init__(*args, **kwargs)
 
+    def _configure_helper(self) -> None:
+        raise NotImplementedError
+
+
+class StyledVerticalForm(StyledFormBase):
+    def _configure_helper(self) -> None:
+        pass
+
+
+class StyledForm(StyledFormBase):
     def _configure_helper(self) -> None:
         self.helper.form_class = "form-horizontal"
         self.helper.label_class = "col-lg-2"

@@ -38,10 +38,10 @@ from course.page.base import (
     markup_to_html,
 )
 from course.validation import AttrSpec, ValidationError, validate_markup
-from relate.utils import StyledForm, string_concat
+from relate.utils import StyledVerticalForm, string_concat
 
 
-class ChoiceAnswerForm(StyledForm):
+class ChoiceAnswerForm(StyledVerticalForm):
     def __init__(self, field, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -50,7 +50,7 @@ class ChoiceAnswerForm(StyledForm):
         self.fields["choice"].label = _("Choice")
 
 
-class MultipleChoiceAnswerForm(StyledForm):
+class MultipleChoiceAnswerForm(StyledVerticalForm):
     def __init__(self, field, *args, **kwargs):
         super().__init__(*args, **kwargs)
 

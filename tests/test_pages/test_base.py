@@ -326,8 +326,8 @@ class PageBaseGetModifiedPermissionsForPageTest(unittest.TestCase):
 
 
 def human_text_feedback_form_clean_side_effect(self):
-    from course.page.base import StyledForm
-    return super(StyledForm, self).clean()
+    from relate.utils import StyledFormBase
+    return super(StyledFormBase, self).clean()
 
 
 class HumanTextFeedbackFormTest(unittest.TestCase):
