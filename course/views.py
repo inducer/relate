@@ -1348,7 +1348,7 @@ def generate_ssh_keypair(request):
 # {{{ celery task monitoring
 
 @login_required
-def monitor_task(request, task_id):
+def monitor_task(request: http.HttpRequest, task_id: str) -> http.HttpResponse:
     from celery import states
     from celery.result import AsyncResult
     async_res = AsyncResult(task_id)
@@ -1373,7 +1373,7 @@ def monitor_task(request, task_id):
             progress_statement = async_res.result["message"]
 
     traceback = None
-    if request.user.is_staff and async_res.state == states.FAILURE:
+    if async_res.state == states.FAILURE:
         traceback = async_res.traceback
 
     return render(request, "course/task-monitor.html", {
