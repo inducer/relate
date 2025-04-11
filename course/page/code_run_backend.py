@@ -24,6 +24,7 @@ THE SOFTWARE.
 """
 
 import sys
+import threading
 import traceback
 from typing import Any
 
@@ -156,8 +157,12 @@ def substitute_correct_code_into_test_code(test_code: str, correct_code: str) ->
     return "\n".join(new_test_code_lines)
 
 
-def package_exception(result: dict[str, Any], what: str) -> None:
-    tp, val, tb = sys.exc_info()
+def package_exception(result: dict[str, Any], what: str, exc_info=None) -> None:
+    if exc_info is not None:
+        tp, val, tb = exc_info
+    else:
+        tp, val, tb = sys.exc_info()
+
     assert tp is not None
     result["result"] = what
     result["message"] = f"{tp.__name__}: {val!s}"
@@ -165,7 +170,14 @@ def package_exception(result: dict[str, Any], what: str) -> None:
             traceback.format_exception(tp, val, tb))
 
 
-def run_code(result, run_req):
+def user_code_thread(user_code, user_ctx, exc_info):
+    try:
+        exec(user_code, user_ctx)
+    except BaseException:
+        exc_info.append(sys.exc_info())
+
+
+def run_code(result, run_req) -> None:
     # {{{ silence matplotlib warnings
 
     import warnings
@@ -189,21 +201,23 @@ def run_code(result, run_req):
         setup_code = None
 
     try:
-        user_code = compile(
-                run_req.user_code, "[user code]", "exec")
+        user_code = compile(run_req.user_code, "[user code]", "exec")
     except Exception:
         package_exception(result, "user_compile_error")
         return
 
     if getattr(run_req, "test_code", None):
         try:
-            test_code = compile(
-                    run_req.test_code, "[test code]", "exec")
+            test_code = compile(run_req.test_code, "[test code]", "exec")
         except Exception:
             package_exception(result, "test_compile_error")
             return
     else:
         test_code = None
+
+    # Test code often contains the sample solution. Protect it from
+    # access in user code via stack traversal.
+    run_req.test_code = "# (removed)"
 
     # }}}
 
@@ -225,9 +239,7 @@ def run_code(result, run_req):
     def output_html(s):
         generated_html.append(s)
 
-    feedback = Feedback()
     maint_ctx = {
-            "feedback": feedback,
             "user_code": run_req.user_code,
             "data_files": data_files,
             "output_html": output_html,
@@ -236,7 +248,6 @@ def run_code(result, run_req):
 
     if setup_code is not None:
         try:
-            maint_ctx["_MODULE_SOURCE_CODE"] = run_req.setup_code
             exec(setup_code, maint_ctx)
         except BaseException:
             package_exception(result, "setup_error")
@@ -254,12 +265,27 @@ def run_code(result, run_req):
     from copy import deepcopy
     user_ctx = deepcopy(user_ctx)
 
-    try:
-        user_ctx["_MODULE_SOURCE_CODE"] = run_req.user_code
-        exec(user_code, user_ctx)
-    except BaseException:
-        package_exception(result, "user_error")
-        return
+    user_ctx["_MODULE_SOURCE_CODE"] = run_req.user_code
+
+    # Running user code in a thread makes it harder for it to get at the (sensitive)
+    # data held in this stack frame. Hiding sys._current_frames adds more difficulty.
+    old_scf = sys._current_frames
+    sys._current_frames = None
+
+    exc_info = []
+    user_thread = threading.Thread(
+            target=user_code_thread, args=(user_code, user_ctx, exc_info))
+    user_thread.start()
+    user_thread.join()
+
+    sys._current_frames = old_scf
+
+    if exc_info:
+        package_exception(result, "user_error", exc_info[0])
+
+    # It's harder for user code to get at the feedback object if it doesn't
+    # yet exist while user code runs.
+    feedback = maint_ctx["feedback"] = Feedback()
 
     # {{{ export plots
 
@@ -299,7 +325,6 @@ def run_code(result, run_req):
 
     if test_code is not None:
         try:
-            maint_ctx["_MODULE_SOURCE_CODE"] = run_req.test_code
             exec(test_code, maint_ctx)
         except GradingComplete:
             pass
