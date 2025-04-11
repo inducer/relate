@@ -93,6 +93,11 @@ class RunRequestHandler(BaseHTTPRequestHandler):
             print("RUNPY RECEIVED %d bytes" % len(recv_data),
                     file=prev_stderr)
             run_req = Struct(json.loads(recv_data.decode("utf-8")))
+
+            # recv_data contains test_code, which may be sensitive.
+            # Prevent access to this via the frame.
+            del recv_data
+
             print("REQUEST: %r" % run_req, file=prev_stderr)
 
             stdout = io.StringIO()
