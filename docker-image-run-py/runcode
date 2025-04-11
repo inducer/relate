@@ -1,7 +1,7 @@
 #! /usr/bin/env python3
 
-# placate flake8
-from __future__ import print_function
+from __future__ import annotations
+
 
 __copyright__ = "Copyright (C) 2014 Andreas Kloeckner"
 
@@ -25,26 +25,27 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-import socketserver
-import json
-import sys
 import io
+import json
+import socketserver
+import sys
+
+
 try:
-    from code_run_backend import Struct, run_code, package_exception
+    from code_run_backend import Struct, package_exception, run_code
 except ImportError:
     try:
         # When faking a container for unittest
-        from course.page.code_run_backend import (
-            Struct, run_code, package_exception)
+        from course.page.code_run_backend import Struct, package_exception, run_code
     except ImportError:
         # When debugging, i.e., run "python runpy" command line
         import os
         sys.path.insert(0, os.path.abspath(
             os.path.join(os.path.dirname(__file__), os.pardir)))
-        from course.page.code_run_backend import (
-            Struct, run_code, package_exception)
+        from course.page.code_run_backend import Struct, package_exception, run_code
 
 from http.server import BaseHTTPRequestHandler
+
 
 PORT = 9941
 OUTPUT_LENGTH_LIMIT = 16*1024
@@ -61,7 +62,7 @@ def truncate_if_long(s):
 
 
 class RunRequestHandler(BaseHTTPRequestHandler):
-    def do_GET(self):
+    def do_GET(self):  # noqa: N802
         print("GET RECEIVED", file=sys.stderr)
         if self.path != "/ping":
             raise RuntimeError("unrecognized path in GET")
@@ -73,21 +74,21 @@ class RunRequestHandler(BaseHTTPRequestHandler):
         self.wfile.write(b"OK")
         print("PING RESPONSE DONE", file=sys.stderr)
 
-    def do_POST(self):
+    def do_POST(self):  # noqa: N802
         global TEST_COUNT
         TEST_COUNT += 1
 
         response = {}
 
-        prev_stdout = sys.stdout  # noqa
-        prev_stderr = sys.stderr  # noqa
+        prev_stdout = sys.stdout
+        prev_stderr = sys.stderr
 
         try:
             print("POST RECEIVED", file=prev_stderr)
             if self.path != "/run-python":
                 raise RuntimeError("unrecognized path in POST")
 
-            clength = int(self.headers['content-length'])
+            clength = int(self.headers["content-length"])
             recv_data = self.rfile.read(clength)
 
             print("RUNPY RECEIVED %d bytes" % len(recv_data),
@@ -123,7 +124,7 @@ class RunRequestHandler(BaseHTTPRequestHandler):
             print("WRITING RESPONSE", file=prev_stderr)
             self.wfile.write(json_result)
             print("WROTE RESPONSE", file=prev_stderr)
-        except:
+        except Exception:
             print("ERROR RESPONSE", file=prev_stderr)
             response = {}
             package_exception(response, "uncaught_error")
