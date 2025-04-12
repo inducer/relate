@@ -29,14 +29,14 @@ class GradingComplete(Exception):
 
 
 class Feedback:
-    def __init__(self):
-        self.points = None
-        self.feedback_items = []
+    def __init__(self) -> None:
+        self.points: float | None = None
+        self.feedback_items: list[str] = []
 
-    def set_points(self, points):
+    def set_points(self, points: float) -> None:
         self.points = points
 
-    def add_feedback(self, text):
+    def add_feedback(self, text: str) -> None:
         self.feedback_items.append(text)
 
     def finish(self, points, fb_text):

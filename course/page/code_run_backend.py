@@ -26,7 +26,8 @@ THE SOFTWARE.
 import sys
 import threading
 import traceback
-from typing import Any
+from types import TracebackType
+from typing import Any, TypeAlias
 
 
 try:
@@ -126,6 +127,8 @@ PROTOCOL
         Present on ``success`` if :attr:`Request.compile_only` is *False*.
 """
 
+ExcInfo: TypeAlias = tuple[type[BaseException], BaseException, TracebackType]
+
 
 # {{{ tools
 
@@ -157,11 +160,14 @@ def substitute_correct_code_into_test_code(test_code: str, correct_code: str) ->
     return "\n".join(new_test_code_lines)
 
 
-def package_exception(result: dict[str, Any], what: str, exc_info=None) -> None:
-    if exc_info is not None:
-        tp, val, tb = exc_info
-    else:
+def package_exception(
+            result: dict[str, Any],
+            what: str,
+            exc_info: ExcInfo | None = None) -> None:
+    if exc_info is None:
         tp, val, tb = sys.exc_info()
+    else:
+        tp, val, tb = exc_info
 
     assert tp is not None
     result["result"] = what
@@ -170,11 +176,15 @@ def package_exception(result: dict[str, Any], what: str, exc_info=None) -> None:
             traceback.format_exception(tp, val, tb))
 
 
-def user_code_thread(user_code, user_ctx, exc_info):
+def user_code_thread(user_code, user_ctx, exc_info: list[ExcInfo]) -> None:
     try:
         exec(user_code, user_ctx)
     except BaseException:
-        exc_info.append(sys.exc_info())
+        tp, val, tb = sys.exc_info()
+        assert tp is not None
+        assert val is not None
+        assert tb is not None
+        exc_info.append((tp, val, tb))
 
 
 def run_code(result, run_req) -> None:
@@ -233,7 +243,7 @@ def run_code(result, run_req) -> None:
         for name, contents in run_req.data_files.items():
             data_files[name] = b64decode(contents.encode())
 
-    generated_html = []
+    generated_html: list[str] = []
     result["html"] = generated_html
 
     def output_html(s):
@@ -270,9 +280,9 @@ def run_code(result, run_req) -> None:
     # Running user code in a thread makes it harder for it to get at the (sensitive)
     # data held in this stack frame. Hiding sys._current_frames adds more difficulty.
     old_scf = sys._current_frames
-    sys._current_frames = None
+    sys._current_frames = lambda: {}
 
-    exc_info = []
+    exc_info: list[ExcInfo] = []
     user_thread = threading.Thread(
             target=user_code_thread, args=(user_code, user_ctx, exc_info))
     user_thread.start()
