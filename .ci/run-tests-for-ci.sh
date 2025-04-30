@@ -1,6 +1,6 @@
 #! /bin/bash
 
-set -e
+set -eo pipefail
 
 # collectstatic and i18n a local_settings file
 cp local_settings_example.py local_settings.py
@@ -9,8 +9,8 @@ echo "OSTYPE: $OSTYPE"
 if [[ "$OSTYPE" != msys ]]; then
     echo "i18n"
     # Make sure i18n literals marked correctly
-    uv run python manage.py makemessages --all
-    uv run python manage.py compilemessages
+    (cd locale; uv run python ../manage.py makemessages --all)
+    (cd locale; uv run python ../manage.py compilemessages)
 fi
 
 staticfiles=(
