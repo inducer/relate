@@ -13,7 +13,7 @@
     "@fullcalendar/core": "^6.1.15",
     "@fullcalendar/daygrid": "^6.1.15",
     "@fullcalendar/list": "^6.1.15",
-    "@fullcalendar/timegrid": "^6.1.15",
+    "@fullcalendar/timegrid": "^6.1.17",
     "@lezer/highlight": "^1.2.1",
     "@popperjs/core": "^2.11.2",
     "@replit/codemirror-emacs": "^6.1.0",
