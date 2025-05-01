@@ -13,7 +13,7 @@ license = "MIT"
 dependencies = [
     "django>=5.2,<6",
     "django-crispy-forms>=1.13.0",
-    "crispy-bootstrap5~=2024.10",
+    "crispy-bootstrap5~=2025.4",
     "jsonfield>=1.4.0",
     "django-yamlfield",
     "markdown~=3.7",
