@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from course.page.base import HumanTextFeedbackForm
+
 
 __copyright__ = "Copyright (C) 2014 Andreas Kloeckner"
 
@@ -423,7 +425,9 @@ def view_calendar(pctx):
                 if event.ordinal is not None:
                     human_title = kind_desc["title"].format(nr=event.ordinal)
                 else:
-                    human_title = kind_desc["title"].rstrip("{nr}").strip()
+                    human_title = kind_desc["title"]
+                    if human_title.endswith("{nr}"):
+                        human_title = human_title[:-4].strip()
 
         description = None
         show_description = True
