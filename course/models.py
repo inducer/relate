@@ -338,7 +338,7 @@ class Event(models.Model):
         else:
             return self.kind
 
-    def clean(self):
+    def clean(self) -> None:
         super().clean()
 
         try:
@@ -348,7 +348,7 @@ class Event(models.Model):
                 {"course":
                      _("Course must be given.")})
 
-        if self.end_time:
+        if self.end_time and self.time:
             if self.end_time < self.time:
                 raise ValidationError(
                     {"end_time":
