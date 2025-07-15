@@ -24,9 +24,8 @@ THE SOFTWARE.
 """
 
 from abc import ABC, abstractmethod
-from collections.abc import Callable, Sequence
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, TypeAlias, final
 
 import django.forms as forms
 import django.http
@@ -34,6 +33,7 @@ from django.conf import settings
 from django.forms import ValidationError as FormValidationError
 from django.utils.safestring import mark_safe
 from django.utils.translation import gettext, gettext_lazy as _, gettext_noop
+from typing_extensions import override
 
 from course.constants import MAX_EXTRA_CREDIT_FACTOR
 from course.validation import (
@@ -56,10 +56,17 @@ from relate.utils import (
 if TYPE_CHECKING:
     # FIXME There seem to be some cyclic imports that prevent importing these
     # outright.
+    from collections.abc import Callable, Sequence
+
     from course.models import Course, FlowSession
     from relate.utils import Repo_ish
 
 # }}}
+
+
+PageData: TypeAlias = dict[str, Any]
+AnswerData: TypeAlias = dict[str, Any]
+GradeData: TypeAlias = dict[str, Any]
 
 
 __doc__ = """
@@ -129,6 +136,7 @@ class PageContext:
     request: django.http.HttpRequest | None = None
 
 
+@final
 class PageBehavior:
     """
     .. attribute:: show_correctness
@@ -159,7 +167,7 @@ def markup_to_html(
         page_context: PageContext,
         text: str,
         use_jinja: bool = True,
-        reverse_func: Callable | None = None,
+        reverse_func: Callable[[str], str] | None = None,
         ) -> str:
     from course.content import markup_to_html as mth
 
@@ -254,6 +262,7 @@ def get_auto_feedback(correctness: float | None) -> str:
                 % (100*correctness))
 
 
+@final
 class AnswerFeedback:
     """
     .. attribute:: correctness
@@ -377,6 +386,10 @@ class PageBase(ABC):
     .. automethod:: normalized_bytes_answer
     """
 
+    location: str
+    page_desc: Any
+    is_optional_page: bool
+
     def __init__(self,
                  vctx: ValidationContext | None,
                  location: str,
@@ -423,8 +436,8 @@ class PageBase(ABC):
 
                     # }}}
 
-            self.page_desc: Any = page_desc
-            self.is_optional_page: bool = getattr(page_desc, "is_optional_page", False)
+            self.page_desc = page_desc
+            self.is_optional_page = getattr(page_desc, "is_optional_page", False)
 
         else:
             from warnings import warn
@@ -473,10 +486,10 @@ class PageBase(ABC):
 
         return frozenset(rw_permissions)
 
-    def make_page_data(self) -> dict:
+    def make_page_data(self) -> PageData:
         return {}
 
-    def initialize_page_data(self, page_context: PageContext) -> dict:
+    def initialize_page_data(self, page_context: PageContext) -> PageData:
         """Return (possibly randomly generated) data that is used to generate
         the content on this page. This is passed to methods below as the *page_data*
         argument. One possible use for this argument would be a random permutation
@@ -493,13 +506,13 @@ class PageBase(ABC):
         return data
 
     @abstractmethod
-    def title(self, page_context: PageContext, page_data: dict) -> str:
+    def title(self, page_context: PageContext, page_data: PageData) -> str:
 
         """Return the (non-HTML) title of this page."""
 
         raise NotImplementedError()
 
-    def analytic_view_body(self, page_context: PageContext, page_data: dict) -> str:
+    def analytic_view_body(self, page_context: PageContext, page_data: PageData) -> str:
 
         """
         Return the (HTML) body of the page, which is shown in page analytic
@@ -508,7 +521,7 @@ class PageBase(ABC):
         return self.body(page_context, page_data)
 
     @abstractmethod
-    def body(self, page_context: PageContext, page_data: dict) -> str:
+    def body(self, page_context: PageContext, page_data: PageData) -> str:
 
         """Return the (HTML) body of the page."""
 
@@ -693,7 +706,7 @@ class PageBase(ABC):
         # https://django-crispy-forms.readthedocs.io/en/latest/crispy_tag_forms.html#render-a-form-within-python-code
         from crispy_forms.utils import render_crispy_form
         from django.template.context_processors import csrf
-        ctx: dict = {}
+        ctx: dict[str, object] = {}
         ctx.update(csrf(request))
         return render_crispy_form(grading_form, context=ctx)
 
@@ -705,9 +718,9 @@ class PageBase(ABC):
     def grade(
             self,
             page_context: PageContext,
-            page_data: Any,
-            answer_data: Any,
-            grade_data: Any,
+            page_data: PageData,
+            answer_data: AnswerData | None,
+            grade_data: GradeData | None,
             ) -> AnswerFeedback | None:
         """Grade the answer contained in *answer_data*.
 
@@ -724,9 +737,9 @@ class PageBase(ABC):
     def correct_answer(
             self,
             page_context: PageContext,
-            page_data: Any,
-            answer_data: Any,
-            grade_data: Any,
+            page_data: PageData,
+            answer_data: AnswerData | None,
+            grade_data: GradeData | None,
             ) -> str | None:
         """The correct answer to this page's interaction, formatted as HTML,
         or *None*.
@@ -737,8 +750,8 @@ class PageBase(ABC):
     def normalized_answer(
             self,
             page_context: PageContext,
-            page_data: Any,
-            answer_data: Any
+            page_data: PageData,
+            answer_data: AnswerData,
             ) -> str | None:
         """An HTML-formatted answer to be used for summarization and
         display in analytics. By default, this is escaped when included
@@ -752,8 +765,8 @@ class PageBase(ABC):
     def normalized_bytes_answer(
             self,
             page_context: PageContext,
-            page_data: Any,
-            answer_data: Any,
+            page_data: PageData,
+            answer_data: AnswerData,
             ) -> tuple[str, bytes] | None:
         """An answer to be used for batch download, given as a batch of bytes
         to be stuffed in a zip file.
@@ -774,12 +787,12 @@ class PageBase(ABC):
 
 # {{{ utility base classes
 
-class PageBaseWithoutHumanGrading(PageBase):
+class PageBaseWithoutHumanGrading(PageBase, ABC):
     def make_grading_form(
                 self,
                 page_context: PageContext,
-                page_data: Any,
-                grade_data: Any,
+                page_data: PageData,
+                grade_data: GradeData,
                 ) -> StyledFormBase | None:
         return None
 
@@ -794,17 +807,20 @@ class PageBaseWithoutHumanGrading(PageBase):
         raise NotImplementedError()
 
 
-class PageBaseUngraded(PageBaseWithoutHumanGrading):
+class PageBaseUngraded(PageBaseWithoutHumanGrading, ABC):
+    @override
     def is_answer_gradable(self) -> bool:
         return False
 
-    def max_points(self, page_data: Any) -> float:
+    @override
+    def max_points(self, page_data: PageData) -> float:
         """
         :return: a :class:`int` or :class:`float` indicating how many points
             are achievable on this page.
         """
         raise NotImplementedError()
 
+    @override
     def grade(
             self,
             page_context: PageContext,
@@ -814,6 +830,7 @@ class PageBaseUngraded(PageBaseWithoutHumanGrading):
             ) -> AnswerFeedback | None:
         return None
 
+    @override
     def correct_answer(
                 self,
                 page_context: PageContext,
@@ -823,6 +840,7 @@ class PageBaseUngraded(PageBaseWithoutHumanGrading):
                 ) -> str | None:
         return None
 
+    @override
     def normalized_answer(
             self,
             page_context: PageContext,
@@ -831,6 +849,7 @@ class PageBaseUngraded(PageBaseWithoutHumanGrading):
             ) -> str | None:
         return None
 
+    @override
     def normalized_bytes_answer(
             self,
             page_context: PageContext,
@@ -840,7 +859,7 @@ class PageBaseUngraded(PageBaseWithoutHumanGrading):
         return None
 
 
-class PageBaseWithTitle(PageBase):
+class PageBaseWithTitle(PageBase, ABC):
     def __init__(
                  self,
                  vctx: ValidationContext | None,
@@ -894,7 +913,7 @@ class PageBaseWithTitle(PageBase):
         return self._title
 
 
-class PageBaseWithValue(PageBase):
+class PageBaseWithValue(PageBase, ABC):
     def __init__(self, vctx, location, page_desc):
         super().__init__(vctx, location, page_desc)
 

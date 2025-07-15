@@ -24,7 +24,6 @@ THE SOFTWARE.
 """
 
 
-from collections.abc import Collection
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, cast
 
@@ -41,7 +40,6 @@ from django.core.exceptions import (  # noqa
 )
 from django.db import transaction
 from django.db.models import Q
-from django.http.request import HttpRequest
 from django.shortcuts import get_object_or_404, redirect, render  # noqa
 from django.urls import reverse
 from django.utils.html import escape
@@ -79,6 +77,9 @@ from relate.utils import (
 
 if TYPE_CHECKING:
     import datetime
+    from collections.abc import Collection
+
+    from django.http.request import HttpRequest
 
 # }}}
 
@@ -650,7 +651,7 @@ class ExamCheckInForm(StyledForm):
 @csrf_protect
 @never_cache
 def check_in_for_exam(request: http.HttpRequest) -> http.HttpResponse:
-    request = cast(RelateHttpRequest, request)
+    request = cast("RelateHttpRequest", request)
 
     # must import locally for mock to work
     from course.views import get_now_or_fake_time
@@ -697,7 +698,7 @@ def check_in_for_exam(request: http.HttpRequest) -> http.HttpResponse:
 
 
 def is_from_exams_only_facility(request: HttpRequest) -> bool:
-    request = cast(RelateHttpRequest, request)
+    request = cast("RelateHttpRequest", request)
 
     from course.utils import get_facilities_config
     facilities_config = get_facilities_config(request)

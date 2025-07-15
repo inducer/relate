@@ -35,14 +35,14 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.models import AnonymousUser
 from django.core.exceptions import PermissionDenied, SuspiciousOperation
 from django.db import IntegrityError, transaction
+from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render  # noqa
 from django.urls import reverse
 from django.utils.safestring import mark_safe
 from django.utils.translation import gettext_lazy as _, pgettext
-from pytools.lex import RE as REBase  # noqa
+from pytools.lex import RE, LexTable
 
 from course.auth import UserSearchWidget
 from course.constants import (
@@ -66,6 +66,8 @@ from relate.utils import StyledForm, StyledModelForm, string_concat
 # {{{ for mypy
 
 if TYPE_CHECKING:
+    from django.contrib.auth.models import AnonymousUser
+
     import accounts.models
     from course.utils import CoursePageContext
 
@@ -576,13 +578,7 @@ _whitespace = intern("whitespace")
 # }}}
 
 
-class RE(REBase):
-    def __init__(self, s: str) -> None:
-        import re
-        super().__init__(s, re.UNICODE)
-
-
-_LEX_TABLE = [
+_LEX_TABLE: LexTable = [
     (_and, RE(r"and\b")),
     (_or, RE(r"or\b")),
     (_not, RE(r"not\b")),
@@ -624,10 +620,9 @@ _PREC_NOT = 30
 
 # {{{ parser
 
-def parse_query(course, expr_str):
-    from django.db.models import Q
+def parse_query(course: Course, expr_str: str) -> Q:
 
-    def parse_terminal(pstate):
+    def parse_terminal(pstate: LexIterator):
         next_tag = pstate.next_tag()
         if next_tag is _id:
             result = Q(user__id=int(pstate.next_match_obj().group(1)))
@@ -714,7 +709,7 @@ def parse_query(course, expr_str):
         else:
             pstate.expected("terminal")
 
-    def inner_parse(pstate, min_precedence=0):
+    def inner_parse(pstate: LexIterator, min_precedence: int = 0) -> Q:
         pstate.expect_not_end()
 
         if pstate.is_next(_not):

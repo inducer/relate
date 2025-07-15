@@ -41,16 +41,20 @@ resulting from their use.
 import hashlib
 import hmac
 import time
-from collections.abc import Collection, Mapping, Sequence
 from datetime import datetime
 from functools import lru_cache
 from ipaddress import IPv4Address, IPv4Network, IPv6Address, IPv6Network, ip_network
+from typing import TYPE_CHECKING
 from zoneinfo import ZoneInfo
 
 from django.db.models import Q
 
 from course.models import Course
 from prairietest.models import AllowEvent, DenyEvent, MostRecentDenyEvent
+
+
+if TYPE_CHECKING:
+    from collections.abc import Collection, Mapping, Sequence
 
 
 # {{{ begin code copied from PrairieTest docs

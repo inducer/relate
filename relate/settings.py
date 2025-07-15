@@ -51,7 +51,7 @@ local_settings = local_settings_module.__dict__  # type: ignore  # noqa
 
 # {{{ django: apps
 
-INSTALLED_APPS = (
+INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -72,7 +72,7 @@ INSTALLED_APPS = (
     "accounts",
     "course",
     "prairietest",
-)
+]
 
 if local_settings.get("RELATE_SIGN_IN_BY_SAML2_ENABLED"):
     INSTALLED_APPS = (*INSTALLED_APPS, "djangosaml2",)  # type: ignore

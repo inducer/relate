@@ -23,8 +23,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from collections.abc import Iterable
-from typing import TYPE_CHECKING, Any, cast
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Submit
@@ -38,7 +38,7 @@ from django.core.exceptions import (
     SuspiciousOperation,
 )
 from django.db import transaction
-from django.db.models import query
+from django.db.models import Model
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.safestring import mark_safe
@@ -86,8 +86,10 @@ from course.utils import (
 from course.views import get_now_or_fake_time
 from relate.utils import (
     StyledForm,
+    StyledFormBase,
     as_local_time,
     format_datetime_local,
+    is_authed,
     local_now,
     not_none,
     remote_address_from_request,
@@ -100,11 +102,20 @@ from relate.utils import (
 
 if TYPE_CHECKING:
     import datetime
+    from collections.abc import Iterable
+
+    from django.db.models import query
 
     from accounts.models import User
     from course.content import FlowDesc
-    from course.models import Course
-    from course.page.base import AnswerFeedback, PageBase, PageBehavior
+    from course.page.base import (
+        AnswerData,
+        AnswerFeedback,
+        GradeData,
+        PageBase,
+        PageBehavior,
+        PageData,
+    )
     from course.utils import CoursePageContext, FlowSessionStartRule
     from relate.utils import Repo_ish
 
@@ -407,14 +418,14 @@ def grade_page_visit(visit: FlowPageVisit,
 # {{{ start flow
 
 def start_flow(
-        repo: Repo_ish,
-        course: Course,
-        participation: Participation | None,
-        user: Any,
-        flow_id: str,
-        flow_desc: FlowDesc,
-        session_start_rule: FlowSessionStartRule,
-        now_datetime: datetime.datetime,
+            repo: Repo_ish,
+            course: Course,
+            participation: Participation | None,
+            user: Any,
+            flow_id: str,
+            flow_desc: FlowDesc,
+            session_start_rule: FlowSessionStartRule,
+            now_datetime: datetime.datetime,
         ) -> FlowSession:
 
     # This function does not need to be transactionally atomic.
@@ -473,7 +484,8 @@ def start_flow(
 # {{{ finish flow
 
 def get_multiple_flow_session_graded_answers_qset(
-        flow_sessions: list[FlowSession]) -> query.QuerySet:
+            flow_sessions: list[FlowSession]
+        ) -> query.QuerySet[FlowPageVisit]:
 
     from django.db.models import Q
     qset = (FlowPageVisit.objects
@@ -492,26 +504,31 @@ def get_multiple_flow_session_graded_answers_qset(
 
 
 def get_flow_session_graded_answers_qset(
-        flow_session: FlowSession) -> query.QuerySet:
+        flow_session: FlowSession) -> query.QuerySet[FlowPageVisit]:
 
     return get_multiple_flow_session_graded_answers_qset([flow_session])
 
 
-def get_prev_answer_visits_qset(page_data: FlowPageData) -> query.QuerySet:
+def get_prev_answer_visits_qset(
+            page_data: FlowPageData
+        ) -> query.QuerySet[FlowPageVisit]:
     return (
             get_flow_session_graded_answers_qset(page_data.flow_session)
             .filter(page_data=page_data)
             .order_by("-visit_time"))
 
 
-def get_first_from_qset(qset: query.QuerySet) -> Any | None:
+ModelT = TypeVar("ModelT", bound=Model)
+
+
+def get_first_from_qset(qset: query.QuerySet[ModelT]) -> ModelT | None:
     for item in qset[:1]:
         return item
 
     return None
 
 
-def get_prev_answer_visit(page_data):
+def get_prev_answer_visit(page_data: FlowPageData):
     return get_first_from_qset(get_prev_answer_visits_qset(page_data))
 
 
@@ -578,7 +595,7 @@ def assemble_answer_visits(
         flow_session: FlowSession) -> list[FlowPageVisit | None]:
 
     answer_visits: list[FlowPageVisit | None] = [
-        cast(FlowPageVisit | None, None)] * not_none(flow_session.page_count)
+        cast("FlowPageVisit | None", None)] * not_none(flow_session.page_count)
 
     answer_page_visits = (
             get_flow_session_graded_answers_qset(flow_session)
@@ -1378,6 +1395,15 @@ def lock_down_if_needed(
 
 # {{{ view: start flow
 
+@dataclass(frozen=True)
+class SessionProperties:
+    may_view: bool
+    may_modify: bool
+    due: datetime.datetime | None
+    grade_description: str | None
+    grade_shown: bool
+
+
 @course_view
 def view_start_flow(pctx: CoursePageContext, flow_id: str) -> http.HttpResponse:
     request = pctx.request
@@ -1406,12 +1432,7 @@ def view_start_flow(pctx: CoursePageContext, flow_id: str) -> http.HttpResponse:
                     participation__isnull=False)
                .order_by("start_time"))
 
-        from collections import namedtuple
-        SessionProperties = namedtuple("SessionProperties",
-                ["may_view", "may_modify", "due", "grade_description",
-                    "grade_shown"])
-
-        past_sessions_and_properties = []
+        past_sessions_and_properties: list[tuple[FlowSession, SessionProperties]] = []
         for session in past_sessions:
             access_rule = get_session_access_rule(
                     session, fctx.flow_desc, now_datetime,
@@ -1706,10 +1727,10 @@ def get_page_behavior(
 
 
 def add_buttons_to_form(
-        form: StyledForm,
+        form: StyledFormBase,
         fpctx: FlowPageContext,
         flow_session: FlowSession,
-        permissions: frozenset[str]) -> StyledForm:
+        permissions: frozenset[str]) -> StyledFormBase:
     from crispy_forms.layout import Submit
     form.helper.add_input(
             Submit("save", _("Save answer"),
@@ -1876,12 +1897,14 @@ def view_flow_page(
 
         # {{{ fish out previous answer_visit
 
-        prev_visit_id = pctx.request.GET.get("visit_id")
-        if prev_visit_id is not None:
+        prev_visit_id_str = pctx.request.GET.get("visit_id")
+        if prev_visit_id_str is not None:
             try:
-                prev_visit_id = int(prev_visit_id)
+                prev_visit_id = int(prev_visit_id_str)
             except ValueError:
                 raise SuspiciousOperation("non-integer passed for 'visit_id'")
+        else:
+            prev_visit_id = prev_visit_id_str
 
         if prev_answer_visits and prev_visit_id is not None:
             answer_visit = prev_answer_visits[0]
@@ -1918,7 +1941,7 @@ def view_flow_page(
         # }}}
 
         if answer_visit is not None:
-            answer_was_graded = answer_visit.is_submitted_answer
+            answer_was_graded = bool(answer_visit.is_submitted_answer)
         else:
             answer_was_graded = False
 
@@ -1933,12 +1956,12 @@ def view_flow_page(
 
         if fpctx.page.expects_answer():
             if answer_visit is not None:
-                answer_data = answer_visit.answer
+                answer_data = cast("AnswerData", answer_visit.answer)
 
                 most_recent_grade = answer_visit.get_most_recent_grade()
                 if most_recent_grade is not None:
                     feedback = get_feedback_for_grade(most_recent_grade)
-                    grade_data = most_recent_grade.grade_data
+                    grade_data = cast("GradeData", most_recent_grade.grade_data)
                 else:
                     feedback = None
                     grade_data = None
@@ -1983,13 +2006,14 @@ def view_flow_page(
                 page_behavior.show_correctness
                 or page_behavior.show_answer)):
         shown_feedback = feedback
+    page_data_json = cast("PageData", page_data.data)
 
-    title = fpctx.page.title(page_context, page_data.data)
-    body = fpctx.page.body(page_context, page_data.data)
+    title = fpctx.page.title(page_context, page_data_json)
+    body = fpctx.page.body(page_context, page_data_json)
 
     if page_behavior.show_answer:
         correct_answer = fpctx.page.correct_answer(
-                page_context, page_data.data,
+                page_context, page_data_json,
                 answer_data, grade_data)
     else:
         correct_answer = None
@@ -2186,8 +2210,12 @@ def post_flow_page(
         request: http.HttpRequest,
         permissions: frozenset[str],
         generates_grade: bool,
-        ) -> tuple[PageBehavior, list[FlowPageVisit],
-                forms.Form, AnswerFeedback | None, Any, bool] | http.HttpResponse:
+        ) -> tuple[
+            PageBehavior, list[FlowPageVisit],
+            StyledFormBase,
+            AnswerFeedback | None,
+            AnswerData,
+            bool] | http.HttpResponse:
     page_context = fpctx.page_context
     page_data = fpctx.page_data
 
@@ -2943,7 +2971,7 @@ def view_unsubmit_flow_page(
 
 # {{{ purge page view data
 
-def get_pv_purgeable_courses_for_user_qs(user: User) -> query.QuerySet:
+def get_pv_purgeable_courses_for_user_qs(user: User) -> query.QuerySet[Course]:
     course_qs = Course.objects.all()
     if user.is_superuser:
         # do not filter queryset
@@ -2972,7 +3000,10 @@ class PurgePageViewData(StyledForm):
 
 
 @login_required
-def purge_page_view_data(request):
+def purge_page_view_data(request: http.HttpRequest):
+    if not is_authed(request.user):
+        raise PermissionDenied()
+
     purgeable_courses = get_pv_purgeable_courses_for_user_qs(request.user)
     if not purgeable_courses.count():
         raise PermissionDenied()

@@ -1,3 +1,5 @@
+# pyright: reportUnannotatedClassAttribute=none
+
 from __future__ import annotations
 
 
@@ -23,8 +25,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from collections.abc import Iterable
-from decimal import Decimal
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -71,6 +71,8 @@ from relate.utils import not_none, string_concat
 
 if TYPE_CHECKING:
     import datetime
+    from collections.abc import Iterable
+    from decimal import Decimal
 
     from course.content import FlowDesc
     from course.page.base import AnswerFeedback
@@ -1517,10 +1519,10 @@ class FlowRuleException(models.Model):
                     self.participation.course,
                     self.flow_id, commit_sha)
 
-        tags: list = []
+        tags: list[str] = []
         grade_identifier = None
         if hasattr(flow_desc, "rules"):
-            tags = cast(list, getattr(flow_desc.rules, "tags", []))
+            tags = cast("list[str]", getattr(flow_desc.rules, "tags", []))
             grade_identifier = flow_desc.rules.grade_identifier
 
         try:

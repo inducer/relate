@@ -36,6 +36,7 @@ from typing import (
 
 import django.forms as forms
 import dulwich.client
+import dulwich.web
 import paramiko
 import paramiko.client
 from crispy_forms.layout import Submit
@@ -76,7 +77,6 @@ from relate.utils import (
 # {{{ for mypy
 
 if TYPE_CHECKING:
-    import dulwich.web
     from dulwich.client import GitClient  # noqa
     from dulwich.objects import Commit
 
@@ -684,7 +684,7 @@ def git_endpoint(api_ctx: APIContext, course_identifier: str,
     if isinstance(repo, SubdirRepoWrapper):
         true_repo = repo.repo
     else:
-        true_repo = cast(dulwich.repo.Repo, repo)
+        true_repo = cast("dulwich.repo.Repo", repo)
 
     base_path = reverse(git_endpoint, args=(course_identifier, ""))
     assert base_path.endswith("/")

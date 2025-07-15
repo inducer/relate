@@ -268,7 +268,7 @@ class ShortAnswer(AnswerBase):
         if length_unit == "%":
             return float(length_value)*DEFAULT_WIDTH/100.0
         else:
-            return float(length_value)/cast(float, EM_LEN_DICT[length_unit])
+            return float(length_value)/cast("float", EM_LEN_DICT[length_unit])
 
     def __init__(self, vctx, location, name, answers_desc):
         super().__init__(

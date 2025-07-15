@@ -23,8 +23,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from collections.abc import Mapping
-from typing import Any, cast
+from typing import TYPE_CHECKING, Any, cast
 
 import django.forms as forms
 from crispy_forms.layout import Submit
@@ -35,8 +34,13 @@ from django.utils.safestring import mark_safe
 from django.utils.translation import gettext, gettext_lazy as _
 
 from course.constants import participation_permission as pperm
-from course.content import FlowPageDesc
 from course.utils import CoursePageContext, course_view, render_course_page
+
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping
+
+    from course.content import FlowPageDesc
 
 
 # {{{ for mypy
@@ -157,7 +161,7 @@ def get_sandbox_data_for_page(
     if (isinstance(stored_data_tuple, list | tuple)
             and len(stored_data_tuple) == 3):
         stored_data_page_type, stored_data_page_id, \
-            stored_data = cast(tuple, stored_data_tuple)
+            stored_data = cast("tuple[str, str, Any]", stored_data_tuple)
 
         if (
                 stored_data_page_type == page_desc.type
@@ -205,7 +209,7 @@ def page_desc_from_yaml_string(pctx: CoursePageContext, source: str) -> FlowPage
             pctx.repo, pctx.course_commit_sha, new_page_source)
 
     yaml_data = yaml.safe_load(new_page_source)  # type: ignore
-    return cast(FlowPageDesc, dict_to_struct(yaml_data))
+    return cast("FlowPageDesc", dict_to_struct(yaml_data))
 
 
 @course_view
@@ -226,7 +230,7 @@ def view_page_sandbox(pctx: CoursePageContext) -> http.HttpResponse:
 
     request = pctx.request
 
-    page_source = cast(str | None, pctx.request.session.get(page_session_key))
+    page_source = cast("str | None", pctx.request.session.get(page_session_key))
 
     page_errors = None
     page_warnings = None
@@ -323,7 +327,7 @@ def view_page_sandbox(pctx: CoursePageContext) -> http.HttpResponse:
             have_valid_page = False
 
     if have_valid_page:
-        page_desc = cast(FlowPageDesc, page_desc)
+        page_desc = cast("FlowPageDesc", page_desc)
 
         # Try to recover page_data, answer_data
         page_data = get_sandbox_data_for_page(

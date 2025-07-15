@@ -24,7 +24,7 @@ THE SOFTWARE.
 """
 
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 from django import http
 from django.contrib import messages
@@ -66,6 +66,7 @@ if TYPE_CHECKING:
     from django.db.models import query
 
     from course.models import GradingOpportunity
+    from course.page.base import AnswerData, GradeData
     from course.utils import CoursePageContext
 
 # }}}
@@ -76,7 +77,7 @@ def get_prev_visit_grades(
             flow_session_id: int,
             page_ordinal: int,
             reversed_on_visit_time_and_grade_time: bool | None = False
-        ) -> query.QuerySet:
+        ) -> query.QuerySet[FlowPageVisitGrade]:
     order_by_args: list[str] = []
     if reversed_on_visit_time_and_grade_time:
         order_by_args = ["-visit__visit_time", "-grade_time"]
@@ -211,12 +212,12 @@ def grade_flow_page(
 
     if page_expects_answer:
         if fpctx.prev_answer_visit is not None and prev_grade_id is None:
-            answer_data = fpctx.prev_answer_visit.answer
+            answer_data = cast("AnswerData", fpctx.prev_answer_visit.answer)
 
             shown_grade = fpctx.prev_answer_visit.get_most_recent_grade()
             if shown_grade is not None:
                 feedback = get_feedback_for_grade(shown_grade)
-                grade_data = shown_grade.grade_data
+                grade_data = cast("GradeData | None", shown_grade.grade_data)
             else:
                 feedback = None
                 grade_data = None
@@ -231,8 +232,8 @@ def grade_flow_page(
                 raise http.Http404()
 
             feedback = get_feedback_for_grade(shown_grade)
-            grade_data = shown_grade.grade_data
-            answer_data = shown_grade.visit.answer
+            grade_data = cast("GradeData | None", shown_grade.grade_data)
+            answer_data = cast("AnswerData | None", shown_grade.visit.answer)
 
         else:
             feedback = None

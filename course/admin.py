@@ -1,3 +1,5 @@
+# pyright: reportUnannotatedClassAttribute=none
+
 from __future__ import annotations
 
 
@@ -23,12 +25,13 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, TypeAlias, TypeVar
 
 from django import forms
 from django.contrib import admin
-from django.db.models import QuerySet
+from django.core.exceptions import PermissionDenied
 from django.utils.translation import gettext_lazy as _, pgettext
+from typing_extensions import override
 
 from course.constants import exam_ticket_states, participation_permission as pperm
 from course.enrollment import approve_enrollment, deny_enrollment
@@ -38,6 +41,7 @@ from course.models import (
     Event,
     Exam,
     ExamTicket,
+    FlowAccessException,
     FlowPageData,
     FlowPageVisit,
     FlowPageVisitGrade,
@@ -54,16 +58,23 @@ from course.models import (
     ParticipationRolePermission,
     ParticipationTag,
 )
-from relate.utils import string_concat
+from relate.utils import is_authed, string_concat
 
 
 if TYPE_CHECKING:
+    from django.db.models import QuerySet
+    from django.http import HttpRequest
+
     from accounts.models import User
+    from prairietest.models import Facility
 
 
 # {{{ permission helpers
 
-def _filter_courses_for_user(queryset: QuerySet, user: User) -> QuerySet:
+def _filter_courses_for_user(
+            queryset: QuerySet[Course],
+            user: User
+        ) -> QuerySet[Course]:
     if user.is_superuser:
         return queryset
     z = queryset.filter(
@@ -72,7 +83,14 @@ def _filter_courses_for_user(queryset: QuerySet, user: User) -> QuerySet:
     return z
 
 
-def _filter_course_linked_obj_for_user(queryset: QuerySet, user: User) -> QuerySet:
+CourseLinked: TypeAlias = "Participation | Facility"
+CourseLinkedT = TypeVar("CourseLinkedT", bound=CourseLinked)
+
+
+def _filter_course_linked_obj_for_user(
+            queryset: QuerySet[CourseLinkedT],
+            user: User
+        ) -> QuerySet[CourseLinkedT]:
     if user.is_superuser:
         return queryset
     return queryset.filter(
@@ -81,9 +99,26 @@ def _filter_course_linked_obj_for_user(queryset: QuerySet, user: User) -> QueryS
             )
 
 
+ParticipationLinked: TypeAlias = (
+            ParticipationPermission
+            | AuthenticationToken
+            | FlowSession
+            | FlowAccessException
+            | FlowRuleException
+            | GradeChange
+            | InstantMessage
+            | ExamTicket
+            | ParticipationPermission
+            )
+ParticipationLinkedT = TypeVar(
+        "ParticipationLinkedT",
+        bound="ParticipationLinked")
+
+
 def _filter_participation_linked_obj_for_user(
-            queryset: QuerySet, user: User
-        ) -> QuerySet:
+            queryset: QuerySet[ParticipationLinkedT],
+            user: User,
+        ) -> QuerySet[ParticipationLinkedT]:
     if user.is_superuser:
         return queryset
     return queryset.filter(
@@ -119,7 +154,7 @@ class CourseAdminForm(forms.ModelForm):
 
 
 @admin.register(Course)
-class CourseAdmin(admin.ModelAdmin):
+class CourseAdmin(admin.ModelAdmin[Course]):
     list_display = (
             "identifier",
             "number",
@@ -165,6 +200,7 @@ class CourseAdmin(admin.ModelAdmin):
         # These are created only through the course creation form.
         return False
 
+    @override
     def get_queryset(self, request):
         qs = super().get_queryset(request)
         return _filter_courses_for_user(qs, request.user)
@@ -177,7 +213,7 @@ class CourseAdmin(admin.ModelAdmin):
 # {{{ events
 
 @admin.register(Event)
-class EventAdmin(admin.ModelAdmin):
+class EventAdmin(admin.ModelAdmin[Event]):
     list_display = (
             "course",
             "kind",
@@ -204,6 +240,7 @@ class EventAdmin(admin.ModelAdmin):
 
     # {{{ permissions
 
+    @override
     def get_queryset(self, request):
         qs = super().get_queryset(request)
         return _filter_course_linked_obj_for_user(qs, request.user)
@@ -223,11 +260,12 @@ class EventAdmin(admin.ModelAdmin):
 # {{{ participation tags
 
 @admin.register(ParticipationTag)
-class ParticipationTagAdmin(admin.ModelAdmin):
+class ParticipationTagAdmin(admin.ModelAdmin[ParticipationTag]):
     list_filter = (_filter_related_only("course"),)
 
     # {{{ permissions
 
+    @override
     def get_queryset(self, request):
         qs = super().get_queryset(request)
         return _filter_course_linked_obj_for_user(qs, request.user)
@@ -246,17 +284,19 @@ class ParticipationTagAdmin(admin.ModelAdmin):
 
 # {{{ participations
 
-class ParticipationRolePermissionInline(admin.TabularInline):
+class ParticipationRolePermissionInline(
+                admin.TabularInline[ParticipationRolePermission]):  # type: ignore[type-arg]
     model = ParticipationRolePermission
     extra = 3
 
 
 @admin.register(ParticipationRole)
-class ParticipationRoleAdmin(admin.ModelAdmin):
+class ParticipationRoleAdmin(admin.ModelAdmin[ParticipationRole]):
     inlines = (ParticipationRolePermissionInline,)
 
     list_filter = (_filter_related_only("course"), "identifier")
 
+    @override
     def get_queryset(self, request):
         qs = super().get_queryset(request)
         if request.user.is_superuser:
@@ -264,7 +304,7 @@ class ParticipationRoleAdmin(admin.ModelAdmin):
         return _filter_course_linked_obj_for_user(qs, request.user)
 
 
-class ParticipationPermissionInline(admin.TabularInline):
+class ParticipationPermissionInline(admin.TabularInline[ParticipationPermission]):  # type: ignore[type-arg]
     model = ParticipationPermission
     extra = 3
 
@@ -293,13 +333,13 @@ class ParticipationForm(forms.ModelForm):
 
 
 @admin.register(Participation)
-class ParticipationAdmin(admin.ModelAdmin):
+class ParticipationAdmin(admin.ModelAdmin[Participation]):
     form = ParticipationForm
 
     @admin.display(
         description=_("Roles")
     )
-    def get_roles(self, obj):
+    def get_roles(self, obj: Participation):
         return ", ".join(str(role.name) for role in obj.roles.all())
 
     @admin.display(
@@ -370,6 +410,7 @@ class ParticipationAdmin(admin.ModelAdmin):
 
     # {{{ permissions
 
+    @override
     def get_queryset(self, request):
         qs = super().get_queryset(request)
         return _filter_course_linked_obj_for_user(qs, request.user)
@@ -390,7 +431,7 @@ class ParticipationAdmin(admin.ModelAdmin):
 
 
 @admin.register(ParticipationPreapproval)
-class ParticipationPreapprovalAdmin(admin.ModelAdmin):
+class ParticipationPreapprovalAdmin(admin.ModelAdmin[ParticipationPreapproval]):
     @admin.display(
         description=_("Roles")
     )
@@ -407,7 +448,11 @@ class ParticipationPreapprovalAdmin(admin.ModelAdmin):
 
     # {{{ permissions
 
-    def get_queryset(self, request):
+    @override
+    def get_queryset(self, request: HttpRequest):
+        if not is_authed(request.user):
+            raise PermissionDenied()
+
         qs = super().get_queryset(request)
         if request.user.is_superuser:
             return qs
@@ -432,7 +477,7 @@ class ParticipationPreapprovalAdmin(admin.ModelAdmin):
 
 
 @admin.register(AuthenticationToken)
-class AuthenticationTokenAdmin(admin.ModelAdmin):
+class AuthenticationTokenAdmin(admin.ModelAdmin[AuthenticationToken]):
     list_display = ("id", "participation", "restrict_to_participation_role",
             "description", "valid_until", "revocation_time")
 
@@ -444,7 +489,7 @@ class AuthenticationTokenAdmin(admin.ModelAdmin):
 
 
 @admin.register(InstantFlowRequest)
-class InstantFlowRequestAdmin(admin.ModelAdmin):
+class InstantFlowRequestAdmin(admin.ModelAdmin[InstantFlowRequest]):
     list_display = ("course", "flow_id", "start_time", "end_time", "cancelled")
     list_filter = (_filter_related_only("course"),)
 
@@ -457,13 +502,13 @@ class InstantFlowRequestAdmin(admin.ModelAdmin):
 
 # {{{ flow sessions
 
-class FlowPageDataInline(admin.TabularInline):
+class FlowPageDataInline(admin.TabularInline[FlowPageData]):  # type: ignore[type-arg]
     model = FlowPageData
     extra = 0
 
 
 @admin.register(FlowSession)
-class FlowSessionAdmin(admin.ModelAdmin):
+class FlowSessionAdmin(admin.ModelAdmin[FlowSession]):
     @admin.display(
         description=_("Participant"),
         ordering="participation__user",
@@ -524,6 +569,7 @@ class FlowSessionAdmin(admin.ModelAdmin):
         # These are only created automatically.
         return False
 
+    @override
     def get_queryset(self, request):
         qs = super().get_queryset(request)
         return _filter_course_linked_obj_for_user(qs, request.user)
@@ -542,7 +588,7 @@ class FlowSessionAdmin(admin.ModelAdmin):
 
 # {{{ flow page visit
 
-class FlowPageVisitGradeInline(admin.TabularInline):
+class FlowPageVisitGradeInline(admin.TabularInline[FlowPageVisitGrade]):  # type: ignore[type-arg]
     model = FlowPageVisitGrade
     extra = 0
 
@@ -590,7 +636,7 @@ class FlowIdListFilter(admin.SimpleListFilter):
 
 
 @admin.register(FlowPageVisit)
-class FlowPageVisitAdmin(admin.ModelAdmin):
+class FlowPageVisitAdmin(admin.ModelAdmin[FlowPageVisit]):
     @admin.display(
         description=_("Course"),
         ordering="flow_session__course",
@@ -692,6 +738,7 @@ class FlowPageVisitAdmin(admin.ModelAdmin):
         # These are created only automatically.
         return False
 
+    @override
     def get_queryset(self, request):
         qs = super().get_queryset(request)
         if request.user.is_superuser:
@@ -708,7 +755,7 @@ class FlowPageVisitAdmin(admin.ModelAdmin):
 # {{{ flow access
 
 @admin.register(FlowRuleException)
-class FlowRuleExceptionAdmin(admin.ModelAdmin):
+class FlowRuleExceptionAdmin(admin.ModelAdmin[FlowRuleException]):
     @admin.display(
         description=_("Course"),
         ordering="participation__course",
@@ -761,6 +808,7 @@ class FlowRuleExceptionAdmin(admin.ModelAdmin):
         # These are only created automatically.
         return False
 
+    @override
     def get_queryset(self, request):
         qs = super().get_queryset(request)
         return _filter_participation_linked_obj_for_user(qs, request.user)
@@ -780,7 +828,7 @@ class FlowRuleExceptionAdmin(admin.ModelAdmin):
 # {{{ grading
 
 @admin.register(GradingOpportunity)
-class GradingOpportunityAdmin(admin.ModelAdmin):
+class GradingOpportunityAdmin(admin.ModelAdmin[GradingOpportunity]):
     list_display = (
             "name",
             "course",
@@ -803,6 +851,7 @@ class GradingOpportunityAdmin(admin.ModelAdmin):
 
     exclude = ("creation_time",)
 
+    @override
     def get_queryset(self, request):
         qs = super().get_queryset(request)
         return _filter_course_linked_obj_for_user(qs, request.user)
@@ -818,7 +867,7 @@ class GradingOpportunityAdmin(admin.ModelAdmin):
 
 
 @admin.register(GradeChange)
-class GradeChangeAdmin(admin.ModelAdmin):
+class GradeChangeAdmin(admin.ModelAdmin[GradeChange]):
     @admin.display(
         description=_("Course"),
         ordering="participation__course",
@@ -886,6 +935,7 @@ class GradeChangeAdmin(admin.ModelAdmin):
 
     # {{{ permission
 
+    @override
     def get_queryset(self, request):
         qs = super().get_queryset(request)
         return _filter_participation_linked_obj_for_user(qs, request.user)
@@ -904,7 +954,7 @@ class GradeChangeAdmin(admin.ModelAdmin):
 # {{{ instant message
 
 @admin.register(InstantMessage)
-class InstantMessageAdmin(admin.ModelAdmin):
+class InstantMessageAdmin(admin.ModelAdmin[InstantMessage]):
     @admin.display(
         description=_("Course"),
         ordering="participation__course",
@@ -944,6 +994,7 @@ class InstantMessageAdmin(admin.ModelAdmin):
         # These are created only automatically.
         return False
 
+    @override
     def get_queryset(self, request):
         qs = super().get_queryset(request)
         return _filter_participation_linked_obj_for_user(qs, request.user)
@@ -956,7 +1007,7 @@ class InstantMessageAdmin(admin.ModelAdmin):
 # {{{ exam tickets
 
 @admin.register(Exam)
-class ExamAdmin(admin.ModelAdmin):
+class ExamAdmin(admin.ModelAdmin[Exam]):
     list_filter = (
             _filter_related_only("course"),
             "active",
@@ -979,6 +1030,7 @@ class ExamAdmin(admin.ModelAdmin):
 
     # {{{ permissions
 
+    @override
     def get_queryset(self, request):
         qs = super().get_queryset(request)
         return _filter_course_linked_obj_for_user(qs, request.user)
@@ -994,7 +1046,7 @@ class ExamAdmin(admin.ModelAdmin):
 
 
 @admin.register(ExamTicket)
-class ExamTicketAdmin(admin.ModelAdmin):
+class ExamTicketAdmin(admin.ModelAdmin[ExamTicket]):
     @admin.display(
         description=_("Course"),
         ordering="participation__course",
@@ -1032,6 +1084,7 @@ class ExamTicketAdmin(admin.ModelAdmin):
 
     # {{{ permissions
 
+    @override
     def get_queryset(self, request):
         qs = super().get_queryset(request)
         return _filter_participation_linked_obj_for_user(qs, request.user)

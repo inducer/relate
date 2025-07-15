@@ -314,7 +314,7 @@ def get_repo_file_backend(
     Note: an access_role of "public" is equal to "unenrolled"
     """
 
-    request = cast(RelateHttpRequest, request)
+    request = cast("RelateHttpRequest", request)
 
     # check to see if the course is hidden
     check_course_state(course, participation)
@@ -965,7 +965,7 @@ def grant_exception_stage_2(
 class ExceptionStage3Form(StyledForm):
     def __init__(
             self,
-            default_data: dict,
+            default_data: dict[str, Any],
             flow_desc: FlowDesc,
             base_session_tag: str | None,
             *args: Any, **kwargs: Any) -> None:
@@ -1144,9 +1144,9 @@ def grant_exception_stage_3(
 
             tags: list[str] = []
             if hasattr(flow_desc, "rules"):
-                tags = cast(list[str], getattr(flow_desc.rules, "tags", []))
+                tags = cast("list[str]", getattr(flow_desc.rules, "tags", []))
 
-            exceptions_created = []
+            exceptions_created: list[str] = []
 
             restricted_to_same_tag = bool(
                 form.cleaned_data.get("restrict_to_same_tag")
@@ -1155,7 +1155,9 @@ def grant_exception_stage_3(
             # {{{ put together access rule
 
             if form.cleaned_data["create_access_exception"]:
-                new_access_rule: dict[str, Any] = {"permissions": permissions}
+                new_access_rule: dict[str, Any] = {
+                        "permissions": [str(p) for p in permissions]
+                    }
 
                 if restricted_to_same_tag:
                     new_access_rule["if_has_tag"] = session.access_rules_tag
@@ -1170,11 +1172,12 @@ def grant_exception_stage_3(
                     expiration=form.cleaned_data["access_expires"],
                     creator=pctx.request.user,
                     comment=form.cleaned_data["comment"],
-                    kind=flow_rule_kind.access,
+                    kind=str(flow_rule_kind.access),
                     rule=new_access_rule)
                 fre_access.save()
                 exceptions_created.append(
-                    dict(FLOW_RULE_KIND_CHOICES)[fre_access.kind])
+                    str(dict(FLOW_RULE_KIND_CHOICES)[
+                        cast("flow_rule_kind", fre_access.kind)]))
 
             # }}}
 
@@ -1244,7 +1247,8 @@ def grant_exception_stage_3(
                     rule=new_grading_rule)
                 fre_grading.save()
                 exceptions_created.append(
-                    dict(FLOW_RULE_KIND_CHOICES)[fre_grading.kind])
+                    str(dict(FLOW_RULE_KIND_CHOICES)[
+                        cast("flow_rule_kind", fre_grading.kind)]))
 
             # }}}
 
@@ -1351,7 +1355,7 @@ def generate_ssh_keypair(request):
 def monitor_task(request: http.HttpRequest, task_id: str) -> http.HttpResponse:
     from celery import states
     from celery.result import AsyncResult
-    async_res = AsyncResult(task_id)
+    async_res: AsyncResult[dict[str, str]] = AsyncResult(task_id)
 
     progress_percent = None
     progress_statement = None

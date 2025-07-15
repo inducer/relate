@@ -640,7 +640,7 @@ def view_grades_by_opportunity(
     if view_page_grades and len(grade_table) > 0 and opportunity.flow_id is not None:
         # Query grades for flow pages
         all_flow_sessions = [
-                cast(FlowSession, info.flow_session)
+                cast("FlowSession", info.flow_session)
                 for _dummy1, info in grade_table]
 
         assert all(all_flow_sessions)
