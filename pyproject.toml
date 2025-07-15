@@ -11,11 +11,14 @@ requires-python = ">=3.10,<4"
 readme = "README.rst"
 license = "MIT"
 dependencies = [
+    # upgrade django-stubs below when bumping this
     "django>=5.2,<6",
+
     "django-crispy-forms>=1.13.0",
     "crispy-bootstrap5~=2025.4",
     "jsonfield>=1.4.0",
     "django-yamlfield",
+    "django-stubs-ext",
     "markdown~=3.7",
     "minijinja>=2.7.0,<3",
     "pymbolic>=2024.2.2",
@@ -42,6 +45,7 @@ dependencies = [
     "cryptography>=3.2.1",
     "social-auth-app-django>=5.4.1,<6",
     "urllib3>=2.3.0,<3",
+    "typing_extensions>=4.14.1",
 
     # prevent spurious downgrade by uv? Counters upper bound by pysaml2:
     # https://github.com/IdentityPython/pysaml2/blob/0252ec96058c87c43f89e05d978e72b6ba2e6978/CHANGELOG.md?plain=1#L10
@@ -62,8 +66,9 @@ relate = "relate.bin.relate:main"
 [dependency-groups]
 dev = [
     "factory_boy>=3.3.1,<4",
-    "ruff>=0,<1",
-    "django-stubs[compatible-mypy]==5.1.*",
+    "ruff>=0.12.3,<1",
+    "django-types",
+    "basedpyright>=1.30.1",
     "pytest>=8,<9",
     "pytest-django>=4.5.2,<5",
     "pytest-factoryboy>=2.6.0,<3",
@@ -73,13 +78,20 @@ dev = [
     "furo>=2024.8.6,<2025",
     "sphinx-copybutton>=0.5.2,<0.6",
     "django-upgrade>=1.22.1,<2",
-    "pyright>=1,<2",
+    "numpy~=2.1",
+    "yamllint>=1.32.0,<2",
+    { include-group = "types" },
+]
+mypy = [
+    "django-stubs[compatible-mypy]==5.2.*",
+    { include-group = "types" },
+]
+types = [
     "types-bleach>=6.2.0,<7",
     "types-paramiko>=3.5.0,<4",
     "types-Markdown~=3.7",
     "types-PyYAML>=6.0.12,<7",
-    "numpy~=2.1",
-    "yamllint>=1.32.0,<2",
+    "celery-types",
 ]
 
 [tool.uv]
@@ -228,5 +240,54 @@ extend-exclude = [
 "saml-config/**/*.py",
 "contrib/jupyterlite/mamba-root",
 ]
+
+[tool.basedpyright]
+reportImplicitStringConcatenation = "none"
+reportUnnecessaryIsInstance = "none"
+reportUnusedCallResult = "none"
+reportExplicitAny = "none"
+reportUnreachable = "hint"
+
+# This reports even cycles that are qualified by 'if TYPE_CHECKING'. Not what
+# we care about at this moment.
+# https://github.com/microsoft/pyright/issues/746
+reportImportCycles = "none"
+pythonVersion = "3.11"
+pythonPlatform = "All"
+
+reportAny = "none"
+
+exclude = [
+    ".venv",
+    "bulk-storage",
+    "git-roots",
+    "node_modules",
+    "course/migrations",
+    "accounts/migrations",
+    "prairietest/migrations",
+]
+
+[[tool.basedpyright.executionEnvironments]]
+root = "tests"
+
+reportAny = "none"
+reportArgumentType = "hint"
+reportAssignmentType = "none"
+reportAttributeAccessIssue = "hint"
+reportCallIssue = "hint"
+reportConstantRedefinition = "none"
+reportGeneralTypeIssues = "hint"
+reportIncompatibleMethodOverride = "none"
+reportIncompatibleVariableOverride = "none"
+reportIndexIssue = "hint"
+reportMissingTypeArgument = "hint"
+reportOptionalIterable = "none"
+reportOptionalMemberAccess = "none"
+reportOptionalOperand = "none"
+reportOptionalSubscript = "none"
+reportPossiblyUnboundVariable = "none"
+reportPrivateUsage = "none"
+reportUninitializedInstanceVariable = "hint"
+reportUnknownArgumentType = "hint"
 
 # vim: foldmethod=marker

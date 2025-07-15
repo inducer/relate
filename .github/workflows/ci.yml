@@ -32,8 +32,8 @@ jobs:
       - uses: crate-ci/typos@master
       - name: "Set up local settings"
         run: cp local_settings_example.py local_settings.py
-      - name: "Mypy"
-        run: uv run ./.ci/run-mypy.sh
+      - name: "Basedpyright"
+        run: uv run basedpyright
       - name: "Safety"
         run: uv run ./.ci/run-safety.sh
         env:
@@ -41,6 +41,22 @@ jobs:
       - name: "Sphinx"
         run: |
             (cd doc; uv run make html SPHINXOPTS="-W --keep-going -n")
+
+  # mypy gets a separate job because django-types (default) and django-stubs (mypy)
+  # cannot be installed at the same time.
+  mypy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+      - name: "Set up local settings"
+        run: cp local_settings_example.py local_settings.py
+      - name: Run mypy
+        run: ./.ci/run-mypy.sh
 
   frontend:
     name: Lint JS/build frontend (Node ${{ matrix.node-version }})

@@ -1,3 +1,4 @@
+# pyright: reportConstantRedefinition=none
 """
 Django settings for RELATE.
 """
@@ -7,12 +8,18 @@ import os
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 import sys
-from collections.abc import Callable
 from os.path import join
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
+import django_stubs_ext
 from django.conf.global_settings import STORAGES
 from django.utils.translation import gettext_noop
+
+
+django_stubs_ext.monkeypatch()
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 
 # Do not change this file. All these settings can be overridden in
