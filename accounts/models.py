@@ -40,6 +40,8 @@ from course.constants import USER_STATUS_CHOICES
 # {{{ user
 
 class User(AbstractBaseUser, PermissionsMixin):
+    id = models.BigAutoField(primary_key=True)
+
     username = models.CharField(
         _("username"),
         max_length=200,

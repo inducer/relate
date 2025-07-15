@@ -97,6 +97,8 @@ def validate_course_specific_language(value: str) -> None:
 
 
 class Course(models.Model):
+    id = models.BigAutoField(primary_key=True)
+
     identifier = models.CharField(max_length=200, unique=True,
             help_text=_("A course identifier. Alphanumeric with dashes, "
             "no spaces. This is visible in URLs and determines the location "
@@ -295,6 +297,8 @@ class Event(models.Model):
     course content.
     """
 
+    id = models.BigAutoField(primary_key=True)
+
     course = models.ForeignKey(Course,
             verbose_name=_("Course"), on_delete=models.CASCADE)
     kind = models.CharField(max_length=50,
@@ -379,6 +383,8 @@ class Event(models.Model):
 # {{{ participation
 
 class ParticipationTag(models.Model):
+    id = models.BigAutoField(primary_key=True)
+
     course = models.ForeignKey(Course,
             verbose_name=_("Course"), on_delete=models.CASCADE)
     name = models.CharField(max_length=100,
@@ -474,6 +480,8 @@ class ParticipationRole(models.Model):
 
 
 class ParticipationPermissionBase(models.Model):
+    id = models.BigAutoField(primary_key=True)
+
     permission = models.CharField(max_length=200, blank=False, null=False,
             choices=PARTICIPATION_PERMISSION_CHOICES,
             verbose_name=_("Permission"),
@@ -492,6 +500,8 @@ class ParticipationPermissionBase(models.Model):
 
 
 class ParticipationRolePermission(ParticipationPermissionBase):
+    id = models.BigAutoField(primary_key=True)
+
     role = models.ForeignKey(ParticipationRole,
             verbose_name=_("Role"), on_delete=models.CASCADE,
             related_name="permissions")
@@ -509,6 +519,8 @@ class ParticipationRolePermission(ParticipationPermissionBase):
 
 
 class Participation(models.Model):
+    id = models.BigAutoField(primary_key=True)
+
     user = models.ForeignKey(settings.AUTH_USER_MODEL,
             verbose_name=_("User ID"), on_delete=models.CASCADE,
             related_name="participations")
@@ -595,6 +607,8 @@ class Participation(models.Model):
 
 
 class ParticipationPermission(ParticipationPermissionBase):
+    id = models.BigAutoField(primary_key=True)
+
     participation = models.ForeignKey(Participation,
             verbose_name=_("Participation"), on_delete=models.CASCADE,
             related_name="individual_permissions")
@@ -606,6 +620,8 @@ class ParticipationPermission(ParticipationPermissionBase):
 
 
 class ParticipationPreapproval(models.Model):
+    id = models.BigAutoField(primary_key=True)
+
     email = models.EmailField(max_length=254, null=True, blank=True,
             verbose_name=_("Email"))
     institutional_id = models.CharField(max_length=254, null=True, blank=True,
@@ -775,6 +791,8 @@ def _set_up_course_permissions(sender, instance, created, raw, using, update_fie
 # {{{ auth token
 
 class AuthenticationToken(models.Model):
+    id = models.BigAutoField(primary_key=True)
+
     user = models.ForeignKey(settings.AUTH_USER_MODEL,
             verbose_name=_("User ID"), on_delete=models.CASCADE)
 
@@ -853,6 +871,8 @@ class InstantFlowRequest(models.Model):
 # {{{ flow session
 
 class FlowSession(models.Model):
+    id = models.BigAutoField(primary_key=True)
+
     # This looks like it's redundant with 'participation', below--but it's not.
     # 'participation' is nullable.
     course = models.ForeignKey(Course,
@@ -977,6 +997,8 @@ class FlowSession(models.Model):
 # {{{ flow page data
 
 class FlowPageData(models.Model):
+    id = models.BigAutoField(primary_key=True)
+
     flow_session = models.ForeignKey(FlowSession, related_name="page_data",
             verbose_name=_("Flow session"), on_delete=models.CASCADE)
     page_ordinal = models.IntegerField(null=True, blank=True,
@@ -1034,6 +1056,8 @@ class FlowPageData(models.Model):
 # {{{ flow page visit
 
 class FlowPageVisit(models.Model):
+    id = models.BigAutoField(primary_key=True)
+
     # This is redundant (because the FlowSession is available through
     # page_data), but it helps the admin site understand the link
     # and provide editing.
@@ -1133,6 +1157,8 @@ class FlowPageVisit(models.Model):
 #  {{{ flow page visit grade
 
 class FlowPageVisitGrade(models.Model):
+    id = models.BigAutoField(primary_key=True)
+
     visit = models.ForeignKey(FlowPageVisit, related_name="grades",
             verbose_name=_("Visit"), on_delete=models.CASCADE)
 
@@ -1414,6 +1440,8 @@ class FlowAccessExceptionEntry(models.Model):  # pragma: no cover (deprecated an
 # {{{ flow rule exception
 
 class FlowRuleException(models.Model):
+    id = models.BigAutoField(primary_key=True)
+
     flow_id = models.CharField(max_length=200, blank=False, null=False,
             verbose_name=_("Flow ID"))
     participation = models.ForeignKey(Participation, db_index=True,
@@ -1522,6 +1550,8 @@ class FlowRuleException(models.Model):
 # {{{ grading
 
 class GradingOpportunity(models.Model):
+    id = models.BigAutoField(primary_key=True)
+
     course = models.ForeignKey(Course,
             verbose_name=_("Course"), on_delete=models.CASCADE)
 
@@ -1607,6 +1637,8 @@ class GradeChange(models.Model):
     identifier, where later grades with the same :attr:`attempt_id` supersede earlier
     ones.
     """
+    id = models.BigAutoField(primary_key=True)
+
     opportunity = models.ForeignKey(GradingOpportunity,
             verbose_name=_("Grading opportunity"), on_delete=models.CASCADE)
 
@@ -1904,6 +1936,8 @@ def get_flow_grading_opportunity(
 # {{{ XMPP log
 
 class InstantMessage(models.Model):
+    id = models.BigAutoField(primary_key=True)
+
     participation = models.ForeignKey(Participation,
             verbose_name=_("Participation"), on_delete=models.CASCADE)
     text = models.CharField(max_length=200,
@@ -1925,6 +1959,8 @@ class InstantMessage(models.Model):
 # {{{ exams
 
 class Exam(models.Model):
+    id = models.BigAutoField(primary_key=True)
+
     course = models.ForeignKey(Course,
             verbose_name=_("Course"), on_delete=models.CASCADE)
     description = models.CharField(max_length=200,
@@ -1961,6 +1997,8 @@ class Exam(models.Model):
 
 
 class ExamTicket(models.Model):
+    id = models.BigAutoField(primary_key=True)
+
     exam = models.ForeignKey(Exam,
             verbose_name=_("Exam"), on_delete=models.CASCADE)
 
