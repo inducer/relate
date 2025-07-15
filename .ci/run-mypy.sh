@@ -1,3 +1,4 @@
 #! /bin/bash
 
-mypy relate course accounts prairietest
+uv run --no-dev --group mypy --frozen --isolated \
+    mypy relate course accounts prairietest "$@"
