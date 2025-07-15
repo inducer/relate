@@ -163,6 +163,9 @@ multiline-quotes = "double"
 "course/mdx_mathjax.py" = ["N802"]
 
 # config file, no type annotations, avoid scaring users
+"local_settings.py" = ["I002"]
+
+# config file, no type annotations, avoid scaring users
 "local_settings_example.py" = ["I002"]
 
 # copy-pasted from elsewhere, not our problem
