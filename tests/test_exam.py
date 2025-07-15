@@ -297,7 +297,7 @@ class CheckExamTicketTest(ExamTestMixin, TestCase):
         )
 
     def test_object_not_found(self):
-        result, tkt, msg = exam.check_exam_ticket(
+        result, _tkt, msg = exam.check_exam_ticket(
             username="abcd",
             code=self.ticket.code,
             now_datetime=self.now,
@@ -307,7 +307,7 @@ class CheckExamTicketTest(ExamTestMixin, TestCase):
         self.assertEqual(msg, "User name or ticket code not recognized.")
 
     def test_ticket_not_usable(self):
-        result, tkt, msg = exam.check_exam_ticket(
+        result, _tkt, msg = exam.check_exam_ticket(
             username=self.student_participation.user.username,
             code=self.ticket.code,
             now_datetime=self.now,
@@ -319,7 +319,7 @@ class CheckExamTicketTest(ExamTestMixin, TestCase):
         self.ticket.state = constants.exam_ticket_states.revoked
         self.ticket.save()
 
-        result, tkt, msg = exam.check_exam_ticket(
+        result, _tkt, msg = exam.check_exam_ticket(
             username=self.student_participation.user.username,
             code=self.ticket.code,
             now_datetime=self.now,
@@ -333,7 +333,7 @@ class CheckExamTicketTest(ExamTestMixin, TestCase):
         self.ticket.usage_time = self.now - timedelta(days=1)
         self.ticket.state = constants.exam_ticket_states.used
         self.ticket.save()
-        result, tkt, msg = exam.check_exam_ticket(
+        result, _tkt, msg = exam.check_exam_ticket(
             username=self.student_participation.user.username,
             code=self.ticket.code,
             now_datetime=self.now,
@@ -347,7 +347,7 @@ class CheckExamTicketTest(ExamTestMixin, TestCase):
         self.exam.active = False
         self.exam.save()
 
-        result, tkt, msg = exam.check_exam_ticket(
+        result, _tkt, msg = exam.check_exam_ticket(
             username=self.student_participation.user.username,
             code=self.ticket.code,
             now_datetime=self.now,
@@ -358,7 +358,7 @@ class CheckExamTicketTest(ExamTestMixin, TestCase):
         self.assertEqual(msg, "Exam is not active.")
 
     def test_not_started(self):
-        result, tkt, msg = exam.check_exam_ticket(
+        result, _tkt, msg = exam.check_exam_ticket(
             username=self.student_participation.user.username,
             code=self.ticket.code,
             now_datetime=self.now - timedelta(days=5),
@@ -368,7 +368,7 @@ class CheckExamTicketTest(ExamTestMixin, TestCase):
         self.assertEqual(msg, "Exam has not started yet.")
 
     def test_ended(self):
-        result, tkt, msg = exam.check_exam_ticket(
+        result, _tkt, msg = exam.check_exam_ticket(
             username=self.student_participation.user.username,
             code=self.ticket.code,
             now_datetime=self.now + timedelta(days=5),
@@ -381,7 +381,7 @@ class CheckExamTicketTest(ExamTestMixin, TestCase):
         self.ticket.restrict_to_facility = "my_fa1"
         self.ticket.save()
 
-        result, tkt, msg = exam.check_exam_ticket(
+        result, _tkt, msg = exam.check_exam_ticket(
             username=self.student_participation.user.username,
             code=self.ticket.code,
             now_datetime=self.now,
@@ -391,7 +391,7 @@ class CheckExamTicketTest(ExamTestMixin, TestCase):
         self.assertEqual(
             msg, "Exam ticket requires presence in facility 'my_fa1'.")
 
-        result, tkt, msg = exam.check_exam_ticket(
+        result, _tkt, msg = exam.check_exam_ticket(
             username=self.student_participation.user.username,
             code=self.ticket.code,
             now_datetime=self.now,
@@ -401,7 +401,7 @@ class CheckExamTicketTest(ExamTestMixin, TestCase):
         self.assertEqual(
             msg, "Exam ticket requires presence in facility 'my_fa1'.")
 
-        result, tkt, msg = exam.check_exam_ticket(
+        result, _tkt, msg = exam.check_exam_ticket(
             username=self.student_participation.user.username,
             code=self.ticket.code,
             now_datetime=self.now,
@@ -411,7 +411,7 @@ class CheckExamTicketTest(ExamTestMixin, TestCase):
         self.assertEqual(
             msg, "Exam ticket requires presence in facility 'my_fa1'.")
 
-        result, tkt, msg = exam.check_exam_ticket(
+        result, _tkt, msg = exam.check_exam_ticket(
             username=self.student_participation.user.username,
             code=self.ticket.code,
             now_datetime=self.now,
@@ -420,7 +420,7 @@ class CheckExamTicketTest(ExamTestMixin, TestCase):
         self.assertTrue(result, msg=msg)
 
     def test_not_yet_valid(self):
-        result, tkt, msg = exam.check_exam_ticket(
+        result, _tkt, msg = exam.check_exam_ticket(
             username=self.student_participation.user.username,
             code=self.ticket.code,
             now_datetime=self.ticket.valid_start_time - timedelta(minutes=1),
@@ -431,7 +431,7 @@ class CheckExamTicketTest(ExamTestMixin, TestCase):
             msg, "Exam ticket is not yet valid.")
 
     def test_expired(self):
-        result, tkt, msg = exam.check_exam_ticket(
+        result, _tkt, msg = exam.check_exam_ticket(
             username=self.student_participation.user.username,
             code=self.ticket.code,
             now_datetime=self.ticket.valid_end_time + timedelta(minutes=1),

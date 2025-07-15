@@ -4031,7 +4031,7 @@ class AddButtonsToFormTest(unittest.TestCase):
                 flow.add_buttons_to_form(
                     form, self.fpctx, self.flow_session, permissions)
 
-            names, values = self.get_form_submit_inputs(form)
+            _names, values = self.get_form_submit_inputs(form)
             self.assertNotIn("Submit answer for feedback", values)
 
     def test_add_save_and_next(self):
@@ -4052,7 +4052,7 @@ class AddButtonsToFormTest(unittest.TestCase):
                 flow.add_buttons_to_form(
                     form, self.fpctx, self.flow_session, permissions)
 
-            names, values = self.get_form_submit_inputs(form)
+            names, _values = self.get_form_submit_inputs(form)
             self.assertIn("save_and_next", names)
             self.assertNotIn("submit", names)
             self.assertNotIn("save_and_finish", names)
@@ -4075,7 +4075,7 @@ class AddButtonsToFormTest(unittest.TestCase):
                 flow.add_buttons_to_form(
                     form, self.fpctx, self.flow_session, permissions)
 
-            names, values = self.get_form_submit_inputs(form)
+            names, _values = self.get_form_submit_inputs(form)
             self.assertNotIn("save_and_next", names)
             self.assertNotIn("submit", names)
             self.assertIn("save_and_finish", names)

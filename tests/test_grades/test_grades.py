@@ -1846,7 +1846,7 @@ class DownloadAllSubmissionsTest(SingleCourseQuizPageTestMixin,
         assert isinstance(extensions, list)
         assert isinstance(counts, list)
         assert len(extensions) == len(counts)
-        prefix, zip_file = resp["Content-Disposition"].split("=")
+        prefix, _zip_file = resp["Content-Disposition"].split("=")
         self.assertEqual(prefix, "attachment; filename")
         self.assertEqual(resp.get("Content-Type"), "application/zip")
         buf = io.BytesIO(resp.content)
