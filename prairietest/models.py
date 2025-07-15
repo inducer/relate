@@ -73,6 +73,8 @@ class Event(models.Model):
 
 
 class AllowEvent(Event):
+    id = models.BigAutoField(primary_key=True)
+
     user_uid = models.CharField(max_length=200)
     user_uin = models.CharField(max_length=200)
     exam_uuid = models.UUIDField()
@@ -91,6 +93,8 @@ class AllowEvent(Event):
 
 
 class DenyEvent(Event):
+    id = models.BigAutoField(primary_key=True)
+
     deny_uuid = models.UUIDField()
     start = models.DateTimeField(verbose_name=_("Start time"))
     end = models.DateTimeField(verbose_name=_("End time"))
@@ -108,6 +112,8 @@ class DenyEvent(Event):
 
 
 class MostRecentDenyEvent(models.Model):
+    id = models.BigAutoField(primary_key=True)
+
     id = models.BigAutoField(primary_key=True)
     deny_uuid = models.UUIDField(unique=True)
     end = models.DateTimeField(verbose_name=_("End time"))
