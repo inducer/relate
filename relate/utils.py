@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing_extensions import TypeIs
+
 
 __copyright__ = "Copyright (C) 2014 Andreas Kloeckner"
 
@@ -25,10 +27,11 @@ THE SOFTWARE.
 
 
 import datetime
-from collections.abc import Collection, Mapping
 from ipaddress import IPv4Address, IPv6Address, ip_address, ip_network
 from typing import (
+    TYPE_CHECKING,
     Any,
+    ParamSpec,
     TypeVar,
 )
 from zoneinfo import ZoneInfo
@@ -40,7 +43,17 @@ from django.utils.text import format_lazy
 from django.utils.translation import gettext_lazy as _
 
 
+if TYPE_CHECKING:
+    from collections.abc import Callable, Collection, Mapping
+
+    from django.contrib.auth.models import AbstractUser, AnonymousUser
+
+    from accounts.models import User
+
+
 T = TypeVar("T")
+ResultT = TypeVar("ResultT")
+P = ParamSpec("P")
 
 
 class RelateHttpRequest(HttpRequest):
@@ -53,13 +66,17 @@ class RelateHttpRequest(HttpRequest):
     relate_exam_lockdown: bool
 
 
+def is_authed(user: AbstractUser | AnonymousUser | User) -> TypeIs[User]:
+    return user.is_authenticated
+
+
 def not_none(obj: T | None) -> T:
     assert obj is not None
     return obj
 
 
 def string_concat(*strings: Any) -> str:
-    return format_lazy("{}" * len(strings), *strings)
+    return format_lazy("{}" * len(strings), *strings)  # type: ignore[return-value]
 
 
 class StyledFormBase(forms.Form):
@@ -176,10 +193,15 @@ def get_site_name() -> str:
     return getattr(settings, "RELATE_SITE_NAME", "RELATE")
 
 
-def render_email_template(template_name: str, context: dict | None = None,
-        request: HttpRequest | None = None, using: str | None = None) -> str:
+def render_email_template(
+            template_name: str,
+            context: Mapping[str, Any] | None = None,
+            request: HttpRequest | None = None,
+            using: str | None = None
+        ) -> str:
     if context is None:
         context = {}
+    context = dict(context)
     context.update({"relate_site_name": _(get_site_name())})
     from django.template.loader import render_to_string
     return render_to_string(template_name, context, request, using)
@@ -255,7 +277,7 @@ def format_datetime_local(
 # {{{ dict_to_struct
 
 class Struct:
-    def __init__(self, entries: dict) -> None:
+    def __init__(self, entries: dict[str, Any]) -> None:
         for name, val in entries.items():
             setattr(self, name, val)
 
@@ -265,7 +287,7 @@ class Struct:
         return repr(self.__dict__)
 
 
-def dict_to_struct(data: dict) -> Struct:
+def dict_to_struct(data: dict[str, Any]) -> Struct:
     if isinstance(data, list):
         return [dict_to_struct(d) for d in data]
     elif isinstance(data, dict):
@@ -274,7 +296,7 @@ def dict_to_struct(data: dict) -> Struct:
         return data
 
 
-def struct_to_dict(data: Struct) -> dict:
+def struct_to_dict(data: Struct) -> dict[str, Any]:
     return {
             name: val
             for name, val in data.__dict__.items()
@@ -283,11 +305,13 @@ def struct_to_dict(data: Struct) -> dict:
 # }}}
 
 
-def retry_transaction(f: Any, args: tuple, kwargs: dict | None = None,
-        max_tries: int | None = None, serializable: bool | None = None) -> Any:
-    if kwargs is None:
-        kwargs = {}
-
+def _retry_transaction(
+            f: Callable[P, ResultT],
+            max_tries: int | None,
+            serializable: bool | None,
+            *args: P.args,
+            **kwargs: P.kwargs,
+        ) -> ResultT:
     from django.db import transaction
     from django.db.utils import OperationalError
 
@@ -322,16 +346,19 @@ def retry_transaction(f: Any, args: tuple, kwargs: dict | None = None,
 class retry_transaction_decorator:  # noqa
     def __init__(self, max_tries: int | None = None,
             serializable: bool | None = None) -> None:
-        self.max_tries = max_tries
-        self.serializable = serializable
+        self.max_tries: int | None = max_tries
+        self.serializable: bool | None = serializable
 
-    def __call__(self, f: Any) -> Any:
+    def __call__(self, f: Callable[P, ResultT]) -> Callable[P, ResultT]:
         from functools import update_wrapper
 
-        def wrapper(*args, **kwargs):
-            return retry_transaction(f, args, kwargs,
-                    max_tries=self.max_tries,
-                    serializable=self.serializable)
+        def wrapper(*args: P.args, **kwargs: P.kwargs):
+            return _retry_transaction(f,
+                    self.max_tries,
+                    self.serializable,
+                    *args,
+                    **kwargs,
+                    )
 
         update_wrapper(wrapper, f)
         return wrapper

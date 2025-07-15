@@ -1,3 +1,5 @@
+# pyright: reportUnannotatedClassAttribute=none
+
 from __future__ import annotations
 
 

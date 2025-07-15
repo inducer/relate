@@ -1,3 +1,5 @@
+# pyright: reportUnannotatedClassAttribute=none
+
 from __future__ import annotations
 
 
@@ -22,14 +24,13 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
-
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, TypeVar
 
 from django import forms, http
 from django.contrib import admin
-from django.db.models import QuerySet
 from django.urls import reverse
 from django.utils.safestring import mark_safe
+from typing_extensions import override
 
 from accounts.models import User
 from course.constants import participation_permission as pperm
@@ -37,6 +38,8 @@ from prairietest.models import AllowEvent, DenyEvent, Facility, MostRecentDenyEv
 
 
 if TYPE_CHECKING:
+    from django.db.models import QuerySet
+
     from accounts.models import User
 
 
@@ -50,8 +53,9 @@ class FacilityAdminForm(forms.ModelForm):
 
 
 @admin.register(Facility)
-class FacilityAdmin(admin.ModelAdmin):
-    def get_queryset(self, request: http.HttpRequest) -> QuerySet:
+class FacilityAdmin(admin.ModelAdmin[Facility]):
+    @override
+    def get_queryset(self, request: http.HttpRequest) -> QuerySet[Facility]:
         assert request.user.is_authenticated
 
         qs = super().get_queryset(request)
@@ -75,7 +79,12 @@ class FacilityAdmin(admin.ModelAdmin):
     form = FacilityAdminForm
 
 
-def _filter_events_for_user(queryset: QuerySet, user: User) -> QuerySet:
+EventT = TypeVar("EventT", bound=AllowEvent | DenyEvent)
+
+
+def _filter_events_for_user(
+            queryset: QuerySet[EventT],
+            user: User) -> QuerySet[EventT]:
     if user.is_superuser:
         return queryset
     return queryset.filter(
@@ -84,8 +93,9 @@ def _filter_events_for_user(queryset: QuerySet, user: User) -> QuerySet:
 
 
 @admin.register(AllowEvent)
-class AllowEventAdmin(admin.ModelAdmin):
-    def get_queryset(self, request: http.HttpRequest) -> QuerySet:
+class AllowEventAdmin(admin.ModelAdmin[AllowEvent]):
+    @override
+    def get_queryset(self, request: http.HttpRequest) -> QuerySet[AllowEvent]:
         assert request.user.is_authenticated
 
         qs = super().get_queryset(request)
@@ -97,8 +107,9 @@ class AllowEventAdmin(admin.ModelAdmin):
 
 
 @admin.register(DenyEvent)
-class DenyEventAdmin(admin.ModelAdmin):
-    def get_queryset(self, request: http.HttpRequest) -> QuerySet:
+class DenyEventAdmin(admin.ModelAdmin[DenyEvent]):
+    @override
+    def get_queryset(self, request: http.HttpRequest) -> QuerySet[DenyEvent]:
         assert request.user.is_authenticated
 
         qs = super().get_queryset(request)
@@ -110,8 +121,9 @@ class DenyEventAdmin(admin.ModelAdmin):
 
 
 @admin.register(MostRecentDenyEvent)
-class MostRecentDenyEventAdmin(admin.ModelAdmin):
-    def get_queryset(self, request: http.HttpRequest) -> QuerySet:
+class MostRecentDenyEventAdmin(admin.ModelAdmin[MostRecentDenyEvent]):
+    @override
+    def get_queryset(self, request: http.HttpRequest) -> QuerySet[MostRecentDenyEvent]:
         assert request.user.is_authenticated
 
         qs = super().get_queryset(request)

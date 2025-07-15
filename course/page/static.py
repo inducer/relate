@@ -23,9 +23,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from typing import Any
-
-from django import forms
+from typing import TYPE_CHECKING, Any
 
 from course.page.base import (
     PageBaseUngraded,
@@ -35,8 +33,13 @@ from course.page.base import (
     PageContext,
     markup_to_html,
 )
-from course.validation import AttrSpec
-from relate.utils import StyledForm
+
+
+if TYPE_CHECKING:
+    from django import forms
+
+    from course.validation import AttrSpec
+    from relate.utils import StyledForm
 
 
 class Page(PageBaseWithCorrectAnswer, PageBaseWithTitle, PageBaseUngraded):

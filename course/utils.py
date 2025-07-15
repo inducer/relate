@@ -23,15 +23,15 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-import datetime
-from collections.abc import Collection, Iterable
 from contextlib import ContextDecorator
 from dataclasses import dataclass
-from ipaddress import IPv4Address, IPv6Address
 from typing import (
     TYPE_CHECKING,
     Any,
+    Concatenate,
+    ParamSpec,
     cast,
+    final,
 )
 
 from django import forms, http
@@ -41,7 +41,11 @@ from django.utils import translation
 from django.utils.safestring import SafeString, mark_safe
 from django.utils.translation import gettext as _, pgettext_lazy
 
-from course.constants import flow_permission, flow_rule_kind
+from course.constants import (
+    flow_permission,
+    flow_rule_kind,
+    flow_session_expiration_mode,
+)
 from course.content import (
     CourseCommitSHADoesNotExist,
     FlowDesc,
@@ -66,19 +70,27 @@ from relate.utils import (
 # {{{ mypy
 
 if TYPE_CHECKING:
-    from course.content import Repo_ish
+    import datetime
+    from collections.abc import Callable, Collection, Iterable
+    from ipaddress import IPv4Address, IPv6Address
+
+    import course.constants as c
     from course.models import (
         Course,
         ExamTicket,
         FlowPageData,
+        FlowPageVisit,
         FlowSession,
         Participation,
     )
-    from relate.utils import Repo_ish  # noqa
+    from relate.utils import Repo_ish
 
 # }}}
 
 import re
+
+
+P = ParamSpec("P")
 
 
 CODE_CELL_DIV_ATTRS_RE = re.compile(r'(<div class="[^>]*code_cell[^>"]*")(>)')
@@ -100,13 +112,14 @@ class FlowSessionRuleBase:
     pass
 
 
+@final
 class FlowSessionStartRule(FlowSessionRuleBase):
     def __init__(
             self,
             tag_session: str | None = None,
             may_start_new_session: bool | None = None,
             may_list_existing_sessions: bool | None = None,
-            default_expiration_mode: str | None = None,
+            default_expiration_mode: flow_session_expiration_mode | None = None,
             ) -> None:
         self.tag_session = tag_session
         self.may_start_new_session = may_start_new_session
@@ -114,6 +127,7 @@ class FlowSessionStartRule(FlowSessionRuleBase):
         self.default_expiration_mode = default_expiration_mode
 
 
+@final
 class FlowSessionAccessRule(FlowSessionRuleBase):
     def __init__(
             self,
@@ -129,11 +143,12 @@ class FlowSessionAccessRule(FlowSessionRuleBase):
         return [permission_dict[p] for p in self.permissions]
 
 
+@final
 class FlowSessionGradingRule(FlowSessionRuleBase):
     def __init__(
             self,
             grade_identifier: str | None,
-            grade_aggregation_strategy: str,
+            grade_aggregation_strategy: c.grade_aggregation_strategy,
             due: datetime.datetime | None,
             generates_grade: bool,
             description: str | None = None,
@@ -460,15 +475,15 @@ def get_session_access_rule(
 
         # {{{ deal with deprecated permissions
 
-        if "modify" in permissions:
-            permissions.remove("modify")
+        if "modify" in permissions:  # type: ignore[arg-type]
+            permissions.remove("modify")  # type: ignore[arg-type]  # pyright: ignore[reportArgumentType]
             permissions.update([
                 flow_permission.submit_answer,
                 flow_permission.end_session,
                 ])
 
-        if "see_answer" in permissions:
-            permissions.remove("see_answer")
+        if "see_answer" in permissions:  # type: ignore[arg-type]
+            permissions.remove("see_answer")  # type: ignore[arg-type]  # pyright: ignore[reportArgumentType]
             permissions.add(flow_permission.see_answer_after_submission)
 
         # }}}
@@ -565,7 +580,8 @@ def get_session_grading_rule(
         max_points_enforced_cap = getattr_with_fallback(
                 (rule, flow_desc), "max_points_enforced_cap", None)
 
-        grade_aggregation_strategy = cast(str, grade_aggregation_strategy)
+        grade_aggregation_strategy = cast(
+                            "c.grade_aggregation_strategy", grade_aggregation_strategy)
 
         return FlowSessionGradingRule(
                 grade_identifier=grade_identifier,
@@ -601,7 +617,7 @@ class CoursePageContext:
     def __init__(self, request: http.HttpRequest, course_identifier: str) -> None:
 
         # account for monkeypatching
-        self.request = cast(RelateHttpRequest, request)
+        self.request = cast("RelateHttpRequest", request)
 
         self.course_identifier = course_identifier
         self._permissions_cache: frozenset[tuple[str, str | None]] | None = None
@@ -789,7 +805,7 @@ class FlowPageContext(FlowContext):
             from course.flow import get_prev_answer_visit
             self._prev_answer_visit = get_prev_answer_visit(self.page_data)
 
-        return self._prev_answer_visit
+        return cast("FlowPageVisit | None", self._prev_answer_visit)
 
     @property
     def page_ordinal(self):
@@ -815,8 +831,14 @@ def instantiate_flow_page_with_ctx(
 
 # {{{ utilities for course-based views
 
-def course_view(f):
-    def wrapper(request, course_identifier, *args, **kwargs):
+def course_view(
+            f: Callable[Concatenate[CoursePageContext, P], http.HttpResponse]
+        ) -> Callable[Concatenate[http.HttpRequest, str, P], http.HttpResponse]:
+    def wrapper(
+                request: http.HttpRequest,
+                course_identifier: str,
+                *args: P.args,
+                **kwargs: P.kwargs):
         with CoursePageContext(request, course_identifier) as pctx:
             response = f(pctx, *args, **kwargs)
             pctx.repo.close()
@@ -1146,7 +1168,7 @@ class FacilityFindingMiddleware:
                     if remote_address in ip_network(str(ir)):
                         facilities.add(name)
 
-        request = cast(RelateHttpRequest, request)
+        request = cast("RelateHttpRequest", request)
         request.relate_facilities = frozenset(facilities)
 
         return self.get_response(request)

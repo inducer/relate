@@ -1,3 +1,5 @@
+# pyright: reportUninitializedInstanceVariable=none
+
 from __future__ import annotations
 
 
@@ -43,8 +45,7 @@ from markdown.extensions import Extension
 from markdown.treeprocessors import Treeprocessor
 from yaml import safe_load as load_yaml
 
-from course.constants import ATTRIBUTES_FILENAME
-from course.validation import Blob_ish, Tree_ish
+from course.constants import ATTRIBUTES_FILENAME, flow_permission
 from relate.utils import Struct, SubdirRepoWrapper, dict_to_struct
 
 
@@ -53,7 +54,6 @@ CACHE_KEY_ROOT = "py4"
 
 # {{{ mypy
 
-from collections.abc import Callable, Collection, Mapping
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -62,11 +62,18 @@ from typing import (
 
 if TYPE_CHECKING:
     # for mypy
+    from collections.abc import Callable, Collection, Mapping
+
     import dulwich
 
     from course.models import Course, Participation
     from course.page.base import PageBase
-    from course.validation import FileSystemFakeRepoTree, ValidationContext
+    from course.validation import (
+        Blob_ish,
+        FileSystemFakeRepoTree,
+        Tree_ish,
+        ValidationContext,
+    )
     from relate.utils import Repo_ish
 
 Date_ish = datetime.datetime | datetime.date
@@ -334,7 +341,7 @@ class FlowSessionAccessRuleDesc(Struct):
     if_signed_in_with_matching_exam_ticket: bool
 
     # rules specified
-    permissions: list
+    permissions: list[flow_permission]
     message: str
 
 # }}}
@@ -1355,9 +1362,11 @@ class LinkFixerTreeprocessor(Treeprocessor):
 
 
 class LinkFixerExtension(Extension):
-    def __init__(
-            self, course: Course | None,
-            commit_sha: bytes, reverse_func: Callable | None) -> None:
+    def __init__(self,
+                course: Course | None,
+                commit_sha: bytes,
+                reverse_func: Callable[[str], str] | None
+            ) -> None:
         Extension.__init__(self)
         self.course = course
         self.commit_sha = commit_sha
@@ -1386,7 +1395,7 @@ def expand_markup(
         commit_sha: bytes,
         text: str,
         use_jinja: bool = True,
-        jinja_env: dict | None = None,
+        jinja_env: dict[str, Any] | None = None,
         ) -> str:
 
     if jinja_env is None:
@@ -1442,10 +1451,10 @@ def markup_to_html(
         repo: Repo_ish,
         commit_sha: bytes,
         text: str,
-        reverse_func: Callable | None = None,
+        reverse_func: Callable[[str], str] | None = None,
         validate_only: bool = False,
         use_jinja: bool = True,
-        jinja_env: dict | None = None,
+        jinja_env: dict[str, Any] | None = None,
         ) -> str:
 
     if jinja_env is None:
@@ -1664,7 +1673,7 @@ def parse_date_spec(
         return localize_if_needed(
                 datetime.datetime.combine(datespec, datetime.time.min))
 
-    datespec_str = cast(str, datespec).strip()
+    datespec_str = cast("str", datespec).strip()
 
     # {{{ parse postprocessors
 
@@ -1675,7 +1684,7 @@ def parse_date_spec(
             datespec_str, postproc = pp_class.parse(datespec_str)
             if postproc is not None:
                 parsed_one = True
-                postprocs.insert(0, cast(DatespecPostprocessor, postproc))
+                postprocs.insert(0, cast("DatespecPostprocessor", postproc))
                 break
 
         datespec_str = datespec_str.strip()
@@ -1857,7 +1866,7 @@ def normalize_page_desc(page_desc: StaticPageDesc) -> StaticPageDesc:
         d = struct_to_dict(page_desc)
         del d["content"]
         d["chunks"] = [Struct({"id": "main", "content": content})]
-        return cast(StaticPageDesc, Struct(d))
+        return cast("StaticPageDesc", Struct(d))
 
     return page_desc
 
@@ -1874,7 +1883,7 @@ def get_staticpage_desc(
 def get_course_desc(repo: Repo_ish, course: Course, commit_sha: bytes) -> CourseDesc:
 
     return cast(
-            CourseDesc,
+            "CourseDesc",
             get_staticpage_desc(repo, course, commit_sha, course.course_file))
 
 
@@ -1886,7 +1895,7 @@ def normalize_flow_desc(flow_desc: FlowDesc) -> FlowDesc:
         d = struct_to_dict(flow_desc)
         del d["pages"]
         d["groups"] = [Struct({"id": "main", "pages": pages})]
-        return cast(FlowDesc, Struct(d))
+        return cast("FlowDesc", Struct(d))
 
     if hasattr(flow_desc, "rules"):
         rules = flow_desc.rules

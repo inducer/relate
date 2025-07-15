@@ -80,6 +80,7 @@ from relate.utils import (
     StyledForm,
     StyledModelForm,
     get_site_name,
+    is_authed,
     string_concat,
 )
 
@@ -100,7 +101,7 @@ def get_pre_impersonation_user(request):
     return None
 
 
-def get_impersonable_user_qset(impersonator: User) -> query.QuerySet:
+def get_impersonable_user_qset(impersonator: User) -> query.QuerySet[User]:
     if impersonator.is_superuser:
         return User.objects.exclude(pk=impersonator.pk)
 
@@ -148,7 +149,7 @@ class ImpersonateMiddleware:
 
             try:
                 if imp_id is not None:
-                    impersonee = cast(User, get_user_model().objects.get(id=imp_id))
+                    impersonee = cast("User", get_user_model().objects.get(id=imp_id))
             except ObjectDoesNotExist:
                 pass
 
@@ -157,8 +158,8 @@ class ImpersonateMiddleware:
                 if request.user.is_superuser:
                     may_impersonate = True
                 else:
-                    qset = get_impersonable_user_qset(cast(User, request.user))
-                    if qset.filter(pk=cast(User, impersonee).pk).count():
+                    qset = get_impersonable_user_qset(cast("User", request.user))
+                    if qset.filter(pk=cast("User", impersonee).pk).count():
                         may_impersonate = True
 
             if may_impersonate:
@@ -218,10 +219,10 @@ class ImpersonateForm(StyledForm):
 
 
 def impersonate(request: http.HttpRequest) -> http.HttpResponse:
-    if not request.user.is_authenticated:
+    if not is_authed(request.user):
         raise PermissionDenied()
 
-    impersonable_user_qset = get_impersonable_user_qset(cast(User, request.user))
+    impersonable_user_qset = get_impersonable_user_qset(cast("User", request.user))
     if not impersonable_user_qset.count():
         raise PermissionDenied()
 

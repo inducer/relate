@@ -132,6 +132,7 @@ extend-select = [
     "W",   # pycodestyle
     "RUF",
     "UP",
+    "TC",
     # "DJ",
 ]
 

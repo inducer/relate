@@ -30,6 +30,7 @@ import course.analytics
 import course.api
 import course.auth
 import course.calendar
+import course.enrollment
 import course.exam
 import course.flow
 import course.grades

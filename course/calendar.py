@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from course.page.base import HumanTextFeedbackForm
-
 
 __copyright__ = "Copyright (C) 2014 Andreas Kloeckner"
 
