@@ -113,20 +113,20 @@ class SingleCourseQuizPageTest(SingleCourseQuizPageTestMixin,
                     resp = self.post_download_all_submissions_by_group_page_id(
                         group_page_id=group_page_id, flow_id=self.flow_id)
                     self.assertEqual(resp.status_code, 200)
-                    prefix, zip_file = resp["Content-Disposition"].split("=")
+                    prefix, _zip_file = resp["Content-Disposition"].split("=")
                     self.assertEqual(prefix, "attachment; filename")
                     self.assertEqual(resp.get("Content-Type"), "application/zip")
 
     def test_quiz_text(self):
         page_id = "half"
-        submit_answer_response, post_grade_response = (
+        _submit_answer_response, _post_grade_response = (
             self.default_submit_page_answer_by_page_id_and_test(page_id)
         )
         self.assertAddMessageCalledWith(MESSAGE_ANSWER_SAVED_TEXT)
 
     def test_quiz_choice(self):
         page_id = "krylov"
-        submit_answer_response, post_grade_response = (
+        _submit_answer_response, _post_grade_response = (
             self.default_submit_page_answer_by_page_id_and_test(page_id)
         )
         self.assertAddMessageCalledWith(MESSAGE_ANSWER_SAVED_TEXT)
@@ -136,7 +136,7 @@ class SingleCourseQuizPageTest(SingleCourseQuizPageTestMixin,
         page_ordinal = self.get_page_ordinal_via_page_id(page_id)
         self.assertSubmitHistoryItemsCount(page_ordinal, expected_count=0)
 
-        submit_answer_response, post_grade_response = (
+        _submit_answer_response, _post_grade_response = (
             self.default_submit_page_answer_by_page_id_and_test(
                 page_id, answer_data={"choice": []}, do_grading=False)
         )
@@ -152,7 +152,7 @@ class SingleCourseQuizPageTest(SingleCourseQuizPageTestMixin,
 
     def test_quiz_multi_choice_exact_correct(self):
         page_id = "ice_cream_toppings"
-        submit_answer_response, post_grade_response = (
+        _submit_answer_response, _post_grade_response = (
             self.default_submit_page_answer_by_page_id_and_test(page_id)
         )
         self.assertAddMessageCalledWith(MESSAGE_ANSWER_SAVED_TEXT)
@@ -162,7 +162,7 @@ class SingleCourseQuizPageTest(SingleCourseQuizPageTestMixin,
 
     def test_quiz_multi_choice_exact_wrong(self):
         page_id = "ice_cream_toppings"
-        submit_answer_response, post_grade_response = (
+        _submit_answer_response, _post_grade_response = (
             self.default_submit_page_answer_by_page_id_and_test(
                 page_id, answer_data={"choice": ["0", "1"]}, do_grading=False)
         )
@@ -173,7 +173,7 @@ class SingleCourseQuizPageTest(SingleCourseQuizPageTestMixin,
 
         # This page doesn't have permission to change_answer
         # try to change answer to a correct one
-        submit_answer_response, post_grade_response = (
+        _submit_answer_response, _post_grade_response = (
             self.default_submit_page_answer_by_page_id_and_test(
                 page_id, do_grading=False))
         self.assertAddMessageCalledWith(["Already have final answer.",
@@ -186,7 +186,7 @@ class SingleCourseQuizPageTest(SingleCourseQuizPageTestMixin,
 
     def test_quiz_multi_choice_proportion_rule_partial(self):
         page_id = "matrix_props"
-        submit_answer_response, post_grade_response = (
+        _submit_answer_response, _post_grade_response = (
             self.default_submit_page_answer_by_page_id_and_test(
                 page_id, answer_data={"choice": ["0"]}, expected_grade=0.8)
         )
@@ -194,7 +194,7 @@ class SingleCourseQuizPageTest(SingleCourseQuizPageTestMixin,
 
     def test_quiz_multi_choice_proportion_rule_correct(self):
         page_id = "matrix_props"
-        submit_answer_response, post_grade_response = (
+        _submit_answer_response, _post_grade_response = (
             self.default_submit_page_answer_by_page_id_and_test(page_id))
         self.assertAddMessageCalledWith(MESSAGE_ANSWER_SAVED_TEXT)
 
@@ -203,7 +203,7 @@ class SingleCourseQuizPageTest(SingleCourseQuizPageTestMixin,
         answer_data = {
             "blank1": "Bar", "blank_2": "0.2", "blank3": "1",
             "blank4": "5", "blank5": "Bar", "choice_a": "0"}
-        submit_answer_response, post_grade_response = (
+        submit_answer_response, _post_grade_response = (
             self.default_submit_page_answer_by_page_id_and_test(
                 page_id, answer_data=answer_data, expected_grade=8.57))
         self.assertAddMessageCalledWith(MESSAGE_ANSWER_SAVED_TEXT)
@@ -215,7 +215,7 @@ class SingleCourseQuizPageTest(SingleCourseQuizPageTestMixin,
 
     def test_quiz_inline_correct_answer(self):
         page_id = "inlinemulti"
-        submit_answer_response, post_grade_response = (
+        submit_answer_response, _post_grade_response = (
             self.default_submit_page_answer_by_page_id_and_test(page_id))
         self.assertAddMessageCalledWith(MESSAGE_ANSWER_SAVED_TEXT)
         # 7 answer
@@ -227,13 +227,13 @@ class SingleCourseQuizPageTest(SingleCourseQuizPageTestMixin,
 
     def test_quiz_survey_text(self):
         page_id = "fear"
-        submit_answer_response, post_grade_response = (
+        _submit_answer_response, _post_grade_response = (
             self.default_submit_page_answer_by_page_id_and_test(page_id))
         self.assertAddMessageCalledWith(MESSAGE_ANSWER_SAVED_TEXT)
 
     def test_quiz_survey_choice(self):
         page_id = "age_group"
-        submit_answer_response, post_grade_response = (
+        _submit_answer_response, _post_grade_response = (
             self.default_submit_page_answer_by_page_id_and_test(page_id))
         self.assertAddMessageCalledWith(MESSAGE_ANSWER_SAVED_TEXT)
 
@@ -241,13 +241,13 @@ class SingleCourseQuizPageTest(SingleCourseQuizPageTestMixin,
 
     def test_human_graded_text(self):
         page_id = "hgtext"
-        submit_answer_response, post_grade_response = (
+        _submit_answer_response, _post_grade_response = (
             self.default_submit_page_answer_by_page_id_and_test(page_id))
         self.assertAddMessageCalledWith(MESSAGE_ANSWER_SAVED_TEXT)
 
     def test_human_graded_text_failed(self):
         page_id = "hgtext"
-        submit_answer_response, post_grade_response = (
+        submit_answer_response, _post_grade_response = (
             self.default_submit_page_answer_by_page_id_and_test(
                 page_id, answer_data={"answer": TEST_HGTEXT_MARKDOWN_ANSWER_WRONG},
                 do_grading=False))
@@ -261,7 +261,7 @@ class SingleCourseQuizPageTest(SingleCourseQuizPageTestMixin,
         self.assertSubmitHistoryItemsCount(page_ordinal=page_ordinal,
                                            expected_count=0)
 
-        submit_answer_response, post_grade_response = (
+        submit_answer_response, _post_grade_response = (
             self.default_submit_page_answer_by_page_id_and_test(
                 page_id,
                 answer_data={"answer": TEST_HGTEXT_MARKDOWN_ANSWER_TYPE_WRONG},
@@ -280,7 +280,7 @@ class SingleCourseQuizPageTest(SingleCourseQuizPageTestMixin,
 
     def test_fileupload_any(self):
         page_id = "anyup"
-        submit_answer_response, post_grade_response = (
+        _submit_answer_response, _post_grade_response = (
             self.default_submit_page_answer_by_page_id_and_test(
                 page_id, do_grading=False))
         self.assertAddMessageCalledWith(MESSAGE_ANSWER_SAVED_TEXT)
@@ -289,7 +289,7 @@ class SingleCourseQuizPageTest(SingleCourseQuizPageTestMixin,
             expected_result1 = fp.read()
 
         # change answer
-        submit_answer_response, post_grade_response = (
+        _submit_answer_response, _post_grade_response = (
             self.default_submit_page_answer_by_page_id_and_test(
                 page_id, answer_data={"uploaded_file": TEST_PDF_FILE_PATH},
                 expected_grade=5))
@@ -321,7 +321,7 @@ class SingleCourseQuizPageTest(SingleCourseQuizPageTestMixin,
         page_id = "proof_upload"
 
         # wrong MIME type, a text file
-        submit_answer_response, post_grade_response = (
+        submit_answer_response, _post_grade_response = (
             self.default_submit_page_answer_by_page_id_and_test(
                 page_id, answer_data={"uploaded_file": TEST_TEXT_FILE_PATH},
                 do_grading=False))
@@ -339,7 +339,7 @@ class SingleCourseQuizPageTest(SingleCourseQuizPageTestMixin,
     def test_fileupload_pdf(self):
         page_id = "proof_upload"
 
-        submit_answer_response, post_grade_response = (
+        _submit_answer_response, _post_grade_response = (
             self.default_submit_page_answer_by_page_id_and_test(page_id))
         self.assertAddMessageCalledWith(MESSAGE_ANSWER_SAVED_TEXT)
 
@@ -359,13 +359,13 @@ class SingleCourseQuizPageTest(SingleCourseQuizPageTestMixin,
 
     def test_optional_page_with_correct_answer(self):
         page_id = "quarter"
-        submit_answer_response, post_grade_response = (
+        _submit_answer_response, _post_grade_response = (
             self.default_submit_page_answer_by_page_id_and_test(page_id))
         self.assertAddMessageCalledWith(MESSAGE_ANSWER_SAVED_TEXT)
 
     def test_optional_page_with_wrong_answer(self):
         page_id = "quarter"
-        submit_answer_response, post_grade_response = (
+        submit_answer_response, _post_grade_response = (
             self.default_submit_page_answer_by_page_id_and_test(
                 page_id, answer_data={"answer": ["0.15"]}, expected_grade=0))
         self.assertAddMessageCalledWith(MESSAGE_ANSWER_SAVED_TEXT)

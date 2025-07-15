@@ -95,13 +95,13 @@ class SingleCourseQuizPageCodeQuestionTest(
 
     def test_code_page_correct(self):
         page_id = "addition"
-        submit_answer_response, post_grade_response = (
+        _submit_answer_response, _post_grade_response = (
             self.default_submit_page_answer_by_page_id_and_test(page_id))
         self.assertAddMessageCalledWith(MESSAGE_ANSWER_SAVED_TEXT)
 
     def test_code_page_wrong(self):
         page_id = "addition"
-        submit_answer_response, post_grade_response = (
+        _submit_answer_response, _post_grade_response = (
             self.default_submit_page_answer_by_page_id_and_test(
                 page_id, answer_data={"answer": "c = a - b\r"},
                 expected_grade=0))
@@ -109,7 +109,7 @@ class SingleCourseQuizPageCodeQuestionTest(
 
     def test_code_page_identical_to_reference(self):
         page_id = "addition"
-        submit_answer_response, post_grade_response = (
+        submit_answer_response, _post_grade_response = (
             self.default_submit_page_answer_by_page_id_and_test(
                 page_id, answer_data={"answer": "c = a + b\r"},
                 expected_grade=1))
@@ -123,14 +123,14 @@ class SingleCourseQuizPageCodeQuestionTest(
 
     def test_code_human_feedback_page_submit(self):
         page_id = "pymult"
-        submit_answer_response, post_grade_response = (
+        _submit_answer_response, _post_grade_response = (
             self.default_submit_page_answer_by_page_id_and_test(page_id))
         self.assertAddMessageCalledWith(MESSAGE_ANSWER_SAVED_TEXT)
 
     def test_code_human_feedback_page_grade1(self):
         page_id = "pymult"
 
-        submit_answer_response, post_grade_response = (
+        _submit_answer_response, post_grade_response = (
             self.default_submit_page_answer_by_page_id_and_test(
                 page_id, answer_data={"answer": "c = b * a\r"},
                 expected_grade=4))
@@ -165,7 +165,7 @@ class SingleCourseQuizPageCodeQuestionTest(
     def test_code_human_feedback_page_grade3(self):
         page_id = "py_simple_list"
 
-        submit_answer_response, post_grade_response = (
+        submit_answer_response, _post_grade_response = (
             self.default_submit_page_answer_by_page_id_and_test(
                 page_id, answer_data={"answer": "b = [a + 1] * 50\r"},
                 do_grading=False))

@@ -2183,7 +2183,7 @@ class SingleCourseQuizPageTestMixin(SingleCoursePageTestMixin):
                     client,
                     group_page_id=group_page_id, flow_id=cls.flow_id)
             assert resp.status_code == 200
-            prefix, zip_file = resp["Content-Disposition"].split("=")
+            prefix, _zip_file = resp["Content-Disposition"].split("=")
             assert prefix == "attachment; filename"
             assert resp.get("Content-Type") == "application/zip"
 

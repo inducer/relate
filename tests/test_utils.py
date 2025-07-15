@@ -143,7 +143,7 @@ class GetCourseSpecificLanguageChoicesTest(SimpleTestCase):
             simplified_chinese_as_arg_count = 0
             my_simplified_chinese_as_arg_count = 0
             for call in mock_gettext.call_args_list:
-                arg, kwargs = call
+                arg, _kwargs = call
                 if "my Simplified Chinese" in arg:
                     my_simplified_chinese_as_arg_count += 1
                 if "Simplified Chinese" in arg:
