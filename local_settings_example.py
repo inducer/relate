@@ -1,6 +1,6 @@
 # See https://docs.djangoproject.com/en/dev/howto/deployment/checklist/
 
-import os  # noqa: F401
+import os  # noqa: F401  # pyright: ignore[reportUnusedImport]
 import os.path as path
 
 
