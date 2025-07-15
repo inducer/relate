@@ -72,7 +72,8 @@ dev = [
     "pytest>=8,<9",
     "pytest-django>=4.5.2,<5",
     "pytest-factoryboy>=2.6.0,<3",
-    "pytest-pudb>=0.7,<0.8",
+    # https://github.com/wronglink/pytest-pudb/pull/29
+    # "pytest-pudb>=0.7,<0.8",
     "safety>=3.2.11,<4",
     "sphinx>=8.1.3,<9",
     "furo>=2024.8.6,<2025",
