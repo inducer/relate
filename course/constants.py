@@ -24,6 +24,8 @@ THE SOFTWARE.
 """
 
 
+from enum import StrEnum
+
 from django.utils.translation import gettext, pgettext_lazy
 
 
@@ -41,7 +43,7 @@ GRADING_OPP_ID_REGEX = "(?P<grading_opp_id>[-_a-zA-Z0-9]+)"
 STATICPAGE_PATH_REGEX = r"(?P<page_path>[-\w]+)"
 
 
-class user_status:  # noqa
+class user_status(StrEnum):  # noqa: N801
     unconfirmed = "unconfirmed"
     active = "active"
 
@@ -54,7 +56,7 @@ USER_STATUS_CHOICES = (
 
 # {{{ participation status
 
-class participation_status:  # noqa
+class participation_status(StrEnum):  # noqa: N801
     requested = "requested"
     active = "active"
     dropped = "dropped"
@@ -77,7 +79,7 @@ PARTICIPATION_STATUS_CHOICES = (
 
 # {{{ participation permission
 
-class participation_permission:  # noqa
+class participation_permission(StrEnum):  # noqa: N801
     edit_course = "edit_course"
     use_admin_interface = "use_admin_interface"
     manage_authentication_tokens = "manage_authentication_tokens"
@@ -259,14 +261,14 @@ PARTICIPATION_PERMISSION_CHOICES = (
 
 # {{{ flow session related
 
-class flow_session_interaction_kind:  # noqa
+class flow_session_interaction_kind(StrEnum):  # noqa: N801
     noninteractive = "noninteractive"
     ungraded = "ungraded"
     practice_grade = "practice_grade"
     permanent_grade = "permanent_grade"
 
 
-class flow_session_expiration_mode:  # noqa
+class flow_session_expiration_mode(StrEnum):  # noqa: N801
     """
     .. attribute:: end
 
@@ -316,7 +318,7 @@ def is_expiration_mode_allowed(
 
 # {{{ flow permission
 
-class flow_permission:  # noqa
+class flow_permission(StrEnum):  # noqa: N801
     """
     .. attribute:: view
 
@@ -442,7 +444,7 @@ FLOW_PERMISSION_CHOICES = (
 # }}}
 
 
-class flow_rule_kind:  # noqa
+class flow_rule_kind(StrEnum):  # noqa: N801
     start = "start"
     access = "access"
     grading = "grading"
@@ -460,7 +462,7 @@ FLOW_RULE_KIND_CHOICES = (
 
 # {{{ grade aggregation strategy
 
-class grade_aggregation_strategy:  # noqa
+class grade_aggregation_strategy(StrEnum):  # noqa: N801
     """A strategy for aggregating multiple grades into one.
 
     .. attribute:: max_grade
@@ -510,7 +512,7 @@ GRADE_AGGREGATION_STRATEGY_CHOICES = (
 
 # {{{ grade state-change type
 
-class grade_state_change_types:  # noqa
+class grade_state_change_types(StrEnum):  # noqa: N801
     grading_started = "grading_started"
     graded = "graded"
     retrieved = "retrieved"
@@ -545,7 +547,7 @@ GRADE_STATE_CHANGE_CHOICES = (
 
 # {{{ exam ticket state
 
-class exam_ticket_states:  # noqa
+class exam_ticket_states(StrEnum):  # noqa: N801
     valid = "valid"
     used = "used"
     revoked = "revoked"
