@@ -89,7 +89,7 @@ mypy = [
 ]
 types = [
     "types-bleach>=6.2.0,<7",
-    "types-paramiko>=3.5.0,<4",
+    "types-paramiko>=3.5.0,<5",
     "types-Markdown~=3.7",
     "types-PyYAML>=6.0.12,<7",
     "celery-types",
