@@ -62,7 +62,7 @@ def truncate_if_long(s):
 
 
 class RunRequestHandler(BaseHTTPRequestHandler):
-    def do_GET(self):  # noqa: N802
+    def do_GET(self):
         print("GET RECEIVED", file=sys.stderr)
         if self.path != "/ping":
             raise RuntimeError("unrecognized path in GET")
@@ -74,7 +74,7 @@ class RunRequestHandler(BaseHTTPRequestHandler):
         self.wfile.write(b"OK")
         print("PING RESPONSE DONE", file=sys.stderr)
 
-    def do_POST(self):  # noqa: N802
+    def do_POST(self):
         global TEST_COUNT
         TEST_COUNT += 1
 
