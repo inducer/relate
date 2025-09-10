@@ -671,9 +671,12 @@ def get_course_repo(course: Course) -> Repo_ish:
         return repo
 
 
-def look_up_git_object(repo: dulwich.repo.Repo,
-        root_tree: dulwich.objects.Tree | FileSystemFakeRepoTree,
-        full_name: str, _max_symlink_depth: int | None = None):
+def look_up_git_object(
+            repo: dulwich.repo.Repo,
+            root_tree: dulwich.objects.Tree | FileSystemFakeRepoTree,
+            full_name: str,
+            _max_symlink_depth: int | None = None
+        ) -> dulwich.objects.Tree | FileSystemFakeRepoTree | dulwich.objects.ShaFile:
     """Traverse git directory tree from *root_tree*, respecting symlinks."""
 
     if _max_symlink_depth is None:
