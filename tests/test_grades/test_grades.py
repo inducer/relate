@@ -35,9 +35,9 @@ from django.utils.timezone import now, timedelta
 
 from course import constants, grades, models
 from course.constants import (
-    grade_aggregation_strategy as g_strategy,
-    grade_state_change_types as g_state,
-    participation_permission as pperm,
+    GradeAggregationStrategy as g_strategy,
+    GradeStateChangeType as g_state,
+    ParticipationPermission as pperm,
 )
 from course.flow import reopen_session
 from course.grades import (
@@ -388,7 +388,7 @@ class GetGradeTableTest(GradesTestMixin, TestCase):
 
         # this make sure it filtered by participation status active
         factories.ParticipationFactory(
-            course=cls.course, status=constants.participation_status.dropped)
+            course=cls.course, status=constants.ParticipationStatus.dropped)
 
         # another course and a gopp, this make sure it filtered by course
         another_course = factories.CourseFactory(identifier="another-course")
@@ -1692,7 +1692,7 @@ class EditGradingOpportunityTest(GradesTestMixin, TestCase):
             self, name, identifier, page_scores_in_participant_gradebook=False,
             hide_superseded_grade_history_before=None,
             op="submit", shown_in_participant_grade_book=True,
-            aggregation_strategy=constants.grade_aggregation_strategy.use_latest,
+            aggregation_strategy=constants.GradeAggregationStrategy.use_latest,
             shown_in_grade_book=True, result_shown_in_participant_grade_book=True,
             **kwargs):
 

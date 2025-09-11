@@ -43,20 +43,20 @@ GRADING_OPP_ID_REGEX = "(?P<grading_opp_id>[-_a-zA-Z0-9]+)"
 STATICPAGE_PATH_REGEX = r"(?P<page_path>[-\w]+)"
 
 
-class user_status(StrEnum):  # noqa: N801
+class UserStatus(StrEnum):
     unconfirmed = "unconfirmed"
     active = "active"
 
 
 USER_STATUS_CHOICES = (
-        (user_status.unconfirmed, pgettext_lazy("User status", "Unconfirmed")),
-        (user_status.active, pgettext_lazy("User status", "Active")),
+        (UserStatus.unconfirmed, pgettext_lazy("User status", "Unconfirmed")),
+        (UserStatus.active, pgettext_lazy("User status", "Active")),
         )
 
 
 # {{{ participation status
 
-class participation_status(StrEnum):  # noqa: N801
+class ParticipationStatus(StrEnum):
     requested = "requested"
     active = "active"
     dropped = "dropped"
@@ -64,13 +64,13 @@ class participation_status(StrEnum):  # noqa: N801
 
 
 PARTICIPATION_STATUS_CHOICES = (
-        (participation_status.requested,
+        (ParticipationStatus.requested,
             pgettext_lazy("Participation status", "Requested")),
-        (participation_status.active,
+        (ParticipationStatus.active,
             pgettext_lazy("Participation status", "Active")),
-        (participation_status.dropped,
+        (ParticipationStatus.dropped,
             pgettext_lazy("Participation status", "Dropped")),
-        (participation_status.denied,
+        (ParticipationStatus.denied,
             pgettext_lazy("Participation status", "Denied")),
         )
 
@@ -79,7 +79,7 @@ PARTICIPATION_STATUS_CHOICES = (
 
 # {{{ participation permission
 
-class participation_permission(StrEnum):  # noqa: N801
+class ParticipationPermission(StrEnum):
     edit_course = "edit_course"
     use_admin_interface = "use_admin_interface"
     manage_authentication_tokens = "manage_authentication_tokens"
@@ -140,118 +140,118 @@ class participation_permission(StrEnum):  # noqa: N801
 
 
 PARTICIPATION_PERMISSION_CHOICES = (
-        (participation_permission.edit_course,
+        (ParticipationPermission.edit_course,
             pgettext_lazy("Participation permission", "Edit course")),
-        (participation_permission.use_admin_interface,
+        (ParticipationPermission.use_admin_interface,
             pgettext_lazy("Participation permission", "Use admin interface")),
-        (participation_permission.manage_authentication_tokens,
+        (ParticipationPermission.manage_authentication_tokens,
             pgettext_lazy("Participation permission",
                 "Manage authentication tokens")),
 
-        (participation_permission.impersonate_role,
+        (ParticipationPermission.impersonate_role,
             pgettext_lazy("Participation permission", "Impersonate role")),
-        (participation_permission.set_fake_time,
+        (ParticipationPermission.set_fake_time,
             pgettext_lazy("Participation permission", "Set fake time")),
-        (participation_permission.set_pretend_facility,
+        (ParticipationPermission.set_pretend_facility,
             pgettext_lazy("Participation permission", "Pretend to be in facility")),
-        (participation_permission.edit_course_permissions,
+        (ParticipationPermission.edit_course_permissions,
             pgettext_lazy("Participation permission", "Edit course permissions")),
-        (participation_permission.view_hidden_course_page,
+        (ParticipationPermission.view_hidden_course_page,
             pgettext_lazy("Participation permission", "View hidden course page")),
-        (participation_permission.view_calendar,
+        (ParticipationPermission.view_calendar,
             pgettext_lazy("Participation permission", "View calendar")),
-        (participation_permission.send_instant_message,
+        (ParticipationPermission.send_instant_message,
             pgettext_lazy("Participation permission", "Send instant message")),
-        (participation_permission.access_files_for,
+        (ParticipationPermission.access_files_for,
             pgettext_lazy("Participation permission", "Access files for")),
-        (participation_permission.included_in_grade_statistics,
+        (ParticipationPermission.included_in_grade_statistics,
             pgettext_lazy("Participation permission",
                 "Included in grade statistics")),
-        (participation_permission.skip_during_manual_grading,
+        (ParticipationPermission.skip_during_manual_grading,
             pgettext_lazy("Participation permission",
                 "Skip during manual grading")),
 
-        (participation_permission.edit_exam,
+        (ParticipationPermission.edit_exam,
             pgettext_lazy("Participation permission", "Edit exam")),
-        (participation_permission.issue_exam_ticket,
+        (ParticipationPermission.issue_exam_ticket,
             pgettext_lazy("Participation permission", "Issue exam ticket")),
-        (participation_permission.batch_issue_exam_ticket,
+        (ParticipationPermission.batch_issue_exam_ticket,
             pgettext_lazy("Participation permission", "Batch issue exam ticket")),
 
-        (participation_permission.view_participant_masked_profile,
+        (ParticipationPermission.view_participant_masked_profile,
             pgettext_lazy("Participation permission",
                 "View participants' masked profile only")),
-        (participation_permission.view_flow_sessions_from_role,
+        (ParticipationPermission.view_flow_sessions_from_role,
             pgettext_lazy("Participation permission",
                 "View flow sessions from role")),
-        (participation_permission.view_gradebook,
+        (ParticipationPermission.view_gradebook,
             pgettext_lazy("Participation permission", "View gradebook")),
-        (participation_permission.edit_grading_opportunity,
+        (ParticipationPermission.edit_grading_opportunity,
             pgettext_lazy("Participation permission", "Edit grading opportunity")),
-        (participation_permission.assign_grade,
+        (ParticipationPermission.assign_grade,
             pgettext_lazy("Participation permission", "Assign grade")),
-        (participation_permission.view_grader_stats,
+        (ParticipationPermission.view_grader_stats,
             pgettext_lazy("Participation permission", "View grader stats")),
-        (participation_permission.batch_import_grade,
+        (ParticipationPermission.batch_import_grade,
             pgettext_lazy("Participation permission", "Batch-import grades")),
-        (participation_permission.batch_export_grade,
+        (ParticipationPermission.batch_export_grade,
             pgettext_lazy("Participation permission", "Batch-export grades")),
-        (participation_permission.batch_download_submission,
+        (ParticipationPermission.batch_download_submission,
             pgettext_lazy("Participation permission", "Batch-download submissions")),
 
-        (participation_permission.impose_flow_session_deadline,
+        (ParticipationPermission.impose_flow_session_deadline,
             pgettext_lazy("Participation permission",
                 "Impose flow session deadline")),
-        (participation_permission.batch_impose_flow_session_deadline,
+        (ParticipationPermission.batch_impose_flow_session_deadline,
             pgettext_lazy("Participation permission",
                 "Batch-impose flow session deadline")),
-        (participation_permission.end_flow_session,
+        (ParticipationPermission.end_flow_session,
             pgettext_lazy("Participation permission", "End flow session")),
-        (participation_permission.batch_end_flow_session,
+        (ParticipationPermission.batch_end_flow_session,
             pgettext_lazy("Participation permission", "Batch-end flow sessions")),
-        (participation_permission.regrade_flow_session,
+        (ParticipationPermission.regrade_flow_session,
             pgettext_lazy("Participation permission", "Regrade flow session")),
-        (participation_permission.batch_regrade_flow_session,
+        (ParticipationPermission.batch_regrade_flow_session,
             pgettext_lazy("Participation permission",
                 "Batch-regrade flow sessions")),
-        (participation_permission.recalculate_flow_session_grade,
+        (ParticipationPermission.recalculate_flow_session_grade,
             pgettext_lazy("Participation permission",
                 "Recalculate flow session grade")),
-        (participation_permission.batch_recalculate_flow_session_grade,
+        (ParticipationPermission.batch_recalculate_flow_session_grade,
             pgettext_lazy("Participation permission",
                 "Batch-recalculate flow session grades")),
 
-        (participation_permission.reopen_flow_session,
+        (ParticipationPermission.reopen_flow_session,
             pgettext_lazy("Participation permission", "Reopen flow session")),
-        (participation_permission.grant_exception,
+        (ParticipationPermission.grant_exception,
             pgettext_lazy("Participation permission", "Grant exception")),
-        (participation_permission.view_analytics,
+        (ParticipationPermission.view_analytics,
             pgettext_lazy("Participation permission", "View analytics")),
 
-        (participation_permission.preview_content,
+        (ParticipationPermission.preview_content,
             pgettext_lazy("Participation permission", "Preview content")),
-        (participation_permission.update_content,
+        (ParticipationPermission.update_content,
             pgettext_lazy("Participation permission", "Update content")),
-        (participation_permission.use_git_endpoint,
+        (ParticipationPermission.use_git_endpoint,
             pgettext_lazy("Participation permission", "Use direct git endpoint")),
-        (participation_permission.use_markup_sandbox,
+        (ParticipationPermission.use_markup_sandbox,
             pgettext_lazy("Participation permission", "Use markup sandbox")),
-        (participation_permission.use_page_sandbox,
+        (ParticipationPermission.use_page_sandbox,
             pgettext_lazy("Participation permission", "Use page sandbox")),
-        (participation_permission.test_flow,
+        (ParticipationPermission.test_flow,
             pgettext_lazy("Participation permission", "Test flow")),
 
-        (participation_permission.edit_events,
+        (ParticipationPermission.edit_events,
             pgettext_lazy("Participation permission", "Edit events")),
 
-        (participation_permission.query_participation,
+        (ParticipationPermission.query_participation,
             pgettext_lazy("Participation permission", "Query participation")),
-        (participation_permission.edit_participation,
+        (ParticipationPermission.edit_participation,
             pgettext_lazy("Participation permission", "Edit participation")),
-        (participation_permission.preapprove_participation,
+        (ParticipationPermission.preapprove_participation,
             pgettext_lazy("Participation permission", "Preapprove participation")),
 
-        (participation_permission.manage_instant_flow_requests,
+        (ParticipationPermission.manage_instant_flow_requests,
             pgettext_lazy("Participation permission",
                 "Manage instant flow requests")),
         )
@@ -261,14 +261,14 @@ PARTICIPATION_PERMISSION_CHOICES = (
 
 # {{{ flow session related
 
-class flow_session_interaction_kind(StrEnum):  # noqa: N801
+class FlowSessionInteractionKind(StrEnum):
     noninteractive = "noninteractive"
     ungraded = "ungraded"
     practice_grade = "practice_grade"
     permanent_grade = "permanent_grade"
 
 
-class flow_session_expiration_mode(StrEnum):  # noqa: N801
+class FlowSessionExpirationMode(StrEnum):
     """
     .. attribute:: end
 
@@ -281,7 +281,7 @@ class flow_session_expiration_mode(StrEnum):  # noqa: N801
         This may be used to 'roll over' into another set of grading rules,
         say ones assigning less credit for homework turned in late.
 
-        Allowed by :attr:`flow_permission.set_roll_over_expiration_mode`.
+        Allowed by :attr:`FlowPermission.set_roll_over_expiration_mode`.
     """
     # always allowed
     end = "end"
@@ -291,9 +291,9 @@ class flow_session_expiration_mode(StrEnum):  # noqa: N801
 
 
 FLOW_SESSION_EXPIRATION_MODE_CHOICES = (
-        (flow_session_expiration_mode.end,
+        (FlowSessionExpirationMode.end,
             pgettext_lazy("Flow expiration mode", "Submit session for grading")),
-        (flow_session_expiration_mode.roll_over,
+        (FlowSessionExpirationMode.roll_over,
             pgettext_lazy("Flow expiration mode",
                 "Do not submit session for grading")),
         )
@@ -302,11 +302,11 @@ FLOW_SESSION_EXPIRATION_MODE_CHOICES = (
 def is_expiration_mode_allowed(
         expmode: str, permissions: frozenset[str]
         ) -> bool:
-    if expmode == flow_session_expiration_mode.roll_over:
-        if (flow_permission.set_roll_over_expiration_mode
+    if expmode == FlowSessionExpirationMode.roll_over:
+        if (FlowPermission.set_roll_over_expiration_mode
                 in permissions):
             return True
-    elif expmode == flow_session_expiration_mode.end:
+    elif expmode == FlowSessionExpirationMode.end:
         return True
     else:
         raise ValueError(gettext("unknown expiration mode"))
@@ -318,7 +318,7 @@ def is_expiration_mode_allowed(
 
 # {{{ flow permission
 
-class flow_permission(StrEnum):  # noqa: N801
+class FlowPermission(StrEnum):
     """
     .. attribute:: view
 
@@ -406,37 +406,37 @@ class flow_permission(StrEnum):  # noqa: N801
 
 
 FLOW_PERMISSION_CHOICES = (
-        (flow_permission.view,
+        (FlowPermission.view,
             pgettext_lazy("Flow permission", "View the flow")),
-        (flow_permission.submit_answer,
+        (FlowPermission.submit_answer,
             pgettext_lazy("Flow permission", "Submit answers")),
-        (flow_permission.end_session,
+        (FlowPermission.end_session,
             pgettext_lazy("Flow permission", "End session")),
-        (flow_permission.change_answer,
+        (FlowPermission.change_answer,
             pgettext_lazy("Flow permission", "Change already-graded answer")),
-        (flow_permission.see_correctness,
+        (FlowPermission.see_correctness,
             pgettext_lazy("Flow permission",
                 "See whether an answer is correct")),
-        (flow_permission.see_answer_before_submission,
+        (FlowPermission.see_answer_before_submission,
             pgettext_lazy("Flow permission",
                 "See the correct answer before answering")),
-        (flow_permission.see_answer_after_submission,
+        (FlowPermission.see_answer_after_submission,
             pgettext_lazy("Flow permission",
                 "See the correct answer after answering")),
-        (flow_permission.cannot_see_flow_result,
+        (FlowPermission.cannot_see_flow_result,
             pgettext_lazy("Flow permission",
                 "Cannot see flow result")),
-        (flow_permission.set_roll_over_expiration_mode,
+        (FlowPermission.set_roll_over_expiration_mode,
             pgettext_lazy("Flow permission",
                 "Set the session to 'roll over' expiration mode")),
-        (flow_permission.see_session_time,
+        (FlowPermission.see_session_time,
             pgettext_lazy("Flow permission", "See session time")),
-        (flow_permission.lock_down_as_exam_session,
+        (FlowPermission.lock_down_as_exam_session,
             pgettext_lazy("Flow permission", "Lock down as exam session")),
-        (flow_permission.send_email_about_flow_page,
+        (FlowPermission.send_email_about_flow_page,
          pgettext_lazy("Flow permission",
                        "Send emails about the flow page to course staff")),
-        (flow_permission.hide_point_count,
+        (FlowPermission.hide_point_count,
          pgettext_lazy("Flow permission",
                        "Hide point count")),
         )
@@ -444,25 +444,25 @@ FLOW_PERMISSION_CHOICES = (
 # }}}
 
 
-class flow_rule_kind(StrEnum):  # noqa: N801
+class FlowRuleKind(StrEnum):
     start = "start"
     access = "access"
     grading = "grading"
 
 
 FLOW_RULE_KIND_CHOICES = (
-        (flow_rule_kind.start,
+        (FlowRuleKind.start,
             pgettext_lazy("Flow rule kind choices", "Session Start")),
-        (flow_rule_kind.access,
+        (FlowRuleKind.access,
             pgettext_lazy("Flow rule kind choices", "Session Access")),
-        (flow_rule_kind.grading,
+        (FlowRuleKind.grading,
             pgettext_lazy("Flow rule kind choices", "Grading")),
         )
 
 
 # {{{ grade aggregation strategy
 
-class grade_aggregation_strategy(StrEnum):  # noqa: N801
+class GradeAggregationStrategy(StrEnum):
     """A strategy for aggregating multiple grades into one.
 
     .. attribute:: max_grade
@@ -495,15 +495,15 @@ class grade_aggregation_strategy(StrEnum):  # noqa: N801
 
 
 GRADE_AGGREGATION_STRATEGY_CHOICES = (
-        (grade_aggregation_strategy.max_grade,
+        (GradeAggregationStrategy.max_grade,
             pgettext_lazy("Grade aggregation strategy", "Use the max grade")),
-        (grade_aggregation_strategy.avg_grade,
+        (GradeAggregationStrategy.avg_grade,
             pgettext_lazy("Grade aggregation strategy", "Use the avg grade")),
-        (grade_aggregation_strategy.min_grade,
+        (GradeAggregationStrategy.min_grade,
             pgettext_lazy("Grade aggregation strategy", "Use the min grade")),
-        (grade_aggregation_strategy.use_earliest,
+        (GradeAggregationStrategy.use_earliest,
             pgettext_lazy("Grade aggregation strategy", "Use the earliest grade")),
-        (grade_aggregation_strategy.use_latest,
+        (GradeAggregationStrategy.use_latest,
             pgettext_lazy("Grade aggregation strategy", "Use the latest grade")),
         )
 
@@ -512,7 +512,7 @@ GRADE_AGGREGATION_STRATEGY_CHOICES = (
 
 # {{{ grade state-change type
 
-class grade_state_change_types(StrEnum):  # noqa: N801
+class GradeStateChangeType(StrEnum):
     grading_started = "grading_started"
     graded = "graded"
     retrieved = "retrieved"
@@ -524,21 +524,21 @@ class grade_state_change_types(StrEnum):  # noqa: N801
 
 
 GRADE_STATE_CHANGE_CHOICES = (
-        (grade_state_change_types.grading_started,
+        (GradeStateChangeType.grading_started,
             pgettext_lazy("Grade state change", "Grading started")),
-        (grade_state_change_types.graded,
+        (GradeStateChangeType.graded,
             pgettext_lazy("Grade state change", "Graded")),
-        (grade_state_change_types.retrieved,
+        (GradeStateChangeType.retrieved,
             pgettext_lazy("Grade state change", "Retrieved")),
-        (grade_state_change_types.unavailable,
+        (GradeStateChangeType.unavailable,
             pgettext_lazy("Grade state change", "Unavailable")),
-        (grade_state_change_types.extension,
+        (GradeStateChangeType.extension,
             pgettext_lazy("Grade state change", "Extension")),
-        (grade_state_change_types.report_sent,
+        (GradeStateChangeType.report_sent,
             pgettext_lazy("Grade state change", "Report sent")),
-        (grade_state_change_types.do_over,
+        (GradeStateChangeType.do_over,
             pgettext_lazy("Grade state change", "Do-over")),
-        (grade_state_change_types.exempt,
+        (GradeStateChangeType.exempt,
             pgettext_lazy("Grade state change", "Exempt")),
         )
 
@@ -547,18 +547,18 @@ GRADE_STATE_CHANGE_CHOICES = (
 
 # {{{ exam ticket state
 
-class exam_ticket_states(StrEnum):  # noqa: N801
+class ExamTicketState(StrEnum):
     valid = "valid"
     used = "used"
     revoked = "revoked"
 
 
 EXAM_TICKET_STATE_CHOICES = (
-        (exam_ticket_states.valid,
+        (ExamTicketState.valid,
             pgettext_lazy("Exam ticket state", "Valid")),
-        (exam_ticket_states.used,
+        (ExamTicketState.used,
             pgettext_lazy("Exam ticket state", "Used")),
-        (exam_ticket_states.revoked,
+        (ExamTicketState.revoked,
             pgettext_lazy("Exam ticket state", "Revoked")),
         )
 

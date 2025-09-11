@@ -33,7 +33,7 @@ from django.core.exceptions import PermissionDenied
 from django.utils.safestring import mark_safe
 from django.utils.translation import gettext, gettext_lazy as _
 
-from course.constants import participation_permission as pperm
+from course.constants import ParticipationPermission as pperm
 from course.utils import CoursePageContext, course_view, render_course_page
 
 

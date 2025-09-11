@@ -58,7 +58,7 @@ from django_select2.forms import Select2Widget
 from dulwich.repo import Repo
 
 from course.auth import with_course_api_auth
-from course.constants import participation_permission as pperm, participation_status
+from course.constants import ParticipationPermission as pperm, ParticipationStatus
 from course.models import Course, Participation, ParticipationRole
 from course.utils import (
     course_view,
@@ -232,7 +232,7 @@ def set_up_new_course(request: http.HttpRequest) -> http.HttpResponse:
                         part = Participation()
                         part.user = request.user
                         part.course = new_course
-                        part.status = participation_status.active
+                        part.status = ParticipationStatus.active
                         part.save()
 
                         part.roles.set([

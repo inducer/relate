@@ -39,8 +39,8 @@ from django.utils.timezone import now, timedelta
 from course import constants, flow, models
 from course.constants import (
     SESSION_LOCKED_TO_FLOW_PK,
-    flow_permission as fperm,
-    grade_aggregation_strategy as g_strategy,
+    FlowPermission as fperm,
+    GradeAggregationStrategy as g_strategy,
 )
 from course.utils import FlowSessionGradingRule, FlowSessionStartRule
 from relate.utils import StyledForm, dict_to_struct
@@ -274,7 +274,7 @@ class StartFlowTest(CoursesTestMixinBase, unittest.TestCase):
 
         session_start_rule = FlowSessionStartRule(
             tag_session="my_tag",
-            default_expiration_mode=constants.flow_session_expiration_mode.roll_over)
+            default_expiration_mode=constants.FlowSessionExpirationMode.roll_over)
 
         flow_desc = dict_to_struct(
             {"rules": dict_to_struct(
@@ -337,7 +337,7 @@ class StartFlowTest(CoursesTestMixinBase, unittest.TestCase):
         self.assertEqual(fs.start_time, self.now_datetime)
         self.assertTrue(fs.in_progress)
         self.assertEqual(fs.expiration_mode,
-                         constants.flow_session_expiration_mode.end)
+                         constants.FlowSessionExpirationMode.end)
         self.assertIsNone(fs.access_rules_tag)
 
         self.assertEqual(self.mock_adjust_flow_session_page_data.call_count, 1)
@@ -372,7 +372,7 @@ class StartFlowTest(CoursesTestMixinBase, unittest.TestCase):
         self.assertEqual(fs.start_time, self.now_datetime)
         self.assertTrue(fs.in_progress)
         self.assertEqual(fs.expiration_mode,
-                         constants.flow_session_expiration_mode.end)
+                         constants.FlowSessionExpirationMode.end)
         self.assertIsNone(fs.access_rules_tag)
 
         self.assertEqual(self.mock_adjust_flow_session_page_data.call_count, 1)
@@ -759,7 +759,7 @@ class GetInteractionKindTest(unittest.TestCase):
             flow.get_interaction_kind(
                 self.fctx, self.flow_session, flow_generates_grade=True,
                 all_page_data=all_page_data),
-            constants.flow_session_interaction_kind.permanent_grade)
+            constants.FlowSessionInteractionKind.permanent_grade)
 
     def test_practice_grade(self):
         all_page_data = [
@@ -774,7 +774,7 @@ class GetInteractionKindTest(unittest.TestCase):
             flow.get_interaction_kind(
                 self.fctx, self.flow_session, flow_generates_grade=False,
                 all_page_data=all_page_data),
-            constants.flow_session_interaction_kind.practice_grade)
+            constants.FlowSessionInteractionKind.practice_grade)
 
     def test_ungraded(self):
         all_page_data = [
@@ -792,7 +792,7 @@ class GetInteractionKindTest(unittest.TestCase):
                     self.fctx, self.flow_session,
                     flow_generates_grade=flow_generates_grade,
                     all_page_data=all_page_data),
-                constants.flow_session_interaction_kind.ungraded)
+                constants.FlowSessionInteractionKind.ungraded)
 
     def test_noninteractive(self):
         all_page_data = [
@@ -808,7 +808,7 @@ class GetInteractionKindTest(unittest.TestCase):
                     self.fctx, self.flow_session,
                     flow_generates_grade=flow_generates_grade,
                     all_page_data=all_page_data),
-                constants.flow_session_interaction_kind.noninteractive)
+                constants.FlowSessionInteractionKind.noninteractive)
 
 
 class GradeInfoTest(unittest.TestCase):
@@ -1815,7 +1815,7 @@ class ExpireFlowSessionTest(SingleCourseTestMixin, TestCase):
     def test_expiration_mode_rollover_not_may_start_new_session(self):
         flow_session = factories.FlowSessionFactory(
             participation=self.student_participation, in_progress=True,
-            expiration_mode=constants.flow_session_expiration_mode.roll_over
+            expiration_mode=constants.FlowSessionExpirationMode.roll_over
         )
 
         self.mock_get_session_start_rule.return_value = (
@@ -1844,7 +1844,7 @@ class ExpireFlowSessionTest(SingleCourseTestMixin, TestCase):
     def test_expiration_mode_end(self):
         flow_session = factories.FlowSessionFactory(
             participation=self.student_participation, in_progress=True,
-            expiration_mode=constants.flow_session_expiration_mode.end
+            expiration_mode=constants.FlowSessionExpirationMode.end
         )
 
         grading_rule = FlowSessionGradingRule(
@@ -2189,7 +2189,7 @@ class GradeFlowSessionTest(SingleCourseQuizPageTestMixin,
             "flow_session": flow_session,
             "opportunity": self.gopp,
             "participation": self.student_participation,
-            "state": constants.grade_state_change_types.graded,
+            "state": constants.GradeStateChangeType.graded,
             "attempt_id": get_flow_session_attempt_id(flow_session),
             "points": 5,
             "max_points": 10,
@@ -2358,7 +2358,7 @@ class GradeFlowSessionTest(SingleCourseQuizPageTestMixin,
         # a new grade change objects is created
         self.assertEqual(current_grade_changes.count(), 2)
         self.assertEqual(current_grade_changes.last().state,
-                         constants.grade_state_change_types.graded)
+                         constants.GradeStateChangeType.graded)
 
     def test_previous_grade_change_comment_different(self):
         flow_session = self.get_default_test_session()
@@ -4709,7 +4709,7 @@ class SendEmailAboutFlowPageTest(HackRepoMixin,
         self.assertEqual(len(mail.outbox), 0)
 
     def test_no_tas(self):
-        self.ta_participation.status = constants.participation_status.dropped
+        self.ta_participation.status = constants.ParticipationStatus.dropped
         self.ta_participation.save()
 
         resp = self.client.post(
@@ -4867,17 +4867,17 @@ class UpdateExpirationModeTest(SingleCourseQuizPageTestMixin, TestCase):
         self.assertEqual(resp.status_code, 400)
         fs = models.FlowSession.objects.last()
         self.assertEqual(fs.expiration_mode,
-                         constants.flow_session_expiration_mode.end)
+                         constants.FlowSessionExpirationMode.end)
 
     def test_invalid_flow_session_id(self):
         resp = self.client.post(
             self.get_relate_update_expiration_mode_url(flow_session_id=100),
             data={"expiration_mode":
-                      constants.flow_session_expiration_mode.roll_over})
+                      constants.FlowSessionExpirationMode.roll_over})
         self.assertEqual(resp.status_code, 404)
         fs = models.FlowSession.objects.last()
         self.assertEqual(fs.expiration_mode,
-                         constants.flow_session_expiration_mode.end)
+                         constants.FlowSessionExpirationMode.end)
 
     def test_session_not_in_progress(self):
         self.flow_session.in_progress = False
@@ -4885,32 +4885,32 @@ class UpdateExpirationModeTest(SingleCourseQuizPageTestMixin, TestCase):
         resp = self.client.post(
             self.get_relate_update_expiration_mode_url(),
             data={"expiration_mode":
-                      constants.flow_session_expiration_mode.roll_over})
+                      constants.FlowSessionExpirationMode.roll_over})
         self.assertEqual(resp.status_code, 403)
         fs = models.FlowSession.objects.last()
         self.assertEqual(fs.expiration_mode,
-                         constants.flow_session_expiration_mode.end)
+                         constants.FlowSessionExpirationMode.end)
 
     def test_success(self):
         resp = self.client.post(
             self.get_relate_update_expiration_mode_url(),
             data={"expiration_mode":
-                      constants.flow_session_expiration_mode.roll_over})
+                      constants.FlowSessionExpirationMode.roll_over})
         self.assertEqual(resp.status_code, 200)
         fs = models.FlowSession.objects.last()
         self.assertEqual(fs.expiration_mode,
-                         constants.flow_session_expiration_mode.roll_over)
+                         constants.FlowSessionExpirationMode.roll_over)
 
     def test_not_is_expiration_mode_allowed(self):
         self.mock_is_expiration_mode_allowed.return_value = False
         resp = self.client.post(
             self.get_relate_update_expiration_mode_url(),
             data={"expiration_mode":
-                      constants.flow_session_expiration_mode.roll_over})
+                      constants.FlowSessionExpirationMode.roll_over})
         self.assertEqual(resp.status_code, 403)
         fs = models.FlowSession.objects.last()
         self.assertEqual(fs.expiration_mode,
-                         constants.flow_session_expiration_mode.end)
+                         constants.FlowSessionExpirationMode.end)
 
     def test_post_invalid_bookmark_state(self):
         resp = self.client.post(
@@ -4919,18 +4919,18 @@ class UpdateExpirationModeTest(SingleCourseQuizPageTestMixin, TestCase):
         self.assertEqual(resp.status_code, 400)
         fs = models.FlowSession.objects.last()
         self.assertEqual(fs.expiration_mode,
-                         constants.flow_session_expiration_mode.end)
+                         constants.FlowSessionExpirationMode.end)
 
     def test_not_you_session(self):
         with self.temporarily_switch_to_user(self.ta_participation.user):
             resp = self.client.post(
                 self.get_relate_update_expiration_mode_url(),
                 data={"expiration_mode":
-                          constants.flow_session_expiration_mode.roll_over})
+                          constants.FlowSessionExpirationMode.roll_over})
             self.assertEqual(resp.status_code, 403)
             fs = models.FlowSession.objects.last()
             self.assertEqual(fs.expiration_mode,
-                             constants.flow_session_expiration_mode.end)
+                             constants.FlowSessionExpirationMode.end)
 
 
 class RegradeFlowsViewTest(SingleCourseQuizPageTestMixin, TestCase):

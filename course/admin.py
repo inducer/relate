@@ -33,7 +33,7 @@ from django.core.exceptions import PermissionDenied
 from django.utils.translation import gettext_lazy as _, pgettext
 from typing_extensions import override
 
-from course.constants import exam_ticket_states, participation_permission as pperm
+from course.constants import ExamTicketState, ParticipationPermission as pperm
 from course.enrollment import approve_enrollment, deny_enrollment
 from course.models import (
     AuthenticationToken,
@@ -1102,8 +1102,8 @@ class ExamTicketAdmin(admin.ModelAdmin[ExamTicket]):
     )
     def revoke_exam_tickets(self, request, queryset):
         queryset \
-                .filter(state=exam_ticket_states.valid) \
-                .update(state=exam_ticket_states.revoked)
+                .filter(state=ExamTicketState.valid) \
+                .update(state=ExamTicketState.revoked)
 
     actions = [revoke_exam_tickets]
 

@@ -44,10 +44,10 @@ from django.test import Client, RequestFactory, override_settings
 from django.urls import resolve, reverse
 
 from course.constants import (
-    flow_permission as fperm,
-    grade_aggregation_strategy as g_strategy,
-    participation_status,
-    user_status,
+    FlowPermission as fperm,
+    GradeAggregationStrategy as g_strategy,
+    ParticipationStatus,
+    UserStatus,
 )
 from course.content import get_course_repo_path, get_repo_blob
 from course.flow import GradeInfo
@@ -108,7 +108,7 @@ SINGLE_COURSE_SETUP_LIST = [
                     "email": "test_instructor@example.com",
                     "first_name": "Test_ins",
                     "last_name": "Instructor"},
-                "status": participation_status.active
+                "status": ParticipationStatus.active
             },
             {
                 "role_identifier": "ta",
@@ -118,7 +118,7 @@ SINGLE_COURSE_SETUP_LIST = [
                     "email": "test_ta@example.com",
                     "first_name": "Test_ta",
                     "last_name": "TA"},
-                "status": participation_status.active
+                "status": ParticipationStatus.active
             },
             {
                 "role_identifier": "student",
@@ -128,7 +128,7 @@ SINGLE_COURSE_SETUP_LIST = [
                     "email": "test_student@example.com",
                     "first_name": "Test_stu",
                     "last_name": "Student"},
-                "status": participation_status.active
+                "status": ParticipationStatus.active
             }
         ],
     }
@@ -148,7 +148,7 @@ NONE_PARTICIPATION_USER_CREATE_KWARG_LIST = [
         "last_name": "User1",
         "institutional_id": "test_user1_institutional_id",
         "institutional_id_verified": True,
-        "status": user_status.active
+        "status": UserStatus.active
     },
     {
         "username": "test_user2",
@@ -158,7 +158,7 @@ NONE_PARTICIPATION_USER_CREATE_KWARG_LIST = [
         "last_name": "User2",
         "institutional_id": "test_user2_institutional_id",
         "institutional_id_verified": False,
-        "status": user_status.active
+        "status": UserStatus.active
     },
     {
         "username": "test_user3",
@@ -168,7 +168,7 @@ NONE_PARTICIPATION_USER_CREATE_KWARG_LIST = [
         "last_name": "User3",
         "institutional_id": "test_user3_institutional_id",
         "institutional_id_verified": True,
-        "status": user_status.unconfirmed
+        "status": UserStatus.unconfirmed
     },
     {
         "username": "test_user4",
@@ -178,7 +178,7 @@ NONE_PARTICIPATION_USER_CREATE_KWARG_LIST = [
         "last_name": "User4",
         "institutional_id": "test_user4_institutional_id",
         "institutional_id_verified": False,
-        "status": user_status.unconfirmed
+        "status": UserStatus.unconfirmed
     }
 ]
 
@@ -760,7 +760,7 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
                         user_or_create_user_kwargs=create_user_kwargs,
                         role_identifier=role_identifier,
                         status=participation.get("status",
-                                                 participation_status.active)
+                                                 ParticipationStatus.active)
                     )
 
             # Remove superuser from participation for further test
@@ -809,7 +809,7 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
             assert isinstance(user_or_create_user_kwargs, dict)
             user = cls.create_user(user_or_create_user_kwargs)
         if status is None:
-            status = participation_status.active
+            status = ParticipationStatus.active
         participation, p_created = Participation.objects.get_or_create(
             user=user,
             course=course,
@@ -1236,7 +1236,7 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
         return Participation.objects.filter(
             course__identifier=course_identifier,
             roles__identifier="instructor",
-            status=participation_status.active
+            status=ParticipationStatus.active
         ).first().user
 
     @classmethod
@@ -1891,21 +1891,21 @@ class SingleCourseTestMixin(CoursesTestMixinBase):
         cls.instructor_participation = Participation.objects.filter(
             course=cls.course,
             roles__identifier="instructor",
-            status=participation_status.active
+            status=ParticipationStatus.active
         ).first()
         assert cls.instructor_participation
 
         cls.student_participation = Participation.objects.filter(
             course=cls.course,
             roles__identifier="student",
-            status=participation_status.active
+            status=ParticipationStatus.active
         ).first()
         assert cls.student_participation
 
         cls.ta_participation = Participation.objects.filter(
             course=cls.course,
             roles__identifier="ta",
-            status=participation_status.active
+            status=ParticipationStatus.active
         ).first()
         assert cls.ta_participation
 
@@ -2032,21 +2032,21 @@ class TwoCourseTestMixin(CoursesTestMixinBase):
         cls.course1_instructor_participation = Participation.objects.filter(
             course=cls.course1,
             roles__identifier="instructor",
-            status=participation_status.active
+            status=ParticipationStatus.active
         ).first()
         assert cls.course1_instructor_participation
 
         cls.course1_student_participation = Participation.objects.filter(
             course=cls.course1,
             roles__identifier="student",
-            status=participation_status.active
+            status=ParticipationStatus.active
         ).first()
         assert cls.course1_student_participation
 
         cls.course1_ta_participation = Participation.objects.filter(
             course=cls.course1,
             roles__identifier="ta",
-            status=participation_status.active
+            status=ParticipationStatus.active
         ).first()
         assert cls.course1_ta_participation
         cls.course1_page_url = cls.get_course_page_url(cls.course1.identifier)
@@ -2055,21 +2055,21 @@ class TwoCourseTestMixin(CoursesTestMixinBase):
         cls.course2_instructor_participation = Participation.objects.filter(
             course=cls.course2,
             roles__identifier="instructor",
-            status=participation_status.active
+            status=ParticipationStatus.active
         ).first()
         assert cls.course2_instructor_participation
 
         cls.course2_student_participation = Participation.objects.filter(
             course=cls.course2,
             roles__identifier="student",
-            status=participation_status.active
+            status=ParticipationStatus.active
         ).first()
         assert cls.course2_student_participation
 
         cls.course2_ta_participation = Participation.objects.filter(
             course=cls.course2,
             roles__identifier="ta",
-            status=participation_status.active
+            status=ParticipationStatus.active
         ).first()
         assert cls.course2_ta_participation
         cls.course2_page_url = cls.get_course_page_url(cls.course2.identifier)

@@ -182,7 +182,7 @@ multiline-quotes = "double"
 "saml-config/attribute-maps/*.py" = ["Q", "E231", "W292", "W291", "E501", "I002"]
 
 # mostly generated
-"*/migrations/*.py" = ["Q", "E501", "RUF012", "F401", "I002", "UP"]
+"*/migrations/*.py" = ["Q", "E501", "RUF012", "F401", "I002", "UP", "N813"]
 
 # TODO
 "tests/**/*.py" = ["F841", "RUF012"]

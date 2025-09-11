@@ -10,7 +10,7 @@
 
   <table class="table table-striped gradebook ">
     <thead>
-    {% if not pperm.view_participant_masked_profile %}
+    {% if not PPerm.view_participant_masked_profile %}
         <th class="datacol">{% trans "User ID" %}</th>
         <th class="datacol">{% trans "Name" context "real name of a user" %}</th>
     {% else %}
@@ -25,19 +25,19 @@
       <tr>
         <td class="headcol"><a href="{% url "relate-view_participant_grades" course.identifier participation.id %}">
             <span class="sensitive">
-                {% if not pperm.view_participant_masked_profile %}
+                {% if not PPerm.view_participant_masked_profile %}
                     {{ participation.user.username }}
                 {% else %}
                   {%  if participation.user == user %}{% trans "Me" %}{% else %}{{ participation.user.get_masked_profile }}{% endif %}
                 {% endif %}
             </span></a>
-            {% if pperm.view_participant_masked_profile %}
+            {% if PPerm.view_participant_masked_profile %}
                 {% if participation|has_permission:"view_gradebook" %}
                     ({{ participation.get_role_desc }})
                 {% endif %}
             {% endif %}
         </td>
-        {% if not pperm.view_participant_masked_profile %}
+        {% if not PPerm.view_participant_masked_profile %}
         <td class="datacol">
           <span class="sensitive">
             {{ participation.user.get_full_name }}

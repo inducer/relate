@@ -68,7 +68,7 @@
             <td>
               <tt><a href="{% url "relate-view_single_grade" course.identifier flow_session.participation.id grading_opportunity.id %}"><i class="bi bi-arrow-90deg-up"></i> {{ flow_identifier }}</a></tt>
               <span class="sensitive">
-              {% if not pperm.view_participant_masked_profile %}
+              {% if not PPerm.view_participant_masked_profile %}
                   {# Translators: the grade information "for" a participant #}
                   {% blocktrans trimmed with full_name=flow_session.participation.user.get_full_name username=flow_session.participation.user.username %}
                   for

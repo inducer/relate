@@ -32,7 +32,7 @@ from io import StringIO
 from django.test import TestCase
 
 from course import constants, grades, models
-from course.constants import grade_state_change_types as g_state
+from course.constants import GradeStateChangeType as g_state
 from tests import factories
 from tests.base_test_mixins import CoursesTestMixinBase
 from tests.constants import CSV_PATH
@@ -123,7 +123,7 @@ class FindParticipantFromIdTest(CoursesTestMixinBase, TestCase):
 
     def test_skip_not_active(self):
         dropped_participation = factories.ParticipationFactory(
-            course=self.course, status=constants.participation_status.dropped)
+            course=self.course, status=constants.ParticipationStatus.dropped)
 
         with self.assertRaises(grades.ParticipantNotFound) as cm:
             grades.find_participant_from_id(self.course,
@@ -240,7 +240,7 @@ class FindParticipantFromUserAttrTest(CoursesTestMixinBase, TestCase):
 
     def test_skip_not_active(self):
         dropped_participation = factories.ParticipationFactory(
-            course=self.course, status=constants.participation_status.dropped)
+            course=self.course, status=constants.ParticipationStatus.dropped)
 
         with self.assertRaises(grades.ParticipantNotFound) as cm:
             grades.find_participant_from_user_attr(

@@ -33,9 +33,9 @@ from django.shortcuts import get_object_or_404, redirect, render  # noqa
 from django.urls import reverse
 from django.utils.translation import gettext as _, pgettext
 
-from course.constants import participation_permission as pperm
+from course.constants import ParticipationPermission as pperm
 from course.content import get_flow_desc
-from course.models import FlowPageVisit, FlowSession, flow_permission
+from course.models import FlowPageVisit, FlowSession, FlowPermission
 from course.utils import PageInstanceCache, course_view, render_course_page
 
 
@@ -218,7 +218,7 @@ def is_flow_multiple_submit(flow_desc):
         return False
 
     for rule in flow_desc.rules.access:
-        if flow_permission.change_answer in rule.permissions:
+        if FlowPermission.change_answer in rule.permissions:
             return True
 
     return False
@@ -236,12 +236,12 @@ def is_page_multiple_submit(flow_desc, page_desc):
 
     if result:
         if remove_permissions is not None:
-            if flow_permission.change_answer in remove_permissions:
+            if FlowPermission.change_answer in remove_permissions:
                 result = False
 
     else:
         if add_permissions is not None:
-            if flow_permission.change_answer in add_permissions:
+            if FlowPermission.change_answer in add_permissions:
                 result = True
 
     return result
