@@ -75,7 +75,12 @@ dev = [
     "pytest-factoryboy>=2.6.0,<3",
     # https://github.com/wronglink/pytest-pudb/pull/29
     # "pytest-pudb>=0.7,<0.8",
+    #
     "safety>=3.2.11,<4",
+    # workaround for:
+    # https://github.com/pyupio/safety/issues/784
+    "typer<0.17",
+
     "sphinx>=8.1.3,<9",
     "furo>=2024.8.6,<2026",
     "sphinx-copybutton>=0.5.2,<0.6",
