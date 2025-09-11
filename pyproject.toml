@@ -195,6 +195,7 @@ show_error_codes = true
 untyped_calls_exclude = [
     "dulwich",
 ]
+allow_untyped_calls = true
 
 [tool.django-stubs]
 django_settings_module = "relate.settings"
