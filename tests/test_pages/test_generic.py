@@ -255,8 +255,7 @@ class SingleCourseQuizPageTest(SingleCourseQuizPageTestMixin,
         self.assertAddMessageCalledWith(MESSAGE_ANSWER_FAILED_SAVE_TEXT)
         self.assertFormErrorLoose(
             submit_answer_response,
-            "ValidationError: submitted page: "
-            "one or more correct answer(s) expected, 0 found"
+            "at least one 'correct' choice is required"
         )
         page_ordinal = self.get_page_ordinal_via_page_id(page_id)
         self.assertSubmitHistoryItemsCount(page_ordinal=page_ordinal,
@@ -269,7 +268,7 @@ class SingleCourseQuizPageTest(SingleCourseQuizPageTestMixin,
                 do_grading=False))
         self.assertFormErrorLoose(
             submit_answer_response,
-            "ValidationError: page must be of type 'ChoiceQuestion'"
+            "ValueError: page must be of type 'ChoiceQuestion'"
         )
         self.assertAddMessageCalledWith(MESSAGE_ANSWER_FAILED_SAVE_TEXT)
 

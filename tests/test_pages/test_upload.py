@@ -135,8 +135,7 @@ class FileUploadQuestionSandBoxTest(SingleCoursePageSandboxTestBaseMixin, TestCa
         self.assertSandboxNotHasValidPage(resp)
         self.assertResponseContextContains(
             resp, PAGE_ERRORS,
-            "'maximum_megabytes' expects a positive value, "
-            "got -0.5 instead")
+            "maximum_megabytes\n  Input should be greater than or equal to 0")
 
     def test_negative_value(self):
         markdown = UPLOAD_WITH_NEGATIVE_VALUE_MARKDOWN
@@ -145,8 +144,7 @@ class FileUploadQuestionSandBoxTest(SingleCoursePageSandboxTestBaseMixin, TestCa
         self.assertSandboxNotHasValidPage(resp)
         self.assertResponseContextContains(
             resp, PAGE_ERRORS,
-            "sandboxAttribute 'value' expects a non-negative value, "
-            "got -5 instead")
+            "value\n  Input should be greater than or equal to 0")
 
     def test_mime_types(self):
         markdown = UPLOAD_WITH_UNKNOWN_MIME_TYPES_MARKDOWN
@@ -155,7 +153,7 @@ class FileUploadQuestionSandBoxTest(SingleCoursePageSandboxTestBaseMixin, TestCa
         self.assertSandboxNotHasValidPage(resp)
         self.assertResponseContextContains(
             resp, PAGE_ERRORS,
-            "unrecognized mime types 'application/unknown'")
+            "mime_types.1\n  Input should be")
 
     def test_no_value(self):
         markdown = UPLOAD_WITHOUT_VALUE_MARKDOWN

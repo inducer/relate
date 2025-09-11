@@ -23,16 +23,37 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-
 import re
-import sys
-from typing import Any
+from abc import ABC, abstractmethod
+from enum import StrEnum
+from typing import (
+    TYPE_CHECKING,
+    Annotated,
+    Any,
+    ClassVar,
+    Literal,
+    Self,
+    TypeAlias,
+)
 
 import django.forms as forms
 from django.utils.translation import gettext, gettext_lazy as _
+from pydantic import (
+    AfterValidator,
+    BaseModel,
+    BeforeValidator,
+    ConfigDict,
+    Field,
+    model_validator,
+)
+from pytools import memoize_method, not_none
+from typing_extensions import override
 
 from course.page.base import (
+    AnswerData,
     AnswerFeedback,
+    GradeData,
+    PageBase,
     PageBaseUngraded,
     PageBaseWithCorrectAnswer,
     PageBaseWithHumanTextFeedback,
@@ -41,359 +62,36 @@ from course.page.base import (
     PageBaseWithValue,
     PageBehavior,
     PageContext,
+    PageData,
     get_editor_interaction_mode,
     markup_to_html,
 )
-from course.validation import AttrSpec, ValidationError, validate_struct
-from relate.utils import Struct, StyledFormBase, StyledVerticalForm, string_concat
+from course.repo import EmptyRepo
+from course.validation import (
+    Markup,
+    PointCount,
+    ValidationContext,
+    validate_nonempty,
+)
+from relate.utils import (
+    StyledFormBase,
+    StyledVerticalForm,
+    string_concat,
+)
+
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
 
 
 CORRECT_ANSWER_PATTERN = string_concat(_("A correct answer is"), ": '%s'.")
 
 
-class TextAnswerForm(StyledVerticalForm):
-    # prevents form submission with codemirror's empty textarea
-    use_required_attribute = False
+def parse_sympy(s: float | str):
+    if isinstance(s, (complex, float, int)):
+        from sympy import sympify
+        return sympify(s)
 
-    @staticmethod
-    def get_text_widget(widget_type, read_only=False, check_only=False,
-            interaction_mode=None, initial_text=None):
-        """Returns None if no widget found."""
-
-        help_text = None
-        if widget_type in [None, "text_input"]:
-            if check_only:
-                return True
-
-            widget = forms.TextInput()
-
-        elif widget_type == "textarea":
-            if check_only:
-                return True
-
-            widget = forms.Textarea()
-
-        elif widget_type.startswith("editor:"):
-            if check_only:
-                return True
-
-            from course.utils import get_codemirror_widget
-            widget, help_text = get_codemirror_widget(
-                    language_mode=widget_type[widget_type.find(":")+1:],
-                    interaction_mode=interaction_mode)
-
-        else:
-            return None, None
-
-        widget.attrs["autofocus"] = None
-        if read_only:
-            widget.attrs["readonly"] = None
-        return widget, help_text
-
-    def __init__(self, read_only, interaction_mode, validators, *args, **kwargs):
-        widget_type = kwargs.pop("widget_type", "text_input")
-        initial_text = kwargs.pop("initial_text", None)
-
-        super().__init__(*args, **kwargs)
-        widget, help_text = self.get_text_widget(
-                    widget_type, read_only,
-                    interaction_mode=interaction_mode)
-        self.validators = validators
-        self.fields["answer"] = forms.CharField(
-                required=True,
-                initial=initial_text,
-                widget=widget,
-                help_text=help_text,
-                label=_("Answer"))
-
-    def clean(self):
-        cleaned_data = super().clean()
-
-        answer = cleaned_data.get("answer", "")
-        for i, validator in enumerate(self.validators):
-            try:
-                validator.validate(answer)
-            except forms.ValidationError:
-                if i + 1 == len(self.validators):
-                    # last one, and we flunked -> not valid
-                    raise
-            else:
-                # Found one that will take the input. Good enough.
-                break
-
-
-# {{{ validators
-
-class RELATEPageValidator:
-    type = "relate_page"
-
-    def __init__(self, vctx, location, validator_desc):
-        self.validator_desc = validator_desc
-
-        validate_struct(
-                vctx,
-                location,
-                validator_desc,
-                required_attrs=(
-                    ("type", str),
-                    ),
-                allowed_attrs=(
-                    ("page_type", str),
-                    ),
-                )
-
-    def validate(self, new_page_source):
-        import yaml
-
-        from relate.utils import dict_to_struct
-
-        try:
-            page_desc = dict_to_struct(yaml.safe_load(new_page_source))
-
-            from course.validation import ValidationContext, validate_flow_page
-            vctx = ValidationContext(
-                    # FIXME
-                    repo=None,
-                    commit_sha=None)
-
-            validate_flow_page(vctx, "submitted page", page_desc)
-
-            if page_desc.type != self.validator_desc.page_type:
-                raise ValidationError(gettext("page must be of type '%s'")
-                        % self.validator_desc.page_type)
-
-        except Exception:
-            tp, e, _ = sys.exc_info()
-
-            raise forms.ValidationError(f"{tp.__name__}: {e!s}")
-
-
-TEXT_ANSWER_VALIDATOR_CLASSES = [
-        RELATEPageValidator,
-        ]
-
-
-def get_validator_class(location, validator_type):
-    for validator_class in TEXT_ANSWER_VALIDATOR_CLASSES:
-        if validator_class.type == validator_type:
-            return validator_class
-
-    raise ValidationError(
-            string_concat(
-                "%(location)s: ",
-                _("unknown validator type"),
-                "'%(type)s'")
-            % {"location": location, "type": validator_type})
-
-
-def parse_validator(vctx, location, validator_desc):
-    if not isinstance(validator_desc, Struct):
-        raise ValidationError(
-                string_concat(
-                    "%s: ",
-                    _("must be struct"))
-                % location)
-
-    if not hasattr(validator_desc, "type"):
-        raise ValidationError(
-                string_concat(
-                    "%s: ",
-                    "matcher must supply 'type'")
-                % location)
-
-    return (get_validator_class(location, validator_desc.type)
-        (vctx, location, validator_desc))
-
-# }}}
-
-
-# {{{ matchers
-
-class TextAnswerMatcher:
-    """Abstract interface for matching text answers.
-
-    .. attribute:: type
-    .. attribute:: is_case_sensitive
-
-        Only used for answer normalization. Matchers are responsible for
-        case sensitivity themselves.
-    """
-    ALLOWED_ATTRIBUTES: tuple[Any, ...] = ()
-
-    def __init__(self, vctx, location, matcher_desc):
-        self.matcher_desc = matcher_desc
-        validate_struct(
-                vctx, location, matcher_desc,
-                required_attrs=(
-                    ("type", str),
-                    ("value", self.VALUE_VALIDATION_TYPE),
-                    ),
-                allowed_attrs=(
-                    ("correctness", (int, float)),
-                    ("feedback", str),
-                    *self.ALLOWED_ATTRIBUTES),
-                )
-
-        assert matcher_desc.type == self.type
-        self.value = matcher_desc.value
-
-        if hasattr(matcher_desc, "correctness"):
-            from course.constants import MAX_EXTRA_CREDIT_FACTOR
-            if not 0 <= matcher_desc.correctness <= MAX_EXTRA_CREDIT_FACTOR:
-                raise ValidationError(
-                        string_concat(
-                            "%s: ",
-                            _("correctness value is out of bounds"))
-                        % (location))
-
-            self.correctness = matcher_desc.correctness
-        else:
-            self.correctness = 1
-
-        self.feedback = getattr(matcher_desc, "feedback", None)
-
-    def validate(self, s):
-        """Called to validate form input against simple input mistakes.
-
-        Should raise :exc:`django.forms.ValidationError` on error.
-        """
-
-        pass  # pragma: no cover
-
-    def grade(self, s):
-        raise NotImplementedError()
-
-    def correct_answer_text(self):
-        """May return *None* if not known."""
-        raise NotImplementedError()
-
-
-EXTRA_SPACES_RE = re.compile(r"\s\s+")
-
-
-def multiple_to_single_spaces(s):
-    return EXTRA_SPACES_RE.sub(" ", s).strip()
-
-
-class CaseSensitivePlainMatcher(TextAnswerMatcher):
-    type = "case_sens_plain"
-    is_case_sensitive = True
-
-    VALUE_VALIDATION_TYPE = str
-
-    def __init__(self, vctx, location, matcher_desc):
-        super().__init__(vctx, location, matcher_desc)
-
-    def grade(self, s):
-        if multiple_to_single_spaces(self.value) == multiple_to_single_spaces(s):
-            return AnswerFeedback(self.correctness, self.feedback)
-        else:
-            return AnswerFeedback(0)
-
-    def correct_answer_text(self):
-        if self.correctness >= 1:
-            return self.value
-        else:
-            return None
-
-
-class PlainMatcher(CaseSensitivePlainMatcher):
-    type = "plain"
-    is_case_sensitive = False
-
-    def grade(self, s):
-        if (multiple_to_single_spaces(self.value.lower())
-                == multiple_to_single_spaces(s.lower())):
-            return AnswerFeedback(self.correctness, self.feedback)
-        else:
-            return AnswerFeedback(0)
-
-
-class RegexMatcher(TextAnswerMatcher):
-    type = "regex"
-
-    VALUE_VALIDATION_TYPE = str
-    ALLOWED_ATTRIBUTES = (
-            ("flags", list),
-            )
-
-    RE_FLAGS = [
-            "A", "ASCII", "DOTALL", "I", "IGNORECASE", "M", "MULTILINE", "S",
-            "U", "UNICODE", "VERBOSE", "X",
-            # omitted, grade should be locale-independent
-            # "L", "LOCALE"
-            ]
-
-    def __init__(self, vctx, location, matcher_desc):
-        super().__init__(vctx, location, matcher_desc)
-
-        flags = getattr(self.matcher_desc, "flags", None)
-        if flags is None:
-            self.is_case_sensitive = type(self) is CaseSensitiveRegexMatcher
-            if self.is_case_sensitive:
-                re_flags = 0
-            else:
-                re_flags = re.IGNORECASE
-        else:
-            if type(self) is CaseSensitiveRegexMatcher:
-                raise ValidationError(
-                        string_concat("%s: ",
-                            _("may not specify flags in CaseSensitiveRegexMatcher"))
-                        % (location))
-
-            re_flags = 0
-            for flag in flags:
-                if not isinstance(flag, str):
-                    raise ValidationError(
-                            string_concat("%s: ", _("regex flag is not a string"))
-                            % (location))
-                if flag not in self.RE_FLAGS:
-                    raise ValidationError(
-                            string_concat("%s: ", _("regex flag is invalid"))
-                            % (location))
-                re_flags |= getattr(re, flag)
-
-            self.is_case_sensitive = "I" in flags or "IGNORECASE" in flags
-        try:
-            self.regex = re.compile(self.value, re_flags)
-        except Exception:
-            tp, e, __ = sys.exc_info()
-
-            raise ValidationError(
-                    string_concat(
-                        "%(location)s: ",
-                        _("regex '%(pattern)s' did not compile"),
-                        ": %(err_type)s: %(err_str)s")
-                    % {
-                        "location": location,
-                        "pattern": self.value,
-                        "err_type": tp.__name__,
-                        "err_str": str(e)})
-
-    def grade(self, s):
-        match = self.regex.match(s)
-        if match is not None:
-            return AnswerFeedback(self.correctness, self.feedback)
-        else:
-            return AnswerFeedback(0)
-
-    def correct_answer_text(self):
-        return None
-
-
-class CaseSensitiveRegexMatcher(RegexMatcher):
-    type = "case_sens_regex"
-
-    def __init__(self, vctx, location, matcher_desc):
-        super().__init__(vctx, location, matcher_desc)
-
-        if vctx is not None:
-            vctx.add_warning(location, _("Uses 'case_sens_regex' matcher. "
-                "This will go away in 2022. Use 'regex' with specified flags "
-                "instead."))
-
-
-def parse_sympy(s):
     from pymbolic import parse
     from pymbolic.interop.sympy import PymbolicToSympyMapper
 
@@ -401,69 +99,40 @@ def parse_sympy(s):
     return PymbolicToSympyMapper()(parse(s))
 
 
-class SymbolicExpressionMatcher(TextAnswerMatcher):
-    type = "sym_expr"
-    is_case_sensitive = True
+# {{{ data model/validation
 
-    VALUE_VALIDATION_TYPE = str
-
-    def __init__(self, vctx, location, matcher_desc):
-        super().__init__(vctx, location, matcher_desc)
-
-        try:
-            self.value_sym = parse_sympy(self.value)
-        except ImportError:
-            tp, e, __ = sys.exc_info()
-            if vctx is not None:
-                vctx.add_warning(
-                        location,
-                        string_concat(
-                            "%(location)s: ",
-                            _("unable to check symbolic expression"),
-                            "(%(err_type)s: %(err_str)s)")
-                        % {
-                            "location": location,
-                            "err_type": tp.__name__,
-                            "err_str": str(e)
-                            })
-
-        except Exception:
-            tp, e, __ = sys.exc_info()
-            raise ValidationError(
-                    f"{location}: {tp.__name__}: {e!s}")
-
-    def validate(self, s):
-        try:
-            parse_sympy(s)
-        except Exception:
-            tp, e, _ = sys.exc_info()
-            raise forms.ValidationError(f"{tp.__name__}: {e!s}")
-
-    def grade(self, s):
-        try:
-            answer_sym = parse_sympy(s)
-        except Exception:
-            return AnswerFeedback(0)
-
-        from sympy import simplify
-        try:
-            simp_result = simplify(answer_sym - self.value_sym)
-        except Exception:
-            return AnswerFeedback(0)
-
-        if simp_result == 0:
-            return AnswerFeedback(self.correctness, self.feedback)
-        else:
-            return AnswerFeedback(0)
-
-    def correct_answer_text(self):
-        if self.correctness >= 1:
-            return self.value
-        else:
-            return None
+class WidgetType(StrEnum):
+    TEXT_INPUT = "text_input"
+    TEXTAREA = "textarea"
+    EDITOR = "editor"
 
 
-def float_or_sympy_evalf(s):
+class WidgetDesc(BaseModel):
+    type: WidgetType = WidgetType.TEXT_INPUT
+    language: str | None = None
+
+    model_config: ClassVar[ConfigDict] = ConfigDict(
+                                use_enum_values=True, extra="forbid")
+
+    @model_validator(mode="before")
+    @classmethod
+    def normalize_to_dict(cls, data: Any) -> Any:
+        if data is None:
+            return {"type": "text_input", "language": None}
+        if isinstance(data, str):
+            if ":" in data:
+                tp, lang, *rest = data.split(":")
+                if rest:
+                    raise ValueError("more than one colon found")
+            else:
+                tp = data
+                lang = None
+
+            return {"type": WidgetType(tp), "language": lang}
+        return data
+
+
+def float_or_sympy_evalf(s: str | float) -> float:
     if isinstance(s, int | float):
         return s
 
@@ -483,80 +152,386 @@ def float_or_sympy_evalf(s):
     return float(parse_sympy(s).evalf())
 
 
-class FloatMatcher(TextAnswerMatcher):
-    type = "float"
-    is_case_sensitive = False
+def _validate_float_expr(s: float | str):
+    float_or_sympy_evalf(s)
+    return s
 
-    VALUE_VALIDATION_TYPE = (int, float, str)
-    ALLOWED_ATTRIBUTES = (
-            ("rtol", (int, float, str)),
-            ("atol", (int, float, str)),
-            )
 
-    def __init__(self, vctx, location, matcher_desc):
-        super().__init__(vctx, location, matcher_desc)
+FloatExpression: TypeAlias = Annotated[
+        float | str,
+        AfterValidator(_validate_float_expr)]
+
+
+RegexFlag: TypeAlias = Literal[
+            "A", "ASCII", "DOTALL", "I", "IGNORECASE", "M", "MULTILINE", "S",
+            "U", "UNICODE", "VERBOSE", "X",
+            # omitted, grade should be locale-independent
+            # "L", "LOCALE"
+        ]
+
+
+def _validate_sympy_parseable(s: float | str) -> float | str:
+    parse_sympy(s)
+    return s
+
+
+ExpressionStr: TypeAlias = Annotated[
+            float | str,
+            AfterValidator(_validate_sympy_parseable)
+        ]
+
+# }}}
+
+
+class TextAnswerForm(StyledVerticalForm):
+    # prevents form submission with codemirror's empty textarea
+    use_required_attribute = False
+
+    @staticmethod
+    def get_text_widget(
+                widget_type: WidgetDesc,
+                read_only: bool = False,
+                interaction_mode: str | None = None,
+                initial_text: str | None = None):
+        """Returns None if no widget found."""
+
+        help_text = None
+        widget: forms.Widget
+        if widget_type.type == WidgetType.TEXT_INPUT:
+            widget = forms.TextInput()
+
+        elif widget_type.type == WidgetType.TEXTAREA == "textarea":
+            widget = forms.Textarea()
+
+        elif widget_type.type == WidgetType.EDITOR:
+            from course.utils import get_codemirror_widget
+            widget, help_text = get_codemirror_widget(
+                    language_mode=widget_type.language,
+                    interaction_mode=interaction_mode)
+
+        else:
+            return None, None
+
+        widget.attrs["autofocus"] = None
+        if read_only:
+            widget.attrs["readonly"] = None
+        return widget, help_text
+
+    def __init__(self, *args: object,
+            read_only: bool,
+            widget_type: WidgetDesc,
+            interaction_mode: str,
+            initial_text: str | None,
+            validators: Sequence[TextValidatorBase | TextAnswerMatcher],
+            **kwargs: object):
+
+        super().__init__(*args, **kwargs)
+        widget, help_text = self.get_text_widget(
+                    widget_type, read_only,
+                    interaction_mode=interaction_mode)
+        self.validators = validators
+        self.fields["answer"] = forms.CharField(
+                required=True,
+                initial=initial_text,
+                widget=widget,
+                help_text=help_text,
+                label=_("Answer"))
+
+    def clean(self):
+        cleaned_data = super().clean()
+
+        answer = cleaned_data.get("answer", "")
+        for i, validator in enumerate(self.validators):
+            try:
+                validator.validate_text(answer)
+            except forms.ValidationError:
+                if i + 1 == len(self.validators):
+                    # last one, and we flunked -> not valid
+                    raise
+            else:
+                # Found one that will take the input. Good enough.
+                break
+
+
+# {{{ validators
+
+class TextValidatorBase(BaseModel, ABC):  # pyright: ignore[reportUnsafeMultipleInheritance]
+    model_config: ClassVar[ConfigDict] = ConfigDict(extra="forbid")
+
+    type: str
+
+    @abstractmethod
+    def validate_text(self, s: str, /) -> None:
+        ...
+
+
+class NoopValidator(TextValidatorBase):
+    # This exists because discriminated unions must have two entries in pydantic.
+    type: Literal["noop"]  # pyright: ignore[reportIncompatibleVariableOverride]
+
+    @override
+    def validate_text(self, new_page_source: str):
+        pass
+
+
+class RELATEPageValidator(TextValidatorBase):
+    type: Literal["relate_page"] = "relate_page"  # pyright: ignore[reportIncompatibleVariableOverride]
+    page_type: str
+
+    @override
+    def validate_text(self, new_page_source: str):
+        import yaml
 
         try:
-            self.matcher_desc.value = \
-                    float_or_sympy_evalf(self.value)
-        except Exception:
-            raise ValidationError(
-                    string_concat(
-                        "%s: 'value' ",
-                        _("does not provide a valid float literal"))
-                    % location)
+            page = PageBase.model_validate(
+                        yaml.safe_load(new_page_source),
+                        context=ValidationContext(repo=EmptyRepo(),
+                                                  commit_sha=b"(NO REVSISION)"))
 
-        if hasattr(matcher_desc, "rtol"):
-            try:
-                self.matcher_desc.rtol = \
-                        float_or_sympy_evalf(matcher_desc.rtol)
-            except Exception:
-                raise ValidationError(
-                        string_concat(
-                            "%s: 'rtol' ",
-                            _("does not provide a valid float literal"))
-                        % location)
+            if page.type != self.page_type:
+                raise ValueError(gettext("page must be of type '%s'")
+                        % self.page_type)
 
-            if matcher_desc.value == 0:
-                raise ValidationError(
-                        string_concat(
-                            "%s: 'rtol' ",
-                            _("not allowed when 'value' is zero"))
-                        % location)
+        except Exception as e:
+            raise forms.ValidationError(f"{type(e).__name__}: {e!s}")
 
-        if hasattr(matcher_desc, "atol"):
-            try:
-                self.matcher_desc.atol = \
-                        float_or_sympy_evalf(matcher_desc.atol)
-            except Exception:
-                raise ValidationError(
-                        string_concat(
-                            "%s: 'atol' ",
-                            _("does not provide a valid float literal"))
-                        % location)
+
+TextValidator: TypeAlias = Annotated[
+        NoopValidator |
+        RELATEPageValidator,
+        Field(discriminator="type"),
+]
+
+# }}}
+
+
+# {{{ matchers
+
+MATCHER_RE = re.compile(r"^\<([a-zA-Z0-9_:.]+)\>(.*)$")
+
+
+class TextAnswerMatcher(ABC, BaseModel):  # pyright: ignore[reportUnsafeMultipleInheritance]
+    """Abstract interface for matching text answers.
+
+    .. attribute:: type
+    .. attribute:: is_case_sensitive
+
+        Only used for answer normalization. Matchers are responsible for
+        case sensitivity themselves.
+    """
+    model_config: ClassVar[ConfigDict] = ConfigDict(extra="forbid")
+
+    type: str
+    correctness: PointCount = 1
+    feedback: str | None = None
+
+    @abstractmethod
+    def validate_text(self, s: str):
+        """Called to validate form input against simple input mistakes.
+
+        Should raise :exc:`django.forms.ValidationError` on error.
+        """
+        ...
+
+    @abstractmethod
+    def grade(self, s: str) -> AnswerFeedback:
+        raise NotImplementedError()
+
+    @abstractmethod
+    def correct_answer_text(self) -> str | None:
+        raise NotImplementedError()
+
+    @property
+    @abstractmethod
+    def is_case_sensitive(self) -> bool:
+        ...
+
+
+EXTRA_SPACES_RE = re.compile(r"\s\s+")
+
+
+def multiple_to_single_spaces(s: str):
+    return EXTRA_SPACES_RE.sub(" ", s).strip()
+
+
+class CaseSensitivePlainMatcher(TextAnswerMatcher):
+    type: Literal["case_sens_plain"] = "case_sens_plain"  # pyright: ignore[reportIncompatibleVariableOverride]
+
+    value: str
+
+    @override
+    def validate_text(self, s: str):
+        pass
+
+    @override
+    def grade(self, s: str):
+        if multiple_to_single_spaces(self.value) == multiple_to_single_spaces(s):
+            return AnswerFeedback(self.correctness, self.feedback)
         else:
-            if matcher_desc.value == 0:
-                vctx.add_warning(location,
-                         _("Float match for 'value' zero should have atol--"
-                           "otherwise it will match any number"))
+            return AnswerFeedback(0)
 
-        if (
-                not matcher_desc.value == 0
-                and not hasattr(matcher_desc, "atol")
-                and not hasattr(matcher_desc, "rtol")
-                and vctx is not None):
-            vctx.add_warning(location,
-                    _("Float match should have either rtol or atol--"
+    @override
+    def correct_answer_text(self):
+        if self.correctness >= 1:
+            return self.value
+        else:
+            return None
+
+    @property
+    @override
+    def is_case_sensitive(self) -> bool:
+        return True
+
+
+class PlainMatcher(CaseSensitivePlainMatcher):
+    type: Literal["plain"] = "plain"  # type: ignore[assignment] # pyright: ignore[reportIncompatibleVariableOverride]
+
+    @override
+    def grade(self, s: str):
+        if (multiple_to_single_spaces(self.value.lower())
+                == multiple_to_single_spaces(s.lower())):
+            return AnswerFeedback(self.correctness, self.feedback)
+        else:
+            return AnswerFeedback(0)
+
+    @property
+    @override
+    def is_case_sensitive(self) -> bool:
+        return False
+
+
+class RegexMatcher(TextAnswerMatcher):
+    type: Literal["regex", "case_sens_regex"] = "regex"  # pyright: ignore[reportIncompatibleVariableOverride]
+
+    value: str
+    flags: list[RegexFlag] | None = None
+
+    @model_validator(mode="after")
+    def check_valid_regex(self) -> Self:
+        try:
+            re.compile(self.value, self.regex_flags)
+        except Exception as e:
+            raise ValueError(_("not a valid regular expression: {}: {}")
+                             .format(type(e).__name__, str(e)))
+        return self
+
+    @override
+    def validate_text(self, s: str):
+        # FIXME: Could have a validation regex
+        pass
+
+    @property
+    @memoize_method
+    def regex_flags(self):
+        if self.type == "case_sens_regex":
+            if self.flags is not None:
+                raise ValueError("cannot specify flags with case_sens_regex")
+            return 0
+
+        if self.flags is None:
+            return re.IGNORECASE
+        else:
+            re_flags = 0
+            for flag in self.flags:
+                re_flags |= getattr(re, flag)
+            return re_flags
+
+    @override
+    def grade(self, s: str):
+        regex = re.compile(self.value, self.regex_flags)
+
+        match = regex.match(s)
+        if match is not None:
+            return AnswerFeedback(self.correctness, self.feedback)
+        else:
+            return AnswerFeedback(0)
+
+    @override
+    def correct_answer_text(self):
+        return None
+
+    @property
+    @override
+    def is_case_sensitive(self) -> bool:
+        if self.flags is None:
+            return False
+        else:
+            return "I" in self.flags or "IGNORECASE" in self.flags
+
+
+class SymbolicExpressionMatcher(TextAnswerMatcher):
+    type: Literal["sym_expr"] = "sym_expr"  # pyright: ignore[reportIncompatibleVariableOverride]
+
+    value: ExpressionStr
+
+    @override
+    def validate_text(self, s: str):
+        try:
+            parse_sympy(s)
+        except Exception as e:
+            raise forms.ValidationError(f"{type(e).__name__}: {e!s}")
+
+    @override
+    def grade(self, s: str):
+        try:
+            answer_sym = parse_sympy(s)
+        except Exception:
+            return AnswerFeedback(0)
+
+        from sympy import simplify
+        try:
+            simp_result = simplify(answer_sym - parse_sympy(self.value))
+        except Exception:
+            return AnswerFeedback(0)
+
+        if simp_result == 0:
+            return AnswerFeedback(self.correctness, self.feedback)
+        else:
+            return AnswerFeedback(0)
+
+    @override
+    def correct_answer_text(self):
+        if self.correctness >= 1:
+            return str(self.value)
+        else:
+            return None
+
+    @property
+    @override
+    def is_case_sensitive(self) -> bool:
+        return True
+
+
+class FloatMatcher(TextAnswerMatcher):
+    type: Literal["float"] = "float"  # pyright: ignore[reportIncompatibleVariableOverride]
+
+    value: FloatExpression
+
+    rtol: FloatExpression | None = None
+    atol: FloatExpression | None = None
+
+    @model_validator(mode="after")
+    def check_tolerances(self) -> Self:
+        value = float_or_sympy_evalf(self.value)
+        if value == 0 and self.rtol is not None:
+            raise ValueError(_("'rtol' not allowed when 'value' is zero"))
+
+        if self.atol is None and self.rtol is None:
+            raise ValueError(
+                    gettext("Float match should have either rtol or atol--"
                         "otherwise it will match any number"))
 
-    def validate(self, s):
+        return self
+
+    @override
+    def validate_text(self, s: str):
         try:
             float_or_sympy_evalf(s)
-        except Exception:
-            tp, e, _ = sys.exc_info()
-            raise forms.ValidationError(f"{tp.__name__}: {e!s}")
+        except Exception as e:
+            raise forms.ValidationError(f"{type(e).__name__}: {e!s}")
 
-    def grade(self, s):
+    @override
+    def grade(self, s: str):
         try:
             answer_float = float_or_sympy_evalf(s)
         except Exception:
@@ -566,100 +541,68 @@ class FloatMatcher(TextAnswerMatcher):
         good_afb = AnswerFeedback(self.correctness, self.feedback)
         bad_afb = AnswerFeedback(0)
 
+        value = float_or_sympy_evalf(self.value)
+
         from math import isinf, isnan
-        if isinf(self.matcher_desc.value):
+        if isinf(value):
             return good_afb if isinf(answer_float) else bad_afb
-        if isnan(self.matcher_desc.value):
+        if isnan(value):
             return good_afb if isnan(answer_float) else bad_afb
         if isinf(answer_float) or isnan(answer_float):
             return bad_afb
 
-        if hasattr(self.matcher_desc, "atol"):
-            if (abs(answer_float - self.matcher_desc.value)
-                    > self.matcher_desc.atol):
+        if self.atol is not None:
+            atol = float_or_sympy_evalf(self.atol)
+            if (abs(answer_float - value) > atol):
                 return bad_afb
-        if hasattr(self.matcher_desc, "rtol"):
-            if (abs(answer_float - self.matcher_desc.value)
-                    / abs(self.matcher_desc.value)
-                    > self.matcher_desc.rtol):
+        if self.rtol is not None:
+            rtol = float_or_sympy_evalf(self.rtol)
+            if abs(answer_float - value) / abs(value) > rtol:
                 return bad_afb
 
         return good_afb
 
+    @override
     def correct_answer_text(self):
         if self.correctness >= 1:
-            return str(self.matcher_desc.value)
+            return str(self.value)
         else:
             return None
 
-
-TEXT_ANSWER_MATCHER_CLASSES = [
-        CaseSensitivePlainMatcher,
-        PlainMatcher,
-        RegexMatcher,
-        CaseSensitiveRegexMatcher,
-        SymbolicExpressionMatcher,
-        FloatMatcher,
-        ]
+    @property
+    @override
+    def is_case_sensitive(self) -> bool:
+        return False
 
 
-MATCHER_RE = re.compile(r"^\<([a-zA-Z0-9_:.]+)\>(.*)$")
-
-
-def get_matcher_class(location, matcher_type):
-    for matcher_class in TEXT_ANSWER_MATCHER_CLASSES:
-        if matcher_class.type == matcher_type:
-            return matcher_class
-
-    raise ValidationError(
-            string_concat(
-                "%(location)s: ",
-                _("unknown matcher type '%(matchertype)s'"))
-            % {
-                "location": location,
-                "matchertype": matcher_type})
-
-
-def parse_matcher(vctx, location, matcher_desc):
-    if isinstance(matcher_desc, str):
-        match = MATCHER_RE.match(matcher_desc)
+def normalize_matcher_to_dict(data: Any) -> Any:
+    if isinstance(data, str):
+        match = MATCHER_RE.match(data)
 
         if match is not None:
-            matcher_desc = Struct({
+            return {
                 "type": match.group(1),
                 "value": match.group(2),
-                })
-        else:
-            raise ValidationError(
-                    string_concat(
-                        "%s: ",
-                        _("matcher string does not have expected format, "
-                            "expecting '<matcher type>matched string'"))
-                    % location)
+                }
+    return data
 
-    if not isinstance(matcher_desc, Struct):
-        raise ValidationError(
-                string_concat(
-                    "%s: ",
-                    _("must be struct or string"))
-                % location)
 
-    if not hasattr(matcher_desc, "type"):
-        raise ValidationError(
-                string_concat(
-                    "%s: ",
-                    _("matcher must supply 'type'"))
-                % location)
-
-    return (get_matcher_class(location, matcher_desc.type)
-        (vctx, location, matcher_desc))
+Matcher: TypeAlias = Annotated[
+        CaseSensitivePlainMatcher |
+        PlainMatcher |
+        RegexMatcher |
+        SymbolicExpressionMatcher |
+        FloatMatcher,
+        Field(discriminator="type"),
+        BeforeValidator(normalize_matcher_to_dict,)
+]
 
 # }}}
 
 
 # {{{ text question base
 
-class TextQuestionBase(PageBaseWithTitle):
+class TextQuestionBase(PageBaseWithTitle, ABC):
     """
     A page asking for a textual answer
 
@@ -695,69 +638,79 @@ class TextQuestionBase(PageBaseWithTitle):
 
         Text with which to prepopulate the input widget.
     """
-    def __init__(self, vctx, location, page_desc):
-        super().__init__(vctx, location, page_desc)
+    prompt: Markup
+    widget: WidgetDesc = Field(
+        default_factory=lambda: WidgetDesc(type=WidgetType.TEXT_INPUT, language=None))
 
-        widget = TextAnswerForm.get_text_widget(
-                getattr(page_desc, "widget", None),
-                check_only=True)
+    initial_text: str | None = None
 
-        if widget is None:
-            raise ValidationError(
-                    string_concat(
-                        "%(location)s: ",
-                        _("unrecognized widget type"),
-                        "'%(type)s'")
-                    % {
-                        "location": location,
-                        "type": page_desc.widget})
+    @override
+    def body_attr_for_title(self) -> str:
+        return "prompt"
 
-    def required_attrs(self) -> AttrSpec:
-        return (*super().required_attrs(), ("prompt", "markup"))
+    @override
+    def body(self, page_context: PageContext, page_data: PageData) -> str:
+        return markup_to_html(page_context, self.prompt)
 
-    def allowed_attrs(self) -> AttrSpec:
-        return (*super().allowed_attrs(), ("widget", str), ("initial_text", str))
+    @abstractmethod
+    def get_validators(self) -> Sequence[TextValidatorBase | TextAnswerMatcher]:
+        ...
 
-    def markup_body_for_title(self):
-        return self.page_desc.prompt
+    @override
+    def make_form(self,
+            page_context: PageContext,
+            page_data: PageData,
+            answer_data: AnswerData,
+            page_behavior: PageBehavior,
+            ) -> StyledFormBase:
 
-    def body(self, page_context, page_data):
-        return markup_to_html(page_context, self.page_desc.prompt)
-
-    def get_validators(self):
-        raise NotImplementedError()
-
-    def make_form(self, page_context, page_data,
-            answer_data, page_behavior):
-
-        kwargs = {
-            "read_only": not page_behavior.may_change_answer,
-            "interaction_mode": getattr(self.page_desc, "widget", None),
-            "validators": self.get_validators(),
-            "widget_type": getattr(self.page_desc, "widget", None),
-            "initial_text": getattr(self.page_desc, "initial_text", None),
-        }
+        kwargs = {}
 
         if answer_data is not None:
             kwargs.update({"data": {"answer": answer_data["answer"]}})
 
-        return TextAnswerForm(**kwargs)
-
-    def process_form_post(self, page_context, page_data, post_data, files_data,
-            page_behavior):
         return TextAnswerForm(
-                not page_behavior.may_change_answer,
-                get_editor_interaction_mode(page_context),
-                self.get_validators(), post_data, files_data,
-                widget_type=getattr(self.page_desc, "widget", None))
+            read_only=not page_behavior.may_change_answer,
+            widget_type=self.widget,
+            interaction_mode=get_editor_interaction_mode(page_context),
+            validators=self.get_validators(),
+            initial_text=self.initial_text,
+            **kwargs)
 
-    def answer_data(self, page_context, page_data, form, files_data):
+    @override
+    def process_form_post(self,
+            page_context: PageContext,
+            page_data: PageData,
+            post_data: Any,
+            files_data: Any,
+            page_behavior: PageBehavior,
+            ) -> StyledFormBase:
+        return TextAnswerForm(
+                post_data, files_data,
+                read_only=not page_behavior.may_change_answer,
+                interaction_mode=get_editor_interaction_mode(page_context),
+                validators=self.get_validators(),
+                widget_type=self.widget,
+                initial_text=self.initial_text)
+
+    @override
+    def answer_data(self,
+            page_context: PageContext,
+            page_data: PageData,
+            form: forms.Form,
+            files_data: Any,
+            ) -> AnswerData:
         return {"answer": form.cleaned_data["answer"].strip()}
 
-    def _is_case_sensitive(self):
+    def _is_case_sensitive(self) -> bool:
         return True
 
-    def normalized_answer(self, page_context, page_data, answer_data):
+    @override
+    def normalized_answer(self,
+            page_context: PageContext,
+            page_data: PageData,
+            answer_data: AnswerData,
+            ) -> str | None:
         if answer_data is None:
             return None
 
@@ -768,7 +721,12 @@ class TextQuestionBase(PageBaseWithTitle):
 
         return normalized_answer
 
-    def normalized_bytes_answer(self, page_context, page_data, answer_data):
+    @override
+    def normalized_bytes_answer(self,
+            page_context: PageContext,
+            page_data: PageData,
+            answer_data: AnswerData,
+            ) -> tuple[str, bytes] | None:
         if answer_data is None:
             return None
 
@@ -789,7 +747,7 @@ class SurveyTextQuestion(TextQuestionBase, PageBaseUngraded):
 
     .. attribute:: type
 
-        ``TextQuestion``
+        ``SurveyTextQuestion``
 
     .. attribute:: is_optional_page
 
@@ -820,19 +778,27 @@ class SurveyTextQuestion(TextQuestionBase, PageBaseUngraded):
         A comment that is shown in the same situations a 'correct answer' would
         be.
     """
+    type: Literal["SurveyTextQuestion"] = "SurveyTextQuestion"  # pyright: ignore[reportIncompatibleVariableOverride]
 
+    answer_comment: Markup | None = None
+
+    @override
     def get_validators(self):
         return []
 
-    def allowed_attrs(self) -> AttrSpec:
-        return (*super().allowed_attrs(), ("answer_comment", "markup"))
-
-    def correct_answer(self, page_context, page_data, answer_data, grade_data):
-        if hasattr(self.page_desc, "answer_comment"):
-            return markup_to_html(page_context, self.page_desc.answer_comment)
+    @override
+    def page_correct_answer(self,
+            page_context: PageContext,
+            page_data: PageData,
+            answer_data: AnswerData | None,
+            grade_data: GradeData | None,
+            ) -> str | None:
+        if self.answer_comment is not None:
+            return markup_to_html(page_context, self.answer_comment)
         else:
             return None
 
+    @override
     def expects_answer(self):
         return True
 
@@ -973,42 +939,30 @@ class TextQuestion(TextQuestionBase, PageBaseWithValue, PageBaseWithoutHumanGrad
         Text justifying the answer, written in :ref:`markup`.
     """
 
-    def __init__(self, vctx, location, page_desc):
-        super().__init__(vctx, location, page_desc)
+    type: Literal["TextQuestion"] = "TextQuestion"  # pyright: ignore[reportIncompatibleVariableOverride]
 
-        if len(page_desc.answers) == 0:
-            raise ValidationError(
-                    string_concat(
-                        "%s: ",
-                        _("at least one answer must be provided"))
-                    % location)
+    answers: Annotated[list[Matcher], AfterValidator(validate_nonempty)]
+    answer_explanation: Markup | None = None
 
-        self.matchers = [
-                parse_matcher(
-                    vctx,
-                    "%s, answer %d" % (location, i+1),
-                    answer)
-                for i, answer in enumerate(page_desc.answers)]
+    @model_validator(mode="after")
+    def check_has_correct_answer_text(self) -> Self:
+        if all(a.correct_answer_text() is None for a in self.answers):
+            raise ValueError(
+                _("no matcher is able to provide a plain-text correct answer"))
 
-        if not any(matcher.correct_answer_text() is not None
-                for matcher in self.matchers):
-            raise ValidationError(
-                    string_concat(
-                        "%s: ",
-                        _("no matcher is able to provide a plain-text "
-                        "correct answer"))
-                    % location)
+        return self
 
-    def required_attrs(self):
-        return (*super().required_attrs(), ("answers", list))
-
-    def allowed_attrs(self):
-        return (*super().allowed_attrs(), ("answer_explanation", "markup"))
-
+    @override
     def get_validators(self):
-        return self.matchers
+        return self.answers
 
-    def grade(self, page_context, page_data, answer_data, grade_data):
+    @override
+    def grade(self,
+            page_context: PageContext,
+            page_data: PageData,
+            answer_data: AnswerData | None,
+            grade_data: GradeData | None,
+            ) -> AnswerFeedback | None:
         if answer_data is None:
             return AnswerFeedback(correctness=0,
                     feedback=gettext("No answer provided."))
@@ -1019,9 +973,9 @@ class TextQuestion(TextQuestionBase, PageBaseWithValue, PageBaseWithoutHumanGrad
         # correctness.
         afb = None
 
-        for matcher in self.matchers:
+        for matcher in self.answers:
             try:
-                matcher.validate(answer)
+                matcher.validate_text(answer)
             except forms.ValidationError:
                 continue
 
@@ -1029,7 +983,7 @@ class TextQuestion(TextQuestionBase, PageBaseWithValue, PageBaseWithoutHumanGrad
             if matcher_afb.correctness is not None:
                 if afb is None:
                     afb = matcher_afb
-                elif matcher_afb.correctness > afb.correctness:
+                elif matcher_afb.correctness > not_none(afb.correctness):
                     afb = matcher_afb
 
         if afb is None:
@@ -1037,11 +991,17 @@ class TextQuestion(TextQuestionBase, PageBaseWithValue, PageBaseWithoutHumanGrad
 
         return afb
 
-    def correct_answer(self, page_context, page_data, answer_data, grade_data):
+    @override
+    def page_correct_answer(self,
+            page_context: PageContext,
+            page_data: PageData,
+            answer_data: AnswerData | None,
+            grade_data: GradeData | None,
+            ) -> str | None:
         # FIXME: Could use 'best' match to answer
 
         unspec_correct_answer_text = None
-        for matcher in self.matchers:  # pragma: no branch
+        for matcher in self.answers:  # pragma: no branch
             unspec_correct_answer_text = matcher.correct_answer_text()
             if unspec_correct_answer_text is not None:
                 break
@@ -1050,13 +1010,14 @@ class TextQuestion(TextQuestionBase, PageBaseWithValue, PageBaseWithoutHumanGrad
 
         result = CORRECT_ANSWER_PATTERN % unspec_correct_answer_text
 
-        if hasattr(self.page_desc, "answer_explanation"):
-            result += markup_to_html(page_context, self.page_desc.answer_explanation)
+        if self.answer_explanation is not None:
+            result += markup_to_html(page_context, self.answer_explanation)
 
         return result
 
+    @override
     def _is_case_sensitive(self):
-        return any(matcher.is_case_sensitive for matcher in self.matchers)
+        return any(matcher.is_case_sensitive for matcher in self.answers)
 
 # }}}
 
@@ -1123,24 +1084,17 @@ class HumanGradedTextQuestion(TextQuestionBase, PageBaseWithValue,
         Required.
         The grading guideline for this question, in :ref:`markup`.
     """
+    type: Literal["HumanGradedTextQuestion"] = "HumanGradedTextQuestion"  # pyright: ignore[reportIncompatibleVariableOverride]
 
-    def __init__(self, vctx, location, page_desc):
-        super().__init__(vctx, location, page_desc)
+    validators: list[TextValidator] = Field(default_factory=list)
 
-        self.validators = [
-                parse_validator(
-                    vctx,
-                    "%s, validator %d" % (location, i+1),
-                    answer)
-                for i, answer in enumerate(
-                    getattr(page_desc, "validators", []))]
-
-    def allowed_attrs(self):
-        return (*super().allowed_attrs(), ("validators", list))
-
-    def human_feedback_point_value(self, page_context, page_data):
+    @override
+    def human_feedback_point_value(self,
+                page_context: PageContext,
+                page_data: PageData):
         return self.max_points(page_data)
 
+    @override
     def get_validators(self):
         return self.validators
 
@@ -1208,21 +1162,26 @@ class HumanGradedRichTextQuestion(PageBaseWithValue, PageBaseWithTitle,
         Required.
         The grading guideline for this question, in :ref:`markup`.
     """
-    def required_attrs(self) -> AttrSpec:
-        return (*super().required_attrs(), ("prompt", "markup"))
+    type: Literal["HumanGradedRichTextQuestion"] = "HumanGradedRichTextQuestion"  # pyright: ignore[reportIncompatibleVariableOverride]
 
+    prompt: Markup
+
+    @override
     def body(self, page_context: PageContext, page_data: Any) -> str:
-        return markup_to_html(page_context, self.page_desc.prompt)
+        return markup_to_html(page_context, self.prompt)
 
-    def markup_body_for_title(self) -> str:
-        return self.page_desc.prompt
+    @override
+    def body_attr_for_title(self) -> str:
+        return "prompt"
 
+    @override
     def human_feedback_point_value(self,
                 page_context: PageContext,
-                page_data: Any
+                page_data: PageData
             ) -> float:
         return self.max_points(page_data)
 
+    @override
     def make_form(
             self,
             page_context: PageContext,
@@ -1240,6 +1199,7 @@ class HumanGradedRichTextQuestion(PageBaseWithValue, PageBaseWithTitle,
             read_only=not page_behavior.may_change_answer,
             **kwargs)
 
+    @override
     def process_form_post(
             self,
             page_context: PageContext,
@@ -1253,11 +1213,13 @@ class HumanGradedRichTextQuestion(PageBaseWithValue, PageBaseWithTitle,
                 post_data, files_data,
                 )
 
+    @override
     def answer_data(self, page_context, page_data, form, files_data):
         data = form.cleaned_data["answer"]
         assert isinstance(data, dict)
         return {"answer": data}
 
+    @override
     def normalized_answer(
             self,
             page_context: PageContext,
@@ -1272,6 +1234,7 @@ class HumanGradedRichTextQuestion(PageBaseWithValue, PageBaseWithTitle,
         from django.utils.html import escape
         return escape(dumps(answer_data["answer"]))
 
+    @override
     def normalized_bytes_answer(
             self,
             page_context: PageContext,

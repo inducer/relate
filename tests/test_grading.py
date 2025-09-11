@@ -477,17 +477,6 @@ class SingleCourseQuizPageGradeInterfaceTest(
             resp = self.client.get(url)
             self.assertEqual(resp.status_code, 400)
 
-    def test_page_desc_none(self):
-        with mock.patch(
-                "course.content.get_flow_page_desc") as mock_get_flow_page_desc:
-            from django.core.exceptions import ObjectDoesNotExist
-            mock_get_flow_page_desc.side_effect = ObjectDoesNotExist
-
-            with self.temporarily_switch_to_user(self.instructor_participation.user):
-                resp = self.client.get(
-                    self.get_page_grading_url_by_page_id(self.page_id))
-                self.assertEqual(resp.status_code, 404)
-
     def test_invalid_page_data(self):
         with mock.patch(
                 "course.page.upload.FileUploadQuestion.make_form"
@@ -543,11 +532,14 @@ class SingleCourseQuizPageGradeInterfaceTest(
         }
 
         def get_session_grading_rule_side_effect(session, flow_desc, now_datetime):
-            from course.utils import FlowSessionGradingRule, get_session_grading_rule
-            true_g_rule = get_session_grading_rule(
+            from course.utils import (
+                FlowSessionGradingModeWithFlowLevelInfo,
+                get_session_grading_mode,
+            )
+            true_g_rule = get_session_grading_mode(
                 session, flow_desc, now_datetime)
 
-            fake_grading_rule = FlowSessionGradingRule(
+            fake_grading_rule = FlowSessionGradingModeWithFlowLevelInfo(
                 # make grade_identifier None
                 grade_identifier=None,
                 grade_aggregation_strategy=true_g_rule.grade_aggregation_strategy,
@@ -563,7 +555,7 @@ class SingleCourseQuizPageGradeInterfaceTest(
             return fake_grading_rule
 
         with mock.patch(
-                "course.grading.get_session_grading_rule"
+                "course.grading.get_session_grading_mode"
         ) as mock_get_grading_rule:
             mock_get_grading_rule.side_effect = get_session_grading_rule_side_effect
 

@@ -33,9 +33,34 @@ intersphinx_mapping = {
         # "https://www.dulwich.io/docs/",
         "https://tiker.net/pub/dulwich-docs-stopgap/",
     None),
+    "pydantic": ("https://docs.pydantic.dev/latest/", None),
 }
+
+nitpick_ignore_regex = [
+    ("py:class", "course.validation._pydantic_validate.*$"),
+    ("py:class", "course.validation.validate_nonempty"),
+    ("py:class", "validate_nonempty"),
+    ("py:class", "course.validation.validate_identifier"),
+    ("py:class", "course.validation.validate_dotted_identifier"),
+    ("py:class", "annotated_types.[A-Za-z]+"),
+    ("py:class", "PositiveInt"),
+    ("py:class", "IdentifierStr"),
+    ("py:class", "SerializeAsAny"),
+    ("py:class", "AfterValidator"),
+    ("py:class", "FileSystemFakeRepo"),
+    ("py:class", "pydantic.functional_serializers.SerializeAsAny"),
+    ("py:class", "Ge|Le|Gt|Lt|AllowInfNan"),
+]
 
 copyright = "2014-21, Andreas Kloeckner"
 
 version = "2021.1"
 release = version
+
+sphinxconfig_missing_reference_aliases = {
+    "GradeAggregationStrategy": "cls:course.constants.GradeAggregationStrategy",
+}
+
+
+def setup(app):
+    app.connect("missing-reference", process_autodoc_missing_reference)  # noqa: F821

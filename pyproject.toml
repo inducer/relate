@@ -46,7 +46,12 @@ dependencies = [
     "social-auth-app-django>=5.4.1,<6",
     "urllib3>=2.3.0,<3",
     "typing_extensions>=4.14.1",
-    "pydantic>=2.11.7",
+
+    "pydantic~=2.12",
+
+    # needed by pydantic EmailStr
+    "email-validator~=2.3.0",
+    "annotated-types~=0.7.0",
 
     "packaging>=25",
 
@@ -75,6 +80,7 @@ dev = [
     "pytest>=8,<9",
     "pytest-django>=4.5.2,<5",
     "pytest-factoryboy>=2.6.0,<3",
+    "jsonpatch>=1.33",
 
     # https://github.com/wronglink/pytest-pudb/pull/29
     "pytest_pudb @ git+https://github.com/ndhansen/pytest-pudb.git@c29b32a7c93e9a2d40ae1d8594c1fcb3dfd26e06",
@@ -205,6 +211,8 @@ untyped_calls_exclude = [
     "dulwich",
 ]
 allow_untyped_calls = true
+allow_redefinition_new = true
+local_partial_types = true
 
 [tool.django-stubs]
 django_settings_module = "relate.settings"
@@ -246,6 +254,8 @@ stip = "stip"
 documen = "documen"
 # like sur_name in SAML
 sur = "sur"
+# like serialization
+"ser" = "ser"
 
 [tool.typos.files]
 extend-exclude = [
@@ -282,10 +292,12 @@ exclude = [
     "accounts/migrations",
     "prairietest/migrations",
     "local_settings.py",
+    "doc/conf.py",
 ]
 
 [[tool.basedpyright.executionEnvironments]]
 root = "tests"
+extraPaths = ["."]
 
 reportAny = "none"
 reportArgumentType = "hint"

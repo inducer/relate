@@ -7,9 +7,9 @@
       {% trans "Jump to" %}
     </a>
     <ul class="dropdown-menu" aria-labelledby="dropdownJumpToMenu">
-      {% for chunk in chunks %}
-        {% if chunk.title %}
-          <li><a class="dropdown-item" href="#{{chunk.id}}">{{chunk.title}}</a></li>
+      {% for chunk, html in chunks_with_html %}
+        {% if chunk.get_title %}
+          <li><a class="dropdown-item" href="#{{chunk.id}}">{{chunk.get_title}}</a></li>
         {% endif %}
       {% endfor %}
     </ul>
@@ -20,9 +20,9 @@
   {% block page_content_advisories %}
   {% endblock %}
 
-  {% for chunk in chunks %}
+  {% for chunk, html in chunks_with_html %}
   <a id="{{chunk.id}}"></a>
-    {{chunk.html_content|safe}}
+    {{html}}
   {% endfor %}
 {% endblock %}
 

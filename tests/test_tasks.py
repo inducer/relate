@@ -30,6 +30,7 @@ from django.utils.timezone import now, timedelta
 from packaging.version import parse as parse_version
 
 from course import models
+from course.datespec import Datespec
 from course.tasks import (
     expire_in_progress_sessions,
     finish_in_progress_sessions,
@@ -144,8 +145,8 @@ class GradesTasksTest(SingleCourseTestMixin, GradesTasksTestSetUpMixin,
     def test_expire_in_progress_sessions_past_due_only_dued(self):
         # now_datetime > grading_rule.due
         fake_grading_rule = self.get_hacked_session_grading_rule(
-            due=now() + timedelta(days=1))
-        with mock.patch("course.flow.get_session_grading_rule") as \
+            due=Datespec(value=now() + timedelta(days=1)))
+        with mock.patch("course.utils.get_session_grading_mode") as \
                 mock_get_grading_rule:
             mock_get_grading_rule.return_value = fake_grading_rule
             expire_in_progress_sessions(
@@ -168,8 +169,8 @@ class GradesTasksTest(SingleCourseTestMixin, GradesTasksTestSetUpMixin,
     def test_expire_in_progress_sessions_past_due_only_not_dued(self):
         # now_datetime <= grading_rule.due
         fake_grading_rule = self.get_hacked_session_grading_rule(
-            due=now() + timedelta(days=1))
-        with mock.patch("course.flow.get_session_grading_rule") as \
+            due=Datespec(value=now() + timedelta(days=1)))
+        with mock.patch("course.utils.get_session_grading_mode") as \
                 mock_get_grading_rule:
             mock_get_grading_rule.return_value = fake_grading_rule
 
@@ -237,8 +238,8 @@ class GradesTasksTest(SingleCourseTestMixin, GradesTasksTestSetUpMixin,
     def test_finish_in_progress_sessions_past_due_only_dued(self):
         # now_datetime > grading_rule.due
         fake_grading_rule = self.get_hacked_session_grading_rule(
-            due=now() + timedelta(days=1))
-        with mock.patch("course.flow.get_session_grading_rule") as \
+            due=Datespec(value=now() + timedelta(days=1)))
+        with mock.patch("course.utils.get_session_grading_mode") as \
                 mock_get_grading_rule:
             mock_get_grading_rule.return_value = fake_grading_rule
             finish_in_progress_sessions(
@@ -270,8 +271,8 @@ class GradesTasksTest(SingleCourseTestMixin, GradesTasksTestSetUpMixin,
     def test_finish_in_progress_sessions_past_due_only_not_dued(self):
         # now_datetime < grading_rule.due
         fake_grading_rule = self.get_hacked_session_grading_rule(
-            due=now() + timedelta(days=1))
-        with mock.patch("course.flow.get_session_grading_rule") as \
+            due=Datespec(value=now() + timedelta(days=1)))
+        with mock.patch("course.utils.get_session_grading_mode") as \
                 mock_get_grading_rule:
             mock_get_grading_rule.return_value = fake_grading_rule
             finish_in_progress_sessions(

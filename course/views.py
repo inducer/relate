@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from course.validation import ValidationContext
+
 
 __copyright__ = "Copyright (C) 2014 Andreas Kloeckner"
 
@@ -60,7 +62,13 @@ from course.constants import (
     ParticipationPermission as PPerm,
     ParticipationStatus,
 )
-from course.content import get_course_repo
+from course.content import (
+    access_rule_ta,
+    get_course_repo,
+    get_processed_page_chunks,
+    get_staticpage_desc,
+    grading_rule_ta,
+)
 from course.enrollment import (
     get_participation_for_request,
     get_participation_permissions,
@@ -93,6 +101,7 @@ from relate.utils import (
 if TYPE_CHECKING:
     from accounts.models import User
     from course.content import FlowDesc
+    from course.repo import RevisionID_ish
 
 # }}}
 
@@ -161,11 +170,15 @@ def check_course_state(
 
 @course_view
 def course_page(pctx: CoursePageContext) -> http.HttpResponse:
-    from course.content import get_course_desc, get_processed_page_chunks
-    page_desc = get_course_desc(pctx.repo, pctx.course, pctx.course_commit_sha)
+    page_desc = get_staticpage_desc(
+                                    pctx.repo,
+                                    pctx.course,
+                                    pctx.course_commit_sha,
+                                    pctx.course.course_file,
+                                    )
 
     chunks = get_processed_page_chunks(
-            pctx.course, pctx.repo, pctx.course_commit_sha, page_desc,
+            pctx.course, page_desc,
             pctx.role_identifiers(), get_now_or_fake_time(pctx.request),
             facilities=pctx.request.relate_facilities)
 
@@ -211,27 +224,30 @@ def course_page(pctx: CoursePageContext) -> http.HttpResponse:
                             )
 
     return render_course_page(pctx, "course/course-page.html", {
-        "chunks": chunks,
+        "chunks_with_html": chunks,
         "show_enroll_button": show_enroll_button,
         })
 
 
 @course_view
 def static_page(pctx: CoursePageContext, page_path: str) -> http.HttpResponse:
-    from course.content import get_processed_page_chunks, get_staticpage_desc
     try:
-        page_desc = get_staticpage_desc(pctx.repo, pctx.course,
-                pctx.course_commit_sha, "staticpages/"+page_path+".yml")
+        page_desc = get_staticpage_desc(
+                                        pctx.repo,
+                                        pctx.course,
+                                        pctx.course_commit_sha,
+                                        f"staticpages/{page_path}.yml",
+                                        )
     except ObjectDoesNotExist:
         raise http.Http404()
 
     chunks = get_processed_page_chunks(
-            pctx.course, pctx.repo, pctx.course_commit_sha, page_desc,
+            pctx.course, page_desc,
             pctx.role_identifiers(), get_now_or_fake_time(pctx.request),
             facilities=pctx.request.relate_facilities)
 
     return render_course_page(pctx, "course/static-page.html", {
-        "chunks": chunks,
+        "chunks_with_html": chunks,
         "show_enroll_button": False,
         })
 
@@ -302,7 +318,7 @@ def get_repo_file_backend(
         request: http.HttpRequest,
         course: Course,
         participation: Participation | None,
-        commit_sha: bytes,
+        commit_sha: RevisionID_ish,
         path: str,
         ) -> http.HttpResponse:
     """
@@ -344,7 +360,7 @@ def get_repo_file_response(
         repo: Any, path: str, commit_sha: bytes
         ) -> http.HttpResponse:
 
-    from course.content import get_repo_blob_data_cached
+    from course.repo import get_repo_blob_data_cached
 
     try:
         data = get_repo_blob_data_cached(repo, path, commit_sha)
@@ -857,13 +873,10 @@ def grant_exception_stage_2(
 
     now_datetime = get_now_or_fake_time(pctx.request)
 
-    if hasattr(flow_desc, "rules"):
-        access_rules_tags = getattr(flow_desc.rules, "tags", [])
-    else:
-        access_rules_tags = []
+    access_rules_tags = flow_desc.rules.tags
 
-    from course.utils import get_session_start_rule
-    session_start_rule = get_session_start_rule(pctx.course, participation,
+    from course.utils import get_session_start_mode
+    session_start_rule = get_session_start_mode(pctx.course, participation,
             flow_id, flow_desc, now_datetime)
 
     create_session_is_override = False
@@ -922,7 +935,7 @@ def grant_exception_stage_2(
                     user=participation.user,
                     flow_id=flow_id,
                     flow_desc=flow_desc,
-                    session_start_rule=session_start_rule,
+                    session_start_mode=session_start_rule,
                     now_datetime=now_datetime)
 
             if access_rules_tag is not None:
@@ -1113,9 +1126,9 @@ def grant_exception_stage_3(
     session = FlowSession.objects.get(id=int(session_id))
 
     now_datetime = get_now_or_fake_time(pctx.request)
-    from course.utils import get_session_access_rule, get_session_grading_rule
-    access_rule = get_session_access_rule(session, flow_desc, now_datetime)
-    grading_rule = get_session_grading_rule(session, flow_desc, now_datetime)
+    from course.utils import get_session_access_mode, get_session_grading_mode
+    access_rule = get_session_access_mode(session, flow_desc, now_datetime)
+    grading_rule = get_session_grading_mode(session, flow_desc, now_datetime)
 
     request = pctx.request
     if request.method == "POST":
@@ -1123,28 +1136,14 @@ def grant_exception_stage_3(
                 {}, flow_desc, session.access_rules_tag, request.POST)
 
         if form.is_valid():
-            permissions = [
+            permissions = frozenset({
                     key
                     for key, __ in FLOW_PERMISSION_CHOICES
-                    if form.cleaned_data[key]]
-
-            from course.validation import (
-                ValidationContext,
-                validate_session_access_rule,
-                validate_session_grading_rule,
-            )
-            from relate.utils import dict_to_struct
-            vctx = ValidationContext(
-                    repo=pctx.repo,
-                    commit_sha=pctx.course_commit_sha)
+                    if form.cleaned_data[key]})
 
             flow_desc = get_flow_desc(pctx.repo,
                     pctx.course,
                     flow_id, pctx.course_commit_sha)
-
-            tags: list[str] = []
-            if hasattr(flow_desc, "rules"):
-                tags = cast("list[str]", getattr(flow_desc.rules, "tags", []))
 
             exceptions_created: list[str] = []
 
@@ -1152,19 +1151,19 @@ def grant_exception_stage_3(
                 form.cleaned_data.get("restrict_to_same_tag")
                 and session.access_rules_tag is not None)
 
+            vctx = ValidationContext(pctx.repo, pctx.course_commit_sha, pctx.course)
             # {{{ put together access rule
 
             if form.cleaned_data["create_access_exception"]:
-                new_access_rule: dict[str, Any] = {
-                        "permissions": [str(p) for p in permissions]
-                    }
-
-                if restricted_to_same_tag:
-                    new_access_rule["if_has_tag"] = session.access_rules_tag
-
-                validate_session_access_rule(
-                        vctx, _("newly created exception"),
-                        dict_to_struct(new_access_rule), tags)
+                new_access_rule_json = {
+                        "permissions": [str(p) for p in permissions],
+                        "if_has_tag": (
+                            session.access_rules_tag
+                            if restricted_to_same_tag else
+                            None)
+                }
+                # Ensure that JSON validates, but do not use it.
+                access_rule_ta.validate_python(new_access_rule_json, context=vctx)
 
                 fre_access = FlowRuleException(
                     flow_id=flow_id,
@@ -1173,7 +1172,8 @@ def grant_exception_stage_3(
                     creator=pctx.request.user,
                     comment=form.cleaned_data["comment"],
                     kind=str(FlowRuleKind.access),
-                    rule=new_access_rule)
+                    rule=new_access_rule_json,
+                    )
                 fre_access.save()
                 exceptions_created.append(
                     str(dict(FLOW_RULE_KIND_CHOICES)[
@@ -1220,23 +1220,27 @@ def grant_exception_stage_3(
                             as_local_time(due_local_naive)
                             .replace(tzinfo=None))
 
-                new_grading_rule: dict[str, Any] = {"description": descr}
+                new_grading_rule_json = {
+                    "description": descr,
+                    "due": due_local_naive,
+                    "if_has_tag": (
+                            session.access_rules_tag
+                            if restricted_to_same_tag else
+                            None),
+                    "generates_grade": form.cleaned_data["generates_grade"],
+                }
 
-                if due_local_naive is not None:
-                    new_grading_rule["due"] = due_local_naive
+                def transfer_attr(name: str):
+                    if form.cleaned_data[name] is not None:
+                        new_grading_rule_json[name] = \
+                                form.cleaned_data[name]
+                transfer_attr("credit_percent")
+                transfer_attr("bonus_points")
+                transfer_attr("max_points")
+                transfer_attr("max_points_enforced_cap")
 
-                for attr_name in ["credit_percent", "bonus_points",
-                        "max_points", "max_points_enforced_cap", "generates_grade"]:
-                    if form.cleaned_data[attr_name] is not None:
-                        new_grading_rule[attr_name] = form.cleaned_data[attr_name]
-
-                if restricted_to_same_tag:
-                    new_grading_rule["if_has_tag"] = session.access_rules_tag
-
-                validate_session_grading_rule(
-                        vctx, _("newly created exception"),
-                        dict_to_struct(new_grading_rule), tags,
-                        grading_rule.grade_identifier)
+                # Ensure that JSON validates, but do not use it.
+                grading_rule_ta.validate_python(new_grading_rule_json, context=vctx)
 
                 fre_grading = FlowRuleException(
                     flow_id=flow_id,
@@ -1244,7 +1248,8 @@ def grant_exception_stage_3(
                     creator=pctx.request.user,
                     comment=form.cleaned_data["comment"],
                     kind=FlowRuleKind.grading,
-                    rule=new_grading_rule)
+                    rule=new_grading_rule_json,
+                    )
                 fre_grading.save()
                 exceptions_created.append(
                     str(dict(FLOW_RULE_KIND_CHOICES)[

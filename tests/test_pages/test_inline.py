@@ -26,8 +26,8 @@ THE SOFTWARE.
 import pytest
 from django.test import TestCase
 
-from course.content import get_repo_blob
 from course.flow import get_page_behavior
+from course.repo import get_repo_blob
 from tests.base_test_mixins import SingleCourseQuizPageTestMixin
 from tests.constants import PAGE_ERRORS
 from tests.test_sandbox import SingleCoursePageSandboxTestBaseMixin
@@ -667,11 +667,17 @@ answers:
 """
 
 
-def get_repo_blob_side_effect(repo, full_name, commit_sha):
+ADD_QUESTION_TEST_COMMIT_SHA = b"724452f310d8eb2e63bb412cd00004d1aef26e75-inline_add_q"
+
+
+def get_repo_blob_side_effect(repo, full_name, commit_sha: bytes):
+    sha_components = commit_sha.split(b"-")
+    git_commit_sha = sha_components[0]
+
     # Fake the inline multiple question yaml for specific commit
     if not (full_name == "questions/multi-question-example.yml"
-            and commit_sha == b"ec41a2de73a99e6022060518cb5c5c162b88cdf5"):
-        return get_repo_blob(repo, full_name, commit_sha)
+            and commit_sha == ADD_QUESTION_TEST_COMMIT_SHA):
+        return get_repo_blob(repo, full_name, git_commit_sha)
     else:
         class Blob:
             pass
@@ -724,7 +730,7 @@ class InlineMultiQuestionTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
         self.assertSandboxNotHasValidPage(resp)
         self.assertResponseContextContains(
             resp, PAGE_ERRORS,
-            "blank1: 'width': unrecognized width attribute string: '-4em'")
+            "Input should be a dictionary or an instance of CSSDimension")
 
     def test_negative_weight(self):
         markdown = (INLINE_MULTI_MARKDOWN_EMBEDDED_ATTR_PATTERN
@@ -734,7 +740,7 @@ class InlineMultiQuestionTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
         self.assertSandboxNotHasValidPage(resp)
         self.assertResponseContextContains(
             resp, PAGE_ERRORS,
-            "blank2: 'weight' must be a non-negative value, got '-5' instead")
+            "weight\n  Input should be greater than or equal to 0")
 
     def test_two_not_required(self):
         markdown = INLINE_MULTI_MARKDOWN_TWO_NOT_REQUIRED
@@ -782,18 +788,7 @@ class InlineMultiQuestionTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
         markdown = INLINE_MULTI_MARKDOWN_FLOAT_WITHOUT_TOL
         resp = self.get_page_sandbox_preview_response(markdown)
         self.assertEqual(resp.status_code, 200)
-        self.assertSandboxHasValidPage(resp)
-        self.assertSandboxWarningTextContain(
-            resp,
-            "Float match should have either rtol or "
-            "atol--otherwise it will match any number")
-
-        resp = self.get_page_sandbox_submit_answer_response(
-            markdown,
-            answer_data={"blank1": "Bar", "blank2": "abc"})
-        self.assertEqual(resp.status_code, 200)
-        self.assertFormErrorLoose(
-            resp, "TypeError: Cannot convert expression to float")
+        self.assertSandboxNotHasValidPage(resp)
 
     def test_not_allowed_embedded_question_type(self):
         markdown = INLINE_MULTI_MARKDOWN_NOT_ALLOWED_EMBEDDED_QTYPE
@@ -802,7 +797,7 @@ class InlineMultiQuestionTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
         self.assertSandboxNotHasValidPage(resp)
         self.assertResponseContextContains(
             resp, PAGE_ERRORS,
-            "unknown embedded question type 'SomeQuestionType'")
+            "blank1\n  Input tag 'SomeQuestionType' found using 'type'")
 
     def test_embedded_question_not_struct(self):
         markdown = INLINE_MULTI_MARKDOWN_EMBEDDED_QUESTION_NOT_STRUCT
@@ -811,7 +806,7 @@ class InlineMultiQuestionTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
         self.assertSandboxNotHasValidPage(resp)
         self.assertResponseContextContains(
             resp, PAGE_ERRORS,
-            "Embedded question 'blank1' must be a struct")
+            "Value error, answers must be dictionaries")
 
     def test_embedded_question_no_extra_html(self):
         markdown = INLINE_MULTI_MARKDOWN_EMBEDDED_HAS_NO_EXTRA_HTML
@@ -871,13 +866,13 @@ class InlineMultiQuestionTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
 
     def test_embedded_width_attr(self):
         markdown = (INLINE_MULTI_MARKDOWN_EMBEDDED_ATTR_PATTERN
-                    % {"attr1": "width: 15",
+                    % {"attr1": "width: 15em",
                        "attr2": "width: 85 %"})
         resp = self.get_page_sandbox_preview_response(markdown)
         self.assertEqual(resp.status_code, 200)
         self.assertSandboxHasValidPage(resp)
         self.assertSandboxWarningTextContain(resp, None)
-        self.assertIn("width: 8.5em", resp.context["form"].as_p())
+        self.assertIn("width: 85.0 %", resp.context["form"].as_p())
 
         markdown = (INLINE_MULTI_MARKDOWN_EMBEDDED_ATTR_PATTERN
                     % {"attr1": "width: 15pt",
@@ -895,7 +890,7 @@ class InlineMultiQuestionTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
         self.assertSandboxNotHasValidPage(resp)
         self.assertResponseContextContains(
             resp, PAGE_ERRORS,
-            "unrecognized width attribute string: 'one'")
+            "Input should be a dictionary or an instance of CSSDimension")
 
         markdown = (INLINE_MULTI_MARKDOWN_EMBEDDED_ATTR_PATTERN
                     % {"attr1": "width: 15 pt",
@@ -905,7 +900,7 @@ class InlineMultiQuestionTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
         self.assertSandboxNotHasValidPage(resp)
         self.assertResponseContextContains(
             resp, PAGE_ERRORS,
-            "unsupported length unit 'km'")
+            "unit\n  Input should be 'pt', ")
 
     def test_embedded_question_no_correct_answer(self):
         markdown = INLINE_MULTI_MARKDOWN_EMBEDDED_NO_CORRECT_ANSWER
@@ -914,7 +909,7 @@ class InlineMultiQuestionTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
         self.assertSandboxNotHasValidPage(resp)
         self.assertResponseContextContains(
             resp, PAGE_ERRORS,
-            "blank1: at least one answer must be provided")
+            "correct_answer\n  Value error, may not be empty")
 
     def test_embedded_text_question_no_stringifiable_correct_answer(self):
         markdown = INLINE_MULTI_MARKDOWN_EMBEDDED_TEXT_Q_NO_STRINGIFIABLE_CORRECT_ANSWER
@@ -923,8 +918,9 @@ class InlineMultiQuestionTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
         self.assertSandboxNotHasValidPage(resp)
         self.assertResponseContextContains(
             resp, PAGE_ERRORS,
-            "blank1: no matcher is able to provide a plain-text "
-            "correct answer")
+            "blank1.ShortAnswer\n  Value error, no matcher is able "
+
+            "to provide a plain-text correct answer")
 
     def test_embedded_choice_question_no_correct_answer(self):
         markdown = INLINE_MULTI_MARKDOWN_EMBEDDED_CHOICE_Q_NO_CORRECT_ANSWER
@@ -933,49 +929,7 @@ class InlineMultiQuestionTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
         self.assertSandboxNotHasValidPage(resp)
         self.assertResponseContextContains(
             resp, PAGE_ERRORS,
-            " more correct answer(s) expected  for question 'choice', "
-            "0 found")
-
-    def test_embedded_choice_not_stringifiable(self):
-        expected_page_error = (
-            "'choice' choice 2: unable to convert to string")
-
-        class BadChoice:
-            def __str__(self):
-                raise Exception
-
-        from relate.utils import dict_to_struct
-        fake_page_desc = dict_to_struct(
-            {"type": "InlineMultiQuestion", "id": "inlinemulti",
-             "prompt":
-                 "\n# An InlineMultiQuestion example\n\nComplete the "
-                 "following paragraph.\n",
-             "question": "\nFoo and [[choice]] are often used in code "
-                         "examples.\n",
-             "_field_names": [
-                 "type", "id", "prompt", "question", "answers", "value"],
-             "answers": {"_field_names": ["choice"],
-                         "choice": {
-                             "_field_names": ["type",
-                                              "choices"],
-                             "type": "ChoicesAnswer",
-                             "choices": [0.2,
-                                         BadChoice(),
-                                         "~CORRECT~ 0.25"]}},
-             "value": 10}
-        )
-
-        with mock.patch("relate.utils.dict_to_struct") as mock_dict_to_struct:
-            mock_dict_to_struct.return_value = fake_page_desc
-
-            markdown = INLINE_MULTI_MARKDOWN_EMBEDDED_CHOICE_QUESTION
-
-            resp = (
-                self.get_page_sandbox_preview_response(markdown))
-            self.assertEqual(resp.status_code, 200)
-            self.assertSandboxNotHasValidPage(resp)
-            self.assertResponseContextContains(resp, PAGE_ERRORS,
-                                               expected_page_error)
+            "at least one 'correct' choice is required")
 
     def test_embedded_question_no_answer_field_defined(self):
         markdown = INLINE_MULTI_MARKDOWN_NO_ANSWER_FIELD
@@ -984,8 +938,7 @@ class InlineMultiQuestionTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
         self.assertSandboxNotHasValidPage(resp)
         self.assertResponseContextContains(
             resp, PAGE_ERRORS,
-            "InlineMultiQuestion requires at least one answer field to "
-            "be defined.")
+            "answers without blanks: blank1")
 
     def test_embedded_naming_error(self):
         markdown = INLINE_MULTI_MARKDOWN_EMBEDDED_NAMING_ERROR
@@ -997,7 +950,7 @@ class InlineMultiQuestionTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
             "ValidationError")
         self.assertResponseContextContains(
             resp, PAGE_ERRORS,
-            "could not instantiate flow page")
+            "answers without blanks: choice")
 
     def test_answers_naming_error(self):
         markdown = INLINE_MULTI_MARKDOWN_ANSWERS_NAMING_ERROR
@@ -1006,9 +959,7 @@ class InlineMultiQuestionTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
         self.assertSandboxNotHasValidPage(resp)
         self.assertResponseContextContains(
             resp, PAGE_ERRORS,
-            "invalid answers name '2choice'. A valid name should start "
-            "with letters. Alphanumeric with underscores. Do not use "
-            "spaces.")
+            "expected an identifier, got: '2choice'")
 
     def test_embedded_naming_duplicated(self):
         markdown = INLINE_MULTI_MARKDOWN_EMBEDDED_NAMING_DUPLICATED
@@ -1017,7 +968,7 @@ class InlineMultiQuestionTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
         self.assertSandboxNotHasValidPage(resp)
         self.assertResponseContextContains(
             resp, PAGE_ERRORS,
-            "embedded question name 'blank1', 'choice1' not unique.")
+            "duplicate blank identifiers in question")
 
     def test_has_unpaired_wrapper(self):
         markdown = INLINE_MULTI_MARKDOWN_HAS_UNPAIRED_WRAPPER
@@ -1026,24 +977,13 @@ class InlineMultiQuestionTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
         self.assertSandboxNotHasValidPage(resp)
         self.assertResponseContextContains(
             resp, PAGE_ERRORS,
-            "question has unpaired '[['.")
+            "stray '[[' in question text")
 
     def test_redundant(self):
         markdown = INLINE_MULTI_MARKDOWN_REDUNDANT
         resp = self.get_page_sandbox_preview_response(markdown)
         self.assertEqual(resp.status_code, 200)
-        self.assertSandboxHasValidPage(resp)
-        self.assertSandboxWarningTextContain(
-            resp,
-            "redundant answers 'blank_2' provided for non-existing "
-            "question(s).")
-
-        resp = self.get_page_sandbox_submit_answer_response(
-            markdown,
-            answer_data={"blank1": "Bar"})
-        self.assertEqual(resp.status_code, 200)
-        self.assertContains(resp, "This is an explanation.")
-        self.assertResponseContextAnswerFeedbackCorrectnessEquals(resp, 1)
+        self.assertSandboxNotHasValidPage(resp)
 
     def test_embedded_question_with_markdown(self):
 
@@ -1091,13 +1031,15 @@ class InlineMultiPageUpdateTest(SingleCourseQuizPageTestMixin, TestCase):
     def test_add_new_question(self):
         """Test bug fix in https://github.com/inducer/relate/pull/262
         """
-        with mock.patch("course.content.get_repo_blob") as mock_get_repo_blob:
+        # FIXME: 262 seems unrelated?
+        with mock.patch("course.repo.get_repo_blob") as mock_get_repo_blob:
             mock_get_repo_blob.side_effect = get_repo_blob_side_effect
 
-            self.post_update_course_content(
-                commit_sha=b"ec41a2de73a99e6022060518cb5c5c162b88cdf5")
+            self.course.active_git_commit_sha = ADD_QUESTION_TEST_COMMIT_SHA.decode()
+            self.course.save()
 
             self.start_flow(self.flow_id)
+            print("POST START")
             resp = self.client.get(
                 self.get_page_url_by_page_id(page_id=self.page_id))
 
@@ -1116,8 +1058,8 @@ class InlineMultiPageUpdateTest(SingleCourseQuizPageTestMixin, TestCase):
             self.assertContains(submit_answer_response,
                                 'correctness="1"', count=6)
 
-        self.post_update_course_content(
-            commit_sha=b"4124e0c23e369d6709a670398167cb9c2fe52d35")
+        self.course.active_git_commit_sha = "4124e0c23e369d6709a670398167cb9c2fe52d35"
+        self.course.save()
         resp = self.client.get(
             self.get_page_url_by_page_id(page_id=self.page_id))
 

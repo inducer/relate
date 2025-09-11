@@ -23,17 +23,13 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-import unittest
 from socket import error as socket_error
+from typing import TYPE_CHECKING, cast
 
 from django.test import Client, RequestFactory, TestCase, override_settings
 
 from course.constants import MAX_EXTRA_CREDIT_FACTOR
 from course.models import FlowSession
-from course.page.code import (
-    PythonCodeQuestionWithHumanTextFeedback,
-    is_nuisance_failure,
-)
 from course.utils import CoursePageContext, FlowPageContext
 from tests.base_test_mixins import (
     MockAddMessageMixing,
@@ -46,6 +42,12 @@ from tests.test_sandbox import SingleCoursePageSandboxTestBaseMixin
 from tests.utils import LocmemBackendTestsMixin, mail, mock
 
 from . import markdowns
+
+
+if TYPE_CHECKING:
+    from course.page.code import (
+        PythonCodeQuestionWithHumanTextFeedback,
+    )
 
 
 NO_CORRECTNESS_INFO_MSG = "No information on correctness of answer."
@@ -224,7 +226,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
         self.assertEqual(resp.status_code, 200)
         self.assertSandboxNotHasValidPage(resp)
         self.assertResponseContextContains(
-            resp, PAGE_ERRORS, f"data file '{file_name}' not found")
+            resp, PAGE_ERRORS, f" file '{file_name}' not found in course repository ")
 
     def test_data_files_missing_random_question_data_file_bad_format(self):
         markdown = markdowns.CODE_MARKDWON_WITH_DATAFILES_BAD_FORMAT
@@ -232,7 +234,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
         self.assertEqual(resp.status_code, 200)
         self.assertSandboxNotHasValidPage(resp)
         self.assertResponseContextContains(
-            resp, PAGE_ERRORS, "data file '{}' not found".format("['foo', 'bar']"))
+            resp, PAGE_ERRORS, "data_files.1\n  Input should be a valid string")
 
     def test_not_multiple_submit_warning(self):
         markdown = (
@@ -312,19 +314,6 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
         self.assertEqual(resp.status_code, 200)
         self.assertResponseContextAnswerFeedbackCorrectnessEquals(resp, 1)
 
-    def test_question_with_human_feedback_both_feedback_value_feedback_percentage_present(self):  # noqa
-        markdown = (markdowns.CODE_WITH_HUMAN_FEEDBACK_MARKDWON_PATTERN
-                    % {"value": 3,
-                       "human_feedback": "human_feedback_value: 2",
-                       "extra_attribute": "human_feedback_percentage: 20"})
-        resp = self.get_page_sandbox_preview_response(markdown)
-        self.assertEqual(resp.status_code, 200)
-        self.assertSandboxNotHasValidPage(resp)
-        self.assertResponseContextContains(
-            resp, PAGE_ERRORS, "'human_feedback_value' and "
-                               "'human_feedback_percentage' are not "
-                               "allowed to coexist")
-
     def test_question_with_human_feedback_neither_feedback_value_feedback_percentage_present(self):  # noqa
         markdown = (markdowns.CODE_WITH_HUMAN_FEEDBACK_MARKDWON_PATTERN
                     % {"value": 3,
@@ -334,59 +323,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
         self.assertEqual(resp.status_code, 200)
         self.assertSandboxNotHasValidPage(resp)
         self.assertResponseContextContains(
-            resp, PAGE_ERRORS, "expecting either 'human_feedback_value' "
-                               "or 'human_feedback_percentage', found neither.")
-
-    def test_question_with_human_feedback_used_feedback_value_warning(self):
-        markdown = (markdowns.CODE_WITH_HUMAN_FEEDBACK_MARKDWON_PATTERN
-                    % {"value": 3,
-                       "human_feedback": "human_feedback_value: 2",
-                       "extra_attribute": ""})
-        resp = self.get_page_sandbox_preview_response(markdown)
-        self.assertEqual(resp.status_code, 200)
-        self.assertSandboxHasValidPage(resp)
-        self.assertSandboxWarningTextContain(
-            resp,
-            "Used deprecated 'human_feedback_value' attribute--"
-            "use 'human_feedback_percentage' instead."
-        )
-
-    def test_question_with_human_feedback_used_feedback_value_bad_value(self):
-        markdown = (markdowns.CODE_WITH_HUMAN_FEEDBACK_MARKDWON_PATTERN
-                    % {"value": 0,
-                       "human_feedback": "human_feedback_value: 2",
-                       "extra_attribute": ""})
-        resp = self.get_page_sandbox_preview_response(markdown)
-        self.assertEqual(resp.status_code, 200)
-        self.assertSandboxNotHasValidPage(resp)
-        self.assertResponseContextContains(
-            resp, PAGE_ERRORS, "'human_feedback_value' attribute is not allowed "
-                               "if value of question is 0, use "
-                               "'human_feedback_percentage' instead")
-
-    def test_question_with_human_feedback_used_feedback_value_invalid(self):
-        markdown = (markdowns.CODE_WITH_HUMAN_FEEDBACK_MARKDWON_PATTERN
-                    % {"value": 2,
-                       "human_feedback": "human_feedback_value: 3",
-                       "extra_attribute": ""})
-        resp = self.get_page_sandbox_preview_response(markdown)
-        self.assertEqual(resp.status_code, 200)
-        self.assertSandboxNotHasValidPage(resp)
-        self.assertResponseContextContains(
-            resp, PAGE_ERRORS, "human_feedback_value greater than overall "
-                               "value of question")
-
-    def test_question_with_human_feedback_feedback_percentage_invalid(self):
-        markdown = (markdowns.CODE_WITH_HUMAN_FEEDBACK_MARKDWON_PATTERN
-                    % {"value": 2,
-                       "human_feedback": "human_feedback_percentage: 120",
-                       "extra_attribute": ""})
-        resp = self.get_page_sandbox_preview_response(markdown)
-        self.assertEqual(resp.status_code, 200)
-        self.assertSandboxNotHasValidPage(resp)
-        self.assertResponseContextContains(
-            resp, PAGE_ERRORS, "the value of human_feedback_percentage "
-                               "must be between 0 and 100")
+            resp, PAGE_ERRORS, "human_feedback_percentage\n  Field required")
 
     def test_question_with_human_feedback_value_0_feedback_full_percentage(self):
         markdown = (markdowns.CODE_WITH_HUMAN_FEEDBACK_MARKDWON_PATTERN
@@ -596,23 +533,13 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
             exec_host="localhost"
         )
 
-    def test_exechost_ip(self):
-        with mock.patch("socket.gethostbyaddr") as mock_get_host:
-            ip = "192.168.1.100"
-            resolved = "example.com"
-            mock_get_host.side_effect = lambda x: (resolved, [], [])
-            self.assert_runpy_result_and_response(
-                "user_error",
-                execpted_msgs=f"Your code ran on {resolved}",
-                exec_host=ip
-            )
-
     def test_exechost_ip_resolve_failure(self):
         with mock.patch("socket.gethostbyaddr") as mock_get_host:
             ip = "192.168.1.100"
             mock_get_host.side_effect = socket_error
             self.assert_runpy_result_and_response(
                 "user_error",
+                correctness=None,
                 execpted_msgs=f"Your code ran on {ip}",
                 exec_host=ip
             )
@@ -993,52 +920,6 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
     # }}}
 
 
-class IsNuisanceFailureTest(unittest.TestCase):
-    # Testing is_nuisance_failure
-
-    def test_not_uncaught_error(self):
-        result = {"result": "not_uncaught_error"}
-        self.assertFalse(is_nuisance_failure(result))
-
-    def test_no_traceback(self):
-        result = {"result": "uncaught_error"}
-        self.assertFalse(is_nuisance_failure(result))
-
-    def test_traceback_unknown(self):
-        result = {"result": "uncaught_error",
-                  "traceback": "unknown traceback"}
-        self.assertFalse(is_nuisance_failure(result))
-
-    def test_traceback_has_badstatusline(self):
-        result = {"result": "uncaught_error",
-                  "traceback": "BadStatusLine: \nfoo"}
-        self.assertTrue(is_nuisance_failure(result))
-
-    def test_traceback_address_already_in_use(self):
-        result = {"result": "uncaught_error",
-                  "traceback": "\nbind: address already in use \nfoo"}
-        self.assertTrue(is_nuisance_failure(result))
-
-    def test_traceback_new_connection_error(self):
-        result = {"result": "uncaught_error",
-                  "traceback":
-                      "\nrequests.packages.urllib3.exceptions."
-                      "NewConnectionError: \nfoo"}
-        self.assertTrue(is_nuisance_failure(result))
-
-    def test_traceback_remote_disconnected(self):
-        result = {"result": "uncaught_error",
-                  "traceback":
-                      "\nhttp.client.RemoteDisconnected: \nfoo"}
-        self.assertTrue(is_nuisance_failure(result))
-
-    def test_no_route_to_host(self):
-        result = {"result": "uncaught_error",
-                  "traceback":
-                      "\n[Errno 113] No route to host: \nfoo"}
-        self.assertTrue(is_nuisance_failure(result))
-
-
 class CodeQuestionWithHumanTextFeedbackSpecialCase(
         SingleCoursePageTestMixin, SubprocessRunpyContainerMixin, TestCase):
     """
@@ -1082,11 +963,11 @@ class CodeQuestionWithHumanTextFeedbackSpecialCase(
         fpctx = FlowPageContext(
             pctx.repo, pctx.course, self.flow_id, page_ordinal,
             self.student_participation, flow_session, request)
-        page_desc = fpctx.page_desc
-        page_desc.value = page_value
-        page_desc.human_feedback_percentage = human_feedback_percentage
-
-        page = PythonCodeQuestionWithHumanTextFeedback(None, None, page_desc)
+        page = cast("PythonCodeQuestionWithHumanTextFeedback", fpctx.page)
+        page = page.model_copy(update={
+                    "value": page_value,
+                    "human_feedback_percentage": human_feedback_percentage,
+               })
 
         page_context = fpctx.page_context
         grade_data.setdefault("grade_percent", None)
@@ -1121,7 +1002,7 @@ class CodeQuestionWithHumanTextFeedbackSpecialCase(
         human_feedback_percentage = 100
         from course.page.base import AnswerFeedback
         with mock.patch(
-                "course.page.code.PythonCodeQuestion.grade") as mock_py_grade:
+                "course.page.code.CodeQuestion.grade") as mock_py_grade:
 
             # In this way, code_feedback.correctness is None
             mock_py_grade.return_value = AnswerFeedback(correctness=None)

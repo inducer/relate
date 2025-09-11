@@ -48,6 +48,8 @@ from course.auth import UserSearchWidget
 from course.constants import (
     PARTICIPATION_PERMISSION_CHOICES,
     ParticipationPermission as PPerm,
+    ParticipationStatus,
+    UserStatus,
 )
 from course.models import (
     Course,
@@ -55,9 +57,7 @@ from course.models import (
     ParticipationPermission,
     ParticipationPreapproval,
     ParticipationRole,
-    ParticipationStatus,
     ParticipationTag,
-    UserStatus,
 )
 from course.utils import LanguageOverride, course_view, render_course_page
 from relate.utils import StyledForm, StyledModelForm, string_concat
@@ -66,6 +66,8 @@ from relate.utils import StyledForm, StyledModelForm, string_concat
 # {{{ for mypy
 
 if TYPE_CHECKING:
+    from collections.abc import Set
+
     from django.contrib.auth.models import AnonymousUser
 
     import accounts.models
@@ -107,16 +109,16 @@ def get_participation_for_request(
 # {{{ get_participation_role_identifiers
 
 def get_participation_role_identifiers(
-        course: Course, participation: Participation | None) -> list[str]:
+        course: Course, participation: Participation | None) -> Set[str]:
     if participation is None:
-        return list(
+        return frozenset(
                 ParticipationRole.objects.filter(
                     course=course,
                     is_default_for_unenrolled=True)
                 .values_list("identifier", flat=True))
 
     else:
-        return [r.identifier for r in participation.roles.all()]
+        return {r.identifier for r in participation.roles.all()}
 
 # }}}
 

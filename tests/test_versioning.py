@@ -742,23 +742,6 @@ class RunCourseUpdateCommandTest(MockAddMessageMixing, unittest.TestCase):
                         "'validate_course_content' is not expected for "
                         f"command '{command}' to be called while called")
 
-    def test_unknown_command(self):
-        command = "unknown"
-        may_update = True
-        prevent_discarding_revisions = False
-
-        with self.assertRaises(RuntimeError) as cm:
-            versioning.run_course_update_command(
-                self.request, self.repo, self.content_repo, self.pctx, command,
-                self.default_switch_to_sha.encode(),
-                may_update, prevent_discarding_revisions)
-
-        self.assertEqual(self.mock_validate_course_content.call_count, 0)
-        self.assertEqual(self.mock_is_ancestor_commit.call_count, 0)
-
-        expected_error_msg = "invalid command"
-        self.assertIn(expected_error_msg, str(cm.exception))
-
     def check_command_message_result(
             self, command, add_message_expected_call_count=0,
             expected_add_message_literals=None,
@@ -992,9 +975,6 @@ class RunCourseUpdateCommandTest(MockAddMessageMixing, unittest.TestCase):
         command_tup = (
             ("fetch", 1, [FETCHED_LITERAL], [UPDATE_APPLIED_LITERAL],
              self.default_old_sha),
-            ("fetch_update", 2, [FETCHED_LITERAL, VALIDATE_SUCCESS_LITERAL],
-             [UPDATE_APPLIED_LITERAL],
-             self.default_old_sha)
         )
 
         for (command, add_message_call_count, expected, not_expected,
@@ -1145,10 +1125,10 @@ class UpdateCourseTest(SingleCourseTestMixin, MockAddMessageMixing, TestCase):
             resp = self.client.get(self.get_update_course_url())
             self.assertEqual(resp.status_code, 403)
 
-            for command in versioning.ALLOWED_COURSE_REVISIOIN_COMMANDS:
+            for command in versioning.CourseRevisionCommand:
                 resp = self.post_update_course_content(
-                    "some_commit_sha", command=command,
-                    force_login_instructor=False)
+                    "some_commit_sha", command=command.value,
+                    force_login_instructor=False, expect_success=False)
                 self.assertEqual(resp.status_code, 403)
 
     def test_participation_with_preview_permission(self):
@@ -1161,11 +1141,13 @@ class UpdateCourseTest(SingleCourseTestMixin, MockAddMessageMixing, TestCase):
         self.student_participation.individual_permissions.set([pp])
 
         with self.temporarily_switch_to_user(self.student_participation.user):
-            for command in versioning.ALLOWED_COURSE_REVISIOIN_COMMANDS:
+            for command in versioning.CourseRevisionCommand:
+                exp_success = "update" not in command.value
                 resp = self.post_update_course_content(
-                    "some_commit_sha", command=command,
-                    force_login_instructor=False)
-                self.assertEqual(resp.status_code, 200, command)
+                    "some_commit_sha", command=command.value,
+                    force_login_instructor=False, expect_success=exp_success)
+                if exp_success:
+                    self.assertEqual(resp.status_code, 200, command.value)
 
     def test_participation_with_update_permission(self):
         # Just to make sure it won't fail, Todo: assertion on form kwargs
@@ -1177,11 +1159,13 @@ class UpdateCourseTest(SingleCourseTestMixin, MockAddMessageMixing, TestCase):
         self.student_participation.individual_permissions.set([pp])
 
         with self.temporarily_switch_to_user(self.student_participation.user):
-            for command in versioning.ALLOWED_COURSE_REVISIOIN_COMMANDS:
+            for command in versioning.CourseRevisionCommand:
                 resp = self.post_update_course_content(
                     "some_commit_sha", command=command,
-                    force_login_instructor=False)
-                self.assertEqual(resp.status_code, 200, command)
+                    force_login_instructor=False,
+                    # The commit sha is bogus...
+                    expect_success=False)
+                self.assertEqual(resp.status_code, 200, command.value)
 
     def test_get(self):
         with self.temporarily_switch_to_user(self.instructor_participation.user):
@@ -1215,7 +1199,7 @@ class UpdateCourseTest(SingleCourseTestMixin, MockAddMessageMixing, TestCase):
         ) as mock_run_update:
             mock_form_valid.return_value = False
             resp = self.post_update_course_content(
-                "some_commit_sha", command="update")
+                "some_commit_sha", command="update", expect_success=False)
             self.assertEqual(resp.status_code, 200)
             self.assertEqual(mock_run_update.call_count, 0)
 

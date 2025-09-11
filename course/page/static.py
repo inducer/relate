@@ -23,7 +23,9 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Literal
+
+from typing_extensions import override
 
 from course.page.base import (
     PageBaseUngraded,
@@ -31,14 +33,15 @@ from course.page.base import (
     PageBaseWithTitle,
     PageBehavior,
     PageContext,
+    PageData,
     markup_to_html,
 )
+from course.validation import Markup  # noqa: TC001
 
 
 if TYPE_CHECKING:
     from django import forms
 
-    from course.validation import AttrSpec
     from relate.utils import StyledForm
 
 
@@ -72,22 +75,27 @@ class Page(PageBaseWithCorrectAnswer, PageBaseWithTitle, PageBaseUngraded):
         Content that is revealed when answers are visible
         (see :ref:`flow-permissions`). Written in :ref:`markup`.
     """
+    type: Literal["Page"] = "Page"  # pyright: ignore[reportIncompatibleVariableOverride]
 
-    def required_attrs(self) -> AttrSpec:
-        return (*super().required_attrs(), ("content", "markup"))
+    content: Markup
 
-    def markup_body_for_title(self) -> str:
-        return self.page_desc.content
+    @override
+    def body_attr_for_title(self) -> str:
+        return "content"
 
-    def body(self, page_context, page_data) -> str:
-        return markup_to_html(page_context, self.page_desc.content)
+    @override
+    def body(self, page_context: PageContext, page_data: PageData) -> str:
+        return markup_to_html(page_context, self.content)
 
+    @override
     def expects_answer(self) -> bool:
         return False
 
+    @override
     def max_points(self, page_data: Any) -> float:
         raise NotImplementedError()
 
+    @override
     def answer_data(
             self,
             page_context: PageContext,
@@ -97,6 +105,7 @@ class Page(PageBaseWithCorrectAnswer, PageBaseWithTitle, PageBaseUngraded):
             ) -> Any:
         raise NotImplementedError()
 
+    @override
     def make_form(
             self,
             page_context: PageContext,
@@ -106,6 +115,7 @@ class Page(PageBaseWithCorrectAnswer, PageBaseWithTitle, PageBaseUngraded):
             ) -> StyledForm:
         raise NotImplementedError()
 
+    @override
     def process_form_post(
             self,
             page_context: PageContext,

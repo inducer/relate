@@ -920,7 +920,7 @@ def view_single_grade(pctx: CoursePageContext, participation_id: str,
         op = action_match.group(1)
 
         adjust_flow_session_page_data(
-                pctx.repo, session, pctx.course.identifier,
+                pctx.repo, session,
                 respect_preview=False)
 
         from course.flow import (
@@ -1000,7 +1000,7 @@ def view_single_grade(pctx: CoursePageContext, participation_id: str,
                 ["due", "grade_description"])
 
         from course.content import get_flow_desc
-        from course.utils import get_session_grading_rule
+        from course.utils import get_session_grading_mode
 
         try:
             flow_desc = get_flow_desc(pctx.repo, pctx.course,
@@ -1012,10 +1012,10 @@ def view_single_grade(pctx: CoursePageContext, participation_id: str,
             flow_sessions_and_session_properties = []
             for session in flow_sessions:
                 adjust_flow_session_page_data(
-                        pctx.repo, session, pctx.course.identifier,
-                        flow_desc, respect_preview=False)
+                        pctx.repo, session, flow_desc,
+                        respect_preview=False)
 
-                grading_rule = get_session_grading_rule(
+                grading_rule = get_session_grading_mode(
                         session, flow_desc, now_datetime)
 
                 session_properties = SessionProperties(
@@ -1513,10 +1513,7 @@ def download_all_submissions(pctx: CoursePageContext, flow_id: str):
 
     # {{{ find access rules tag
 
-    if hasattr(flow_desc, "rules"):
-        access_rules_tags = getattr(flow_desc.rules, "tags", [])
-    else:
-        access_rules_tags = []
+    access_rules_tags = flow_desc.rules.tags
 
     ALL_SESSION_TAG = string_concat("<<<", _("ALL"), ">>>")  # noqa
     session_tag_choices = [
