@@ -118,7 +118,7 @@ class PageContext:
     .. attribute:: commit_sha
     .. attribute:: flow_session
 
-        May be None.
+        May be None (e.g. for sandbox use)
 
     .. attribute:: page_uri
     .. attribute:: request
@@ -130,7 +130,7 @@ class PageContext:
     course: Course
     repo: Repo_ish
     commit_sha: bytes
-    flow_session: FlowSession
+    flow_session: FlowSession | None
     in_sandbox: bool = False
     page_uri: str | None = None
     request: django.http.HttpRequest | None = None
