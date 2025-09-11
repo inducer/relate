@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing_extensions import TypeIs
-
 
 __copyright__ = "Copyright (C) 2014 Andreas Kloeckner"
 
@@ -41,10 +39,12 @@ import dulwich.repo
 from django.http import HttpRequest
 from django.utils.text import format_lazy
 from django.utils.translation import gettext_lazy as _
+from typing_extensions import TypeIs
 
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Collection, Mapping
+    from pathlib import Path
 
     from django.contrib.auth.models import AbstractUser, AnonymousUser
 
@@ -117,6 +117,9 @@ class StyledModelForm(forms.ModelForm):
 # {{{ repo-ish types
 
 class SubdirRepoWrapper:
+    repo: dulwich.repo.Repo
+    subdir: str
+
     def __init__(self, repo: dulwich.repo.Repo, subdir: str) -> None:
         self.repo = repo
 
@@ -124,7 +127,7 @@ class SubdirRepoWrapper:
         assert subdir
         self.subdir = subdir
 
-    def controldir(self) -> str:
+    def controldir(self) -> Path | str:
         return self.repo.controldir()
 
     def close(self) -> None:
@@ -455,7 +458,7 @@ def ignore_no_such_table(f, *args):
             raise
 
 
-def force_remove_path(path: str) -> None:
+def force_remove_path(path: Path | str) -> None:
     """
     Work around deleting read-only path on Windows.
     Ref: https://docs.python.org/3.5/library/shutil.html#rmtree-example
@@ -464,7 +467,7 @@ def force_remove_path(path: str) -> None:
     import shutil
     import stat
 
-    def remove_readonly(func, path, _):
+    def remove_readonly(func: Callable[[Path | str], None], path: Path | str, _):
         """Clear the readonly bit and reattempt the removal"""
         os.chmod(path, stat.S_IWRITE)
         func(path)

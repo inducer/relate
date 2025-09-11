@@ -31,9 +31,16 @@ import os
 import re
 import sys
 from dataclasses import dataclass
-from typing import cast
+from itertools import starmap
+from pathlib import Path
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    cast,
+)
 from xml.etree.ElementTree import Element, tostring
 
+import dulwich
 import dulwich.objects
 import dulwich.repo
 from django.conf import settings
@@ -46,38 +53,32 @@ from markdown.treeprocessors import Treeprocessor
 from yaml import safe_load as load_yaml
 
 from course.constants import ATTRIBUTES_FILENAME, flow_permission
-from relate.utils import Struct, SubdirRepoWrapper, dict_to_struct
-
-
-CACHE_KEY_ROOT = "py4"
-
-
-# {{{ mypy
-
-from typing import (
-    TYPE_CHECKING,
-    Any,
+from course.validation import (
+    Blob_ish,
+    FileSystemFakeRepo,
+    FileSystemFakeRepoFile,
+    FileSystemFakeRepoTree,
+    Tree_ish,
 )
+from relate.utils import Struct, SubdirRepoWrapper, dict_to_struct
 
 
 if TYPE_CHECKING:
     # for mypy
     from collections.abc import Callable, Collection, Mapping
 
-    import dulwich
-
     from course.models import Course, Participation
     from course.page.base import PageBase
     from course.validation import (
-        Blob_ish,
-        FileSystemFakeRepoTree,
-        Tree_ish,
         ValidationContext,
     )
     from relate.utils import Repo_ish
 
 Date_ish = datetime.datetime | datetime.date
 Datespec = datetime.datetime | datetime.date | str
+
+
+CACHE_KEY_ROOT = "py4"
 
 
 class ChunkRulesDesc(Struct):
@@ -641,23 +642,24 @@ class FlowDesc(Struct):
 
 # {{{ repo blob getting
 
-def get_true_repo_and_path(repo: Repo_ish, path: str) -> tuple[dulwich.repo.Repo, str]:
+def get_true_repo_and_path(
+            repo: Repo_ish,
+            path: str
+        ) -> tuple[dulwich.repo.Repo, str]:
 
-    if isinstance(repo, SubdirRepoWrapper):
+    while isinstance(repo, SubdirRepoWrapper):
         if path:
-            path = repo.subdir + "/" + path
+            path = f"{repo.subdir}/{path}"
         else:
             path = repo.subdir
 
-        return repo.repo, path
+        repo = repo.repo
 
-    else:
-        return repo, path
+    return repo, path
 
 
-def get_course_repo_path(course: Course) -> str:
-
-    return os.path.join(settings.GIT_ROOT, course.identifier)
+def get_course_repo_path(course: Course) -> Path:
+    return Path(settings.GIT_ROOT) / course.identifier
 
 
 def get_course_repo(course: Course) -> Repo_ish:
@@ -671,12 +673,12 @@ def get_course_repo(course: Course) -> Repo_ish:
         return repo
 
 
-def look_up_git_object(
-            repo: dulwich.repo.Repo,
+def _look_up_git_object(
+            repo: dulwich.repo.Repo | FileSystemFakeRepo,
             root_tree: dulwich.objects.Tree | FileSystemFakeRepoTree,
             full_name: str,
             _max_symlink_depth: int | None = None
-        ) -> dulwich.objects.Tree | FileSystemFakeRepoTree | dulwich.objects.ShaFile:
+        ) -> Tree_ish | Blob_ish:
     """Traverse git directory tree from *root_tree*, respecting symlinks."""
 
     if _max_symlink_depth is None:
@@ -691,15 +693,11 @@ def look_up_git_object(
 
     processed_name_parts: list[str] = []
 
-    from dulwich.objects import Tree
-
-    from course.validation import FileSystemFakeRepoTree
-
-    cur_lookup = root_tree
+    cur_lookup: Tree_ish | Blob_ish = root_tree
 
     from stat import S_ISLNK
     while name_parts:
-        if not isinstance(cur_lookup, Tree | FileSystemFakeRepoTree):
+        if not isinstance(cur_lookup, Tree_ish):
             raise ObjectDoesNotExist(
                     _("'%s' is not a directory, cannot lookup nested names")
                     % os.sep.join(processed_name_parts))
@@ -710,7 +708,7 @@ def look_up_git_object(
             # tolerate empty path components (begrudgingly)
             continue
         elif name_part == ".":
-            return cur_lookup
+            continue
 
         encoded_name_part = name_part.encode()
         try:
@@ -721,13 +719,28 @@ def look_up_git_object(
         mode, cur_lookup_sha = mode_sha
 
         if S_ISLNK(mode):
-            link_target = os.sep.join(
-                        [*processed_name_parts, repo[cur_lookup_sha].data.decode()])
-            cur_lookup = look_up_git_object(repo, root_tree, link_target,
+            if isinstance(repo, dulwich.repo.Repo):
+                assert isinstance(cur_lookup_sha, bytes)
+                link_data = cast("dulwich.objects.Blob", repo[cur_lookup_sha]).data
+                assert isinstance(link_data, bytes)
+            elif isinstance(repo, FileSystemFakeRepo):
+                # The filesystem will have resolved these behind our back.
+                raise AssertionError()
+            link_target = os.sep.join([*processed_name_parts, link_data.decode()])
+            cur_lookup = _look_up_git_object(repo, root_tree, link_target,
                     _max_symlink_depth=_max_symlink_depth-1)
         else:
             processed_name_parts.append(name_part)
-            cur_lookup = repo[cur_lookup_sha]
+            if isinstance(repo, dulwich.repo.Repo):
+                assert isinstance(cur_lookup_sha, bytes)
+                lkup = repo[cur_lookup_sha]
+                assert isinstance(lkup, Tree_ish | Blob_ish)
+            elif isinstance(repo, FileSystemFakeRepo):
+                assert isinstance(cur_lookup_sha,
+                                  (FileSystemFakeRepoTree, FileSystemFakeRepoFile))
+                lkup = repo[cur_lookup_sha]
+
+            cur_lookup = lkup
 
     return cur_lookup
 
@@ -747,14 +760,14 @@ def get_repo_tree(repo: Repo_ish, full_name: str, commit_sha: bytes) -> Tree_ish
         raise ObjectDoesNotExist(
                 _("commit sha '%s' not found") % commit_sha.decode())
 
-    git_obj = look_up_git_object(
+    git_obj = _look_up_git_object(
             dul_repo, root_tree=dul_repo[tree_sha], full_name=full_name)
 
     from dulwich.objects import Tree
 
     from course.validation import FileSystemFakeRepoTree
 
-    msg_full_name = full_name if full_name else _("(repo root)")
+    msg_full_name = full_name or _("(repo root)")
 
     if isinstance(git_obj, Tree | FileSystemFakeRepoTree):
         return git_obj
@@ -777,14 +790,14 @@ def get_repo_blob(repo: Repo_ish, full_name: str, commit_sha: bytes) -> Blob_ish
         raise ObjectDoesNotExist(
                 _("commit sha '%s' not found") % commit_sha.decode())
 
-    git_obj = look_up_git_object(
+    git_obj = _look_up_git_object(
             dul_repo, root_tree=dul_repo[tree_sha], full_name=full_name)
 
     from dulwich.objects import Blob
 
     from course.validation import FileSystemFakeRepoFile
 
-    msg_full_name = full_name if full_name else _("(repo root)")
+    msg_full_name = full_name or _("(repo root)")
 
     if isinstance(git_obj, Blob | FileSystemFakeRepoFile):
         return git_obj
@@ -802,7 +815,7 @@ def get_repo_blob_data_cached(
         from urllib.parse import quote_plus
         cache_key: str | None = "%s%R%1".join((
             CACHE_KEY_ROOT,
-            quote_plus(repo.controldir()),
+            quote_plus(str(repo.controldir())),
             quote_plus(full_name),
             commit_sha.decode(),
             ".".join(str(s) for s in sys.version_info[:2]),
@@ -959,9 +972,7 @@ def process_yaml_for_expansion(yaml_str: str) -> str:
                 jinja_lines.append("{% endraw %}")
 
         elif GROUP_COMMENT_START.match(ln):
-            jinja_lines.append("{% raw %}")
-            jinja_lines.append(ln)
-            jinja_lines.append("{% endraw %}")
+            jinja_lines.extend(("{% raw %}", ln, "{% endraw %}"))
             i += 1
 
         else:
@@ -999,12 +1010,16 @@ class YamlBlockEscapingGitTemplateLoader(GitTemplateLoader):
 class YamlBlockEscapingFileSystemLoader:
     # https://github.com/inducer/relate/issues/130
 
-    def __init__(self, root):
+    root: Path
+
+    def __init__(self, root: Path):
+        if not isinstance(root, Path):
+            root = Path(root)
         self.root = root
 
-    def __call__(self, template):
-        with open(os.path.join(self.root, template)) as inf:
-            source = inf.read()
+    def __call__(self, template: str):
+        source = Path(os.path.join(self.root, template)).read_text()
+        source = (self.root / template).read_text()
 
         _, ext = os.path.splitext(template)
         ext = ext.lower()
@@ -1061,7 +1076,7 @@ def get_raw_yaml_from_repo(
     from urllib.parse import quote_plus
     cache_key = "%RAW%%2".join((
         CACHE_KEY_ROOT,
-        quote_plus(repo.controldir()), quote_plus(full_name), commit_sha.decode(),
+        quote_plus(str(repo.controldir())), quote_plus(full_name), commit_sha.decode(),
         ))
 
     import django.core.cache as cache
@@ -1111,7 +1126,7 @@ def get_yaml_from_repo(
             from urllib.parse import quote_plus
             cache_key = "%%%2".join(
                     (CACHE_KEY_ROOT,
-                        quote_plus(repo.controldir()), quote_plus(full_name),
+                        quote_plus(str(repo.controldir())), quote_plus(full_name),
                         commit_sha.decode()))
 
             def_cache = cache.caches["default"]
@@ -1171,7 +1186,7 @@ class TagProcessingHTMLParser(html_parser.HTMLParser):
         attrs.update(self.process_tag_func(tag, attrs))
 
         self.out_file.write("<{} {}>".format(tag, " ".join(
-            _attr_to_string(k, v) for k, v in attrs.items())))
+            starmap(_attr_to_string, attrs.items()))))
 
     def handle_endtag(self, tag):
         self.out_file.write(f"</{tag}>")
@@ -1181,7 +1196,7 @@ class TagProcessingHTMLParser(html_parser.HTMLParser):
         attrs.update(self.process_tag_func(tag, attrs))
 
         self.out_file.write("<{} {}/>".format(tag, " ".join(
-            _attr_to_string(k, v) for k, v in attrs.items())))
+            starmap(_attr_to_string, attrs.items()))))
 
     def handle_data(self, data):
         self.out_file.write(data)

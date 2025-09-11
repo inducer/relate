@@ -3,7 +3,12 @@ from __future__ import annotations
 
 import io
 import sys
-from typing import Any
+from pathlib import Path
+from typing import TYPE_CHECKING, Any, cast
+
+
+if TYPE_CHECKING:
+    from course.content import FlowPageDesc
 
 
 # {{{ validate_course
@@ -16,7 +21,7 @@ def validate_course(args):
     django.setup()
 
     from course.validation import validate_course_on_filesystem
-    has_warnings = validate_course_on_filesystem(args.REPO_ROOT,
+    has_warnings = validate_course_on_filesystem(Path(args.REPO_ROOT),
             course_file=args.course_file,
             events_file=args.events_file)
 
@@ -43,7 +48,7 @@ def validate_pages(args):
         get_yaml_from_repo_safely,
         validate_flow_page,
     )
-    fake_repo = FileSystemFakeRepo(args.REPO_ROOT.encode("utf-8"))
+    fake_repo = FileSystemFakeRepo(Path(args.REPO_ROOT))
     vctx = ValidationContext(
             repo=fake_repo,
             commit_sha=fake_repo,
@@ -70,12 +75,11 @@ def validate_pages(args):
 
 # {{{ expand YAML
 
-def expand_yaml(yml_file, repo_root):
+def expand_yaml(yml_file: str, repo_root: Path):
     if yml_file == "-":
         data = sys.stdin.read()
     else:
-        with open(yml_file) as inf:
-            data = inf.read()
+        data = Path(yml_file).read_text()
 
     from course.content import (
         YamlBlockEscapingFileSystemLoader,
@@ -136,7 +140,8 @@ def lint_yaml(args):
 
 
 # {{{ code test
-def test_code_question(page_desc, repo_root) -> bool:
+
+def test_code_question(page_desc: Any) -> bool:
     if page_desc.type not in [
             "PythonCodeQuestion",
             "PythonCodeQuestionWithHumanTextFeedback"]:
@@ -162,8 +167,8 @@ def test_code_question(page_desc, repo_root) -> bool:
 
     for data_file_name in getattr(page_desc, "data_files", []):
         from base64 import b64encode
-        with open(data_file_name, "rb") as df:
-            data_files[data_file_name] = b64encode(df.read()).decode()
+        data_files[data_file_name] = b64encode(
+                                Path(data_file_name).read_bytes()).decode()
 
     run_req = {
             "setup_code": getattr(page_desc, "setup_code", ""),
@@ -269,7 +274,7 @@ def test_code_yml(yml_file, repo_root):
     data = dict_to_struct(safe_load(data))
 
     if hasattr(data, "id") and hasattr(data, "type"):
-        return test_code_question(data, repo_root)
+        return test_code_question(cast("FlowPageDesc", data))
 
     else:
         if hasattr(data, "groups"):
@@ -287,7 +292,7 @@ def test_code_yml(yml_file, repo_root):
             return
 
         for page in pages:
-            res = test_code_question(page, repo_root)
+            res = test_code_question(page)
             if not res:
                 return False
 
