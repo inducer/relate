@@ -831,7 +831,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
         self.assertEqual(resp.status_code, 200)
         self.assertResponseContextAnswerFeedbackCorrectnessEquals(resp, 1.1)
 
-        expected_feedback = "Your answer is correct and earned bonus points."
+        expected_feedback = "Your answer received extra credit."
 
         self.assertResponseContextAnswerFeedbackContainsFeedback(
             resp, expected_feedback)
@@ -1149,7 +1149,7 @@ class CodeQuestionWithHumanTextFeedbackSpecialCase(
             answer_data, page_value, human_feedback_percentage, grade_data)
         self.assertIn("The overall grade is 100%.", feedback.feedback)
         self.assertIn(
-            "Your answer is correct.", feedback.feedback)
+            "Your answer received full credit.", feedback.feedback)
         self.assertIn(
             "The autograder assigned 0/0 points.", feedback.feedback)
 

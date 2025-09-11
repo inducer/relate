@@ -541,44 +541,42 @@ class GetAutoFeedbackTest(unittest.TestCase):
         self.assertIn("No information", get_auto_feedback(None))
 
     def test_not_correct(self):
-        self.assertIn("not correct", get_auto_feedback(0.000001))
-        self.assertIn("not correct", get_auto_feedback(-0.000001))
+        self.assertIn("no credit", get_auto_feedback(0.000001))
+        self.assertIn("no credit", get_auto_feedback(-0.000001))
 
     def test_correct(self):
         result = get_auto_feedback(0.999999)
-        self.assertIn("is correct", result)
-        self.assertNotIn("bonus", result)
+        self.assertIn("full credit", result)
+        self.assertNotIn("extra", result)
 
         result = get_auto_feedback(1)
-        self.assertIn("is correct", result)
-        self.assertNotIn("bonus", result)
+        self.assertIn("full credit", result)
+        self.assertNotIn("extra", result)
 
         result = get_auto_feedback(1.000001)
-        self.assertIn("is correct", result)
-        self.assertNotIn("bonus", result)
+        self.assertIn("full credit", result)
+        self.assertNotIn("extra", result)
 
-    def test_correct_with_bonus(self):
+    def test_correct_with_extra(self):
         result = get_auto_feedback(1.01)
-        self.assertIn("is correct", result)
-        self.assertIn("bonus", result)
+        self.assertIn("extra credit", result)
+        self.assertIn("extra", result)
 
         result = get_auto_feedback(2)
-        self.assertIn("is correct", result)
-        self.assertIn("bonus", result)
+        self.assertIn("extra credit", result)
 
         result = get_auto_feedback(9.99999)
-        self.assertIn("is correct", result)
-        self.assertIn("bonus", result)
+        self.assertIn("extra credit", result)
 
     def test_with_mostly_correct(self):
-        self.assertIn("mostly correct", get_auto_feedback(0.51))
-        self.assertIn("mostly correct", get_auto_feedback(0.999))
+        self.assertIn("more than half credit", get_auto_feedback(0.51))
+        self.assertIn("more than half credit", get_auto_feedback(0.999))
 
     def test_with_somewhat_correct(self):
-        self.assertIn("somewhat correct", get_auto_feedback(0.5))
-        self.assertIn("somewhat correct", get_auto_feedback(0.5000001))
-        self.assertIn("somewhat correct", get_auto_feedback(0.001))
-        self.assertIn("somewhat correct", get_auto_feedback(0.2))
+        self.assertIn("some credit", get_auto_feedback(0.5))
+        self.assertIn("some credit", get_auto_feedback(0.5000001))
+        self.assertIn("some credit", get_auto_feedback(0.001))
+        self.assertIn("some credit", get_auto_feedback(0.2))
 
     def test_correctness_negative(self):
         correctness = -0.1
