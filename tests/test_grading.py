@@ -30,7 +30,7 @@ from django.core import mail
 from django.test import Client, TestCase, override_settings
 from django.utils.timezone import now, timedelta
 
-from course.constants import participation_permission as pperm
+from course.constants import ParticipationPermission as pperm
 from course.models import ParticipationPermission
 from tests import factories
 from tests.base_test_mixins import (

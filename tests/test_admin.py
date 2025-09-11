@@ -325,11 +325,11 @@ class ParticipationAdminTest(CourseAdminTestMixin, TestCase):
     def test_approve_enrollment(self):
         active = factories.ParticipationFactory(
             course=self.course1,
-            status=constants.participation_status.active)
+            status=constants.ParticipationStatus.active)
         (requested1, requested2) = factories.ParticipationFactory.create_batch(
             size=2,
             course=self.course1,
-            status=constants.participation_status.requested)
+            status=constants.ParticipationStatus.requested)
 
         from django.contrib.admin.helpers import ACTION_CHECKBOX_NAME
         action_data = {
@@ -344,20 +344,20 @@ class ParticipationAdminTest(CourseAdminTestMixin, TestCase):
             self.assertEqual(resp.status_code, 302)
 
         active.refresh_from_db()
-        self.assertEqual(active.status, constants.participation_status.active)
+        self.assertEqual(active.status, constants.ParticipationStatus.active)
         requested1.refresh_from_db()
-        self.assertEqual(requested1.status, constants.participation_status.active)
+        self.assertEqual(requested1.status, constants.ParticipationStatus.active)
         requested2.refresh_from_db()
-        self.assertEqual(requested2.status, constants.participation_status.requested)
+        self.assertEqual(requested2.status, constants.ParticipationStatus.requested)
 
     def test_deny_enrollment(self):
         active = factories.ParticipationFactory(
             course=self.course1,
-            status=constants.participation_status.active)
+            status=constants.ParticipationStatus.active)
         (requested1, requested2) = factories.ParticipationFactory.create_batch(
             size=2,
             course=self.course1,
-            status=constants.participation_status.requested)
+            status=constants.ParticipationStatus.requested)
 
         from django.contrib.admin.helpers import ACTION_CHECKBOX_NAME
         action_data = {
@@ -372,11 +372,11 @@ class ParticipationAdminTest(CourseAdminTestMixin, TestCase):
             self.assertEqual(resp.status_code, 302)
 
         active.refresh_from_db()
-        self.assertEqual(active.status, constants.participation_status.active)
+        self.assertEqual(active.status, constants.ParticipationStatus.active)
         requested1.refresh_from_db()
-        self.assertEqual(requested1.status, constants.participation_status.denied)
+        self.assertEqual(requested1.status, constants.ParticipationStatus.denied)
         requested2.refresh_from_db()
-        self.assertEqual(requested2.status, constants.participation_status.denied)
+        self.assertEqual(requested2.status, constants.ParticipationStatus.denied)
 
 
 @pytest.mark.slow
@@ -389,7 +389,7 @@ class ParticipationFormTest(CourseAdminTestMixin, TestCase):
         data = {
             "user": self.test_user.pk,
             "course": self.course2.pk,
-            "status": constants.participation_status.active,
+            "status": constants.ParticipationStatus.active,
             "enroll_time": now(),
             "time_factor": 1
         }
@@ -402,7 +402,7 @@ class ParticipationFormTest(CourseAdminTestMixin, TestCase):
         data = {
             "user": self.test_user.pk,
             "course": self.course1.pk,
-            "status": constants.participation_status.active,
+            "status": constants.ParticipationStatus.active,
             "enroll_time": now(),
             "time_factor": 1,
             "tags": [course1_tag]
@@ -416,7 +416,7 @@ class ParticipationFormTest(CourseAdminTestMixin, TestCase):
         data = {
             "user": self.test_user.pk,
             "course": self.course2.pk,
-            "status": constants.participation_status.active,
+            "status": constants.ParticipationStatus.active,
             "enroll_time": now(),
             "time_factor": 1,
             "tags": [course1_tag]
@@ -432,7 +432,7 @@ class ParticipationFormTest(CourseAdminTestMixin, TestCase):
         data = {
             "user": self.test_user.pk,
             "course": self.course1.pk,
-            "status": constants.participation_status.active,
+            "status": constants.ParticipationStatus.active,
             "enroll_time": now(),
             "time_factor": 1,
             "roles": [course1_role]
@@ -446,7 +446,7 @@ class ParticipationFormTest(CourseAdminTestMixin, TestCase):
         data = {
             "user": self.test_user.pk,
             "course": self.course2.pk,
-            "status": constants.participation_status.active,
+            "status": constants.ParticipationStatus.active,
             "enroll_time": now(),
             "time_factor": 1,
             "roles": [course1_role]
@@ -497,7 +497,7 @@ class GradeChangeAdminTest(CourseAdminSessionRelatedMixin, TestCase):
         add_dict = {
             "opportunity": gopp.pk,
             "participation": self.course2_student_participation.pk,
-            "state": constants.grade_state_change_types.graded,
+            "state": constants.GradeStateChangeType.graded,
             "attempt_id": "main",
             "max_points": 100,
         }
@@ -526,7 +526,7 @@ class ExamTicketAdminTest(CourseAdminTestMixin, TestCase):
         add_dict = {
             "exam": self.exam.pk,
             "participation": self.course1_student_participation.pk,
-            "state": constants.exam_ticket_states.valid,
+            "state": constants.ExamTicketState.valid,
             "code": "abcde",
             "creation_time_0": "2019-3-31",
             "creation_time_1": "10:54:39",
@@ -562,8 +562,8 @@ class ExamTicketAdminTest(CourseAdminTestMixin, TestCase):
             self.assertEqual(resp.status_code, 302)
 
         ticket1.refresh_from_db()
-        self.assertEqual(ticket1.state, constants.exam_ticket_states.revoked)
+        self.assertEqual(ticket1.state, constants.ExamTicketState.revoked)
         ticket2.refresh_from_db()
-        self.assertEqual(ticket2.state, constants.exam_ticket_states.valid)
+        self.assertEqual(ticket2.state, constants.ExamTicketState.valid)
 
 # vim: foldmethod=marker

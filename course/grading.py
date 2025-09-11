@@ -36,7 +36,7 @@ from django.core.exceptions import (
 from django.shortcuts import get_object_or_404, redirect, render  # noqa
 from django.utils.translation import gettext as _
 
-from course.constants import participation_permission as pperm
+from course.constants import ParticipationPermission as pperm
 from course.models import (
     FlowPageVisitGrade,
     FlowSession,

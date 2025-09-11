@@ -129,10 +129,10 @@ class ImpersonateTest(SingleCoursePageTestMixin, MockAddMessageMixing, TestCase)
         # impersonatable count should be 2, not 3
         factories.ParticipationFactory.create(
             course=self.course,
-            status=constants.participation_status.active)
+            status=constants.ParticipationStatus.active)
         factories.ParticipationFactory.create(
             course=self.course,
-            status=constants.participation_status.requested)
+            status=constants.ParticipationStatus.requested)
         impersonatable = get_impersonable_user_qset(user)
         self.assertEqual(impersonatable.count(), 2)
         self.assertNotIn(self.instructor_participation.user, impersonatable)
@@ -260,8 +260,8 @@ class ImpersonateTest(SingleCoursePageTestMixin, MockAddMessageMixing, TestCase)
                 impersonatee=self.student_participation.user)
 
             # drop the only impersonatable participation
-            from course.constants import participation_status
-            self.student_participation.status = participation_status.dropped
+            from course.constants import ParticipationStatus
+            self.student_participation.status = ParticipationStatus.dropped
             self.student_participation.save()
 
             resp = self.client.get(self.get_course_page_url())
@@ -458,7 +458,7 @@ class CrossCourseImpersonateTest(CoursesTestMixinBase, TestCase):
         view_participant_masked_profile pperm will disable impersonating
         site-wise
         """
-        from course.constants import participation_permission as pperm
+        from course.constants import ParticipationPermission as pperm
         pp = ParticipationPermission(
             participation=self.course1_ta_participation,
             permission=pperm.view_participant_masked_profile)
@@ -1954,7 +1954,7 @@ class TestSaml2AttributeMapping(TestCase):
                                      institutional_id="",
                                      institutional_id_verified=False,
                                      name_verified=False,
-                                     status=constants.user_status.unconfirmed)
+                                     status=constants.UserStatus.unconfirmed)
 
         from course.auth import RelateSaml2Backend
         backend = RelateSaml2Backend()
@@ -1982,7 +1982,7 @@ class TestSaml2AttributeMapping(TestCase):
             # self.assertEqual(user.first_name, "")
             # self.assertEqual(user.last_name, "")
             self.assertFalse(user.name_verified)
-            self.assertEqual(user.status, constants.user_status.unconfirmed)
+            self.assertEqual(user.status, constants.UserStatus.unconfirmed)
             self.assertFalse(user.institutional_id_verified)
 
             expected_first = "my_first"
@@ -2008,7 +2008,7 @@ class TestSaml2AttributeMapping(TestCase):
             # self.assertEqual(user.first_name, expected_first)
             # self.assertEqual(user.last_name, expected_last)
             self.assertTrue(user.name_verified)
-            self.assertEqual(user.status, constants.user_status.unconfirmed)
+            self.assertEqual(user.status, constants.UserStatus.unconfirmed)
             self.assertTrue(user.institutional_id_verified)
 
             user_attribute = {
@@ -2024,7 +2024,7 @@ class TestSaml2AttributeMapping(TestCase):
             # self.assertEqual(user.first_name, expected_first)
             # self.assertEqual(user.last_name, expected_last)
             self.assertTrue(user.name_verified)
-            self.assertEqual(user.status, constants.user_status.active)
+            self.assertEqual(user.status, constants.UserStatus.active)
             self.assertTrue(user.institutional_id_verified)
 
             with mock.patch("accounts.models.User.save") as mock_save:
@@ -2484,7 +2484,7 @@ class APIContextTest(APITestMixin, TestCase):
         token = self.create_token()
         api_context = APIContext(None, token)
 
-        from course.constants import participation_permission as pperm
+        from course.constants import ParticipationPermission as pperm
         self.assertTrue(api_context.has_permission(
             pperm.access_files_for, "instructor"))
 
@@ -2495,7 +2495,7 @@ class APIContextTest(APITestMixin, TestCase):
 
         api_context = APIContext(None, token)
 
-        from course.constants import participation_permission as pperm
+        from course.constants import ParticipationPermission as pperm
         self.assertTrue(api_context.has_permission(
             pperm.access_files_for, "instructor"))
 
@@ -2503,7 +2503,7 @@ class APIContextTest(APITestMixin, TestCase):
         token = self.create_token(participation=self.ta_participation)
         api_context = APIContext(None, token)
 
-        from course.constants import participation_permission as pperm
+        from course.constants import ParticipationPermission as pperm
         self.assertFalse(api_context.has_permission(
             pperm.access_files_for, "instructor"))
 
@@ -2514,7 +2514,7 @@ class APIContextTest(APITestMixin, TestCase):
 
         api_context = APIContext(None, token)
 
-        from course.constants import participation_permission as pperm
+        from course.constants import ParticipationPermission as pperm
         self.assertFalse(api_context.has_permission(
             pperm.access_files_for, "instructor"))
 

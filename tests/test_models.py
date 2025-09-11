@@ -38,7 +38,7 @@ from django.test import TestCase, override_settings
 from django.utils.timezone import now
 
 from course import constants, models
-from course.constants import participation_permission as pperm
+from course.constants import ParticipationPermission as pperm
 from course.content import dict_to_struct
 from tests import factories
 from tests.base_test_mixins import CoursesTestMixinBase
@@ -678,7 +678,7 @@ class FlowRuleExceptionTest(RelateModelTestMixin, TestCase):
         fre = models.FlowRuleException(
             flow_id=factories.DEFAULT_FLOW_ID,
             participation=self.participation,
-            kind=constants.flow_rule_kind.start,
+            kind=constants.FlowRuleKind.start,
             rule=rule,
             expiration=None
         )
@@ -693,7 +693,7 @@ class FlowRuleExceptionTest(RelateModelTestMixin, TestCase):
         fre = models.FlowRuleException(
             flow_id=factories.DEFAULT_FLOW_ID,
             participation=self.participation,
-            kind=constants.flow_rule_kind.start,
+            kind=constants.FlowRuleKind.start,
             rule=rule,
             expiration=None
         )
@@ -718,7 +718,7 @@ class FlowRuleExceptionTest(RelateModelTestMixin, TestCase):
         fre = models.FlowRuleException(
             flow_id=factories.DEFAULT_FLOW_ID,
             participation=self.participation,
-            kind=constants.flow_rule_kind.start,
+            kind=constants.FlowRuleKind.start,
             rule=rule,
             expiration=None
         )
@@ -736,7 +736,7 @@ class FlowRuleExceptionTest(RelateModelTestMixin, TestCase):
         fre = models.FlowRuleException(
             flow_id=factories.DEFAULT_FLOW_ID,
             participation=self.participation,
-            kind=constants.flow_rule_kind.grading,
+            kind=constants.FlowRuleKind.grading,
             rule=rule,
             expiration=None
         )
@@ -756,7 +756,7 @@ class FlowRuleExceptionTest(RelateModelTestMixin, TestCase):
             fre = models.FlowRuleException(
                 flow_id=factories.DEFAULT_FLOW_ID,
                 participation=self.participation,
-                kind=constants.flow_rule_kind.grading,
+                kind=constants.FlowRuleKind.grading,
                 rule=rule,
                 expiration=now()
             )
@@ -780,7 +780,7 @@ class FlowRuleExceptionTest(RelateModelTestMixin, TestCase):
         fre = models.FlowRuleException(
             flow_id=factories.DEFAULT_FLOW_ID,
             participation=self.participation,
-            kind=constants.flow_rule_kind.access,
+            kind=constants.FlowRuleKind.access,
             rule=rule,
             expiration=now()
         )

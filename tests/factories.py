@@ -35,7 +35,7 @@ from factory import fuzzy
 
 from course import constants, models
 from course.auth import make_sign_in_key
-from course.constants import participation_permission as pperm
+from course.constants import ParticipationPermission as pperm
 from tests.base_test_mixins import SINGLE_COURSE_SETUP_LIST
 from tests.constants import QUIZ_FLOW_ID
 
@@ -46,7 +46,7 @@ UTC = ZoneInfo("UTC")
 DEFAULT_COURSE_IDENTIFIER = SINGLE_COURSE_SETUP_LIST[0]["course"]["identifier"]
 DEFAULT_FLOW_ID = QUIZ_FLOW_ID
 DEFAULT_GRADE_IDENTIFIER = "la_quiz"
-DEFAULT_GRADE_AGGREGATION_STRATEGY = constants.grade_aggregation_strategy.use_latest
+DEFAULT_GRADE_AGGREGATION_STRATEGY = constants.GradeAggregationStrategy.use_latest
 DEFAULT_GOPP_TITLE = "TEST RELATE Test Quiz"
 
 
@@ -62,7 +62,7 @@ class UserFactory(factory.django.DjangoModelFactory):
 
     username = factory.Sequence(lambda n: "testuser_%03d" % n)
     email = factory.Sequence(lambda n: "test_factory_%03d@example.com" % n)
-    status = constants.user_status.active
+    status = constants.UserStatus.active
     password = factory.Sequence(lambda n: "password_%03d" % n)
     institutional_id = factory.Sequence(lambda n: "institutional_id%03d" % n)
 
@@ -98,7 +98,7 @@ class ParticipationFactory(factory.django.DjangoModelFactory):
     user = factory.SubFactory(UserFactory)
     course = factory.SubFactory(CourseFactory)
     enroll_time = factory.LazyFunction(now)
-    status = constants.participation_status.active
+    status = constants.ParticipationStatus.active
 
     @factory.post_generation
     def roles(self, create, extracted, **kwargs):
@@ -158,7 +158,7 @@ class FlowSessionFactory(factory.django.DjangoModelFactory):
     flow_id = DEFAULT_FLOW_ID
     start_time = factory.LazyFunction(now)
     in_progress = False
-    expiration_mode = constants.flow_session_expiration_mode.end
+    expiration_mode = constants.FlowSessionExpirationMode.end
     completion_time = factory.lazy_attribute(
         lambda x: now() if not x.in_progress else None)
 
@@ -229,7 +229,7 @@ class GradeChangeFactory(factory.django.DjangoModelFactory):
 
     opportunity = factory.SubFactory(GradingOpportunityFactory)
     participation = factory.SubFactory(ParticipationFactory)
-    state = constants.grade_state_change_types.graded
+    state = constants.GradeStateChangeType.graded
     attempt_id = None
     points = None
     max_points = 10
@@ -334,7 +334,7 @@ class FlowRuleExceptionFactory(factory.django.DjangoModelFactory):
         datetime(2019, 1, 1, tzinfo=UTC),
         datetime(2019, 1, 31, tzinfo=UTC))
 
-    kind = constants.flow_rule_kind.start
+    kind = constants.FlowRuleKind.start
     rule = {
         "if_before": "some_date",
     }
@@ -382,7 +382,7 @@ class ExamTicketFactory(factory.django.DjangoModelFactory):
     participation = factory.SubFactory(ParticipationFactory)
 
     creation_time = now()
-    state = constants.exam_ticket_states.valid
+    state = constants.ExamTicketState.valid
     code = fuzzy.FuzzyText()
     valid_start_time = fuzzy.FuzzyDateTime(
         datetime(2019, 1, 1, tzinfo=UTC),

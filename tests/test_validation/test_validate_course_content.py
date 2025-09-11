@@ -30,7 +30,7 @@ from django.test import TestCase
 from dulwich.repo import Tree
 
 from course import validation
-from course.constants import DEFAULT_ACCESS_KINDS, participation_permission as pperm
+from course.constants import DEFAULT_ACCESS_KINDS, ParticipationPermission as pperm
 from course.content import get_repo_blob, get_yaml_from_repo, load_yaml
 from course.models import (
     ParticipationPermission,

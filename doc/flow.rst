@@ -222,7 +222,7 @@ Access permission bits
 
 .. currentmodule:: course.constants
 
-.. autoclass:: flow_permission
+.. autoclass:: FlowPermission
 
 
 Determining how final (overall) grades of flows are computed
@@ -234,7 +234,7 @@ Determining how final (overall) grades of flows are computed
 
 .. currentmodule:: course.constants
 
-.. autoclass:: grade_aggregation_strategy
+.. autoclass:: GradeAggregationStrategy
 
 .. _flow-page:
 
@@ -335,7 +335,7 @@ Life cycle
 
 .. currentmodule:: course.constants
 
-.. autoclass:: flow_session_expiration_mode
+.. autoclass:: FlowSessionExpirationMode
 
 .. _points-from-feedback:
 
