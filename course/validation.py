@@ -28,12 +28,14 @@ import re
 import sys
 from collections.abc import Sequence
 from dataclasses import dataclass
+from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal, TypeAlias
 
 import dulwich.objects
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.html import escape
 from django.utils.translation import gettext as _
+from typing_extensions import override
 
 from course.constants import (
     ATTRIBUTES_FILENAME,
@@ -1568,16 +1570,22 @@ def validate_course_content(repo, course_file, events_file,
 # {{{ validation script support
 
 class FileSystemFakeRepo:  # pragma: no cover
-    def __init__(self, root):
+    root: Path
+
+    def __init__(self, root: Path):
+        assert isinstance(root, Path)
         self.root = root
-        assert isinstance(self.root, bytes)
+
+    def close(self):
+        pass
 
     def controldir(self):
         return self.root
 
-    def __getitem__(self, sha):
-        return sha
+    def __getitem__(self, obj_id: FileSystemFakeRepoFile | FileSystemFakeRepoTree):
+        return obj_id
 
+    @override
     def __str__(self):
         return f"<FAKEREPO:{self.root}>"
 
@@ -1596,55 +1604,59 @@ class FileSystemFakeRepoTreeEntry:  # pragma: no cover
 
 
 class FileSystemFakeRepoTree:  # pragma: no cover
-    def __init__(self, root):
-        self.root = root
-        assert isinstance(self.root, bytes)
+    root: Path
 
-    def __getitem__(self, name):
+    def __init__(self, root: Path):
+        if not isinstance(root, Path):
+            root = Path(root)
+        self.root = root
+
+    def __getitem__(self, name: bytes):
         if not name:
             raise KeyError("<empty filename>")
 
-        from os.path import exists, join
-        name = join(self.root, name)
+        path = self.root / name.decode()
 
-        if not exists(name):
-            raise KeyError(name)
+        if not path.exists():
+            raise KeyError(path)
 
         from os import stat
         from stat import S_ISDIR
-        stat_result = stat(name)
+        stat_result = stat(path)
         # returns mode, "sha"
         if S_ISDIR(stat_result.st_mode):
-            return stat_result.st_mode, FileSystemFakeRepoTree(name)
+            return stat_result.st_mode, FileSystemFakeRepoTree(path)
         else:
-            return stat_result.st_mode, FileSystemFakeRepoFile(name)
+            return stat_result.st_mode, FileSystemFakeRepoFile(path)
 
     def items(self) -> list[FileSystemFakeRepoTreeEntry]:
         import os
         return [
                 FileSystemFakeRepoTreeEntry(
-                    path=n,
+                    path=n.encode(),
                     mode=os.stat(os.path.join(self.root, n)).st_mode)
                 for n in os.listdir(self.root)]
 
 
 class FileSystemFakeRepoFile:  # pragma: no cover
-    def __init__(self, name):
+    name: Path
+
+    def __init__(self, name: Path):
+        if not isinstance(name, Path):
+            name = Path(name)
         self.name = name
 
     @property
     def data(self):
-        with open(self.name, "rb") as inf:
-            return inf.read()
+        return self.name.read_bytes()
 
 
 Blob_ish = dulwich.objects.Blob | FileSystemFakeRepoFile
 Tree_ish = dulwich.objects.Tree | FileSystemFakeRepoTree
 
 
-def validate_course_on_filesystem(
-        root, course_file, events_file):  # pragma: no cover
-    fake_repo = FileSystemFakeRepo(root.encode("utf-8"))
+def validate_course_on_filesystem(root: Path, course_file: str, events_file: str):
+    fake_repo = FileSystemFakeRepo(root)
     warnings = validate_course_content(
             fake_repo,
             course_file, events_file,

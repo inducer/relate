@@ -46,7 +46,11 @@ from django.urls import reverse
 from django.utils.timezone import now
 from django.utils.translation import gettext, gettext_lazy as _, pgettext_lazy
 
-from course.constants import participation_permission as pperm
+from course.constants import (
+    grade_state_change_types,
+    participation_permission as pperm,
+    participation_status,
+)
 from course.flow import adjust_flow_session_page_data
 from course.models import (
     FlowPageVisit,
@@ -55,8 +59,6 @@ from course.models import (
     GradeStateMachine,
     GradingOpportunity,
     Participation,
-    grade_state_change_types,
-    participation_status,
 )
 from course.utils import course_view, render_course_page
 from course.views import get_now_or_fake_time
@@ -1501,7 +1503,7 @@ class DownloadAllSubmissionsForm(StyledForm):
 
 
 @course_view
-def download_all_submissions(pctx, flow_id):
+def download_all_submissions(pctx: CoursePageContext, flow_id: str):
     if not pctx.has_permission(pperm.batch_download_submission):
         raise PermissionDenied(_("may not batch-download submissions"))
 
@@ -1571,7 +1573,9 @@ def download_all_submissions(pctx, flow_id):
                             flow_session__access_rules_tag=(
                                 form.cleaned_data["restrict_to_rules_tag"])))
 
-            submissions = {}
+            submissions: dict[
+                    tuple[str, ...],
+                    tuple[tuple[str, bytes], list[FlowPageVisitGrade]]] = {}
 
             for visit in visits:
                 page = page_cache.get_page(group_id, page_id,
@@ -1588,6 +1592,9 @@ def download_all_submissions(pctx, flow_id):
                         grading_page_context, visit.page_data.data,
                         visit.answer)
 
+                assert visit.flow_session.participation is not None
+
+                key: tuple[str, ...]
                 if which_attempt in ["first", "last"]:
                     key = (visit.flow_session.participation.user.username,)
                 elif which_attempt == "all":
@@ -1609,15 +1616,15 @@ def download_all_submissions(pctx, flow_id):
             from zipfile import ZipFile
             bio = BytesIO()
             with ZipFile(bio, "w") as subm_zip:
-                for key, ((extension, bytes_answer), visit_grades) in \
+                for zip_key, ((extension, answer_bytes), visit_grades) in \
                         submissions.items():
-                    basename = "-".join(key)
+                    basename = "-".join(zip_key)
                     subm_zip.writestr(
                             basename + extension,
-                            bytes_answer)
+                            answer_bytes)
 
                     if form.cleaned_data["include_feedback"]:
-                        feedback_lines = []
+                        feedback_lines: list[str] = []
 
                         feedback_lines.append(
                             "scores: {}".format(", ".join(
@@ -1625,9 +1632,10 @@ def download_all_submissions(pctx, flow_id):
                                     for g in visit_grades)))
 
                         for i, grade in enumerate(visit_grades):
-                            feedback_lines.append(75*"-")
-                            feedback_lines.append(
-                                "grade %i: score: %s" % (i+1, grade.correctness))
+                            feedback_lines.extend(
+                                        (75 * "-",
+                                            "grade %i: score: %s"
+                                                % (i + 1, grade.correctness)))
                             afb = AnswerFeedback.from_json(grade.feedback, None)
                             if afb is not None:
                                 feedback_lines.append(afb.feedback)
@@ -1637,7 +1645,7 @@ def download_all_submissions(pctx, flow_id):
                                 "\n".join(feedback_lines))
 
                 extra_file = request.FILES.get("extra_file")
-                if extra_file is not None:
+                if extra_file is not None and extra_file.name is not None:
                     subm_zip.writestr(extra_file.name, extra_file.read())
 
             response = http.HttpResponse(

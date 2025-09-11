@@ -71,7 +71,7 @@ from relate.utils import (
 
 if TYPE_CHECKING:
     import datetime
-    from collections.abc import Callable, Collection, Iterable
+    from collections.abc import Callable, Collection, Hashable, Iterable
     from ipaddress import IPv4Address, IPv6Address
 
     import course.constants as c
@@ -88,6 +88,7 @@ if TYPE_CHECKING:
 # }}}
 
 import re
+from itertools import starmap
 
 
 P = ParamSpec("P")
@@ -906,14 +907,20 @@ def render_course_page(
 class PageInstanceCache:
     """Caches instances of :class:`course.page.Page`."""
 
-    def __init__(self, repo, course, flow_id):
+    repo: Repo_ish
+    course: Course
+    flow_id: str
+    flow_desc_cache: dict[bytes, FlowDesc]
+    page_cache: dict[Hashable, PageBase]
+
+    def __init__(self, repo: Repo_ish, course: Course, flow_id: str):
         self.repo = repo
         self.course = course
         self.flow_id = flow_id
         self.flow_desc_cache = {}
         self.page_cache = {}
 
-    def get_flow_desc_from_cache(self, commit_sha):
+    def get_flow_desc_from_cache(self, commit_sha: bytes):
         try:
             return self.flow_desc_cache[commit_sha]
         except KeyError:
@@ -922,7 +929,7 @@ class PageInstanceCache:
             self.flow_desc_cache[commit_sha] = flow_desc
             return flow_desc
 
-    def get_page(self, group_id, page_id, commit_sha):
+    def get_page(self, group_id: str, page_id: str, commit_sha: bytes) -> PageBase:
         key = (group_id, page_id, commit_sha)
         try:
             return self.page_cache[key]
