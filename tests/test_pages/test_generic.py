@@ -24,6 +24,7 @@ THE SOFTWARE.
 """
 
 import unittest
+from pathlib import Path
 
 import pytest
 from django.test import Client, TestCase
@@ -285,8 +286,7 @@ class SingleCourseQuizPageTest(SingleCourseQuizPageTestMixin,
                 page_id, do_grading=False))
         self.assertAddMessageCalledWith(MESSAGE_ANSWER_SAVED_TEXT)
 
-        with open(TEST_TEXT_FILE_PATH, "rb") as fp:
-            expected_result1 = fp.read()
+        expected_result1 = Path(TEST_TEXT_FILE_PATH).read_bytes()
 
         # change answer
         _submit_answer_response, _post_grade_response = (
@@ -296,8 +296,7 @@ class SingleCourseQuizPageTest(SingleCourseQuizPageTestMixin,
 
         self.assertAddMessageCalledWith(MESSAGE_ANSWER_SAVED_TEXT)
 
-        with open(TEST_PDF_FILE_PATH, "rb") as fp:
-            expected_result2 = fp.read()
+        expected_result2 = Path(TEST_PDF_FILE_PATH).read_bytes()
 
         page_ordinal = self.get_page_ordinal_via_page_id(page_id)
         self.assertSubmitHistoryItemsCount(page_ordinal=page_ordinal,
@@ -343,8 +342,7 @@ class SingleCourseQuizPageTest(SingleCourseQuizPageTestMixin,
             self.default_submit_page_answer_by_page_id_and_test(page_id))
         self.assertAddMessageCalledWith(MESSAGE_ANSWER_SAVED_TEXT)
 
-        with open(TEST_PDF_FILE_PATH, "rb") as fp:
-            expected_result = fp.read()
+        expected_result = Path(TEST_PDF_FILE_PATH).read_bytes()
 
         from course.page.upload import FileUploadQuestion
         last_answer_visit = self.get_last_answer_visit()

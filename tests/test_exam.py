@@ -52,8 +52,7 @@ class GenTicketCodeTest(unittest.TestCase):
 
     def test_unique(self):
         code = set()
-        for _i in range(10):
-            code.add(exam.gen_ticket_code())
+        code.update(exam.gen_ticket_code() for _i in range(10))
 
         self.assertEqual(len(code), 10)
 

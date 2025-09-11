@@ -65,14 +65,14 @@ def is_allowed_data_uri(allowed_mimetypes, uri):
 
 
 def filter_audio_attributes(tag, name, value):
-    if name in ["controls"]:
+    if name == "controls":
         return True
     else:
         return False
 
 
 def filter_source_attributes(tag, name, value):
-    if name in ["type"]:
+    if name == "type":
         return True
     elif name == "src":
         if is_allowed_data_uri([

@@ -476,13 +476,10 @@ class PageBase(ABC):
 
         if hasattr(self.page_desc, "access_rules"):
             if hasattr(self.page_desc.access_rules, "add_permissions"):
-                for perm in self.page_desc.access_rules.add_permissions:
-                    rw_permissions.add(perm)
+                rw_permissions.update(self.page_desc.access_rules.add_permissions)
 
             if hasattr(self.page_desc.access_rules, "remove_permissions"):
-                for perm in self.page_desc.access_rules.remove_permissions:
-                    if perm in rw_permissions:
-                        rw_permissions.remove(perm)
+                rw_permissions.difference_update(self.page_desc.access_rules.remove_permissions)
 
         return frozenset(rw_permissions)
 
