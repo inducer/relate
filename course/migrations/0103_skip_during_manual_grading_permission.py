@@ -4,7 +4,7 @@ from django.db import migrations, models
 
 
 def add_skip_during_manual_grading_permission(apps, schema_editor):
-    from course.constants import participation_permission as pperm
+    from course.constants import ParticipationPermission as pperm
 
     ParticipationPermission = apps.get_model("course", "ParticipationPermission")
     Participation = apps.get_model("course", "Participation")

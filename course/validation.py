@@ -41,7 +41,7 @@ from course.constants import (
     ATTRIBUTES_FILENAME,
     DEFAULT_ACCESS_KINDS,
     FLOW_SESSION_EXPIRATION_MODE_CHOICES,
-    participation_permission as pperm,
+    ParticipationPermission as pperm,
 )
 from relate.utils import Struct, string_concat
 
@@ -735,10 +735,10 @@ def validate_session_access_rule(
                 perm)
 
     if hasattr(arule, "if_in_progress") and not arule.if_in_progress:
-        from course.constants import flow_permission
+        from course.constants import FlowPermission
         if (
-                flow_permission.submit_answer in arule.permissions
-                or flow_permission.end_session in arule.permissions):
+                FlowPermission.submit_answer in arule.permissions
+                or FlowPermission.end_session in arule.permissions):
             vctx.add_warning(location,
                     _("Rule specifies 'submit_answer' or 'end_session' "
                         "permissions for non-in-progress flow. These "

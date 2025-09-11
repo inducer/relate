@@ -33,8 +33,8 @@ from dulwich.repo import Tree
 from course import validation
 from course.constants import (
     ATTRIBUTES_FILENAME,
-    flow_permission,
-    grade_aggregation_strategy,
+    FlowPermission,
+    GradeAggregationStrategy,
 )
 from course.content import dict_to_struct
 from course.validation import ValidationError
@@ -1376,7 +1376,7 @@ class ValidateSessionAccessRuleTest(ValidationTestMixin, unittest.TestCase):
         if_in_progress = False
         kwargs = {
             "if_in_progress": if_in_progress,
-            "permissions": [flow_permission.submit_answer]
+            "permissions": [FlowPermission.submit_answer]
         }
 
         expected_warn_msg = (
@@ -1394,7 +1394,7 @@ class ValidateSessionAccessRuleTest(ValidationTestMixin, unittest.TestCase):
 
         kwargs = {
             "if_in_progress": if_in_progress,
-            "permissions": [flow_permission.end_session]
+            "permissions": [FlowPermission.end_session]
         }
 
         expected_warn_msg = (
@@ -1412,8 +1412,8 @@ class ValidateSessionAccessRuleTest(ValidationTestMixin, unittest.TestCase):
 
         kwargs = {
             "if_in_progress": if_in_progress,
-            "permissions": [flow_permission.submit_answer,
-                            flow_permission.end_session]
+            "permissions": [FlowPermission.submit_answer,
+                            FlowPermission.end_session]
         }
 
         expected_warn_msg = (
@@ -1706,7 +1706,7 @@ class ValidateFlowRules(ValidationTestMixin, unittest.TestCase):
             rule["grade_identifier"] = self.default_grade_identifier
         if not no_grade_aggregation_strategy:
             rule["grade_aggregation_strategy"] = (
-                grade_aggregation_strategy.use_latest)
+                GradeAggregationStrategy.use_latest)
         if not no_grading_rules:
             rule["grading"] = ["grading_rule1", "grading_rule2",
                                "grading_rule3"]

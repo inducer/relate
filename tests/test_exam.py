@@ -174,7 +174,7 @@ class IssueExamTicketTest(ExamTestMixin, TestCase):
         prior_ticket = factories.ExamTicketFactory(
             exam=self.exam,
             participation=self.student_participation,
-            state=constants.exam_ticket_states.valid)
+            state=constants.ExamTicketState.valid)
 
         resp = self.post_issue_exam_ticket_view(
             data=self.get_post_data(revoke_prior=True))
@@ -182,7 +182,7 @@ class IssueExamTicketTest(ExamTestMixin, TestCase):
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(ExamTicket.objects.count(), 2)
         prior_ticket.refresh_from_db()
-        self.assertEqual(prior_ticket.state, constants.exam_ticket_states.revoked)
+        self.assertEqual(prior_ticket.state, constants.ExamTicketState.revoked)
         self.assertAddMessageCallCount(1)
         self.assertAddMessageCalledWith("Ticket issued for", reset=False)
         self.assertAddMessageCalledWith("The ticket code is")
@@ -251,7 +251,7 @@ class BatchIssueExamTicketsTest(ExamTestMixin, TestCase):
     def test_post_success(self):
         factories.ParticipationFactory(course=self.course)
         factories.ParticipationFactory(
-            course=self.course, status=constants.participation_status.dropped)
+            course=self.course, status=constants.ParticipationStatus.dropped)
         resp = self.post_batch_issue_exam_ticket_view(
             data=self.get_post_data())
         self.assertEqual(resp.status_code, 200)
@@ -264,7 +264,7 @@ class BatchIssueExamTicketsTest(ExamTestMixin, TestCase):
         prior_ticket = factories.ExamTicketFactory(
             exam=self.exam,
             participation=self.student_participation,
-            state=constants.exam_ticket_states.valid)
+            state=constants.ExamTicketState.valid)
 
         resp = self.post_batch_issue_exam_ticket_view(
             data=self.get_post_data(revoke_prior=True))
@@ -272,7 +272,7 @@ class BatchIssueExamTicketsTest(ExamTestMixin, TestCase):
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(ExamTicket.objects.count(), 4)
         prior_ticket.refresh_from_db()
-        self.assertEqual(prior_ticket.state, constants.exam_ticket_states.revoked)
+        self.assertEqual(prior_ticket.state, constants.ExamTicketState.revoked)
         self.assertAddMessageCallCount(1)
         self.assertAddMessageCalledWith("3 tickets issued.")
 
@@ -289,7 +289,7 @@ class CheckExamTicketTest(ExamTestMixin, TestCase):
         self.exam.save()
         self.ticket = factories.ExamTicketFactory(
             exam=self.exam, participation=self.student_participation,
-            state=constants.exam_ticket_states.valid,
+            state=constants.ExamTicketState.valid,
             usage_time=self.now + timedelta(minutes=100),
             valid_start_time=self.now - timedelta(minutes=20),
             valid_end_time=self.now + timedelta(minutes=100),
@@ -315,7 +315,7 @@ class CheckExamTicketTest(ExamTestMixin, TestCase):
 
         self.assertTrue(result, msg=msg)
 
-        self.ticket.state = constants.exam_ticket_states.revoked
+        self.ticket.state = constants.ExamTicketState.revoked
         self.ticket.save()
 
         result, _tkt, msg = exam.check_exam_ticket(
@@ -330,7 +330,7 @@ class CheckExamTicketTest(ExamTestMixin, TestCase):
 
     def test_ticket_expired(self):
         self.ticket.usage_time = self.now - timedelta(days=1)
-        self.ticket.state = constants.exam_ticket_states.used
+        self.ticket.state = constants.ExamTicketState.used
         self.ticket.save()
         result, _tkt, msg = exam.check_exam_ticket(
             username=self.student_participation.user.username,
@@ -492,7 +492,7 @@ class GetLoginExamTicketTest(ExamTestMixin, TestCase):
         super().setUp()
         self.ticket = factories.ExamTicketFactory(
             exam=self.exam, participation=self.student_participation,
-            state=constants.exam_ticket_states.valid)
+            state=constants.ExamTicketState.valid)
         self.request = mock.MagicMock()
 
     def test_none(self):
@@ -520,10 +520,10 @@ class CheckInForExamTest(ExamTestMixin, TestCase):
         super().setUp()
         self.ticket = factories.ExamTicketFactory(
             exam=self.exam, participation=self.student_participation,
-            state=constants.exam_ticket_states.valid)
+            state=constants.ExamTicketState.valid)
         self.instructor_ticket = factories.ExamTicketFactory(
             exam=self.exam, participation=self.instructor_participation,
-            state=constants.exam_ticket_states.valid)
+            state=constants.ExamTicketState.valid)
 
         fake_check_exam_ticket = mock.patch("course.exam.check_exam_ticket")
         self.mock_check_exam_ticket = fake_check_exam_ticket.start()
@@ -549,7 +549,7 @@ class CheckInForExamTest(ExamTestMixin, TestCase):
     def test_get(self):
         resp = self.get_check_in_for_exam_view()
         self.assertEqual(resp.status_code, 200)
-        self.assertEqual(self.ticket.state, constants.exam_ticket_states.valid)
+        self.assertEqual(self.ticket.state, constants.ExamTicketState.valid)
 
     def test_login_success(self):
         self.mock_check_exam_ticket.return_value = \
@@ -559,7 +559,7 @@ class CheckInForExamTest(ExamTestMixin, TestCase):
 
         self.assertEqual(resp.status_code, 302)
         self.ticket.refresh_from_db()
-        self.assertEqual(self.ticket.state, constants.exam_ticket_states.used)
+        self.assertEqual(self.ticket.state, constants.ExamTicketState.used)
 
     def test_login_failure(self):
         self.mock_check_exam_ticket.return_value = \
@@ -570,7 +570,7 @@ class CheckInForExamTest(ExamTestMixin, TestCase):
         self.assertEqual(resp.status_code, 200)
         self.assertAddMessageCallCount(1)
         self.assertAddMessageCalledWith("what's wrong?")
-        self.assertEqual(self.ticket.state, constants.exam_ticket_states.valid)
+        self.assertEqual(self.ticket.state, constants.ExamTicketState.valid)
 
     def test_form_invalid(self):
         with mock.patch("course.exam.ExamCheckInForm.is_valid"
@@ -578,10 +578,10 @@ class CheckInForExamTest(ExamTestMixin, TestCase):
             mock_is_valid.return_value = False
             resp = self.post_check_in_for_exam_view(data=self.get_post_data())
             self.assertEqual(resp.status_code, 200)
-        self.assertEqual(self.ticket.state, constants.exam_ticket_states.valid)
+        self.assertEqual(self.ticket.state, constants.ExamTicketState.valid)
 
     def test_login_though_ticket_not_valid(self):
-        self.ticket.state = constants.exam_ticket_states.used
+        self.ticket.state = constants.ExamTicketState.used
         self.ticket.save()
         self.mock_check_exam_ticket.return_value = \
                 True, self.ticket, "hello"
@@ -589,7 +589,7 @@ class CheckInForExamTest(ExamTestMixin, TestCase):
             self.get_post_data())
 
         self.assertEqual(resp.status_code, 302)
-        self.assertEqual(self.ticket.state, constants.exam_ticket_states.used)
+        self.assertEqual(self.ticket.state, constants.ExamTicketState.used)
 
     def test_pretend_facility(self):
         with self.temporarily_switch_to_user(self.instructor_participation.user):
@@ -616,7 +616,7 @@ class CheckInForExamTest(ExamTestMixin, TestCase):
 
             self.instructor_ticket.refresh_from_db()
             self.assertEqual(self.instructor_ticket.state,
-                             constants.exam_ticket_states.used)
+                             constants.ExamTicketState.used)
 
 
 class ListAvailableExamsTest(ExamTestMixin, TestCase):
@@ -625,10 +625,10 @@ class ListAvailableExamsTest(ExamTestMixin, TestCase):
         super().setUp()
         self.ticket = factories.ExamTicketFactory(
             exam=self.exam, participation=self.student_participation,
-            state=constants.exam_ticket_states.valid)
+            state=constants.ExamTicketState.valid)
         self.instructor_ticket = factories.ExamTicketFactory(
             exam=self.exam, participation=self.instructor_participation,
-            state=constants.exam_ticket_states.valid)
+            state=constants.ExamTicketState.valid)
 
     def get_list_available_exams_url(self):
         return reverse("relate-list_available_exams")
@@ -711,7 +711,7 @@ class ExamFacilityMiddlewareTest(SingleCoursePageTestMixin,
         # make sign in key for a user
         u = factories.UserFactory(
             first_name="foo", last_name="bar",
-            status=constants.user_status.unconfirmed)
+            status=constants.UserStatus.unconfirmed)
         sign_in_key = make_sign_in_key(u)
         u.sign_in_key = sign_in_key
         u.save()
@@ -877,7 +877,7 @@ class ExamLockdownMiddlewareTest(SingleCoursePageTestMixin,
         # make sign in key for a user
         u = factories.UserFactory(
             first_name="foo", last_name="bar",
-            status=constants.user_status.unconfirmed)
+            status=constants.UserStatus.unconfirmed)
         sign_in_key = make_sign_in_key(u)
         u.sign_in_key = sign_in_key
         u.save()

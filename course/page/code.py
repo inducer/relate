@@ -34,7 +34,7 @@ from django.utils.safestring import mark_safe
 from django.utils.translation import gettext as _
 from pydantic import BaseModel, Field
 
-from course.constants import flow_permission
+from course.constants import FlowPermission
 from course.page.base import (
     AnswerData,
     AnswerFeedback,
@@ -473,7 +473,7 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue, ABC):
     interface and used only as a superclass.
 
     If you are not including the
-    :attr:`course.constants.flow_permission.change_answer`
+    :attr:`course.constants.FlowPermission.change_answer`
     permission for your entire flow, you likely want to
     include this snippet in your question definition:
 
@@ -642,7 +642,7 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue, ABC):
 
             if hasattr(page_desc, "access_rules"):
                 if hasattr(page_desc.access_rules, "add_permissions"):
-                    if (flow_permission.change_answer
+                    if (FlowPermission.change_answer
                             in page_desc.access_rules.add_permissions):
                         is_multi_submit = True
 
@@ -1188,7 +1188,7 @@ class PythonCodeQuestion(CodeQuestion, PageBaseWithoutHumanGrading):
                 feedback.finish(0, "Your computed c was incorrect.")
 
     If you are not including the
-    :attr:`course.constants.flow_permission.change_answer`
+    :attr:`course.constants.FlowPermission.change_answer`
     permission for your entire flow, you likely want to
     include this snippet in your question definition:
 
@@ -1387,7 +1387,7 @@ class PythonCodeQuestionWithHumanTextFeedback(
     by a human grader.
 
     If you are not including the
-    :attr:`course.constants.flow_permission.change_answer`
+    :attr:`course.constants.FlowPermission.change_answer`
     permission for your entire flow, you likely want to
     include this snippet in your question definition:
 

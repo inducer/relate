@@ -32,7 +32,7 @@ from dulwich.client import FetchPackResult
 from dulwich.contrib.paramiko_vendor import ParamikoSSHVendor
 
 from course import versioning
-from course.constants import participation_permission as pperm
+from course.constants import ParticipationPermission as pperm
 from course.models import Course
 from course.validation import ValidationWarning
 from relate.utils import force_remove_path
@@ -523,7 +523,7 @@ class DirectGitEndpointTest(TestCase):
 
         from django.contrib.auth.hashers import make_password
 
-        from course.constants import participation_permission as pp
+        from course.constants import ParticipationPermission as pp
         from course.models import AuthenticationToken, ParticipationRolePermission
 
         course = factories.CourseFactory()

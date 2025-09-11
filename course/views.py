@@ -56,9 +56,9 @@ from course.auth import get_pre_impersonation_user
 from course.constants import (
     FLOW_PERMISSION_CHOICES,
     FLOW_RULE_KIND_CHOICES,
-    flow_rule_kind,
-    participation_permission as pperm,
-    participation_status,
+    FlowRuleKind,
+    ParticipationPermission as pperm,
+    ParticipationStatus,
 )
 from course.content import get_course_repo
 from course.enrollment import (
@@ -176,7 +176,7 @@ def course_page(pctx: CoursePageContext) -> http.HttpResponse:
     if pctx.request.user.is_authenticated and Participation.objects.filter(
             user=pctx.request.user,
             course=pctx.course,
-            status=participation_status.requested).count():
+            status=ParticipationStatus.requested).count():
         show_enroll_button = False
 
         messages.add_message(pctx.request, messages.INFO,
@@ -712,7 +712,7 @@ class ExceptionStage1Form(StyledForm):
                 queryset=(Participation.objects
                     .filter(
                         course=course,
-                        status=participation_status.active,
+                        status=ParticipationStatus.active,
                         )
                     .order_by("user__last_name")),
                 required=True,
@@ -1172,7 +1172,7 @@ def grant_exception_stage_3(
                     expiration=form.cleaned_data["access_expires"],
                     creator=pctx.request.user,
                     comment=form.cleaned_data["comment"],
-                    kind=str(flow_rule_kind.access),
+                    kind=str(FlowRuleKind.access),
                     rule=new_access_rule)
                 fre_access.save()
                 exceptions_created.append(
@@ -1243,7 +1243,7 @@ def grant_exception_stage_3(
                     participation=participation,
                     creator=pctx.request.user,
                     comment=form.cleaned_data["comment"],
-                    kind=flow_rule_kind.grading,
+                    kind=FlowRuleKind.grading,
                     rule=new_grading_rule)
                 fre_grading.save()
                 exceptions_created.append(

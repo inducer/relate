@@ -29,7 +29,7 @@ from django.test import TestCase
 from django.urls import reverse
 
 from course import models
-from course.constants import participation_permission as pperm
+from course.constants import ParticipationPermission as pperm
 from course.flow import get_pv_purgeable_courses_for_user_qs
 from tests.base_test_mixins import TWO_COURSE_SETUP_LIST, TwoCoursePageTestMixin
 from tests.utils import mock

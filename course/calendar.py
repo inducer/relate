@@ -38,7 +38,7 @@ from django.db import transaction
 from django.utils.safestring import mark_safe
 from django.utils.translation import get_language, gettext_lazy as _, pgettext_lazy
 
-from course.constants import participation_permission as pperm
+from course.constants import ParticipationPermission as pperm
 from course.models import Event
 from course.utils import course_view, render_course_page
 from relate.utils import HTML5DateTimeInput, StyledForm, as_local_time, string_concat

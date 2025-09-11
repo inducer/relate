@@ -33,7 +33,7 @@ from django.utils.safestring import mark_safe
 from typing_extensions import override
 
 from accounts.models import User
-from course.constants import participation_permission as pperm
+from course.constants import ParticipationPermission as pperm
 from prairietest.models import AllowEvent, DenyEvent, Facility, MostRecentDenyEvent
 
 
