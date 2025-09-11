@@ -822,7 +822,7 @@ def average_grade(
         if percentage is not None:
             grades.append(percentage)
 
-        del my_grade_changes[:]
+        my_grade_changes.clear()
 
     last_participation = None
     for gchange in grade_changes:

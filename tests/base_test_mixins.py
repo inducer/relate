@@ -33,6 +33,7 @@ import tempfile
 from collections import OrderedDict
 from copy import deepcopy
 from functools import partial
+from pathlib import Path
 from types import MethodType
 
 import memcache
@@ -2836,8 +2837,7 @@ class HackRepoMixin:
 
         class Blob:
             def __init__(self, yaml_file_name):
-                with open(os.path.join(FAKED_YAML_PATH, yaml_file_name), "rb") as f:
-                    data = f.read()
+                data = (Path(FAKED_YAML_PATH) / yaml_file_name).read_bytes()
                 self.data = data
 
         def get_repo_side_effect(repo, full_name, commit_sha):

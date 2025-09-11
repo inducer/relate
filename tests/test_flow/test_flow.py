@@ -3573,8 +3573,7 @@ class GetPageBehaviorTest(unittest.TestCase):
         combinations = [(frozenset([fp]), False) for fp in
                         get_flow_permissions_list(
                             excluded=fperm.see_correctness)]
-        combinations.append(([], False))
-        combinations.append((frozenset([fperm.see_correctness]), True))
+        combinations.extend((([], False), (frozenset([fperm.see_correctness]), True)))
 
         params = list(itertools.product([True, False], repeat=4))
 
@@ -3631,14 +3630,12 @@ class GetPageBehaviorTest(unittest.TestCase):
                             excluded=[
                                 fperm.see_answer_before_submission,
                                 fperm.see_answer_after_submission])]
-        combinations.append(([], False))
-        combinations.append(
-            (frozenset([fperm.see_answer_before_submission]), True))
-        combinations.append(
-            (frozenset([fperm.see_answer_after_submission]), True))
-        combinations.append(
-            (frozenset([fperm.see_answer_after_submission,
-                        fperm.see_answer_before_submission]), True))
+        combinations.extend((
+                ([], False),
+                (frozenset([fperm.see_answer_before_submission]), True),
+                (frozenset([fperm.see_answer_after_submission]), True),
+                (frozenset([fperm.see_answer_after_submission,
+                           fperm.see_answer_before_submission]), True)))
 
         params = list(itertools.product([True, False], repeat=5))
 
@@ -3667,9 +3664,9 @@ class GetPageBehaviorTest(unittest.TestCase):
                         get_flow_permissions_list(
                             excluded=[
                                 fperm.see_answer_before_submission])]
-        combinations.append(([], False))
-        combinations.append(
-            (frozenset([fperm.see_answer_before_submission]), True))
+        combinations.extend((
+                    ([], False),
+                    (frozenset([fperm.see_answer_before_submission]), True)))
 
         params = list(itertools.product([True, False], repeat=4))
 
@@ -3708,10 +3705,9 @@ class GetPageBehaviorTest(unittest.TestCase):
              for fp in get_flow_permissions_list(
                 excluded=fperm.see_answer_after_submission)])
 
-        combinations.append(
-            (frozenset([fperm.see_answer_before_submission]), True))
-        combinations.append(
-            (frozenset([fperm.see_answer_after_submission]), True))
+        combinations.extend((
+                    (frozenset([fperm.see_answer_before_submission]), True),
+                    (frozenset([fperm.see_answer_after_submission]), True)))
 
         # see_answer_before_submission also dominates
         combinations.extend(
@@ -3747,12 +3743,10 @@ class GetPageBehaviorTest(unittest.TestCase):
                             excluded=[
                                 fperm.see_answer_before_submission,
                                 fperm.see_answer_after_submission])]
-        combinations.append(([], False))
-        combinations.append(
-            (frozenset([fperm.see_answer_before_submission]), True))
-
-        combinations.append(
-            (frozenset([fperm.see_answer_after_submission]), True))
+        combinations.extend((
+                ([], False),
+                (frozenset([fperm.see_answer_before_submission]), True),
+                (frozenset([fperm.see_answer_after_submission]), True)))
 
         # if see_answer_before_submission dominate not present,
         # change_answer dominates

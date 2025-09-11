@@ -490,12 +490,10 @@ def get_session_access_rule(
 
         # Remove 'modify' permission from not-in-progress sessions
         if not session.in_progress:
-            for perm in [
+            permissions.difference_update([
                     flow_permission.submit_answer,
                     flow_permission.end_session,
-                    ]:
-                if perm in permissions:
-                    permissions.remove(perm)
+                    ])
 
         return FlowSessionAccessRule(
                 permissions=frozenset(permissions),
@@ -1296,9 +1294,8 @@ def get_course_specific_language_choices() -> tuple[tuple[str, Any], ...]:
                 string_concat(_(lang_descr), f" ({lang_code})"))
 
     filtered_options = (
-        [get_default_option()]
-        + [get_formatted_options(k, v)
-           for k, v in filtered_options_dict.items()])
+        [get_default_option(),
+            *list(starmap(get_formatted_options, filtered_options_dict.items()))])
 
     # filtered_options[1] is the option for settings.LANGUAGE_CODE
     # it's already displayed when settings.USE_I18N is False
