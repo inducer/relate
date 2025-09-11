@@ -65,9 +65,9 @@ from djangosaml2.backends import Saml2Backend
 
 from accounts.models import User
 from course.constants import (
-    participation_permission as pperm,
-    participation_status,
-    user_status,
+    ParticipationPermission as pperm,
+    ParticipationStatus,
+    UserStatus,
 )
 from course.models import (
     AuthenticationToken,
@@ -107,7 +107,7 @@ def get_impersonable_user_qset(impersonator: User) -> query.QuerySet[User]:
 
     my_participations = Participation.objects.filter(
         user=impersonator,
-        status=participation_status.active)
+        status=ParticipationStatus.active)
 
     impersonable_user_qset = User.objects.none()
     for part in my_participations:
@@ -124,7 +124,7 @@ def get_impersonable_user_qset(impersonator: User) -> query.QuerySet[User]:
 
         q = (Participation.objects
              .filter(course=part.course,
-                     status=participation_status.active,
+                     status=ParticipationStatus.active,
                      roles__identifier__in=impersonable_roles)
              .select_related("user"))
 
@@ -271,7 +271,7 @@ def stop_impersonating(request: http.HttpRequest) -> http.JsonResponse:
         # prevent user without pperm to stop_impersonating
         my_participations = Participation.objects.filter(
             user=request.user,
-            status=participation_status.active)
+            status=ParticipationStatus.active)
 
         may_impersonate = False
         for part in my_participations:
@@ -348,7 +348,7 @@ class EmailedTokenBackend:
 
         (user,) = users
 
-        user.status = user_status.active
+        user.status = UserStatus.active
         user.sign_in_key = None
         user.save()
 
@@ -486,7 +486,7 @@ def sign_up(request):
                         username=form.cleaned_data["username"])
 
                 user.set_unusable_password()
-                user.status = user_status.unconfirmed
+                user.status = UserStatus.unconfirmed
                 user.sign_in_key = make_sign_in_key(user)
                 user.save()
 
@@ -799,7 +799,7 @@ def sign_in_by_email(request):
 
             if created:
                 user.set_unusable_password()
-                user.status = user_status.unconfirmed
+                user.status = UserStatus.unconfirmed
 
             user.sign_in_key = make_sign_in_key(user)
             user.save()
@@ -1078,9 +1078,9 @@ class RelateSaml2Backend(Saml2Backend):
                 mod = True
 
         if "email" in mapped_attributes:
-            from course.constants import user_status
-            if user.status != user_status.active:
-                user.status = user_status.active
+            from course.constants import UserStatus
+            if user.status != UserStatus.active:
+                user.status = UserStatus.active
                 mod = True
 
         if mod:
@@ -1103,9 +1103,9 @@ def social_set_user_email_verified(backend, details, user=None, *args, **kwargs)
             user.email = email
             modified = True
 
-        from course.constants import user_status
-        if user.status != user_status.active:
-            user.status = user_status.active
+        from course.constants import UserStatus
+        if user.status != UserStatus.active:
+            user.status = UserStatus.active
             modified = True
 
     if modified:

@@ -30,7 +30,7 @@ from django.core.exceptions import PermissionDenied
 from django.shortcuts import get_object_or_404
 
 from course.auth import APIError, with_course_api_auth
-from course.constants import participation_permission as pperm
+from course.constants import ParticipationPermission as pperm
 from course.models import FlowSession
 
 

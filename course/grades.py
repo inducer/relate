@@ -47,9 +47,9 @@ from django.utils.timezone import now
 from django.utils.translation import gettext, gettext_lazy as _, pgettext_lazy
 
 from course.constants import (
-    grade_state_change_types,
-    participation_permission as pperm,
-    participation_status,
+    GradeStateChangeType,
+    ParticipationPermission as pperm,
+    ParticipationStatus,
 )
 from course.flow import adjust_flow_session_page_data
 from course.models import (
@@ -164,7 +164,7 @@ def view_participant_grades(pctx, participation_id=None):
         "grade_table": grade_table,
         "grade_participation": grade_participation,
         "grading_opportunities": grading_opps,
-        "grade_state_change_types": grade_state_change_types,
+        "grade_state_change_types": GradeStateChangeType,
         "is_privileged_view": is_privileged_view,
         })
 
@@ -234,7 +234,7 @@ def get_grade_table(course: Course) -> tuple[
     participations = list(Participation.objects
             .filter(
                 course=course,
-                status=participation_status.active)
+                status=ParticipationStatus.active)
             .order_by("id")
             .select_related("user"))
 
@@ -307,7 +307,7 @@ def view_gradebook(pctx):
         "grade_table": grade_table,
         "grading_opportunities": grading_opps,
         "participations": participations,
-        "grade_state_change_types": grade_state_change_types,
+        "grade_state_change_types": GradeStateChangeType,
         })
 
 
@@ -537,7 +537,7 @@ def view_grades_by_opportunity(
     participations = list(Participation.objects
             .filter(
                 course=pctx.course,
-                status=participation_status.active)
+                status=ParticipationStatus.active)
             .order_by("id")
             .select_related("user"))
 
@@ -669,7 +669,7 @@ def view_grades_by_opportunity(
     return render_course_page(pctx, "course/gradebook-by-opp.html", {
         "opportunity": opportunity,
         "participations": participations,
-        "grade_state_change_types": grade_state_change_types,
+        "grade_state_change_types": GradeStateChangeType,
         "grade_table": grade_table,
         "batch_session_ops_form": batch_session_ops_form,
         "page_numbers": page_numbers,
@@ -1051,7 +1051,7 @@ def view_single_grade(pctx: CoursePageContext, participation_id: str,
         "avg_grade_percentage": avg_grade_percentage,
         "avg_grade_population": avg_grade_population,
         "grade_participation": participation,
-        "grade_state_change_types": grade_state_change_types,
+        "grade_state_change_types": GradeStateChangeType,
         "grade_changes": grade_changes,
         "state_machine": state_machine,
         "flow_sessions_and_session_properties": flow_sessions_and_session_properties,
@@ -1177,7 +1177,7 @@ def find_participant_from_user_attr(course, attr_type, attr_str):
     matches = (Participation.objects
             .filter(
                 course=course,
-                status=participation_status.active,
+                status=ParticipationStatus.active,
                 **kwargs)
             .select_related("user"))
 
@@ -1207,7 +1207,7 @@ def find_participant_from_id(course, id_str):
     matches = (Participation.objects
             .filter(
                 course=course,
-                status=participation_status.active,
+                status=ParticipationStatus.active,
                 user__email__istartswith=id_str)
             .select_related("user"))
 
@@ -1312,7 +1312,7 @@ def csv_to_grade_changes(
             log_lines.append(e)
             continue
 
-        gchange.state = grade_state_change_types.graded
+        gchange.state = GradeStateChangeType.graded
         gchange.attempt_id = attempt_id
 
         points_str = get_col_contents_or_empty(row, points_column-1).strip()
@@ -1339,7 +1339,7 @@ def csv_to_grade_changes(
         if last_grades.count():
             last_grade, = last_grades
 
-            if last_grade.state == grade_state_change_types.graded:
+            if last_grade.state == GradeStateChangeType.graded:
                 updated = []
                 if not points_equal(last_grade.points, gchange.points):
                     updated.append(gettext("points"))

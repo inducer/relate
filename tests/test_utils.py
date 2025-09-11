@@ -38,7 +38,7 @@ from course import (
     constants,
     utils,
 )
-from course.constants import flow_permission as fperm
+from course.constants import FlowPermission as fperm
 from course.content import parse_date_spec
 from relate.utils import dict_to_struct, struct_to_dict
 from tests import factories
@@ -594,7 +594,7 @@ class GetFlowRulesTest(SingleCourseTestMixin, TestCase):
         default_rules_desc = [mock.MagicMock(), mock.MagicMock()]
 
         result = utils.get_flow_rules(
-            flow_desc, constants.flow_rule_kind.start,
+            flow_desc, constants.FlowRuleKind.start,
             self.student_participation,
             self.flow_id,
             now(),
@@ -605,7 +605,7 @@ class GetFlowRulesTest(SingleCourseTestMixin, TestCase):
         self.assertListEqual(result, default_rules_desc)
 
         result = utils.get_flow_rules(
-            flow_desc, constants.flow_rule_kind.start,
+            flow_desc, constants.FlowRuleKind.start,
             self.student_participation,
             self.flow_id,
             now(),
@@ -673,14 +673,14 @@ class GetFlowRulesTest(SingleCourseTestMixin, TestCase):
         factories.FlowRuleExceptionFactory(
             flow_id=self.flow_id,
             participation=self.student_participation,
-            kind=constants.flow_rule_kind.start,
+            kind=constants.FlowRuleKind.start,
             rule={
                 "if_after": "end_week 1"
             }
         )
 
         result = utils.get_flow_rules(
-            flow_desc, constants.flow_rule_kind.start,
+            flow_desc, constants.FlowRuleKind.start,
             self.student_participation,
             self.flow_id,
             now(),
@@ -705,7 +705,7 @@ class GetFlowRulesTest(SingleCourseTestMixin, TestCase):
         factories.FlowRuleExceptionFactory(
             flow_id=self.flow_id,
             participation=self.student_participation,
-            kind=constants.flow_rule_kind.start,
+            kind=constants.FlowRuleKind.start,
             creation_time=now() - timedelta(days=1),
             rule={
                 "if_after": "end_week 1"
@@ -714,7 +714,7 @@ class GetFlowRulesTest(SingleCourseTestMixin, TestCase):
 
         # consider_exceptions not specified
         result = utils.get_flow_rules(
-            flow_desc, constants.flow_rule_kind.start,
+            flow_desc, constants.FlowRuleKind.start,
             self.student_participation,
             self.flow_id,
             now(),
@@ -735,7 +735,7 @@ class GetFlowRulesTest(SingleCourseTestMixin, TestCase):
         factories.FlowRuleExceptionFactory(
             flow_id=self.flow_id,
             participation=self.student_participation,
-            kind=constants.flow_rule_kind.start,
+            kind=constants.FlowRuleKind.start,
             creation_time=now() - timedelta(days=1),
             rule={
                 "if_after": "end_week 1"
@@ -745,7 +745,7 @@ class GetFlowRulesTest(SingleCourseTestMixin, TestCase):
         factories.FlowRuleExceptionFactory(
             flow_id=self.flow_id,
             participation=self.student_participation,
-            kind=constants.flow_rule_kind.start,
+            kind=constants.FlowRuleKind.start,
             rule={
                 "if_before": "end_week 2"
             },
@@ -753,7 +753,7 @@ class GetFlowRulesTest(SingleCourseTestMixin, TestCase):
         )
 
         result = utils.get_flow_rules(
-            flow_desc, constants.flow_rule_kind.start,
+            flow_desc, constants.FlowRuleKind.start,
             self.student_participation,
             self.flow_id,
             now(),
@@ -783,7 +783,7 @@ class GetFlowRulesTest(SingleCourseTestMixin, TestCase):
             flow_id=self.flow_id,
             participation=self.student_participation,
             expiration=now() - timedelta(hours=12),
-            kind=constants.flow_rule_kind.start,
+            kind=constants.FlowRuleKind.start,
             creation_time=now() - timedelta(days=1),
             rule={
                 "if_after": "end_week 1"
@@ -794,7 +794,7 @@ class GetFlowRulesTest(SingleCourseTestMixin, TestCase):
             flow_id=self.flow_id,
             participation=self.student_participation,
             expiration=now() + timedelta(hours=12),
-            kind=constants.flow_rule_kind.start,
+            kind=constants.FlowRuleKind.start,
             rule={
                 "if_before": "end_week 2"
             },
@@ -805,7 +805,7 @@ class GetFlowRulesTest(SingleCourseTestMixin, TestCase):
         now_datetime = now() - timedelta(days=3)
 
         result = utils.get_flow_rules(
-            flow_desc, constants.flow_rule_kind.start,
+            flow_desc, constants.FlowRuleKind.start,
             self.student_participation,
             self.flow_id,
             now_datetime,
@@ -824,7 +824,7 @@ class GetFlowRulesTest(SingleCourseTestMixin, TestCase):
         now_datetime = now()
 
         result = utils.get_flow_rules(
-            flow_desc, constants.flow_rule_kind.start,
+            flow_desc, constants.FlowRuleKind.start,
             self.student_participation,
             self.flow_id,
             now_datetime,
@@ -843,7 +843,7 @@ class GetFlowRulesTest(SingleCourseTestMixin, TestCase):
         now_datetime = now() + timedelta(days=5)
 
         result = utils.get_flow_rules(
-            flow_desc, constants.flow_rule_kind.start,
+            flow_desc, constants.FlowRuleKind.start,
             self.student_participation,
             self.flow_id,
             now_datetime,
@@ -1188,18 +1188,18 @@ class GetSessionAccessRuleTest(GetSessionRuleMixin, SingleCourseTestMixin, TestC
 
         cls.fs1 = factories.FlowSessionFactory(
             participation=cls.student_participation, in_progress=False,
-            expiration_mode=constants.flow_session_expiration_mode.end,
+            expiration_mode=constants.FlowSessionExpirationMode.end,
             start_time=start_time
         )
         cls.fs2 = factories.FlowSessionFactory(
             participation=cls.ta_participation, in_progress=True,
-            expiration_mode=constants.flow_session_expiration_mode.roll_over,
+            expiration_mode=constants.FlowSessionExpirationMode.roll_over,
             start_time=start_time
         )
         cls.fs3 = factories.FlowSessionFactory(
             course=cls.course,
             participation=None, in_progress=True, user=None,
-            expiration_mode=constants.flow_session_expiration_mode.roll_over,
+            expiration_mode=constants.FlowSessionExpirationMode.roll_over,
             start_time=start_time
         )
 
@@ -1288,7 +1288,7 @@ class GetSessionAccessRuleTest(GetSessionRuleMixin, SingleCourseTestMixin, TestC
         self.mock_get_flow_rules.return_value = [
             dict_to_struct({"if_in_progress": True,
                             "if_expiration_mode":
-                                constants.flow_session_expiration_mode.end,
+                                constants.FlowSessionExpirationMode.end,
                             "permissions": mock.MagicMock()
                             })]
         self.mock_eval_generic_conditions.return_value = True
@@ -1299,7 +1299,7 @@ class GetSessionAccessRuleTest(GetSessionRuleMixin, SingleCourseTestMixin, TestC
     def test_not_passing_if_session_duration_shorter_than_minutes(self):
         self.mock_get_flow_rules.return_value = [
             dict_to_struct({"if_expiration_mode":
-                                constants.flow_session_expiration_mode.end,
+                                constants.FlowSessionExpirationMode.end,
                             "if_session_duration_shorter_than_minutes": 59,
                             "permissions": mock.MagicMock()
                             })]
@@ -1432,18 +1432,18 @@ class GetSessionGradingRuleTest(GetSessionRuleMixin,
 
         cls.fs1 = factories.FlowSessionFactory(
             participation=cls.student_participation, in_progress=False,
-            expiration_mode=constants.flow_session_expiration_mode.end,
+            expiration_mode=constants.FlowSessionExpirationMode.end,
             start_time=start_time, completion_time=cls.now
         )
         cls.fs2 = factories.FlowSessionFactory(
             participation=cls.ta_participation, in_progress=True,
-            expiration_mode=constants.flow_session_expiration_mode.roll_over,
+            expiration_mode=constants.FlowSessionExpirationMode.roll_over,
             start_time=start_time
         )
         cls.fs3 = factories.FlowSessionFactory(
             course=cls.course,
             participation=None, in_progress=True, user=None,
-            expiration_mode=constants.flow_session_expiration_mode.roll_over,
+            expiration_mode=constants.FlowSessionExpirationMode.roll_over,
             start_time=start_time, completion_time=cls.now
         )
 
@@ -1455,7 +1455,7 @@ class GetSessionGradingRuleTest(GetSessionRuleMixin,
         defaults = {
             "grade_identifier": "la_quiz",
             "grade_aggregation_strategy":
-                constants.grade_aggregation_strategy.use_latest,
+                constants.GradeAggregationStrategy.use_latest,
             "due": None,
             "generates_grade": True,
             "description": None,
@@ -1775,7 +1775,7 @@ class WillUseMaskedProfileForEmailTest(SingleCourseTestMixin, TestCase):
                 ["foo@bar.com"]))
 
     def test_any(self):
-        from course.constants import participation_permission as pperm
+        from course.constants import ParticipationPermission as pperm
         from course.models import ParticipationPermission
 
         pp = ParticipationPermission(

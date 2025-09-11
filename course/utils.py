@@ -42,9 +42,9 @@ from django.utils.safestring import SafeString, mark_safe
 from django.utils.translation import gettext as _, pgettext_lazy
 
 from course.constants import (
-    flow_permission,
-    flow_rule_kind,
-    flow_session_expiration_mode,
+    FlowPermission,
+    FlowRuleKind,
+    FlowSessionExpirationMode,
 )
 from course.content import (
     CourseCommitSHADoesNotExist,
@@ -120,7 +120,7 @@ class FlowSessionStartRule(FlowSessionRuleBase):
             tag_session: str | None = None,
             may_start_new_session: bool | None = None,
             may_list_existing_sessions: bool | None = None,
-            default_expiration_mode: flow_session_expiration_mode | None = None,
+            default_expiration_mode: FlowSessionExpirationMode | None = None,
             ) -> None:
         self.tag_session = tag_session
         self.may_start_new_session = may_start_new_session
@@ -149,7 +149,7 @@ class FlowSessionGradingRule(FlowSessionRuleBase):
     def __init__(
             self,
             grade_identifier: str | None,
-            grade_aggregation_strategy: c.grade_aggregation_strategy,
+            grade_aggregation_strategy: c.GradeAggregationStrategy,
             due: datetime.datetime | None,
             generates_grade: bool,
             description: str | None = None,
@@ -338,7 +338,7 @@ def get_session_start_rule(
 
     from relate.utils import dict_to_struct
     rules: list[FlowSessionStartRuleDesc] = get_flow_rules(
-            flow_desc, flow_rule_kind.start,
+            flow_desc, FlowRuleKind.start,
             participation, flow_id, now_datetime,
             default_rules_desc=[
                 dict_to_struct({
@@ -429,11 +429,11 @@ def get_session_access_rule(
 
     from relate.utils import dict_to_struct
     rules: list[FlowSessionAccessRuleDesc] = get_flow_rules(
-            flow_desc, flow_rule_kind.access,
+            flow_desc, FlowRuleKind.access,
             session.participation, session.flow_id, now_datetime,
             default_rules_desc=[
                 dict_to_struct({
-                    "permissions": [flow_permission.view],
+                    "permissions": [FlowPermission.view],
                     })])
 
     for rule in rules:
@@ -479,21 +479,21 @@ def get_session_access_rule(
         if "modify" in permissions:  # type: ignore[arg-type]
             permissions.remove("modify")  # type: ignore[arg-type]  # pyright: ignore[reportArgumentType]
             permissions.update([
-                flow_permission.submit_answer,
-                flow_permission.end_session,
+                FlowPermission.submit_answer,
+                FlowPermission.end_session,
                 ])
 
         if "see_answer" in permissions:  # type: ignore[arg-type]
             permissions.remove("see_answer")  # type: ignore[arg-type]  # pyright: ignore[reportArgumentType]
-            permissions.add(flow_permission.see_answer_after_submission)
+            permissions.add(FlowPermission.see_answer_after_submission)
 
         # }}}
 
         # Remove 'modify' permission from not-in-progress sessions
         if not session.in_progress:
             permissions.difference_update([
-                    flow_permission.submit_answer,
-                    flow_permission.end_session,
+                    FlowPermission.submit_answer,
+                    FlowPermission.end_session,
                     ])
 
         return FlowSessionAccessRule(
@@ -514,7 +514,7 @@ def get_session_grading_rule(
 
     from relate.utils import dict_to_struct
     rules: list[FlowSessionGradingRuleDesc] = get_flow_rules(
-            flow_desc, flow_rule_kind.grading,
+            flow_desc, FlowRuleKind.grading,
             session.participation, session.flow_id, now_datetime,
             default_rules_desc=[
                 dict_to_struct({
@@ -855,13 +855,8 @@ class ParticipationPermissionWrapper:
 
     def __getitem__(self, perm: str) -> bool:
 
-        from course.constants import participation_permission
-        try:
-            getattr(participation_permission, perm)
-        except AttributeError:
-            raise ValueError(f"permission name '{perm}' not valid")
-
-        return self.pctx.has_permission(perm, ANY_ARGUMENT)
+        from course.constants import ParticipationPermission
+        return self.pctx.has_permission(ParticipationPermission(perm_str), ANY_ARGUMENT)
 
     def __iter__(self):
         raise TypeError("ParticipationPermissionWrapper is not iterable.")
@@ -1259,7 +1254,7 @@ def will_use_masked_profile_for_email(recipient_email: str | list[str] | None) -
         Participation.objects.filter(
             user__email__in=recipient_email
         ))
-    from course.constants import participation_permission as pperm
+    from course.constants import ParticipationPermission as pperm
     for part in recipient_participations:
         if part.has_permission(pperm.view_participant_masked_profile):
             return True

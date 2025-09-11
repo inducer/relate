@@ -35,8 +35,8 @@ from django.urls import reverse
 
 from course import constants, enrollment
 from course.constants import (
-    participation_status as p_status,
-    user_status as u_status,
+    ParticipationStatus as p_status,
+    UserStatus as u_status,
 )
 from course.models import Participation, ParticipationPreapproval, ParticipationRole
 from relate.utils import string_concat
@@ -788,7 +788,7 @@ class EnrollmentDecisionTest(EnrollmentDecisionTestMixin, TestCase):
             self.assertEqual(resp.status_code, 200)
             self.assertFormErrorLoose(resp, None)
             self.student_participation.refresh_from_db()
-            from course.constants import participation_permission as pperm
+            from course.constants import ParticipationPermission as pperm
             self.assertTrue(
                 self.student_participation.has_permission(
                     pperm.view_participant_masked_profile)
@@ -1630,7 +1630,7 @@ class QueryParticipationsParseQueryTest(QueryParticipationsTestMixin, TestCase):
             resp = self.client.post(self.query_participation_url, data={})
             self.assertEqual(resp.status_code, 200)
 
-        from course.constants import participation_permission as pperm
+        from course.constants import ParticipationPermission as pperm
         from course.models import ParticipationPermission
         pp = ParticipationPermission(
             participation=self.ta_participation,

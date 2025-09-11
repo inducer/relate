@@ -47,7 +47,7 @@
       <td>
         <a class="btn btn-secondary" role="button"
           href="{% url "relate-flow_analytics" course.identifier opportunity.flow_id %}">{% trans "View analytics" %}</a>
-        {% if pperm.view_grader_stats %}
+        {% if PPerm.view_grader_stats %}
           <a class="btn btn-secondary" role="button"
             href="{% url "relate-show_grader_statistics" course.identifier opportunity.flow_id %}">{% trans "View grader statistics" %}</a>
         {% endif %}
@@ -60,11 +60,11 @@
               href="{% url "relate-view_grades_by_opportunity" course.identifier opportunity.id %}">
               {% trans "Hide page grades" %}</a>
         {% endif %}
-        {% if pperm.batch_download_submission %}
+        {% if PPerm.batch_download_submission %}
           <a class="btn btn-secondary" href="{% url "relate-download_all_submissions" course.identifier opportunity.flow_id %}"
               role="button">{% trans "Download submissions" %}</a>
         {% endif %}
-        {% if pperm.edit_grading_opportunity %}
+        {% if PPerm.edit_grading_opportunity %}
           <a class="btn btn-outline-secondary" href="{% url "relate-edit_grading_opportunity" course.identifier opportunity.id %}"
               role="button">{% trans "Edit" %}</a>
         {% endif %}
@@ -109,7 +109,7 @@
 
   <table class="table table-striped gradebook-by-opportunity">
     <thead>
-      {% if not pperm.view_participant_masked_profile %}
+      {% if not PPerm.view_participant_masked_profile %}
           <th class="datacol">{% trans "User ID" %}</th>
           <th class="datacol">{% trans "Name" context "real name of a user" %}</th>
       {% else %}
@@ -131,19 +131,19 @@
       <tr>
         <th class="headcol">
           <a href="{% url "relate-view_single_grade" course.identifier participation.id opportunity.id %}"><span class="sensitive">
-              {% if not pperm.view_participant_masked_profile %}
+              {% if not PPerm.view_participant_masked_profile %}
                   {{ participation.user.username }}
               {% else %}
                   {% if participation.user == user %}{% trans "Me" %}{% else %}{{ participation.user.get_masked_profile }}{% endif %}
               {% endif %}
           </span></a>
-          {% if pperm.view_participant_masked_profile %}
+          {% if PPerm.view_participant_masked_profile %}
               {% if participation|has_permission:"view_gradebook" %}
                   ({{ participation.get_role_desc }})
               {% endif %}
           {% endif %}
         </th>
-        {% if not pperm.view_participant_masked_profile %}
+        {% if not PPerm.view_participant_masked_profile %}
             <td class="datacol">
                 <span class="sensitive">
                     {{ participation.user.get_full_name }}

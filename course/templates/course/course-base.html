@@ -31,17 +31,17 @@
         {% trans "Participant" context "menu item" %}
       </a>
       <ul class="dropdown-menu" aria-labelledby="dropdownParticipantMenu">
-        {% if course.course_xmpp_id and pperm.send_instant_message %}
+        {% if course.course_xmpp_id and PPerm.send_instant_message %}
           <li><a class="dropdown-item" href="{% url "relate-send_instant_message" course.identifier %}">{% trans "Send instant message" %}</a></li>
         {% endif %}
         {% if not request.user.is_anonymous %}
           <li><a class="dropdown-item" href="{% url "relate-view_participant_grades" course.identifier %}">{% trans "View grades" %}</a></li>
         {% endif %}
-        {% if pperm.view_calendar %}
+        {% if PPerm.view_calendar %}
           <li><a class="dropdown-item" href="{% url "relate-view_calendar" course.identifier %}">{% trans "View calendar" %}</a></li>
         {% endif %}
         <li><a class="dropdown-item" href="{% url "relate-course_page" course.identifier %}">{% trans "Back to course page" %}</a></li>
-        {% if pperm.manage_authentication_tokens %}
+        {% if PPerm.manage_authentication_tokens %}
           <li class="dropdown-divider"></li>
           <li><a class="dropdown-item" href="{% url "relate-manage_authentication_tokens" course.identifier %}">{% trans "Manage Authentication Tokens" %}</a></li>
         {% endif %}
@@ -51,35 +51,35 @@
     </li>
   {% endif %}
 
-  {% if pperm.view_gradebook %}
+  {% if PPerm.view_gradebook %}
     <li class="nav-item relate-dropdown-menu">
       <a href="#" id="dropdownGradingMenu" data-bs-toggle="dropdown" aria-expanded="false">
         {% trans "Grading" context "menu item" %}
       </a>
       <ul class="dropdown-menu" aria-labelledby="dropdownGradingMenu">
-        {% if pperm.view_analytics %}
+        {% if PPerm.view_analytics %}
           <li><a class="dropdown-item" href="{% url "relate-flow_list" course.identifier %}">{% trans "Analytics Overview" %}</a></li>
         {% endif %}
 
-        {% if pperm.view_gradebook %}
+        {% if PPerm.view_gradebook %}
           <li class="dropdown-divider"></li>
           <li><h6 class="dropdown-header">{% trans "Grade Book" %}</h6></li>
           <li><a class="dropdown-item" href="{% url "relate-view_participant_list" course.identifier %}">{% trans "List of Participants" %}</a></li>
           <li><a class="dropdown-item" href="{% url "relate-view_grading_opportunity_list" course.identifier %}">{% trans "List of Grading Opportunities" %}</a></li>
           <li><a class="dropdown-item" href="{% url "relate-view_gradebook" course.identifier %}">{% trans "Grade book" %}</a></li>
-          {% if pperm.batch_export_grade %}
+          {% if PPerm.batch_export_grade %}
             <li><a class="dropdown-item" href="{% url "relate-export_gradebook_csv" course.identifier %}">{% trans "Grade book (CSV export)" %}</a></li>
           {% endif %}
         {% endif %}
-        {% if pperm.batch_import_grade %}
+        {% if PPerm.batch_import_grade %}
           <li><a class="dropdown-item" href="{% url "relate-import_grades" course.identifier %}">{% trans "Import Grades" %}</a></li>
         {% endif %}
-        {% if pperm.batch_regrade_flow_session %}
+        {% if PPerm.batch_regrade_flow_session %}
           <li class="dropdown-divider"></li>
           <li><a class="dropdown-item" href="{% url "relate-regrade_flows_view" course.identifier %}">{% trans "Regrade flows" %}</a></li>
         {% endif %}
 
-        {% if pperm.grant_exception %}
+        {% if PPerm.grant_exception %}
           <li class="dropdown-divider"></li>
           <li><h6 class="dropdown-header">{% trans "Exceptions" %}</h6></li>
           <li><a class="dropdown-item" href="{% url "relate-grant_exception" course.identifier %}">{% trans "Grant exception" %}</a></li>
@@ -88,13 +88,13 @@
           {% endif %}
         {% endif %}
 
-        {% if user.is_staff or pperm.batch_issue_exam_ticket %}
+        {% if user.is_staff or PPerm.batch_issue_exam_ticket %}
           <li class="dropdown-divider"></li>
           <li><h6 class="dropdown-header">{% trans "Exams" %}</h6></li>
           {% if user.is_staff %}
             <li><a class="dropdown-item" href="{% url "admin:course_exam_changelist" %}?course__id__exact={{ course.id }}" target="_blank">{% trans "Edit exams" %}</a></li>
           {% endif %}
-          {% if pperm.batch_issue_exam_ticket %}
+          {% if PPerm.batch_issue_exam_ticket %}
             <li><a class="dropdown-item" href="{% url "relate-batch_issue_exam_tickets" course.identifier %}">{% trans "Batch-issue exam tickets" %}</a></li>
           {% endif %}
         {% endif %}
@@ -102,35 +102,35 @@
     </li>
   {% endif %}
 
-  {% if pperm.preview_content or pperm.use_markup_sandbox or pperm.use_page_sandbox %}
+  {% if PPerm.preview_content or PPerm.use_markup_sandbox or PPerm.use_page_sandbox %}
     <li class="nav-item relate-dropdown-menu">
       <a href="#" id="dropdownContentMenu" data-bs-toggle="dropdown" aria-expanded="false">
         {% trans "Content" context "menu item" %}
       </a>
       <ul class="dropdown-menu" aria-labelledby="dropdownContentMenu">
-        {% if pperm.preview_content or pperm.update_content %}
+        {% if PPerm.preview_content or PPerm.update_content %}
           <li><a class="dropdown-item" href="{% url "relate-update_course" course.identifier %}">{% trans "Retrieve/preview new course revisions" %}</a></li>
         {% endif %}
 
-        {% if pperm.edit_course %}
+        {% if PPerm.edit_course %}
           <li><a class="dropdown-item" href="{% url "relate-edit_course" course.identifier %}">{% trans "Edit course" %}</a></li>
         {% endif %}
 
         <li class="dropdown-divider"></li>
         <li><h6 class="dropdown-header">{% trans "Content creation" %}</h6></li>
-        {% if pperm.use_page_sandbox %}
+        {% if PPerm.use_page_sandbox %}
           <li><a class="dropdown-item" href="{% url "relate-view_page_sandbox" course.identifier %}">{% trans "Page sandbox" %}</a></li>
         {% endif %}
-        {% if pperm.use_markup_sandbox %}
+        {% if PPerm.use_markup_sandbox %}
           <li><a class="dropdown-item" href="{% url "relate-view_markup_sandbox" course.identifier %}">{% trans "Markup sandbox" %}</a></li>
         {% endif %}
 
-        {% if pperm.test_flow %}
+        {% if PPerm.test_flow %}
           <li class="dropdown-divider"></li>
           <li><a class="dropdown-item" href="{% url "relate-test_flow" course.identifier %}">{% trans "Test flow" %}</a></li>
         {% endif %}
 
-        {% if pperm.edit_events %}
+        {% if PPerm.edit_events %}
           <li class="dropdown-divider"></li>
           <li><h6 class="dropdown-header">{% trans "Calendar" %}</h6></li>
           {% if user.is_staff %}
@@ -144,22 +144,22 @@
     </li>
   {% endif %}
 
-  {% if pperm.query_participation or pperm.manage_instant_flow_requests or pperm.preapprove_participation %}
-    {% if not pperm.view_participant_masked_profile %}
+  {% if PPerm.query_participation or PPerm.manage_instant_flow_requests or PPerm.preapprove_participation %}
+    {% if not PPerm.view_participant_masked_profile %}
       <li class="nav-item relate-dropdown-menu">
         <a href="#" id="dropdownInstructorMenu" data-bs-toggle="dropdown" aria-expanded="false">
           {% trans "Instructor" context "menu item" %}
         </a>
         <ul class="dropdown-menu" aria-labelledby="dropdownInstructorMenu">
           <li><h6 class="dropdown-header">{% trans "Participation" %}</h6></li>
-          {% if pperm.preapprove_participation %}
+          {% if PPerm.preapprove_participation %}
             <li><a class="dropdown-item" href="{% url "relate-create_preapprovals" course.identifier %}">{% trans "Preapprove enrollments" context "menu item" %}</a></li>
           {% endif %}
-          {% if pperm.query_participation %}
+          {% if PPerm.query_participation %}
             <li><a class="dropdown-item" href="{% url "relate-query_participations" course.identifier %}">{% trans "Query participations" context "menu item" %}</a></li>
           {% endif %}
 
-          {% if pperm.manage_instant_flow_requests %}
+          {% if PPerm.manage_instant_flow_requests %}
             <li class="dropdown-divider"></li>
             <li><h6 class="dropdown-header">{% trans "Instant flow requests" %}</h6></li>
             <li><a class="dropdown-item" href="{% url "relate-manage_instant_flow_requests" course.identifier %}">{% trans "Manage instant flow requests" %}</a></li>
@@ -186,7 +186,7 @@
           <a class="btn btn-primary"
             href="{% url "relate-view_start_flow" course.identifier req.flow_id %}"
             role="button"><b>{% trans "Go to activity" %} &raquo;</b></a>
-          {% if pperm.view_analytics %}
+          {% if PPerm.view_analytics %}
           <a class="btn btn-primary"
             href="{% url "relate-flow_analytics" course.identifier req.flow_id %}"
             role="button"><b>{% trans "View activity analytics" %} &raquo;</b></a>
@@ -198,7 +198,7 @@
           <a class="btn btn-primary"
             href="{% url "relate-view_start_flow" course.identifier req.flow_id %}"
             role="button"><b>{% trans "Go to activity" %} {{ i }} &raquo;</b></a>
-          {% if pperm.view_analytics %}
+          {% if PPerm.view_analytics %}
           <a class="btn btn-primary"
             href="{% url "relate-flow_analytics" course.identifier req.flow_id %}"
             role="button"><b>{% trans "View activity" %} {{ i }} {% trans "analytics" %} &raquo;</b></a>

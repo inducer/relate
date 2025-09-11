@@ -54,15 +54,15 @@ from course.constants import (  # noqa
     PARTICIPATION_PERMISSION_CHOICES,
     PARTICIPATION_STATUS_CHOICES,
     USER_STATUS_CHOICES,
-    exam_ticket_states,
-    flow_permission,
-    flow_rule_kind,
-    flow_session_expiration_mode,
-    grade_aggregation_strategy,
-    grade_state_change_types,
-    participation_permission,
-    participation_status,
-    user_status,
+    ExamTicketState,
+    FlowPermission,
+    FlowRuleKind,
+    FlowSessionExpirationMode,
+    GradeAggregationStrategy,
+    GradeStateChangeType,
+    ParticipationPermission,
+    ParticipationStatus,
+    UserStatus,
 )
 from relate.utils import not_none, string_concat
 
@@ -665,7 +665,7 @@ class ParticipationPreapproval(models.Model):
 def add_default_roles_and_permissions(course,
         role_model=ParticipationRole,
         role_permission_model=ParticipationRolePermission):
-    from course.constants import participation_permission as pp
+    from course.constants import ParticipationPermission as pp
 
     rpm = role_permission_model
 
@@ -918,7 +918,7 @@ class FlowSession(models.Model):
             blank=True,
             verbose_name=_("Access rules tag"))
     expiration_mode = models.CharField(max_length=20, null=True,
-            default=flow_session_expiration_mode.end,
+            default=FlowSessionExpirationMode.end,
             choices=FLOW_SESSION_EXPIRATION_MODE_CHOICES,
             verbose_name=_("Expiration mode"))
 
@@ -1489,7 +1489,7 @@ class FlowRuleException(models.Model):
                 # Translators: the rule refers to FlowRuleException rule
                 string_concat(_("invalid exception rule kind"), ": ", self.kind))
 
-        if (self.kind == flow_rule_kind.grading
+        if (self.kind == FlowRuleKind.grading
                 and self.expiration is not None):
             raise ValidationError(_("grading rules may not expire"))
 
@@ -1526,11 +1526,11 @@ class FlowRuleException(models.Model):
             grade_identifier = flow_desc.rules.grade_identifier
 
         try:
-            if self.kind == flow_rule_kind.start:
+            if self.kind == FlowRuleKind.start:
                 validate_session_start_rule(ctx, str(self), rule, tags)
-            elif self.kind == flow_rule_kind.access:
+            elif self.kind == FlowRuleKind.access:
                 validate_session_access_rule(ctx, str(self), rule, tags)
-            elif self.kind == flow_rule_kind.grading:
+            elif self.kind == FlowRuleKind.grading:
                 validate_session_grading_rule(
                         ctx, str(self), rule, tags,
                         grade_identifier)
@@ -1768,12 +1768,12 @@ class GradeStateMachine:
             assert gchange.grade_time >= self._last_grade_change_time
         self._last_grade_change_time = gchange.grade_time
 
-        if gchange.state == grade_state_change_types.graded:
-            if self.state == grade_state_change_types.unavailable:
+        if gchange.state == GradeStateChangeType.graded:
+            if self.state == GradeStateChangeType.unavailable:
                 raise ValueError(
                         _("cannot accept grade once opportunity has been "
                             "marked 'unavailable'"))
-            if self.state == grade_state_change_types.exempt:
+            if self.state == GradeStateChangeType.exempt:
                 raise ValueError(
                         _("cannot accept grade once opportunity has been "
                         "marked 'exempt'"))
@@ -1793,26 +1793,26 @@ class GradeStateMachine:
 
             self.last_graded_time = gchange.grade_time
 
-        elif gchange.state == grade_state_change_types.unavailable:
+        elif gchange.state == GradeStateChangeType.unavailable:
             self._clear_grades()
             self.state = gchange.state
 
-        elif gchange.state == grade_state_change_types.do_over:
+        elif gchange.state == GradeStateChangeType.do_over:
             self._clear_grades()
 
-        elif gchange.state == grade_state_change_types.exempt:
+        elif gchange.state == GradeStateChangeType.exempt:
             self._clear_grades()
             self.state = gchange.state
 
-        elif gchange.state == grade_state_change_types.report_sent:
+        elif gchange.state == GradeStateChangeType.report_sent:
             self.last_report_time = gchange.grade_time
 
-        elif gchange.state == grade_state_change_types.extension:
+        elif gchange.state == GradeStateChangeType.extension:
             self.due_time = gchange.due_time
 
         elif gchange.state in [
-                grade_state_change_types.grading_started,
-                grade_state_change_types.retrieved,
+                GradeStateChangeType.grading_started,
+                GradeStateChangeType.retrieved,
                 ]:
             pass
         else:
@@ -1849,15 +1849,15 @@ class GradeStateMachine:
 
         strategy = self.opportunity.aggregation_strategy
 
-        if strategy == grade_aggregation_strategy.max_grade:
+        if strategy == GradeAggregationStrategy.max_grade:
             return max(self.valid_percentages)
-        elif strategy == grade_aggregation_strategy.min_grade:
+        elif strategy == GradeAggregationStrategy.min_grade:
             return min(self.valid_percentages)
-        elif strategy == grade_aggregation_strategy.avg_grade:
+        elif strategy == GradeAggregationStrategy.avg_grade:
             return sum(self.valid_percentages)/len(self.valid_percentages)
-        elif strategy == grade_aggregation_strategy.use_earliest:
+        elif strategy == GradeAggregationStrategy.use_earliest:
             return self.valid_percentages[0]
-        elif strategy == grade_aggregation_strategy.use_latest:
+        elif strategy == GradeAggregationStrategy.use_latest:
             return self.valid_percentages[-1]
         else:
             raise ValueError(
@@ -1866,9 +1866,9 @@ class GradeStateMachine:
     def stringify_state(self):
         if self.state is None:
             return "- ∅ -"
-        elif self.state == grade_state_change_types.exempt:
+        elif self.state == GradeStateChangeType.exempt:
             return _("(exempt)")
-        elif self.state == grade_state_change_types.graded:
+        elif self.state == GradeStateChangeType.graded:
             if self.valid_percentages:
                 result = f"{self.percentage():.1f}%"
                 if len(self.valid_percentages) > 1:
@@ -1882,9 +1882,9 @@ class GradeStateMachine:
     def stringify_machine_readable_state(self):
         if self.state is None:
             return "NONE"
-        elif self.state == grade_state_change_types.exempt:
+        elif self.state == GradeStateChangeType.exempt:
             return "EXEMPT"
-        elif self.state == grade_state_change_types.graded:
+        elif self.state == GradeStateChangeType.graded:
             if self.valid_percentages:
                 return f"{self.percentage():.3f}"
             else:
@@ -1893,7 +1893,7 @@ class GradeStateMachine:
             return "OTHER_STATE"
 
     def stringify_percentage(self):
-        if self.state == grade_state_change_types.graded:
+        if self.state == GradeStateChangeType.graded:
             if self.valid_percentages:
                 return f"{self.percentage():.1f}"
             else:
