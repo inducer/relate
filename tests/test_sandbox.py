@@ -325,19 +325,6 @@ class ViewPageSandboxTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
 
         self.assertResponseContextIsNone(resp, "page_form_html")
 
-    def test_reload_from_storage_instantiate_page_errored(self):
-        self.get_page_sandbox_preview_response(
-            markup_content=QUESTION_MARKUP)
-        with mock.patch(
-                "course.content.instantiate_flow_page") as mock_instantiate:
-            error_msg = "my make form error"
-            mock_instantiate.side_effect = RuntimeError(error_msg)
-            resp = self.client.get(self.get_page_sandbox_url())
-
-            self.assertEqual(resp.status_code, 200)
-            self.assertSandboxNotHasValidPage(resp)
-            self.assertResponseContextContains(resp, PAGE_ERRORS, error_msg)
-
 
 class ViewMarkupSandboxTest(SingleCoursePageSandboxTestBaseMixin,
                             MockAddMessageMixing, TestCase):

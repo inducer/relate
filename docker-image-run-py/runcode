@@ -26,23 +26,35 @@ THE SOFTWARE.
 """
 
 import io
-import json
 import socketserver
 import sys
+from traceback import print_exc
+from typing import TYPE_CHECKING
 
 
-try:
-    from code_run_backend import Struct, package_exception, run_code
-except ImportError:
+if TYPE_CHECKING:
+    from course.page.code_run_backend import RunRequest, package_exception, run_code
+else:
     try:
-        # When faking a container for unittest
-        from course.page.code_run_backend import Struct, package_exception, run_code
+        from code_run_backend import RunRequest, package_exception, run_code
     except ImportError:
-        # When debugging, i.e., run "python runpy" command line
-        import os
-        sys.path.insert(0, os.path.abspath(
-            os.path.join(os.path.dirname(__file__), os.pardir)))
-        from course.page.code_run_backend import Struct, package_exception, run_code
+        try:
+            # When faking a container for unittest
+            from course.page.code_run_backend import (
+                RunRequest,
+                package_exception,
+                run_code,
+            )
+        except ImportError:
+            # When debugging, i.e., run "python runpy" command line
+            import os
+            sys.path.insert(0, os.path.abspath(
+                os.path.join(os.path.dirname(__file__), os.pardir)))
+            from course.page.code_run_backend import (
+                RunRequest,
+                package_exception,
+                run_code,
+            )
 
 from http.server import BaseHTTPRequestHandler
 
@@ -53,7 +65,7 @@ OUTPUT_LENGTH_LIMIT = 16*1024
 TEST_COUNT = 0
 
 
-def truncate_if_long(s):
+def truncate_if_long(s: str):
     if len(s) > OUTPUT_LENGTH_LIMIT:
         s = (s[:OUTPUT_LENGTH_LIMIT//2]
                 + "\n[... TOO MUCH OUTPUT, SKIPPING ...]\n"
@@ -76,9 +88,7 @@ class RunRequestHandler(BaseHTTPRequestHandler):
 
     def do_POST(self):
         global TEST_COUNT
-        TEST_COUNT += 1
-
-        response = {}
+        TEST_COUNT += 1  # pyright: ignore[reportConstantRedefinition]
 
         prev_stdout = sys.stdout
         prev_stderr = sys.stderr
@@ -93,7 +103,7 @@ class RunRequestHandler(BaseHTTPRequestHandler):
 
             print("RUNPY RECEIVED %d bytes" % len(recv_data),
                     file=prev_stderr)
-            run_req = Struct(json.loads(recv_data.decode("utf-8")))
+            run_req = RunRequest.model_validate_json(recv_data)
 
             # recv_data contains test_code, which may be sensitive.
             # Prevent access to this via the frame.
@@ -108,14 +118,14 @@ class RunRequestHandler(BaseHTTPRequestHandler):
             sys.stdout = stdout
             sys.stderr = stderr
 
-            run_code(response, run_req)
+            response = run_code(run_req)
 
-            response["stdout"] = truncate_if_long(stdout.getvalue())
-            response["stderr"] = truncate_if_long(stderr.getvalue())
+            response.stdout = truncate_if_long(stdout.getvalue())
+            response.stderr = truncate_if_long(stderr.getvalue())
 
             print("REQUEST SERVICED: %r" % response, file=prev_stderr)
 
-            json_result = json.dumps(response).encode("utf-8")
+            json_result = response.model_dump_json().encode("utf-8")
 
             self.send_response(200)
             self.send_header("Content-type", "application/json")
@@ -126,9 +136,9 @@ class RunRequestHandler(BaseHTTPRequestHandler):
             print("WROTE RESPONSE", file=prev_stderr)
         except Exception:
             print("ERROR RESPONSE", file=prev_stderr)
-            response = {}
-            package_exception(response, "uncaught_error")
-            json_result = json.dumps(response).encode("utf-8")
+            print_exc(file=prev_stderr)
+            response = package_exception("uncaught_error")
+            json_result = response.model_dump_json().encode("utf-8")
 
             self.send_response(500)
             self.send_header("Content-type", "application/json")

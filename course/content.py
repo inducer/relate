@@ -1,5 +1,3 @@
-# pyright: reportUninitializedInstanceVariable=none
-
 from __future__ import annotations
 
 
@@ -25,89 +23,166 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
+
 import datetime
 import html.parser as html_parser
 import os
 import re
-import sys
-from dataclasses import dataclass
+from collections.abc import Set
+from dataclasses import dataclass, field
 from itertools import starmap
 from pathlib import Path
 from typing import (
     TYPE_CHECKING,
+    Annotated,
     Any,
+    ClassVar,
+    Self,
+    TypeVar,
     cast,
 )
 from xml.etree.ElementTree import Element, tostring
 
-import dulwich
-import dulwich.objects
-import dulwich.repo
+import django.core.cache as cache
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured, ObjectDoesNotExist
 from django.urls import NoReverseMatch
-from django.utils.timezone import now
+from django.utils.safestring import SafeString, mark_safe
 from django.utils.translation import gettext as _
 from markdown.extensions import Extension
 from markdown.treeprocessors import Treeprocessor
+from pydantic import (
+    AfterValidator,
+    EmailStr,
+    Field,
+    PositiveInt,
+    SerializeAsAny,
+    StringConstraints,
+    TypeAdapter,
+    ValidationInfo,
+    model_validator,
+)
 from yaml import safe_load as load_yaml
 
-from course.constants import ATTRIBUTES_FILENAME, flow_permission
-from course.validation import (
-    Blob_ish,
-    FileSystemFakeRepo,
-    FileSystemFakeRepoFile,
-    FileSystemFakeRepoTree,
-    Tree_ish,
+from course.constants import (
+    ATTRIBUTES_FILENAME,
+    FlowPermission,
+    FlowRuleKind,
+    FlowSessionExpirationMode,
+    GradeAggregationStrategy,
 )
-from relate.utils import Struct, SubdirRepoWrapper, dict_to_struct
+from course.datespec import Datespec  # noqa: TC001
+from course.page.base import PageBase  # noqa: TC001
+from course.repo import (
+    CACHE_KEY_ROOT,
+    FileSystemFakeRepo,
+    RevisionID_ish,
+    SubdirRepoWrapper,
+    get_repo_blob_data_cached,
+    get_repo_tree,
+)
+from course.validation import (
+    EventStr,
+    FacilityStr,
+    IdentifierStr,
+    Markup,
+    ParticipationRoleStr,
+    ParticipationTagStr,
+    ValidationContext,
+    attributes_file_ta,
+    content_dataclass,
+    get_validation_context,
+    validate_nonempty,
+)
 
 
 if TYPE_CHECKING:
-    # for mypy
-    from collections.abc import Callable, Collection, Mapping
+    from collections.abc import Callable, Collection, Mapping, Set
 
     from course.models import Course, Participation
-    from course.page.base import PageBase
-    from course.validation import (
-        ValidationContext,
-    )
-    from relate.utils import Repo_ish
+    from course.repo import Repo_ish
 
+
+T = TypeVar("T")
 Date_ish = datetime.datetime | datetime.date
-Datespec = datetime.datetime | datetime.date | str
+
+ModelT = TypeVar("ModelT")
 
 
-CACHE_KEY_ROOT = "py4"
+# {{{ chunks and static pages
 
-
-class ChunkRulesDesc(Struct):
-    if_has_role: list[str]
-    if_before: Datespec
-    if_after: Datespec
-    if_in_facility: str
-    if_has_participation_tags_any: list[str]
-    if_has_participation_tags_all: list[str]
-    roles: list[str]
-    start: Datespec
-    end: Datespec
-    shown: bool
+@content_dataclass()
+class ChunkRulesDesc:
+    if_has_role: frozenset[ParticipationRoleStr] = Field(default_factory=frozenset)
+    if_before: Datespec | None = None
+    if_after: Datespec | None = None
+    if_in_facility: FacilityStr | None = None
+    shown: bool | None = None
     weight: float
 
 
-class ChunkDesc(Struct):
-    weight: float
-    shown: bool
-    title: str | None
-    content: str
-    rules: list[ChunkRulesDesc]
+@content_dataclass()
+class ChunkDesc:
+    """
+    .. autoattribute:: weight
+    .. autoattribute:: shown
+    .. autoattribute:: title
+    .. autoattribute:: rules
+    .. autoattribute:: content
+    """
 
-    html_content: str
+    id: IdentifierStr
+    weight: float = 0
+    title: str | None = None
+    rules: list[ChunkRulesDesc] = Field(default_factory=list)
+    shown: bool = True
+    content: Markup
+
+    def get_title(self) -> str:
+        if self.title is not None:
+            return self.title
+
+        title = extract_title_from_markup(self.content)
+        assert title is not None
+        return title
+
+    @model_validator(mode="after")
+    def check_has_title(self) -> Self:
+        if self.title is not None:
+            return self
+
+        title = extract_title_from_markup(self.content)
+        if title is not None:
+            return self
+
+        raise ValueError(_("no title present (as attribute or in markup)"))
 
 
-class StaticPageDesc(Struct):
+@content_dataclass()
+class StaticPageDesc:
     chunks: list[ChunkDesc]
-    content: str
+
+    @model_validator(mode="before")
+    @classmethod
+    def normalize_content_to_chunks(cls, data: Any) -> Any:
+        if isinstance(data, dict):
+            if (("content" not in data and "chunks" not in data)
+                    or ("content" in data and "chunks" in data)):
+                raise ValueError("exactly one of 'chunks' and 'content' is required")
+
+            if "content" in data:
+                data["chunks"] = [{"id": "main", "content": data.pop("content")}]
+
+        return data
+
+    @model_validator(mode="after")
+    def check_chunk_id_uniqueness(self) -> Self:
+        if len({c.id for c in self.chunks}) != len(self.chunks):
+            raise ValueError("chunk IDs are not unique")
+        return self
+
+
+static_page_ta = TypeAdapter(StaticPageDesc)
 
 
 class CourseDesc(StaticPageDesc):
@@ -116,9 +191,38 @@ class CourseDesc(StaticPageDesc):
 # }}}
 
 
-# {{{ mypy: flow start rule
+@content_dataclass()
+class FlowRule:
+    kind: ClassVar[FlowRuleKind]
 
-class FlowSessionStartRuleDesc(Struct):
+
+# {{{ flow start rule
+
+@dataclass(frozen=True, kw_only=True)
+class FlowSessionStartMode:
+    may_start_new_session: bool
+    """(Mandatory) A Boolean (True/False) value indicating whether, if the
+    rule applies, the participant may start a new session."""
+
+    may_list_existing_sessions: bool
+    """(Mandatory) A Boolean (True/False) value indicating whether, if the
+    rule applies, the participant may view a list of existing sessions."""
+
+    tag_session: IdentifierStr | None = None
+    """An identifier that will be applied to a newly-created
+    session as a "tag".  This can be used by
+    :attr:`FlowSessionAccessRuleDesc.if_has_tag` and
+    :attr:`FlowSessionGradingRuleDesc.if_has_tag`."""
+
+    lock_down_as_exam_session: bool = False
+    default_expiration_mode: FlowSessionExpirationMode = FlowSessionExpirationMode.end
+    """(Optional)
+    The expiration mode applied when a session is first created or rolled
+    over."""
+
+
+@dataclass(frozen=True, kw_only=True)
+class FlowSessionStartRuleDesc(FlowRule, FlowSessionStartMode):
     """Rules that govern when a new session may be started and whether
     existing sessions may be listed.
 
@@ -126,231 +230,257 @@ class FlowSessionStartRuleDesc(Struct):
 
     .. rubric:: Conditions
 
-    .. attribute:: if_after
-
-        (Optional) A :ref:`datespec <datespec>` that determines a date/time
-        after which this rule applies.
-
-    .. attribute:: if_before
-
-        (Optional) A :ref:`datespec <datespec>` that determines a date/time
-        before which this rule applies.
-
-    .. attribute:: if_has_role
-
-        (Optional) A list of a subset of the roles defined in the course, by
-        default ``unenrolled``, ``ta``, ``student``, ``instructor``.
-
-    .. attribute:: if_has_participation_tags_any
-
-        (Optional) A list of participation tags. Rule applies when the
-        participation has at least one tag in this list.
-
-    .. attribute:: if_has_participation_tags_all
-
-        (Optional) A list of participation tags. Rule applies if only the
-        participation's tags include all items in this list.
-
-    .. attribute:: if_in_facility
-
-        (Optional) Name of a facility known to the RELATE web page. This rule allows
-        (for example) restricting flow starting based on whether a user is physically
-        located in a computer-based testing center (which RELATE can
-        recognize based on IP ranges).
-
-    .. attribute:: if_has_in_progress_session
-
-        (Optional) A Boolean (True/False) value, indicating that the rule only
-        applies if the participant has an in-progress session.
-
-    .. attribute:: if_has_session_tagged
-
-        (Optional) An identifier (or ``null``) indicating that the rule only applies
-        if the participant has a session with the corresponding tag.
-
-    .. attribute:: if_has_fewer_sessions_than
-
-        (Optional) An integer. The rule applies if the participant has fewer
-        than this number of sessions.
-
-    .. attribute:: if_has_fewer_tagged_sessions_than
-
-        (Optional) An integer. The rule applies if the participant has fewer
-        than this number of sessions with access rule tags.
-
-    .. attribute:: if_signed_in_with_matching_exam_ticket
-
-        (Optional) The rule applies if the participant signed in with an exam
-        ticket matching this flow.
+    .. autoattribute:: if_after
+    .. autoattribute:: if_before
+    .. autoattribute:: if_has_role
+    .. autoattribute:: if_has_participation_tags_any
+    .. autoattribute:: if_has_participation_tags_all
+    .. autoattribute:: if_in_facility
+    .. autoattribute:: if_has_in_progress_session
+    .. autoattribute:: if_has_session_tagged
+    .. autoattribute:: if_has_fewer_sessions_than
+    .. autoattribute:: if_has_fewer_tagged_sessions_than
+    .. autoattribute:: if_signed_in_with_matching_exam_ticket
 
     .. rubric:: Rules specified
 
-    .. attribute:: may_start_new_session
-
-        (Mandatory) A Boolean (True/False) value indicating whether, if the
-        rule applies, the participant may start a new session.
-
-    .. attribute:: may_list_existing_sessions
-
-        (Mandatory) A Boolean (True/False) value indicating whether, if the
-        rule applies, the participant may view a list of existing sessions.
-
-    .. attribute:: tag_session
-
-        (Optional) An identifier that will be applied to a newly-created
-        session as a "tag".  This can be used by
-        :attr:`FlowSessionAccessRuleDesc.if_has_tag` and
-        :attr:`FlowSessionGradingRuleDesc.if_has_tag`.
-
-    .. attribute:: default_expiration_mode
-
-        (Optional) One of :class:`~course.constants.flow_session_expiration_mode`.
-        The expiration mode applied when a session is first created or rolled
-        over.
+    .. autoattribute:: may_start_new_session
+    .. autoattribute:: may_list_existing_sessions
+    .. autoattribute:: tag_session
+    .. autoattribute:: lock_down_as_exam_session
+    .. autoattribute:: default_expiration_mode
     """
 
-    # conditions
-    if_after: Date_ish
-    if_before: Date_ish
-    if_has_role: list[str]
-    if_has_participation_tags_any: list[str]
-    if_has_participation_tags_all: list[str]
-    if_in_facility: str
-    if_has_in_progress_session: bool
-    if_has_session_tagged: str | None
-    if_has_fewer_sessions_than: int
-    if_has_fewer_tagged_sessions_than: int
-    if_signed_in_with_matching_exam_ticket: bool
+    kind: ClassVar[FlowRuleKind] = FlowRuleKind.start
 
-    # rules specified
-    tag_session: str | None
-    may_start_new_session: bool
-    may_list_existing_sessions: bool
-    lock_down_as_exam_session: bool
-    default_expiration_mode: str
+    # conditions
+    if_after: Datespec | None = None
+    """A :ref:`datespec <datespec>` that determines a date/time
+    after which this rule applies."""
+
+    if_before: Datespec | None = None
+    """A :ref:`datespec <datespec>` that determines a date/time
+    before which this rule applies."""
+
+    if_has_role: list[ParticipationRoleStr] | None = None
+    """A list of a subset of the roles defined in the course, by
+    default ``unenrolled``, ``ta``, ``student``, ``instructor``."""
+
+    if_has_participation_tags_any: list[ParticipationTagStr] | None = None
+    """A list of participation tags. Rule applies when the
+    participation has at least one tag in this list."""
+
+    if_has_participation_tags_all: list[ParticipationTagStr] \
+        = field(default_factory=list)
+    """A list of participation tags. Rule applies if only the
+    participation's tags include all items in this list."""
+
+    if_in_facility: FacilityStr | None = None
+    """Name of a facility known to the RELATE web page. This rule allows
+    (for example) restricting flow starting based on whether a user is physically
+    located in a computer-based testing center (which RELATE can
+    recognize based on IP ranges)."""
+
+    if_has_in_progress_session: bool | None = None
+    """A Boolean (True/False) value, indicating that the rule only
+    applies if the participant has an in-progress session."""
+
+    if_has_session_tagged: IdentifierStr | None = None
+    """An identifier (or ``null``) indicating that the rule only applies
+    if the participant has a session with the corresponding tag."""
+
+    if_has_fewer_sessions_than: int | None = None
+    """An integer. The rule applies if the participant has fewer
+    than this number of sessions."""
+
+    if_has_fewer_tagged_sessions_than: int | None = None
+    """An integer. The rule applies if the participant has fewer
+    than this number of sessions with access rule tags."""
+
+    if_signed_in_with_matching_exam_ticket: bool | None = None
+    """The rule applies if the participant signed in with an exam
+    ticket matching this flow."""
+
+    if_has_prairietest_exam_access: str | None = None
+
+
+start_rule_ta = TypeAdapter(FlowSessionStartRuleDesc)
 
 # }}}
 
 
-# {{{ mypy: flow access rule
+# {{{ flow access rule
 
-class FlowSessionAccessRuleDesc(Struct):
+@dataclass(frozen=True, kw_only=True)
+class FlowSessionAccessMode(FlowRule):
+    permissions: Set[FlowPermission]
+    message: str | None = None
+
+
+@dataclass(frozen=True, kw_only=True)
+class FlowSessionAccessRuleDesc(FlowSessionAccessMode, FlowRule):
     """Rules that govern what a user may do with an existing session.
 
     Found in the ``access`` attribute of :class:`FlowRulesDesc`.
 
     .. rubric:: Conditions
-
-    .. attribute:: if_after
-
-        (Optional) A :ref:`datespec <datespec>` that determines a date/time
-        after which this rule applies.
-
-    .. attribute:: if_before
-
-        (Optional) A :ref:`datespec <datespec>` that determines a date/time
-        before which this rule applies.
-
-    .. attribute:: if_started_before
-
-        (Optional) A :ref:`datespec <datespec>`. Rule applies if the session
-        was started before this time.
-
-    .. attribute:: if_has_role
-
-        (Optional) A list of a subset of ``[unenrolled, ta, student, instructor]``.
-
-    .. attribute:: if_has_participation_tags_any
-
-        (Optional) A list of participation tags. Rule applies when the
-        participation has at least one tag in this list.
-
-    .. attribute:: if_has_participation_tags_all
-
-        (Optional) A list of participation tags. Rule applies if only the
-        participation's tags include all items in this list.
-
-    .. attribute:: if_in_facility
-
-        (Optional) Name of a facility known to the RELATE web page. This rule allows
-        (for example) restricting flow access based on whether a user is physically
-        located in a computer-based testing center (which RELATE can
-        recognize based on IP ranges).
-
-    .. attribute:: if_has_tag
-
-        (Optional) Rule applies if session has this tag (see
-        :attr:`FlowSessionStartRuleDesc.tag_session`), an identifier.
-
-    .. attribute:: if_in_progress
-
-        (Optional) A Boolean (True/False) value. Rule applies if the session's
-        in-progress status matches this Boolean value.
-
-    .. attribute:: if_completed_before
-
-        (Optional) A :ref:`datespec <datespec>`. Rule applies if the session
-        was completed before this time.
-
-    .. attribute:: if_expiration_mode
-
-        (Optional) One of :class:`~course.constants.flow_session_expiration_mode`.
-        Rule applies if the expiration mode (see :ref:`flow-life-cycle`)
-        matches.
-
-    .. attribute:: if_session_duration_shorter_than_minutes
-
-        (Optional) The rule applies if the current session has been going on for
-        less than the specified number of minutes. Fractional values (e.g. "0.5")
-        are accepted here.
-
-    .. attribute:: if_signed_in_with_matching_exam_ticket
-
-        (Optional) The rule applies if the participant signed in with an exam
-        ticket matching this flow.
+    .. autoattribute:: if_after
+    .. autoattribute:: if_before
+    .. autoattribute:: if_started_before
+    .. autoattribute:: if_has_role
+    .. autoattribute:: if_has_participation_tags_any
+    .. autoattribute:: if_has_participation_tags_all
+    .. autoattribute:: if_in_facility
+    .. autoattribute:: if_has_tag
+    .. autoattribute:: if_in_progress
+    .. autoattribute:: if_completed_before
+    .. autoattribute:: if_expiration_mode
+    .. autoattribute:: if_session_duration_shorter_than_minutes
+    .. autoattribute:: if_signed_in_with_matching_exam_ticket
 
     .. rubric:: Rules specified
+    .. autoattribute:: permissions
+    .. autoattribute:: message
 
-    .. attribute:: permissions
-
-        A list of :class:`~course.constants.flow_permission`.
-
-        :attr:`~course.constants.flow_permission.submit_answer`
-        and :attr:`~course.constants.flow_permission.end_session`
-        are automatically removed from a finished (i.e. not 'in-progress')
-        session.
-
-    .. attribute:: message
-
-        (Optional) Some text in :ref:`markup` that is shown to the student in
-        an 'alert' box at the top of the page if this rule applies.
     """
 
-    # conditions
-    if_after: Date_ish
-    if_before: Date_ish
-    if_started_before: Date_ish
-    if_has_role: list[str]
-    if_has_participation_tags_any: list[str]
-    if_has_participation_tags_all: list[str]
-    if_in_facility: str
-    if_has_tag: str | None
-    if_in_progress: bool
-    if_completed_before: Date_ish
-    if_expiration_mode: str
-    if_session_duration_shorter_than_minutes: float
-    if_signed_in_with_matching_exam_ticket: bool
+    kind: ClassVar[FlowRuleKind] = FlowRuleKind.access
 
-    # rules specified
-    permissions: list[flow_permission]
-    message: str
+    # conditions
+    if_after: Datespec | None = None
+    """A :ref:`datespec <datespec>` that determines a date/time
+    after which this rule applies."""
+
+    if_before: Datespec | None = None
+    """A :ref:`datespec <datespec>` that determines a date/time
+    before which this rule applies."""
+
+    if_started_before: Datespec | None = None
+    """Rule applies if the session
+    was started before this time."""
+
+    if_has_role: list[ParticipationRoleStr] = field(default_factory=list)
+    """A list of a subset of ``[unenrolled, ta, student, instructor]``."""
+
+    if_has_participation_tags_any: list[ParticipationTagStr] | None = None
+    """A list of participation tags. Rule applies when the
+    participation has at least one tag in this list."""
+
+    if_has_participation_tags_all: list[ParticipationTagStr] \
+        = field(default_factory=list)
+    """A list of participation tags. Rule applies if only the
+    participation's tags include all items in this list."""
+
+    if_in_facility: str | None = None
+    """Name of a facility known to the RELATE web page. This rule allows
+    (for example) restricting flow access based on whether a user is physically
+    located in a computer-based testing center (which RELATE can
+    recognize based on IP ranges)."""
+
+    if_has_tag: IdentifierStr | None = None
+    """Rule applies if session has this tag (see
+    :attr:`FlowSessionStartRuleDesc.tag_session`), an identifier."""
+
+    if_in_progress: bool | None = None
+    """A Boolean (True/False) value. Rule applies if the session's
+    in-progress status matches this Boolean value."""
+
+    if_completed_before: Datespec | None = None
+    """Rule applies if the session
+    was completed before this time."""
+
+    if_expiration_mode: FlowSessionExpirationMode | None = None
+    """(Optional)
+    Rule applies if the expiration mode (see :ref:`flow-life-cycle`)
+    matches."""
+
+    if_session_duration_shorter_than_minutes: float | None = None
+    """The rule applies if the current session has been going on for
+    less than the specified number of minutes. Fractional values (e.g. "0.5")
+    are accepted here."""
+
+    if_signed_in_with_matching_exam_ticket: bool | None = False
+    """The rule applies if the participant signed in with an exam
+    ticket matching this flow."""
+
+    if_has_prairietest_exam_access: str | None = None
+
+
+access_rule_ta = TypeAdapter(FlowSessionAccessRuleDesc)
+
 
 # }}}
 
 
-# {{{ mypy: flow grading rule
+FlowRuleT = TypeVar("FlowRuleT", bound=FlowRule)
 
-class FlowSessionGradingRuleDesc(Struct):
+
+def get_rule_ta(tp: type[FlowRuleT]) -> TypeAdapter[FlowRuleT]:
+    if tp is FlowSessionStartRuleDesc:
+        return cast("TypeAdapter[FlowRuleT]", start_rule_ta)
+    elif tp is FlowSessionAccessRuleDesc:
+        return cast("TypeAdapter[FlowRuleT]", access_rule_ta)
+    elif tp is FlowSessionGradingRuleDesc:
+        return cast("TypeAdapter[FlowRuleT]", grading_rule_ta)
+    else:
+        raise AssertionError()
+
+
+# {{{ flow grading rule
+
+@dataclass(frozen=True, kw_only=True)
+class FlowSessionGradingMode(FlowRule):
+    credit_percent: float = 100
+    """A number indicating the percentage of credit assigned for
+    this flow.  Defaults to 100 if not present. This is applied *after*
+    point modifiers such as :attr:`bonus_points` and
+    :attr:`max_points_enforced_cap`."""
+
+    due: Datespec | None = None
+    """A :ref:`datespec <datespec>` indicating the due date of the flow. This
+    is shown to the participant and also used to batch-expire 'past-due'
+    flows."""
+
+    generates_grade: bool = True
+    """A Boolean indicating whether a grade will be recorded when this
+    flow is ended. Note that the value of this rule must never change over
+    the lifetime of a flow. I.e. a flow that, at some point during its lifetime,
+    *may* have been set to generate a grade must *always* be set to generate
+    a grade. Defaults to ``true``."""
+
+    use_last_activity_as_completion_time: bool = False
+    """A Boolean indicating whether the last time a participant made
+    a change to their flow should be used as the completion time.
+
+    Defaults to ``false`` to match past behavior. ``true`` is probably the more
+    sensible value for this."""
+
+    description: Markup | None = None
+    """A description of this set of grading rules being applied to
+    the flow.  Shown to the participant on the flow start page."""
+
+    max_points: int | float | None = None
+    """(Optional, an integer or floating point number if given)
+    The number of points on the flow which constitute
+    "100% of the achievable points". If not given, this is automatically
+    computed by summing point values from all constituent pages.
+
+    This may be used to 'grade out of N points', where N is a number that
+    is lower than the actually achievable count."""
+
+    max_points_enforced_cap: float | None = None
+    """(Optional, an integer or floating point number if given)
+    No participant will have a grade higher than this recorded for this flow.
+    This may be used to limit the amount of 'extra credit' achieved beyond
+    :attr:`max_points`."""
+
+    bonus_points: float = 0
+    """(Optional, an integer or floating point number if given)
+    This number of points will be added to every participant's score."""
+
+
+@dataclass(frozen=True, kw_only=True)
+class FlowSessionGradingRuleDesc(FlowSessionGradingMode):
     """ Rules that govern how (permanent) grades are generated from the
     results of a flow.
 
@@ -358,312 +488,379 @@ class FlowSessionGradingRuleDesc(Struct):
 
     .. rubric:: Conditions
 
-    .. attribute:: if_has_role
-
-        (Optional) A list of a subset of ``[unenrolled, ta, student, instructor]``.
-
-    .. attribute:: if_has_participation_tags_any
-
-        (Optional) A list of participation tags. Rule applies when the
-        participation has at least one tag in this list.
-
-    .. attribute:: if_has_participation_tags_all
-
-        (Optional) A list of participation tags. Rule applies if only the
-        participation's tags include all items in this list.
-
-    .. attribute:: if_started_before
-
-        (Optional) A :ref:`datespec <datespec>`. Rule applies if the session
-        was started before this time.
-
-    .. attribute:: if_has_tag
-
-        (Optional) Rule applies if session has this tag (see
-        :attr:`FlowSessionStartRuleDesc.tag_session`), an identifier.
-
-    .. attribute:: if_completed_before
-
-        (Optional) A :ref:`datespec <datespec>`. Rule applies if the session
-        was completed before this time.
-
-        When evaluating this condition for in-progress sessions, the current time,
-        or, if :attr:`use_last_activity_as_completion_time` is set, the time of the
-        last activity is used.
-
-        Since September 2017, this respects
-        :attr:`use_last_activity_as_completion_time`.
+    .. autoattribute:: if_has_role
+    .. autoattribute:: if_has_participation_tags_any
+    .. autoattribute:: if_has_participation_tags_all
+    .. autoattribute:: if_started_before
+    .. autoattribute:: if_has_tag
+    .. autoattribute:: if_completed_before
 
     .. rubric:: Rules specified
 
-    .. attribute:: credit_percent
-
-        (Optional) A number indicating the percentage of credit assigned for
-        this flow.  Defaults to 100 if not present. This is applied *after*
-        point modifiers such as :attr:`bonus_points` and
-        :attr:`max_points_enforced_cap`.
-
-    .. attribute:: due
-
-        A :ref:`datespec <datespec>` indicating the due date of the flow. This
-        is shown to the participant and also used to batch-expire 'past-due'
-        flows.
-
-    .. attribute:: generates_grade
-
-        (Optional) A Boolean indicating whether a grade will be recorded when this
-        flow is ended. Note that the value of this rule must never change over
-        the lifetime of a flow. I.e. a flow that, at some point during its lifetime,
-        *may* have been set to generate a grade must *always* be set to generate
-        a grade. Defaults to ``true``.
-
-    .. attribute:: use_last_activity_as_completion_time
-
-        (Optional) A Boolean indicating whether the last time a participant made
-        a change to their flow should be used as the completion time.
-
-        Defaults to ``false`` to match past behavior. ``true`` is probably the more
-        sensible value for this.
-
-    .. attribute:: description
-
-        (Optional) A description of this set of grading rules being applied to
-        the flow.  Shown to the participant on the flow start page.
-
-    .. attribute:: max_points
-
-        (Optional, an integer or floating point number if given)
-        The number of points on the flow which constitute
-        "100% of the achievable points". If not given, this is automatically
-        computed by summing point values from all constituent pages.
-
-        This may be used to 'grade out of N points', where N is a number that
-        is lower than the actually achievable count.
-
-    .. attribute:: max_points_enforced_cap
-
-        (Optional, an integer or floating point number if given)
-        No participant will have a grade higher than this recorded for this flow.
-        This may be used to limit the amount of 'extra credit' achieved beyond
-        :attr:`max_points`.
-
-    .. attribute:: bonus_points
-
-        (Optional, an integer or floating point number if given)
-        This number of points will be added to every participant's score.
-
+    .. autoattribute:: credit_percent
+    .. autoattribute:: due
+    .. autoattribute:: generates_grade
+    .. autoattribute:: use_last_activity_as_completion_time
+    .. autoattribute:: description
+    .. autoattribute:: max_points
+    .. autoattribute:: max_points_enforced_cap
+    .. autoattribute:: bonus_points
     """
-    # conditions
-    if_has_role: list[str]
-    if_has_participation_tags_any: list[str]
-    if_has_participation_tags_all: list[str]
-    if_started_after: Date_ish
-    if_has_tag: str | None
-    if_completed_before: Date_ish
+    kind: ClassVar[FlowRuleKind] = FlowRuleKind.grading
 
-    # rules specified
-    credit_percent: int | float | None
-    due: Date_ish
-    generates_grade: bool | None
-    use_last_activity_as_completion_time: bool
-    description: str
-    max_points: int | float | None
-    max_points_enforced_cap: int | float | None
-    bonus_points: int | float | None
+    # conditions
+
+    if_has_role: list[ParticipationRoleStr] = field(default_factory=list)
+    """A list of a subset of ``[unenrolled, ta, student, instructor]``."""
+
+    if_has_participation_tags_any: list[ParticipationTagStr] | None = None
+    """A list of participation tags. Rule applies when the
+    participation has at least one tag in this list."""
+
+    if_has_participation_tags_all: \
+        list[ParticipationTagStr] = field(default_factory=list)
+    """A list of participation tags. Rule applies if only the
+    participation's tags include all items in this list."""
+
+    if_has_tag: IdentifierStr | None = None
+    """Rule applies if session has this tag (see
+    :attr:`FlowSessionStartRuleDesc.tag_session`), an identifier."""
+
+    if_started_before: Datespec | None = None
+    """Rule applies if the session
+    was started before this time."""
+
+    if_completed_before: Datespec | None = None
+    """Rule applies if the session
+    was completed before this time.
+
+    When evaluating this condition for in-progress sessions, the current time,
+    or, if :attr:`use_last_activity_as_completion_time` is set, the time of the
+    last activity is used.
+
+    Since September 2017, this respects
+    :attr:`use_last_activity_as_completion_time`."""
+
+    def has_conditionals(self):
+        return bool(
+            self.if_has_role
+            or self.if_has_participation_tags_any
+            or self.if_has_participation_tags_all
+            or self.if_has_tag
+            or self.if_started_before is not None
+            or self.if_completed_before is not None
+        )
+
+
+grading_rule_ta = TypeAdapter(FlowSessionGradingRuleDesc)
 
 # }}}
 
 
-# {{{ mypy: flow rules
+# {{{ flow rules
 
-class FlowRulesDesc(Struct):
+def default_start_rules():
+    return [FlowSessionStartRuleDesc(
+                    may_start_new_session=True,
+                    may_list_existing_sessions=False)]
+
+
+def default_access_rules():
+    return [FlowSessionAccessRuleDesc(
+                    permissions={FlowPermission.view})]
+
+
+def default_grading_rules():
+    return [FlowSessionGradingRuleDesc(
+        generates_grade=False,
+    )]
+
+
+@content_dataclass()
+class FlowRulesDesc:
     """
     Found in the ``rules`` attribute of a :class:`FlowDesc`.
 
-    .. attribute:: start
-
-        Rules that govern when a new session may be started and whether
-        existing sessions may be listed.
-
-        A list of :class:`FlowSessionStartRuleDesc`
-
-        Rules are tested from top to bottom. The first rule
-        whose conditions apply determines the access.
-
-    .. attribute:: access
-
-        Rules that govern what a user may do while they are interacting with an
-        existing session.
-
-        A list of :class:`FlowSessionAccessRuleDesc`.
-
-        Rules are tested from top to bottom. The first rule
-        whose conditions apply determines the access.
+    .. autoattribute:: tags
+    .. autoattribute:: start
+    .. autoattribute:: access
 
     .. rubric:: Grading-Related
+    .. autoattribute:: grade_identifier
+    .. autoattribute:: grade_aggregation_strategy
+    .. autoattribute:: grading
 
-    .. attribute:: grade_identifier
-
-        (Required) The identifier of the grade to be generated once the
-        participant completes the flow.  If ``null``, no grade is generated.
-
-    .. attribute:: grade_aggregation_strategy
-
-        (Required if :attr:`grade_identifier` is not ``null``)
-
-        One of :class:`grade_aggregation_strategy`.
-
-    .. attribute:: grading
-
-        Rules that govern how (permanent) overall grades are generated from the
-        results of a flow. These rules apply once a flow session ends/is submitted
-        for grading. See :ref:`flow-life-cycle`.
-
-        (Required if grade_identifier is not ``null``)
-        A list of :class:`FlowSessionGradingRuleDesc`
-
-        Rules are tested from top to bottom. The first rule
-        whose conditions apply determines the access.
+    Rules are tested from top to bottom. The first rule
+    whose conditions apply determines the access.
     """
-    start: list[FlowSessionStartRuleDesc]
-    access: list[FlowSessionAccessRuleDesc]
-    grading: list[FlowSessionGradingRuleDesc]
-    grade_identifier: str | None
-    grade_aggregation_strategy: str | None
+
+    tags: list[IdentifierStr] = field(default_factory=list)
+
+    start: list[FlowSessionStartRuleDesc] = field(default_factory=default_start_rules)
+    """Rules that govern when a new session may be started and whether
+    existing sessions may be listed.
+
+    Rules are tested from top to bottom. The first rule
+    whose conditions apply determines the access."""
+
+    access: list[FlowSessionAccessRuleDesc] = field(
+                        default_factory=default_access_rules)
+
+    """Rules that govern what a user may do while they are interacting with an
+    existing session.
+
+    Rules are tested from top to bottom. The first rule
+    whose conditions apply determines the access."""
+
+    grading: list[FlowSessionGradingRuleDesc] = field(
+                        default_factory=default_grading_rules)
+
+    """Rules that govern how (permanent) overall grades are generated from the
+    results of a flow. These rules apply once a flow session ends/is submitted
+    for grading. See :ref:`flow-life-cycle`.
+
+    (Required if grade_identifier is not ``null``)
+    """
+
+    grade_identifier: Annotated[str, StringConstraints(min_length=1)] | None = None
+    """The identifier of the grade to be generated once the
+    participant completes the flow.  If ``null``, no grade is generated.
+    """
+
+    grade_aggregation_strategy: GradeAggregationStrategy | None = None
+    """One of :class:`GradeAggregationStrategy`."""
+
+    @model_validator(mode="after")
+    def check_has_grading_rules_if_needed(self) -> Self:
+        if self.grade_identifier is not None:
+            if not self.grading:
+                raise ValueError("must have grading rules if it has grade_identifier")
+        return self
+
+    @model_validator(mode="after")
+    def check_has_gas_if_needed(self) -> Self:
+        if self.grade_identifier is not None:
+            if not self.grade_aggregation_strategy:
+                raise ValueError(
+                            "must have grade aggregation strategy "
+                            "if it has grade_identifier")
+        return self
+
+    @model_validator(mode="after")
+    def check_last_grading_rule_unconditional(self) -> Self:
+        if self.grading:
+            if self.grading[-1].has_conditionals():
+                raise ValueError("last grading rule must be unconditional")
+        return self
+
+    @model_validator(mode="after")
+    def check_tags_valid(self) -> Self:
+        tags = set(self.tags)
+
+        if self.start:
+            for i, srule in enumerate(self.start):
+                if (srule.if_has_session_tagged is not None
+                        and srule.if_has_session_tagged not in tags):
+                    raise ValueError(f"access rule {i+1}: "
+                            f"unknown session tag {srule.if_has_session_tagged}")
+
+                if srule.tag_session is not None and srule.tag_session not in tags:
+                    raise ValueError(f"access rule {i+1}: "
+                            f"unknown session tag {srule.if_has_session_tagged}")
+
+        if self.access:
+            for i, arule in enumerate(self.access):
+                if arule.if_has_tag is not None and arule.if_has_tag not in tags:
+                    raise ValueError(f"access rule {i+1}: "
+                            f"unknown session tag {arule.if_has_tag}")
+
+        if self.grading:
+            for i, grule in enumerate(self.grading):
+                if grule.if_has_tag is not None and grule.if_has_tag not in tags:
+                    raise ValueError(f"grading rule {i+1}: "
+                            f"unknown session tag {grule.if_has_tag}")
+
+        return self
+
+    @model_validator(mode="after")
+    def check_for_ignored_permissions(self) -> Self:
+        for i, arule in enumerate(self.access):
+            if arule.if_in_progress is False and (
+                    FlowPermission.submit_answer in arule.permissions
+                    or FlowPermission.end_session in arule.permissions):
+                # pydantic dataclasses do not get context, and so we can't really
+                # warn here. This has been a warning for a while, so maybe that's OK?
+                raise ValueError(
+                        _("Access Rule {} Rule specifies "
+                            "'submit_answer' or 'end_session' "
+                            "permissions for non-in-progress flow. These "
+                            "permissions will be ignored.").format(i+1))
+
+        return self
 
 # }}}
 
 
-# {{{ mypy: flow
+# {{{ flow
 
-class TabDesc(Struct):
+@content_dataclass()
+class TabDesc:
     """
-    .. attribute:: title
-
-        (Required) Title to be displayed on the tab.
-
-    .. attribute:: url
-
-        (Required) The URL of the external web page.
+    .. autoattribute:: title
+    .. autoattribute:: url
     """
-
-    def __init__(self, title: str, url: str) -> None:
-        self.title = title
-        self.url = url
 
     title: str
+    """(Required) Title to be displayed on the tab."""
+
     url: str
+    """(Required) The URL of the external web page."""
 
 
-class FlowPageDesc(Struct):
-    id: str
-    type: str
-
-
-class FlowPageGroupDesc(Struct):
+@content_dataclass()
+class FlowPageGroupDesc:
     """
-    .. attribute:: id
+    .. autoattribute:: id
+    .. autoattribute:: pages
+    .. autoattribute:: shuffle
+    .. autoattribute:: max_page_count
 
-        (Required) A symbolic name for the page group.
-
-    .. attribute:: pages
-
-        (Required) A list of :ref:`flow-page`
-
-    .. attribute:: shuffle
-
-        (Optional) A boolean (True/False) indicating whether the order
-        of pages should be as in the list :attr:`pages` or
-        determined by random shuffling
-
-    .. attribute:: max_page_count
-
-        (Optional) An integer limiting the page count of this group
-        to a certain value. Allows selection of a random subset by combining
-        with :attr:`shuffle`.
     """
 
-    id: str
-    pages: list[FlowPageDesc]
+    id: IdentifierStr
+    """(Required) A symbolic name for the page group."""
+
+    pages: Annotated[list[SerializeAsAny[PageBase]], AfterValidator(validate_nonempty)]
+    """(Required) A list of :ref:`flow-page`"""
+
+    shuffle: bool | None = None
+    """A boolean (True/False) indicating whether the order
+    of pages should be as in the list :attr:`pages` or
+    determined by random shuffling"""
+
+    max_page_count: PositiveInt | None = None
+    """An integer limiting the page count of this group
+    to a certain value. Allows selection of a random subset by combining
+    with :attr:`shuffle`."""
+
+    @model_validator(mode="after")
+    def check_missing_shuffle(self, info: ValidationInfo) -> Self:
+        vctx = get_validation_context(info).with_location(f"group '{self.id}'")
+        if self.max_page_count is not None and self.shuffle is None:
+            vctx.add_warning(
+                _("shuffle attribute will be required for groups with"
+                  "max_page_count in a future version. set "
+                  "'shuffle: False' to match current behavior."))
+
+        return self
+
+    @model_validator(mode="after")
+    def check_page_id_uniqueness(self) -> Self:
+        if len({p.id for p in self.pages}) != len(self.pages):
+            raise ValueError("page IDs are not unique")
+        return self
 
 
-class FlowDesc(Struct):
+@content_dataclass()
+class FlowDesc:
     """
-    .. attribute:: title
-
-        A plain-text title of the flow
-
-    .. attribute:: description
-
-        A description in :ref:`markup` shown on the start page of the flow.
-
-    .. attribute:: completion_text
-
-        (Optional) Some text in :ref:`markup` shown once a student has
-        completed the flow.
-
-    .. attribute:: notify_on_submit
-
-        (Optional) A list of email addresses which to notify about a flow
-        submission by a participant.
-
-    .. attribute:: rules
-
-        (Optional) Some rules governing students' use and grading of the flow.
-        See :ref:`flow-rules`.
-
-    .. attribute:: groups
-
-        A list of :class:`FlowPageGroupDesc`.  Exactly one of
-        :attr:`groups` or :class:`pages` must be given.
-
+    .. autoattribute:: title
+    .. autoattribute:: description
+    .. autoattribute:: completion_text
+    .. autoattribute:: rules
+    .. autoattribute:: groups
     .. attribute:: pages
 
         A list of :ref:`pages <flow-page>`. If you specify this, a single
         :class:`FlowPageGroupDesc` will be implicitly created. Exactly one of
         :attr:`groups` or :class:`pages` must be given.
 
-    .. attribute:: external_resources
-
-        A list of :class:`TabDesc`. These are links to external
-        resources that are displayed as tabs on the flow tabbed page.
+    .. autoattribute:: external_resources
+    .. autoattribute:: notify_on_submit
     """
 
     title: str
-    description: str
-    rules: FlowRulesDesc
-    pages: list[FlowPageDesc]
-    groups: list[FlowPageGroupDesc]
-    external_resources: list[TabDesc]
-    notify_on_submit: list[str] | None
+    """A plain-text title of the flow"""
+
+    description: Markup
+    """A description shown on the start page of the flow."""
+
+    completion_text: Markup | None = None
+    """Text shown once a student has completed the flow."""
+
+    rules: FlowRulesDesc = Field(default_factory=FlowRulesDesc)
+    """Some rules governing students' use and grading of the flow.
+    See :ref:`flow-rules`."""
+
+    groups: Annotated[list[FlowPageGroupDesc], AfterValidator(validate_nonempty)]
+
+    external_resources: list[TabDesc] = Field(default_factory=list)
+
+    notify_on_submit: list[EmailStr] | None = None
+    """A list of email addresses which to notify about a flow
+    submission by a participant."""
+
+    @model_validator(mode="before")
+    @classmethod
+    def normalize_pages_to_groups(cls, data: Any) -> Any:
+        if isinstance(data, dict):
+            if (("pages" not in data and "groups" not in data)
+                    or ("pages" in data and "groups" in data)):
+                raise ValueError("exactly one of 'groups' and 'pages' must be provided")
+
+            if "pages" in data:
+                assert "groups" not in data
+                data["groups"] = [{"id": "main", "pages": data.pop("pages")}]
+
+        return data
+
+    @model_validator(mode="after")
+    def check_group_id_uniqueness(self) -> Self:
+        if len({g.id for g in self.groups}) != len(self.groups):
+            raise ValueError("group IDs are not unique")
+        return self
+
+
+flow_desc_ta = TypeAdapter(FlowDesc)
+
+# }}}
+
+
+# {{{ calendar data
+
+@content_dataclass()
+class EventKindDesc:
+    color: str | None = None
+    title: str | None = None
+
+
+@content_dataclass()
+class EventDesc:
+    color: str | None = None
+    title: str | None = None
+    description: Markup | None = None
+    show_description_from: Datespec | None = None
+    show_description_until: Datespec | None = None
+
+
+@content_dataclass()
+class CalendarDesc:
+    event_kinds: dict[IdentifierStr, EventKindDesc] = Field(default_factory=dict)
+    events: dict[EventStr, EventDesc] = Field(default_factory=dict)
+
+
+calendar_ta = TypeAdapter(CalendarDesc)
 
 # }}}
 
 
 # {{{ repo blob getting
 
-def get_true_repo_and_path(
-            repo: Repo_ish,
-            path: str
-        ) -> tuple[dulwich.repo.Repo, str]:
-
-    while isinstance(repo, SubdirRepoWrapper):
-        if path:
-            path = f"{repo.subdir}/{path}"
-        else:
-            path = repo.subdir
-
-        repo = repo.repo
-
-    return repo, path
-
-
 def get_course_repo_path(course: Course) -> Path:
     return Path(settings.GIT_ROOT) / course.identifier
 
 
 def get_course_repo(course: Course) -> Repo_ish:
-
     from dulwich.repo import Repo
     repo = Repo(get_course_repo_path(course))
 
@@ -673,195 +870,8 @@ def get_course_repo(course: Course) -> Repo_ish:
         return repo
 
 
-def _look_up_git_object(
-            repo: dulwich.repo.Repo | FileSystemFakeRepo,
-            root_tree: dulwich.objects.Tree | FileSystemFakeRepoTree,
-            full_name: str,
-            _max_symlink_depth: int | None = None
-        ) -> Tree_ish | Blob_ish:
-    """Traverse git directory tree from *root_tree*, respecting symlinks."""
-
-    if _max_symlink_depth is None:
-        _max_symlink_depth = 20
-    if _max_symlink_depth == 0:
-        raise ObjectDoesNotExist(_("symlink nesting depth exceeded "
-            "while locating '%s'") % full_name)
-
-    # https://github.com/inducer/relate/pull/556
-    # FIXME: https://github.com/inducer/relate/issues/767
-    name_parts = os.path.normpath(full_name).split(os.sep)
-
-    processed_name_parts: list[str] = []
-
-    cur_lookup: Tree_ish | Blob_ish = root_tree
-
-    from stat import S_ISLNK
-    while name_parts:
-        if not isinstance(cur_lookup, Tree_ish):
-            raise ObjectDoesNotExist(
-                    _("'%s' is not a directory, cannot lookup nested names")
-                    % os.sep.join(processed_name_parts))
-
-        name_part = name_parts.pop(0)
-
-        if not name_part:
-            # tolerate empty path components (begrudgingly)
-            continue
-        elif name_part == ".":
-            continue
-
-        encoded_name_part = name_part.encode()
-        try:
-            mode_sha = cur_lookup[encoded_name_part]
-        except KeyError:
-            raise ObjectDoesNotExist(_("resource '%s' not found") % full_name)
-
-        mode, cur_lookup_sha = mode_sha
-
-        if S_ISLNK(mode):
-            if isinstance(repo, dulwich.repo.Repo):
-                assert isinstance(cur_lookup_sha, bytes)
-                link_data = cast("dulwich.objects.Blob", repo[cur_lookup_sha]).data
-                assert isinstance(link_data, bytes)
-            elif isinstance(repo, FileSystemFakeRepo):
-                # The filesystem will have resolved these behind our back.
-                raise AssertionError()
-            link_target = os.sep.join([*processed_name_parts, link_data.decode()])
-            cur_lookup = _look_up_git_object(repo, root_tree, link_target,
-                    _max_symlink_depth=_max_symlink_depth-1)
-        else:
-            processed_name_parts.append(name_part)
-            if isinstance(repo, dulwich.repo.Repo):
-                assert isinstance(cur_lookup_sha, bytes)
-                lkup = repo[cur_lookup_sha]
-                assert isinstance(lkup, Tree_ish | Blob_ish)
-            elif isinstance(repo, FileSystemFakeRepo):
-                assert isinstance(cur_lookup_sha,
-                                  (FileSystemFakeRepoTree, FileSystemFakeRepoFile))
-                lkup = repo[cur_lookup_sha]
-
-            cur_lookup = lkup
-
-    return cur_lookup
-
-
-def get_repo_tree(repo: Repo_ish, full_name: str, commit_sha: bytes) -> Tree_ish:
-    """
-    :arg full_name: A Unicode string indicating the file name.
-    :arg commit_sha: A byte string containing the commit hash
-    :arg allow_tree: Allow the resulting object to be a directory
-    """
-
-    dul_repo, full_name = get_true_repo_and_path(repo, full_name)
-
-    try:
-        tree_sha = dul_repo[commit_sha].tree
-    except KeyError:
-        raise ObjectDoesNotExist(
-                _("commit sha '%s' not found") % commit_sha.decode())
-
-    git_obj = _look_up_git_object(
-            dul_repo, root_tree=dul_repo[tree_sha], full_name=full_name)
-
-    from dulwich.objects import Tree
-
-    from course.validation import FileSystemFakeRepoTree
-
-    msg_full_name = full_name or _("(repo root)")
-
-    if isinstance(git_obj, Tree | FileSystemFakeRepoTree):
-        return git_obj
-    else:
-        raise ObjectDoesNotExist(_("resource '%s' is not a tree") % msg_full_name)
-
-
-def get_repo_blob(repo: Repo_ish, full_name: str, commit_sha: bytes) -> Blob_ish:
-    """
-    :arg full_name: A Unicode string indicating the file name.
-    :arg commit_sha: A byte string containing the commit hash
-    :arg allow_tree: Allow the resulting object to be a directory
-    """
-
-    dul_repo, full_name = get_true_repo_and_path(repo, full_name)
-
-    try:
-        tree_sha = dul_repo[commit_sha].tree
-    except KeyError:
-        raise ObjectDoesNotExist(
-                _("commit sha '%s' not found") % commit_sha.decode())
-
-    git_obj = _look_up_git_object(
-            dul_repo, root_tree=dul_repo[tree_sha], full_name=full_name)
-
-    from dulwich.objects import Blob
-
-    from course.validation import FileSystemFakeRepoFile
-
-    msg_full_name = full_name or _("(repo root)")
-
-    if isinstance(git_obj, Blob | FileSystemFakeRepoFile):
-        return git_obj
-    else:
-        raise ObjectDoesNotExist(_("resource '%s' is not a file") % msg_full_name)
-
-
-def get_repo_blob_data_cached(
-        repo: Repo_ish, full_name: str, commit_sha: bytes) -> bytes:
-    """
-    :arg commit_sha: A byte string containing the commit hash
-    """
-
-    if isinstance(commit_sha, bytes):
-        from urllib.parse import quote_plus
-        cache_key: str | None = "%s%R%1".join((
-            CACHE_KEY_ROOT,
-            quote_plus(str(repo.controldir())),
-            quote_plus(full_name),
-            commit_sha.decode(),
-            ".".join(str(s) for s in sys.version_info[:2]),
-            ))
-    else:
-        cache_key = None
-
-    try:
-        import django.core.cache as cache
-    except ImproperlyConfigured:
-        cache_key = None
-
-    result: bytes | None = None
-    if cache_key is None:
-        result = get_repo_blob(repo, full_name, commit_sha).data
-        assert isinstance(result, bytes)
-        return result
-
-    # Byte string is wrapped in a tuple to force pickling because memcache's
-    # python wrapper appears to auto-decode/encode string values, thus trying
-    # to decode our byte strings. Grr.
-
-    def_cache = cache.caches["default"]
-
-    # Memcache is apparently limited to 250 characters.
-    if len(cache_key) < 240:
-        cached_result = def_cache.get(cache_key)
-
-        if cached_result is not None:
-            (result,) = cached_result
-            assert isinstance(result, bytes), cache_key
-            return result
-
-    result = get_repo_blob(repo, full_name, commit_sha).data
-    assert result is not None
-
-    if len(result) <= getattr(settings, "RELATE_CACHE_MAX_BYTES", 0):
-        def_cache.add(cache_key, (result,), None)
-
-    assert isinstance(result, bytes)
-
-    return result
-
-
 def is_repo_file_accessible_as(
-        access_kinds: list[str], repo: Repo_ish, commit_sha: bytes, path: str
+        access_kinds: list[str], repo: Repo_ish, commit_sha: RevisionID_ish, path: str
         ) -> bool:
     """
     Check of a file in a repo directory is accessible.  For example,
@@ -875,28 +885,27 @@ def is_repo_file_accessible_as(
     # set the path to .attributes.yml
     attributes_path = os.path.join(os.path.dirname(path), ATTRIBUTES_FILENAME)
 
+    vctx = ValidationContext(repo, commit_sha)
     # retrieve the .attributes.yml structure
     try:
-        attributes = get_raw_yaml_from_repo(repo, attributes_path,
-                                            commit_sha)
+        attributes = get_model_from_repo(
+                        vctx, attributes_file_ta, repo,
+                        attributes_path,
+                        commit_sha)
     except ObjectDoesNotExist:
         # no attributes file: not accessible
         return False
 
     path_basename = os.path.basename(path)
 
-    # "public" is a deprecated alias for "unenrolled".
-
     access_patterns: list[str] = []
     for kind in access_kinds:
-        access_patterns += attributes.get(kind, [])
+        access_patterns.extend(attributes.access_if_has_role.get(kind, []))
 
     from fnmatch import fnmatch
-    if isinstance(access_patterns, list):
-        for pattern in access_patterns:
-            if isinstance(pattern, str):
-                if fnmatch(path_basename, pattern):
-                    return True
+    for pattern in access_patterns:
+        if fnmatch(path_basename, pattern):
+            return True
 
     return False
 
@@ -923,7 +932,7 @@ LEADING_SPACES_RE = re.compile(r"^( *)")
 def process_yaml_for_expansion(yaml_str: str) -> str:
 
     lines = yaml_str.split("\n")
-    jinja_lines = []
+    jinja_lines: list[str] = []
 
     i = 0
     line_count = len(lines)
@@ -933,7 +942,7 @@ def process_yaml_for_expansion(yaml_str: str) -> str:
         yaml_block_scalar_match = YAML_BLOCK_START_SCALAR_RE.search(ln)
 
         if yaml_block_scalar_match is not None:
-            unprocessed_block_lines = []
+            unprocessed_block_lines: list[str] = []
             allow_jinja = bool(yaml_block_scalar_match.group(2))
             ln = YAML_BLOCK_START_SCALAR_RE.sub(
                     r"\1\3", ln)
@@ -982,7 +991,7 @@ def process_yaml_for_expansion(yaml_str: str) -> str:
 
 
 class GitTemplateLoader:
-    def __init__(self, repo: Repo_ish, commit_sha: bytes) -> None:
+    def __init__(self, repo: Repo_ish, commit_sha: RevisionID_ish) -> None:
         self.repo = repo
         self.commit_sha = commit_sha
 
@@ -1030,7 +1039,11 @@ class YamlBlockEscapingFileSystemLoader:
         return source
 
 
-def expand_yaml_macros(repo: Repo_ish, commit_sha: bytes, yaml_str: str) -> str:
+def expand_yaml_macros(
+            repo: Repo_ish,
+            commit_sha: RevisionID_ish,
+            yaml_str: str
+        ) -> str:
 
     if isinstance(yaml_str, bytes):
         yaml_str = yaml_str.decode("utf-8")
@@ -1066,7 +1079,7 @@ def expand_yaml_macros(repo: Repo_ish, commit_sha: bytes, yaml_str: str) -> str:
 # {{{ repo yaml getting
 
 def get_raw_yaml_from_repo(
-        repo: Repo_ish, full_name: str, commit_sha: bytes) -> Any:
+        repo: Repo_ish, full_name: str, commit_sha: RevisionID_ish) -> Any:
     """Return decoded YAML data structure from
     the given file in *repo* at *commit_sha*.
 
@@ -1079,7 +1092,6 @@ def get_raw_yaml_from_repo(
         quote_plus(str(repo.controldir())), quote_plus(full_name), commit_sha.decode(),
         ))
 
-    import django.core.cache as cache
     def_cache = cache.caches["default"]
 
     result: Any | None = None
@@ -1088,6 +1100,9 @@ def get_raw_yaml_from_repo(
         result = def_cache.get(cache_key)
     if result is not None:
         return result
+
+    # locally imported to allow mock to work
+    from course.repo import get_repo_blob
 
     yaml_str = expand_yaml_macros(
                 repo, commit_sha,
@@ -1104,14 +1119,36 @@ LINE_HAS_INDENTING_TABS_RE = re.compile(r"^\s*\t\s*", re.MULTILINE)
 
 
 def get_yaml_from_repo(
-        repo: Repo_ish, full_name: str, commit_sha: bytes, cached: bool = True,
-        tolerate_tabs: bool = False) -> Any:
-    """Return decoded, struct-ified YAML data structure from
-    the given file in *repo* at *commit_sha*.
+        repo: Repo_ish | FileSystemFakeRepo,
+        full_name: str,
+        commit_sha: RevisionID_ish,
+        tolerate_tabs: bool = False,
+    ) -> Any:
+    # locally imported to allow mock to work
+    from course.repo import get_repo_blob
 
-    See :class:`relate.utils.Struct` for more on
-    struct-ification.
+    yaml_bytestream = get_repo_blob(
+            repo, full_name, commit_sha).data
+    yaml_text = yaml_bytestream.decode("utf-8")
 
+    if not tolerate_tabs and LINE_HAS_INDENTING_TABS_RE.search(yaml_text):
+        raise ValueError("File uses tabs in indentation. "
+                "This is not allowed.")
+
+    expanded = expand_yaml_macros(repo, commit_sha, yaml_text)
+    return load_yaml(expanded)
+
+
+def get_model_from_repo(
+        vctx: ValidationContext,
+        model_ta: TypeAdapter[ModelT],
+        repo: Repo_ish | FileSystemFakeRepo,
+        full_name: str,
+        commit_sha: RevisionID_ish,
+        cached: bool = True,
+        tolerate_tabs: bool = False,
+    ) -> ModelT:
+    """
     :arg tolerate_tabs: At one point, Relate accepted tabs
         in indentation, but it no longer does. In places where legacy compatibility
         matters, you may set *tolerate_tabs* to *True*.
@@ -1137,24 +1174,14 @@ def get_yaml_from_repo(
             if result is not None:
                 return result
 
-    yaml_bytestream = get_repo_blob(
-            repo, full_name, commit_sha).data
-    yaml_text = yaml_bytestream.decode("utf-8")
-
-    if not tolerate_tabs and LINE_HAS_INDENTING_TABS_RE.search(yaml_text):
-        raise ValueError("File uses tabs in indentation. "
-                "This is not allowed.")
-
-    expanded = expand_yaml_macros(repo, commit_sha, yaml_bytestream)
-
-    yaml_data = load_yaml(expanded)  # type:ignore
-    result = dict_to_struct(yaml_data)
+    yaml_data = get_yaml_from_repo(
+                    repo, full_name, commit_sha, tolerate_tabs=tolerate_tabs)
+    result = model_ta.validate_python(yaml_data, context=vctx)
 
     if cached:
-        def_cache.add(cache_key, result, None)
+        def_cache.add(cache_key, result, None)  # pyright: ignore[reportPossiblyUnboundVariable]
 
     return result
-
 
 # }}}
 
@@ -1382,7 +1409,7 @@ class LinkFixerTreeprocessor(Treeprocessor):
 class LinkFixerExtension(Extension):
     def __init__(self,
                 course: Course | None,
-                commit_sha: bytes,
+                commit_sha: RevisionID_ish,
                 reverse_func: Callable[[str], str] | None
             ) -> None:
         Extension.__init__(self)
@@ -1410,7 +1437,7 @@ JINJA_PREFIX = "[JINJA]"
 def expand_markup(
         course: Course | None,
         repo: Repo_ish,
-        commit_sha: bytes,
+        commit_sha: RevisionID_ish,
         text: str,
         use_jinja: bool = True,
         jinja_env: dict[str, Any] | None = None,
@@ -1442,7 +1469,7 @@ def expand_markup(
     return text
 
 
-def filter_html_attributes(tag, name, value):
+def filter_html_attributes(tag: str, name: str, value: str):
     from bleach.sanitizer import ALLOWED_ATTRIBUTES
 
     allowed_attrs = ALLOWED_ATTRIBUTES.get(tag, [])
@@ -1467,7 +1494,7 @@ def filter_html_attributes(tag, name, value):
 def markup_to_html(
         course: Course | None,
         repo: Repo_ish,
-        commit_sha: bytes,
+        commit_sha: RevisionID_ish,
         text: str,
         reverse_func: Callable[[str], str] | None = None,
         validate_only: bool = False,
@@ -1565,311 +1592,65 @@ def extract_title_from_markup(markup_text: str) -> str | None:
 # }}}
 
 
-# {{{ datespec processing
-
-DATE_RE = re.compile(r"^([0-9]+)\-([01][0-9])\-([0-3][0-9])$")
-TRAILING_NUMERAL_RE = re.compile(r"^(.*)\s+([0-9]+)$")
-
-END_PREFIX = "end:"
-
-
-class InvalidDatespec(ValueError):
-    def __init__(self, datespec):
-        ValueError.__init__(self, str(datespec))
-        self.datespec = datespec
-
-
-class DatespecPostprocessor:
-    @classmethod
-    def parse(cls, s: str) -> tuple[str, DatespecPostprocessor | None]:
-        raise NotImplementedError()
-
-    def apply(self, dtm: datetime.datetime) -> datetime.datetime:
-        raise NotImplementedError()
-
-
-AT_TIME_RE = re.compile(r"^(.*)\s*@\s*([0-2]?[0-9])\:([0-9][0-9])\s*$")
-
-
-class AtTimePostprocessor(DatespecPostprocessor):
-    def __init__(self, hour: int, minute: int, second: int = 0) -> None:
-        self.hour = hour
-        self.minute = minute
-        self.second = second
-
-    @classmethod
-    def parse(cls, s):
-        match = AT_TIME_RE.match(s)
-        if match is not None:
-            hour = int(match.group(2))
-            minute = int(match.group(3))
-
-            if not (0 <= hour < 24):
-                raise InvalidDatespec(s)
-
-            if not (0 <= minute < 60):
-                raise InvalidDatespec(s)
-
-            return match.group(1), AtTimePostprocessor(hour, minute)
-        else:
-            return s, None
-
-    def apply(self, dtm: datetime.datetime) -> datetime.datetime:
-        from zoneinfo import ZoneInfo
-        server_tz = ZoneInfo(settings.TIME_ZONE)
-
-        return dtm.astimezone(server_tz).replace(
-                    hour=self.hour,
-                    minute=self.minute,
-                    second=self.second)
-
-
-PLUS_DELTA_RE = re.compile(r"^(.*)\s*([+-])\s*([0-9]+)\s+"
-    r"(weeks?|days?|hours?|minutes?)$")
-
-
-class PlusDeltaPostprocessor(DatespecPostprocessor):
-    def __init__(self, count: int, period: str) -> None:
-
-        self.count = count
-        self.period = period
-
-    @classmethod
-    def parse(cls, s):
-        match = PLUS_DELTA_RE.match(s)
-        if match is not None:
-            count = int(match.group(3))
-            if match.group(2) == "-":
-                count = -count
-            period = match.group(4)
-
-            return match.group(1), PlusDeltaPostprocessor(count, period)
-        else:
-            return s, None
-
-    def apply(self, dtm):
-        if self.period.startswith("week"):
-            d = datetime.timedelta(weeks=self.count)
-        elif self.period.startswith("day"):
-            d = datetime.timedelta(days=self.count)
-        elif self.period.startswith("hour"):
-            d = datetime.timedelta(hours=self.count)
-        else:
-            assert self.period.startswith("minute")
-            d = datetime.timedelta(minutes=self.count)
-        return dtm + d
-
-
-DATESPEC_POSTPROCESSORS: list[Any] = [
-        AtTimePostprocessor,
-        PlusDeltaPostprocessor,
-        ]
-
-
-def parse_date_spec(
-        course: Course | None,
-        datespec: str | datetime.date | datetime.datetime,
-        vctx: ValidationContext | None = None,
-        location: str | None = None,
-        ) -> datetime.datetime:
-
-    if datespec is None:
-        return None
-
-    orig_datespec = datespec
-
-    def localize_if_needed(d: datetime.datetime) -> datetime.datetime:
-        if d.tzinfo is None:
-            from relate.utils import localize_datetime
-            return localize_datetime(d)
-        else:
-            return d
-
-    if isinstance(datespec, datetime.datetime):
-        return localize_if_needed(datespec)
-    if isinstance(datespec, datetime.date):
-        return localize_if_needed(
-                datetime.datetime.combine(datespec, datetime.time.min))
-
-    datespec_str = cast("str", datespec).strip()
-
-    # {{{ parse postprocessors
-
-    postprocs: list[DatespecPostprocessor] = []
-    while True:
-        parsed_one = False
-        for pp_class in DATESPEC_POSTPROCESSORS:
-            datespec_str, postproc = pp_class.parse(datespec_str)
-            if postproc is not None:
-                parsed_one = True
-                postprocs.insert(0, cast("DatespecPostprocessor", postproc))
-                break
-
-        datespec_str = datespec_str.strip()
-
-        if not parsed_one:
-            break
-
-    # }}}
-
-    def apply_postprocs(dtime: datetime.datetime) -> datetime.datetime:
-        for postproc in postprocs:
-            dtime = postproc.apply(dtime)
-
-        return dtime
-
-    match = DATE_RE.match(datespec_str)
-    if match:
-        res_date = datetime.date(
-                int(match.group(1)),
-                int(match.group(2)),
-                int(match.group(3)))
-        result = localize_if_needed(
-                datetime.datetime.combine(res_date, datetime.time.min))
-        return apply_postprocs(result)
-
-    is_end = datespec_str.startswith(END_PREFIX)
-    if is_end:
-        datespec_str = datespec_str[len(END_PREFIX):]
-
-    match = TRAILING_NUMERAL_RE.match(datespec_str)
-    if match:
-        # event with numeral
-
-        event_kind = match.group(1)
-        ordinal: int | None = int(match.group(2))
-
-    else:
-        # event without numeral
-
-        event_kind = datespec_str
-        ordinal = None
-
-    if vctx is not None:
-        from course.validation import validate_identifier
-        validate_identifier(vctx, f"{location}: event kind", event_kind)
-
-    if course is None:
-        return now()
-
-    from course.models import Event
-
-    try:
-        event_obj = Event.objects.get(
-            course=course,
-            kind=event_kind,
-            ordinal=ordinal)
-
-    except ObjectDoesNotExist:
-        if vctx is not None:
-            vctx.add_warning(
-                    location,
-                    _("Unrecognized date/time specification: '%s' "
-                    "(interpreted as 'now'). "
-                    "You should add an event with this name.")
-                    % orig_datespec)
-        return now()
-
-    if is_end:
-        if event_obj.end_time is not None:
-            result = event_obj.end_time
-        else:
-            result = event_obj.time
-            if vctx is not None:
-                vctx.add_warning(
-                        location,
-                        _("event '%s' has no end time, using start time instead")
-                        % orig_datespec)
-
-    else:
-        result = event_obj.time
-
-    return apply_postprocs(result)
-
-
-# }}}
-
-
 # {{{ page chunks
 
-def compute_chunk_weight_and_shown(
+@dataclass(frozen=True)
+class ChunkWeightShown:
+    chunk: ChunkDesc
+    weight: float
+    shown: bool
+
+
+def _compute_chunk_weight_and_shown(
         course: Course,
         chunk: ChunkDesc,
-        roles: list[str],
+        roles: Set[str],
         now_datetime: datetime.datetime,
         facilities: Collection[str],
-        ) -> tuple[float, bool]:
-    if not hasattr(chunk, "rules"):
-        return 0, True
-
+        ) -> ChunkWeightShown:
     for rule in chunk.rules:
-        if hasattr(rule, "if_has_role"):
-            if all(role not in rule.if_has_role for role in roles):
+        if not rule.if_has_role <= roles:
+            continue
+
+        if rule.if_after is not None:
+            if now_datetime < rule.if_after.eval(course):
                 continue
 
-        if hasattr(rule, "if_after"):
-            start_date = parse_date_spec(course, rule.if_after)
-            if now_datetime < start_date:
+        if rule.if_before is not None:
+            if rule.if_before.eval(course) < now_datetime:
                 continue
 
-        if hasattr(rule, "if_before"):
-            end_date = parse_date_spec(course, rule.if_before)
-            if end_date < now_datetime:
-                continue
-
-        if hasattr(rule, "if_in_facility"):
+        if rule.if_in_facility is not None:
             if rule.if_in_facility not in facilities:
                 continue
 
-        # {{{ deprecated
-
-        if hasattr(rule, "roles"):  # pragma: no cover  # deprecated
-            if all(role not in rule.roles for role in roles):
-                continue
-
-        if hasattr(rule, "start"):  # pragma: no cover  # deprecated
-            start_date = parse_date_spec(course, rule.start)
-            if now_datetime < start_date:
-                continue
-
-        if hasattr(rule, "end"):  # pragma: no cover  # deprecated
-            end_date = parse_date_spec(course, rule.end)
-            if end_date < now_datetime:
-                continue
-
-        # }}}
-
         shown = True
-        if hasattr(rule, "shown"):
+        if rule.shown is not None:
             shown = rule.shown
 
-        return rule.weight, shown
+        return ChunkWeightShown(chunk, rule.weight, shown)
 
-    return 0, True
+    return ChunkWeightShown(chunk, 0, True)
 
 
 def get_processed_page_chunks(
-        course: Course,
-        repo: Repo_ish,
-        commit_sha: bytes,
-        page_desc: StaticPageDesc,
-        roles: list[str],
-        now_datetime: datetime.datetime,
-        facilities: Collection[str],
-        ) -> list[ChunkDesc]:
-    for chunk in page_desc.chunks:
-        chunk.weight, chunk.shown = \
-                compute_chunk_weight_and_shown(
-                        course, chunk, roles, now_datetime,
-                        facilities)
-        chunk.html_content = markup_to_html(course, repo, commit_sha, chunk.content)
-        if not hasattr(chunk, "title"):
-            chunk.title = extract_title_from_markup(chunk.content)
+            course: Course,
+            page_desc: StaticPageDesc,
+            roles: Set[str],
+            now_datetime: datetime.datetime,
+            facilities: Collection[str],
+        ) -> list[tuple[ChunkDesc, SafeString]]:
+    cwss = [
+        _compute_chunk_weight_and_shown(course, chunk, roles, now_datetime, facilities)
+        for chunk in page_desc.chunks]
 
-    page_desc.chunks.sort(key=lambda chunk: chunk.weight, reverse=True)
-
-    return [chunk for chunk in page_desc.chunks
-            if chunk.shown]
+    cwss = sorted(cwss, key=lambda cws: cws.weight, reverse=True)
+    return [
+        (cws.chunk, mark_safe(
+                    markup_to_html(course, get_course_repo(course),
+                                   course.active_git_commit_sha.encode(),
+                                   cws.chunk.content)))
+        for cws in cwss if cws.shown]
 
 
 # }}}
@@ -1877,83 +1658,39 @@ def get_processed_page_chunks(
 
 # {{{ repo desc getting
 
-def normalize_page_desc(page_desc: StaticPageDesc) -> StaticPageDesc:
-    if hasattr(page_desc, "content"):
-        content = page_desc.content
-        from relate.utils import Struct, struct_to_dict
-        d = struct_to_dict(page_desc)
-        del d["content"]
-        d["chunks"] = [Struct({"id": "main", "content": content})]
-        return cast("StaticPageDesc", Struct(d))
-
-    return page_desc
-
-
 def get_staticpage_desc(
-        repo: Repo_ish, course: Course, commit_sha: bytes, filename: str
+            repo: Repo_ish,
+            course: Course,
+            commit_sha: RevisionID_ish,
+            filename: str
         ) -> StaticPageDesc:
-
-    page_desc = get_yaml_from_repo(repo, filename, commit_sha)
-    page_desc = normalize_page_desc(page_desc)
-    return page_desc
-
-
-def get_course_desc(repo: Repo_ish, course: Course, commit_sha: bytes) -> CourseDesc:
-
-    return cast(
-            "CourseDesc",
-            get_staticpage_desc(repo, course, commit_sha, course.course_file))
-
-
-def normalize_flow_desc(flow_desc: FlowDesc) -> FlowDesc:
-
-    if hasattr(flow_desc, "pages"):
-        pages = flow_desc.pages
-        from relate.utils import Struct, struct_to_dict
-        d = struct_to_dict(flow_desc)
-        del d["pages"]
-        d["groups"] = [Struct({"id": "main", "pages": pages})]
-        return cast("FlowDesc", Struct(d))
-
-    if hasattr(flow_desc, "rules"):
-        rules = flow_desc.rules
-        if not hasattr(rules, "grade_identifier"):  # pragma: no cover  # deprecated
-            # Legacy content with grade_identifier in grading rule,
-            # move first found grade_identifier up to rules.
-
-            rules.grade_identifier = None
-            rules.grade_aggregation_strategy = None
-
-            for grule in rules.grading:
-                if grule.grade_identifier is not None:  # type: ignore
-                    rules.grade_identifier = grule.grade_identifier  # type: ignore
-                    rules.grade_aggregation_strategy = (  # type: ignore
-                            grule.grade_aggregation_strategy)  # type: ignore
-                    break
-
-    return flow_desc
+    vctx = ValidationContext(repo, commit_sha, course)
+    return vctx.with_location(filename).annotate_errors_except(
+            [ObjectDoesNotExist],
+            get_model_from_repo, static_page_ta, repo, filename, commit_sha)
 
 
 def get_flow_desc(
         repo: Repo_ish, course: Course, flow_id: str,
-        commit_sha: bytes, tolerate_tabs: bool = False) -> FlowDesc:
+        commit_sha: RevisionID_ish, tolerate_tabs: bool = False) -> FlowDesc:
     """
     :arg tolerate_tabs: At one point, Relate accepted tabs
         in indentation, but it no longer does. In places where legacy
         compatibility matters, you may set *tolerate_tabs* to *True*.
     """
 
-    # FIXME: extension should be case-insensitive
-    flow_desc = get_yaml_from_repo(repo, f"flows/{flow_id}.yml", commit_sha,
-            tolerate_tabs=tolerate_tabs)
-
-    flow_desc = normalize_flow_desc(flow_desc)
-
-    return flow_desc
+    vctx = ValidationContext(repo, commit_sha, course)
+    location = f"flows/{flow_id}.yml"
+    return vctx.with_location(location).annotate_errors(
+            get_model_from_repo,
+            flow_desc_ta, repo, location, commit_sha, tolerate_tabs=tolerate_tabs)
 
 
-def get_flow_page_desc(flow_id: str, flow_desc: FlowDesc,
-        group_id: str, page_id: str) -> FlowPageDesc:
+def get_flow_page(
+            flow_id: str,
+            flow_desc: FlowDesc,
+            group_id: str,
+            page_id: str) -> PageBase:
     for grp in flow_desc.groups:
         if grp.id == group_id:
             for page in grp.pages:
@@ -1970,76 +1707,6 @@ def get_flow_page_desc(flow_id: str, flow_desc: FlowDesc,
 # }}}
 
 
-# {{{ flow page handling
-
-class ClassNotFoundError(RuntimeError):
-    pass
-
-
-def import_class(name: str) -> type:
-    components = name.split(".")
-
-    if len(components) < 2:
-        # need at least one module plus class name
-        raise ClassNotFoundError(name)
-
-    from importlib import import_module
-    mod_components = len(components) - 1
-    while mod_components:
-        module_name = ".".join(components[:mod_components])
-        try:
-            mod = import_module(module_name)
-        except ImportError:
-            mod_components -= 1
-            continue
-
-        sym = mod
-        for cls_comp in components[mod_components:]:
-            try:
-                sym = getattr(sym, cls_comp)
-            except AttributeError:
-                raise ClassNotFoundError(name)
-
-        if isinstance(sym, type):
-            return sym
-        else:
-            raise ClassNotFoundError(f"'{name}' does not name a type")
-
-    raise ClassNotFoundError(name)
-
-
-def get_flow_page_class(repo: Repo_ish, typename: str, commit_sha: bytes) -> type:
-
-    # look among default page types
-    import course.page
-    try:
-        return getattr(course.page, typename)
-    except AttributeError:
-        pass
-
-    # try a global dotted-name import
-    try:
-        return import_class(typename)
-    except ClassNotFoundError:
-        pass
-
-    raise ClassNotFoundError(typename)
-
-
-def instantiate_flow_page(
-        location: str, repo: Repo_ish, page_desc: FlowPageDesc, commit_sha: bytes
-        ) -> PageBase:
-    class_ = get_flow_page_class(repo, page_desc.type, commit_sha)
-
-    from course.page.base import PageBase
-    if not issubclass(class_, PageBase):
-        raise ClassNotFoundError(f"'{page_desc.type}' is not a PageBase subclass")
-
-    return class_(None, location, page_desc)
-
-# }}}
-
-
 class CourseCommitSHADoesNotExist(Exception):
     pass
 
@@ -2049,7 +1716,7 @@ def get_course_commit_sha(
         participation: Participation | None,
         repo: Repo_ish | None = None,
         raise_on_nonexistent_preview_commit: bool | None = False
-        ) -> bytes:
+        ) -> RevisionID_ish:
     sha = course.active_git_commit_sha
 
     def is_commit_sha_valid(repo: Repo_ish, commit_sha: str) -> bool:
@@ -2082,7 +1749,7 @@ def get_course_commit_sha(
     return sha.encode()
 
 
-def list_flow_ids(repo: Repo_ish, commit_sha: bytes) -> list[str]:
+def list_flow_ids(repo: Repo_ish, commit_sha: RevisionID_ish) -> list[str]:
     flow_ids = []
     try:
         flows_tree = get_repo_tree(repo, "flows", commit_sha)

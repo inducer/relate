@@ -42,14 +42,16 @@ from django.contrib.auth import get_user_model
 from django.core.exceptions import ImproperlyConfigured
 from django.test import Client, RequestFactory, override_settings
 from django.urls import resolve, reverse
+from jsonpatch import JsonPatch
 
 from course.constants import (
     FlowPermission as FPerm,
+    FlowSessionExpirationMode,
     GradeAggregationStrategy as GAStrategy,
     ParticipationStatus,
     UserStatus,
 )
-from course.content import get_course_repo_path, get_repo_blob
+from course.content import FlowDesc, flow_desc_ta, get_course_repo_path
 from course.flow import GradeInfo
 from course.models import (
     Course,
@@ -60,6 +62,9 @@ from course.models import (
     Participation,
     ParticipationRole,
 )
+from course.repo import get_repo_blob
+from course.validation import ValidationContext
+from course.versioning import CourseRevisionCommand
 from tests.constants import (
     COMMIT_SHA_MAP,
     FAKED_YAML_PATH,
@@ -1199,7 +1204,7 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
                 client, cls.get_logged_in_user(client), switch_to)
 
     @classmethod
-    def get_default_course(cls):
+    def get_default_course(cls) -> Course:
         if Course.objects.count() > 1:
             raise AttributeError(
                 "'course' arg can not be omitted for "
@@ -1580,7 +1585,7 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
         assert count == expected_count
 
     @classmethod
-    def get_update_course_url(cls, course_identifier=None):
+    def get_update_course_url(cls, course_identifier: str | None = None):
         if course_identifier is None:
             course_identifier = cls.get_default_course_identifier()
         return reverse("relate-update_course", args=[course_identifier])
@@ -1592,12 +1597,13 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
         return get_course_commit_sha(course, participation)
 
     @classmethod_with_client
-    def post_update_course_content(cls, client, commit_sha, *,  # noqa: N805
-                                   prevent_discarding_revisions=True,
-                                   force_login_instructor=True,
-                                   course=None,
-                                   command="update",
-                                   ):
+    def post_update_course_content(cls, client: Client, commit_sha, *,  # noqa: N805
+               prevent_discarding_revisions=True,
+               force_login_instructor=True,
+               course: Course | None = None,
+               command: CourseRevisionCommand = CourseRevisionCommand.update,
+               expect_success: bool = True,
+               ):
         # course instead of course_identifier because we need to do
         # refresh_from_db
         course = course or cls.get_default_course()
@@ -1607,7 +1613,7 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
         except Exception:
             pass
 
-        data = {"new_sha": [commit_sha]}
+        data: dict[str, object] = {"new_sha": [commit_sha]}
 
         if not prevent_discarding_revisions:
             data["prevent_discarding_revisions"] = ["on"]
@@ -1615,7 +1621,7 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
         # normally, command should be in
         # ["fetch", "fetch_update", "update", "fetch_preview", "preview",
         #  "end_preview"]
-        data[command] = "on"
+        data[str(command)] = "on"
 
         force_login_user = cls.get_logged_in_user(client)
         if force_login_instructor:
@@ -1625,6 +1631,11 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
             response = client.post(
                 cls.get_update_course_url(course.identifier), data)
             course.refresh_from_db()
+
+            if expect_success:
+                if command == CourseRevisionCommand.update:
+                    assert course.active_git_commit_sha == commit_sha
+                # FIXME: Check success for other cases
 
         return response
 
@@ -1754,7 +1765,7 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
         "tag_session": None,
         "may_start_new_session": True,
         "may_list_existing_sessions": True,
-        "default_expiration_mode": None}
+        "default_expiration_mode": FlowSessionExpirationMode.end}
 
     def get_hacked_session_start_rule(self, **kwargs):
         """
@@ -1769,10 +1780,10 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
                 mock_get_nrule.return_value = (
                     self.get_hacked_session_start_rule())
         """
-        from course.utils import FlowSessionStartRule
+        from course.content import FlowSessionStartMode
         defaults = deepcopy(self.default_session_start_rule)
         defaults.update(kwargs)
-        return FlowSessionStartRule(**defaults)
+        return FlowSessionStartMode(**defaults)
 
     default_session_access_rule = {
         "permissions": [FPerm.view, FPerm.end_session]}
@@ -1791,10 +1802,10 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
                     self.get_hacked_session_access_rule(
                         permissions=[fperm.end_session]))
         """
-        from course.utils import FlowSessionAccessRule
+        from course.content import FlowSessionAccessMode
         defaults = deepcopy(self.default_session_access_rule)
         defaults.update(kwargs)
-        return FlowSessionAccessRule(**defaults)
+        return FlowSessionAccessMode(**defaults)
 
     default_session_grading_rule = {
         "grade_identifier": "la_quiz",
@@ -1822,10 +1833,10 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
                 mock_get_grule.return_value = \
                     self.get_hacked_session_grading_rule(bonus_points=2)
         """
-        from course.utils import FlowSessionGradingRule
+        from course.utils import FlowSessionGradingModeWithFlowLevelInfo
         defaults = deepcopy(self.default_session_grading_rule)
         defaults.update(kwargs)
-        return FlowSessionGradingRule(**defaults)
+        return FlowSessionGradingModeWithFlowLevelInfo(**defaults)
 
     # }}}
 
@@ -1956,7 +1967,9 @@ class SingleCourseTestMixin(CoursesTestMixinBase):
     @classmethod
     def get_hacked_flow_desc(
             cls, user=None, flow_id=None, commit_sha=None,
-            del_rules=False, as_dict=False, **kwargs):
+            del_rules=False, as_dict: bool = False,
+            patch: JsonPatch | None = None,
+            **kwargs) -> FlowDesc:
         """
         Get a hacked version of flow_desc
         :param user: the flow_desc viewed by which user, default to a student
@@ -1987,33 +2000,27 @@ class SingleCourseTestMixin(CoursesTestMixinBase):
             flow_desc = get_flow_desc(
                 pctx.repo, pctx.course, flow_id, commit_sha)
 
-        # }}}
+            flow_desc_dict = flow_desc_ta.dump_python(flow_desc)
 
-        from relate.utils import dict_to_struct, struct_to_dict
-        flow_desc_dict = struct_to_dict(flow_desc)
+            if del_rules:
+                del flow_desc_dict["rules"]
 
-        if del_rules:
-            del flow_desc_dict["rules"]
+            flow_desc_dict.update(kwargs)
 
-        flow_desc_dict.update(kwargs)
+            if as_dict:
+                return flow_desc_dict
 
-        if as_dict:
-            return flow_desc_dict
+            if patch is not None:
+                flow_desc_dict = patch.apply(flow_desc_dict)
 
-        return dict_to_struct(flow_desc_dict)
+            vctx = ValidationContext(pctx.repo, commit_sha, pctx.course)
+            return flow_desc_ta.validate_python(flow_desc_dict, context=vctx)
 
     def get_hacked_flow_desc_with_access_rule_tags(self, rule_tags):
         assert isinstance(rule_tags, list)
-        from relate.utils import dict_to_struct, struct_to_dict
-        hacked_flow_desc_dict = self.get_hacked_flow_desc(as_dict=True)
-        rules = hacked_flow_desc_dict["rules"]
-        rules_dict = struct_to_dict(rules)
-        rules_dict["tags"] = rule_tags
-        rules = dict_to_struct(rules_dict)
-        hacked_flow_desc_dict["rules"] = rules
-        hacked_flow_desc = dict_to_struct(hacked_flow_desc_dict)
-        assert hacked_flow_desc.rules.tags == rule_tags
-        return hacked_flow_desc
+        return self.get_hacked_flow_desc(patch=JsonPatch([
+                     {"op": "replace", "path": "/rules/tags", "value": rule_tags}
+             ]))
 
 # }}}
 
@@ -2826,11 +2833,6 @@ class APITestMixin(SingleCoursePageTestMixin):
 # {{{ HackRepoMixin
 
 class HackRepoMixin:
-
-    # This need to be configured when the module tested imported get_repo_blob
-    # at module level
-    get_repo_blob_patching_path = "course.content.get_repo_blob"
-
     @classmethod
     def setUpTestData(cls):
         super().setUpTestData()
@@ -2851,7 +2853,7 @@ class HackRepoMixin:
 
             return get_repo_blob(repo, full_name, repo[b"HEAD"].id)
 
-        cls.batch_fake_get_repo_blob = mock.patch(cls.get_repo_blob_patching_path)
+        cls.batch_fake_get_repo_blob = mock.patch("course.repo.get_repo_blob")
         cls.mock_get_repo_blob = cls.batch_fake_get_repo_blob.start()
         cls.mock_get_repo_blob.side_effect = get_repo_side_effect
 

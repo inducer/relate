@@ -28,6 +28,7 @@ THE SOFTWARE.
 """
 
 import re
+from enum import StrEnum
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -36,6 +37,7 @@ from typing import (
 
 import django.forms as forms
 import dulwich.client
+import dulwich.repo
 import dulwich.web
 import paramiko
 import paramiko.client
@@ -45,7 +47,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required, permission_required
 from django.core.exceptions import PermissionDenied, SuspiciousOperation
 from django.db import transaction
-from django.shortcuts import get_object_or_404, redirect, render  # noqa
+from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.utils.translation import (
     gettext,
@@ -60,40 +62,38 @@ from dulwich.repo import Repo
 from course.auth import with_course_api_auth
 from course.constants import ParticipationPermission as PPerm, ParticipationStatus
 from course.models import Course, Participation, ParticipationRole
+from course.repo import SubdirRepoWrapper
 from course.utils import (
+    CoursePageContext,
     course_view,
     get_course_specific_language_choices,
     render_course_page,
 )
 from relate.utils import (
     HTML5DateInput,
-    Repo_ish,
     StyledForm,
     StyledModelForm,
     string_concat,
 )
 
 
-# {{{ for mypy
-
 if TYPE_CHECKING:
-    from dulwich.client import GitClient  # noqa
     from dulwich.objects import Commit
 
     from course.auth import APIContext
-
-# }}}
+    from course.repo import Repo_ish
 
 
 def _remove_prefix(prefix: bytes, s: bytes) -> bytes:
-
     assert s.startswith(prefix)
 
     return s[len(prefix):]
 
 
 def transfer_remote_refs(
-        repo: Repo_ish, fetch_pack_result: dulwich.client.FetchPackResult) -> None:
+            repo: dulwich.repo.Repo,
+            fetch_pack_result: dulwich.client.FetchPackResult
+        ) -> None:
 
     valid_refs = []
 
@@ -165,7 +165,6 @@ class CourseCreationForm(StyledModelForm):
                 }
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-
         super().__init__(*args, **kwargs)
 
         self.helper.add_input(
@@ -209,7 +208,6 @@ def set_up_new_course(request: http.HttpRequest) -> http.HttpResponse:
                         new_sha = repo[b"HEAD"] = fetch_pack_result.refs[b"HEAD"]
 
                         if new_course.course_root_path:
-                            from course.content import SubdirRepoWrapper
                             vrepo: Repo_ish = SubdirRepoWrapper(
                                     repo, new_course.course_root_path)
                         else:
@@ -323,21 +321,30 @@ def is_ancestor_commit(
     return False
 
 
-ALLOWED_COURSE_REVISIOIN_COMMANDS = [
-    "fetch", "fetch_update", "update", "fetch_preview",
-    "preview", "end_preview"]
+class CourseRevisionCommand(StrEnum):
+    fetch = "fetch"
+    fetch_update = "fetch_update"
+    update = "update"
+    fetch_preview = "fetch_preview"
+    preview = "preview"
+    end_preview = "end_preview"
 
 
 def run_course_update_command(
-        request, repo, content_repo, pctx, command, new_sha, may_update,
-        prevent_discarding_revisions):
-    if command not in ALLOWED_COURSE_REVISIOIN_COMMANDS:
-        raise RuntimeError(_("invalid command"))
+            request: http.HttpRequest,
+            repo: Repo,
+            content_repo: Repo | SubdirRepoWrapper,
+            pctx: CoursePageContext,
+            command: CourseRevisionCommand,
+            new_sha: bytes,
+            may_update: bool,
+            prevent_discarding_revisions: bool):
+    assert pctx.participation is not None
 
-    if command.startswith("fetch"):
-        if command != "fetch":
-            command = command[6:]
-
+    if command in [
+            CourseRevisionCommand.fetch,
+            CourseRevisionCommand.fetch_update,
+            CourseRevisionCommand.fetch_preview]:
         client, remote_path = \
             get_dulwich_client_and_remote_path_from_course(pctx.course)
 
@@ -346,26 +353,31 @@ def run_course_update_command(
         assert isinstance(fetch_pack_result, dulwich.client.FetchPackResult)
 
         transfer_remote_refs(repo, fetch_pack_result)
-        remote_head = fetch_pack_result.refs[b"HEAD"]
+        remote_head_sha = cast("bytes", fetch_pack_result.refs[b"HEAD"])
         if prevent_discarding_revisions:
             # Guard against bad scenario:
             # Local is not ancestor of remote, i.e. the branches have diverged.
-            if not is_ancestor_commit(repo, repo[b"HEAD"], repo[remote_head],
+
+            # Do not try to assert these types, the test suite makes a mockery
+            # of them.
+            head = cast("Commit", repo[b"HEAD"])
+            remote_head = cast("Commit", repo[remote_head_sha])
+            if not is_ancestor_commit(repo, head, remote_head,
                     max_history_check_size=20) and \
-                    repo[b"HEAD"] != repo[remote_head]:
+                    repo[b"HEAD"] != repo[remote_head_sha]:
                 raise RuntimeError(_("internal git repo has more commits. Fetch, "
                                      "merge and push."))
 
-        repo[b"HEAD"] = remote_head
+        repo[b"HEAD"] = remote_head_sha
 
         messages.add_message(request, messages.SUCCESS, _("Fetch successful."))
 
-        new_sha = remote_head
+        new_sha = remote_head_sha
 
-    if command == "fetch":
+    if command == CourseRevisionCommand.fetch:
         return
 
-    if command == "end_preview":
+    if command == CourseRevisionCommand.end_preview:
         pctx.participation.preview_git_commit_sha = None
         pctx.participation.save()
 
@@ -382,8 +394,11 @@ def run_course_update_command(
                 content_repo, pctx.course.course_file, pctx.course.events_file,
                 new_sha, course=pctx.course)
     except ValidationError as e:
+        from traceback import print_exc
+        print_exc()
+
         messages.add_message(request, messages.ERROR,
-                _("Course content did not validate successfully: '%s' "
+                _("Course content did not validate successfully:<pre>%s</pre>"
                 "Update not applied.") % str(e))
         return
 
@@ -402,26 +417,31 @@ def run_course_update_command(
 
     # }}}
 
-    if command == "preview":
+    if command in [CourseRevisionCommand.fetch_preview, CourseRevisionCommand.preview]:
         messages.add_message(request, messages.INFO,
                 _("Preview activated."))
 
         pctx.participation.preview_git_commit_sha = new_sha.decode()
         pctx.participation.save()
 
-    elif command == "update" and may_update:  # pragma: no branch
-        pctx.course.active_git_commit_sha = new_sha.decode()
-        pctx.course.save()
+    elif command in [
+            CourseRevisionCommand.update,
+            CourseRevisionCommand.fetch_update]:
+        if may_update:
+            pctx.course.active_git_commit_sha = new_sha.decode()
+            pctx.course.save()
 
-        if pctx.participation.preview_git_commit_sha is not None:
-            pctx.participation.preview_git_commit_sha = None
-            pctx.participation.save()
+            if pctx.participation.preview_git_commit_sha is not None:
+                pctx.participation.preview_git_commit_sha = None
+                pctx.participation.save()
 
-            messages.add_message(request, messages.INFO,
-                    _("Preview ended."))
+                messages.add_message(request, messages.INFO,
+                        _("Preview ended."))
 
-        messages.add_message(request, messages.SUCCESS,
-                _("Update applied. "))
+            messages.add_message(request, messages.SUCCESS,
+                    _("Update applied. "))
+        else:
+            raise PermissionDenied("may not update")
 
 
 class GitUpdateForm(StyledForm):
@@ -498,7 +518,7 @@ def _get_commit_message_as_html(repo, commit_sha):
 
 @login_required
 @course_view
-def update_course(pctx):
+def update_course(pctx: CoursePageContext):
     if not (
             pctx.has_permission(PPerm.update_content)
             or pctx.has_permission(PPerm.preview_content)):
@@ -508,11 +528,12 @@ def update_course(pctx):
     request = pctx.request
     content_repo = pctx.repo
 
-    from course.content import SubdirRepoWrapper
+    from course.repo import SubdirRepoWrapper
     if isinstance(content_repo, SubdirRepoWrapper):
         repo = content_repo.repo
     else:
         repo = content_repo
+    assert isinstance(repo, dulwich.repo.Repo)
 
     participation = pctx.participation
 
@@ -528,8 +549,8 @@ def update_course(pctx):
             request.FILES)
 
         command = None
-        for cmd in ALLOWED_COURSE_REVISIOIN_COMMANDS:
-            if cmd in form.data:
+        for cmd in CourseRevisionCommand:
+            if cmd.value in form.data:
                 command = cmd
                 break
 
@@ -539,6 +560,7 @@ def update_course(pctx):
         if form.is_valid():
             new_sha = form.cleaned_data["new_sha"].encode()
 
+            assert isinstance(content_repo, (Repo, SubdirRepoWrapper))
             try:
                 run_course_update_command(
                         request, repo, content_repo, pctx, command, new_sha,

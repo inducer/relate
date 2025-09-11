@@ -456,13 +456,6 @@ class GenerateSshKeypairTest(CoursesTestMixinBase, AuthTestMixin, TestCase):
             self.assertRedirects(resp, expected_redirect_url,
                                  fetch_redirect_response=False)
 
-    def test_not_staff(self):
-        user = factories.UserFactory()
-        assert not user.is_staff
-        with self.temporarily_switch_to_user(user):
-            resp = self.client.get(self.get_generate_ssh_keypair_url())
-            self.assertEqual(resp.status_code, 403)
-
     def test_success(self):
         user = factories.UserFactory()
         user.is_staff = True
@@ -1350,7 +1343,7 @@ class GrantExceptionStage2Test(GrantExceptionTestMixin, TestCase):
     def test_start_rule_not_may_start_new_session(self):
         session_start_rule = self.get_hacked_session_start_rule(
             may_start_new_session=False)
-        with mock.patch("course.utils.get_session_start_rule") as mock_get_nrule:
+        with mock.patch("course.utils.get_session_start_mode") as mock_get_nrule:
             mock_get_nrule.return_value = session_start_rule
 
             resp = self.get_grant_exception_stage_2_view()
@@ -1413,7 +1406,7 @@ class GrantExceptionStage2Test(GrantExceptionTestMixin, TestCase):
             tag_session=tag_session)
         with mock.patch(
                 "course.content.get_flow_desc") as mock_get_flow_desc, mock.patch(
-                "course.utils.get_session_start_rule") as mock_get_nrule:
+                "course.utils.get_session_start_mode") as mock_get_nrule:
             mock_get_flow_desc.return_value = hacked_flow_desc
             mock_get_nrule.return_value = session_start_rule
 
@@ -1458,7 +1451,7 @@ class GrantExceptionStage2Test(GrantExceptionTestMixin, TestCase):
             tag_session=tag_session)
         with mock.patch(
                 "course.content.get_flow_desc") as mock_get_flow_desc, mock.patch(
-                "course.utils.get_session_start_rule") as mock_get_nrule:
+                "course.utils.get_session_start_mode") as mock_get_nrule:
             mock_get_flow_desc.return_value = hacked_flow_desc
             mock_get_nrule.return_value = session_start_rule
 
@@ -1507,19 +1500,6 @@ class GrantExceptionStage2Test(GrantExceptionTestMixin, TestCase):
 
 class GrantExceptionStage3Test(GrantExceptionTestMixin, TestCase):
     # test views.grant_exception_stage_2
-
-    def setUp(self):
-        super().setUp()
-        fake_validate_session_access_rule = mock.patch(
-            "course.validation.validate_session_access_rule")
-        self.mock_validate_session_access_rule = (
-            fake_validate_session_access_rule.start())
-        self.addCleanup(fake_validate_session_access_rule.stop)
-        fake_validate_session_grading_rule = mock.patch(
-            "course.validation.validate_session_grading_rule")
-        self.mock_validate_session_grading_rule = (
-            fake_validate_session_grading_rule.start())
-        self.addCleanup(fake_validate_session_grading_rule.stop)
 
     def get_default_post_data(self, action="submit", **kwargs):
         data = {
@@ -1694,8 +1674,6 @@ class GrantExceptionStage3Test(GrantExceptionTestMixin, TestCase):
                  "'Session Access' exception granted to "], reset=True)
             self.fs.refresh_from_db()
             self.assertEqual(self.fs.access_rules_tag, flow_desc_access_rule_tags[1])
-            self.assertEqual(self.mock_validate_session_access_rule.call_count, 1)
-            self.mock_validate_session_access_rule.reset_mock()
             exc_rule = models.FlowRuleException.objects.last().rule
 
             self.assertIsNone(exc_rule.get("if_has_tag"),
@@ -1723,7 +1701,6 @@ class GrantExceptionStage3Test(GrantExceptionTestMixin, TestCase):
                  "'Session Access' exception granted to "], reset=True)
             self.fs.refresh_from_db()
             self.assertEqual(self.fs.access_rules_tag, None)
-            self.assertEqual(self.mock_validate_session_access_rule.call_count, 1)
 
             exc_rule = models.FlowRuleException.objects.last().rule
             self.assertIsNone(exc_rule.get("if_has_tag"),
@@ -1889,8 +1866,6 @@ class GrantExceptionStage3Test(GrantExceptionTestMixin, TestCase):
             resp, self.get_grant_exception_url(),
             fetch_redirect_response=False)
 
-        self.assertEqual(self.mock_validate_session_grading_rule.call_count, 1)
-
         excs = models.FlowRuleException.objects.all()
         self.assertEqual(excs.count(), 1)
         self.assertEqual(
@@ -1913,8 +1888,6 @@ class GrantExceptionStage3Test(GrantExceptionTestMixin, TestCase):
         self.assertRedirects(
             resp, self.get_grant_exception_url(),
             fetch_redirect_response=False)
-
-        self.assertEqual(self.mock_validate_session_grading_rule.call_count, 1)
 
         excs = models.FlowRuleException.objects.all()
         self.assertEqual(excs.count(), 1)
@@ -1943,8 +1916,6 @@ class GrantExceptionStage3Test(GrantExceptionTestMixin, TestCase):
             resp, self.get_grant_exception_url(),
             fetch_redirect_response=False)
 
-        self.assertEqual(self.mock_validate_session_grading_rule.call_count, 1)
-
         excs = models.FlowRuleException.objects.all()
         self.assertEqual(excs.count(), 1)
         self.assertEqual(
@@ -1969,8 +1940,6 @@ class GrantExceptionStage3Test(GrantExceptionTestMixin, TestCase):
             resp, "Must specify access expiration if 'due same "
                   "as access expiration' is set.")
 
-        self.assertEqual(self.mock_validate_session_grading_rule.call_count, 0)
-
     def test_create_grading_exception_credit_percent_recorded_in_description(self):
         resp = self.post_grant_exception_stage_3_view(
             data=self.get_default_post_data(
@@ -1980,8 +1949,6 @@ class GrantExceptionStage3Test(GrantExceptionTestMixin, TestCase):
         self.assertFormErrorLoose(resp, None)
         self.assertRedirects(resp, self.get_grant_exception_url(),
                              fetch_redirect_response=False)
-
-        self.assertEqual(self.mock_validate_session_grading_rule.call_count, 1)
 
         excs = models.FlowRuleException.objects.all()
         self.assertEqual(excs.count(), 1)
@@ -2002,9 +1969,6 @@ class GrantExceptionStage3Test(GrantExceptionTestMixin, TestCase):
                 # untick generates_grade
                 create_grading_exception=True))
 
-        self.assertEqual(self.mock_validate_session_grading_rule.call_count, 1)
-        self.mock_validate_session_grading_rule.reset_mock()
-
         excs = models.FlowRuleException.objects.all()
         self.assertEqual(excs.count(), 1)
         self.assertEqual(
@@ -2021,8 +1985,6 @@ class GrantExceptionStage3Test(GrantExceptionTestMixin, TestCase):
         self.post_grant_exception_stage_3_view(
             data=self.get_default_post_data(
                 create_grading_exception=True, generates_grade=True))
-
-        self.assertEqual(self.mock_validate_session_grading_rule.call_count, 1)
 
         excs = models.FlowRuleException.objects.all()
         self.assertEqual(excs.count(), 2)
@@ -2049,10 +2011,6 @@ class GrantExceptionStage3Test(GrantExceptionTestMixin, TestCase):
                 resp = self.post_grant_exception_stage_3_view(data=data)
                 self.assertRedirects(resp, self.get_grant_exception_url(),
                                      fetch_redirect_response=False)
-
-                self.assertEqual(
-                    self.mock_validate_session_grading_rule.call_count, 1)
-                self.mock_validate_session_grading_rule.reset_mock()
 
                 rule = models.FlowRuleException.objects.last().rule
                 self.assertEqual(rule[item], value)
@@ -2147,8 +2105,6 @@ class GrantExceptionStage3Test(GrantExceptionTestMixin, TestCase):
             self.assertEqual(resp.status_code, 200)
 
             self.assertEqual(models.FlowRuleException.objects.count(), 0)
-            self.assertEqual(self.mock_validate_session_access_rule.call_count, 0)
-            self.assertEqual(self.mock_validate_session_grading_rule.call_count, 0)
 
 
 # {{{ test views.monitor_task

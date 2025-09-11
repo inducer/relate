@@ -35,6 +35,8 @@ RUN if [ "$RLCONTAINER" = "full" ] ; then  apt-get -o APT::Install-Recommends=0 
   git; \
   fi
 
+RUN pip install pydantic
+
 RUN if [ "$RLCONTAINER" = "full" ] ; then python3 -m pip install --break-system-packages git+https://github.com/inducer/pymbolic.git; fi
 RUN if [ "$RLCONTAINER" = "full" ] ; then python3 -m pip install --break-system-packages git+https://github.com/inducer/loopy.git; fi
 

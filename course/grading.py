@@ -35,6 +35,7 @@ from django.core.exceptions import (
 )
 from django.shortcuts import get_object_or_404, redirect, render  # noqa
 from django.utils.translation import gettext as _
+from pytools import not_none
 
 from course.constants import ParticipationPermission as PPerm
 from course.models import (
@@ -48,7 +49,7 @@ from course.page import InvalidPageData
 from course.utils import (
     FlowPageContext,
     course_view,
-    get_session_grading_rule,
+    get_session_grading_mode,
     render_course_page,
 )
 from course.views import get_now_or_fake_time
@@ -158,14 +159,13 @@ def grade_flow_page(
                 _("Cannot grade anonymous session"))
 
     from course.flow import adjust_flow_session_page_data
-    adjust_flow_session_page_data(pctx.repo, flow_session,
-            pctx.course.identifier, respect_preview=False)
+    adjust_flow_session_page_data(pctx.repo, flow_session, respect_preview=False)
 
     fpctx = FlowPageContext(pctx.repo, pctx.course, flow_session.flow_id,
                             page_ordinal, participation=flow_session.participation,
                             flow_session=flow_session, request=pctx.request)
 
-    if fpctx.page_desc is None:
+    if fpctx.page is None:
         raise http.Http404()
 
     assert fpctx.page is not None
@@ -357,7 +357,7 @@ def grade_flow_page(
 
     # }}}
 
-    grading_rule = get_session_grading_rule(
+    grading_rule = get_session_grading_mode(
             flow_session, fpctx.flow_desc, get_now_or_fake_time(pctx.request))
 
     if grading_rule.grade_identifier is not None:
@@ -365,7 +365,7 @@ def grade_flow_page(
                 get_flow_grading_opportunity(
                         pctx.course, flow_session.flow_id, fpctx.flow_desc,
                         grading_rule.grade_identifier,
-                        grading_rule.grade_aggregation_strategy)
+                        not_none(grading_rule.grade_aggregation_strategy))
     else:
         grading_opportunity = None
 
@@ -397,7 +397,7 @@ def grade_flow_page(
 
                 "grading_form": grading_form,
                 "grading_form_html": grading_form_html,
-                "correct_answer": fpctx.page.correct_answer(
+                "correct_answer": fpctx.page.page_correct_answer(
                     fpctx.page_context, fpctx.page_data.data,
                     answer_data, grade_data),
             })
@@ -419,7 +419,7 @@ def _save_grade(
             most_recent_grade,
             bulk_feedback_json)
 
-    grading_rule = get_session_grading_rule(
+    grading_rule = get_session_grading_mode(
             flow_session, fpctx.flow_desc, now_datetime)
 
     from course.flow import grade_flow_session

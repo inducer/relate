@@ -117,11 +117,10 @@ def get_flow_session_content(
     from course.flow import adjust_flow_session_page_data, assemble_answer_visits
 
     with get_course_repo(api_ctx.course) as repo:
-        from course.utils import FlowContext, instantiate_flow_page_with_ctx
+        from course.utils import FlowContext, get_flow_page_with_ctx
         fctx = FlowContext(repo, api_ctx.course, flow_session.flow_id)
 
-        adjust_flow_session_page_data(repo, flow_session, api_ctx.course.identifier,
-                fctx.flow_desc)
+        adjust_flow_session_page_data(repo, flow_session, fctx.flow_desc)
 
         from course.flow import get_all_page_data
         all_page_data = get_all_page_data(flow_session)
@@ -129,7 +128,7 @@ def get_flow_session_content(
 
         pages = []
         for i, page_data in enumerate(all_page_data):
-            page = instantiate_flow_page_with_ctx(fctx, page_data)
+            page = get_flow_page_with_ctx(fctx, page_data)
 
             assert i == page_data.page_ordinal
 

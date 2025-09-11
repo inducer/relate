@@ -24,11 +24,9 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
-
 from typing import (
     TYPE_CHECKING,
     Any,
-    cast,
 )
 
 from django.conf import settings
@@ -40,6 +38,7 @@ from django.dispatch import receiver
 from django.urls import reverse
 from django.utils.timezone import now
 from django.utils.translation import gettext_lazy as _, pgettext_lazy
+from pytools import not_none
 from typing_extensions import override
 
 from course.constants import (  # noqa
@@ -56,15 +55,17 @@ from course.constants import (  # noqa
     PARTICIPATION_STATUS_CHOICES,
     USER_STATUS_CHOICES,
     ExamTicketState,
-    FlowPermission,
     FlowRuleKind,
     FlowSessionExpirationMode,
     GradeAggregationStrategy,
     GradeStateChangeType,
-    ParticipationStatus,
-    UserStatus,
 )
-from relate.utils import not_none, string_concat
+from course.content import (
+    access_rule_ta,
+    grading_rule_ta,
+    start_rule_ta,
+)
+from relate.utils import string_concat
 
 
 # {{{ mypy
@@ -1515,54 +1516,36 @@ class FlowRuleException(models.Model):
                 and self.expiration is not None):
             raise ValidationError(_("grading rules may not expire"))
 
+        from pydantic import ValidationError as ContentValidationError
+
         from course.content import (
             get_course_commit_sha,
             get_course_repo,
-            get_flow_desc,
         )
-        from course.validation import (
-            ValidationContext,
-            ValidationError as ContentValidationError,
-            validate_session_access_rule,
-            validate_session_grading_rule,
-            validate_session_start_rule,
-        )
-        from relate.utils import dict_to_struct
-        rule = dict_to_struct(self.rule)
+        from course.validation import ValidationContext
 
         with get_course_repo(self.participation.course) as repo:
             commit_sha = get_course_commit_sha(
                     self.participation.course, self.participation)
-            ctx = ValidationContext(
+            vctx = ValidationContext(
                     repo=repo,
-                    commit_sha=commit_sha)
+                    commit_sha=commit_sha,
+                    course=self.participation.course)
 
-            flow_desc = get_flow_desc(repo,
-                    self.participation.course,
-                    self.flow_id, commit_sha)
+            try:
+                if self.kind == FlowRuleKind.start:
+                    start_rule_ta.validate_python(self.rule, context=vctx)
+                elif self.kind == FlowRuleKind.access:
+                    access_rule_ta.validate_python(self.rule, context=vctx)
+                elif self.kind == FlowRuleKind.grading:
+                    grading_rule_ta.validate_python(self.rule, context=vctx)
+                else:
+                    raise ValueError("invalid exception rule kind")
 
-        tags: list[str] = []
-        grade_identifier = None
-        if hasattr(flow_desc, "rules"):
-            tags = cast("list[str]", getattr(flow_desc.rules, "tags", []))
-            grade_identifier = flow_desc.rules.grade_identifier
-
-        try:
-            if self.kind == FlowRuleKind.start:
-                validate_session_start_rule(ctx, str(self), rule, tags)
-            elif self.kind == FlowRuleKind.access:
-                validate_session_access_rule(ctx, str(self), rule, tags)
-            elif self.kind == FlowRuleKind.grading:
-                validate_session_grading_rule(
-                        ctx, str(self), rule, tags,
-                        grade_identifier)
-            else:  # pragma: no cover. This won't happen
-                raise ValueError("invalid exception rule kind")
-
-        except ContentValidationError as e:
-            # the rule refers to FlowRuleException rule
-            raise ValidationError(
-                string_concat(_("invalid existing_session_rules"), ": ", str(e)))
+            except ContentValidationError as e:
+                # the rule refers to FlowRuleException rule
+                raise ValidationError(
+                    string_concat(_("invalid existing_session_rules"), ": ", str(e)))
 
     class Meta:
         verbose_name = _("Flow rule exception")
@@ -1930,8 +1913,11 @@ class GradeStateMachine:
 # {{{ flow <-> grading integration
 
 def get_flow_grading_opportunity(
-        course: Course, flow_id: str, flow_desc: FlowDesc,
-        grade_identifier: str, grade_aggregation_strategy: str
+            course: Course,
+            flow_id: str,
+            flow_desc: FlowDesc,
+            grade_identifier: str,
+            grade_aggregation_strategy: GradeAggregationStrategy | None
         ) -> GradingOpportunity:
 
     default_name = (

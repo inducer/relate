@@ -7,7 +7,6 @@ from __future__ import annotations
 import os
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
-import sys
 from os.path import join
 from typing import TYPE_CHECKING, Any
 
@@ -38,9 +37,7 @@ if os.environ.get("RELATE_LOCAL_TEST_SETTINGS", None):
     _local_settings_file = os.environ["RELATE_LOCAL_TEST_SETTINGS"]
 
 if not os.path.isfile(_local_settings_file):
-    raise RuntimeError(
-        f"Management command '{sys.argv[1]}' failed to run "
-        f"because '{_local_settings_file}' is missing.")
+    raise RuntimeError(f"'{_local_settings_file}' is missing.")
 
 local_settings_module_name, ext = (
     os.path.splitext(os.path.split(_local_settings_file)[-1]))

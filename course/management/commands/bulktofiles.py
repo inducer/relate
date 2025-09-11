@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+from typing import TextIO
+
 from django.core.exceptions import ObjectDoesNotExist
-from django.core.management.base import BaseCommand, CommandError  # noqa
+from django.core.management.base import BaseCommand
 from django.db import transaction
 from django.db.models import Q
 from django.db.models.functions import Length
@@ -9,14 +11,13 @@ from django.db.models.functions import Length
 from course.models import FlowPageBulkFeedback, FlowPageVisit
 
 
-def convert_flow_page_visit(stderr, fpv):
+def convert_flow_page_visit(stderr: TextIO, fpv: FlowPageVisit):
     course = fpv.flow_session.course
 
     from course.content import (
         get_course_repo,
         get_flow_desc,
-        get_flow_page_desc,
-        instantiate_flow_page,
+        get_flow_page,
     )
     repo = get_course_repo(course)
     flow_id = fpv.flow_session.flow_id
@@ -30,7 +31,7 @@ def convert_flow_page_visit(stderr, fpv):
         return
 
     try:
-        page_desc = get_flow_page_desc(
+        page = get_flow_page(
                 fpv.flow_session.flow_id, flow_desc,
                 fpv.page_data.group_id, fpv.page_data.page_id)
     except ObjectDoesNotExist:
@@ -39,12 +40,6 @@ def convert_flow_page_visit(stderr, fpv):
                 f"'{flow_id}:{fpv.page_data.group_id}/{fpv.page_data.page_id}' "
                 f"in '{course.identifier}'")
         return
-
-    page = instantiate_flow_page(
-            location=(f"flow '{flow_id}', "
-                f"group '{fpv.page_data.group_id}', page '{fpv.page_data.page_id}'"),
-            repo=repo, page_desc=page_desc,
-            commit_sha=commit_sha)
 
     from course.page.base import PageContext
     pctx = PageContext(
@@ -78,8 +73,6 @@ def convert_flow_page_visit(stderr, fpv):
         return True
     else:
         return False
-
-    raise AssertionError()
 
 
 def convert_flow_page_visits(stdout, stderr):
