@@ -543,8 +543,8 @@ class SingleCourseQuizPageGradeInterfaceTest(
         }
 
         def get_session_grading_rule_side_effect(session, flow_desc, now_datetime):
-            from course.utils import FlowSessionGradingRule, get_session_grading_rule
-            true_g_rule = get_session_grading_rule(
+            from course.utils import FlowSessionGradingRule, get_session_grading_mode
+            true_g_rule = get_session_grading_mode(
                 session, flow_desc, now_datetime)
 
             fake_grading_rule = FlowSessionGradingRule(

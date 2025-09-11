@@ -42,6 +42,7 @@ from django.contrib.auth import get_user_model
 from django.core.exceptions import ImproperlyConfigured
 from django.test import Client, RequestFactory, override_settings
 from django.urls import resolve, reverse
+from jsonpatch import JsonPatch
 
 from course.constants import (
     FlowPermission as FPerm,
@@ -49,7 +50,7 @@ from course.constants import (
     ParticipationStatus,
     UserStatus,
 )
-from course.content import get_course_repo_path, get_repo_blob
+from course.content import FlowDesc, flow_desc_ta, get_course_repo_path
 from course.flow import GradeInfo
 from course.models import (
     Course,
@@ -60,6 +61,8 @@ from course.models import (
     Participation,
     ParticipationRole,
 )
+from course.repo import get_repo_blob
+from course.validation import ValidationContext
 from tests.constants import (
     COMMIT_SHA_MAP,
     FAKED_YAML_PATH,
@@ -1769,10 +1772,10 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
                 mock_get_nrule.return_value = (
                     self.get_hacked_session_start_rule())
         """
-        from course.utils import FlowSessionStartRule
+        from course.content import FlowSessionStartMode
         defaults = deepcopy(self.default_session_start_rule)
         defaults.update(kwargs)
-        return FlowSessionStartRule(**defaults)
+        return FlowSessionStartMode(**defaults)
 
     default_session_access_rule = {
         "permissions": [FPerm.view, FPerm.end_session]}
@@ -1791,10 +1794,10 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
                     self.get_hacked_session_access_rule(
                         permissions=[fperm.end_session]))
         """
-        from course.utils import FlowSessionAccessRule
+        from course.content import FlowSessionAccessMode
         defaults = deepcopy(self.default_session_access_rule)
         defaults.update(kwargs)
-        return FlowSessionAccessRule(**defaults)
+        return FlowSessionAccessMode(**defaults)
 
     default_session_grading_rule = {
         "grade_identifier": "la_quiz",
@@ -1822,10 +1825,10 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
                 mock_get_grule.return_value = \
                     self.get_hacked_session_grading_rule(bonus_points=2)
         """
-        from course.utils import FlowSessionGradingRule
+        from course.utils import FlowSessionGradingModeWithFlowLevelInfo
         defaults = deepcopy(self.default_session_grading_rule)
         defaults.update(kwargs)
-        return FlowSessionGradingRule(**defaults)
+        return FlowSessionGradingModeWithFlowLevelInfo(**defaults)
 
     # }}}
 
@@ -1956,7 +1959,9 @@ class SingleCourseTestMixin(CoursesTestMixinBase):
     @classmethod
     def get_hacked_flow_desc(
             cls, user=None, flow_id=None, commit_sha=None,
-            del_rules=False, as_dict=False, **kwargs):
+            del_rules=False, as_dict: bool = False,
+            patch: JsonPatch | None = None,
+            **kwargs) -> FlowDesc:
         """
         Get a hacked version of flow_desc
         :param user: the flow_desc viewed by which user, default to a student
@@ -1987,33 +1992,27 @@ class SingleCourseTestMixin(CoursesTestMixinBase):
             flow_desc = get_flow_desc(
                 pctx.repo, pctx.course, flow_id, commit_sha)
 
-        # }}}
+            flow_desc_dict = flow_desc_ta.dump_python(flow_desc)
 
-        from relate.utils import dict_to_struct, struct_to_dict
-        flow_desc_dict = struct_to_dict(flow_desc)
+            if del_rules:
+                del flow_desc_dict["rules"]
 
-        if del_rules:
-            del flow_desc_dict["rules"]
+            flow_desc_dict.update(kwargs)
 
-        flow_desc_dict.update(kwargs)
+            if as_dict:
+                return flow_desc_dict
 
-        if as_dict:
-            return flow_desc_dict
+            if patch is not None:
+                flow_desc_dict = patch.apply(flow_desc_dict)
 
-        return dict_to_struct(flow_desc_dict)
+            vctx = ValidationContext(pctx.repo, commit_sha, pctx.course)
+            return flow_desc_ta.validate_python(flow_desc_dict, context=vctx)
 
     def get_hacked_flow_desc_with_access_rule_tags(self, rule_tags):
         assert isinstance(rule_tags, list)
-        from relate.utils import dict_to_struct, struct_to_dict
-        hacked_flow_desc_dict = self.get_hacked_flow_desc(as_dict=True)
-        rules = hacked_flow_desc_dict["rules"]
-        rules_dict = struct_to_dict(rules)
-        rules_dict["tags"] = rule_tags
-        rules = dict_to_struct(rules_dict)
-        hacked_flow_desc_dict["rules"] = rules
-        hacked_flow_desc = dict_to_struct(hacked_flow_desc_dict)
-        assert hacked_flow_desc.rules.tags == rule_tags
-        return hacked_flow_desc
+        return self.get_hacked_flow_desc(patch=JsonPatch([
+                     {"op": "replace", "path": "/rules/tags", "value": rule_tags}
+             ]))
 
 # }}}
 
@@ -2829,7 +2828,7 @@ class HackRepoMixin:
 
     # This need to be configured when the module tested imported get_repo_blob
     # at module level
-    get_repo_blob_patching_path = "course.content.get_repo_blob"
+    get_repo_blob_patching_path = "course.repo.get_repo_blob"
 
     @classmethod
     def setUpTestData(cls):

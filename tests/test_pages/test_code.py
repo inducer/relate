@@ -1082,7 +1082,7 @@ class CodeQuestionWithHumanTextFeedbackSpecialCase(
         fpctx = FlowPageContext(
             pctx.repo, pctx.course, self.flow_id, page_ordinal,
             self.student_participation, flow_session, request)
-        page_desc = fpctx.page_desc
+        page_desc = fpctx.page
         page_desc.value = page_value
         page_desc.human_feedback_percentage = human_feedback_percentage
 

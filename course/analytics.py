@@ -236,35 +236,24 @@ class Histogram:
 
 
 def is_flow_multiple_submit(flow_desc: FlowDesc):
-    if not hasattr(flow_desc, "rules"):
-        return False
-
-    for rule in flow_desc.rules.access:
-        if FlowPermission.change_answer in rule.permissions:
-            return True
-
-    return False
+    return any(FlowPermission.change_answer in rule.permissions
+            for rule in flow_desc.rules.access)
 
 
-def is_page_multiple_submit(flow_desc: FlowDesc, page_desc):
+def is_page_multiple_submit(flow_desc: FlowDesc, page: PageBase):
     result = is_flow_multiple_submit(flow_desc)
 
-    page_rules = getattr(page_desc, "access_rules", None)
+    page_rules = page.access_rules
     if page_rules is None:
         return result
 
-    add_permissions = getattr(page_rules, "add_permissions", None)
-    remove_permissions = getattr(page_rules, "remove_permissions", None)
-
     if result:
-        if remove_permissions is not None:
-            if FlowPermission.change_answer in remove_permissions:
-                result = False
+        if FlowPermission.change_answer in page_rules.remove_permissions:
+            result = False
 
     else:
-        if add_permissions is not None:
-            if FlowPermission.change_answer in add_permissions:
-                result = True
+        if FlowPermission.change_answer in page_rules.add_permissions:
+            result = True
 
     return result
 
@@ -394,7 +383,7 @@ def make_page_answer_stats_list(
                         commit_sha=pctx.course_commit_sha,
                         flow_session=visit.flow_session)
 
-                title = page.title(grading_page_context, visit.page_data.data)
+                title = page.page_title(grading_page_context, visit.page_data.data)
 
                 answer_feedback = visit.get_most_recent_feedback()
 
@@ -580,7 +569,7 @@ def page_analytics(pctx: CoursePageContext, flow_id: str, group_id: str, page_id
                 commit_sha=pctx.course_commit_sha,
                 flow_session=visit.flow_session)
 
-        title = page.title(grading_page_context, visit.page_data.data)
+        title = page.page_title(grading_page_context, visit.page_data.data)
         body = page.analytic_view_body(grading_page_context, visit.page_data.data)
 
         normalized_answer = page.normalized_answer(

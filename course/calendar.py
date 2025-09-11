@@ -24,6 +24,7 @@ THE SOFTWARE.
 """
 
 import datetime
+from dataclasses import dataclass
 
 import django.forms as forms
 from crispy_forms.layout import Submit
@@ -39,8 +40,10 @@ from django.utils.safestring import mark_safe
 from django.utils.translation import get_language, gettext_lazy as _, pgettext_lazy
 
 from course.constants import ParticipationPermission as PPerm
+from course.content import CalendarDesc, calendar_ta, get_model_from_repo
 from course.models import Event
-from course.utils import course_view, render_course_page
+from course.utils import CoursePageContext, course_view, render_course_page
+from course.validation import ValidationContext
 from relate.utils import HTML5DateTimeInput, StyledForm, as_local_time, string_concat
 
 
@@ -163,7 +166,7 @@ def _create_recurring_events_backend(course, time, kind, starting_ordinal, inter
 
 @login_required
 @course_view
-def create_recurring_events(pctx):
+def create_recurring_events(pctx: CoursePageContext):
     if not pctx.has_permission(PPerm.edit_events):
         raise PermissionDenied(_("may not edit events"))
 
@@ -217,7 +220,8 @@ def create_recurring_events(pctx):
                     if isinstance(e, ValidationError):
                         for field, error in e.error_dict.items():
                             try:
-                                form.add_error(field, error)
+                                # https://github.com/typeddjango/django-stubs/pull/2849
+                                form.add_error(field, error)  # type: ignore[arg-type]
                             except ValueError:
                                 # This happens when ValidationError were
                                 # raised for fields which don't exist in
@@ -278,7 +282,7 @@ class RenumberEventsForm(StyledForm):
 @transaction.atomic
 @login_required
 @course_view
-def renumber_events(pctx):
+def renumber_events(pctx: CoursePageContext):
     if not pctx.has_permission(PPerm.edit_events):
         raise PermissionDenied(_("may not edit events"))
 
@@ -334,7 +338,7 @@ def renumber_events(pctx):
     else:
         form = RenumberEventsForm(pctx.course.identifier)
 
-    if messages and message_level:
+    if message and message_level:
         messages.add_message(request, message_level, message)
     return render_course_page(pctx, "course/generic-course-form.html", {
         "form": form,
@@ -346,13 +350,13 @@ def renumber_events(pctx):
 
 # {{{ calendar
 
+@dataclass(frozen=True)
 class EventInfo:
-    def __init__(self, id, human_title, start_time, end_time, description):
-        self.id = id
-        self.human_title = human_title
-        self.start_time = start_time
-        self.end_time = end_time
-        self.description = description
+    id: int
+    human_title: str
+    start_time: datetime.datetime | datetime.date
+    end_time: datetime.datetime | datetime.date | None
+    description: str
 
 
 def _fullcalendar_lang_code() -> str:
@@ -368,7 +372,7 @@ def _fullcalendar_lang_code() -> str:
 
 
 @course_view
-def view_calendar(pctx):
+def view_calendar(pctx: CoursePageContext):
     if not pctx.has_permission(PPerm.view_calendar):
         raise PermissionDenied(_("may not view calendar"))
 
@@ -379,20 +383,21 @@ def view_calendar(pctx):
     events_json = []
 
     from course.content import (
-        get_raw_yaml_from_repo,
         markup_to_html,
-        parse_date_spec,
     )
+    vctx = ValidationContext(
+                    pctx. repo, pctx.course_commit_sha, pctx.course)
     try:
-        event_descr = get_raw_yaml_from_repo(pctx.repo,
-                pctx.course.events_file, pctx.course_commit_sha)
+        calendar_desc = get_model_from_repo(
+                            vctx, calendar_ta, pctx.repo, pctx.course.events_file,
+                            pctx.course_commit_sha)
     except ObjectDoesNotExist:
-        event_descr = {}
+        calendar_desc = CalendarDesc()
 
-    event_kinds_desc = event_descr.get("event_kinds", {})
-    event_info_desc = event_descr.get("events", {})
+    event_kinds_desc = calendar_desc.event_kinds
+    event_info_desc = calendar_desc.events
 
-    event_info_list = []
+    event_info_list: list[EventInfo] = []
 
     events = sorted(
             Event.objects
@@ -417,13 +422,13 @@ def view_calendar(pctx):
             event_json["end"] = event.end_time.isoformat()
 
         if kind_desc is not None:
-            if "color" in kind_desc:
-                event_json["color"] = kind_desc["color"]
-            if "title" in kind_desc:
+            if kind_desc.color is not None:
+                event_json["color"] = kind_desc.color
+            if kind_desc.title:
                 if event.ordinal is not None:
-                    human_title = kind_desc["title"].format(nr=event.ordinal)
+                    human_title = kind_desc.title.format(nr=event.ordinal)
                 else:
-                    human_title = kind_desc["title"]
+                    human_title = kind_desc.title
                     if human_title.endswith("{nr}"):
                         human_title = human_title[:-4].strip()
 
@@ -431,27 +436,23 @@ def view_calendar(pctx):
         show_description = True
         event_desc = event_info_desc.get(str(event))
         if event_desc is not None:
-            if "description" in event_desc:
+            if event_desc.description:
                 description = markup_to_html(
                         pctx.course, pctx.repo, pctx.course_commit_sha,
-                        event_desc["description"])
+                        event_desc.description)
 
-            if "title" in event_desc:
-                human_title = event_desc["title"]
+            if event_desc.title:
+                human_title = event_desc.title
 
-            if "color" in event_desc:
-                event_json["color"] = event_desc["color"]
+            if event_desc.color:
+                event_json["color"] = event_desc.color
 
-            if "show_description_from" in event_desc:
-                ds = parse_date_spec(
-                        pctx.course, event_desc["show_description_from"])
-                if now < ds:
+            if event_desc.show_description_from:
+                if now < event_desc.show_description_from.eval(pctx.course):
                     show_description = False
 
-            if "show_description_until" in event_desc:
-                ds = parse_date_spec(
-                        pctx.course, event_desc["show_description_until"])
-                if now > ds:
+            if event_desc.show_description_until:
+                if now > event_desc.show_description_until.eval(pctx.course):
                     show_description = False
 
         event_json["title"] = human_title

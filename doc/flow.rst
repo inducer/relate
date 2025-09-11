@@ -278,18 +278,9 @@ The granted access permissions for the entire flow (see
 per-page basis.  This happens in the ``access_rules`` sub-block of each page,
 e.g. in :attr:`course.page.ChoiceQuestion.access_rules`:
 
-.. class:: PageAccessRules
+.. currentmodule:: course.page.base
 
-    .. attribute:: add_permissions
-
-        A list of :class:`~course.constants.flow_permission` values that are
-        granted *in addition* to the globally granted ones.
-
-    .. attribute:: remove_permissions
-
-        A list of :class:`~course.constants.flow_permission` values that are
-        not granted for this page even if they are granted by the global flow
-        permissions.
+.. autoclass:: PageAccessRules
 
 For example, to grant permission to revise an answer on a
 :class:`course.page.PythonCodeQuestion`, one might type::
@@ -304,17 +295,17 @@ For example, to grant permission to revise an answer on a
 .. _tabbed-page-view:
 
 Tabbed page view
-^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^
 
 A flow page can be displayed in a tabbed view, where the first tab is the
-flow page itself, and the subsequent tabs are additional external websites. 
+flow page itself, and the subsequent tabs are additional external websites.
 
 An example use case is when the participant does not have access to
 browser-native tab functionality. This is the case when using the
 "Guardian" browser with the "ProctorU" proctoring service.
 
 To access the tabbed page for a flow, append `/ext-resource-tabs` to the URL.
-Alternatively, you can create a link to allow users to navigate to the tabbed 
+Alternatively, you can create a link to allow users to navigate to the tabbed
 page directly. For example, `[Open tabs](ext-resource-tabs)`.
 
 You might need to set `X_FRAME_OPTIONS` in your Django settings to allow embedding
@@ -325,6 +316,7 @@ For example, you can add the following to your `local_settings.py`:
 
     X_FRAME_OPTIONS = 'SAMEORIGIN'
 
+.. currentmodule:: course.content
 
 .. autoclass:: TabDesc
 

@@ -36,6 +36,7 @@ from typing import (
 
 import django.forms as forms
 import dulwich.client
+import dulwich.repo
 import dulwich.web
 import paramiko
 import paramiko.client
@@ -61,13 +62,13 @@ from course.auth import with_course_api_auth
 from course.constants import ParticipationPermission as PPerm, ParticipationStatus
 from course.models import Course, Participation, ParticipationRole
 from course.utils import (
+    CoursePageContext,
     course_view,
     get_course_specific_language_choices,
     render_course_page,
 )
 from relate.utils import (
     HTML5DateInput,
-    Repo_ish,
     StyledForm,
     StyledModelForm,
     string_concat,
@@ -81,6 +82,7 @@ if TYPE_CHECKING:
     from dulwich.objects import Commit
 
     from course.auth import APIContext
+    from course.repo import Repo_ish
 
 # }}}
 
@@ -93,7 +95,9 @@ def _remove_prefix(prefix: bytes, s: bytes) -> bytes:
 
 
 def transfer_remote_refs(
-        repo: Repo_ish, fetch_pack_result: dulwich.client.FetchPackResult) -> None:
+            repo: dulwich.repo.Repo,
+            fetch_pack_result: dulwich.client.FetchPackResult
+        ) -> None:
 
     valid_refs = []
 
@@ -382,8 +386,11 @@ def run_course_update_command(
                 content_repo, pctx.course.course_file, pctx.course.events_file,
                 new_sha, course=pctx.course)
     except ValidationError as e:
+        from traceback import print_exc
+        print_exc()
+
         messages.add_message(request, messages.ERROR,
-                _("Course content did not validate successfully: '%s' "
+                _("Course content did not validate successfully:<pre>%s</pre>"
                 "Update not applied.") % str(e))
         return
 
@@ -498,7 +505,7 @@ def _get_commit_message_as_html(repo, commit_sha):
 
 @login_required
 @course_view
-def update_course(pctx):
+def update_course(pctx: CoursePageContext):
     if not (
             pctx.has_permission(PPerm.update_content)
             or pctx.has_permission(PPerm.preview_content)):
@@ -513,6 +520,7 @@ def update_course(pctx):
         repo = content_repo.repo
     else:
         repo = content_repo
+    assert isinstance(repo, dulwich.repo.Repo)
 
     participation = pctx.participation
 

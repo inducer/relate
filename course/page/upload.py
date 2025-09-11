@@ -23,22 +23,32 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from typing import Any
+from typing import TYPE_CHECKING, Any, Literal, Self, TypeAlias
 
 import django.forms as forms
 from crispy_forms.layout import Field, Layout
 from django.utils.translation import gettext as _, gettext_lazy
+from pydantic import NonNegativeFloat, ValidationInfo, model_validator
+from typing_extensions import override
 
 from course.page.base import (
+    AnswerData,
     PageBaseWithCorrectAnswer,
     PageBaseWithHumanTextFeedback,
     PageBaseWithTitle,
     PageBaseWithValue,
+    PageBehavior,
     PageContext,
+    PageData,
     markup_to_html,
 )
-from course.validation import AttrSpec, ValidationError
-from relate.utils import StyledVerticalForm, string_concat
+from course.validation import Markup, get_validation_context
+from relate.utils import StyledFormBase, StyledVerticalForm
+
+
+if TYPE_CHECKING:
+    from django.core.files import File
+    from django.http import HttpRequest
 
 
 # {{{ upload question
@@ -82,6 +92,13 @@ class FileUploadForm(StyledVerticalForm):
                 raise forms.ValidationError(_("Uploaded file is not a PDF."))
 
         return uploaded_file
+
+
+UploadableMimeType: TypeAlias = Literal[
+            "application/pdf",
+            "text/plain",
+            "application/octet-stream",
+]
 
 
 class FileUploadQuestion(PageBaseWithTitle, PageBaseWithValue,
@@ -153,59 +170,40 @@ class FileUploadQuestion(PageBaseWithTitle, PageBaseWithValue,
         The grading guideline for this question, in :ref:`markup`.
     """
 
-    ALLOWED_MIME_TYPES = [
-            "application/pdf",
-            "text/plain",
-            "application/octet-stream",
-            ]
+    type: Literal["FileUploadQuestion"]  = "FileUploadQuestion"  # pyright: ignore[reportIncompatibleVariableOverride]
 
-    def __init__(self, vctx, location, page_desc):
-        super().__init__(vctx, location, page_desc)
+    prompt: Markup
+    mime_types: list[UploadableMimeType]
+    maximum_megabytes: NonNegativeFloat
 
-        if not (set(page_desc.mime_types) <= set(self.ALLOWED_MIME_TYPES)):
-            raise ValidationError(
-                string_concat(
-                    location, ": ",
-                    _("unrecognized mime types"),
-                    " '%(presenttype)s'")
-                % {
-                    "presenttype": ", ".join(
-                        set(page_desc.mime_types)
-                        - set(self.ALLOWED_MIME_TYPES))})
+    correct_answer: Markup | None = None
 
-        if page_desc.maximum_megabytes <= 0:
-            raise ValidationError(
-                string_concat(
-                    location, ": ",
-                    _("'maximum_megabytes' expects a positive value, "
-                      "got %(value)s instead")
-                    % {"value": str(page_desc.maximum_megabytes)}))
+    @model_validator(mode="after")
+    def check_has_value(self, info: ValidationInfo) -> Self:
+        vctx = get_validation_context(info)
+        if self.value is None:
+            vctx.add_warning("upload question does not have assigned point value")
 
-        if vctx is not None:
-            if not hasattr(page_desc, "value"):
-                vctx.add_warning(location, _("upload question does not have "
-                        "assigned point value"))
+        return self
 
-    def required_attrs(self) -> AttrSpec:
-        return (
-            *super().required_attrs(),
-            ("prompt", "markup"),
-            ("mime_types", list),
-            ("maximum_megabytes", (int, float)))
-
-    def allowed_attrs(self) -> AttrSpec:
-        return (*super().allowed_attrs(), ("correct_answer", "markup"))
-
-    def human_feedback_point_value(self, page_context, page_data):
+    @override
+    def human_feedback_point_value(self,
+                page_context: PageContext,
+                page_data: Any
+            ) -> float | None:
         return self.max_points(page_data)
 
-    def markup_body_for_title(self):
-        return self.page_desc.prompt
+    @override
+    def body_attr_for_title(self):
+        return "prompt"
 
-    def body(self, page_context, page_data):
-        return markup_to_html(page_context, self.page_desc.prompt)
+    @override
+    def body(self, page_context: PageContext, page_data: PageData) -> str:
+        return markup_to_html(page_context, self.prompt)
 
-    def get_submission_filename_pattern(self, page_context, mime_type):
+    def get_submission_filename_pattern(self,
+                page_context: PageContext,
+                mime_type: str | None):
         from mimetypes import guess_extension
         if mime_type is not None:
             ext = guess_extension(mime_type)
@@ -224,13 +222,16 @@ class FileUploadQuestion(PageBaseWithTitle, PageBaseWithValue,
                 f"{page_context.course.identifier}/"
                 "file-upload/"
                 f"{flow_id}/"
-                f"{self.page_desc.id}/"
+                f"{self.id}/"
                 f"{username}"
                 f"{ext}")
 
-    def file_to_answer_data(self, page_context, uploaded_file, mime_type):
-        if len(self.page_desc.mime_types) == 1:
-            mime_type, = self.page_desc.mime_types
+    def file_to_answer_data(self,
+                page_context: PageContext,
+                uploaded_file: File,
+                mime_type: str | None):
+        if len(self.mime_types) == 1:
+            mime_type, = self.mime_types
 
         from django.conf import settings
 
@@ -245,7 +246,7 @@ class FileUploadQuestion(PageBaseWithTitle, PageBaseWithValue,
                 }
 
     @staticmethod
-    def get_content_from_answer_data(answer_data):
+    def get_content_from_answer_data(answer_data) -> tuple[bytes, str]:
         mime_type = answer_data.get("mime_type", "application/octet-stream")
 
         if "storage_filename" in answer_data:
@@ -261,21 +262,40 @@ class FileUploadQuestion(PageBaseWithTitle, PageBaseWithValue,
         else:
             raise ValueError("could not get submitted data from answer_data JSON")
 
-    def make_form(self, page_context, page_data,
-            answer_data, page_behavior):
+    @override
+    def make_form(self,
+            page_context: PageContext,
+            page_data: PageData,
+            answer_data: AnswerData,
+            page_behavior: PageBehavior,
+            ) -> StyledFormBase:
         form = FileUploadForm(
-                self.page_desc.maximum_megabytes, self.page_desc.mime_types)
+                self.maximum_megabytes, self.mime_types)
         return form
 
-    def process_form_post(self, page_context, page_data, post_data, files_data,
-            page_behavior):
+    @override
+    def process_form_post(
+            self,
+            page_context: PageContext,
+            page_data: PageData,
+            post_data: Any,
+            files_data: Any,
+            page_behavior: PageBehavior,
+            ) -> StyledFormBase:
         form = FileUploadForm(
-                self.page_desc.maximum_megabytes, self.page_desc.mime_types,
+                self.maximum_megabytes, self.mime_types,
                 post_data, files_data)
         return form
 
-    def form_to_html(self, request, page_context, form, answer_data):
-        ctx = {"form": form}
+    @override
+    def form_to_html(
+            self,
+            request: HttpRequest,
+            page_context: PageContext,
+            form: StyledFormBase,
+            answer_data: AnswerData,
+            ):
+        ctx: dict[str, object] = {"form": form}
         if answer_data is not None:
             from base64 import b64encode
             subm_data, subm_mime = self.get_content_from_answer_data(answer_data)
@@ -291,15 +311,21 @@ class FileUploadQuestion(PageBaseWithTitle, PageBaseWithValue,
         return self.file_to_answer_data(page_context, uploaded_file,
                 mime_type=uploaded_file.content_type)
 
+    @override
     def normalized_answer(
                 self,
                 page_context: PageContext,
-                page_data: Any,
-                answer_data: Any
+                page_data: PageData,
+                answer_data: AnswerData
             ) -> str | None:
         return None
 
-    def normalized_bytes_answer(self, page_context, page_data, answer_data):
+    @override
+    def normalized_bytes_answer(self,
+                page_context: PageContext,
+                page_data: PageData,
+                answer_data: AnswerData,
+            ) -> tuple[str, bytes] | None:
         if answer_data is None:
             return None
 

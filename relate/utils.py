@@ -35,7 +35,6 @@ from typing import (
 from zoneinfo import ZoneInfo
 
 import django.forms as forms
-import dulwich.repo
 from django.http import HttpRequest
 from django.utils.text import format_lazy
 from django.utils.translation import gettext_lazy as _
@@ -115,46 +114,6 @@ class StyledModelForm(forms.ModelForm):
         self.helper.field_class = "col-lg-8"
 
         super().__init__(*args, **kwargs)
-
-
-# {{{ repo-ish types
-
-class SubdirRepoWrapper:
-    repo: dulwich.repo.Repo
-    subdir: str
-
-    def __init__(self, repo: dulwich.repo.Repo, subdir: str) -> None:
-        self.repo = repo
-
-        # This wrapper should only get used if there is a subdir to be had.
-        assert subdir
-        self.subdir = subdir
-
-    def controldir(self) -> Path | str:
-        return self.repo.controldir()
-
-    def close(self) -> None:
-        self.repo.close()
-
-    def __enter__(self) -> SubdirRepoWrapper:
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
-        self.close()
-
-    def get_refs(self) -> Mapping[bytes, bytes]:
-        return self.repo.get_refs()
-
-    def __setitem__(self, item: bytes, value: bytes) -> None:
-        self.repo[item] = value
-
-    def __delitem__(self, item: bytes) -> None:
-        del self.repo[item]
-
-
-Repo_ish = dulwich.repo.Repo | SubdirRepoWrapper
-
-# }}}
 
 
 def remote_address_from_request(request: HttpRequest) -> IPv4Address | IPv6Address:
@@ -278,37 +237,6 @@ def format_datetime_local(
             return dformat(datetime, format)
         except AttributeError:
             return formats.date_format(datetime, "DATETIME_FORMAT")
-
-
-# {{{ dict_to_struct
-
-class Struct:
-    def __init__(self, entries: dict[str, Any]) -> None:
-        for name, val in entries.items():
-            setattr(self, name, val)
-
-        self._field_names = list(entries.keys())
-
-    def __repr__(self):
-        return repr(self.__dict__)
-
-
-def dict_to_struct(data: dict[str, Any]) -> Struct:
-    if isinstance(data, list):
-        return [dict_to_struct(d) for d in data]
-    elif isinstance(data, dict):
-        return Struct({k: dict_to_struct(v) for k, v in data.items()})
-    else:
-        return data
-
-
-def struct_to_dict(data: Struct) -> dict[str, Any]:
-    return {
-            name: val
-            for name, val in data.__dict__.items()
-            if not name.startswith("_")}
-
-# }}}
 
 
 def _retry_transaction(

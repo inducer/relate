@@ -39,8 +39,12 @@ from course import (
     utils,
 )
 from course.constants import FlowPermission as FPerm
-from course.content import parse_date_spec
-from relate.utils import dict_to_struct, struct_to_dict
+from course.content import (
+    FlowSessionAccessMode,
+    FlowSessionGradingMode,
+    FlowSessionStartMode,
+)
+from course.datespec import parse_date_spec
 from tests import factories
 from tests.base_test_mixins import (
     CoursesTestMixinBase,
@@ -599,7 +603,7 @@ class GetFlowRulesTest(SingleCourseTestMixin, TestCase):
             self.flow_id,
             now(),
             consider_exceptions=False,
-            default_rules_desc=default_rules_desc
+            default_rules=default_rules_desc
         )
 
         self.assertListEqual(result, default_rules_desc)
@@ -610,7 +614,7 @@ class GetFlowRulesTest(SingleCourseTestMixin, TestCase):
             self.flow_id,
             now(),
             consider_exceptions=True,
-            default_rules_desc=default_rules_desc
+            default_rules=default_rules_desc
         )
 
         self.assertListEqual(result, default_rules_desc)
@@ -630,7 +634,7 @@ class GetFlowRulesTest(SingleCourseTestMixin, TestCase):
                     self.flow_id,
                     now(),
                     consider_exceptions=False,
-                    default_rules_desc=default_rules_desc
+                    default_rules=default_rules_desc
                 )
 
                 # there are existing rule for those kind
@@ -643,12 +647,12 @@ class GetFlowRulesTest(SingleCourseTestMixin, TestCase):
 
         for kind in dict(constants.FLOW_RULE_KIND_CHOICES).keys():
             flow_desc_dict_copy = deepcopy(flow_desc_dict)
-            rules_dict = struct_to_dict(flow_desc_dict_copy["rules"])
+            rules_dict = flow_desc_dict_copy["rules"]
 
             # delete kind from flow_desc
             rules_dict.pop(kind)
-            flow_desc_dict_copy["rules"] = dict_to_struct(rules_dict)
-            flow_desc = dict_to_struct(flow_desc_dict_copy)
+            flow_desc_dict_copy["rules"] = rules_dict
+            flow_desc = flow_desc_dict_copy
 
             assert not hasattr(flow_desc.rules, kind)
 
@@ -659,7 +663,7 @@ class GetFlowRulesTest(SingleCourseTestMixin, TestCase):
                     self.flow_id,
                     now(),
                     consider_exceptions=False,
-                    default_rules_desc=default_rules_desc
+                    default_rules=default_rules_desc
                 )
 
                 self.assertListEqual(result, default_rules_desc)
@@ -685,7 +689,7 @@ class GetFlowRulesTest(SingleCourseTestMixin, TestCase):
             self.flow_id,
             now(),
             consider_exceptions=False,  # NOT consider
-            default_rules_desc=default_rules_desc
+            default_rules=default_rules_desc
         )
 
         exist_start_rule = flow_desc.rules.start
@@ -718,7 +722,7 @@ class GetFlowRulesTest(SingleCourseTestMixin, TestCase):
             self.student_participation,
             self.flow_id,
             now(),
-            default_rules_desc=default_rules_desc
+            default_rules=default_rules_desc
         )
 
         self.assertNotEqual(result, default_rules_desc)
@@ -758,7 +762,7 @@ class GetFlowRulesTest(SingleCourseTestMixin, TestCase):
             self.flow_id,
             now(),
             consider_exceptions=True,
-            default_rules_desc=default_rules_desc
+            default_rules=default_rules_desc
         )
 
         exist_start_rule = flow_desc.rules.start
@@ -810,7 +814,7 @@ class GetFlowRulesTest(SingleCourseTestMixin, TestCase):
             self.flow_id,
             now_datetime,
             consider_exceptions=True,
-            default_rules_desc=default_rules_desc
+            default_rules=default_rules_desc
         )
 
         self.assertEqual(len(result), len(exist_start_rule) + 2)
@@ -829,7 +833,7 @@ class GetFlowRulesTest(SingleCourseTestMixin, TestCase):
             self.flow_id,
             now_datetime,
             consider_exceptions=True,
-            default_rules_desc=default_rules_desc
+            default_rules=default_rules_desc
         )
 
         self.assertEqual(len(result), len(exist_start_rule) + 1)
@@ -848,7 +852,7 @@ class GetFlowRulesTest(SingleCourseTestMixin, TestCase):
             self.flow_id,
             now_datetime,
             consider_exceptions=True,
-            default_rules_desc=default_rules_desc
+            default_rules=default_rules_desc
         )
 
         self.assertEqual(len(result), len(exist_start_rule))
@@ -902,13 +906,13 @@ class GetSessionRuleMixin:
 
     def assertRuleEqual(self, rule, expected_rule):  # noqa
         self.assertIsInstance(rule, self.rule_klass)
-        rule_dict = struct_to_dict(rule)
+        rule_dict = rule
 
         if isinstance(expected_rule, dict):
             expected_rule_dict = expected_rule
         else:
             self.assertIsInstance(expected_rule, self.rule_klass)
-            expected_rule_dict = struct_to_dict(expected_rule)
+            expected_rule_dict = expected_rule
 
         self.assertDictEqual(rule_dict, expected_rule_dict)
 
@@ -952,10 +956,10 @@ class GetSessionRuleMixin:
 
 class GetSessionStartRuleTest(GetSessionRuleMixin, SingleCourseTestMixin, TestCase):
     # test utils.get_session_start_rule
-    call_func = utils.get_session_start_rule
-    rule_klass = utils.FlowSessionStartRule
+    call_func = utils.get_session_start_mode
+    rule_klass = FlowSessionStartMode
 
-    fallback_rule = utils.FlowSessionStartRule(
+    fallback_rule = FlowSessionStartMode(
             may_list_existing_sessions=False,
             may_start_new_session=False)
 
@@ -974,7 +978,7 @@ class GetSessionStartRuleTest(GetSessionRuleMixin, SingleCourseTestMixin, TestCa
 
     def get_result(self, **extra_kwargs):
         kwargs = self.get_updated_kwargs(**extra_kwargs)
-        return utils.get_session_start_rule(**kwargs)
+        return utils.get_session_start_mode(**kwargs)
 
     def get_default_rule(self, **kwargs):
         defaults = {
@@ -1028,7 +1032,7 @@ class GetSessionStartRuleTest(GetSessionRuleMixin, SingleCourseTestMixin, TestCa
 
     def test_not_passing_not_for_rollover_and_if_in_facility(self):
         self.mock_get_flow_rules.return_value = [
-            dict_to_struct({"if_in_facility": "f1"})]
+            {"if_in_facility": "f1"}]
         self.mock_eval_generic_conditions.return_value = True
         self.mock_eval_participation_tags_conditions.return_value = True
         result = self.get_result(facilities=frozenset(["f2"]))
@@ -1038,8 +1042,8 @@ class GetSessionStartRuleTest(GetSessionRuleMixin, SingleCourseTestMixin, TestCa
         factories.FlowSessionFactory(
             participation=self.student_participation, flow_id=self.flow_id)
         self.mock_get_flow_rules.return_value = [
-            dict_to_struct({"if_in_facility": "f1",
-                            "if_has_in_progress_session": 2})]
+            {"if_in_facility": "f1",
+                            "if_has_in_progress_session": 2}]
         self.mock_eval_generic_conditions.return_value = True
         self.mock_eval_participation_tags_conditions.return_value = True
         result = self.get_result(facilities=frozenset(["f1", "f2"]))
@@ -1050,8 +1054,8 @@ class GetSessionStartRuleTest(GetSessionRuleMixin, SingleCourseTestMixin, TestCa
             participation=self.student_participation, flow_id=self.flow_id,
             in_progress=True)
         self.mock_get_flow_rules.return_value = [
-            dict_to_struct({"if_has_in_progress_session": 1,
-                            "if_has_session_tagged": "atag1"})]
+            {"if_has_in_progress_session": 1,
+                            "if_has_session_tagged": "atag1"}]
         self.mock_eval_generic_conditions.return_value = True
         self.mock_eval_participation_tags_conditions.return_value = True
         result = self.get_result()
@@ -1063,8 +1067,8 @@ class GetSessionStartRuleTest(GetSessionRuleMixin, SingleCourseTestMixin, TestCa
             access_rules_tag="atag1"
         )
         self.mock_get_flow_rules.return_value = [
-            dict_to_struct({"if_has_session_tagged": "atag1",
-                            "if_has_fewer_sessions_than": 1})]
+            {"if_has_session_tagged": "atag1",
+                            "if_has_fewer_sessions_than": 1}]
         self.mock_eval_generic_conditions.return_value = True
         self.mock_eval_participation_tags_conditions.return_value = True
         result = self.get_result()
@@ -1075,8 +1079,8 @@ class GetSessionStartRuleTest(GetSessionRuleMixin, SingleCourseTestMixin, TestCa
             participation=self.student_participation, flow_id=self.flow_id,
             access_rules_tag="atag1")
         self.mock_get_flow_rules.return_value = [
-            dict_to_struct({"if_has_fewer_sessions_than": 3,
-                            "if_has_fewer_tagged_sessions_than": 1})]
+            {"if_has_fewer_sessions_than": 3,
+                            "if_has_fewer_tagged_sessions_than": 1}]
         self.mock_eval_generic_conditions.return_value = True
         self.mock_eval_participation_tags_conditions.return_value = True
         result = self.get_result()
@@ -1087,7 +1091,7 @@ class GetSessionStartRuleTest(GetSessionRuleMixin, SingleCourseTestMixin, TestCa
             participation=self.student_participation, flow_id=self.flow_id,
             access_rules_tag="atag1")
         self.mock_get_flow_rules.return_value = [
-            dict_to_struct({"if_has_fewer_tagged_sessions_than": 3})]
+            {"if_has_fewer_tagged_sessions_than": 3}]
         self.mock_eval_generic_conditions.return_value = True
         self.mock_eval_participation_tags_conditions.return_value = True
         result = self.get_result()
@@ -1103,7 +1107,7 @@ class GetSessionStartRuleTest(GetSessionRuleMixin, SingleCourseTestMixin, TestCa
         factories.FlowSessionFactory.create_batch(size=2,
             participation=self.student_participation, flow_id=self.flow_id)
         self.mock_get_flow_rules.return_value = [
-            dict_to_struct({})]
+            {}]
         self.mock_eval_generic_conditions.return_value = True
         self.mock_eval_participation_tags_conditions.return_value = True
         result = self.get_result()
@@ -1119,7 +1123,7 @@ class GetSessionStartRuleTest(GetSessionRuleMixin, SingleCourseTestMixin, TestCa
         factories.FlowSessionFactory.create_batch(size=2,
             participation=self.student_participation, flow_id=self.flow_id)
         self.mock_get_flow_rules.return_value = [
-            dict_to_struct({})]
+            {}]
         self.mock_eval_generic_conditions.return_value = True
         self.mock_eval_participation_tags_conditions.return_value = True
         result = self.get_result(for_rollover=True)
@@ -1137,12 +1141,12 @@ class GetSessionStartRuleTest(GetSessionRuleMixin, SingleCourseTestMixin, TestCa
         may_start_new_session = mock.MagicMock()
         may_list_existing_sessions = mock.MagicMock()
         self.mock_get_flow_rules.return_value = [
-            dict_to_struct(
+
                 {"tag_session": tag_session,
                  "default_expiration_mode": default_expiration_mode,
                  "may_start_new_session": may_start_new_session,
                  "may_list_existing_sessions": may_list_existing_sessions
-                 })]
+                 }]
         self.mock_eval_generic_conditions.return_value = True
         self.mock_eval_participation_tags_conditions.return_value = True
 
@@ -1159,10 +1163,10 @@ class GetSessionStartRuleTest(GetSessionRuleMixin, SingleCourseTestMixin, TestCa
 
 class GetSessionAccessRuleTest(GetSessionRuleMixin, SingleCourseTestMixin, TestCase):
     # test utils.get_session_access_rule
-    call_func = utils.get_session_access_rule
-    rule_klass = utils.FlowSessionAccessRule
+    call_func = utils.get_session_access_mode
+    rule_klass = FlowSessionAccessMode
 
-    fallback_rule = utils.FlowSessionAccessRule(permissions=frozenset())
+    fallback_rule = FlowSessionAccessMode(permissions=frozenset())
     default_permissions = [FPerm.view]
 
     @property
@@ -1205,7 +1209,7 @@ class GetSessionAccessRuleTest(GetSessionRuleMixin, SingleCourseTestMixin, TestC
 
     def get_result(self, **extra_kwargs):
         kwargs = self.get_updated_kwargs(**extra_kwargs)
-        return utils.get_session_access_rule(**kwargs)
+        return utils.get_session_access_mode(**kwargs)
 
     def get_default_rule(self, **kwargs):
         defaults = {
@@ -1265,9 +1269,9 @@ class GetSessionAccessRuleTest(GetSessionRuleMixin, SingleCourseTestMixin, TestC
 
     def test_not_passing_if_in_facility(self):
         self.mock_get_flow_rules.return_value = [
-            dict_to_struct({"if_in_facility": "f1",
+            {"if_in_facility": "f1",
                             "permissions": mock.MagicMock()
-                            })]
+                            }]
         self.mock_eval_generic_conditions.return_value = True
         self.mock_eval_participation_tags_conditions.return_value = True
         result = self.get_result(facilities=frozenset(["f2"]))
@@ -1275,10 +1279,10 @@ class GetSessionAccessRuleTest(GetSessionRuleMixin, SingleCourseTestMixin, TestC
 
     def test_not_passing_if_in_progress(self):
         self.mock_get_flow_rules.return_value = [
-            dict_to_struct({"if_in_facility": "f1",
+            {"if_in_facility": "f1",
                             "if_in_progress": True,
                             "permissions": mock.MagicMock()
-                            })]
+                            }]
         self.mock_eval_generic_conditions.return_value = True
         self.mock_eval_participation_tags_conditions.return_value = True
         result = self.get_result(facilities=frozenset(["f1", "f2"]))
@@ -1286,11 +1290,11 @@ class GetSessionAccessRuleTest(GetSessionRuleMixin, SingleCourseTestMixin, TestC
 
     def test_not_passing_if_expiration_mode(self):
         self.mock_get_flow_rules.return_value = [
-            dict_to_struct({"if_in_progress": True,
+            {"if_in_progress": True,
                             "if_expiration_mode":
                                 constants.FlowSessionExpirationMode.end,
                             "permissions": mock.MagicMock()
-                            })]
+                            }]
         self.mock_eval_generic_conditions.return_value = True
         self.mock_eval_participation_tags_conditions.return_value = True
         result = self.get_result(session=self.fs2)
@@ -1298,11 +1302,11 @@ class GetSessionAccessRuleTest(GetSessionRuleMixin, SingleCourseTestMixin, TestC
 
     def test_not_passing_if_session_duration_shorter_than_minutes(self):
         self.mock_get_flow_rules.return_value = [
-            dict_to_struct({"if_expiration_mode":
+            {"if_expiration_mode":
                                 constants.FlowSessionExpirationMode.end,
                             "if_session_duration_shorter_than_minutes": 59,
                             "permissions": mock.MagicMock()
-                            })]
+                            }]
         self.mock_eval_generic_conditions.return_value = True
         self.mock_eval_participation_tags_conditions.return_value = True
         result = self.get_result()
@@ -1310,9 +1314,9 @@ class GetSessionAccessRuleTest(GetSessionRuleMixin, SingleCourseTestMixin, TestC
 
     def test_not_passing_if_session_duration_shorter_than_minutes_anonymous(self):
         self.mock_get_flow_rules.return_value = [
-            dict_to_struct({"if_session_duration_shorter_than_minutes": 59,
+            {"if_session_duration_shorter_than_minutes": 59,
                             "permissions": mock.MagicMock()
-                            })]
+                            }]
         self.mock_eval_generic_conditions.return_value = True
         self.mock_eval_participation_tags_conditions.return_value = True
         result = self.get_result(session=self.fs3)
@@ -1321,8 +1325,8 @@ class GetSessionAccessRuleTest(GetSessionRuleMixin, SingleCourseTestMixin, TestC
     def test_passed_session_duration_shorter_than_minutes(self):
         faked_permissions = frozenset([mock.MagicMock()])
         self.mock_get_flow_rules.return_value = [
-            dict_to_struct({"if_session_duration_shorter_than_minutes": 59,
-                            "permissions": faked_permissions})]
+            {"if_session_duration_shorter_than_minutes": 59,
+                            "permissions": faked_permissions}]
         self.mock_eval_generic_conditions.return_value = True
         self.mock_eval_participation_tags_conditions.return_value = True
         result = self.get_result(session=self.fs2)
@@ -1334,7 +1338,7 @@ class GetSessionAccessRuleTest(GetSessionRuleMixin, SingleCourseTestMixin, TestC
     def test_with_above_not_considiered(self):
         faked_permissions = frozenset([mock.MagicMock()])
         self.mock_get_flow_rules.return_value = [
-            dict_to_struct({"permissions": faked_permissions})]
+            {"permissions": faked_permissions}]
         self.mock_eval_generic_conditions.return_value = True
         self.mock_eval_participation_tags_conditions.return_value = True
         result = self.get_result(session=self.fs2)
@@ -1346,8 +1350,8 @@ class GetSessionAccessRuleTest(GetSessionRuleMixin, SingleCourseTestMixin, TestC
     def test_deal_with_deprecated_modify(self):
         faked_permission = mock.MagicMock()
         self.mock_get_flow_rules.return_value = [
-            dict_to_struct(
-                {"permissions": frozenset(["modify", faked_permission])})]
+
+                {"permissions": frozenset(["modify", faked_permission])}]
         self.mock_eval_generic_conditions.return_value = True
         self.mock_eval_participation_tags_conditions.return_value = True
         result = self.get_result(session=self.fs2)
@@ -1361,9 +1365,9 @@ class GetSessionAccessRuleTest(GetSessionRuleMixin, SingleCourseTestMixin, TestC
     def test_deal_with_deprecated_see_answer(self):
         faked_permission = mock.MagicMock()
         self.mock_get_flow_rules.return_value = [
-            dict_to_struct({
+            {
                 "permissions": frozenset([
-                    "see_answer", faked_permission])})]
+                    "see_answer", faked_permission])}]
         self.mock_eval_generic_conditions.return_value = True
         self.mock_eval_participation_tags_conditions.return_value = True
         result = self.get_result(session=self.fs2)
@@ -1376,9 +1380,9 @@ class GetSessionAccessRuleTest(GetSessionRuleMixin, SingleCourseTestMixin, TestC
     def test_removing_access_permissions_for_non_in_progress_sessions(self):
         faked_permission = mock.MagicMock()
         self.mock_get_flow_rules.return_value = [
-            dict_to_struct({
+            {
                 "permissions": frozenset([
-                    "modify", faked_permission])})]
+                    "modify", faked_permission])}]
         self.mock_eval_generic_conditions.return_value = True
         self.mock_eval_participation_tags_conditions.return_value = True
         result = self.get_result()
@@ -1389,9 +1393,9 @@ class GetSessionAccessRuleTest(GetSessionRuleMixin, SingleCourseTestMixin, TestC
                  [faked_permission])})
 
         self.mock_get_flow_rules.return_value = [
-            dict_to_struct({
+            {
                 "permissions": frozenset([
-                    "end_session", faked_permission])})]
+                    "end_session", faked_permission])}]
         self.mock_eval_generic_conditions.return_value = True
         self.mock_eval_participation_tags_conditions.return_value = True
         result = self.get_result()
@@ -1405,8 +1409,8 @@ class GetSessionAccessRuleTest(GetSessionRuleMixin, SingleCourseTestMixin, TestC
 class GetSessionGradingRuleTest(GetSessionRuleMixin,
                                 SingleCourseTestMixin, TestCase):
     # test utils.get_session_grading_rule
-    call_func = utils.get_session_grading_rule
-    rule_klass = utils.FlowSessionGradingRule
+    call_func = utils.get_session_grading_mode
+    rule_klass = FlowSessionGradingMode
 
     no_g_rule_exception_msg = (
         "grading rule determination was unable to find a grading rule")
@@ -1449,7 +1453,7 @@ class GetSessionGradingRuleTest(GetSessionRuleMixin,
 
     def get_result(self, **extra_kwargs):
         kwargs = self.get_updated_kwargs(**extra_kwargs)
-        return utils.get_session_grading_rule(**kwargs)
+        return utils.get_session_grading_mode(**kwargs)
 
     def get_default_rule(self, **kwargs):
         defaults = {
@@ -1485,7 +1489,7 @@ class GetSessionGradingRuleTest(GetSessionRuleMixin,
 
     def test_skip_if_has_role(self):
         self.mock_get_flow_rules.return_value = [
-            dict_to_struct({"if_has_role": ["instructor", "ta"]})]
+            {"if_has_role": ["instructor", "ta"]}]
 
         with self.assertRaises(RuntimeError) as cm:
             self.get_result()
@@ -1493,14 +1497,14 @@ class GetSessionGradingRuleTest(GetSessionRuleMixin,
 
     def test_passed_if_has_role(self):
         self.mock_get_flow_rules.return_value = [
-            dict_to_struct({"if_has_role": ["instructor", "ta"]}),
-            dict_to_struct({"if_has_role": ["instructor", "ta", "student"]})]
+            {"if_has_role": ["instructor", "ta"]},
+            {"if_has_role": ["instructor", "ta", "student"]}]
 
         result = self.get_result(flow_desc=self.get_hacked_flow_desc())
         self.assertRuleEqual(result, self.get_default_rule())
 
     def test_not_passing_eval_generic_session_conditions(self):
-        self.mock_get_flow_rules.return_value = [dict_to_struct({})]
+        self.mock_get_flow_rules.return_value = [{}]
         self.mock_eval_generic_session_conditions.return_value = False
         self.mock_eval_participation_tags_conditions.return_value = True
         with self.assertRaises(RuntimeError) as cm:
@@ -1508,7 +1512,7 @@ class GetSessionGradingRuleTest(GetSessionRuleMixin,
         self.assertIn(self.no_g_rule_exception_msg, str(cm.exception))
 
     def test_not_passing_eval_participation_tags_conditions(self):
-        self.mock_get_flow_rules.return_value = [dict_to_struct({})]
+        self.mock_get_flow_rules.return_value = [{}]
         self.mock_eval_generic_session_conditions.return_value = True
         self.mock_eval_participation_tags_conditions.return_value = False
         with self.assertRaises(RuntimeError) as cm:
@@ -1516,17 +1520,17 @@ class GetSessionGradingRuleTest(GetSessionRuleMixin,
         self.assertIn(self.no_g_rule_exception_msg, str(cm.exception))
 
     def test_if_completed_before_skipped(self):
-        self.mock_get_flow_rules.return_value = [dict_to_struct({
+        self.mock_get_flow_rules.return_value = [{
             "if_completed_before": "my_test_event 1"
-        })]
+        }]
         with self.assertRaises(RuntimeError) as cm:
             self.get_result(flow_desc=self.get_hacked_flow_desc())
         self.assertIn(self.no_g_rule_exception_msg, str(cm.exception))
 
     def test_if_completed_before_in_progress_session_skipped(self):
-        self.mock_get_flow_rules.return_value = [dict_to_struct({
+        self.mock_get_flow_rules.return_value = [{
             "if_completed_before": "my_test_event 1"
-        })]
+        }]
         with self.assertRaises(RuntimeError) as cm:
             self.get_result(
                 session=self.fs2,
@@ -1535,18 +1539,18 @@ class GetSessionGradingRuleTest(GetSessionRuleMixin,
 
     def test_if_completed_before_passed_not_using_last_activity(self):
         self.mock_get_flow_rules.return_value = [
-            dict_to_struct({"if_completed_before": "my_test_event 1"}),
-            dict_to_struct({"if_completed_before": "my_test_event 2"}),
+            {"if_completed_before": "my_test_event 1"},
+            {"if_completed_before": "my_test_event 2"},
         ]
         result = self.get_result(flow_desc=self.get_hacked_flow_desc())
         self.assertRuleEqual(result, self.get_default_rule())
 
     def test_if_completed_before_using_last_activity_with_last_activity_none_skipped(self):  # noqa
         self.mock_get_flow_rules.return_value = [
-            dict_to_struct(
+
                 {"if_completed_before": "my_test_event 1",
                  "use_last_activity_as_completion_time": True
-                 }),
+                 },
         ]
         with self.assertRaises(RuntimeError) as cm:
             self.get_result(flow_desc=self.get_hacked_flow_desc())
@@ -1561,10 +1565,10 @@ class GetSessionGradingRuleTest(GetSessionRuleMixin,
             answer={"answer": "hi"})
 
         self.mock_get_flow_rules.return_value = [
-            dict_to_struct(
+
                 {"if_completed_before": "my_test_event 1",
                  "use_last_activity_as_completion_time": True
-                 }),
+                 },
         ]
         with self.assertRaises(RuntimeError) as cm:
             self.get_result(flow_desc=self.get_hacked_flow_desc())
@@ -1579,10 +1583,10 @@ class GetSessionGradingRuleTest(GetSessionRuleMixin,
             answer={"answer": "hi"})
 
         self.mock_get_flow_rules.return_value = [
-            dict_to_struct(
+
                 {"if_completed_before": "my_test_event 1",
                  "use_last_activity_as_completion_time": True
-                 }),
+                 },
         ]
         result = self.get_result(flow_desc=self.get_hacked_flow_desc())
         self.assertRuleEqual(
@@ -1597,23 +1601,23 @@ class GetSessionGradingRuleTest(GetSessionRuleMixin,
 
         mock_generates_grade = mock.MagicMock()
         self.mock_get_flow_rules.return_value = [
-            dict_to_struct({
+            {
                 "generates_grade": mock_generates_grade,
                 "bonus_poinsts": mock_bonus_points,
                 "max_points": mock_max_points,
                 "max_points_enforced_cap": mock_max_points_enforced_cap,
                 "due": "my_mock_event_time"
-            })]
+            }]
 
         # flow_desc_params
         mock_flow_desc_grade_identifier = mock.MagicMock()
         mock_flow_desc_grade_aggregation_strategy = mock.MagicMock()
 
         result = self.get_result(flow_desc=self.get_hacked_flow_desc(
-            rules=dict_to_struct({
+            rules={
                 "grade_identifier": mock_flow_desc_grade_identifier,
                 "grade_aggregation_strategy":
-                    mock_flow_desc_grade_aggregation_strategy})))
+                    mock_flow_desc_grade_aggregation_strategy}))
 
         self.assertRuleEqual(result, self.get_default_rule(
             max_points=mock_max_points,
@@ -1626,7 +1630,7 @@ class GetSessionGradingRuleTest(GetSessionRuleMixin,
 
     def test_no_flow_desc_rule(self):
         self.mock_get_flow_rules.return_value = [
-            dict_to_struct({})]
+            {}]
 
         result = self.get_result(
             flow_desc=self.get_hacked_flow_desc(del_rules=True))

@@ -6,10 +6,6 @@ event_kinds:
         title: Exam {nr}
         color: red
 
-    test:
-        foo: bar
-
-
 events:
     "lecture 1":
         title: "Alternative title for lecture 1"
@@ -27,6 +23,5 @@ events:
 
 
     "test":
-        no_description: no description to show
         show_description_from: lecture 2
         show_description_until: lecture 3

@@ -27,127 +27,81 @@ import sys
 import threading
 import traceback
 from types import TracebackType
-from typing import Any, TypeAlias
+from typing import TYPE_CHECKING, ClassVar, Literal, TypeAlias
+
+from pydantic import BaseModel, ConfigDict, Field
 
 
-try:
+if TYPE_CHECKING:
     from .code_feedback import Feedback, GradingComplete
-except SystemError:
-    from code_feedback import Feedback, GradingComplete  # type: ignore
-except ImportError:
-    from code_feedback import Feedback, GradingComplete  # type: ignore
+else:
+    try:
+        from .code_feedback import Feedback, GradingComplete
+    except SystemError:
+        from code_feedback import Feedback, GradingComplete
+    except ImportError:
+        from code_feedback import Feedback, GradingComplete
 
-
-__doc__ = """
-PROTOCOL
-========
-
-.. class:: Request
-
-    .. attribute:: setup_code
-
-    .. attribute:: names_for_user
-
-    .. attribute:: user_code
-
-    .. attribute:: names_from_user
-
-    .. attribute:: test_code
-
-    .. attribute:: data_files
-
-        A dictionary from data file names to their
-        base64-cencoded contents.
-        Optional.
-
-    .. attribute:: compile_only
-
-        :class:`bool`
-
-.. class Response::
-    .. attribute:: result
-
-        One of
-
-        * ``success``
-        * ``timeout``
-        * ``uncaught_error``
-        * ``setup_compile_error``
-        * ``setup_error``,
-        * ``user_compile_error``
-        * ``user_error``
-        * ``test_compile_error``
-        * ``test_error``
-
-        Always present.
-
-    .. attribute:: message
-
-        Optional.
-
-    .. attribute:: traceback
-
-        Optional.
-
-    .. attribute:: stdout
-
-        Whatever came out of stdout.
-
-        Optional.
-
-    .. attribute:: stderr
-
-        Whatever came out of stderr.
-
-        Optional.
-
-    .. attribute:: figures
-
-        A list of ``(index, mime_type, string)``, where *string* is a
-        base64-encoded representation of the figure. *index* will usually
-        correspond to the matplotlib figure number.
-
-        Optional.
-
-    .. attribute:: html
-
-        A list of HTML strings generated. These are aggressively sanitized
-        before being rendered.
-
-    .. attribute:: points
-
-        A number between 0 and 1 (inclusive).
-
-        Present on ``success`` if :attr:`Request.compile_only` is *False*.
-
-    .. attribute:: feedback
-
-        A list of strings.
-
-        Present on ``success`` if :attr:`Request.compile_only` is *False*.
-"""
 
 ExcInfo: TypeAlias = tuple[type[BaseException], BaseException, TracebackType]
 
+ResultType: TypeAlias = Literal[
+                "success",
+                "uncaught_error",
+                "setup_compile_error",
+                "setup_error",
+                "test_compile_error",
+                "test_error",
+                "timeout",
+                "user_compile_error",
+                "user_error",
+                "unknown_error",
+        ]
 
-# {{{ tools
 
-class Struct:
-    def __init__(self, entries):
-        for name, val in entries.items():
-            self.__dict__[name] = val
+# {{{ protocol
 
-    def __repr__(self):
-        return repr(self.__dict__)
+class RunRequest(BaseModel):
+    compile_only: bool = False
+    setup_code: str | None = None
+    user_code: str
+    test_code: str | None = None
+    data_files: dict[str, str] = Field(default_factory=dict)
+    names_from_user: list[str] = Field(default_factory=list)
+    names_for_user: list[str] = Field(default_factory=list)
+
+
+class RunResponse(BaseModel):
+    model_config: ClassVar[ConfigDict] = ConfigDict(extra="forbid")
+
+    result: ResultType
+
+    points: float | None = None
+
+    feedback: list[str] = Field(default_factory=list)
+    stdout: str | None = None
+    stderr: str | None = None
+    figures: list[tuple[int, str, str]] = Field(default_factory=list)
+    html: list[str] = Field(default_factory=list)
+    exec_host: str | None = None
+
+    traceback: str | None = None
+    message: str | None = None
 
 # }}}
 
 
-def substitute_correct_code_into_test_code(test_code: str, correct_code: str) -> str:
+def substitute_correct_code_into_test_code(
+            test_code: str,
+            correct_code: str | None
+        ) -> str:
+    if correct_code is None:
+        return test_code
+
     import re
     CORRECT_CODE_TAG = re.compile(r"^(\s*)###CORRECT_CODE###\s*$")  # noqa
 
-    new_test_code_lines = []
+    new_test_code_lines: list[str] = []
     for line in test_code.split("\n"):
         match = CORRECT_CODE_TAG.match(line)
         if match is not None:
@@ -161,22 +115,27 @@ def substitute_correct_code_into_test_code(test_code: str, correct_code: str) ->
 
 
 def package_exception(
-            result: dict[str, Any],
-            what: str,
-            exc_info: ExcInfo | None = None) -> None:
+            what: ResultType,
+            exc_info: ExcInfo | None = None
+        ) -> RunResponse:
     if exc_info is None:
         tp, val, tb = sys.exc_info()
     else:
         tp, val, tb = exc_info
 
     assert tp is not None
-    result["result"] = what
-    result["message"] = f"{tp.__name__}: {val!s}"
-    result["traceback"] = "".join(
+    return RunResponse(
+        result=what,
+        message=f"{tp.__name__}: {val!s}",
+        traceback="".join(
             traceback.format_exception(tp, val, tb))
+    )
 
 
-def user_code_thread(user_code, user_ctx, exc_info: list[ExcInfo]) -> None:
+def user_code_thread(
+            user_code: str,
+            user_ctx: dict[str, object],
+            exc_info: list[ExcInfo]) -> None:
     try:
         exec(user_code, user_ctx)
     except BaseException:
@@ -187,7 +146,7 @@ def user_code_thread(user_code, user_ctx, exc_info: list[ExcInfo]) -> None:
         exc_info.append((tp, val, tb))
 
 
-def run_code(result, run_req) -> None:
+def run_code(run_req: RunRequest) -> RunResponse:
     # {{{ silence matplotlib warnings
 
     import warnings
@@ -200,28 +159,25 @@ def run_code(result, run_req) -> None:
 
     # {{{ compile code
 
-    if getattr(run_req, "setup_code", None):
+    if run_req.setup_code:
         try:
             setup_code = compile(
                     run_req.setup_code, "[setup code]", "exec")
         except Exception:
-            package_exception(result, "setup_compile_error")
-            return
+            return package_exception("setup_compile_error")
     else:
         setup_code = None
 
     try:
         user_code = compile(run_req.user_code, "[user code]", "exec")
     except Exception:
-        package_exception(result, "user_compile_error")
-        return
+        return package_exception("user_compile_error")
 
-    if getattr(run_req, "test_code", None):
+    if run_req.test_code is not None:
         try:
             test_code = compile(run_req.test_code, "[test code]", "exec")
         except Exception:
-            package_exception(result, "test_compile_error")
-            return
+            return package_exception("test_compile_error")
     else:
         test_code = None
 
@@ -231,25 +187,23 @@ def run_code(result, run_req) -> None:
 
     # }}}
 
-    if hasattr(run_req, "compile_only") and run_req.compile_only:
-        result["result"] = "success"
-        return
+    if run_req.compile_only:
+        return RunResponse(result="success")
 
     # {{{ run code
 
     data_files = {}
-    if hasattr(run_req, "data_files"):
+    if run_req.data_files:
         from base64 import b64decode
         for name, contents in run_req.data_files.items():
             data_files[name] = b64decode(contents.encode())
 
     generated_html: list[str] = []
-    result["html"] = generated_html
 
-    def output_html(s):
+    def output_html(s: str):
         generated_html.append(s)
 
-    maint_ctx = {
+    maint_ctx: dict[str, object] = {
             "user_code": run_req.user_code,
             "data_files": data_files,
             "output_html": output_html,
@@ -260,17 +214,17 @@ def run_code(result, run_req) -> None:
         try:
             exec(setup_code, maint_ctx)
         except BaseException:
-            package_exception(result, "setup_error")
-            return
+            return package_exception("setup_error")
 
-    user_ctx = {}
-    if hasattr(run_req, "names_for_user"):
-        for name in run_req.names_for_user:
-            if name not in maint_ctx:
-                result["result"] = "setup_error"
-                result["message"] = f"Setup code did not define '{name}'."
+    user_ctx: dict[str, object] = {}
+    for name in run_req.names_for_user:
+        if name not in maint_ctx:
+            return RunResponse(
+                result="setup_error",
+                message=f"Setup code did not define '{name}'.",
+                )
 
-            user_ctx[name] = maint_ctx[name]
+        user_ctx[name] = maint_ctx[name]
 
     from copy import deepcopy
     user_ctx = deepcopy(user_ctx)
@@ -279,8 +233,8 @@ def run_code(result, run_req) -> None:
 
     # Running user code in a thread makes it harder for it to get at the (sensitive)
     # data held in this stack frame. Hiding sys._current_frames adds more difficulty.
-    old_scf = sys._current_frames
-    sys._current_frames = lambda: {}
+    old_scf = sys._current_frames  # pyright: ignore[reportPrivateUsage]
+    sys._current_frames = lambda: {}  # pyright: ignore[reportPrivateUsage]
 
     exc_info: list[ExcInfo] = []
     user_thread = threading.Thread(
@@ -288,10 +242,10 @@ def run_code(result, run_req) -> None:
     user_thread.start()
     user_thread.join()
 
-    sys._current_frames = old_scf
+    sys._current_frames = old_scf  # pyright: ignore[reportPrivateUsage]
 
     if exc_info:
-        package_exception(result, "user_error", exc_info[0])
+        return package_exception("user_error", exc_info[0])
 
     # It's harder for user code to get at the feedback object if it doesn't
     # yet exist while user code runs.
@@ -299,6 +253,7 @@ def run_code(result, run_req) -> None:
 
     # {{{ export plots
 
+    figures: list[tuple[int, str, str]] = []
     if "matplotlib" in sys.modules:
         from base64 import b64encode
         from io import BytesIO
@@ -307,7 +262,6 @@ def run_code(result, run_req) -> None:
 
         format = "png"
         mime = "image/png"
-        figures = []
 
         for fignum in pt.get_fignums():
             pt.figure(fignum)
@@ -320,18 +274,15 @@ def run_code(result, run_req) -> None:
                 figures.append(
                     (fignum, mime, b64encode(bio.getvalue()).decode()))
 
-        result["figures"] = figures
-
     # }}}
 
-    if hasattr(run_req, "names_from_user"):
-        for name in run_req.names_from_user:
-            if name not in user_ctx:
-                feedback.add_feedback(
-                        f"Required answer variable '{name}' is not defined.")
-                maint_ctx[name] = None
-            else:
-                maint_ctx[name] = user_ctx[name]
+    for name in run_req.names_from_user:
+        if name not in user_ctx:
+            feedback.add_feedback(
+                    f"Required answer variable '{name}' is not defined.")
+            maint_ctx[name] = None
+        else:
+            maint_ctx[name] = user_ctx[name]
 
     if test_code is not None:
         try:
@@ -339,14 +290,15 @@ def run_code(result, run_req) -> None:
         except GradingComplete:
             pass
         except BaseException:
-            package_exception(result, "test_error")
-            return
+            return package_exception("test_error")
 
-    result["points"] = feedback.points
-    result["feedback"] = feedback.feedback_items
+    return RunResponse(
+        result="success",
+        points=feedback.points,
+        feedback=feedback.feedback_items,
+        figures=figures,
+        html=generated_html,
+    )
 
-    # }}}
-
-    result["result"] = "success"
 
 # vim: foldmethod=marker

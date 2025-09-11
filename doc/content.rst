@@ -165,6 +165,8 @@ developing content.
 RELATE markup
 -------------
 
+.. class:: Markup
+
 All bulk text in RELATE is written in Markdown, with a few extensions.
 Here are a few resources on Markdown:
 
@@ -611,6 +613,8 @@ Each date may be modified by adding further modifiers:
   a given time-of-day.
 
 Multiple of these modifiers may occur. They are applied from left to right.
+
+.. automodule:: course.datespec
 
 .. events_yml
 

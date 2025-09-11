@@ -34,10 +34,11 @@ from zoneinfo import ZoneInfo
 import pytest
 from django.core.exceptions import ObjectDoesNotExist
 from django.test import Client, RequestFactory, TestCase, override_settings
-from dulwich.repo import Tree
+from dulwich.objects import Tree
 
-from course import content, page
-from relate.utils import SubdirRepoWrapper
+from course import content
+from course.datespec import InvalidDatespec, parse_date_spec
+from course.repo import SubdirRepoWrapper, get_repo_blob, get_repo_tree
 from tests import factories
 from tests.base_test_mixins import (
     HackRepoMixin,
@@ -74,7 +75,7 @@ class SingleCoursePageCacheTest(SingleCoursePageTestMixin, TestCase):
         self.assertEqual(resp.status_code, 200)
         self.client.get(self.get_page_url_by_ordinal(1))
 
-        with mock.patch("course.content.get_repo_blob") as mock_get_repo_blob:
+        with mock.patch("course.repo.get_repo_blob") as mock_get_repo_blob:
             resp = self.client.get(self.get_page_url_by_ordinal(0))
             self.assertEqual(resp.status_code, 200)
             self.assertEqual(mock_get_repo_blob.call_count, 0)
@@ -295,7 +296,7 @@ class GetRepoBlobTest(SingleCourseTestMixin, TestCase):
     def test_repo_root_not_allow_tree_key_error(self):
         with self.pctx.repo as repo:
             with self.assertRaises(ObjectDoesNotExist) as cm:
-                content.get_repo_blob(
+                get_repo_blob(
                     repo, "", self.course.active_git_commit_sha.encode())
             expected_error_msg = "resource '(repo root)' is not a file"
             self.assertIn(expected_error_msg, str(cm.exception))
@@ -305,7 +306,7 @@ class GetRepoBlobTest(SingleCourseTestMixin, TestCase):
         full_name = os.path.join(*path_parts)
         with self.pctx.repo as repo:
             with self.assertRaises(ObjectDoesNotExist) as cm:
-                content.get_repo_tree(
+                get_repo_tree(
                     repo, full_name, self.course.active_git_commit_sha.encode())
             expected_error_msg = (
                     f"'{path_parts[0]}' is not a directory, cannot lookup nested names")
@@ -315,7 +316,7 @@ class GetRepoBlobTest(SingleCourseTestMixin, TestCase):
         full_name = "images"
         with self.pctx.repo as repo:
             with self.assertRaises(ObjectDoesNotExist) as cm:
-                content.get_repo_blob(
+                get_repo_blob(
                     repo, full_name, self.course.active_git_commit_sha.encode())
             expected_error_msg = (
                     f"resource '{full_name}' is not a file")
@@ -339,7 +340,7 @@ class GetYamlFromRepoTest(SingleCourseTestMixin, TestCase):
         class _Blob:
             data: bytes = fake_yaml_bytestream
 
-        with mock.patch("course.content.get_repo_blob") as mock_get_repo_blob:
+        with mock.patch("course.repo.get_repo_blob") as mock_get_repo_blob:
             mock_get_repo_blob.return_value = _Blob()
             with self.assertRaises(ValueError) as cm:
                 with self.pctx.repo as repo:
@@ -479,14 +480,14 @@ class YamlBlockEscapingGitTemplateLoaderTest(SingleCourseTestMixin, TestCase):
 
 
 class ParseDateSpecTest(SingleCourseTestMixin, TestCase):
-    # test content.parse_date_spec
+    # test parse_date_spec
 
     mock_now_value = mock.MagicMock()
 
     def setUp(self):
         super().setUp()
 
-        fake_now = mock.patch("course.content.now")
+        fake_now = mock.patch("course.datespec.now")
         self.mock_now = fake_now.start()
         self.mock_now.return_value = self.mock_now_value
         self.addCleanup(fake_now.stop)
@@ -496,11 +497,6 @@ class ParseDateSpecTest(SingleCourseTestMixin, TestCase):
         self.mock_add_warning.return_value = None
         self.vctx.add_warning = self.mock_add_warning
 
-    def test_datespec_is_none(self):
-        datespec = None
-        course = self.course
-        self.assertIsNone(content.parse_date_spec(course, datespec))
-
     def test_course_is_none_not_parsed(self):
         datespec = "homework_due 1 + 25 hours"
         time = datetime.datetime(2018, 12, 30, 23, tzinfo=UTC)
@@ -509,14 +505,14 @@ class ParseDateSpecTest(SingleCourseTestMixin, TestCase):
             time=time)
         course = None
         self.assertEqual(
-            content.parse_date_spec(course, datespec), self.mock_now_value)
+            parse_date_spec(course, datespec), self.mock_now_value)
 
     def test_course_is_none_parsed(self):
         # this also tested datespec is datetime
         course = None
         datespec = datetime.datetime(2018, 12, 30, 23, tzinfo=UTC)
         self.assertEqual(
-            content.parse_date_spec(course, datespec, self.vctx), datespec)
+            parse_date_spec(course, datespec, self.vctx), datespec)
         self.assertEqual(self.mock_add_warning.call_count, 0)
 
     def test_datespec_is_datetime(self):
@@ -524,7 +520,7 @@ class ParseDateSpecTest(SingleCourseTestMixin, TestCase):
         datespec = datetime.datetime(2018, 12, 30, 23).replace(tzinfo=None)
         from relate.utils import localize_datetime
         self.assertEqual(
-            content.parse_date_spec(self.course, datespec, self.vctx),
+            parse_date_spec(self.course, datespec, self.vctx),
             localize_datetime(datespec))
 
     def test_datespec_is_date(self):
@@ -532,21 +528,23 @@ class ParseDateSpecTest(SingleCourseTestMixin, TestCase):
         datespec = datetime.date(2018, 12, 30)
         from relate.utils import localize_datetime
         self.assertEqual(
-            content.parse_date_spec(self.course, datespec, self.vctx),
+            parse_date_spec(self.course, datespec, self.vctx),
             localize_datetime(datetime.datetime(2018, 12, 30, tzinfo=None)))
 
     def test_datespec_date_str(self):
         datespec = "2038-01-01"
         from relate.utils import localize_datetime
         self.assertEqual(
-            content.parse_date_spec(self.course, datespec, self.vctx),
+            parse_date_spec(self.course, datespec, self.vctx),
             localize_datetime(datetime.datetime(2038, 1, 1)))
         self.assertEqual(self.mock_add_warning.call_count, 0)
 
     def test_not_parsed(self):
         datespec = "foo + bar"
-        self.assertEqual(
-            content.parse_date_spec(self.course, datespec), self.mock_now_value)
+        with pytest.raises(ValueError) as e:
+            parse_date_spec(self.course, datespec)
+
+        assert "expected an identifier" in str(e)
 
     def test_at_time(self):
         datespec = "homework_due 1 @ 23:59"
@@ -556,30 +554,30 @@ class ParseDateSpecTest(SingleCourseTestMixin, TestCase):
             course=self.course, kind="homework_due", ordinal=1,
             time=localize_datetime(datetime.datetime(2019, 1, 1)))
         self.assertEqual(
-            content.parse_date_spec(self.course, datespec, vctx=self.vctx),
+            parse_date_spec(self.course, datespec, vctx=self.vctx),
             localize_datetime(datetime.datetime(2019, 1, 1, 23, 59)))
         self.assertEqual(self.mock_add_warning.call_count, 0)
 
     def test_at_time_hour_invalid(self):
         datespec = "homework_due 1 @ 24:59"
-        with self.assertRaises(content.InvalidDatespec):
-            content.parse_date_spec(self.course, datespec, vctx=self.vctx)
+        with self.assertRaises(InvalidDatespec):
+            parse_date_spec(self.course, datespec, vctx=self.vctx)
 
     def test_at_time_minute_invalid(self):
         datespec = "homework_due 1 @ 20:62"
-        with self.assertRaises(content.InvalidDatespec):
-            content.parse_date_spec(self.course, datespec, vctx=self.vctx)
+        with self.assertRaises(InvalidDatespec):
+            parse_date_spec(self.course, datespec, vctx=self.vctx)
 
     def test_plus(self):
         datespec = "homework_due 1 + 25 hours"
 
         # event not defined, no vctx
         self.assertEqual(
-            content.parse_date_spec(self.course, datespec), self.mock_now_value)
+            parse_date_spec(self.course, datespec), self.mock_now_value)
 
         # event not defined, with vctx
         self.assertEqual(
-            content.parse_date_spec(self.course, datespec, vctx=self.vctx),
+            parse_date_spec(self.course, datespec, vctx=self.vctx),
             self.mock_now_value)
         expected_warning_msg = (f"Unrecognized date/time specification: '{datespec}' "
                                 "(interpreted as 'now'). "
@@ -595,7 +593,7 @@ class ParseDateSpecTest(SingleCourseTestMixin, TestCase):
             course=self.course, kind="homework_due", ordinal=1,
             time=time)
         self.assertEqual(
-            content.parse_date_spec(self.course, datespec, vctx=self.vctx),
+            parse_date_spec(self.course, datespec, vctx=self.vctx),
             datetime.datetime(2019, 1, 1, tzinfo=UTC))
         self.assertEqual(self.mock_add_warning.call_count, 0)
 
@@ -607,7 +605,7 @@ class ParseDateSpecTest(SingleCourseTestMixin, TestCase):
             course=self.course, kind="homework_due", ordinal=1,
             time=time)
         self.assertEqual(
-            content.parse_date_spec(self.course, datespec, vctx=self.vctx),
+            parse_date_spec(self.course, datespec, vctx=self.vctx),
             datetime.datetime(2018, 12, 30, 23, tzinfo=UTC))
         self.assertEqual(self.mock_add_warning.call_count, 0)
 
@@ -619,7 +617,7 @@ class ParseDateSpecTest(SingleCourseTestMixin, TestCase):
             course=self.course, kind="homework_due", ordinal=1,
             time=time)
         self.assertEqual(
-            content.parse_date_spec(self.course, datespec, vctx=self.vctx),
+            parse_date_spec(self.course, datespec, vctx=self.vctx),
             datetime.datetime(2019, 1, 1, tzinfo=UTC))
         self.assertEqual(self.mock_add_warning.call_count, 0)
 
@@ -631,7 +629,7 @@ class ParseDateSpecTest(SingleCourseTestMixin, TestCase):
             course=self.course, kind="homework_due", ordinal=1,
             time=time)
         self.assertEqual(
-            content.parse_date_spec(self.course, datespec, vctx=self.vctx),
+            parse_date_spec(self.course, datespec, vctx=self.vctx),
             datetime.datetime(2019, 1, 14, tzinfo=UTC))
         self.assertEqual(self.mock_add_warning.call_count, 0)
 
@@ -643,7 +641,7 @@ class ParseDateSpecTest(SingleCourseTestMixin, TestCase):
             course=self.course, kind="homework_due", ordinal=1,
             time=time)
         self.assertEqual(
-            content.parse_date_spec(self.course, datespec, vctx=self.vctx),
+            parse_date_spec(self.course, datespec, vctx=self.vctx),
             datetime.datetime(2018, 12, 31, 1, 1, tzinfo=UTC))
         self.assertEqual(self.mock_add_warning.call_count, 0)
 
@@ -654,16 +652,11 @@ class ParseDateSpecTest(SingleCourseTestMixin, TestCase):
         factories.EventFactory(
             course=self.course, kind="homework_due", ordinal=1,
             time=time)
-        from course.validation import ValidationError
-        with self.assertRaises(ValidationError) as cm:
-            content.parse_date_spec(self.course, datespec, vctx=self.vctx)
+        with self.assertRaises(ValueError) as cm:
+            parse_date_spec(self.course, datespec, vctx=self.vctx)
 
-        expected_error_msg = f"invalid identifier '{datespec}'"
+        expected_error_msg = "expected an identifier"
         self.assertIn(expected_error_msg, str(cm.exception))
-
-        # no vctx
-        self.assertEqual(
-            content.parse_date_spec(self.course, datespec), self.mock_now_value)
 
     def test_is_end(self):
         datespec = "end:homework_due 1 + 25 hours"
@@ -675,12 +668,12 @@ class ParseDateSpecTest(SingleCourseTestMixin, TestCase):
 
         # event has no end_time, no vctx
         self.assertEqual(
-            content.parse_date_spec(self.course, datespec),
+            parse_date_spec(self.course, datespec),
             datetime.datetime(2019, 1, 1, tzinfo=UTC))
 
         # event has no end_time, no vctx
         self.assertEqual(
-            content.parse_date_spec(self.course, datespec, vctx=self.vctx),
+            parse_date_spec(self.course, datespec, vctx=self.vctx),
             datetime.datetime(2019, 1, 1, tzinfo=UTC))
         self.assertEqual(self.mock_add_warning.call_count, 1)
         expected_warning_msg = (
@@ -694,7 +687,7 @@ class ParseDateSpecTest(SingleCourseTestMixin, TestCase):
         evt.save()
 
         self.assertEqual(
-            content.parse_date_spec(self.course, datespec, vctx=self.vctx),
+            parse_date_spec(self.course, datespec, vctx=self.vctx),
             datetime.datetime(2019, 1, 1, tzinfo=UTC))
         self.assertEqual(self.mock_add_warning.call_count, 0)
 
@@ -802,14 +795,14 @@ class GetFlowPageDescTest(SingleCoursePageTestMixin, TestCase):
 
     def test_success(self):
         self.assertEqual(
-            content.get_flow_page_desc(
+            content.get_flow_page(
                 flow_id=self.flow_id,
                 flow_desc=self.flow_desc,
                 group_id="intro",
                 page_id="welcome").id, "welcome")
 
         self.assertEqual(
-            content.get_flow_page_desc(
+            content.get_flow_page(
                 flow_id=self.flow_id,
                 flow_desc=self.flow_desc,
                 group_id="quiz_tail",
@@ -817,23 +810,12 @@ class GetFlowPageDescTest(SingleCoursePageTestMixin, TestCase):
 
     def test_flow_page_desc_does_not_exist(self):
         with self.assertRaises(ObjectDoesNotExist):
-            content.get_flow_page_desc(
+            content.get_flow_page(
                 self.flow_id, self.flow_desc, "quiz_start", "unknown_page")
 
         with self.assertRaises(ObjectDoesNotExist):
-            content.get_flow_page_desc(
+            content.get_flow_page(
                 self.flow_id, self.flow_desc, "unknown_group", "unknown_page")
-
-
-class NormalizeFlowDescTest(SingleCoursePageTestMixin, TestCase):
-    # content.normalize_flow_desc
-    def test_success_no_rules(self):
-        # this also make sure normalize_flow_desc without flow_desc.rule
-        # works correctly
-        flow_desc = self.get_hacked_flow_desc(del_rules=True)
-        self.assertTrue(
-            content.normalize_flow_desc(
-                flow_desc=flow_desc), flow_desc)
 
 
 class MarkupToHtmlTest(SingleCoursePageTestMixin, TestCase):
@@ -869,70 +851,10 @@ class MarkupToHtmlTest(SingleCoursePageTestMixin, TestCase):
                 "</div>")
 
 
-class GetFlowPageClassTest(SingleCourseTestMixin, TestCase):
-    # test content.get_flow_page_class
-
-    def get_pctx(self, commit_sha=None):
-        if commit_sha is not None:
-            self.course.active_git_commit_sha = commit_sha
-            self.course.save()
-            self.course.refresh_from_db()
-
-        rf = RequestFactory()
-        request = rf.get(self.get_course_page_url())
-        request.user = self.instructor_participation.user
-
-        from course.utils import CoursePageContext
-        return CoursePageContext(request, self.course.identifier)
-
-    def test_built_in_class(self):
-        repo = mock.MagicMock()
-        commit_sha = mock.MagicMock()
-        self.assertEqual(
-            content.get_flow_page_class(repo, "TextQuestion", commit_sha),
-            page.TextQuestion)
-
-    def test_class_not_found_dot_path_length_1(self):
-        repo = mock.MagicMock()
-        commit_sha = mock.MagicMock()
-        with self.assertRaises(content.ClassNotFoundError):
-            content.get_flow_page_class(repo, "UnknownClass", commit_sha)
-
-    def test_class_not_found_module_not_exist(self):
-        repo = mock.MagicMock()
-        commit_sha = mock.MagicMock()
-        with self.assertRaises(content.ClassNotFoundError):
-            content.get_flow_page_class(
-                repo, "mypackage.UnknownClass", commit_sha)
-
-    def test_class_not_found_module_does_not_exist(self):
-        repo = mock.MagicMock()
-        commit_sha = mock.MagicMock()
-        with self.assertRaises(content.ClassNotFoundError):
-            content.get_flow_page_class(
-                repo, "mypackage.UnknownClass", commit_sha)
-
-    def test_class_not_found_last_component_does_not_exist(self):
-        repo = mock.MagicMock()
-        commit_sha = mock.MagicMock()
-        with self.assertRaises(content.ClassNotFoundError):
-            content.get_flow_page_class(
-                repo, "tests.resource.UnknownClass", commit_sha)
-
-    def test_found_by_dotted_path(self):
-        repo = mock.MagicMock()
-        commit_sha = mock.MagicMock()
-        from tests.resource import MyFakeQuestionType
-        self.assertEqual(
-            content.get_flow_page_class(
-                repo, "tests.resource.MyFakeQuestionType", commit_sha),
-            MyFakeQuestionType)
-
-
 class ListFlowIdsTest(unittest.TestCase):
     # test content.list_flow_ids
     def setUp(self):
-        fake_get_repo_blob = mock.patch("course.content.get_repo_blob")
+        fake_get_repo_blob = mock.patch("course.repo.get_repo_blob")
         self.mock_get_repo_blob = fake_get_repo_blob.start()
         self.addCleanup(fake_get_repo_blob.stop)
         self.repo = mock.MagicMock()

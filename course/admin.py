@@ -108,7 +108,6 @@ ParticipationLinked: TypeAlias = (
             | GradeChange
             | InstantMessage
             | ExamTicket
-            | ParticipationPermission
             )
 ParticipationLinkedT = TypeVar(
         "ParticipationLinkedT",

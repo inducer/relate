@@ -58,8 +58,8 @@ from tests.utils import mock
 def get_session_grading_rule_use_last_activity_as_cmplt_time_side_effect(
         session, flow_desc, now_datetime):
     # The testing flow "quiz-test" didn't set the attribute
-    from course.utils import get_session_grading_rule
-    actual_grading_rule = get_session_grading_rule(session, flow_desc, now_datetime)
+    from course.utils import get_session_grading_mode
+    actual_grading_rule = get_session_grading_mode(session, flow_desc, now_datetime)
     actual_grading_rule.use_last_activity_as_completion_time = True
     return actual_grading_rule
 
