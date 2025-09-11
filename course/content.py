@@ -36,6 +36,7 @@ from pathlib import Path
 from typing import (
     TYPE_CHECKING,
     Any,
+    ClassVar,
     cast,
 )
 from xml.etree.ElementTree import Element, tostring
@@ -50,9 +51,15 @@ from django.utils.timezone import now
 from django.utils.translation import gettext as _
 from markdown.extensions import Extension
 from markdown.treeprocessors import Treeprocessor
+from pydantic import BaseModel, ConfigDict, Field
 from yaml import safe_load as load_yaml
 
-from course.constants import ATTRIBUTES_FILENAME, flow_permission
+from course.constants import (
+    ATTRIBUTES_FILENAME,
+    GradeAggregationStrategy,
+    FlowPermission,
+    FlowSessionExpirationMode,
+)
 from course.validation import (
     Blob_ish,
     FileSystemFakeRepo,
@@ -64,7 +71,6 @@ from relate.utils import Struct, SubdirRepoWrapper, dict_to_struct
 
 
 if TYPE_CHECKING:
-    # for mypy
     from collections.abc import Callable, Collection, Mapping
 
     from course.models import Course, Participation
@@ -81,7 +87,7 @@ Datespec = datetime.datetime | datetime.date | str
 CACHE_KEY_ROOT = "py4"
 
 
-class ChunkRulesDesc(Struct):
+class ChunkRulesDesc(BaseModel):
     if_has_role: list[str]
     if_before: Datespec
     if_after: Datespec
@@ -95,7 +101,7 @@ class ChunkRulesDesc(Struct):
     weight: float
 
 
-class ChunkDesc(Struct):
+class ChunkDesc(BaseModel):
     weight: float
     shown: bool
     title: str | None
@@ -105,7 +111,7 @@ class ChunkDesc(Struct):
     html_content: str
 
 
-class StaticPageDesc(Struct):
+class StaticPageDesc(BaseModel):
     chunks: list[ChunkDesc]
     content: str
 
@@ -116,9 +122,9 @@ class CourseDesc(StaticPageDesc):
 # }}}
 
 
-# {{{ mypy: flow start rule
+# {{{ flow start rule
 
-class FlowSessionStartRuleDesc(Struct):
+class FlowSessionStartRuleDesc(BaseModel):
     """Rules that govern when a new session may be started and whether
     existing sessions may be listed.
 
@@ -126,113 +132,99 @@ class FlowSessionStartRuleDesc(Struct):
 
     .. rubric:: Conditions
 
-    .. attribute:: if_after
-
-        (Optional) A :ref:`datespec <datespec>` that determines a date/time
-        after which this rule applies.
-
-    .. attribute:: if_before
-
-        (Optional) A :ref:`datespec <datespec>` that determines a date/time
-        before which this rule applies.
-
-    .. attribute:: if_has_role
-
-        (Optional) A list of a subset of the roles defined in the course, by
-        default ``unenrolled``, ``ta``, ``student``, ``instructor``.
-
-    .. attribute:: if_has_participation_tags_any
-
-        (Optional) A list of participation tags. Rule applies when the
-        participation has at least one tag in this list.
-
-    .. attribute:: if_has_participation_tags_all
-
-        (Optional) A list of participation tags. Rule applies if only the
-        participation's tags include all items in this list.
-
-    .. attribute:: if_in_facility
-
-        (Optional) Name of a facility known to the RELATE web page. This rule allows
-        (for example) restricting flow starting based on whether a user is physically
-        located in a computer-based testing center (which RELATE can
-        recognize based on IP ranges).
-
-    .. attribute:: if_has_in_progress_session
-
-        (Optional) A Boolean (True/False) value, indicating that the rule only
-        applies if the participant has an in-progress session.
-
-    .. attribute:: if_has_session_tagged
-
-        (Optional) An identifier (or ``null``) indicating that the rule only applies
-        if the participant has a session with the corresponding tag.
-
-    .. attribute:: if_has_fewer_sessions_than
-
-        (Optional) An integer. The rule applies if the participant has fewer
-        than this number of sessions.
-
-    .. attribute:: if_has_fewer_tagged_sessions_than
-
-        (Optional) An integer. The rule applies if the participant has fewer
-        than this number of sessions with access rule tags.
-
-    .. attribute:: if_signed_in_with_matching_exam_ticket
-
-        (Optional) The rule applies if the participant signed in with an exam
-        ticket matching this flow.
+    .. autoattribute:: if_after
+    .. autoattribute:: if_before
+    .. autoattribute:: if_has_role
+    .. autoattribute:: if_has_participation_tags_any
+    .. autoattribute:: if_has_participation_tags_all
+    .. autoattribute:: if_in_facility
+    .. autoattribute:: if_has_in_progress_session
+    .. autoattribute:: if_has_session_tagged
+    .. autoattribute:: if_has_fewer_sessions_than
+    .. autoattribute:: if_has_fewer_tagged_sessions_than
+    .. autoattribute:: if_signed_in_with_matching_exam_ticket
 
     .. rubric:: Rules specified
 
-    .. attribute:: may_start_new_session
-
-        (Mandatory) A Boolean (True/False) value indicating whether, if the
-        rule applies, the participant may start a new session.
-
-    .. attribute:: may_list_existing_sessions
-
-        (Mandatory) A Boolean (True/False) value indicating whether, if the
-        rule applies, the participant may view a list of existing sessions.
-
-    .. attribute:: tag_session
-
-        (Optional) An identifier that will be applied to a newly-created
-        session as a "tag".  This can be used by
-        :attr:`FlowSessionAccessRuleDesc.if_has_tag` and
-        :attr:`FlowSessionGradingRuleDesc.if_has_tag`.
-
-    .. attribute:: default_expiration_mode
-
-        (Optional) One of :class:`~course.constants.flow_session_expiration_mode`.
-        The expiration mode applied when a session is first created or rolled
-        over.
+    .. autoattribute:: may_start_new_session
+    .. autoattribute:: may_list_existing_sessions
+    .. autoattribute:: tag_session
+    .. autoattribute:: lock_down_as_exam_session
+    .. autoattribute:: default_expiration_mode
     """
 
     # conditions
     if_after: Date_ish
+    """(Optional) A :ref:`datespec <datespec>` that determines a date/time
+    after which this rule applies."""
+
     if_before: Date_ish
+    """(Optional) A :ref:`datespec <datespec>` that determines a date/time
+    before which this rule applies."""
+
     if_has_role: list[str]
+    """(Optional) A list of a subset of the roles defined in the course, by
+    default ``unenrolled``, ``ta``, ``student``, ``instructor``."""
+
     if_has_participation_tags_any: list[str]
+    """(Optional) A list of participation tags. Rule applies when the
+    participation has at least one tag in this list."""
+
     if_has_participation_tags_all: list[str]
+    """(Optional) A list of participation tags. Rule applies if only the
+    participation's tags include all items in this list."""
+
     if_in_facility: str
+    """(Optional) Name of a facility known to the RELATE web page. This rule allows
+    (for example) restricting flow starting based on whether a user is physically
+    located in a computer-based testing center (which RELATE can
+    recognize based on IP ranges)."""
+
     if_has_in_progress_session: bool
+    """(Optional) A Boolean (True/False) value, indicating that the rule only
+    applies if the participant has an in-progress session."""
+
     if_has_session_tagged: str | None
-    if_has_fewer_sessions_than: int
-    if_has_fewer_tagged_sessions_than: int
+    """(Optional) An identifier (or ``null``) indicating that the rule only applies
+    if the participant has a session with the corresponding tag."""
+
+    if_has_fewer_sessions_than: int | None = None
+    """(Optional) An integer. The rule applies if the participant has fewer
+    than this number of sessions."""
+
+    if_has_fewer_tagged_sessions_than: int | None = None
+    """(Optional) An integer. The rule applies if the participant has fewer
+    than this number of sessions with access rule tags."""
+
     if_signed_in_with_matching_exam_ticket: bool
+    """(Optional) The rule applies if the participant signed in with an exam
+    ticket matching this flow."""
 
     # rules specified
-    tag_session: str | None
     may_start_new_session: bool
+    """(Mandatory) A Boolean (True/False) value indicating whether, if the
+    rule applies, the participant may start a new session."""
+
     may_list_existing_sessions: bool
+    """(Mandatory) A Boolean (True/False) value indicating whether, if the
+    rule applies, the participant may view a list of existing sessions."""
+
+    tag_session: str | None
+    """(Optional) An identifier that will be applied to a newly-created
+    session as a "tag".  This can be used by
+    :attr:`FlowSessionAccessRuleDesc.if_has_tag` and
+    :attr:`FlowSessionGradingRuleDesc.if_has_tag`."""
+
     lock_down_as_exam_session: bool
     default_expiration_mode: str
+    """(Optional) One of :class:`~course.constants.flow_session_expiration_mode`.
+    The expiration mode applied when a session is first created or rolled
+    over."""
 
 # }}}
 
 
-# {{{ mypy: flow access rule
+# {{{ flow access rule
 
 class FlowSessionAccessRuleDesc(Struct):
     """Rules that govern what a user may do with an existing session.
@@ -240,115 +232,92 @@ class FlowSessionAccessRuleDesc(Struct):
     Found in the ``access`` attribute of :class:`FlowRulesDesc`.
 
     .. rubric:: Conditions
-
-    .. attribute:: if_after
-
-        (Optional) A :ref:`datespec <datespec>` that determines a date/time
-        after which this rule applies.
-
-    .. attribute:: if_before
-
-        (Optional) A :ref:`datespec <datespec>` that determines a date/time
-        before which this rule applies.
-
-    .. attribute:: if_started_before
-
-        (Optional) A :ref:`datespec <datespec>`. Rule applies if the session
-        was started before this time.
-
-    .. attribute:: if_has_role
-
-        (Optional) A list of a subset of ``[unenrolled, ta, student, instructor]``.
-
-    .. attribute:: if_has_participation_tags_any
-
-        (Optional) A list of participation tags. Rule applies when the
-        participation has at least one tag in this list.
-
-    .. attribute:: if_has_participation_tags_all
-
-        (Optional) A list of participation tags. Rule applies if only the
-        participation's tags include all items in this list.
-
-    .. attribute:: if_in_facility
-
-        (Optional) Name of a facility known to the RELATE web page. This rule allows
-        (for example) restricting flow access based on whether a user is physically
-        located in a computer-based testing center (which RELATE can
-        recognize based on IP ranges).
-
-    .. attribute:: if_has_tag
-
-        (Optional) Rule applies if session has this tag (see
-        :attr:`FlowSessionStartRuleDesc.tag_session`), an identifier.
-
-    .. attribute:: if_in_progress
-
-        (Optional) A Boolean (True/False) value. Rule applies if the session's
-        in-progress status matches this Boolean value.
-
-    .. attribute:: if_completed_before
-
-        (Optional) A :ref:`datespec <datespec>`. Rule applies if the session
-        was completed before this time.
-
-    .. attribute:: if_expiration_mode
-
-        (Optional) One of :class:`~course.constants.flow_session_expiration_mode`.
-        Rule applies if the expiration mode (see :ref:`flow-life-cycle`)
-        matches.
-
-    .. attribute:: if_session_duration_shorter_than_minutes
-
-        (Optional) The rule applies if the current session has been going on for
-        less than the specified number of minutes. Fractional values (e.g. "0.5")
-        are accepted here.
-
-    .. attribute:: if_signed_in_with_matching_exam_ticket
-
-        (Optional) The rule applies if the participant signed in with an exam
-        ticket matching this flow.
+    .. autoattribute:: if_after
+    .. autoattribute:: if_before
+    .. autoattribute:: if_started_before
+    .. autoattribute:: if_has_role
+    .. autoattribute:: if_has_participation_tags_any
+    .. autoattribute:: if_has_participation_tags_all
+    .. autoattribute:: if_in_facility
+    .. autoattribute:: if_has_tag
+    .. autoattribute:: if_in_progress
+    .. autoattribute:: if_completed_before
+    .. autoattribute:: if_expiration_mode
+    .. autoattribute:: if_session_duration_shorter_than_minutes
+    .. autoattribute:: if_signed_in_with_matching_exam_ticket
 
     .. rubric:: Rules specified
+    .. autoattribute:: permissions
+    .. autoattribute:: message
 
-    .. attribute:: permissions
-
-        A list of :class:`~course.constants.flow_permission`.
-
-        :attr:`~course.constants.flow_permission.submit_answer`
-        and :attr:`~course.constants.flow_permission.end_session`
-        are automatically removed from a finished (i.e. not 'in-progress')
-        session.
-
-    .. attribute:: message
-
-        (Optional) Some text in :ref:`markup` that is shown to the student in
-        an 'alert' box at the top of the page if this rule applies.
     """
 
+    model_config: ClassVar[ConfigDict] = ConfigDict(use_enum_values=True)
+
     # conditions
-    if_after: Date_ish
-    if_before: Date_ish
-    if_started_before: Date_ish
-    if_has_role: list[str]
+    if_after: Date_ish | None = None
+    """(Optional) A :ref:`datespec <datespec>` that determines a date/time
+    after which this rule applies."""
+
+    if_before: Date_ish | None = None
+    """(Optional) A :ref:`datespec <datespec>` that determines a date/time
+    before which this rule applies."""
+
+    if_started_before: Date_ish | None = None
+    """(Optional) A :ref:`datespec <datespec>`. Rule applies if the session
+    was started before this time."""
+
+    if_has_role: list[str] = Field(default_factory=list)
+    """(Optional) A list of a subset of ``[unenrolled, ta, student, instructor]``."""
+
     if_has_participation_tags_any: list[str]
+    """(Optional) A list of participation tags. Rule applies when the
+    participation has at least one tag in this list."""
+
     if_has_participation_tags_all: list[str]
+    """(Optional) A list of participation tags. Rule applies if only the
+    participation's tags include all items in this list."""
+
     if_in_facility: str
-    if_has_tag: str | None
-    if_in_progress: bool
-    if_completed_before: Date_ish
-    if_expiration_mode: str
-    if_session_duration_shorter_than_minutes: float
-    if_signed_in_with_matching_exam_ticket: bool
+    """(Optional) Name of a facility known to the RELATE web page. This rule allows
+    (for example) restricting flow access based on whether a user is physically
+    located in a computer-based testing center (which RELATE can
+    recognize based on IP ranges)."""
+
+    if_has_tag: str | None = None
+    """(Optional) Rule applies if session has this tag (see
+    :attr:`FlowSessionStartRuleDesc.tag_session`), an identifier."""
+
+    if_in_progress: bool | None = None
+    """(Optional) A Boolean (True/False) value. Rule applies if the session's
+    in-progress status matches this Boolean value."""
+
+    if_completed_before: Date_ish | None = None
+    """(Optional) A :ref:`datespec <datespec>`. Rule applies if the session
+    was completed before this time."""
+
+    if_expiration_mode: FlowSessionExpirationMode | None = None
+    """(Optional) One of :class:`~course.constants.flow_session_expiration_mode`.
+    Rule applies if the expiration mode (see :ref:`flow-life-cycle`)
+    matches."""
+
+    if_session_duration_shorter_than_minutes: float | None = None
+    """(Optional) The rule applies if the current session has been going on for
+    less than the specified number of minutes. Fractional values (e.g. "0.5")
+    are accepted here."""
+
+    if_signed_in_with_matching_exam_ticket: bool = False
+    """(Optional) The rule applies if the participant signed in with an exam
+    ticket matching this flow."""
 
     # rules specified
-    permissions: list[flow_permission]
+    permissions: list[FlowPermission]
     message: str
 
 # }}}
 
 
-# {{{ mypy: flow grading rule
+# {{{ flow grading rule
 
 class FlowSessionGradingRuleDesc(Struct):
     """ Rules that govern how (permanent) grades are generated from the
@@ -358,284 +327,254 @@ class FlowSessionGradingRuleDesc(Struct):
 
     .. rubric:: Conditions
 
-    .. attribute:: if_has_role
-
-        (Optional) A list of a subset of ``[unenrolled, ta, student, instructor]``.
-
-    .. attribute:: if_has_participation_tags_any
-
-        (Optional) A list of participation tags. Rule applies when the
-        participation has at least one tag in this list.
-
-    .. attribute:: if_has_participation_tags_all
-
-        (Optional) A list of participation tags. Rule applies if only the
-        participation's tags include all items in this list.
-
-    .. attribute:: if_started_before
-
-        (Optional) A :ref:`datespec <datespec>`. Rule applies if the session
-        was started before this time.
-
-    .. attribute:: if_has_tag
-
-        (Optional) Rule applies if session has this tag (see
-        :attr:`FlowSessionStartRuleDesc.tag_session`), an identifier.
-
-    .. attribute:: if_completed_before
-
-        (Optional) A :ref:`datespec <datespec>`. Rule applies if the session
-        was completed before this time.
-
-        When evaluating this condition for in-progress sessions, the current time,
-        or, if :attr:`use_last_activity_as_completion_time` is set, the time of the
-        last activity is used.
-
-        Since September 2017, this respects
-        :attr:`use_last_activity_as_completion_time`.
+    .. autoattribute:: if_has_role
+    .. autoattribute:: if_has_participation_tags_any
+    .. autoattribute:: if_has_participation_tags_all
+    .. autoattribute:: if_started_before
+    .. autoattribute:: if_started_after
+    .. autoattribute:: if_has_tag
+    .. autoattribute:: if_completed_before
 
     .. rubric:: Rules specified
 
-    .. attribute:: credit_percent
+    .. autoattribute:: credit_percent
+    .. autoattribute:: due
+    .. autoattribute:: generates_grade
+    .. autoattribute:: use_last_activity_as_completion_time
+    .. autoattribute:: description
+    .. autoattribute:: max_points
+    .. autoattribute:: max_points_enforced_cap
+    .. autoattribute:: bonus_points
 
-        (Optional) A number indicating the percentage of credit assigned for
-        this flow.  Defaults to 100 if not present. This is applied *after*
-        point modifiers such as :attr:`bonus_points` and
-        :attr:`max_points_enforced_cap`.
-
-    .. attribute:: due
-
-        A :ref:`datespec <datespec>` indicating the due date of the flow. This
-        is shown to the participant and also used to batch-expire 'past-due'
-        flows.
-
-    .. attribute:: generates_grade
-
-        (Optional) A Boolean indicating whether a grade will be recorded when this
-        flow is ended. Note that the value of this rule must never change over
-        the lifetime of a flow. I.e. a flow that, at some point during its lifetime,
-        *may* have been set to generate a grade must *always* be set to generate
-        a grade. Defaults to ``true``.
-
-    .. attribute:: use_last_activity_as_completion_time
-
-        (Optional) A Boolean indicating whether the last time a participant made
-        a change to their flow should be used as the completion time.
-
-        Defaults to ``false`` to match past behavior. ``true`` is probably the more
-        sensible value for this.
-
-    .. attribute:: description
-
-        (Optional) A description of this set of grading rules being applied to
-        the flow.  Shown to the participant on the flow start page.
-
-    .. attribute:: max_points
-
-        (Optional, an integer or floating point number if given)
-        The number of points on the flow which constitute
-        "100% of the achievable points". If not given, this is automatically
-        computed by summing point values from all constituent pages.
-
-        This may be used to 'grade out of N points', where N is a number that
-        is lower than the actually achievable count.
-
-    .. attribute:: max_points_enforced_cap
-
-        (Optional, an integer or floating point number if given)
-        No participant will have a grade higher than this recorded for this flow.
-        This may be used to limit the amount of 'extra credit' achieved beyond
-        :attr:`max_points`.
-
-    .. attribute:: bonus_points
-
-        (Optional, an integer or floating point number if given)
-        This number of points will be added to every participant's score.
 
     """
     # conditions
-    if_has_role: list[str]
-    if_has_participation_tags_any: list[str]
-    if_has_participation_tags_all: list[str]
-    if_started_after: Date_ish
-    if_has_tag: str | None
-    if_completed_before: Date_ish
+
+    if_has_role: list[str] = Field(default_factory=list)
+    """(Optional) A list of a subset of ``[unenrolled, ta, student, instructor]``."""
+
+    if_has_participation_tags_any: list[str] = Field(default_factory=list)
+    """(Optional) A list of participation tags. Rule applies when the
+    participation has at least one tag in this list."""
+
+    if_has_participation_tags_all: list[str] = Field(default_factory=list)
+    """(Optional) A list of participation tags. Rule applies if only the
+    participation's tags include all items in this list."""
+
+    if_has_tag: str | None = None
+    """(Optional) Rule applies if session has this tag (see
+    :attr:`FlowSessionStartRuleDesc.tag_session`), an identifier."""
+
+    if_started_before: Date_ish | None = None
+    """(Optional) A :ref:`datespec <datespec>`. Rule applies if the session
+    was started before this time."""
+
+    if_completed_before: Date_ish | None = None
+    """(Optional) A :ref:`datespec <datespec>`. Rule applies if the session
+    was completed before this time.
+
+    When evaluating this condition for in-progress sessions, the current time,
+    or, if :attr:`use_last_activity_as_completion_time` is set, the time of the
+    last activity is used.
+
+    Since September 2017, this respects
+    :attr:`use_last_activity_as_completion_time`."""
 
     # rules specified
-    credit_percent: int | float | None
-    due: Date_ish
-    generates_grade: bool | None
-    use_last_activity_as_completion_time: bool
-    description: str
-    max_points: int | float | None
-    max_points_enforced_cap: int | float | None
-    bonus_points: int | float | None
+    credit_percent: int | float | None = None
+    """(Optional) A number indicating the percentage of credit assigned for
+    this flow.  Defaults to 100 if not present. This is applied *after*
+    point modifiers such as :attr:`bonus_points` and
+    :attr:`max_points_enforced_cap`."""
+
+    due: Date_ish | None = None
+    """A :ref:`datespec <datespec>` indicating the due date of the flow. This
+    is shown to the participant and also used to batch-expire 'past-due'
+    flows."""
+
+    generates_grade: bool = True
+    """(Optional) A Boolean indicating whether a grade will be recorded when this
+    flow is ended. Note that the value of this rule must never change over
+    the lifetime of a flow. I.e. a flow that, at some point during its lifetime,
+    *may* have been set to generate a grade must *always* be set to generate
+    a grade. Defaults to ``true``."""
+
+    use_last_activity_as_completion_time: bool = False
+    """(Optional) A Boolean indicating whether the last time a participant made
+    a change to their flow should be used as the completion time.
+
+    Defaults to ``false`` to match past behavior. ``true`` is probably the more
+    sensible value for this."""
+
+    description: str | None = None
+    """(Optional) A description of this set of grading rules being applied to
+    the flow.  Shown to the participant on the flow start page."""
+
+    max_points: int | float | None = None
+    """(Optional, an integer or floating point number if given)
+    The number of points on the flow which constitute
+    "100% of the achievable points". If not given, this is automatically
+    computed by summing point values from all constituent pages.
+
+    This may be used to 'grade out of N points', where N is a number that
+    is lower than the actually achievable count."""
+
+    max_points_enforced_cap: float | None = None
+    """(Optional, an integer or floating point number if given)
+    No participant will have a grade higher than this recorded for this flow.
+    This may be used to limit the amount of 'extra credit' achieved beyond
+    :attr:`max_points`."""
+
+    bonus_points: float | None = None
+    """(Optional, an integer or floating point number if given)
+    This number of points will be added to every participant's score."""
 
 # }}}
 
 
-# {{{ mypy: flow rules
+# {{{ flow rules
 
 class FlowRulesDesc(Struct):
     """
     Found in the ``rules`` attribute of a :class:`FlowDesc`.
 
-    .. attribute:: start
-
-        Rules that govern when a new session may be started and whether
-        existing sessions may be listed.
-
-        A list of :class:`FlowSessionStartRuleDesc`
-
-        Rules are tested from top to bottom. The first rule
-        whose conditions apply determines the access.
-
-    .. attribute:: access
-
-        Rules that govern what a user may do while they are interacting with an
-        existing session.
-
-        A list of :class:`FlowSessionAccessRuleDesc`.
-
-        Rules are tested from top to bottom. The first rule
-        whose conditions apply determines the access.
+    .. autoattribute:: start
+    .. autoattribute:: access
 
     .. rubric:: Grading-Related
+    .. autoattribute:: grade_identifier
+    .. autoattribute:: grade_aggregation_strategy
+    .. autoattribute:: grading
 
-    .. attribute:: grade_identifier
-
-        (Required) The identifier of the grade to be generated once the
-        participant completes the flow.  If ``null``, no grade is generated.
-
-    .. attribute:: grade_aggregation_strategy
-
-        (Required if :attr:`grade_identifier` is not ``null``)
-
-        One of :class:`grade_aggregation_strategy`.
-
-    .. attribute:: grading
-
-        Rules that govern how (permanent) overall grades are generated from the
-        results of a flow. These rules apply once a flow session ends/is submitted
-        for grading. See :ref:`flow-life-cycle`.
-
-        (Required if grade_identifier is not ``null``)
-        A list of :class:`FlowSessionGradingRuleDesc`
-
-        Rules are tested from top to bottom. The first rule
-        whose conditions apply determines the access.
+    Rules are tested from top to bottom. The first rule
+    whose conditions apply determines the access.
     """
+    model_config: ClassVar[ConfigDict] = ConfigDict(use_enum_values=True)
+
     start: list[FlowSessionStartRuleDesc]
+    """Rules that govern when a new session may be started and whether
+    existing sessions may be listed.
+
+    A list of :class:`FlowSessionStartRuleDesc`
+
+    Rules are tested from top to bottom. The first rule
+    whose conditions apply determines the access."""
+
     access: list[FlowSessionAccessRuleDesc]
+    """Rules that govern what a user may do while they are interacting with an
+    existing session.
+
+    A list of :class:`FlowSessionAccessRuleDesc`.
+
+    Rules are tested from top to bottom. The first rule
+    whose conditions apply determines the access."""
+
     grading: list[FlowSessionGradingRuleDesc]
+    """(Required) The identifier of the grade to be generated once the
+    participant completes the flow.  If ``null``, no grade is generated."""
+
     grade_identifier: str | None
-    grade_aggregation_strategy: str | None
+    """(Required if :attr:`grade_identifier` is not ``null``)
+
+    One of :class:`grade_aggregation_strategy`."""
+
+    grade_aggregation_strategy: GradeAggregationStrategy | None
+    """Rules that govern how (permanent) overall grades are generated from the
+    results of a flow. These rules apply once a flow session ends/is submitted
+    for grading. See :ref:`flow-life-cycle`.
+
+    (Required if grade_identifier is not ``null``)
+    """
+
 
 # }}}
 
 
-# {{{ mypy: flow
+# {{{ flow
 
-class TabDesc(Struct):
+class TabDesc(BaseModel):
     """
-    .. attribute:: title
-
-        (Required) Title to be displayed on the tab.
-
-    .. attribute:: url
-
-        (Required) The URL of the external web page.
+    .. autoattribute:: title
+    .. autoattribute:: url
     """
-
-    def __init__(self, title: str, url: str) -> None:
-        self.title = title
-        self.url = url
 
     title: str
+    """(Required) Title to be displayed on the tab."""
+
     url: str
+    """(Required) The URL of the external web page."""
 
 
-class FlowPageDesc(Struct):
+class FlowPageDesc(BaseModel):
     id: str
     type: str
 
 
-class FlowPageGroupDesc(Struct):
+class FlowPageGroupDesc(BaseModel):
     """
-    .. attribute:: id
+    .. autoattribute:: id
+    .. autoattribute:: pages
+    .. autoattribute:: shuffle
+    .. autoattribute:: max_page_count
 
-        (Required) A symbolic name for the page group.
-
-    .. attribute:: pages
-
-        (Required) A list of :ref:`flow-page`
-
-    .. attribute:: shuffle
-
-        (Optional) A boolean (True/False) indicating whether the order
-        of pages should be as in the list :attr:`pages` or
-        determined by random shuffling
-
-    .. attribute:: max_page_count
-
-        (Optional) An integer limiting the page count of this group
-        to a certain value. Allows selection of a random subset by combining
-        with :attr:`shuffle`.
     """
 
     id: str
+    """(Required) A symbolic name for the page group."""
+
     pages: list[FlowPageDesc]
+    """(Required) A list of :ref:`flow-page`"""
+
+    shuffle: bool = False
+    """(Optional) A boolean (True/False) indicating whether the order
+    of pages should be as in the list :attr:`pages` or
+    determined by random shuffling"""
+
+    max_page_count: int | None = None
+    """(Optional) An integer limiting the page count of this group
+    to a certain value. Allows selection of a random subset by combining
+    with :attr:`shuffle`."""
 
 
-class FlowDesc(Struct):
+class FlowDesc(BaseModel):
     """
-    .. attribute:: title
-
-        A plain-text title of the flow
-
-    .. attribute:: description
-
-        A description in :ref:`markup` shown on the start page of the flow.
-
-    .. attribute:: completion_text
-
-        (Optional) Some text in :ref:`markup` shown once a student has
-        completed the flow.
-
-    .. attribute:: notify_on_submit
-
-        (Optional) A list of email addresses which to notify about a flow
-        submission by a participant.
-
-    .. attribute:: rules
-
-        (Optional) Some rules governing students' use and grading of the flow.
-        See :ref:`flow-rules`.
-
-    .. attribute:: groups
-
-        A list of :class:`FlowPageGroupDesc`.  Exactly one of
-        :attr:`groups` or :class:`pages` must be given.
-
-    .. attribute:: pages
-
-        A list of :ref:`pages <flow-page>`. If you specify this, a single
-        :class:`FlowPageGroupDesc` will be implicitly created. Exactly one of
-        :attr:`groups` or :class:`pages` must be given.
-
-    .. attribute:: external_resources
-
-        A list of :class:`TabDesc`. These are links to external
-        resources that are displayed as tabs on the flow tabbed page.
+    .. autoattribute:: title
+    .. autoattribute:: description
+    .. autoattribute:: completion_text
+    .. autoattribute:: notify_on_submit
+    .. autoattribute:: rules
+    .. autoattribute:: groups
+    .. autoattribute:: pages
+    .. autoattribute:: external_resources
     """
 
     title: str
+    """A plain-text title of the flow"""
+
     description: str
+    """A description in :ref:`markup` shown on the start page of the flow."""
+
     rules: FlowRulesDesc
+    """(Optional) Some text in :ref:`markup` shown once a student has
+    completed the flow."""
+
     pages: list[FlowPageDesc]
+    """(Optional) A list of email addresses which to notify about a flow
+    submission by a participant."""
+
     groups: list[FlowPageGroupDesc]
+    """(Optional) Some rules governing students' use and grading of the flow.
+    See :ref:`flow-rules`."""
+
     external_resources: list[TabDesc]
+    """A list of :class:`FlowPageGroupDesc`.  Exactly one of
+    :attr:`groups` or :class:`pages` must be given."""
+
     notify_on_submit: list[str] | None
+    """A list of :ref:`pages <flow-page>`. If you specify this, a single
+    :class:`FlowPageGroupDesc` will be implicitly created. Exactly one of
+    :attr:`groups` or :class:`pages` must be given."""
+
 
 # }}}
 
