@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from django.utils.safestring import mark_safe
-
 
 __copyright__ = "Copyright (C) 2014 Andreas Kloeckner"
 
@@ -25,25 +23,39 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
+from abc import ABC
+from typing import TYPE_CHECKING, Any, Literal, NotRequired, TypedDict
+
 import django.forms as forms
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.html import escape
+from django.utils.safestring import mark_safe
 from django.utils.translation import gettext as _
+from pydantic import BaseModel, Field
 
 from course.constants import flow_permission
 from course.page.base import (
+    AnswerData,
     AnswerFeedback,
+    GradeData,
+    InvalidFeedbackPointsError,
     PageBaseWithHumanTextFeedback,
     PageBaseWithoutHumanGrading,
     PageBaseWithTitle,
     PageBaseWithValue,
+    PageContext,
+    PageData,
     get_auto_feedback,
     get_editor_interaction_mode,
     markup_to_html,
 )
 from course.validation import AttrSpec, ValidationError
-from relate.utils import StyledVerticalForm, string_concat
+from relate.utils import StyledVerticalForm, not_none, string_concat
+
+
+if TYPE_CHECKING:
+    from collections.abc import Collection
 
 
 # DEBUGGING SWITCH:
@@ -416,7 +428,44 @@ def request_run_with_retries(run_req, run_timeout, image=None, retry_count=3):
         return result
 
 
-class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
+class RunRequest(TypedDict):
+    compile_only: bool
+    setup_code: NotRequired[str | None]
+    user_code: str
+    test_code: NotRequired[str | None]
+    data_files: NotRequired[dict[str, str | bytes]]
+    names_from_user: NotRequired[Collection[str]]
+    names_for_user: NotRequired[Collection[str]]
+
+
+class RunResponse(BaseModel):
+    result: Literal[
+                "success",
+                "uncaught_error",
+                "setup_compile_error",
+                "setup_error",
+                "test_compile_error",
+                "test_error",
+                "timeout",
+                "user_compile_error",
+                "user_error",
+                "unknown_error",
+        ]
+
+    points: float | None = None
+
+    feedback: list[str] = Field(default_factory=list)
+    stdout: str | None = None
+    stderr: str | None = None
+    figures: list[tuple[int, str, str]] = Field(default_factory=list)
+    html: list[str] = Field(default_factory=list)
+    exec_host: str | None = None
+
+    traceback: str | None = None
+    message: str | None = None
+
+
+class CodeQuestion(PageBaseWithTitle, PageBaseWithValue, ABC):
     """
     An auto-graded question allowing an answer consisting of code.
     All user code as well as all code specified as part of the problem
@@ -720,7 +769,7 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
         code = form.cleaned_data["answer"].strip()
         return self.code_to_answer_data(page_context, code)
 
-    def get_test_code(self):
+    def get_test_code(self) -> str | None:
         test_code = getattr(self.page_desc, "test_code", None)
         if test_code is None:
             return test_code
@@ -733,7 +782,7 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
         return substitute_correct_code_into_test_code(test_code, correct_code)
 
     @staticmethod
-    def get_code_from_answer_data(answer_data):
+    def get_code_from_answer_data(answer_data: Any) -> str:
         if "storage_filename" in answer_data:
             bulk_storage = settings.RELATE_BULK_STORAGE
             with bulk_storage.open(answer_data["storage_filename"]) as inf:
@@ -745,7 +794,13 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
         else:
             raise ValueError("could not get submitted data from answer_data JSON")
 
-    def grade(self, page_context, page_data, answer_data, grade_data):
+    def grade(
+            self,
+            page_context: PageContext,
+            page_data: PageData,
+            answer_data: AnswerData | None,
+            grade_data: GradeData | None,
+            ) -> AnswerFeedback | None:
         if answer_data is None:
             return AnswerFeedback(correctness=0,
                     feedback=_("No answer provided."))
@@ -754,9 +809,12 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
 
         # {{{ request run
 
-        run_req = {"compile_only": False, "user_code": user_code}
+        run_req: RunRequest = {
+            "compile_only": False, "user_code": user_code}
 
-        def transfer_attr(name):
+        def transfer_attr(
+                    name: Literal["setup_code", "names_for_user", "names_from_user"]
+                ):
             if hasattr(self.page_desc, name):
                 run_req[name] = getattr(self.page_desc, name)
 
@@ -793,44 +851,52 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
 
         # }}}
 
-        feedback_bits = []
+        try:
+            response = RunResponse.model_validate(response_dict)
+        except ValidationError as e:
+            response = RunResponse(
+                            result="setup_error",
+                            message=f"{type(e).__name__}: {e!s}")
 
-        correctness = None
+        correctness = response.points
+        feedback_bits: list[str] = []
+        bulk_feedback_bits: list[str] = []
 
-        if "points" in response_dict:
-            correctness = response_dict["points"]
-            try:
-                feedback_bits.append(
-                        f"<p><b>{_(get_auto_feedback(correctness))}</b></p>")
-            except Exception as e:
-                correctness = None
-                response_dict["result"] = "setup_error"
-                response_dict["message"] = (
-                    f"{type(e).__name__}: {e!s}"
-                )
+        try:
+            feedback_bits.append(
+                    f"<p><b>{_(get_auto_feedback(correctness))}</b></p>")
+        except InvalidFeedbackPointsError as e:
+            response = RunResponse(
+                            result="setup_error",
+                            message=f"{type(e).__name__}: {e!s}")
+            correctness = None
 
         # {{{ send email if the grading code broke
 
-        if response_dict["result"] in [
+        if response.result in [
                 "uncaught_error",
                 "setup_compile_error",
                 "setup_error",
                 "test_compile_error",
                 "test_error"]:
-            error_msg_parts = ["RESULT: {}".format(response_dict["result"])]
+            error_msg_parts = [f"RESULT: {response.result}"]
+            if response.message:
+                error_msg_parts.append(f"MESSAGE: {response.message}")
             for key, val in sorted(response_dict.items()):
                 if (key not in ["result", "figures"]
                         and val
                         and isinstance(val, str)):
-                    error_msg_parts.append("-------------------------------------")
-                    error_msg_parts.append(key)
-                    error_msg_parts.append("-------------------------------------")
-                    error_msg_parts.append(val)
-            error_msg_parts.append("-------------------------------------")
-            error_msg_parts.append("user code")
-            error_msg_parts.append("-------------------------------------")
-            error_msg_parts.append(user_code)
-            error_msg_parts.append("-------------------------------------")
+                    error_msg_parts.extend(
+                        ("-------------------------------------",
+                            key,
+                            "-------------------------------------",
+                            val))
+            error_msg_parts.extend((
+                        "-------------------------------------",
+                        "user code",
+                        "-------------------------------------",
+                        user_code,
+                        "-------------------------------------"))
 
             error_msg = "\n".join(error_msg_parts)
 
@@ -893,8 +959,10 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
 
         # }}}
 
+        del response_dict
+
         if hasattr(self.page_desc, "correct_code"):
-            def normalize_code(s):
+            def normalize_code(s: str):
                 return (s
                         .replace(" ", "")
                         .replace("\r", "")
@@ -907,11 +975,6 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
                         "<p><b>{}</b></p>".format(
                             _("It looks like you submitted code that is identical to "
                             "the reference solution. This is not allowed.")))
-
-        from relate.utils import dict_to_struct
-        response = dict_to_struct(response_dict)
-
-        bulk_feedback_bits = []
 
         if response.result == "success":
             pass
@@ -964,8 +1027,8 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
         else:
             raise RuntimeError(f"invalid run result: {response.result}")
 
-        if hasattr(response, "feedback") and response.feedback:
-            def sanitize(s):
+        if response.feedback:
+            def sanitize(s: str):
                 import bleach
                 return bleach.clean(s, tags=["p", "pre"])
             feedback_bits.append("".join([
@@ -976,13 +1039,13 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
                         "".join(
                             f"<li>{sanitize(fb_item)}</li>"
                             for fb_item in response.feedback))
-        if hasattr(response, "traceback") and response.traceback:
+        if response.traceback:
             feedback_bits.append("".join([
                 "<p>",
                 _("This is the exception traceback"),
                 ":"
                 "<pre>%s</pre></p>"]) % escape(response.traceback))
-        if hasattr(response, "exec_host") and response.exec_host != "localhost":
+        if response.exec_host and response.exec_host != "localhost":
             import socket
             try:
                 exec_host_name, _dummy, _dummy = socket.gethostbyaddr(
@@ -995,20 +1058,20 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
                 _("Your code ran on %s.") % exec_host_name,
                 "</p>"]))
 
-        if hasattr(response, "stdout") and response.stdout:
+        if response.stdout and response.stdout:
             bulk_feedback_bits.append("".join([
                 "<p>",
                 _("Your code printed the following output"),
                 ":"
                 "<pre>%s</pre></p>"])
                     % escape(response.stdout))
-        if hasattr(response, "stderr") and response.stderr:
+        if response.stderr and response.stderr:
             bulk_feedback_bits.append("".join([
                 "<p>",
                 _("Your code printed the following error messages"),
                 ":"
                 "<pre>%s</pre></p>"]) % escape(response.stderr))
-        if hasattr(response, "figures") and response.figures:
+        if response.figures and response.figures:
             fig_lines = ["".join([
                 "<p>",
                 _("Your code produced the following plots"),
@@ -1030,7 +1093,7 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue):
 
         # {{{ html output / sanitization
 
-        if hasattr(response, "html") and response.html:
+        if response.html:
             if (page_context.course is None
                     or not page_context.course.trusted_for_markup):
                 bulk_feedback_bits.extend(
@@ -1449,16 +1512,16 @@ class PythonCodeQuestionWithHumanTextFeedback(
         if grade_data is not None and not grade_data["released"]:
             grade_data = None
 
-        code_feedback = PythonCodeQuestion.grade(self, page_context,
-                page_data, answer_data, grade_data)
+        code_feedback = not_none(PythonCodeQuestion.grade(self, page_context,
+                page_data, answer_data, grade_data))
 
         human_points = self.human_feedback_point_value(page_context, page_data)
         code_points = self.page_desc.value - human_points
 
         correctness = None
         percentage = None
-        if (code_feedback is not None
-                and code_feedback.correctness is not None
+        if (
+                code_feedback.correctness is not None
                 and grade_data is not None
                 and grade_data["grade_percent"] is not None):
             code_feedback_percentage = 100 - self.human_feedback_percentage
@@ -1494,8 +1557,7 @@ class PythonCodeQuestionWithHumanTextFeedback(
                         * human_points)
 
         code_feedback_points = None
-        if (code_feedback is not None
-                and code_feedback.correctness is not None):
+        if code_feedback.correctness is not None:
             code_feedback_points = code_feedback.correctness*code_points
 
         from django.template.loader import render_to_string

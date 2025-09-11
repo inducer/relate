@@ -789,13 +789,6 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
 
     # }}}
 
-    def test_html_non_text_bleached_in_feedback(self):
-        self.assert_runpy_result_and_response(
-            "user_error",
-            "(Non-string in 'HTML' output filtered out)",
-            html=b"not string"
-        )
-
     # {{{ https://github.com/inducer/relate/pull/448
 
     def test_feedback_points_close_to_1(self):

@@ -46,6 +46,7 @@ dependencies = [
     "social-auth-app-django>=5.4.1,<6",
     "urllib3>=2.3.0,<3",
     "typing_extensions>=4.14.1",
+    "pydantic>=2.11.7",
 
     # prevent spurious downgrade by uv? Counters upper bound by pysaml2:
     # https://github.com/IdentityPython/pysaml2/blob/0252ec96058c87c43f89e05d978e72b6ba2e6978/CHANGELOG.md?plain=1#L10
