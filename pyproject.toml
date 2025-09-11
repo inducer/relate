@@ -75,9 +75,10 @@ dev = [
     "pytest>=8,<9",
     "pytest-django>=4.5.2,<5",
     "pytest-factoryboy>=2.6.0,<3",
+
     # https://github.com/wronglink/pytest-pudb/pull/29
-    # "pytest-pudb>=0.7,<0.8",
-    #
+    "pytest_pudb @ git+https://github.com/ndhansen/pytest-pudb.git@c29b32a7c93e9a2d40ae1d8594c1fcb3dfd26e06",
+
     "safety>=3.2.11,<4",
     # workaround for:
     # https://github.com/pyupio/safety/issues/784
