@@ -27,7 +27,7 @@ import celery
 import pytest
 from django.test import TestCase, override_settings
 from django.utils.timezone import now, timedelta
-from pkg_resources import parse_version
+from packaging.version import parse as parse_version
 
 from course import models
 from course.tasks import (
