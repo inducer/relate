@@ -238,26 +238,26 @@ def get_auto_feedback(correctness: float | None) -> str:
             gettext_noop("No information on correctness of answer."))
 
     if correctness == 0:
-        return str(gettext_noop("Your answer is not correct."))
+        return str(gettext_noop("Your answer received no credit."))
     elif correctness == 1:
-        return str(gettext_noop("Your answer is correct."))
+        return str(gettext_noop("Your answer received full credit."))
     elif correctness > 1:
         return str(
                 string_concat(
                     gettext_noop(
-                        "Your answer is correct and earned bonus points."),
+                        "Your answer received extra credit."),
                     " (%.1f %%)")
                 % (100*correctness))
     elif correctness > 0.5:
         return str(
                 string_concat(
-                    gettext_noop("Your answer is mostly correct."),
+                    gettext_noop("Your answer received more than half credit."),
                     " (%.1f %%)")
                 % (100*correctness))
     else:
         return str(
                 string_concat(
-                    gettext_noop("Your answer is somewhat correct. "),
+                    gettext_noop("Your answer received some credit. "),
                     "(%.1f%%)")
                 % (100*correctness))
 

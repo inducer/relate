@@ -279,12 +279,12 @@ class LanguageOverrideTest(SingleCoursePageTestMixin,
             "answer": {"answer": "c = ..."},
             "literals": [
                 gettext_noop("Autograder feedback"),
-                gettext_noop("Your answer is not correct.")
+                gettext_noop("Your answer received no credit.")
             ]},
         "addition": {
             "answer": {"answer": "c = a + b"},
             "literals": [
-                gettext_noop("Your answer is correct."),
+                gettext_noop("Your answer received full credit."),
                 gettext_noop("It looks like you submitted code that is "
                               "identical to the reference solution. "
                               "This is not allowed."),
