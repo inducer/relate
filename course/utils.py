@@ -1254,9 +1254,9 @@ def will_use_masked_profile_for_email(recipient_email: str | list[str] | None) -
         Participation.objects.filter(
             user__email__in=recipient_email
         ))
-    from course.constants import ParticipationPermission as pperm
+    from course.constants import ParticipationPermission as PPerm
     for part in recipient_participations:
-        if part.has_permission(pperm.view_participant_masked_profile):
+        if part.has_permission(PPerm.view_participant_masked_profile):
             return True
     return False
 

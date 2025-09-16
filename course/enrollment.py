@@ -47,7 +47,7 @@ from pytools.lex import RE, LexTable
 from course.auth import UserSearchWidget
 from course.constants import (
     PARTICIPATION_PERMISSION_CHOICES,
-    ParticipationPermission as pperm,
+    ParticipationPermission as PPerm,
 )
 from course.models import (
     Course,
@@ -55,8 +55,8 @@ from course.models import (
     ParticipationPermission,
     ParticipationPreapproval,
     ParticipationRole,
-    ParticipationTag,
     ParticipationStatus,
+    ParticipationTag,
     UserStatus,
 )
 from course.utils import LanguageOverride, course_view, render_course_page
@@ -460,7 +460,7 @@ class BulkPreapprovalsForm(StyledForm):
 @transaction.atomic
 @course_view
 def create_preapprovals(pctx):
-    if not pctx.has_permission(pperm.preapprove_participation):
+    if not pctx.has_permission(PPerm.preapprove_participation):
         raise PermissionDenied(_("may not preapprove participation"))
 
     request = pctx.request
@@ -829,8 +829,8 @@ class ParticipationQueryForm(StyledForm):
 @course_view
 def query_participations(pctx):
     if (
-            not pctx.has_permission(pperm.query_participation)
-            or pctx.has_permission(pperm.view_participant_masked_profile)):
+            not pctx.has_permission(PPerm.query_participation)
+            or pctx.has_permission(PPerm.view_participant_masked_profile)):
         raise PermissionDenied(_("may not query participations"))
 
     request = pctx.request
@@ -935,7 +935,7 @@ class EditParticipationForm(StyledModelForm):
             )
         self.add_new = add_new
 
-        may_edit_permissions = pctx.has_permission(pperm.edit_course_permissions)
+        may_edit_permissions = pctx.has_permission(PPerm.edit_course_permissions)
         if not may_edit_permissions:
             self.fields["roles"].disabled = True
 
@@ -1010,7 +1010,7 @@ class EditParticipationForm(StyledModelForm):
 @course_view
 def edit_participation(
         pctx: CoursePageContext, participation_id: int) -> http.HttpResponse:
-    if not pctx.has_permission(pperm.edit_participation):
+    if not pctx.has_permission(PPerm.edit_participation):
         raise PermissionDenied()
 
     request = pctx.request

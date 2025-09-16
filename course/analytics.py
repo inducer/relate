@@ -33,9 +33,9 @@ from django.shortcuts import get_object_or_404, redirect, render  # noqa
 from django.urls import reverse
 from django.utils.translation import gettext as _, pgettext
 
-from course.constants import ParticipationPermission as pperm
-from course.content import get_flow_desc
-from course.models import FlowPageVisit, FlowSession, FlowPermission
+from course.constants import FlowPermission, ParticipationPermission as PPerm
+from course.content import FlowDesc, get_flow_desc
+from course.models import FlowPageVisit, FlowSession
 from course.utils import PageInstanceCache, course_view, render_course_page
 
 
@@ -44,7 +44,7 @@ from course.utils import PageInstanceCache, course_view, render_course_page
 @login_required
 @course_view
 def flow_list(pctx):
-    if not pctx.has_permission(pperm.view_analytics):
+    if not pctx.has_permission(PPerm.view_analytics):
         raise PermissionDenied(_("may not view analytics"))
 
     cursor = connection.cursor()
@@ -213,7 +213,7 @@ class Histogram:
 # }}}
 
 
-def is_flow_multiple_submit(flow_desc):
+def is_flow_multiple_submit(flow_desc: FlowDesc):
     if not hasattr(flow_desc, "rules"):
         return False
 
@@ -224,7 +224,7 @@ def is_flow_multiple_submit(flow_desc):
     return False
 
 
-def is_page_multiple_submit(flow_desc, page_desc):
+def is_page_multiple_submit(flow_desc: FlowDesc, page_desc):
     result = is_flow_multiple_submit(flow_desc)
 
     page_rules = getattr(page_desc, "access_rules", None)
@@ -254,7 +254,7 @@ def make_grade_histogram(pctx, flow_id):
             course=pctx.course,
             flow_id=flow_id,
             participation__roles__permissions__permission=(
-                pperm.included_in_grade_statistics))
+                PPerm.included_in_grade_statistics))
 
     hist = Histogram(
         num_min_value=0,
@@ -313,7 +313,7 @@ def make_page_answer_stats_list(pctx, flow_id, restrict_to_first_attempt):
                         flow_session__course=pctx.course,
                         flow_session__flow_id=flow_id,
                         flow_session__participation__roles__permissions__permission=(
-                            pperm.included_in_grade_statistics),
+                            PPerm.included_in_grade_statistics),
                         page_data__group_id=group_desc.id,
                         page_data__page_id=page_desc.id,
                         is_submitted_answer=True,
@@ -438,7 +438,7 @@ def count_participants(pctx, flow_id):
 @login_required
 @course_view
 def flow_analytics(pctx, flow_id):
-    if not pctx.has_permission(pperm.view_analytics):
+    if not pctx.has_permission(PPerm.view_analytics):
         raise PermissionDenied(_("may not view analytics"))
 
     restrict_to_first_attempt = int(
@@ -480,7 +480,7 @@ class AnswerStats:
 @login_required
 @course_view
 def page_analytics(pctx, flow_id, group_id, page_id):
-    if not pctx.has_permission(pperm.view_analytics):
+    if not pctx.has_permission(PPerm.view_analytics):
         raise PermissionDenied(_("may not view analytics"))
 
     flow_desc = get_flow_desc(pctx.repo, pctx.course, flow_id,
@@ -496,7 +496,7 @@ def page_analytics(pctx, flow_id, group_id, page_id):
                 flow_session__course=pctx.course,
                 flow_session__flow_id=flow_id,
                 flow_session__participation__roles__permissions__permission=(
-                    pperm.included_in_grade_statistics),
+                    PPerm.included_in_grade_statistics),
                 page_data__group_id=group_id,
                 page_data__page_id=page_id,
                 is_submitted_answer=True,

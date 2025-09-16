@@ -39,8 +39,8 @@ from django.utils.timezone import now, timedelta
 from course import constants, flow, models
 from course.constants import (
     SESSION_LOCKED_TO_FLOW_PK,
-    FlowPermission as fperm,
-    GradeAggregationStrategy as g_strategy,
+    FlowPermission as FPerm,
+    GradeAggregationStrategy as GAStrategy,
 )
 from course.utils import FlowSessionGradingRule, FlowSessionStartRule
 from relate.utils import StyledForm, dict_to_struct
@@ -279,7 +279,7 @@ class StartFlowTest(CoursesTestMixinBase, unittest.TestCase):
         flow_desc = dict_to_struct(
             {"rules": dict_to_struct(
                 {"grade_identifier": "g_identifier",
-                 "grade_aggregation_strategy": g_strategy.use_earliest})})
+                 "grade_aggregation_strategy": GAStrategy.use_earliest})})
 
         session = flow.start_flow(
             repo=self.repo,
@@ -1252,7 +1252,7 @@ class FinishFlowSessionViewTest(HackRepoMixin,
                 "course.flow.get_session_access_rule") as mock_get_arule:
             mock_get_arule.return_value = (
                 self.get_hacked_session_access_rule(
-                    permissions=[fperm.end_session]))
+                    permissions=[FPerm.end_session]))
 
             # fail for get
             resp = self.client.get(self.get_finish_flow_session_view_url())
@@ -1267,7 +1267,7 @@ class FinishFlowSessionViewTest(HackRepoMixin,
                 "course.flow.get_session_access_rule") as mock_get_arule:
             mock_get_arule.return_value = (
                 self.get_hacked_session_access_rule(
-                    permissions=[fperm.view]))
+                    permissions=[FPerm.view]))
 
             resp = self.end_flow()
             self.assertEqual(resp.status_code, 403)
@@ -1474,7 +1474,7 @@ class FinishFlowSessionViewTest(HackRepoMixin,
             # though the session doesn't need to be ended.
             mock_get_arule.return_value = (
                 self.get_hacked_session_access_rule(
-                    permissions=[fperm.view, fperm.end_session]))
+                    permissions=[FPerm.view, FPerm.end_session]))
             resp = self.start_flow(flow_id="001-linalg-recap")
             self.assertEqual(resp.status_code, 302)
             resp = self.end_flow()
@@ -1489,8 +1489,8 @@ class FinishFlowSessionViewTest(HackRepoMixin,
             mock_get_arule.return_value = (
                 self.get_hacked_session_access_rule(
                     permissions=[
-                        fperm.view, fperm.end_session,
-                        fperm.cannot_see_flow_result]))
+                        FPerm.view, FPerm.end_session,
+                        FPerm.cannot_see_flow_result]))
             resp = self.end_flow()
             self.assertEqual(resp.status_code, 200)
             self.assertTemplateUsed(resp, "course/flow-completion-grade.html")
@@ -1533,7 +1533,7 @@ class FinishFlowSessionTest(SingleCourseTestMixin, TestCase):
             participation=self.student_participation, in_progress=True)
         grading_rule = FlowSessionGradingRule(
             grade_identifier="la_quiz",
-            grade_aggregation_strategy=g_strategy.use_latest,
+            grade_aggregation_strategy=GAStrategy.use_latest,
             due=None,
             generates_grade=True,
             use_last_activity_as_completion_time=False
@@ -1566,7 +1566,7 @@ class FinishFlowSessionTest(SingleCourseTestMixin, TestCase):
             participation=self.student_participation, in_progress=True)
         grading_rule = FlowSessionGradingRule(
             grade_identifier="la_quiz",
-            grade_aggregation_strategy=g_strategy.use_latest,
+            grade_aggregation_strategy=GAStrategy.use_latest,
             due=None,
             generates_grade=True,
             use_last_activity_as_completion_time=False
@@ -1605,7 +1605,7 @@ class FinishFlowSessionTest(SingleCourseTestMixin, TestCase):
 
         grading_rule = FlowSessionGradingRule(
             grade_identifier="la_quiz",
-            grade_aggregation_strategy=g_strategy.use_latest,
+            grade_aggregation_strategy=GAStrategy.use_latest,
             due=None,
             generates_grade=True,
             use_last_activity_as_completion_time=True
@@ -1661,7 +1661,7 @@ class FinishFlowSessionTest(SingleCourseTestMixin, TestCase):
 
         grading_rule = FlowSessionGradingRule(
             grade_identifier="la_quiz",
-            grade_aggregation_strategy=g_strategy.use_latest,
+            grade_aggregation_strategy=GAStrategy.use_latest,
             due=None,
             generates_grade=True,
             use_last_activity_as_completion_time=True
@@ -1754,7 +1754,7 @@ class ExpireFlowSessionTest(SingleCourseTestMixin, TestCase):
             participation=self.student_participation, in_progress=True)
         grading_rule = FlowSessionGradingRule(
             grade_identifier="la_quiz",
-            grade_aggregation_strategy=g_strategy.use_latest,
+            grade_aggregation_strategy=GAStrategy.use_latest,
             due=None,
             generates_grade=True,
             use_last_activity_as_completion_time=False
@@ -1776,7 +1776,7 @@ class ExpireFlowSessionTest(SingleCourseTestMixin, TestCase):
 
         grading_rule = FlowSessionGradingRule(
             grade_identifier="la_quiz",
-            grade_aggregation_strategy=g_strategy.use_latest,
+            grade_aggregation_strategy=GAStrategy.use_latest,
             due=due,
             generates_grade=True,
             use_last_activity_as_completion_time=False
@@ -1798,7 +1798,7 @@ class ExpireFlowSessionTest(SingleCourseTestMixin, TestCase):
 
         grading_rule = FlowSessionGradingRule(
             grade_identifier="la_quiz",
-            grade_aggregation_strategy=g_strategy.use_latest,
+            grade_aggregation_strategy=GAStrategy.use_latest,
             due=due,
             generates_grade=True,
             use_last_activity_as_completion_time=False
@@ -1826,7 +1826,7 @@ class ExpireFlowSessionTest(SingleCourseTestMixin, TestCase):
 
         grading_rule = FlowSessionGradingRule(
             grade_identifier="la_quiz",
-            grade_aggregation_strategy=g_strategy.use_latest,
+            grade_aggregation_strategy=GAStrategy.use_latest,
             due=None,
             generates_grade=True,
             use_last_activity_as_completion_time=False
@@ -1849,7 +1849,7 @@ class ExpireFlowSessionTest(SingleCourseTestMixin, TestCase):
 
         grading_rule = FlowSessionGradingRule(
             grade_identifier="la_quiz",
-            grade_aggregation_strategy=g_strategy.use_latest,
+            grade_aggregation_strategy=GAStrategy.use_latest,
             due=None,
             generates_grade=True,
             use_last_activity_as_completion_time=False
@@ -1872,7 +1872,7 @@ class ExpireFlowSessionTest(SingleCourseTestMixin, TestCase):
 
         grading_rule = FlowSessionGradingRule(
             grade_identifier="la_quiz",
-            grade_aggregation_strategy=g_strategy.use_latest,
+            grade_aggregation_strategy=GAStrategy.use_latest,
             due=due,
             generates_grade=True,
             use_last_activity_as_completion_time=False
@@ -1966,7 +1966,7 @@ class GradeFlowSessionTest(SingleCourseQuizPageTestMixin,
     def get_test_grading_rule(self, **kwargs):
         defaults = {
             "grade_identifier": "la_quiz",
-            "grade_aggregation_strategy": g_strategy.use_latest,
+            "grade_aggregation_strategy": GAStrategy.use_latest,
             "due": None,
             "generates_grade": True,
             "use_last_activity_as_completion_time": False,
@@ -2963,7 +2963,7 @@ class LockDownIfNeededTest(unittest.TestCase):
         self.assertIsNone(self.request.session.get(SESSION_LOCKED_TO_FLOW_PK))
 
     def test_has_lock_down_as_exam_session_flow_permission(self):
-        flow_permissions = [fperm.lock_down_as_exam_session,
+        flow_permissions = [FPerm.lock_down_as_exam_session,
                             "other_flow_permission"]
         flow.lock_down_if_needed(self.request, flow_permissions, self.flow_session)
 
@@ -3068,15 +3068,15 @@ class ViewStartFlowTest(SingleCourseTestMixin, TestCase):
                                          completion_time=None)
 
         access_rule_for_session1 = self.get_hacked_session_access_rule(
-            permissions=[fperm.cannot_see_flow_result]
+            permissions=[FPerm.cannot_see_flow_result]
         )
 
         access_rule_for_session2 = self.get_hacked_session_access_rule(
             permissions=[
-                fperm.view,
-                fperm.submit_answer,
-                fperm.end_session,
-                fperm.see_answer_after_submission]
+                FPerm.view,
+                FPerm.submit_answer,
+                FPerm.end_session,
+                FPerm.see_answer_after_submission]
         )
 
         grading_rule_for_session1 = self.get_hacked_session_grading_rule(
@@ -3431,8 +3431,8 @@ class WillReceiveFeedbackTest(unittest.TestCase):
     def test_false(self):
         combinations = [(frozenset([fp]), False) for fp in
                         get_flow_permissions_list(
-                            excluded=[fperm.see_correctness,
-                                      fperm.see_answer_after_submission])]
+                            excluded=[FPerm.see_correctness,
+                                      FPerm.see_answer_after_submission])]
         combinations.append(([], False))
 
         for permissions, will_receive in combinations:
@@ -3443,14 +3443,14 @@ class WillReceiveFeedbackTest(unittest.TestCase):
 
     def test_true(self):
         combinations = [
-            (frozenset([fp, fperm.see_correctness]), True)
+            (frozenset([fp, FPerm.see_correctness]), True)
             for fp in get_flow_permissions_list(
-                excluded=[fperm.see_correctness])]
+                excluded=[FPerm.see_correctness])]
 
         combinations2 = [
-            (frozenset([fp, fperm.see_answer_after_submission]), True)
+            (frozenset([fp, FPerm.see_answer_after_submission]), True)
             for fp in get_flow_permissions_list(
-                excluded=[fperm.see_answer_after_submission])]
+                excluded=[FPerm.see_answer_after_submission])]
         combinations.extend(combinations2)
 
         for permissions, will_receive in combinations:
@@ -3481,7 +3481,7 @@ class MaySendEmailAboutFlowPageTest(TestCase):
     def test_false_has_no_send_email_about_flow_page_fperm(self):
         combinations = [(frozenset([fp]), False) for fp in
                         get_flow_permissions_list(
-                            excluded=[fperm.send_email_about_flow_page])]
+                            excluded=[FPerm.send_email_about_flow_page])]
         combinations.append((frozenset([]), False))
 
         for session in [self.fs, self.fs_no_user, self.fs_no_participation_no_user]:
@@ -3493,9 +3493,9 @@ class MaySendEmailAboutFlowPageTest(TestCase):
 
     def test_false_flow_session_has_no_participation_or_no_user(self):
         combinations = [
-            (frozenset([fp, fperm.send_email_about_flow_page]), False)
+            (frozenset([fp, FPerm.send_email_about_flow_page]), False)
             for fp in get_flow_permissions_list(
-                excluded=[fperm.send_email_about_flow_page])]
+                excluded=[FPerm.send_email_about_flow_page])]
 
         for session in [self.fs_no_user, self.fs_no_participation_no_user]:
             for permissions, may_send in combinations:
@@ -3506,10 +3506,10 @@ class MaySendEmailAboutFlowPageTest(TestCase):
 
     def test_true(self):
         combinations = [
-            (frozenset([fp, fperm.send_email_about_flow_page]), True)
+            (frozenset([fp, FPerm.send_email_about_flow_page]), True)
             for fp in get_flow_permissions_list(
-                excluded=[fperm.send_email_about_flow_page])]
-        combinations.append((frozenset([fperm.send_email_about_flow_page]), True))
+                excluded=[FPerm.send_email_about_flow_page])]
+        combinations.append((frozenset([FPerm.send_email_about_flow_page]), True))
 
         for permissions, may_send in combinations:
             with self.subTest(session=self.fs, permissions=permissions):
@@ -3572,8 +3572,8 @@ class GetPageBehaviorTest(unittest.TestCase):
 
         combinations = [(frozenset([fp]), False) for fp in
                         get_flow_permissions_list(
-                            excluded=fperm.see_correctness)]
-        combinations.extend((([], False), (frozenset([fperm.see_correctness]), True)))
+                            excluded=FPerm.see_correctness)]
+        combinations.extend((([], False), (frozenset([FPerm.see_correctness]), True)))
 
         params = list(itertools.product([True, False], repeat=4))
 
@@ -3628,14 +3628,14 @@ class GetPageBehaviorTest(unittest.TestCase):
         combinations = [(frozenset([fp]), False) for fp in
                         get_flow_permissions_list(
                             excluded=[
-                                fperm.see_answer_before_submission,
-                                fperm.see_answer_after_submission])]
+                                FPerm.see_answer_before_submission,
+                                FPerm.see_answer_after_submission])]
         combinations.extend((
                 ([], False),
-                (frozenset([fperm.see_answer_before_submission]), True),
-                (frozenset([fperm.see_answer_after_submission]), True),
-                (frozenset([fperm.see_answer_after_submission,
-                           fperm.see_answer_before_submission]), True)))
+                (frozenset([FPerm.see_answer_before_submission]), True),
+                (frozenset([FPerm.see_answer_after_submission]), True),
+                (frozenset([FPerm.see_answer_after_submission,
+                           FPerm.see_answer_before_submission]), True)))
 
         params = list(itertools.product([True, False], repeat=5))
 
@@ -3663,10 +3663,10 @@ class GetPageBehaviorTest(unittest.TestCase):
         combinations = [(frozenset([fp]), False) for fp in
                         get_flow_permissions_list(
                             excluded=[
-                                fperm.see_answer_before_submission])]
+                                FPerm.see_answer_before_submission])]
         combinations.extend((
                     ([], False),
-                    (frozenset([fperm.see_answer_before_submission]), True)))
+                    (frozenset([FPerm.see_answer_before_submission]), True)))
 
         params = list(itertools.product([True, False], repeat=4))
 
@@ -3695,25 +3695,25 @@ class GetPageBehaviorTest(unittest.TestCase):
         combinations = [(frozenset([fp]), False) for fp in
                         get_flow_permissions_list(
                             excluded=[
-                                fperm.see_answer_before_submission,
-                                fperm.see_answer_after_submission])]
+                                FPerm.see_answer_before_submission,
+                                FPerm.see_answer_after_submission])]
         combinations.append(([], False))
 
         # when session not in_progress, see_answer_after_submission dominates
         combinations.extend(
-            [(frozenset([fp, fperm.see_answer_after_submission]), True)
+            [(frozenset([fp, FPerm.see_answer_after_submission]), True)
              for fp in get_flow_permissions_list(
-                excluded=fperm.see_answer_after_submission)])
+                excluded=FPerm.see_answer_after_submission)])
 
         combinations.extend((
-                    (frozenset([fperm.see_answer_before_submission]), True),
-                    (frozenset([fperm.see_answer_after_submission]), True)))
+                    (frozenset([FPerm.see_answer_before_submission]), True),
+                    (frozenset([FPerm.see_answer_after_submission]), True)))
 
         # see_answer_before_submission also dominates
         combinations.extend(
-            [(frozenset([fp, fperm.see_answer_before_submission]), True)
+            [(frozenset([fp, FPerm.see_answer_before_submission]), True)
              for fp in get_flow_permissions_list(
-                excluded=fperm.see_answer_before_submission)])
+                excluded=FPerm.see_answer_before_submission)])
 
         params = list(itertools.product([True, False], repeat=3))
 
@@ -3741,25 +3741,25 @@ class GetPageBehaviorTest(unittest.TestCase):
         combinations = [(frozenset([fp]), False) for fp in
                         get_flow_permissions_list(
                             excluded=[
-                                fperm.see_answer_before_submission,
-                                fperm.see_answer_after_submission])]
+                                FPerm.see_answer_before_submission,
+                                FPerm.see_answer_after_submission])]
         combinations.extend((
                 ([], False),
-                (frozenset([fperm.see_answer_before_submission]), True),
-                (frozenset([fperm.see_answer_after_submission]), True)))
+                (frozenset([FPerm.see_answer_before_submission]), True),
+                (frozenset([FPerm.see_answer_after_submission]), True)))
 
         # if see_answer_before_submission dominate not present,
         # change_answer dominates
         combinations.extend(
-            [(frozenset([fp, fperm.change_answer]), False) for fp in
+            [(frozenset([fp, FPerm.change_answer]), False) for fp in
              get_flow_permissions_list(
-                 excluded=fperm.see_answer_before_submission)])
+                 excluded=FPerm.see_answer_before_submission)])
 
         # see_answer_before_submission dominates
         combinations.extend(
-            [(frozenset([fp, fperm.see_answer_before_submission]), True)
+            [(frozenset([fp, FPerm.see_answer_before_submission]), True)
              for fp in get_flow_permissions_list(
-                excluded=fperm.see_answer_before_submission)])
+                excluded=FPerm.see_answer_before_submission)])
 
         params = list(itertools.product([True, False], repeat=3))
 
@@ -3836,7 +3836,7 @@ class GetPageBehaviorTest(unittest.TestCase):
 
         combinations = [(frozenset([fp]), False)
                         for fp in get_flow_permissions_list(
-                excluded=fperm.submit_answer)]
+                excluded=FPerm.submit_answer)]
 
         params = list(itertools.product([True, False], repeat=5))
 
@@ -3861,9 +3861,9 @@ class GetPageBehaviorTest(unittest.TestCase):
     def test_may_change_answer4(self):
         # not answer_was_graded or (flow_permission.change_answer in permissions)
 
-        combinations = [(frozenset([fp, fperm.submit_answer]), False)
+        combinations = [(frozenset([fp, FPerm.submit_answer]), False)
                         for fp in get_flow_permissions_list(
-                excluded=fperm.change_answer)]
+                excluded=FPerm.change_answer)]
 
         params = list(itertools.product([True, False], repeat=4))
 
@@ -3887,7 +3887,7 @@ class GetPageBehaviorTest(unittest.TestCase):
         # generates_grade and not is_unenrolled_session or (not generates_grade)
 
         combinations = [
-            (frozenset([fp, fperm.submit_answer, fperm.change_answer]), False)
+            (frozenset([fp, FPerm.submit_answer, FPerm.change_answer]), False)
             for fp in get_flow_permissions_list()]
 
         params = list(itertools.product([True, False], repeat=1))
@@ -3922,10 +3922,10 @@ class GetPageBehaviorTest(unittest.TestCase):
         confs = (
             Conf([], False, False, True),
             Conf([], False, False, False),
-            Conf([fperm.change_answer], True, False, True),
-            Conf([fperm.change_answer], True, False, False),
-            Conf([fperm.change_answer], False, False, True),
-            Conf([fperm.change_answer], False, False, False),
+            Conf([FPerm.change_answer], True, False, True),
+            Conf([FPerm.change_answer], True, False, False),
+            Conf([FPerm.change_answer], False, False, True),
+            Conf([FPerm.change_answer], False, False, False),
         )
 
         params = list(itertools.product([True, False], repeat=1))
@@ -3933,7 +3933,7 @@ class GetPageBehaviorTest(unittest.TestCase):
         for conf in confs:
             combinations = []
             for fp in get_flow_permissions_list():
-                fperms = [fp, fperm.submit_answer]
+                fperms = [fp, FPerm.submit_answer]
                 if conf.extra_fperms:
                     fperms.extend(conf.extra_fperms)
 
@@ -4005,7 +4005,7 @@ class AddButtonsToFormTest(unittest.TestCase):
 
         self.mock_will_receive_feedback.return_value = True
         flow.add_buttons_to_form(
-            form, self.fpctx, self.flow_session, frozenset([fperm.change_answer]))
+            form, self.fpctx, self.flow_session, frozenset([FPerm.change_answer]))
 
         names, values = self.get_form_submit_inputs(form)
         self.assertIn("submit", names)
@@ -4015,7 +4015,7 @@ class AddButtonsToFormTest(unittest.TestCase):
 
         self.mock_will_receive_feedback.return_value = True
         combinations = [(frozenset([fp]), False) for fp in
-                        get_flow_permissions_list(excluded=fperm.change_answer)]
+                        get_flow_permissions_list(excluded=FPerm.change_answer)]
         combinations.append(([], False))
 
         form = StyledForm()
@@ -4477,7 +4477,7 @@ class PostFlowPageTest(HackRepoMixin, SingleCourseQuizPageTestMixin, TestCase):
         self.mock_get_pressed_button.return_value = "save"
         flow.post_flow_page(
             self.flow_session, self.fpctx, self.request,
-            permissions=frozenset([fperm.submit_answer, fperm.change_answer]),
+            permissions=frozenset([FPerm.submit_answer, FPerm.change_answer]),
             generates_grade=True)
 
         self.assertEqual(self.mock_add_message.call_count, 1)
@@ -4496,7 +4496,7 @@ class PostFlowPageTest(HackRepoMixin, SingleCourseQuizPageTestMixin, TestCase):
         self.mock_will_receive_feedback.return_value = False
         resp = flow.post_flow_page(
             self.flow_session, self.fpctx, self.request,
-            permissions=frozenset([fperm.submit_answer, fperm.change_answer]),
+            permissions=frozenset([FPerm.submit_answer, FPerm.change_answer]),
             generates_grade=True)
 
         self.assertIsInstance(resp, http.HttpResponse)
@@ -4522,7 +4522,7 @@ class PostFlowPageTest(HackRepoMixin, SingleCourseQuizPageTestMixin, TestCase):
         self.mock_will_receive_feedback.return_value = False
         resp = flow.post_flow_page(
             self.flow_session, self.fpctx, self.request,
-            permissions=frozenset([fperm.submit_answer, fperm.change_answer]),
+            permissions=frozenset([FPerm.submit_answer, FPerm.change_answer]),
             generates_grade=True)
 
         self.assertRedirects(
@@ -4585,7 +4585,7 @@ class SendEmailAboutFlowPageTest(HackRepoMixin,
             fake_get_modified_permissions_for_page.start()
         )
         self.mock_get_modified_permissions_for_page.return_value = [
-            fperm.view, fperm.send_email_about_flow_page]
+            FPerm.view, FPerm.send_email_about_flow_page]
         self.addCleanup(fake_get_modified_permissions_for_page.stop)
 
         fake_get_and_check_flow_session = mock.patch(
@@ -4630,7 +4630,7 @@ class SendEmailAboutFlowPageTest(HackRepoMixin,
             self.assertEqual(self.mock_get_login_exam_ticket.call_count, 0)
 
     def test_no_permission_404(self):
-        self.mock_get_modified_permissions_for_page.return_value = [fperm.view]
+        self.mock_get_modified_permissions_for_page.return_value = [FPerm.view]
 
         resp = self.client.get(
             self.get_send_email_about_flow_page_url(page_ordinal=1))

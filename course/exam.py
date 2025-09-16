@@ -52,7 +52,7 @@ from django.views.decorators.debug import sensitive_post_parameters
 from course.constants import (
     SESSION_LOCKED_TO_FLOW_PK,
     ExamTicketState,
-    ParticipationPermission as pperm,
+    ParticipationPermission as PPerm,
     ParticipationStatus,
 )
 from course.models import (
@@ -400,7 +400,7 @@ class TicketInfo:
 
 @course_view
 def batch_issue_exam_tickets(pctx):
-    if not pctx.has_permission(pperm.batch_issue_exam_ticket):
+    if not pctx.has_permission(PPerm.batch_issue_exam_ticket):
         raise PermissionDenied(_("may not batch-issue tickets"))
 
     form_text = ""
