@@ -48,7 +48,7 @@ from django.utils.translation import gettext, gettext_lazy as _, pgettext_lazy
 
 from course.constants import (
     GradeStateChangeType,
-    ParticipationPermission as pperm,
+    ParticipationPermission as PPerm,
     ParticipationStatus,
 )
 from course.flow import adjust_flow_session_page_data
@@ -93,7 +93,7 @@ def view_participant_grades(pctx, participation_id=None):
     else:
         grade_participation = pctx.participation
 
-    is_privileged_view = pctx.has_permission(pperm.view_gradebook)
+    is_privileged_view = pctx.has_permission(PPerm.view_gradebook)
 
     if grade_participation != pctx.participation:
         if not is_privileged_view:
@@ -175,7 +175,7 @@ def view_participant_grades(pctx, participation_id=None):
 
 @course_view
 def view_participant_list(pctx):
-    if not pctx.has_permission(pperm.view_gradebook):
+    if not pctx.has_permission(PPerm.view_gradebook):
         raise PermissionDenied(_("may not view grade book"))
 
     participations = list(Participation.objects
@@ -195,7 +195,7 @@ def view_participant_list(pctx):
 
 @course_view
 def view_grading_opportunity_list(pctx):
-    if not pctx.has_permission(pperm.view_gradebook):
+    if not pctx.has_permission(PPerm.view_gradebook):
         raise PermissionDenied(_("may not view grade book"))
 
     grading_opps = list(GradingOpportunity.objects
@@ -291,7 +291,7 @@ def get_grade_table(course: Course) -> tuple[
 
 @course_view
 def view_gradebook(pctx):
-    if not pctx.has_permission(pperm.view_gradebook):
+    if not pctx.has_permission(PPerm.view_gradebook):
         raise PermissionDenied(_("may not view grade book"))
 
     participations, grading_opps, grade_table = get_grade_table(pctx.course)
@@ -313,7 +313,7 @@ def view_gradebook(pctx):
 
 @course_view
 def export_gradebook_csv(pctx):
-    if not pctx.has_permission(pperm.batch_export_grade):
+    if not pctx.has_permission(PPerm.batch_export_grade):
         raise PermissionDenied(_("may not batch-export grades"))
 
     participations, grading_opps, grade_table = get_grade_table(pctx.course)
@@ -424,7 +424,7 @@ def view_grades_by_opportunity(
     from course.views import get_now_or_fake_time
     now_datetime = get_now_or_fake_time(pctx.request)
 
-    if not pctx.has_permission(pperm.view_gradebook):
+    if not pctx.has_permission(PPerm.view_gradebook):
         raise PermissionDenied(_("may not view grade book"))
 
     opportunity = get_object_or_404(GradingOpportunity, id=int(opp_id))
@@ -435,10 +435,10 @@ def view_grades_by_opportunity(
     # {{{ batch sessions form
 
     batch_ops_allowed = (
-            pctx.has_permission(pperm.batch_impose_flow_session_deadline)
-            or pctx.has_permission(pperm.batch_end_flow_session)
-            or pctx.has_permission(pperm.batch_regrade_flow_session)
-            or pctx.has_permission(pperm.batch_recalculate_flow_session_grade)
+            pctx.has_permission(PPerm.batch_impose_flow_session_deadline)
+            or pctx.has_permission(PPerm.batch_end_flow_session)
+            or pctx.has_permission(PPerm.batch_regrade_flow_session)
+            or pctx.has_permission(PPerm.batch_recalculate_flow_session_grade)
             )
 
     batch_session_ops_form: ModifySessionsForm | None = None
@@ -459,23 +459,23 @@ def view_grades_by_opportunity(
 
             if "expire" in request.POST:
                 op = "expire"
-                if not pctx.has_permission(pperm.batch_impose_flow_session_deadline):
+                if not pctx.has_permission(PPerm.batch_impose_flow_session_deadline):
                     raise PermissionDenied(_("may not impose deadline"))
 
             elif "end" in request.POST:
                 op = "end"
-                if not pctx.has_permission(pperm.batch_end_flow_session):
+                if not pctx.has_permission(PPerm.batch_end_flow_session):
                     raise PermissionDenied(_("may not batch-end flows"))
 
             elif "regrade" in request.POST:
                 op = "regrade"
-                if not pctx.has_permission(pperm.batch_regrade_flow_session):
+                if not pctx.has_permission(PPerm.batch_regrade_flow_session):
                     raise PermissionDenied(_("may not batch-regrade flows"))
 
             elif "recalculate" in request.POST:
                 op = "recalculate"
                 if not pctx.has_permission(
-                        pperm.batch_recalculate_flow_session_grade):
+                        PPerm.batch_recalculate_flow_session_grade):
                     raise PermissionDenied(_("may not batch-recalculate grades"))
 
             else:
@@ -723,7 +723,7 @@ class ReopenSessionForm(StyledForm):
 def view_reopen_session(pctx: CoursePageContext, flow_session_id: str,
         opportunity_id: str) -> http.HttpResponse:
 
-    if not pctx.has_permission(pperm.reopen_flow_session):
+    if not pctx.has_permission(PPerm.reopen_flow_session):
         raise PermissionDenied(_("may not reopen session"))
 
     request = pctx.request
@@ -802,7 +802,7 @@ def average_grade(
             .filter(
                 opportunity=opportunity,
                 participation__roles__permissions__permission=(
-                    pperm.included_in_grade_statistics))
+                    PPerm.included_in_grade_statistics))
             .order_by(
                 "participation__id",
                 "grade_time")
@@ -880,7 +880,7 @@ def view_single_grade(pctx: CoursePageContext, participation_id: str,
         raise SuspiciousOperation(_("opportunity from wrong course"))
 
     my_grade = participation == pctx.participation
-    is_privileged_view = pctx.has_permission(pperm.view_gradebook)
+    is_privileged_view = pctx.has_permission(PPerm.view_gradebook)
 
     if is_privileged_view:
         if not opportunity.shown_in_grade_book:
@@ -932,7 +932,7 @@ def view_single_grade(pctx: CoursePageContext, participation_id: str,
 
         try:
             if op == "imposedl":
-                if not pctx.has_permission(pperm.impose_flow_session_deadline):
+                if not pctx.has_permission(PPerm.impose_flow_session_deadline):
                     raise PermissionDenied()
 
                 expire_flow_session_standalone(
@@ -941,7 +941,7 @@ def view_single_grade(pctx: CoursePageContext, participation_id: str,
                         _("Session deadline imposed."))
 
             elif op == "end":
-                if not pctx.has_permission(pperm.end_flow_session):
+                if not pctx.has_permission(PPerm.end_flow_session):
                     raise PermissionDenied()
 
                 finish_flow_session_standalone(
@@ -951,7 +951,7 @@ def view_single_grade(pctx: CoursePageContext, participation_id: str,
                         _("Session ended."))
 
             elif op == "regrade":
-                if not pctx.has_permission(pperm.regrade_flow_session):
+                if not pctx.has_permission(PPerm.regrade_flow_session):
                     raise PermissionDenied()
 
                 regrade_session(
@@ -960,7 +960,7 @@ def view_single_grade(pctx: CoursePageContext, participation_id: str,
                         _("Session regraded."))
 
             elif op == "recalculate":
-                if not pctx.has_permission(pperm.recalculate_flow_session_grade):
+                if not pctx.has_permission(PPerm.recalculate_flow_session_grade):
                     raise PermissionDenied()
 
                 recalculate_session_grade(
@@ -1029,7 +1029,7 @@ def view_single_grade(pctx: CoursePageContext, participation_id: str,
 
     avg_grade_percentage, avg_grade_population = average_grade(opportunity)
 
-    show_privileged_info = pctx.has_permission(pperm.view_gradebook)
+    show_privileged_info = pctx.has_permission(PPerm.view_gradebook)
     show_page_grades = (
             show_privileged_info
             or opportunity.page_scores_in_participant_gradebook)
@@ -1058,10 +1058,10 @@ def view_single_grade(pctx: CoursePageContext, participation_id: str,
         "show_privileged_info": show_privileged_info,
         "show_page_grades": show_page_grades,
         "allow_session_actions": (
-            pperm.impose_flow_session_deadline
-            or pperm.end_flow_session
-            or pperm.regrade_flow_session
-            or pperm.recalculate_flow_session_grade),
+            PPerm.impose_flow_session_deadline
+            or PPerm.end_flow_session
+            or PPerm.regrade_flow_session
+            or PPerm.recalculate_flow_session_grade),
         })
 
 # }}}
@@ -1372,7 +1372,7 @@ def csv_to_grade_changes(
 @course_view
 @transaction.atomic
 def import_grades(pctx):
-    if not pctx.has_permission(pperm.batch_import_grade):
+    if not pctx.has_permission(PPerm.batch_import_grade):
         raise PermissionDenied(_("may not batch-import grades"))
 
     form_text = ""
@@ -1504,7 +1504,7 @@ class DownloadAllSubmissionsForm(StyledForm):
 
 @course_view
 def download_all_submissions(pctx: CoursePageContext, flow_id: str):
-    if not pctx.has_permission(pperm.batch_download_submission):
+    if not pctx.has_permission(PPerm.batch_download_submission):
         raise PermissionDenied(_("may not batch-download submissions"))
 
     from course.content import get_flow_desc
@@ -1699,7 +1699,7 @@ class EditGradingOpportunityForm(StyledModelForm):
 @course_view
 def edit_grading_opportunity(pctx: CoursePageContext,
         opportunity_id: int) -> http.HttpResponse:
-    if not pctx.has_permission(pperm.edit_grading_opportunity):
+    if not pctx.has_permission(PPerm.edit_grading_opportunity):
         raise PermissionDenied()
 
     request = pctx.request

@@ -30,7 +30,7 @@ from django.core import mail
 from django.test import Client, TestCase, override_settings
 from django.utils.timezone import now, timedelta
 
-from course.constants import ParticipationPermission as pperm
+from course.constants import ParticipationPermission as PPerm
 from course.models import ParticipationPermission
 from tests import factories
 from tests.base_test_mixins import (
@@ -148,7 +148,7 @@ class SingleCourseQuizPageGradeInterfaceTest(
         # add view_participant_masked_profile pperm to instructor
         pp = ParticipationPermission(
             participation=self.instructor_participation,
-            permission=pperm.view_participant_masked_profile
+            permission=PPerm.view_participant_masked_profile
         )
         pp.save()
         self.instructor_participation.individual_permissions.set([pp])
@@ -274,7 +274,7 @@ class SingleCourseQuizPageGradeInterfaceTest(
         # add view_participant_masked_profile pperm to ta
         pp = ParticipationPermission(
             participation=self.ta_participation,
-            permission=pperm.view_participant_masked_profile
+            permission=PPerm.view_participant_masked_profile
         )
         pp.save()
         self.ta_participation.individual_permissions.set([pp])
@@ -519,7 +519,7 @@ class SingleCourseQuizPageGradeInterfaceTest(
         from course.models import ParticipationPermission
         pp = ParticipationPermission(
             participation=his_participation,
-            permission=pperm.view_gradebook
+            permission=PPerm.view_gradebook
         )
         pp.save()
         his_participation.individual_permissions.set([pp])

@@ -458,10 +458,10 @@ class CrossCourseImpersonateTest(CoursesTestMixinBase, TestCase):
         view_participant_masked_profile pperm will disable impersonating
         site-wise
         """
-        from course.constants import ParticipationPermission as pperm
+        from course.constants import ParticipationPermission as PPerm
         pp = ParticipationPermission(
             participation=self.course1_ta_participation,
-            permission=pperm.view_participant_masked_profile)
+            permission=PPerm.view_participant_masked_profile)
         pp.save()
 
         user = self.ta
@@ -2484,9 +2484,9 @@ class APIContextTest(APITestMixin, TestCase):
         token = self.create_token()
         api_context = APIContext(None, token)
 
-        from course.constants import ParticipationPermission as pperm
+        from course.constants import ParticipationPermission as PPerm
         self.assertTrue(api_context.has_permission(
-            pperm.access_files_for, "instructor"))
+            PPerm.access_files_for, "instructor"))
 
     def test_api_context_has_permission_restrict_to_role_is_none_true(self):
         token = self.create_token()
@@ -2495,17 +2495,17 @@ class APIContextTest(APITestMixin, TestCase):
 
         api_context = APIContext(None, token)
 
-        from course.constants import ParticipationPermission as pperm
+        from course.constants import ParticipationPermission as PPerm
         self.assertTrue(api_context.has_permission(
-            pperm.access_files_for, "instructor"))
+            PPerm.access_files_for, "instructor"))
 
     def test_api_context_has_permission_false(self):
         token = self.create_token(participation=self.ta_participation)
         api_context = APIContext(None, token)
 
-        from course.constants import ParticipationPermission as pperm
+        from course.constants import ParticipationPermission as PPerm
         self.assertFalse(api_context.has_permission(
-            pperm.access_files_for, "instructor"))
+            PPerm.access_files_for, "instructor"))
 
     def test_api_context_has_permission_restrict_to_role_is_none_false(self):
         token = self.create_token(participation=self.ta_participation)
@@ -2514,9 +2514,9 @@ class APIContextTest(APITestMixin, TestCase):
 
         api_context = APIContext(None, token)
 
-        from course.constants import ParticipationPermission as pperm
+        from course.constants import ParticipationPermission as PPerm
         self.assertFalse(api_context.has_permission(
-            pperm.access_files_for, "instructor"))
+            PPerm.access_files_for, "instructor"))
 
 
 # vim: foldmethod=marker

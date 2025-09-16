@@ -33,7 +33,7 @@ from django.utils.safestring import mark_safe
 from typing_extensions import override
 
 from accounts.models import User
-from course.constants import ParticipationPermission as pperm
+from course.constants import ParticipationPermission as PPerm
 from prairietest.models import AllowEvent, DenyEvent, Facility, MostRecentDenyEvent
 
 
@@ -89,7 +89,7 @@ def _filter_events_for_user(
         return queryset
     return queryset.filter(
         facility__course__participations__user=user,
-        facility__course__participations__roles__permissions__permission=pperm.use_admin_interface)
+        facility__course__participations__roles__permissions__permission=PPerm.use_admin_interface)
 
 
 @admin.register(AllowEvent)
@@ -131,6 +131,6 @@ class MostRecentDenyEventAdmin(admin.ModelAdmin[MostRecentDenyEvent]):
             return qs
         return qs.filter(
             event__facility__course__participations__user=request.user,
-            event__facility__course__participations__roles__permissions__permission=pperm.use_admin_interface)
+            event__facility__course__participations__roles__permissions__permission=PPerm.use_admin_interface)
 
     list_display = ["deny_uuid", "end"]

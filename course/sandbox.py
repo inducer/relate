@@ -33,7 +33,7 @@ from django.core.exceptions import PermissionDenied
 from django.utils.safestring import mark_safe
 from django.utils.translation import gettext, gettext_lazy as _
 
-from course.constants import ParticipationPermission as pperm
+from course.constants import ParticipationPermission as PPerm
 from course.utils import CoursePageContext, course_view, render_course_page
 
 
@@ -105,7 +105,7 @@ class SandboxForm(forms.Form):
 
 @course_view
 def view_markup_sandbox(pctx):
-    if not pctx.has_permission(pperm.use_markup_sandbox):
+    if not pctx.has_permission(PPerm.use_markup_sandbox):
         raise PermissionDenied()
 
     request = pctx.request
@@ -215,7 +215,7 @@ def page_desc_from_yaml_string(pctx: CoursePageContext, source: str) -> FlowPage
 @course_view
 def view_page_sandbox(pctx: CoursePageContext) -> http.HttpResponse:
 
-    if not pctx.has_permission(pperm.use_page_sandbox):
+    if not pctx.has_permission(PPerm.use_page_sandbox):
         raise PermissionDenied()
 
     from course.validation import ValidationError

@@ -38,7 +38,7 @@ from django.db import transaction
 from django.utils.safestring import mark_safe
 from django.utils.translation import get_language, gettext_lazy as _, pgettext_lazy
 
-from course.constants import ParticipationPermission as pperm
+from course.constants import ParticipationPermission as PPerm
 from course.models import Event
 from course.utils import course_view, render_course_page
 from relate.utils import HTML5DateTimeInput, StyledForm, as_local_time, string_concat
@@ -164,7 +164,7 @@ def _create_recurring_events_backend(course, time, kind, starting_ordinal, inter
 @login_required
 @course_view
 def create_recurring_events(pctx):
-    if not pctx.has_permission(pperm.edit_events):
+    if not pctx.has_permission(PPerm.edit_events):
         raise PermissionDenied(_("may not edit events"))
 
     request = pctx.request
@@ -279,7 +279,7 @@ class RenumberEventsForm(StyledForm):
 @login_required
 @course_view
 def renumber_events(pctx):
-    if not pctx.has_permission(pperm.edit_events):
+    if not pctx.has_permission(PPerm.edit_events):
         raise PermissionDenied(_("may not edit events"))
 
     request = pctx.request
@@ -369,7 +369,7 @@ def _fullcalendar_lang_code() -> str:
 
 @course_view
 def view_calendar(pctx):
-    if not pctx.has_permission(pperm.view_calendar):
+    if not pctx.has_permission(PPerm.view_calendar):
         raise PermissionDenied(_("may not view calendar"))
 
     # must import locally for mock to work

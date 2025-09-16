@@ -35,7 +35,7 @@ from factory import fuzzy
 
 from course import constants, models
 from course.auth import make_sign_in_key
-from course.constants import ParticipationPermission as pperm
+from course.constants import ParticipationPermission as PPerm
 from tests.base_test_mixins import SINGLE_COURSE_SETUP_LIST
 from tests.constants import QUIZ_FLOW_ID
 
@@ -295,7 +295,7 @@ class AuthenticationTokenFactory(factory.django.DjangoModelFactory):
         else:
             prole_kwargs = {"course": self.participation.course}
             if self.participation.has_permission(
-                    pperm.access_files_for, "instructor"):
+                    PPerm.access_files_for, "instructor"):
                 prole_kwargs["identifier"] = "instructor"
             role = ParticipationRoleFactory(**prole_kwargs)
             self.restrict_to_participation_role = role

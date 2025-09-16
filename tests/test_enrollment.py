@@ -35,8 +35,8 @@ from django.urls import reverse
 
 from course import constants, enrollment
 from course.constants import (
-    ParticipationStatus as p_status,
-    UserStatus as u_status,
+    ParticipationStatus as PStatus,
+    UserStatus as UStatus,
 )
 from course.models import Participation, ParticipationPreapproval, ParticipationRole
 from relate.utils import string_concat
@@ -204,7 +204,7 @@ class EnrollViewTest(EnrollmentTestMixin, TestCase):
 
     def test_participation_status_requested(self):
         participation = self.get_test_participation(
-            status=p_status.requested)
+            status=PStatus.requested)
         self.assertParticipationStatusCallCount([0, 0, 0, 1])
         with self.temporarily_switch_to_user(participation.user):
             resp = self.client.post(self.enroll_request_url)
@@ -217,7 +217,7 @@ class EnrollViewTest(EnrollmentTestMixin, TestCase):
 
     def test_participation_status_denied(self):
         participation = self.get_test_participation(
-            status=p_status.denied)
+            status=PStatus.denied)
         self.assertParticipationStatusCallCount([0, 1, 0, 0])
         with self.temporarily_switch_to_user(participation.user):
             resp = self.client.post(self.enroll_request_url)
@@ -230,7 +230,7 @@ class EnrollViewTest(EnrollmentTestMixin, TestCase):
 
     def test_participation_status_dropped(self):
         participation = self.get_test_participation(
-            status=p_status.dropped)
+            status=PStatus.dropped)
         self.assertParticipationStatusCallCount([0, 0, 1, 0])
         with self.temporarily_switch_to_user(participation.user):
             resp = self.client.post(self.enroll_request_url)
@@ -243,7 +243,7 @@ class EnrollViewTest(EnrollmentTestMixin, TestCase):
 
     def test_participation_status_active(self):
         participation = self.get_test_participation(
-            status=p_status.active)
+            status=PStatus.active)
         self.assertParticipationStatusCallCount([1, 0, 0, 0])
         with self.temporarily_switch_to_user(participation.user):
             resp = self.client.post(self.enroll_request_url)
@@ -281,7 +281,7 @@ class EnrollViewTest(EnrollmentTestMixin, TestCase):
 
     def test_user_not_active(self):
         for status in dict(constants.USER_STATUS_CHOICES).keys():
-            if status != u_status.active:
+            if status != UStatus.active:
                 with self.subTest(user_status=status):
                     user = factories.UserFactory(status=status)
                     with self.temporarily_switch_to_user(user):
@@ -550,7 +550,7 @@ class HandleEnrollmentRequestTest(SingleCourseTestMixin,
 
     def test_approve_new(self):
         user = factories.UserFactory()
-        status = p_status.active
+        status = PStatus.active
         roles = [
             factories.ParticipationRoleFactory(course=self.course, identifier="1"),
             factories.ParticipationRoleFactory(course=self.course, identifier="2")]
@@ -569,7 +569,7 @@ class HandleEnrollmentRequestTest(SingleCourseTestMixin,
 
     def test_approve_new_none_roles(self):
         user = factories.UserFactory()
-        status = p_status.active
+        status = PStatus.active
         roles = None
         request = mock.MagicMock()
 
@@ -585,7 +585,7 @@ class HandleEnrollmentRequestTest(SingleCourseTestMixin,
 
     def test_deny_new(self):
         user = factories.UserFactory()
-        status = p_status.denied
+        status = PStatus.denied
         roles = [
             factories.ParticipationRoleFactory(course=self.course, identifier="3"),
             factories.ParticipationRoleFactory(course=self.course, identifier="4")]
@@ -604,9 +604,9 @@ class HandleEnrollmentRequestTest(SingleCourseTestMixin,
     def test_approve_requested(self):
         user = factories.UserFactory()
         request_participation = factories.ParticipationFactory(
-            course=self.course, user=user, status=p_status.requested,
+            course=self.course, user=user, status=PStatus.requested,
         )
-        status = p_status.active
+        status = PStatus.active
         roles = [
             factories.ParticipationRoleFactory(course=self.course, identifier="1"),
             factories.ParticipationRoleFactory(course=self.course, identifier="2")]
@@ -627,9 +627,9 @@ class HandleEnrollmentRequestTest(SingleCourseTestMixin,
     def test_deny_requested(self):
         user = factories.UserFactory()
         request_participation = factories.ParticipationFactory(
-            course=self.course, user=user, status=p_status.requested,
+            course=self.course, user=user, status=PStatus.requested,
         )
-        status = p_status.denied
+        status = PStatus.denied
         roles = [
             factories.ParticipationRoleFactory(course=self.course, identifier="1"),
             factories.ParticipationRoleFactory(course=self.course, identifier="2")]
@@ -666,7 +666,7 @@ class EnrollmentTestBaseMixin(MockAddMessageMixing, SingleCourseTestMixin):
                 size=2))
         (cls.non_ptcp_unconfirmed_user1, cls.non_ptcp_unconfirmed_user2) = (
             factories.UserFactory.create_batch(
-                size=2, status=u_status.unconfirmed))
+                size=2, status=UStatus.unconfirmed))
 
     @property
     def enroll_request_url(self):
@@ -698,7 +698,7 @@ class EnrollmentDecisionTestMixin(LocmemBackendTestsMixin, EnrollmentTestBaseMix
         super().setUpTestData()
         cls.my_participation = cls.create_participation(
             cls.course, cls.non_ptcp_active_user1,
-            status=p_status.requested)
+            status=PStatus.requested)
         cls.my_participation_edit_url = (
             cls.get_participation_edit_url(cls.my_participation.pk))
 
@@ -724,7 +724,7 @@ class EnrollmentDecisionTest(EnrollmentDecisionTestMixin, TestCase):
 
     def test_edit_participation_view_enroll_decision_approve(self):
         self.assertEqual(
-            self.get_participation_count_by_status(p_status.requested),
+            self.get_participation_count_by_status(PStatus.requested),
             1)
         with self.temporarily_switch_to_user(self.instructor_participation.user):
             resp = self.client.post(self.my_participation_edit_url,
@@ -732,13 +732,13 @@ class EnrollmentDecisionTest(EnrollmentDecisionTestMixin, TestCase):
 
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(
-            self.get_participation_count_by_status(p_status.requested),
+            self.get_participation_count_by_status(PStatus.requested),
             0)
         self.assertAddMessageCallCount(1)
         self.assertAddMessageCalledWith(MESSAGE_SUCCESSFULLY_ENROLLED_TEXT)
         self.assertEqual(len(mail.outbox), 1)
         self.assertEqual(
-            self.get_participation_count_by_status(p_status.requested),
+            self.get_participation_count_by_status(PStatus.requested),
             0)
 
     def test_edit_participation_view_enroll_decision_approve_no_permission1(self):
@@ -749,7 +749,7 @@ class EnrollmentDecisionTest(EnrollmentDecisionTestMixin, TestCase):
         self.assertEqual(resp.status_code, 403)
         self.assertEqual(len(mail.outbox), 0)
         self.assertEqual(
-            self.get_participation_count_by_status(p_status.requested),
+            self.get_participation_count_by_status(PStatus.requested),
             1)
 
     def test_edit_participation_view_enroll_decision_approve_no_permission2(self):
@@ -760,7 +760,7 @@ class EnrollmentDecisionTest(EnrollmentDecisionTestMixin, TestCase):
         self.assertEqual(resp.status_code, 403)
         self.assertEqual(len(mail.outbox), 0)
         self.assertEqual(
-            self.get_participation_count_by_status(p_status.requested),
+            self.get_participation_count_by_status(PStatus.requested),
             1)
 
     def test_edit_participation_view_course_not_match(self):
@@ -788,18 +788,18 @@ class EnrollmentDecisionTest(EnrollmentDecisionTestMixin, TestCase):
             self.assertEqual(resp.status_code, 200)
             self.assertFormErrorLoose(resp, None)
             self.student_participation.refresh_from_db()
-            from course.constants import ParticipationPermission as pperm
+            from course.constants import ParticipationPermission as PPerm
             self.assertTrue(
                 self.student_participation.has_permission(
-                    pperm.view_participant_masked_profile)
+                    PPerm.view_participant_masked_profile)
             )
             self.assertTrue(
                 self.student_participation.has_permission(
-                    pperm.view_hidden_course_page)
+                    PPerm.view_hidden_course_page)
             )
             self.assertFalse(
                 self.student_participation.has_permission(
-                    pperm.edit_course)
+                    PPerm.edit_course)
             )
 
     def test_edit_participation_view_enroll_decision_deny(self):
@@ -810,16 +810,16 @@ class EnrollmentDecisionTest(EnrollmentDecisionTestMixin, TestCase):
 
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(
-            self.get_participation_count_by_status(p_status.requested),
+            self.get_participation_count_by_status(PStatus.requested),
             0)
         self.assertAddMessageCallCount(1)
         self.assertAddMessageCalledWith([MESSAGE_ENROLLMENT_DENIED_TEXT])
         self.assertEqual(len(mail.outbox), 1)
         self.assertEqual(
-            self.get_participation_count_by_status(p_status.requested),
+            self.get_participation_count_by_status(PStatus.requested),
             0)
         self.assertEqual(
-            self.get_participation_count_by_status(p_status.denied),
+            self.get_participation_count_by_status(PStatus.denied),
             1)
 
     def test_edit_participation_view_unknown_post_op(self):
@@ -836,20 +836,20 @@ class EnrollmentDecisionTest(EnrollmentDecisionTestMixin, TestCase):
         self.assertEqual(resp.status_code, 200)
         self.assertFormErrorLoose(resp, None)
         self.assertEqual(
-            self.get_participation_count_by_status(p_status.requested),
+            self.get_participation_count_by_status(PStatus.requested),
             1)
         self.assertAddMessageCallCount(0)
         self.assertEqual(len(mail.outbox), 0)
 
     def test_edit_participation_view_enroll_decision_drop(self):
         self.create_participation(self.course, self.non_ptcp_unconfirmed_user1,
-                                  status=p_status.active)
+                                  status=PStatus.active)
         with self.temporarily_switch_to_user(self.instructor_participation.user):
             resp = self.client.post(self.my_participation_edit_url,
                                self.get_edit_participation_form_data("drop"))
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(
-            self.get_participation_count_by_status(p_status.dropped),
+            self.get_participation_count_by_status(PStatus.dropped),
             1)
         self.assertAddMessageCalledWith([MESSAGE_ENROLLMENT_DROPPED_TEXT])
         self.assertEqual(len(mail.outbox), 0)
@@ -859,16 +859,16 @@ class EnrollmentDecisionTest(EnrollmentDecisionTestMixin, TestCase):
         resp = self.client.get(self.add_new_url)
         self.assertTrue(resp.status_code, 200)
 
-        if self.non_ptcp_unconfirmed_user1.status != u_status.unconfirmed:
-            self.non_ptcp_unconfirmed_user1.status = u_status.unconfirmed
+        if self.non_ptcp_unconfirmed_user1.status != UStatus.unconfirmed:
+            self.non_ptcp_unconfirmed_user1.status = UStatus.unconfirmed
             self.non_ptcp_unconfirmed_user1.save()
 
         expected_active_user_count = (
             get_user_model()
-            .objects.filter(status=u_status.unconfirmed).count())
+            .objects.filter(status=UStatus.unconfirmed).count())
 
         expected_active_participation_count = (
-            self.get_participation_count_by_status(p_status.active))
+            self.get_participation_count_by_status(PStatus.active))
 
         form_data = {"user": [str(self.non_ptcp_unconfirmed_user1.pk)],
                      "time_factor": 1,
@@ -881,12 +881,12 @@ class EnrollmentDecisionTest(EnrollmentDecisionTestMixin, TestCase):
         self.assertFormError(resp.context["form"], "user",
                              VALIDATION_ERROR_USER_NOT_CONFIRMED)
         self.assertEqual(
-            self.get_participation_count_by_status(p_status.active),
+            self.get_participation_count_by_status(PStatus.active),
             expected_active_participation_count)
 
         self.assertEqual(
             get_user_model()
-            .objects.filter(status=u_status.unconfirmed).count(),
+            .objects.filter(status=UStatus.unconfirmed).count(),
             expected_active_user_count)
         self.assertAddMessageCallCount(0)
         self.assertEqual(len(mail.outbox), 0)
@@ -896,17 +896,17 @@ class EnrollmentDecisionTest(EnrollmentDecisionTestMixin, TestCase):
         resp = self.client.get(self.add_new_url)
         self.assertTrue(resp.status_code, 200)
 
-        if self.non_ptcp_unconfirmed_user2.status != u_status.active:
-            self.non_ptcp_unconfirmed_user2.status = u_status.active
+        if self.non_ptcp_unconfirmed_user2.status != UStatus.active:
+            self.non_ptcp_unconfirmed_user2.status = UStatus.active
             self.non_ptcp_unconfirmed_user2.save()
 
         expected_active_user_count = (
             get_user_model()
-            .objects.filter(status=u_status.unconfirmed).count()
+            .objects.filter(status=UStatus.unconfirmed).count()
         )
 
         expected_active_participation_count = (
-            self.get_participation_count_by_status(p_status.active) + 1
+            self.get_participation_count_by_status(PStatus.active) + 1
         )
 
         form_data = {"user": [str(self.non_ptcp_unconfirmed_user2.pk)],
@@ -919,12 +919,12 @@ class EnrollmentDecisionTest(EnrollmentDecisionTestMixin, TestCase):
         resp = self.client.post(self.add_new_url, add_post_data, follow=True)
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(
-            self.get_participation_count_by_status(p_status.active),
+            self.get_participation_count_by_status(PStatus.active),
             expected_active_participation_count)
 
         self.assertEqual(
             get_user_model()
-            .objects.filter(status=u_status.unconfirmed).count(),
+            .objects.filter(status=UStatus.unconfirmed).count(),
             expected_active_user_count)
         self.assertAddMessageCallCount(1)
         self.assertAddMessageCalledWith([MESSAGE_PARTICIPATION_CHANGE_SAVED_TEXT])
@@ -955,10 +955,10 @@ class EnrollmentDecisionTest(EnrollmentDecisionTestMixin, TestCase):
         self.assertEqual(resp.status_code, 403)
         self.assertEqual(len(mail.outbox), 0)
         self.assertEqual(
-            self.get_participation_count_by_status(p_status.requested),
+            self.get_participation_count_by_status(PStatus.requested),
             1)
         self.assertEqual(
-            self.get_participation_count_by_status(p_status.denied),
+            self.get_participation_count_by_status(PStatus.denied),
             0)
 
     def test_edit_participation_view_enroll_decision_deny_no_permission2(self):
@@ -970,10 +970,10 @@ class EnrollmentDecisionTest(EnrollmentDecisionTestMixin, TestCase):
         self.assertEqual(resp.status_code, 403)
         self.assertEqual(len(mail.outbox), 0)
         self.assertEqual(
-            self.get_participation_count_by_status(p_status.requested),
+            self.get_participation_count_by_status(PStatus.requested),
             1)
         self.assertEqual(
-            self.get_participation_count_by_status(p_status.denied),
+            self.get_participation_count_by_status(PStatus.denied),
             0)
 
     def test_edit_participation_view_save_integrity_error(self):
@@ -994,7 +994,7 @@ class EnrollmentDecisionTest(EnrollmentDecisionTestMixin, TestCase):
 
             self.assertEqual(resp.status_code, 200)
             self.assertEqual(
-                self.get_participation_count_by_status(p_status.requested),
+                self.get_participation_count_by_status(PStatus.requested),
                 1)
             expected_error_msg = (
                 "A data integrity issue was detected when saving "
@@ -1172,7 +1172,7 @@ class CreatePreapprovalsTest(EnrollmentTestMixin,
     def test_create_preapproval_email_handle_pendinng(self):
         user = factories.UserFactory()
         factories.ParticipationFactory(
-            course=self.course, user=user, status=p_status.requested
+            course=self.course, user=user, status=PStatus.requested
         )
         approval_data = f"{user.email.upper()}\n  \n cde@foo.com\n  \n"
         resp = self.post_preapproval(
@@ -1250,9 +1250,9 @@ class CreatePreapprovalsTest(EnrollmentTestMixin,
         user1 = factories.UserFactory(institutional_id_verified=True)
         user2 = factories.UserFactory(institutional_id_verified=False)
         factories.ParticipationFactory(
-            course=self.course, user=user1, status=p_status.requested)
+            course=self.course, user=user1, status=PStatus.requested)
         factories.ParticipationFactory(
-            course=self.course, user=user2, status=p_status.requested)
+            course=self.course, user=user2, status=PStatus.requested)
         approval_data = f"{user1.institutional_id.upper()}\n  \ncde \n  {user2.institutional_id}\n"  # noqa: E501
 
         resp = self.post_preapproval(
@@ -1299,9 +1299,9 @@ class CreatePreapprovalsTest(EnrollmentTestMixin,
         user1 = factories.UserFactory(institutional_id_verified=True)
         user2 = factories.UserFactory(institutional_id_verified=False)
         factories.ParticipationFactory(
-            course=self.course, user=user1, status=p_status.requested)
+            course=self.course, user=user1, status=PStatus.requested)
         factories.ParticipationFactory(
-            course=self.course, user=user2, status=p_status.requested)
+            course=self.course, user=user2, status=PStatus.requested)
         approval_data = f"{user1.institutional_id}\n  \ncde \n  {user2.institutional_id}\n"  # noqa: E501
 
         resp = self.post_preapproval(
@@ -1351,7 +1351,7 @@ class CreatePreapprovalsTest(EnrollmentTestMixin,
         # user2 is expected to be approved as active participation upon
         # course update.
         self.assertEqual(
-            Participation.objects.get(user=user2).status, p_status.active)
+            Participation.objects.get(user=user2).status, PStatus.active)
         self.assertEqual(
             self.mock_send_enrollment_decision.call_count, 1)
         self.mock_send_enrollment_decision.reset_mock()
@@ -1387,7 +1387,7 @@ class EditParticipationFormTest(SingleCourseTestMixin, TestCase):
 
     def test_drop_button_not_added_for_dropped_participation(self):
         dropped = factories.ParticipationFactory(
-            course=self.course, status=p_status.dropped)
+            course=self.course, status=PStatus.dropped)
 
         pctx = self.get_pctx_by_participation(self.instructor_participation)
         form = enrollment.EditParticipationForm(
@@ -1578,7 +1578,7 @@ class QueryParticipationsTestMixin(MockAddMessageMixing, SingleCoursePageTestMix
     def setup_participation_data(cls):
         p_list = [factories.ParticipationFactory(
             course=cls.course,
-            status=p_status.requested,
+            status=PStatus.requested,
             tags=list(factories.ParticipationTagFactory.create_batch(
                 size=2, course=cls.course)))]
 
@@ -1630,11 +1630,11 @@ class QueryParticipationsParseQueryTest(QueryParticipationsTestMixin, TestCase):
             resp = self.client.post(self.query_participation_url, data={})
             self.assertEqual(resp.status_code, 200)
 
-        from course.constants import ParticipationPermission as pperm
+        from course.constants import ParticipationPermission as PPerm
         from course.models import ParticipationPermission
         pp = ParticipationPermission(
             participation=self.ta_participation,
-            permission=pperm.view_participant_masked_profile)
+            permission=PPerm.view_participant_masked_profile)
         pp.save()
 
         with self.temporarily_switch_to_user(self.ta_participation.user):
@@ -1891,8 +1891,8 @@ class QueryParticipationsParseQueryTest(QueryParticipationsTestMixin, TestCase):
 
         p1.refresh_from_db()
         p2.refresh_from_db()
-        self.assertEqual(p1.status, p_status.dropped)
-        self.assertEqual(p2.status, p_status.dropped)
+        self.assertEqual(p1.status, PStatus.dropped)
+        self.assertEqual(p2.status, PStatus.dropped)
 
     # }}}
 
