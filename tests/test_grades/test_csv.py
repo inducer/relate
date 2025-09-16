@@ -32,7 +32,7 @@ from io import StringIO
 from django.test import TestCase
 
 from course import constants, grades, models
-from course.constants import GradeStateChangeType as g_state
+from course.constants import GradeStateChangeType as GSChangeType
 from tests import factories
 from tests.base_test_mixins import CoursesTestMixinBase
 from tests.constants import CSV_PATH
@@ -563,7 +563,7 @@ class ImportGradesTest(GradesTestMixin, TestCase):
         factories.GradeChangeFactory(
             **self.gc(opportunity=self.gopp, points=None,
                       max_points=100, comment="not grades",
-                      state=g_state.grading_started))
+                      state=GSChangeType.grading_started))
         gchanges = models.GradeChange.objects.all()
         self.assertEqual(gchanges.count(), 1)
 

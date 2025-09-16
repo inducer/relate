@@ -30,7 +30,7 @@ from django.test import TestCase
 from dulwich.repo import Tree
 
 from course import validation
-from course.constants import DEFAULT_ACCESS_KINDS, ParticipationPermission as pperm
+from course.constants import DEFAULT_ACCESS_KINDS, ParticipationPermission as PPerm
 from course.content import get_repo_blob, get_yaml_from_repo, load_yaml
 from course.models import (
     ParticipationPermission,
@@ -681,7 +681,7 @@ class ValidateCourseContentTest(CoursesTestMixinBase, TestCase):
 
     def test_course_not_none_check_attributes_yml(self):
         # This test check_attributes_yml args access_type
-        # is generated with course-specific pperm.access_files_for
+        # is generated with course-specific PPerm.access_files_for
 
         user = factories.UserFactory()
 
@@ -702,24 +702,24 @@ class ValidateCourseContentTest(CoursesTestMixinBase, TestCase):
         another_course_ppm_access_files_for_roles = "another_role"
         ParticipationPermission(
             participation=another_course_participation,
-            permission=pperm.access_files_for,
+            permission=PPerm.access_files_for,
             argument=another_course_ppm_access_files_for_roles
         ).save()
 
         another_course_rpm_access_files_for_roles = "another_course_everyone"
         ParticipationRolePermission(
             role=another_course_prole,
-            permission=pperm.access_files_for,
+            permission=PPerm.access_files_for,
             argument=another_course_rpm_access_files_for_roles).save()
 
         self.assertTrue(
             another_course_participation.has_permission(
-                pperm.access_files_for,
+                PPerm.access_files_for,
                 argument=another_course_ppm_access_files_for_roles))
 
         self.assertTrue(
             another_course_participation.has_permission(
-                pperm.access_files_for,
+                PPerm.access_files_for,
                 argument=another_course_rpm_access_files_for_roles))
         # }}}
 
@@ -739,24 +739,24 @@ class ValidateCourseContentTest(CoursesTestMixinBase, TestCase):
         this_course_ppm_access_files_for_roles = "this_course_some_role"
         ParticipationPermission(
             participation=this_course_participation,
-            permission=pperm.access_files_for,
+            permission=PPerm.access_files_for,
             argument=this_course_ppm_access_files_for_roles
         ).save()
 
         this_course_rpm_access_files_for_roles = "this_course_everyone"
         ParticipationRolePermission(
             role=this_course_prole,
-            permission=pperm.access_files_for,
+            permission=PPerm.access_files_for,
             argument=this_course_rpm_access_files_for_roles).save()
 
         self.assertTrue(
             this_course_participation.has_permission(
-                pperm.access_files_for,
+                PPerm.access_files_for,
                 argument=this_course_ppm_access_files_for_roles))
 
         self.assertTrue(
             this_course_participation.has_permission(
-                pperm.access_files_for,
+                PPerm.access_files_for,
                 argument=this_course_rpm_access_files_for_roles))
         # }}}
 

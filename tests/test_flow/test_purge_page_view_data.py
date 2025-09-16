@@ -29,7 +29,7 @@ from django.test import TestCase
 from django.urls import reverse
 
 from course import models
-from course.constants import ParticipationPermission as pperm
+from course.constants import ParticipationPermission as PPerm
 from course.flow import get_pv_purgeable_courses_for_user_qs
 from tests.base_test_mixins import TWO_COURSE_SETUP_LIST, TwoCoursePageTestMixin
 from tests.utils import mock
@@ -58,9 +58,9 @@ class PurgeViewMixin(TwoCoursePageTestMixin):
     def setUpTestData(cls):
         super().setUpTestData()
         assert cls.course1_instructor_participation.has_permission(
-            pperm.use_admin_interface)
+            PPerm.use_admin_interface)
         assert cls.course2_instructor_participation.has_permission(
-            pperm.use_admin_interface)
+            PPerm.use_admin_interface)
 
 
 class GetPvPurgeableCoursesForUserQs(PurgeViewMixin, TestCase):
@@ -78,12 +78,12 @@ class GetPvPurgeableCoursesForUserQs(PurgeViewMixin, TestCase):
 
     def test_purgeable_qset_instructor_remove_role_pperm(self):
         """
-        This make sure pperm.use_admin_interface is responsible for
+        This make sure PPerm.use_admin_interface is responsible for
         permission of the operation
         """
         perms = models.ParticipationRolePermission.objects.filter(
             role__identifier="instructor",
-            permission=pperm.use_admin_interface
+            permission=PPerm.use_admin_interface
         )
         for perm in perms:
             perm.delete()

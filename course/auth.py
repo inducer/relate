@@ -65,7 +65,7 @@ from djangosaml2.backends import Saml2Backend
 
 from accounts.models import User
 from course.constants import (
-    ParticipationPermission as pperm,
+    ParticipationPermission as PPerm,
     ParticipationStatus,
     UserStatus,
 )
@@ -115,12 +115,12 @@ def get_impersonable_user_qset(impersonator: User) -> query.QuerySet[User]:
         # profile in one course, then he/she is not able to impersonate
         # any user, even in courses he/she is allow to view profiles
         # of all users.
-        if part.has_permission(pperm.view_participant_masked_profile):
+        if part.has_permission(PPerm.view_participant_masked_profile):
             return User.objects.none()
         impersonable_roles = [
             argument
             for perm, argument in part.permissions()
-            if perm == pperm.impersonate_role]
+            if perm == PPerm.impersonate_role]
 
         q = (Participation.objects
              .filter(course=part.course,
@@ -278,7 +278,7 @@ def stop_impersonating(request: http.HttpRequest) -> http.JsonResponse:
             perms = [
                 perm
                 for perm, argument in part.permissions()
-                if perm == pperm.impersonate_role]
+                if perm == PPerm.impersonate_role]
             if any(perms):
                 may_impersonate = True
                 break
@@ -1256,7 +1256,7 @@ class APIContext:
                 role_restriction_ok = True
 
             if not role_restriction_ok and self.participation.has_permission(
-                    pperm.impersonate_role, restrict_to_role.identifier):
+                    PPerm.impersonate_role, restrict_to_role.identifier):
                 role_restriction_ok = True
 
             if not role_restriction_ok:
@@ -1407,7 +1407,7 @@ class AuthenticationTokenForm(StyledModelForm):
                         for prole in ParticipationRole.objects.filter(
                             course=participation.course)
                         if participation.has_permission(
-                            pperm.impersonate_role, prole.identifier)}
+                            PPerm.impersonate_role, prole.identifier)}
                 )
 
         self.fields["restrict_to_participation_role"].queryset = (  # type:ignore[attr-defined]
@@ -1425,7 +1425,7 @@ def manage_authentication_tokens(pctx: CoursePageContext) -> http.HttpResponse:
     if not request.user.is_authenticated:
         raise PermissionDenied()
 
-    if not pctx.has_permission(pperm.view_analytics):
+    if not pctx.has_permission(PPerm.view_analytics):
         raise PermissionDenied()
     assert pctx.participation is not None
 

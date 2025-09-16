@@ -38,7 +38,7 @@ from django.test import TestCase, override_settings
 from django.utils.timezone import now
 
 from course import constants, models
-from course.constants import ParticipationPermission as pperm
+from course.constants import ParticipationPermission as PPerm
 from course.content import dict_to_struct
 from tests import factories
 from tests.base_test_mixins import CoursesTestMixinBase
@@ -269,32 +269,32 @@ class ParticipationRoleTest(RelateModelTestMixin, unittest.TestCase):
         student_pr = models.ParticipationRole.objects.get(
             course=self.course, identifier="student")
         self.assertFalse(
-            student_pr.has_permission(pperm.access_files_for, "ta"))
+            student_pr.has_permission(PPerm.access_files_for, "ta"))
         self.assertTrue(
-            student_pr.has_permission(pperm.access_files_for, "student"))
+            student_pr.has_permission(PPerm.access_files_for, "student"))
         self.assertFalse(
-            student_pr.has_permission(pperm.view_gradebook))
+            student_pr.has_permission(PPerm.view_gradebook))
 
         instructor_pr = models.ParticipationRole.objects.get(
             course=self.course, identifier="instructor")
         self.assertTrue(
-            instructor_pr.has_permission(pperm.access_files_for, "instructor"))
+            instructor_pr.has_permission(PPerm.access_files_for, "instructor"))
         self.assertTrue(
-            instructor_pr.has_permission(pperm.view_gradebook))
+            instructor_pr.has_permission(PPerm.view_gradebook))
 
     def test_permission_tuples_cached(self):
         student_pr = models.ParticipationRole.objects.get(
             course=self.course, identifier="student")
         self.assertFalse(
-            student_pr.has_permission(pperm.access_files_for, "ta"))
+            student_pr.has_permission(PPerm.access_files_for, "ta"))
 
         with mock.patch(
                 "course.models.ParticipationRolePermission.objects.filter"
         ) as mock_filter:
             self.assertFalse(
-                student_pr.has_permission(pperm.access_files_for, "instructor"))
+                student_pr.has_permission(PPerm.access_files_for, "instructor"))
             self.assertTrue(
-                student_pr.has_permission(pperm.access_files_for, "unenrolled"))
+                student_pr.has_permission(PPerm.access_files_for, "unenrolled"))
 
             self.assertEqual(
                 mock_filter.call_count, 0,
@@ -334,9 +334,9 @@ class ParticipationTest(RelateModelTestMixin, unittest.TestCase):
                                                        user=user)
 
         self.assertTrue(
-            participation.has_permission(pperm.access_files_for, "unenrolled"))
+            participation.has_permission(PPerm.access_files_for, "unenrolled"))
         self.assertFalse(
-            participation.has_permission(pperm.view_gradebook))
+            participation.has_permission(PPerm.view_gradebook))
 
         instructor = factories.UserFactory()
         instructor_role = factories.ParticipationRoleFactory(
@@ -349,9 +349,9 @@ class ParticipationTest(RelateModelTestMixin, unittest.TestCase):
         instructor_participation.roles.set([instructor_role])
 
         self.assertTrue(
-            participation.has_permission(pperm.access_files_for, "unenrolled"))
+            participation.has_permission(PPerm.access_files_for, "unenrolled"))
         self.assertTrue(
-            participation.has_permission(pperm.access_files_for, "student"))
+            participation.has_permission(PPerm.access_files_for, "student"))
 
     def test_get_role_desc(self):
         course2 = factories.CourseFactory(identifier="another-course")
@@ -380,13 +380,13 @@ class ParticipationTest(RelateModelTestMixin, unittest.TestCase):
                                                        user=user)
 
         self.assertTrue(
-            participation.has_permission(pperm.access_files_for, "unenrolled"))
+            participation.has_permission(PPerm.access_files_for, "unenrolled"))
 
         with mock.patch(
                 "course.models.ParticipationRolePermission.objects.filter"
         ) as mock_filter:
             self.assertFalse(
-                participation.has_permission(pperm.view_gradebook))
+                participation.has_permission(PPerm.view_gradebook))
 
             self.assertEqual(
                 mock_filter.call_count, 0,

@@ -44,8 +44,8 @@ from django.test import Client, RequestFactory, override_settings
 from django.urls import resolve, reverse
 
 from course.constants import (
-    FlowPermission as fperm,
-    GradeAggregationStrategy as g_strategy,
+    FlowPermission as FPerm,
+    GradeAggregationStrategy as GAStrategy,
     ParticipationStatus,
     UserStatus,
 )
@@ -1775,7 +1775,7 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
         return FlowSessionStartRule(**defaults)
 
     default_session_access_rule = {
-        "permissions": [fperm.view, fperm.end_session]}
+        "permissions": [FPerm.view, FPerm.end_session]}
 
     def get_hacked_session_access_rule(self, **kwargs):
         """
@@ -1798,7 +1798,7 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
 
     default_session_grading_rule = {
         "grade_identifier": "la_quiz",
-        "grade_aggregation_strategy": g_strategy.use_latest,
+        "grade_aggregation_strategy": GAStrategy.use_latest,
         "due": None,
         "generates_grade": True,
         "description": None,
