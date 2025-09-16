@@ -33,7 +33,7 @@ from django.core.exceptions import PermissionDenied
 from django.shortcuts import get_object_or_404, redirect, render  # noqa
 from django.utils.translation import gettext as _, pgettext_lazy
 
-from course.constants import ParticipationPermission as pperm
+from course.constants import ParticipationPermission as PPerm
 from course.models import (
     Course,  # noqa
     InstantMessage,
@@ -121,7 +121,7 @@ async def _send_xmpp_msg(xmpp_id, password, recipient_xmpp_id, message):
 
 @course_view
 def send_instant_message(pctx):
-    if not pctx.has_permission(pperm.send_instant_message):
+    if not pctx.has_permission(PPerm.send_instant_message):
         raise PermissionDenied(_("may not send instant message"))
 
     request = pctx.request

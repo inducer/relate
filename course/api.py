@@ -30,7 +30,7 @@ from django.core.exceptions import PermissionDenied
 from django.shortcuts import get_object_or_404
 
 from course.auth import APIError, with_course_api_auth
-from course.constants import ParticipationPermission as pperm
+from course.constants import ParticipationPermission as PPerm
 from course.models import FlowSession
 
 
@@ -77,7 +77,7 @@ def flow_session_to_json(sess: FlowSession) -> Any:
 @with_course_api_auth("Token")
 def get_flow_sessions(
         api_ctx: APIContext, course_identifier: str) -> http.HttpResponse:
-    if not api_ctx.has_permission(pperm.view_gradebook):
+    if not api_ctx.has_permission(PPerm.view_gradebook):
         raise PermissionDenied("token role does not have required permissions")
 
     try:
@@ -97,7 +97,7 @@ def get_flow_sessions(
 @with_course_api_auth("Token")
 def get_flow_session_content(
         api_ctx: APIContext, course_identifier: str) -> http.HttpResponse:
-    if not api_ctx.has_permission(pperm.view_gradebook):
+    if not api_ctx.has_permission(PPerm.view_gradebook):
         raise PermissionDenied("token role does not have required permissions")
 
     try:

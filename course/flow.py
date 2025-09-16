@@ -53,8 +53,8 @@ from course.constants import (
     FlowSessionExpirationMode,
     FlowSessionInteractionKind,
     GradeAggregationStrategy,
+    ParticipationPermission as PPerm,
     is_expiration_mode_allowed,
-    ParticipationPermission as pperm,
 )
 from course.content import FlowPageDesc, TabDesc
 from course.exam import get_login_exam_ticket
@@ -1163,7 +1163,7 @@ def grade_flow_session(
                 grading_rule.grade_identifier,
                 grading_rule.grade_aggregation_strategy)
 
-        from course.models import GradeStateChangeType
+        from course.constants import GradeStateChangeType
         gchange = GradeChange()
         gchange.opportunity = gopp
         gchange.participation = flow_session.participation
@@ -1641,7 +1641,7 @@ def get_and_check_flow_session(
         for orole in owner_roles:
             for perm, arg in my_perms:
                 if (
-                        perm == pperm.view_flow_sessions_from_role
+                        perm == PPerm.view_flow_sessions_from_role
                         and arg == orole):
                     allowed = True
                     break
@@ -2431,7 +2431,7 @@ def send_email_about_flow_page(pctx, flow_session_id, page_ordinal):
 
             ta_email_list = Participation.objects.filter(
                     course=pctx.course,
-                    roles__permissions__permission=pperm.assign_grade,
+                    roles__permissions__permission=PPerm.assign_grade,
                     roles__identifier="ta",
                     status=ParticipationStatus.active
             ).values_list("user__email", flat=True)
@@ -2442,7 +2442,7 @@ def send_email_about_flow_page(pctx, flow_session_id, page_ordinal):
                 # instructors to receive the email
                 recipient_list = Participation.objects.filter(
                     course=pctx.course,
-                    roles__permissions__permission=pperm.assign_grade,
+                    roles__permissions__permission=PPerm.assign_grade,
                     roles__identifier="instructor"
                 ).values_list("user__email", flat=True)
 
@@ -2860,7 +2860,7 @@ class RegradeFlowForm(StyledForm):
 
 @course_view
 def regrade_flows_view(pctx: CoursePageContext) -> http.HttpResponse:
-    if not pctx.has_permission(pperm.batch_regrade_flow_session):
+    if not pctx.has_permission(PPerm.batch_regrade_flow_session):
         raise PermissionDenied(_("may not batch-regrade flows"))
 
     from course.content import list_flow_ids
@@ -2921,7 +2921,7 @@ def view_unsubmit_flow_page(
     if pctx.participation is None:
         raise PermissionDenied()
 
-    if not pctx.has_permission(pperm.reopen_flow_session):
+    if not pctx.has_permission(PPerm.reopen_flow_session):
         raise PermissionDenied()
 
     request = pctx.request
@@ -2980,7 +2980,7 @@ def get_pv_purgeable_courses_for_user_qs(user: User) -> query.QuerySet[Course]:
         course_qs = course_qs.filter(
                 participations__user=user,
                 participations__roles__permissions__permission=(
-                    pperm.use_admin_interface))
+                    PPerm.use_admin_interface))
 
     return course_qs
 

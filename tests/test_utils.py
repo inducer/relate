@@ -38,7 +38,7 @@ from course import (
     constants,
     utils,
 )
-from course.constants import FlowPermission as fperm
+from course.constants import FlowPermission as FPerm
 from course.content import parse_date_spec
 from relate.utils import dict_to_struct, struct_to_dict
 from tests import factories
@@ -344,7 +344,7 @@ class FlowSessionAccessRuleText(unittest.TestCase):
     # test utils.FlowSessionAccessRule
     def test_human_readable_permissions(self):
         arule = utils.FlowSessionAccessRule(
-            permissions=frozenset([fperm.end_session, fperm.see_correctness])
+            permissions=frozenset([FPerm.end_session, FPerm.see_correctness])
         )
         result = arule.human_readable_permissions()
         self.assertIsInstance(result, list)
@@ -1163,7 +1163,7 @@ class GetSessionAccessRuleTest(GetSessionRuleMixin, SingleCourseTestMixin, TestC
     rule_klass = utils.FlowSessionAccessRule
 
     fallback_rule = utils.FlowSessionAccessRule(permissions=frozenset())
-    default_permissions = [fperm.view]
+    default_permissions = [FPerm.view]
 
     @property
     def default_kwargs(self):
@@ -1356,7 +1356,7 @@ class GetSessionAccessRuleTest(GetSessionRuleMixin, SingleCourseTestMixin, TestC
             result,
             {"message": None,
              "permissions": frozenset(
-                 [fperm.submit_answer, fperm.end_session, faked_permission])})
+                 [FPerm.submit_answer, FPerm.end_session, faked_permission])})
 
     def test_deal_with_deprecated_see_answer(self):
         faked_permission = mock.MagicMock()
@@ -1371,7 +1371,7 @@ class GetSessionAccessRuleTest(GetSessionRuleMixin, SingleCourseTestMixin, TestC
             result,
             {"message": None,
              "permissions": frozenset(
-                 [faked_permission, fperm.see_answer_after_submission])})
+                 [faked_permission, FPerm.see_answer_after_submission])})
 
     def test_removing_access_permissions_for_non_in_progress_sessions(self):
         faked_permission = mock.MagicMock()
@@ -1775,12 +1775,12 @@ class WillUseMaskedProfileForEmailTest(SingleCourseTestMixin, TestCase):
                 ["foo@bar.com"]))
 
     def test_any(self):
-        from course.constants import ParticipationPermission as pperm
+        from course.constants import ParticipationPermission as PPerm
         from course.models import ParticipationPermission
 
         pp = ParticipationPermission(
             participation=self.ta_participation,
-            permission=pperm.view_participant_masked_profile)
+            permission=PPerm.view_participant_masked_profile)
         pp.save()
         self.assertTrue(
             utils.will_use_masked_profile_for_email(

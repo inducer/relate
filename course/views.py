@@ -57,7 +57,7 @@ from course.constants import (
     FLOW_PERMISSION_CHOICES,
     FLOW_RULE_KIND_CHOICES,
     FlowRuleKind,
-    ParticipationPermission as pperm,
+    ParticipationPermission as PPerm,
     ParticipationStatus,
 )
 from course.content import get_course_repo
@@ -113,7 +113,7 @@ def home(request: http.HttpRequest) -> http.HttpResponse:
         show = True
         if course.hidden:
             perms = get_participation_permissions(course, participation)
-            if (pperm.view_hidden_course_page, None) not in perms:
+            if (PPerm.view_hidden_course_page, None) not in perms:
                 show = False
 
         if show:
@@ -155,7 +155,7 @@ def check_course_state(
     if course.hidden:
         if participation is None:
             raise PermissionDenied(_("course page is currently hidden"))
-        if not participation.has_permission(pperm.view_hidden_course_page):
+        if not participation.has_permission(PPerm.view_hidden_course_page):
             raise PermissionDenied(_("course page is currently hidden"))
 
 
@@ -327,7 +327,7 @@ def get_repo_file_backend(
         access_kinds = [
                 arg
                 for perm, arg in get_participation_permissions(course, participation)
-                if perm == pperm.access_files_for
+                if perm == PPerm.access_files_for
                 and arg is not None]
 
     from course.content import is_repo_file_accessible_as
@@ -408,7 +408,7 @@ def may_set_fake_time(user: User | None) -> bool:
 
     return Participation.objects.filter(
             user=user,
-            roles__permissions__permission=pperm.set_fake_time
+            roles__permissions__permission=PPerm.set_fake_time
             ).count() > 0
 
 
@@ -501,7 +501,7 @@ def may_set_pretend_facility(user: User | None) -> bool:
 
     return Participation.objects.filter(
             user=user,
-            roles__permissions__permission=pperm.set_pretend_facility
+            roles__permissions__permission=PPerm.set_pretend_facility
             ).count() > 0
 
 
@@ -590,7 +590,7 @@ class InstantFlowRequestForm(StyledForm):
 
 @course_view
 def manage_instant_flow_requests(pctx):
-    if not pctx.has_permission(pperm.manage_instant_flow_requests):
+    if not pctx.has_permission(PPerm.manage_instant_flow_requests):
         raise PermissionDenied()
 
     from course.content import list_flow_ids
@@ -667,7 +667,7 @@ class FlowTestForm(StyledForm):
 
 @course_view
 def test_flow(pctx):
-    if not pctx.has_permission(pperm.test_flow):
+    if not pctx.has_permission(PPerm.test_flow):
         raise PermissionDenied()
 
     from course.content import list_flow_ids
@@ -736,7 +736,7 @@ class ExceptionStage1Form(StyledForm):
 
 @course_view
 def grant_exception(pctx):
-    if not pctx.has_permission(pperm.grant_exception):
+    if not pctx.has_permission(PPerm.grant_exception):
         raise PermissionDenied(_("may not grant exceptions"))
 
     from course.content import list_flow_ids
@@ -831,7 +831,7 @@ def grant_exception_stage_2(
         pctx: CoursePageContext, participation_id: str, flow_id: str
         ) -> http.HttpResponse:
 
-    if not pctx.has_permission(pperm.grant_exception):
+    if not pctx.has_permission(PPerm.grant_exception):
         raise PermissionDenied(_("may not grant exceptions"))
 
     # {{{ get flow data
@@ -1097,7 +1097,7 @@ def grant_exception_stage_3(
         participation_id: int,
         flow_id: str,
         session_id: int) -> http.HttpResponse:
-    if not pctx.has_permission(pperm.grant_exception):
+    if not pctx.has_permission(PPerm.grant_exception):
         raise PermissionDenied(_("may not grant exceptions"))
     assert pctx.request.user.is_authenticated
 
@@ -1177,7 +1177,7 @@ def grant_exception_stage_3(
                 fre_access.save()
                 exceptions_created.append(
                     str(dict(FLOW_RULE_KIND_CHOICES)[
-                        cast("flow_rule_kind", fre_access.kind)]))
+                        cast("FlowRuleKind", fre_access.kind)]))
 
             # }}}
 
@@ -1248,7 +1248,7 @@ def grant_exception_stage_3(
                 fre_grading.save()
                 exceptions_created.append(
                     str(dict(FLOW_RULE_KIND_CHOICES)[
-                        cast("flow_rule_kind", fre_grading.kind)]))
+                        cast("FlowRuleKind", fre_grading.kind)]))
 
             # }}}
 
@@ -1417,7 +1417,7 @@ class EditCourseForm(StyledModelForm):
 
 @course_view
 def edit_course(pctx):
-    if not pctx.has_permission(pperm.edit_course):
+    if not pctx.has_permission(PPerm.edit_course):
         raise PermissionDenied()
 
     request = pctx.request

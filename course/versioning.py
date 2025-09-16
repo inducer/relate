@@ -58,7 +58,7 @@ from django_select2.forms import Select2Widget
 from dulwich.repo import Repo
 
 from course.auth import with_course_api_auth
-from course.constants import ParticipationPermission as pperm, ParticipationStatus
+from course.constants import ParticipationPermission as PPerm, ParticipationStatus
 from course.models import Course, Participation, ParticipationRole
 from course.utils import (
     course_view,
@@ -500,8 +500,8 @@ def _get_commit_message_as_html(repo, commit_sha):
 @course_view
 def update_course(pctx):
     if not (
-            pctx.has_permission(pperm.update_content)
-            or pctx.has_permission(pperm.preview_content)):
+            pctx.has_permission(PPerm.update_content)
+            or pctx.has_permission(PPerm.preview_content)):
         raise PermissionDenied()
 
     course = pctx.course
@@ -519,7 +519,7 @@ def update_course(pctx):
     previewing = bool(participation is not None
             and participation.preview_git_commit_sha)
 
-    may_update = pctx.has_permission(pperm.update_content)
+    may_update = pctx.has_permission(PPerm.update_content)
 
     response_form = None
     form = None
@@ -674,7 +674,7 @@ def git_endpoint(api_ctx: APIContext, course_identifier: str,
     course = api_ctx.course
     request = api_ctx.request
 
-    if not api_ctx.has_permission(pperm.use_git_endpoint):
+    if not api_ctx.has_permission(PPerm.use_git_endpoint):
         raise PermissionDenied("insufficient privileges")
 
     from course.content import get_course_repo

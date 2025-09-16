@@ -36,7 +36,7 @@ from django.core.exceptions import (
 from django.shortcuts import get_object_or_404, redirect, render  # noqa
 from django.utils.translation import gettext as _
 
-from course.constants import ParticipationPermission as pperm
+from course.constants import ParticipationPermission as PPerm
 from course.models import (
     FlowPageVisitGrade,
     FlowSession,
@@ -103,7 +103,7 @@ def get_prev_grades_dropdown_content(pctx, flow_session_id, page_ordinal,
 
     if not pctx.participation:
         raise PermissionDenied(_("may not view grade book"))
-    if not pctx.participation.has_permission(pperm.view_gradebook):
+    if not pctx.participation.has_permission(PPerm.view_gradebook):
         raise PermissionDenied(_("may not view grade book"))
 
     page_ordinal = int(page_ordinal)
@@ -144,7 +144,7 @@ def grade_flow_page(
     else:
         prev_grade_id = None
 
-    if not pctx.has_permission(pperm.view_gradebook):
+    if not pctx.has_permission(PPerm.view_gradebook):
         raise PermissionDenied(_("may not view grade book"))
     assert pctx.request.user.is_authenticated
 
@@ -280,7 +280,7 @@ def grade_flow_page(
             and not viewing_prev_grade):
         request = pctx.request
         if pctx.request.method == "POST":
-            if not pctx.has_permission(pperm.assign_grade):
+            if not pctx.has_permission(PPerm.assign_grade):
                 raise PermissionDenied(_("may not assign grades"))
 
             grading_form = fpctx.page.post_grading_form(
@@ -434,7 +434,7 @@ def _save_grade(
 
 @course_view
 def show_grader_statistics(pctx, flow_id):
-    if not pctx.has_permission(pperm.view_grader_stats):
+    if not pctx.has_permission(PPerm.view_grader_stats):
         raise PermissionDenied(_("may not view grader stats"))
 
     grades = (FlowPageVisitGrade.objects

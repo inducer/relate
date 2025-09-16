@@ -32,7 +32,7 @@ from dulwich.client import FetchPackResult
 from dulwich.contrib.paramiko_vendor import ParamikoSSHVendor
 
 from course import versioning
-from course.constants import ParticipationPermission as pperm
+from course.constants import ParticipationPermission as PPerm
 from course.models import Course
 from course.validation import ValidationWarning
 from relate.utils import force_remove_path
@@ -523,7 +523,7 @@ class DirectGitEndpointTest(TestCase):
 
         from django.contrib.auth.hashers import make_password
 
-        from course.constants import ParticipationPermission as pp
+        from course.constants import ParticipationPermission as PPerm
         from course.models import AuthenticationToken, ParticipationRolePermission
 
         course = factories.CourseFactory()
@@ -537,7 +537,7 @@ class DirectGitEndpointTest(TestCase):
             user=instructor)
         participation1.roles.set([instructor_role])
         ParticipationRolePermission(role=instructor_role,
-                                    permission=pp.use_git_endpoint).save()
+                                    permission=PPerm.use_git_endpoint).save()
 
         auth_token = AuthenticationToken(
                 user=instructor,
@@ -1156,7 +1156,7 @@ class UpdateCourseTest(SingleCourseTestMixin, MockAddMessageMixing, TestCase):
         from course.models import ParticipationPermission
         pp = ParticipationPermission(
             participation=self.student_participation,
-            permission=pperm.preview_content)
+            permission=PPerm.preview_content)
         pp.save()
         self.student_participation.individual_permissions.set([pp])
 
@@ -1172,7 +1172,7 @@ class UpdateCourseTest(SingleCourseTestMixin, MockAddMessageMixing, TestCase):
         from course.models import ParticipationPermission
         pp = ParticipationPermission(
             participation=self.student_participation,
-            permission=pperm.update_content)
+            permission=PPerm.update_content)
         pp.save()
         self.student_participation.individual_permissions.set([pp])
 

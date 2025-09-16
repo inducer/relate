@@ -60,7 +60,6 @@ from course.constants import (  # noqa
     FlowSessionExpirationMode,
     GradeAggregationStrategy,
     GradeStateChangeType,
-    ParticipationPermission,
     ParticipationStatus,
     UserStatus,
 )
@@ -665,91 +664,91 @@ class ParticipationPreapproval(models.Model):
 def add_default_roles_and_permissions(course,
         role_model=ParticipationRole,
         role_permission_model=ParticipationRolePermission):
-    from course.constants import ParticipationPermission as pp
+    from course.constants import ParticipationPermission as PPerm
 
     rpm = role_permission_model
 
     def add_unenrolled_permissions(role):
-        rpm(role=role, permission=pp.view_calendar).save()
-        rpm(role=role, permission=pp.access_files_for,
+        rpm(role=role, permission=PPerm.view_calendar).save()
+        rpm(role=role, permission=PPerm.access_files_for,
                 argument="unenrolled").save()
-        rpm(role=role, permission=pp.access_files_for,
+        rpm(role=role, permission=PPerm.access_files_for,
                 argument="public").save()
 
     def add_student_permissions(role):
-        rpm(role=role, permission=pp.send_instant_message).save()
-        rpm(role=role, permission=pp.access_files_for,
+        rpm(role=role, permission=PPerm.send_instant_message).save()
+        rpm(role=role, permission=PPerm.access_files_for,
                 argument="student").save()
 
         add_unenrolled_permissions(role)
 
     def add_teaching_assistant_permissions(role):
-        rpm(role=role, permission=pp.impersonate_role,
+        rpm(role=role, permission=PPerm.impersonate_role,
                 argument="student").save()
-        rpm(role=role, permission=pp.set_fake_time).save()
-        rpm(role=role, permission=pp.set_pretend_facility).save()
-        rpm(role=role, permission=pp.view_hidden_course_page).save()
-        rpm(role=role, permission=pp.access_files_for,
+        rpm(role=role, permission=PPerm.set_fake_time).save()
+        rpm(role=role, permission=PPerm.set_pretend_facility).save()
+        rpm(role=role, permission=PPerm.view_hidden_course_page).save()
+        rpm(role=role, permission=PPerm.access_files_for,
                 argument="ta").save()
-        rpm(role=role, permission=pp.access_files_for,
+        rpm(role=role, permission=PPerm.access_files_for,
                 argument="in_exam").save()
 
-        rpm(role=role, permission=pp.issue_exam_ticket).save()
+        rpm(role=role, permission=PPerm.issue_exam_ticket).save()
 
-        rpm(role=role, permission=pp.view_flow_sessions_from_role,
+        rpm(role=role, permission=PPerm.view_flow_sessions_from_role,
                 argument="student").save()
-        rpm(role=role, permission=pp.view_gradebook).save()
-        rpm(role=role, permission=pp.assign_grade).save()
-        rpm(role=role, permission=pp.skip_during_manual_grading).save()
-        rpm(role=role, permission=pp.view_grader_stats).save()
-        rpm(role=role, permission=pp.batch_download_submission).save()
+        rpm(role=role, permission=PPerm.view_gradebook).save()
+        rpm(role=role, permission=PPerm.assign_grade).save()
+        rpm(role=role, permission=PPerm.skip_during_manual_grading).save()
+        rpm(role=role, permission=PPerm.view_grader_stats).save()
+        rpm(role=role, permission=PPerm.batch_download_submission).save()
 
-        rpm(role=role, permission=pp.impose_flow_session_deadline).save()
-        rpm(role=role, permission=pp.end_flow_session).save()
-        rpm(role=role, permission=pp.regrade_flow_session).save()
-        rpm(role=role, permission=pp.recalculate_flow_session_grade).save()
+        rpm(role=role, permission=PPerm.impose_flow_session_deadline).save()
+        rpm(role=role, permission=PPerm.end_flow_session).save()
+        rpm(role=role, permission=PPerm.regrade_flow_session).save()
+        rpm(role=role, permission=PPerm.recalculate_flow_session_grade).save()
 
-        rpm(role=role, permission=pp.reopen_flow_session).save()
-        rpm(role=role, permission=pp.grant_exception).save()
-        rpm(role=role, permission=pp.view_analytics).save()
+        rpm(role=role, permission=PPerm.reopen_flow_session).save()
+        rpm(role=role, permission=PPerm.grant_exception).save()
+        rpm(role=role, permission=PPerm.view_analytics).save()
 
-        rpm(role=role, permission=pp.preview_content).save()
-        rpm(role=role, permission=pp.use_markup_sandbox).save()
-        rpm(role=role, permission=pp.use_page_sandbox).save()
-        rpm(role=role, permission=pp.test_flow).save()
-        rpm(role=role, permission=pp.query_participation).save()
-        rpm(role=role, permission=pp.edit_participation).save()
+        rpm(role=role, permission=PPerm.preview_content).save()
+        rpm(role=role, permission=PPerm.use_markup_sandbox).save()
+        rpm(role=role, permission=PPerm.use_page_sandbox).save()
+        rpm(role=role, permission=PPerm.test_flow).save()
+        rpm(role=role, permission=PPerm.query_participation).save()
+        rpm(role=role, permission=PPerm.edit_participation).save()
 
         add_student_permissions(role)
 
     def add_instructor_permissions(role):
-        rpm(role=role, permission=pp.use_admin_interface).save()
-        rpm(role=role, permission=pp.impersonate_role,
+        rpm(role=role, permission=PPerm.use_admin_interface).save()
+        rpm(role=role, permission=PPerm.impersonate_role,
                 argument="ta").save()
-        rpm(role=role, permission=pp.edit_course_permissions).save()
-        rpm(role=role, permission=pp.edit_course).save()
-        rpm(role=role, permission=pp.manage_authentication_tokens).save()
-        rpm(role=role, permission=pp.access_files_for,
+        rpm(role=role, permission=PPerm.edit_course_permissions).save()
+        rpm(role=role, permission=PPerm.edit_course).save()
+        rpm(role=role, permission=PPerm.manage_authentication_tokens).save()
+        rpm(role=role, permission=PPerm.access_files_for,
                 argument="instructor").save()
 
-        rpm(role=role, permission=pp.edit_exam).save()
-        rpm(role=role, permission=pp.batch_issue_exam_ticket).save()
+        rpm(role=role, permission=PPerm.edit_exam).save()
+        rpm(role=role, permission=PPerm.batch_issue_exam_ticket).save()
 
-        rpm(role=role, permission=pp.view_flow_sessions_from_role,
+        rpm(role=role, permission=PPerm.view_flow_sessions_from_role,
                 argument="ta").save()
-        rpm(role=role, permission=pp.edit_grading_opportunity).save()
-        rpm(role=role, permission=pp.batch_import_grade).save()
-        rpm(role=role, permission=pp.batch_export_grade).save()
+        rpm(role=role, permission=PPerm.edit_grading_opportunity).save()
+        rpm(role=role, permission=PPerm.batch_import_grade).save()
+        rpm(role=role, permission=PPerm.batch_export_grade).save()
 
-        rpm(role=role, permission=pp.batch_impose_flow_session_deadline).save()
-        rpm(role=role, permission=pp.batch_end_flow_session).save()
-        rpm(role=role, permission=pp.batch_regrade_flow_session).save()
-        rpm(role=role, permission=pp.batch_recalculate_flow_session_grade).save()
+        rpm(role=role, permission=PPerm.batch_impose_flow_session_deadline).save()
+        rpm(role=role, permission=PPerm.batch_end_flow_session).save()
+        rpm(role=role, permission=PPerm.batch_regrade_flow_session).save()
+        rpm(role=role, permission=PPerm.batch_recalculate_flow_session_grade).save()
 
-        rpm(role=role, permission=pp.update_content).save()
-        rpm(role=role, permission=pp.edit_events).save()
-        rpm(role=role, permission=pp.manage_instant_flow_requests).save()
-        rpm(role=role, permission=pp.preapprove_participation).save()
+        rpm(role=role, permission=PPerm.update_content).save()
+        rpm(role=role, permission=PPerm.edit_events).save()
+        rpm(role=role, permission=PPerm.manage_instant_flow_requests).save()
+        rpm(role=role, permission=PPerm.preapprove_participation).save()
 
         add_teaching_assistant_permissions(role)
 
@@ -772,8 +771,8 @@ def add_default_roles_and_permissions(course,
             is_default_for_unenrolled=True)
     unenrolled.save()
 
-    rpm(role=student, permission=pp.included_in_grade_statistics).save()
-    rpm(role=unenrolled, permission=pp.included_in_grade_statistics).save()
+    rpm(role=student, permission=PPerm.included_in_grade_statistics).save()
+    rpm(role=unenrolled, permission=PPerm.included_in_grade_statistics).save()
 
     add_unenrolled_permissions(unenrolled)
     add_student_permissions(student)

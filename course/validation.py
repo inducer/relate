@@ -41,7 +41,7 @@ from course.constants import (
     ATTRIBUTES_FILENAME,
     DEFAULT_ACCESS_KINDS,
     FLOW_SESSION_EXPIRATION_MODE_CHOICES,
-    ParticipationPermission as pperm,
+    ParticipationPermission as PPerm,
 )
 from relate.utils import Struct, string_concat
 
@@ -1447,13 +1447,13 @@ def validate_course_content(repo, course_file, events_file,
                 ParticipationPermission.objects
                 .filter(
                     participation__course=vctx.course,
-                    permission=pperm.access_files_for,
+                    permission=PPerm.access_files_for,
                     )
                 .values_list("argument", flat=True)) | frozenset(
                         ParticipationRolePermission.objects
                         .filter(
                             role__course=vctx.course,
-                            permission=pperm.access_files_for,
+                            permission=PPerm.access_files_for,
                             )
                         .values_list("argument", flat=True))
 
