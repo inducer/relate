@@ -288,7 +288,7 @@ class StartFlowTest(CoursesTestMixinBase, unittest.TestCase):
             user=None,
             flow_id=self.flow_id,
             flow_desc=flow_desc,
-            session_start_rule=session_start_rule,
+            session_start_mode=session_start_rule,
             now_datetime=self.now_datetime)
 
         self.assertIsInstance(session, models.FlowSession)
@@ -324,7 +324,7 @@ class StartFlowTest(CoursesTestMixinBase, unittest.TestCase):
             user=None,
             flow_id=self.flow_id,
             flow_desc=flow_desc,
-            session_start_rule=session_start_rule,
+            session_start_mode=session_start_rule,
             now_datetime=self.now_datetime)
 
         self.assertIsInstance(session, models.FlowSession)
@@ -359,7 +359,7 @@ class StartFlowTest(CoursesTestMixinBase, unittest.TestCase):
             user=None,
             flow_id=self.flow_id,
             flow_desc=flow_desc,
-            session_start_rule=session_start_rule,
+            session_start_mode=session_start_rule,
             now_datetime=self.now_datetime)
 
         self.assertIsInstance(session, models.FlowSession)

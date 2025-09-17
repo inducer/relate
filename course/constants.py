@@ -25,8 +25,13 @@ THE SOFTWARE.
 
 
 from enum import StrEnum
+from typing import TYPE_CHECKING
 
 from django.utils.translation import gettext, pgettext_lazy
+
+
+if TYPE_CHECKING:
+    from collections.abc import Set
 
 
 # Allow 10x extra credit at the very most.
@@ -300,7 +305,7 @@ FLOW_SESSION_EXPIRATION_MODE_CHOICES = (
 
 
 def is_expiration_mode_allowed(
-        expmode: str, permissions: frozenset[str]
+        expmode: str, permissions: Set[FlowPermission]
         ) -> bool:
     if expmode == FlowSessionExpirationMode.roll_over:
         if (FlowPermission.set_roll_over_expiration_mode

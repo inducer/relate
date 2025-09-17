@@ -599,7 +599,7 @@ class GetFlowRulesTest(SingleCourseTestMixin, TestCase):
             self.flow_id,
             now(),
             consider_exceptions=False,
-            default_rules_desc=default_rules_desc
+            default_rules=default_rules_desc
         )
 
         self.assertListEqual(result, default_rules_desc)
@@ -610,7 +610,7 @@ class GetFlowRulesTest(SingleCourseTestMixin, TestCase):
             self.flow_id,
             now(),
             consider_exceptions=True,
-            default_rules_desc=default_rules_desc
+            default_rules=default_rules_desc
         )
 
         self.assertListEqual(result, default_rules_desc)
@@ -630,7 +630,7 @@ class GetFlowRulesTest(SingleCourseTestMixin, TestCase):
                     self.flow_id,
                     now(),
                     consider_exceptions=False,
-                    default_rules_desc=default_rules_desc
+                    default_rules=default_rules_desc
                 )
 
                 # there are existing rule for those kind
@@ -659,7 +659,7 @@ class GetFlowRulesTest(SingleCourseTestMixin, TestCase):
                     self.flow_id,
                     now(),
                     consider_exceptions=False,
-                    default_rules_desc=default_rules_desc
+                    default_rules=default_rules_desc
                 )
 
                 self.assertListEqual(result, default_rules_desc)
@@ -685,7 +685,7 @@ class GetFlowRulesTest(SingleCourseTestMixin, TestCase):
             self.flow_id,
             now(),
             consider_exceptions=False,  # NOT consider
-            default_rules_desc=default_rules_desc
+            default_rules=default_rules_desc
         )
 
         exist_start_rule = flow_desc.rules.start
@@ -718,7 +718,7 @@ class GetFlowRulesTest(SingleCourseTestMixin, TestCase):
             self.student_participation,
             self.flow_id,
             now(),
-            default_rules_desc=default_rules_desc
+            default_rules=default_rules_desc
         )
 
         self.assertNotEqual(result, default_rules_desc)
@@ -758,7 +758,7 @@ class GetFlowRulesTest(SingleCourseTestMixin, TestCase):
             self.flow_id,
             now(),
             consider_exceptions=True,
-            default_rules_desc=default_rules_desc
+            default_rules=default_rules_desc
         )
 
         exist_start_rule = flow_desc.rules.start
@@ -810,7 +810,7 @@ class GetFlowRulesTest(SingleCourseTestMixin, TestCase):
             self.flow_id,
             now_datetime,
             consider_exceptions=True,
-            default_rules_desc=default_rules_desc
+            default_rules=default_rules_desc
         )
 
         self.assertEqual(len(result), len(exist_start_rule) + 2)
@@ -829,7 +829,7 @@ class GetFlowRulesTest(SingleCourseTestMixin, TestCase):
             self.flow_id,
             now_datetime,
             consider_exceptions=True,
-            default_rules_desc=default_rules_desc
+            default_rules=default_rules_desc
         )
 
         self.assertEqual(len(result), len(exist_start_rule) + 1)
@@ -848,7 +848,7 @@ class GetFlowRulesTest(SingleCourseTestMixin, TestCase):
             self.flow_id,
             now_datetime,
             consider_exceptions=True,
-            default_rules_desc=default_rules_desc
+            default_rules=default_rules_desc
         )
 
         self.assertEqual(len(result), len(exist_start_rule))
@@ -952,7 +952,7 @@ class GetSessionRuleMixin:
 
 class GetSessionStartRuleTest(GetSessionRuleMixin, SingleCourseTestMixin, TestCase):
     # test utils.get_session_start_rule
-    call_func = utils.get_session_start_rule
+    call_func = utils.get_session_start_mode
     rule_klass = utils.FlowSessionStartRule
 
     fallback_rule = utils.FlowSessionStartRule(
@@ -974,7 +974,7 @@ class GetSessionStartRuleTest(GetSessionRuleMixin, SingleCourseTestMixin, TestCa
 
     def get_result(self, **extra_kwargs):
         kwargs = self.get_updated_kwargs(**extra_kwargs)
-        return utils.get_session_start_rule(**kwargs)
+        return utils.get_session_start_mode(**kwargs)
 
     def get_default_rule(self, **kwargs):
         defaults = {
@@ -1159,7 +1159,7 @@ class GetSessionStartRuleTest(GetSessionRuleMixin, SingleCourseTestMixin, TestCa
 
 class GetSessionAccessRuleTest(GetSessionRuleMixin, SingleCourseTestMixin, TestCase):
     # test utils.get_session_access_rule
-    call_func = utils.get_session_access_rule
+    call_func = utils.get_session_access_mode
     rule_klass = utils.FlowSessionAccessRule
 
     fallback_rule = utils.FlowSessionAccessRule(permissions=frozenset())
@@ -1205,7 +1205,7 @@ class GetSessionAccessRuleTest(GetSessionRuleMixin, SingleCourseTestMixin, TestC
 
     def get_result(self, **extra_kwargs):
         kwargs = self.get_updated_kwargs(**extra_kwargs)
-        return utils.get_session_access_rule(**kwargs)
+        return utils.get_session_access_mode(**kwargs)
 
     def get_default_rule(self, **kwargs):
         defaults = {
@@ -1405,7 +1405,7 @@ class GetSessionAccessRuleTest(GetSessionRuleMixin, SingleCourseTestMixin, TestC
 class GetSessionGradingRuleTest(GetSessionRuleMixin,
                                 SingleCourseTestMixin, TestCase):
     # test utils.get_session_grading_rule
-    call_func = utils.get_session_grading_rule
+    call_func = utils.get_session_grading_mode
     rule_klass = utils.FlowSessionGradingRule
 
     no_g_rule_exception_msg = (
@@ -1449,7 +1449,7 @@ class GetSessionGradingRuleTest(GetSessionRuleMixin,
 
     def get_result(self, **extra_kwargs):
         kwargs = self.get_updated_kwargs(**extra_kwargs)
-        return utils.get_session_grading_rule(**kwargs)
+        return utils.get_session_grading_mode(**kwargs)
 
     def get_default_rule(self, **kwargs):
         defaults = {
