@@ -1033,7 +1033,7 @@ class CodeMirrorTextarea(forms.Textarea):
 
 
 def get_codemirror_widget(
-        language_mode: str,
+        language_mode: str | None,
         interaction_mode: str | None,
         *,
         autofocus: bool = False,
