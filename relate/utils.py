@@ -39,7 +39,7 @@ import dulwich.repo
 from django.http import HttpRequest
 from django.utils.text import format_lazy
 from django.utils.translation import gettext_lazy as _
-from typing_extensions import TypeIs
+from typing_extensions import TypeIs, override
 
 
 if TYPE_CHECKING:
@@ -91,11 +91,13 @@ class StyledFormBase(forms.Form):
 
 
 class StyledVerticalForm(StyledFormBase):
+    @override
     def _configure_helper(self) -> None:
         pass
 
 
 class StyledForm(StyledFormBase):
+    @override
     def _configure_helper(self) -> None:
         self.helper.form_class = "form-horizontal"
         self.helper.label_class = "col-lg-2"
