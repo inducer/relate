@@ -23,7 +23,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, cast
 
@@ -33,14 +32,13 @@ from django import http
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import permission_required
-from django.core.exceptions import (  # noqa
+from django.core.exceptions import (
     ObjectDoesNotExist,
     PermissionDenied,
-    SuspiciousOperation,
 )
 from django.db import transaction
 from django.db.models import Q
-from django.shortcuts import get_object_or_404, redirect, render  # noqa
+from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.utils.html import escape
 from django.utils.safestring import mark_safe
@@ -48,6 +46,7 @@ from django.utils.translation import gettext, gettext_lazy as _, pgettext
 from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.debug import sensitive_post_parameters
+from pytools import not_none
 
 from course.constants import (
     SESSION_LOCKED_TO_FLOW_PK,
@@ -68,7 +67,6 @@ from relate.utils import (
     HTML5DateTimeInput,
     RelateHttpRequest,
     StyledForm,
-    not_none,
     string_concat,
 )
 

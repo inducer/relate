@@ -45,6 +45,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.timezone import now
 from django.utils.translation import gettext, gettext_lazy as _, pgettext_lazy
+from pytools import not_none
 
 from course.constants import (
     GradeStateChangeType,
@@ -66,7 +67,6 @@ from relate.utils import (
     HTML5DateTimeInput,
     StyledForm,
     StyledModelForm,
-    not_none,
     string_concat,
 )
 
