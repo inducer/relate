@@ -39,7 +39,7 @@ import dulwich.repo
 from django.http import HttpRequest
 from django.utils.text import format_lazy
 from django.utils.translation import gettext_lazy as _
-from typing_extensions import TypeIs, override
+from typing_extensions import TypeIs, deprecated, override
 
 
 if TYPE_CHECKING:
@@ -70,6 +70,7 @@ def is_authed(user: AbstractUser | AnonymousUser | User) -> TypeIs[User]:
     return user.is_authenticated
 
 
+@deprecated("use pytools.not_none")
 def not_none(obj: T | None) -> T:
     assert obj is not None
     return obj
