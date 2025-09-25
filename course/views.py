@@ -105,8 +105,8 @@ NONE_SESSION_TAG = string_concat("<<<", _("NONE"), ">>>")
 def home(request: http.HttpRequest) -> http.HttpResponse:
     now_datetime = get_now_or_fake_time(request)
 
-    current_courses = []
-    past_courses = []
+    current_courses: list[Course] = []
+    past_courses: list[Course] = []
     for course in Course.objects.filter(listed=True):
         participation = get_participation_for_request(request, course)
 
@@ -123,10 +123,10 @@ def home(request: http.HttpRequest) -> http.HttpResponse:
             else:
                 past_courses.append(course)
 
-    def course_sort_key_minor(course):
+    def course_sort_key_minor(course: Course):
         return course.number if course.number is not None else ""
 
-    def course_sort_key_major(course):
+    def course_sort_key_major(course: Course):
         return (course.start_date
                 if course.start_date is not None else now_datetime.date())
 
