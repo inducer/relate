@@ -1323,9 +1323,6 @@ def grant_exception_stage_3(
 
 @login_required
 def generate_ssh_keypair(request):
-    if not request.user.is_staff:
-        raise PermissionDenied(_("only staff may use this tool"))
-
     from paramiko import RSAKey
     key_class = RSAKey
     prv = key_class.generate(bits=2048)
