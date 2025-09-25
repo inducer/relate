@@ -30,12 +30,12 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 
 from accounts.models import User
+from course.constants import ParticipationStatus
 from course.models import (
     Course,
     Participation,
     ParticipationPreapproval,
     ParticipationRole,
-    ParticipationStatus,
 )
 
 
