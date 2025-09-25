@@ -1322,7 +1322,7 @@ def grant_exception_stage_3(
 # {{{ ssh keypair
 
 @login_required
-def generate_ssh_keypair(request):
+def generate_ssh_keypair(request: http.HttpRequest):
     from paramiko import RSAKey
     key_class = RSAKey
     prv = key_class.generate(bits=2048)
