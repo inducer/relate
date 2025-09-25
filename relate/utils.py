@@ -163,7 +163,7 @@ def remote_address_from_request(request: HttpRequest) -> IPv4Address | IPv6Addre
 
 # {{{ maintenance mode
 
-def is_maintenance_mode(request):
+def is_maintenance_mode(request: HttpRequest):
     from django.conf import settings
     maintenance_mode = getattr(settings, "RELATE_MAINTENANCE_MODE", False)
 
