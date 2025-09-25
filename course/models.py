@@ -40,6 +40,7 @@ from django.dispatch import receiver
 from django.urls import reverse
 from django.utils.timezone import now
 from django.utils.translation import gettext_lazy as _, pgettext_lazy
+from typing_extensions import override
 
 from course.constants import (  # noqa
     COURSE_ID_REGEX,
@@ -258,9 +259,11 @@ class Course(models.Model):
         verbose_name = _("Course")
         verbose_name_plural = _("Courses")
 
+    @override
     def __str__(self) -> str:
         return self.identifier
 
+    @override
     def clean(self) -> None:
         if self.force_lang:
             self.force_lang = self.force_lang.strip()
@@ -337,12 +340,14 @@ class Event(models.Model):
         ordering = ("course", "time")
         unique_together = (("course", "kind", "ordinal"))
 
+    @override
     def __str__(self) -> str:
         if self.ordinal is not None:
             return f"{self.kind} {self.ordinal}"
         else:
             return self.kind
 
+    @override
     def clean(self) -> None:
         super().clean()
 
@@ -396,6 +401,7 @@ class ParticipationTag(models.Model):
     shown_to_participant = models.BooleanField(default=False,
             verbose_name=_("Shown to participant"))
 
+    @override
     def clean(self):
         super().clean()
 
@@ -405,6 +411,7 @@ class ParticipationTag(models.Model):
                 {field_name:
                      _("'%s' contains invalid characters.") % field_name})
 
+    @override
     def __str__(self) -> str:
         return f"{self.name} ({self.course})"
 
@@ -434,6 +441,7 @@ class ParticipationRole(models.Model):
     is_default_for_unenrolled = models.BooleanField(default=False,
             verbose_name=_("Is default role for unenrolled users"))
 
+    @override
     def clean(self):
         super().clean()
 
@@ -443,6 +451,7 @@ class ParticipationRole(models.Model):
                 {field_name:
                      _("'%s' contains invalid characters.") % field_name})
 
+    @override
     def __str__(self) -> str:
         return _("%(identifier)s in %(course)s") % {
             "identifier": self.identifier,
@@ -493,6 +502,7 @@ class ParticipationPermissionBase(models.Model):
     class Meta:
         abstract = True
 
+    @override
     def __str__(self) -> str:
         if self.argument:
             return f"{self.permission} {self.argument}"
@@ -507,6 +517,7 @@ class ParticipationRolePermission(ParticipationPermissionBase):
             verbose_name=_("Role"), on_delete=models.CASCADE,
             related_name="permissions")
 
+    @override
     def __str__(self) -> str:
         # Translators: permissions for roles
         return _("%(permission)s for %(role)s") % {
@@ -555,6 +566,7 @@ class Participation(models.Model):
     notes = models.TextField(blank=True, null=True,
             verbose_name=_("Notes"))
 
+    @override
     def __str__(self) -> str:
         # Translators: displayed format of Participation: some user in some
         # course as some role
@@ -639,6 +651,7 @@ class ParticipationPreapproval(models.Model):
     creation_time = models.DateTimeField(default=now, db_index=True,
             verbose_name=_("Creation time"))
 
+    @override
     def __str__(self) -> str:
         if self.email:
             # Translators: somebody's email in some course in Participation
@@ -825,6 +838,7 @@ class AuthenticationToken(models.Model):
             null=True, blank=True, unique=True,
             verbose_name=_("Hash of git authentication token"))
 
+    @override
     def __str__(self) -> str:
         return _("Token %(id)d for %(participation)s: %(description)s") % {
                 "id": self.id,
@@ -857,6 +871,7 @@ class InstantFlowRequest(models.Model):
         verbose_name = _("Instant flow request")
         verbose_name_plural = _("Instant flow requests")
 
+    @override
     def __str__(self) -> str:
         return _("Instant flow request for "
                 "%(flow_id)s in %(course)s at %(start_time)s") \
@@ -940,6 +955,7 @@ class FlowSession(models.Model):
         verbose_name_plural = _("Flow sessions")
         ordering = ("course", "-start_time")
 
+    @override
     def __str__(self) -> str:
         if self.participation is None:
             return _("anonymous session %(session_id)d on '%(flow_id)s'") % {
@@ -1032,6 +1048,7 @@ class FlowPageData(models.Model):
         verbose_name = _("Flow page data")
         verbose_name_plural = _("Flow page data")
 
+    @override
     def __str__(self) -> str:
         # flow page data
         return (_("Data for page '%(group_id)s/%(page_id)s' "
@@ -1106,6 +1123,7 @@ class FlowPageVisit(models.Model):
             verbose_name=_("Is submitted answer"),
             null=True)
 
+    @override
     def __str__(self) -> str:
         result = (
                 # Translators: flow page visit
@@ -1224,6 +1242,7 @@ class FlowPageVisitGrade(models.Model):
 
         ordering = ("visit", "grade_time")
 
+    @override
     def __str__(self) -> str:
         # information on FlowPageVisitGrade class
         # Translators: return the information of the grade of a user
@@ -1406,6 +1425,7 @@ class FlowAccessException(models.Model):  # pragma: no cover (deprecated and not
     comment = models.TextField(blank=True, null=True,
             verbose_name=_("Comment"))
 
+    @override
     def __str__(self) -> str:
         return (
                 # Translators: flow access exception in admin (deprecated)
@@ -1432,6 +1452,7 @@ class FlowAccessExceptionEntry(models.Model):  # pragma: no cover (deprecated an
         # Translators: FlowAccessExceptionEntry (deprecated)
         verbose_name_plural = _("Flow access exception entries")
 
+    @override
     def __str__(self) -> str:
         return self.permission
 
@@ -1467,6 +1488,7 @@ class FlowRuleException(models.Model):
             verbose_name=pgettext_lazy(
                 "Is the flow rule exception activated?", "Active"))
 
+    @override
     def __str__(self) -> str:
         return (
                 # Translators: For FlowRuleException
@@ -1480,6 +1502,7 @@ class FlowRuleException(models.Model):
                     "exception_id":
                         " id %d" % self.id if self.id is not None else ""})
 
+    @override
     def clean(self) -> None:
         super().clean()
 
@@ -1616,6 +1639,7 @@ class GradingOpportunity(models.Model):
         ordering = ("course", "due_time", "identifier")
         unique_together = (("course", "identifier"),)
 
+    @override
     def __str__(self) -> str:
         return (
                 # Translators: For GradingOpportunity
@@ -1692,6 +1716,7 @@ class GradeChange(models.Model):
             "state": self.state,
             "opportunityname": self.opportunity.name}
 
+    @override
     def clean(self) -> None:
         super().clean()
 
@@ -1951,6 +1976,7 @@ class InstantMessage(models.Model):
         verbose_name_plural = _("Instant messages")
         ordering = ("participation__course", "time")
 
+    @override
     def __str__(self) -> str:
         return f"{self.participation}: {self.text}"
 
@@ -1990,6 +2016,7 @@ class Exam(models.Model):
         verbose_name_plural = _("Exams")
         ordering = ("course", "no_exams_before",)
 
+    @override
     def __str__(self) -> str:
         return _("Exam  %(description)s in %(course)s") % {
                 "description": self.description,
@@ -2048,12 +2075,14 @@ class ExamTicket(models.Model):
                 ("can_issue_exam_tickets", _("Can issue exam tickets to student")),
                 )
 
+    @override
     def __str__(self) -> str:
         return _("Exam  ticket for %(participation)s in %(exam)s") % {
                 "participation": self.participation,
                 "exam": self.exam,
                 }
 
+    @override
     def clean(self):
         super().clean()
 
