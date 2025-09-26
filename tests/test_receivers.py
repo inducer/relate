@@ -26,7 +26,7 @@ THE SOFTWARE.
 import pytest
 from django.test import TestCase
 
-from course.constants import participation_status
+from course.constants import ParticipationStatus
 from tests import factories
 from tests.base_test_mixins import SingleCourseTestMixin
 from tests.utils import mock
@@ -51,7 +51,7 @@ class UpdateCouresOrUserSignalTest(SingleCourseTestMixin, TestCase):
         factories.ParticipationFactory(
             course=self.course,
             user=user,
-            status=participation_status.requested)
+            status=ParticipationStatus.requested)
 
         with mock.patch(HANDLE_ENROLLMENT_PATH) as mock_handle_enrollment:
             mock_handle_enrollment.return_value = None
@@ -65,7 +65,7 @@ class UpdateCouresOrUserSignalTest(SingleCourseTestMixin, TestCase):
         factories.ParticipationFactory(
             course=self.course,
             user=user,
-            status=participation_status.requested)
+            status=ParticipationStatus.requested)
 
         factories.ParticipationPreapprovalFactory(
             course=self.course,
@@ -84,7 +84,7 @@ class UpdateCouresOrUserSignalTest(SingleCourseTestMixin, TestCase):
         factories.ParticipationFactory(
             course=self.course,
             user=user1,
-            status=participation_status.requested)
+            status=ParticipationStatus.requested)
 
         factories.ParticipationPreapprovalFactory(
             course=self.course,
@@ -95,7 +95,7 @@ class UpdateCouresOrUserSignalTest(SingleCourseTestMixin, TestCase):
         factories.ParticipationFactory(
             course=self.course,
             user=user2,
-            status=participation_status.requested)
+            status=ParticipationStatus.requested)
 
         factories.ParticipationPreapprovalFactory(
             course=self.course,
@@ -124,7 +124,7 @@ class UpdateCouresOrUserSignalTest(SingleCourseTestMixin, TestCase):
         factories.ParticipationFactory(
             course=self.course,
             user=user,
-            status=participation_status.requested)
+            status=ParticipationStatus.requested)
         factories.ParticipationPreapprovalFactory(
             course=self.course,
             email=user.email

@@ -802,14 +802,14 @@ class GetFlowPageDescTest(SingleCoursePageTestMixin, TestCase):
 
     def test_success(self):
         self.assertEqual(
-            content.get_flow_page_desc(
+            content.get_flow_page(
                 flow_id=self.flow_id,
                 flow_desc=self.flow_desc,
                 group_id="intro",
                 page_id="welcome").id, "welcome")
 
         self.assertEqual(
-            content.get_flow_page_desc(
+            content.get_flow_page(
                 flow_id=self.flow_id,
                 flow_desc=self.flow_desc,
                 group_id="quiz_tail",
@@ -817,11 +817,11 @@ class GetFlowPageDescTest(SingleCoursePageTestMixin, TestCase):
 
     def test_flow_page_desc_does_not_exist(self):
         with self.assertRaises(ObjectDoesNotExist):
-            content.get_flow_page_desc(
+            content.get_flow_page(
                 self.flow_id, self.flow_desc, "quiz_start", "unknown_page")
 
         with self.assertRaises(ObjectDoesNotExist):
-            content.get_flow_page_desc(
+            content.get_flow_page(
                 self.flow_id, self.flow_desc, "unknown_group", "unknown_page")
 
 

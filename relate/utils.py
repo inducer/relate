@@ -39,7 +39,7 @@ import dulwich.repo
 from django.http import HttpRequest
 from django.utils.text import format_lazy
 from django.utils.translation import gettext_lazy as _
-from typing_extensions import TypeIs
+from typing_extensions import TypeIs, deprecated, override
 
 
 if TYPE_CHECKING:
@@ -70,6 +70,7 @@ def is_authed(user: AbstractUser | AnonymousUser | User) -> TypeIs[User]:
     return user.is_authenticated
 
 
+@deprecated("use pytools.not_none")
 def not_none(obj: T | None) -> T:
     assert obj is not None
     return obj
@@ -91,11 +92,13 @@ class StyledFormBase(forms.Form):
 
 
 class StyledVerticalForm(StyledFormBase):
+    @override
     def _configure_helper(self) -> None:
         pass
 
 
 class StyledForm(StyledFormBase):
+    @override
     def _configure_helper(self) -> None:
         self.helper.form_class = "form-horizontal"
         self.helper.label_class = "col-lg-2"
@@ -160,7 +163,7 @@ def remote_address_from_request(request: HttpRequest) -> IPv4Address | IPv6Addre
 
 # {{{ maintenance mode
 
-def is_maintenance_mode(request):
+def is_maintenance_mode(request: HttpRequest):
     from django.conf import settings
     maintenance_mode = getattr(settings, "RELATE_MAINTENANCE_MODE", False)
 

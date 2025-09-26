@@ -16,7 +16,7 @@
   <table class="table table-striped gradebook-opportunities">
     <thead>
       <th class="datacol">{% trans "Name of grading opportunity" %}</th>
-      {% if pperm.edit_grading_opportunity %}
+      {% if PPerm.edit_grading_opportunity %}
         <th class="datacol">{% trans "Actions" %}</th>
       {% endif %}
       <th class="datacol">{% trans "Flow ID" %}</th>
@@ -36,7 +36,7 @@
           <a href="{% url "relate-view_grades_by_opportunity" course.identifier opp.id %}">{{ opp.name }}</a>
           <span style="font-size:x-small">(<tt>{{ opp.identifier }}</tt>)</span>
         </td>
-        {% if pperm.edit_participation %}
+        {% if PPerm.edit_participation %}
           <td class="datacol">
             <a href="{% url "relate-edit_grading_opportunity" course.identifier opp.id %}" class="btn btn-outline-secondary btn-sm">{% trans "Edit" %}</a>
           </td>

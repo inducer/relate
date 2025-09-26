@@ -4,11 +4,41 @@ from __future__ import annotations
 import io
 import sys
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, cast
+from typing import Any, cast
+
+from course.content import flow_desc_ta
+from course.page.base import PageBase
+from course.page.code import PythonCodeQuestion, RunRequest
+from course.validation import (
+    FileSystemFakeRepo,
+    ValidationContext,
+)
 
 
-if TYPE_CHECKING:
-    from course.content import FlowPageDesc
+# {{{ expand YAML
+
+def expand_yaml(yml_file: str, repo_root: Path):
+    if yml_file == "-":
+        data = sys.stdin.read()
+    else:
+        data = Path(yml_file).read_text()
+
+    from course.content import (
+        YamlBlockEscapingFileSystemLoader,
+        process_yaml_for_expansion,
+    )
+    data = process_yaml_for_expansion(data)
+
+    from minijinja import Environment
+    jinja_env = Environment(
+            loader=YamlBlockEscapingFileSystemLoader(repo_root),
+            undefined_behavior="strict",
+            auto_escape_callback=lambda fn: False,
+        )
+
+    return jinja_env.render_str(data)
+
+# }}}
 
 
 # {{{ validate_course
@@ -45,8 +75,6 @@ def validate_pages(args):
     from course.validation import (
         FileSystemFakeRepo,
         ValidationContext,
-        get_yaml_from_repo_safely,
-        validate_flow_page,
     )
     fake_repo = FileSystemFakeRepo(Path(args.REPO_ROOT))
     vctx = ValidationContext(
@@ -54,11 +82,10 @@ def validate_pages(args):
             commit_sha=fake_repo,
             course=None)
 
+    from yaml import safe_load
     for yaml_filename in args.PROBLEM_YMLS:
-        page_desc = get_yaml_from_repo_safely(fake_repo, yaml_filename,
-                commit_sha=fake_repo)
-
-        validate_flow_page(vctx, yaml_filename, page_desc)
+        yaml_data = safe_load(expand_yaml(yaml_filename, Path(args.repo_root)))
+        PageBase.model_validate(yaml_data, context=vctx)
 
     if vctx.warnings:
         print("WARNINGS: ")
@@ -69,32 +96,6 @@ def validate_pages(args):
         return 1
     else:
         return 0
-
-# }}}
-
-
-# {{{ expand YAML
-
-def expand_yaml(yml_file: str, repo_root: Path):
-    if yml_file == "-":
-        data = sys.stdin.read()
-    else:
-        data = Path(yml_file).read_text()
-
-    from course.content import (
-        YamlBlockEscapingFileSystemLoader,
-        process_yaml_for_expansion,
-    )
-    data = process_yaml_for_expansion(data)
-
-    from minijinja import Environment
-    jinja_env = Environment(
-            loader=YamlBlockEscapingFileSystemLoader(repo_root),
-            undefined_behavior="strict",
-            auto_escape_callback=lambda fn: False,
-        )
-
-    return jinja_env.render_str(data)
 
 # }}}
 
@@ -141,20 +142,15 @@ def lint_yaml(args):
 
 # {{{ code test
 
-def test_code_question(page_desc: Any) -> bool:
-    if page_desc.type not in [
-            "PythonCodeQuestion",
-            "PythonCodeQuestionWithHumanTextFeedback"]:
-        return True
-
+def test_code_question(page: PythonCodeQuestion) -> bool:
     print(75*"-")
-    print("TESTING", page_desc.id, "...", end=" ")
+    print("TESTING", page.id, "...", end=" ")
     sys.stdout.flush()
 
-    test_code = getattr(page_desc, "test_code", None)
+    test_code = getattr(page, "test_code", None)
     if test_code is not None:
 
-        correct_code = getattr(page_desc, "correct_code", "")
+        correct_code = getattr(page, "correct_code", "")
 
         from course.page.code_run_backend import (
             substitute_correct_code_into_test_code,
@@ -165,20 +161,21 @@ def test_code_question(page_desc: Any) -> bool:
 
     data_files = {}
 
-    for data_file_name in getattr(page_desc, "data_files", []):
+    for data_file_name in getattr(page, "data_files", []):
         from base64 import b64encode
         data_files[data_file_name] = b64encode(
                                 Path(data_file_name).read_bytes()).decode()
 
-    run_req = {
-            "setup_code": getattr(page_desc, "setup_code", ""),
-            "names_for_user": getattr(page_desc, "names_for_user", []),
+    run_req: RunRequest = {
+            "setup_code": getattr(page, "setup_code", ""),
+            "names_for_user": getattr(page, "names_for_user", []),
             "user_code": (
-                getattr(page_desc, "check_user_code", "")
-                or getattr(page_desc, "correct_code", "")),
-            "names_from_user": getattr(page_desc, "names_from_user", []),
+                getattr(page, "check_user_code", "")
+                or getattr(page, "correct_code", "")),
+            "names_from_user": getattr(page, "names_from_user", []),
             "test_code": test_code,
             "data_files": data_files,
+            "compile_only": False,
             }
 
     response: dict[str, Any] = {}
@@ -199,7 +196,8 @@ def test_code_question(page_desc: Any) -> bool:
         sys.stderr = stderr
 
         from relate.utils import Struct
-        run_code(response, Struct(run_req))  # type: ignore[no-untyped-call]
+        run_code(response, Struct(
+                                  cast("dict[str, Any]", cast("object", run_req))))
 
         response["stdout"] = stdout.getvalue()
         response["stderr"] = stderr.getvalue()
@@ -216,7 +214,7 @@ def test_code_question(page_desc: Any) -> bool:
     stop = time()
     response["timeout"] = (
             f"Execution took {stop-start:.1f} seconds. "
-            f"(Timeout is {page_desc.timeout:.1f} seconds.)")
+            f"(Timeout is {page.timeout:.1f} seconds.)")
 
     from colorama import Fore, Style
     if response["result"] == "success":
@@ -265,36 +263,33 @@ def test_code_question(page_desc: Any) -> bool:
     return success
 
 
-def test_code_yml(yml_file, repo_root):
-    data = expand_yaml(yml_file, repo_root)
-
+def test_code_yml(yml_file: str, repo_root: Path):
     from yaml import safe_load
+    data = safe_load(expand_yaml(yml_file, repo_root))
 
-    from relate.utils import dict_to_struct
-    data = dict_to_struct(safe_load(data))
+    if not isinstance(data, dict):
+        raise ValueError("YAML file did not parse as a dict")
 
-    if hasattr(data, "id") and hasattr(data, "type"):
-        return test_code_question(cast("FlowPageDesc", data))
+    vctx = ValidationContext(
+                             repo=FileSystemFakeRepo(repo_root),
+                             commit_sha=None,
+                             course=None,
+                         ).with_location(yml_file)
+
+    if "id" in data and "type" in data:
+        page = PythonCodeQuestion.model_validate(data, context=vctx)
+        return test_code_question(page)
 
     else:
-        if hasattr(data, "groups"):
-            pages = [
-                    page
-                    for grp in data.groups
-                    for page in grp.pages]
-        elif hasattr(data, "pages"):
-            pages = data.pages
-        else:
-            from colorama import Fore, Style
-            print(Fore.RED + Style.BRIGHT
-                    + f"'{yml_file}' does not look like a valid flow or page file"
-                    + Style.RESET_ALL)
-            return
+        flow = flow_desc_ta.validate_python(data, context=vctx)
 
-        for page in pages:
-            res = test_code_question(page)
-            if not res:
-                return False
+        for group in flow.groups:
+            for grp_page in group.pages:
+                if not isinstance(grp_page, PythonCodeQuestion):
+                    continue
+                res = test_code_question(grp_page)
+                if not res:
+                    return False
 
         return True
 
@@ -303,7 +298,7 @@ def test_code(args):
     for yml_file in args.FLOW_OR_PROBLEM_YMLS:
         print(75*"=")
         print("EXAMINING", yml_file)
-        if not test_code_yml(yml_file, repo_root=args.repo_root):
+        if not test_code_yml(yml_file, repo_root=Path(args.repo_root)):
             return 1
 
     return 0

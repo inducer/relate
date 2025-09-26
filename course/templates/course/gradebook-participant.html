@@ -18,7 +18,7 @@
         <th>{% trans "Property" %}</th><th>{% trans "Value" %}</th>
       </thead>
       <tbody>
-      {% if not pperm.view_participant_masked_profile %}
+      {% if not PPerm.view_participant_masked_profile %}
           <tr>
             <td>{% trans "User ID" %}</td>
             <td><span class="sensitive">{{ grade_participation.user.username }}</span></td>

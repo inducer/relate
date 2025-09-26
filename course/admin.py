@@ -33,7 +33,7 @@ from django.core.exceptions import PermissionDenied
 from django.utils.translation import gettext_lazy as _, pgettext
 from typing_extensions import override
 
-from course.constants import exam_ticket_states, participation_permission as pperm
+from course.constants import ExamTicketState, ParticipationPermission as PPerm
 from course.enrollment import approve_enrollment, deny_enrollment
 from course.models import (
     AuthenticationToken,
@@ -79,7 +79,7 @@ def _filter_courses_for_user(
         return queryset
     z = queryset.filter(
             participations__user=user,
-            participations__roles__permissions__permission=pperm.use_admin_interface)
+            participations__roles__permissions__permission=PPerm.use_admin_interface)
     return z
 
 
@@ -95,7 +95,7 @@ def _filter_course_linked_obj_for_user(
         return queryset
     return queryset.filter(
             course__participations__user=user,
-            course__participations__roles__permissions__permission=pperm.use_admin_interface
+            course__participations__roles__permissions__permission=PPerm.use_admin_interface
             )
 
 
@@ -108,7 +108,6 @@ ParticipationLinked: TypeAlias = (
             | GradeChange
             | InstantMessage
             | ExamTicket
-            | ParticipationPermission
             )
 ParticipationLinkedT = TypeVar(
         "ParticipationLinkedT",
@@ -123,7 +122,7 @@ def _filter_participation_linked_obj_for_user(
         return queryset
     return queryset.filter(
         participation__course__participations__user=user,
-        participation__course__participations__roles__permissions__permission=pperm.use_admin_interface)
+        participation__course__participations__roles__permissions__permission=PPerm.use_admin_interface)
 
 # }}}
 
@@ -623,7 +622,7 @@ class FlowIdListFilter(admin.SimpleListFilter):
         if not request.user.is_superuser:
             qs = qs.filter(
                 flow_session__course__participations__user=request.user,
-                flow_session__course__participations__roles__permissions__permission=pperm.use_admin_interface)
+                flow_session__course__participations__roles__permissions__permission=PPerm.use_admin_interface)
 
         flow_ids = qs.values_list("flow_session__flow_id", flat=True).distinct()
         return zip(flow_ids, flow_ids, strict=True)
@@ -745,7 +744,7 @@ class FlowPageVisitAdmin(admin.ModelAdmin[FlowPageVisit]):
             return qs
         return qs.filter(
             flow_session__course__participations__user=request.user,
-            flow_session__course__participations__roles__permissions__permission=pperm.use_admin_interface)
+            flow_session__course__participations__roles__permissions__permission=PPerm.use_admin_interface)
 
     # }}}
 
@@ -1102,8 +1101,8 @@ class ExamTicketAdmin(admin.ModelAdmin[ExamTicket]):
     )
     def revoke_exam_tickets(self, request, queryset):
         queryset \
-                .filter(state=exam_ticket_states.valid) \
-                .update(state=exam_ticket_states.revoked)
+                .filter(state=ExamTicketState.valid) \
+                .update(state=ExamTicketState.revoked)
 
     actions = [revoke_exam_tickets]
 

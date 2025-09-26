@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from course.page.base import PageBase
+
 
 __copyright__ = "Copyright (C) 2014 Andreas Kloeckner"
 
@@ -33,14 +35,12 @@ from django.core.exceptions import PermissionDenied
 from django.utils.safestring import mark_safe
 from django.utils.translation import gettext, gettext_lazy as _
 
-from course.constants import participation_permission as pperm
+from course.constants import ParticipationPermission as PPerm
 from course.utils import CoursePageContext, course_view, render_course_page
 
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
-
-    from course.content import FlowPageDesc
 
 
 # {{{ for mypy
@@ -105,7 +105,7 @@ class SandboxForm(forms.Form):
 
 @course_view
 def view_markup_sandbox(pctx):
-    if not pctx.has_permission(pperm.use_markup_sandbox):
+    if not pctx.has_permission(PPerm.use_markup_sandbox):
         raise PermissionDenied()
 
     request = pctx.request
@@ -197,29 +197,26 @@ def make_sandbox_session_key(prefix: str, course_identifier: str) -> str:
     return f"{prefix}:{course_identifier}"
 
 
-def page_desc_from_yaml_string(pctx: CoursePageContext, source: str) -> FlowPageDesc:
+def yaml_data_from_yaml_string(pctx: CoursePageContext, source: str) -> PageBase:
     import yaml
     from pytools.py_codegen import remove_common_indentation
 
     from course.content import expand_yaml_macros
-    from relate.utils import dict_to_struct
     new_page_source = remove_common_indentation(
             source, require_leading_newline=False)
     new_page_source = expand_yaml_macros(
             pctx.repo, pctx.course_commit_sha, new_page_source)
 
-    yaml_data = yaml.safe_load(new_page_source)  # type: ignore
-    return cast("FlowPageDesc", dict_to_struct(yaml_data))
+    return yaml.safe_load(new_page_source)  # type: ignore
 
 
 @course_view
 def view_page_sandbox(pctx: CoursePageContext) -> http.HttpResponse:
 
-    if not pctx.has_permission(pperm.use_page_sandbox):
+    if not pctx.has_permission(PPerm.use_page_sandbox):
         raise PermissionDenied()
 
     from course.validation import ValidationError
-    from relate.utils import Struct
 
     page_session_key = make_sandbox_session_key(
         PAGE_SESSION_KEY_PREFIX, pctx.course.identifier)
@@ -247,6 +244,12 @@ def view_page_sandbox(pctx: CoursePageContext) -> http.HttpResponse:
                 gettext("Enter YAML markup for a flow page."),
                 data)
 
+    from course.validation import ValidationContext
+    vctx = ValidationContext(
+            repo=pctx.repo,
+            commit_sha=pctx.course_commit_sha).with_location("sandbox")
+
+    page_yaml = None
     if is_preview_post:
         edit_form = make_form(pctx.request.POST)
         new_page_source = None
@@ -254,30 +257,22 @@ def view_page_sandbox(pctx: CoursePageContext) -> http.HttpResponse:
         if edit_form.is_valid():
             form_content = edit_form.cleaned_data["content"]
             try:
-                page_desc = page_desc_from_yaml_string(pctx, form_content)
+                page_yaml = yaml_data_from_yaml_string(pctx, form_content)
 
-                if not isinstance(page_desc, Struct):
+                if not isinstance(page_yaml, dict):
                     raise ValidationError("Provided page source code is not "
                             "a dictionary. Do you need to remove a leading "
                             "list marker ('-') or some stray indentation?")
 
-                from course.validation import ValidationContext, validate_flow_page
-                vctx = ValidationContext(
-                        repo=pctx.repo,
-                        commit_sha=pctx.course_commit_sha)
-
-                validate_flow_page(vctx, "sandbox", page_desc)
+                PageBase.model_validate(page_yaml, context=vctx)
 
                 page_warnings = vctx.warnings
 
-            except Exception:
-                import sys
-                tp, e, _ = sys.exc_info()
-
+            except Exception as e:
                 page_errors = (
                         gettext("Page failed to load/validate")
                         + ": "
-                        + f"{tp.__name__}: {e}")  # type: ignore
+                        + f"{type(e).__name__}: {e}")  # type: ignore
 
             else:
                 # Yay, it did validate.
@@ -310,31 +305,24 @@ def view_page_sandbox(pctx: CoursePageContext) -> http.HttpResponse:
     have_valid_page = page_source is not None
     if have_valid_page:
         assert page_source is not None
-        page_desc = page_desc_from_yaml_string(pctx, page_source)
+        page_yaml = yaml_data_from_yaml_string(pctx, page_source)
 
-        from course.content import instantiate_flow_page
         try:
-            page = instantiate_flow_page("sandbox", pctx.repo, page_desc,
-                    pctx.course_commit_sha)
-        except Exception:
-            import sys
-            tp, e, _ = sys.exc_info()
-
+            page = PageBase.model_validate(page_yaml, context=vctx)
+        except Exception as e:
             page_errors = (
                     gettext("Page failed to load/validate")
                     + ": "
-                    + f"{tp.__name__}: {e}")  # type: ignore
+                    + f"{type(e).__name__}: {e}")  # type: ignore
             have_valid_page = False
 
     if have_valid_page:
-        page_desc = cast("FlowPageDesc", page_desc)
-
         # Try to recover page_data, answer_data
         page_data = get_sandbox_data_for_page(
-                pctx, page_desc, page_data_session_key)
+                pctx, page_yaml, page_data_session_key)
 
         answer_data = get_sandbox_data_for_page(
-                pctx, page_desc, answer_data_session_key)
+                pctx, page_yaml, answer_data_session_key)
 
         from course.models import FlowSession
         from course.page import PageContext
@@ -351,17 +339,21 @@ def view_page_sandbox(pctx: CoursePageContext) -> http.HttpResponse:
                 in_sandbox=True)
 
         if page_data is None:
+            assert page_yaml is not None
+
             page_data = page.initialize_page_data(page_context)
             pctx.request.session[page_data_session_key] = (
-                    page_desc.type, page_desc.id, page_data)
+                    page_yaml.type, page_yaml.id, page_data)
 
-        title = page.title(page_context, page_data)
+        title = page.page_title(page_context, page_data)
         body = page.body(page_context, page_data)
 
         feedback = None
         page_form_html = None
 
         if page.expects_answer():
+            assert page_yaml is not None
+
             from course.page.base import PageBehavior
             page_behavior = PageBehavior(
                     show_correctness=True,
@@ -382,22 +374,19 @@ def view_page_sandbox(pctx: CoursePageContext) -> http.HttpResponse:
                             grade_data=None)
 
                     pctx.request.session[answer_data_session_key] = (
-                            page_desc.type, page_desc.id, answer_data)
+                            page_yaml.type, page_yaml.id, answer_data)
 
             else:
                 try:
                     page_form = page.make_form(page_context, page_data,
                             answer_data, page_behavior)
 
-                except Exception:
-                    import sys
-                    tp, e, _ = sys.exc_info()
-
+                except Exception as e:
                     page_errors = (
                             gettext("Page failed to load/validate "
                                 "(change page ID to clear faults)")
                             + ": "
-                            + f"{tp.__name__}: {e}")  # type: ignore
+                            + f"{type(e).__name__}: {e}")  # type: ignore
 
                     page_form = None
 
@@ -409,7 +398,7 @@ def view_page_sandbox(pctx: CoursePageContext) -> http.HttpResponse:
                 page_form_html = page.form_to_html(
                         pctx.request, page_context, page_form, answer_data)
 
-        correct_answer = page.correct_answer(
+        correct_answer = page.page_correct_answer(
                 page_context, page_data, answer_data,
                 grade_data=None)
 
