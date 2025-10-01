@@ -560,7 +560,7 @@ Events serve two purposes:
   10:30:00``, you could write ``lecture 13``. This allows course content to
   be written in a way that is reusable--only the mapping from (e.g.)
   ``lecture 13`` to the real date needs to be provided--the course material
-  istelf can remain unchanged.
+  itself can remain unchanged.
 
 * They are (optionally) shown in the class calendar.
 
