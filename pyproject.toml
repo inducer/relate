@@ -281,6 +281,7 @@ exclude = [
     "course/migrations",
     "accounts/migrations",
     "prairietest/migrations",
+    "local_settings.py",
 ]
 
 [[tool.basedpyright.executionEnvironments]]
