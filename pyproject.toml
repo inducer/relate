@@ -318,5 +318,10 @@ reportPossiblyUnboundVariable = "none"
 reportPrivateUsage = "none"
 reportUninitializedInstanceVariable = "hint"
 reportUnknownArgumentType = "hint"
+reportUnknownParameterType = "hint"
+reportUnknownVariableType = "hint"
+reportUnknownMemberType = "hint"
+reportImplicitOverride = "hint"
+reportUnannotatedClassAttribute = "hint"
 
 # vim: foldmethod=marker
