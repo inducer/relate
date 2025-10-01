@@ -49226,24 +49226,6 @@
                 }
             }
         ],
-        "./local_settings.py": [
-            {
-                "code": "reportUnusedImport",
-                "range": {
-                    "startColumn": 37,
-                    "endColumn": 49,
-                    "lineCount": 1
-                }
-            },
-            {
-                "code": "reportMissingTypeStubs",
-                "range": {
-                    "startColumn": 11,
-                    "endColumn": 21,
-                    "lineCount": 1
-                }
-            }
-        ],
         "./local_settings_example.py": [
             {
                 "code": "reportUnusedImport",
@@ -51059,23 +51041,23 @@
                 "code": "reportUnknownVariableType",
                 "range": {
                     "startColumn": 0,
-                    "endColumn": 26,
+                    "endColumn": 27,
                     "lineCount": 1
                 }
             },
             {
                 "code": "reportUnknownMemberType",
                 "range": {
-                    "startColumn": 29,
-                    "endColumn": 47,
+                    "startColumn": 30,
+                    "endColumn": 48,
                     "lineCount": 1
                 }
             },
             {
                 "code": "reportUnknownMemberType",
                 "range": {
-                    "startColumn": 46,
-                    "endColumn": 78,
+                    "startColumn": 47,
+                    "endColumn": 80,
                     "lineCount": 1
                 }
             },

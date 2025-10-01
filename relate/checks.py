@@ -41,7 +41,7 @@ USE_I18N = "USE_I18N"
 LANGUAGES = "LANGUAGES"
 
 RELATE_SITE_NAME = "RELATE_SITE_NAME"
-RELATE_CUTOMIZED_SITE_NAME = "RELATE_CUTOMIZED_SITE_NAME"
+RELATE_CUSTOMIZED_SITE_NAME = "RELATE_CUSTOMIZED_SITE_NAME"
 RELATE_OVERRIDE_TEMPLATES_DIRS = "RELATE_OVERRIDE_TEMPLATES_DIRS"
 EMAIL_CONNECTIONS = "EMAIL_CONNECTIONS"
 RELATE_BASE_URL = "RELATE_BASE_URL"
@@ -431,7 +431,7 @@ def check_relate_settings(app_configs, **kwargs):
             if not isinstance(site_name, str):
                 errors.append(RelateCriticalCheckMessage(
                     msg=(INSTANCE_ERROR_PATTERN
-                         % {"location": f"{RELATE_SITE_NAME}/{RELATE_CUTOMIZED_SITE_NAME}",  # noqa: E501
+                         % {"location": f"{RELATE_SITE_NAME}/{RELATE_CUSTOMIZED_SITE_NAME}",  # noqa: E501
                             "types": "string"}),
                     id="relate_site_name.E003"))
             elif not site_name.strip():

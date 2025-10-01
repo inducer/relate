@@ -300,9 +300,9 @@ for name, val in local_settings.items():
         globals()[name] = val
 
 RELATE_SITE_NAME = gettext_noop("RELATE")
-RELATE_CUTOMIZED_SITE_NAME = local_settings.get("RELATE_CUTOMIZED_SITE_NAME")
-if RELATE_CUTOMIZED_SITE_NAME is not None and RELATE_CUTOMIZED_SITE_NAME.strip():
-    RELATE_SITE_NAME = RELATE_CUTOMIZED_SITE_NAME
+RELATE_CUSTOMIZED_SITE_NAME = local_settings.get("RELATE_CUSTOMIZED_SITE_NAME")
+if RELATE_CUSTOMIZED_SITE_NAME is not None and RELATE_CUSTOMIZED_SITE_NAME.strip():
+    RELATE_SITE_NAME = RELATE_CUSTOMIZED_SITE_NAME
 
 # {{{ celery config
 

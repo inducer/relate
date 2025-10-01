@@ -23,7 +23,7 @@ from django.utils.translation import gettext_noop  # noqa
 # If not configured, "RELATE" will be used as default value.
 # Use gettext_noop() if you want it to be discovered as an i18n literal
 # for translation.
-# RELATE_CUTOMIZED_SITE_NAME = gettext_noop("My RELATE")
+# RELATE_CUSTOMIZED_SITE_NAME = gettext_noop("My RELATE")
 
 # Uncomment this to use a real database. If left commented out, a local SQLite3
 # database will be used, which is not recommended for production use.
@@ -256,7 +256,7 @@ SOCIAL_AUTH_GOOGLE_OAUTH2_USE_UNIQUE_USER_ID = True
 
 # If set to False, user won't be able to edit institutional ID
 # after submission. Set to False only when you trust your students
-# or you don't want to verify insitutional ID they submit.
+# or you don't want to verify institutional ID they submit.
 RELATE_EDITABLE_INST_ID_BEFORE_VERIFICATION = True
 
 # If set to False, these fields will be hidden in the user profile form.
