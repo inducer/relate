@@ -46,6 +46,7 @@ from django.utils.translation import gettext, gettext_lazy as _
 from django_select2.forms import Select2Widget
 from pytools import not_none
 
+import course.utils as c_utils  # These are mocked, so import as module
 from course.constants import (
     FLOW_SESSION_EXPIRATION_MODE_CHOICES,
     GRADE_AGGREGATION_STRATEGY_CHOICES,
@@ -71,19 +72,6 @@ from course.models import (
     update_bulk_feedback,
 )
 from course.page import InvalidPageData
-from course.utils import (
-    FlowContext,
-    FlowPageContext,
-    FlowSessionGradingModeWithFlowLevelInfo,
-    LanguageOverride,
-    PageOrdinalOutOfRange,
-    course_view,
-    get_flow_page_with_ctx,
-    get_session_access_mode,
-    get_session_grading_mode,
-    get_session_start_mode,
-    render_course_page,
-)
 from course.views import get_now_or_fake_time
 from relate.utils import (
     StyledForm,
@@ -378,7 +366,7 @@ def grade_page_visit(visit: FlowPageVisit,
                 commit_sha=course_commit_sha,
                 flow_session=flow_session)
 
-        with LanguageOverride(course=course):
+        with c_utils.LanguageOverride(course=course):
             answer_feedback = page.grade(
                     grading_page_context, visit.page_data.data,
                     visit.answer, grade_data=grade_data)
@@ -603,7 +591,7 @@ def get_all_page_data(flow_session: FlowSession) -> Iterable[FlowPageData]:
 
 
 def get_interaction_kind(
-        fctx: FlowContext,
+        fctx: c_utils.FlowContext,
         flow_session: FlowSession,
         flow_generates_grade: bool,
         all_page_data: Iterable[FlowPageData],
@@ -615,7 +603,7 @@ def get_interaction_kind(
     for i, page_data in enumerate(all_page_data):
         assert i == page_data.page_ordinal
 
-        page = get_flow_page_with_ctx(fctx, page_data)
+        page = c_utils.get_flow_page_with_ctx(fctx, page_data)
         if page.expects_answer():
             has_interactive = True
             if page.is_answer_gradable():
@@ -634,7 +622,7 @@ def get_interaction_kind(
 
 
 def get_session_answered_page_data(
-        fctx: FlowContext,
+        fctx: c_utils.FlowContext,
         flow_session: FlowSession,
         answer_visits: list[FlowPageVisit | None]
         ) -> tuple[list[FlowPageData], list[FlowPageData], bool]:
@@ -653,7 +641,7 @@ def get_session_answered_page_data(
         else:
             answer_data = None
 
-        page = get_flow_page_with_ctx(fctx, page_data)
+        page = c_utils.get_flow_page_with_ctx(fctx, page_data)
         if page.expects_answer():
             is_interactive_flow = True
             if not page.is_optional_page:
@@ -810,9 +798,9 @@ class GradeInfo:
 
 
 def gather_grade_info(
-        fctx: FlowContext,
+        fctx: c_utils.FlowContext,
         flow_session: FlowSession,
-        grading_rule: FlowSessionGradingModeWithFlowLevelInfo,
+        grading_rule: c_utils.FlowSessionGradingModeWithFlowLevelInfo,
         answer_visits: list[FlowPageVisit | None],
         ) -> GradeInfo:
     all_page_data = get_all_page_data(flow_session)
@@ -834,7 +822,7 @@ def gather_grade_info(
     optional_unknown_count = 0
 
     for i, page_data in enumerate(all_page_data):
-        page = get_flow_page_with_ctx(fctx, page_data)
+        page = c_utils.get_flow_page_with_ctx(fctx, page_data)
 
         assert i == page_data.page_ordinal
 
@@ -934,7 +922,7 @@ def gather_grade_info(
 
 @transaction.atomic
 def grade_page_visits(
-        fctx: FlowContext,
+        fctx: c_utils.FlowContext,
         flow_session: FlowSession,
         answer_visits: list[FlowPageVisit | None],
         force_regrade: bool = False,
@@ -949,7 +937,7 @@ def grade_page_visits(
 
         else:
             page_data = flow_session.page_data.get(page_ordinal=i)
-            page = get_flow_page_with_ctx(fctx, page_data)
+            page = c_utils.get_flow_page_with_ctx(fctx, page_data)
 
             if not page.expects_answer():
                 continue
@@ -976,9 +964,9 @@ def grade_page_visits(
 
 @retry_transaction_decorator()
 def finish_flow_session(
-            fctx: FlowContext,
+            fctx: c_utils.FlowContext,
             flow_session: FlowSession,
-            grading_mode: FlowSessionGradingModeWithFlowLevelInfo,
+            grading_mode: c_utils.FlowSessionGradingModeWithFlowLevelInfo,
             force_regrade: bool = False,
             now_datetime: datetime.datetime | None = None,
             respect_preview: bool = True):
@@ -1023,9 +1011,9 @@ def finish_flow_session(
 
 
 def expire_flow_session(
-        fctx: FlowContext,
+        fctx: c_utils.FlowContext,
         flow_session: FlowSession,
-        grading_mode: FlowSessionGradingModeWithFlowLevelInfo,
+        grading_mode: c_utils.FlowSessionGradingModeWithFlowLevelInfo,
         now_datetime: datetime.datetime,
         past_due_only: bool = False,
         ) -> bool:
@@ -1049,7 +1037,7 @@ def expire_flow_session(
             respect_preview=False)
 
     if flow_session.expiration_mode == FlowSessionExpirationMode.roll_over:
-        session_start_rule = get_session_start_mode(
+        session_start_rule = c_utils.get_session_start_mode(
                 flow_session.course, flow_session.participation,
                 flow_session.flow_id, fctx.flow_desc, now_datetime,
                 for_rollover=True)
@@ -1065,7 +1053,7 @@ def expire_flow_session(
 
             # {{{ FIXME: This is weird and should probably not exist.
 
-            access_rule = get_session_access_mode(
+            access_rule = c_utils.get_session_access_mode(
                     flow_session, fctx.flow_desc, now_datetime)
 
             flow_session.expiration_mode = session_start_rule.default_expiration_mode
@@ -1098,9 +1086,9 @@ def get_flow_session_attempt_id(flow_session: FlowSession) -> str:
 
 
 def grade_flow_session(
-        fctx: FlowContext,
+        fctx: c_utils.FlowContext,
         flow_session: FlowSession,
-        grading_mode: FlowSessionGradingModeWithFlowLevelInfo,
+        grading_mode: c_utils.FlowSessionGradingModeWithFlowLevelInfo,
         answer_visits: list[FlowPageVisit | None] | None = None,
         ) -> GradeInfo:
 
@@ -1260,9 +1248,9 @@ def finish_flow_session_standalone(
     else:
         now_datetime_filled = now_datetime
 
-    fctx = FlowContext(repo, course, session.flow_id)
+    fctx = c_utils.FlowContext(repo, course, session.flow_id)
 
-    grading_rule = get_session_grading_mode(session, fctx.flow_desc,
+    grading_rule = c_utils.get_session_grading_mode(session, fctx.flow_desc,
             now_datetime_filled)
 
     if past_due_only:
@@ -1288,9 +1276,10 @@ def expire_flow_session_standalone(
         ) -> bool:
     assert session.participation is not None
 
-    fctx = FlowContext(repo, course, session.flow_id)
+    fctx = c_utils.FlowContext(repo, course, session.flow_id)
 
-    grading_rule = get_session_grading_mode(session, fctx.flow_desc, now_datetime)
+    grading_rule = c_utils.get_session_grading_mode(
+                                                session, fctx.flow_desc, now_datetime)
 
     return expire_flow_session(fctx, session, grading_rule, now_datetime,
             past_due_only=past_due_only)
@@ -1384,11 +1373,11 @@ class SessionProperties:
     grade_shown: bool
 
 
-@course_view
+@c_utils.course_view
 def view_start_flow(pctx: CoursePageContext, flow_id: str) -> http.HttpResponse:
     request = pctx.request
 
-    fctx = FlowContext(pctx.repo, pctx.course, flow_id,
+    fctx = c_utils.FlowContext(pctx.repo, pctx.course, flow_id,
             participation=pctx.participation)
 
     if request.method == "POST":
@@ -1397,7 +1386,7 @@ def view_start_flow(pctx: CoursePageContext, flow_id: str) -> http.HttpResponse:
     login_exam_ticket = get_login_exam_ticket(pctx.request)
     now_datetime = get_now_or_fake_time(request)
 
-    session_start_rule = get_session_start_mode(
+    session_start_rule = c_utils.get_session_start_mode(
             pctx.course, pctx.participation,
             flow_id, fctx.flow_desc, now_datetime,
             facilities=pctx.request.relate_facilities,
@@ -1414,12 +1403,12 @@ def view_start_flow(pctx: CoursePageContext, flow_id: str) -> http.HttpResponse:
 
         past_sessions_and_properties: list[tuple[FlowSession, SessionProperties]] = []
         for session in past_sessions:
-            access_rule = get_session_access_mode(
+            access_rule = c_utils.get_session_access_mode(
                     session, fctx.flow_desc, now_datetime,
                     facilities=pctx.request.relate_facilities,
                     login_exam_ticket=login_exam_ticket,
                     remote_ip_address=remote_address_from_request(pctx.request))
-            grading_rule = get_session_grading_mode(
+            grading_rule = c_utils.get_session_grading_mode(
                     session, fctx.flow_desc, now_datetime)
 
             session_properties = SessionProperties(
@@ -1455,7 +1444,7 @@ def view_start_flow(pctx: CoursePageContext, flow_id: str) -> http.HttpResponse:
 
             access_rules_tag=session_start_rule.tag_session)
 
-        new_session_grading_rule = get_session_grading_mode(
+        new_session_grading_rule = c_utils.get_session_grading_mode(
                 potential_session, fctx.flow_desc, now_datetime)
 
         start_may_decrease_grade = (
@@ -1472,7 +1461,7 @@ def view_start_flow(pctx: CoursePageContext, flow_id: str) -> http.HttpResponse:
 
     print(new_session_grading_rule)
     from course.content import markup_to_html
-    return render_course_page(pctx, "course/flow-start.html", {
+    return c_utils.render_course_page(pctx, "course/flow-start.html", {
         "flow_desc": fctx.flow_desc,
         "flow_identifier": flow_id,
         "flow_description_html": markup_to_html(
@@ -1491,7 +1480,7 @@ def view_start_flow(pctx: CoursePageContext, flow_id: str) -> http.HttpResponse:
 
 @retry_transaction_decorator(serializable=True)
 def post_start_flow(
-        pctx: CoursePageContext, fctx: FlowContext, flow_id: str
+        pctx: CoursePageContext, fctx: c_utils.FlowContext, flow_id: str
         ) -> http.HttpResponse:
     now_datetime = get_now_or_fake_time(pctx.request)
     login_exam_ticket = get_login_exam_ticket(pctx.request)
@@ -1517,7 +1506,7 @@ def post_start_flow(
             return redirect("relate-view_flow_page",
                 pctx.course.identifier, latest_session.id, 0)
 
-    session_start_rule = get_session_start_mode(
+    session_start_rule = c_utils.get_session_start_mode(
             pctx.course, pctx.participation,
             flow_id, fctx.flow_desc, now_datetime,
             facilities=pctx.request.relate_facilities,
@@ -1539,7 +1528,7 @@ def post_start_flow(
             session_start_mode=session_start_rule,
             now_datetime=now_datetime)
 
-    access_rule = get_session_access_mode(
+    access_rule = c_utils.get_session_access_mode(
             session, fctx.flow_desc, now_datetime,
             facilities=pctx.request.relate_facilities,
             login_exam_ticket=login_exam_ticket,
@@ -1559,19 +1548,19 @@ def post_start_flow(
 # lockdown flag upon resumption/review. Without this, the exam lockdown
 # middleware will refuse access to flow pages in a locked-down facility.
 
-@course_view
+@c_utils.course_view
 def view_resume_flow(
         pctx: CoursePageContext, flow_session_id: int) -> http.HttpResponse:
     now_datetime = get_now_or_fake_time(pctx.request)
 
     flow_session = get_and_check_flow_session(pctx, int(flow_session_id))
 
-    fctx = FlowContext(pctx.repo, pctx.course, flow_session.flow_id,
+    fctx = c_utils.FlowContext(pctx.repo, pctx.course, flow_session.flow_id,
             participation=pctx.participation)
 
     login_exam_ticket = get_login_exam_ticket(pctx.request)
 
-    access_rule = get_session_access_mode(
+    access_rule = c_utils.get_session_access_mode(
             flow_session, fctx.flow_desc, now_datetime,
             facilities=pctx.request.relate_facilities,
             login_exam_ticket=login_exam_ticket,
@@ -1709,7 +1698,7 @@ def get_page_behavior(
 
 def add_buttons_to_form(
         form: StyledFormBase,
-        fpctx: FlowPageContext,
+        fpctx: c_utils.FlowPageContext,
         flow_session: FlowSession,
         permissions: Set[FlowPermission]) -> StyledFormBase:
     from crispy_forms.layout import Submit
@@ -1774,7 +1763,7 @@ def create_flow_page_visit(
     visit.save()
 
 
-@course_view
+@c_utils.course_view
 def view_flow_page(
         pctx: CoursePageContext,
         flow_session_id: int,
@@ -1794,11 +1783,11 @@ def view_flow_page(
     adjust_flow_session_page_data(pctx.repo, flow_session, respect_preview=True)
 
     try:
-        fpctx = FlowPageContext(pctx.repo, pctx.course, flow_id, page_ordinal,
+        fpctx = c_utils.FlowPageContext(pctx.repo, pctx.course, flow_id, page_ordinal,
                                 participation=pctx.participation,
                                 flow_session=flow_session,
                                 request=pctx.request)
-    except PageOrdinalOutOfRange:
+    except c_utils.PageOrdinalOutOfRange:
         return redirect("relate-view_flow_page",
                 pctx.course.identifier,
                 flow_session.id,
@@ -1811,13 +1800,13 @@ def view_flow_page(
     assert fpctx.page_data is not None
 
     now_datetime = get_now_or_fake_time(request)
-    access_rule = get_session_access_mode(
+    access_rule = c_utils.get_session_access_mode(
             flow_session, fpctx.flow_desc, now_datetime,
             facilities=pctx.request.relate_facilities,
             login_exam_ticket=login_exam_ticket,
             remote_ip_address=remote_address_from_request(pctx.request))
 
-    grading_rule = get_session_grading_mode(
+    grading_rule = c_utils.get_session_grading_mode(
             flow_session, fpctx.flow_desc, now_datetime)
     generates_grade = (
             grading_rule.grade_identifier is not None
@@ -1964,7 +1953,7 @@ def view_flow_page(
                             "the question ID. The precise error encountered "
                             "was the following: ")+str(e))
 
-                return render_course_page(pctx, "course/course-base.html", {})
+                return c_utils.render_course_page(pctx, "course/course-base.html", {})
 
         else:
             form = None
@@ -2102,14 +2091,14 @@ def view_flow_page(
         assert not getattr(args, "max_points", None)
         args["is_optional_page"] = True
 
-    return render_course_page(
+    return c_utils.render_course_page(
             pctx, "course/flow-page.html", args,
             allow_instant_flow_requests=False)
 
     # }}}
 
 
-@course_view
+@c_utils.course_view
 def view_flow_page_with_ext_resource_tabs(
         pctx: CoursePageContext,
         flow_session_id: int,
@@ -2125,7 +2114,7 @@ def view_flow_page_with_ext_resource_tabs(
 
     adjust_flow_session_page_data(pctx.repo, flow_session, respect_preview=True)
 
-    fctx = FlowContext(pctx.repo, pctx.course, flow_id,
+    fctx = c_utils.FlowContext(pctx.repo, pctx.course, flow_id,
                             participation=pctx.participation)
 
     assert fctx.flow_desc.external_resources is not None
@@ -2145,7 +2134,7 @@ def view_flow_page_with_ext_resource_tabs(
     )
 
 
-@course_view
+@c_utils.course_view
 def get_prev_answer_visits_dropdown_content(
             pctx: CoursePageContext,
             flow_session_id: str | int,
@@ -2188,7 +2177,7 @@ def get_pressed_button(form: forms.Form) -> str:
 @retry_transaction_decorator()
 def post_flow_page(
         flow_session: FlowSession,
-        fpctx: FlowPageContext,
+        fpctx: c_utils.FlowPageContext,
         request: http.HttpRequest,
         permissions: Set[FlowPermission],
         generates_grade: bool,
@@ -2273,7 +2262,7 @@ def post_flow_page(
                 is_unenrolled_session=flow_session.participation is None)
 
         if fpctx.page.is_answer_gradable():
-            with LanguageOverride(course=fpctx.course):
+            with c_utils.LanguageOverride(course=fpctx.course):
                 feedback: AnswerFeedback | None = fpctx.page.grade(
                         page_context, page_data.data, answer_visit.answer,
                         grade_data=None)
@@ -2348,7 +2337,7 @@ def post_flow_page(
 
 # {{{ view: send interaction email to course staffs in flow pages
 
-@course_view
+@c_utils.course_view
 def send_email_about_flow_page(
             pctx: CoursePageContext,
             flow_session_id: int | str,
@@ -2369,7 +2358,7 @@ def send_email_about_flow_page(
 
     adjust_flow_session_page_data(pctx.repo, flow_session, respect_preview=True)
 
-    fpctx = FlowPageContext(pctx.repo, pctx.course, flow_id, page_ordinal,
+    fpctx = c_utils.FlowPageContext(pctx.repo, pctx.course, flow_id, page_ordinal,
                             participation=pctx.participation,
                             flow_session=flow_session,
                             request=pctx.request)
@@ -2380,7 +2369,7 @@ def send_email_about_flow_page(
     request = pctx.request
     now_datetime = get_now_or_fake_time(request)
     login_exam_ticket = get_login_exam_ticket(request)
-    access_rule = get_session_access_mode(
+    access_rule = c_utils.get_session_access_mode(
             flow_session, fpctx.flow_desc, now_datetime,
             facilities=pctx.request.relate_facilities,
             login_exam_ticket=login_exam_ticket,
@@ -2438,7 +2427,7 @@ def send_email_about_flow_page(
 
             recipient_list = list(recipient_list)
 
-            with LanguageOverride(course=pctx.course):
+            with c_utils.LanguageOverride(course=pctx.course):
 
                 from course.utils import will_use_masked_profile_for_email
 
@@ -2497,7 +2486,7 @@ def send_email_about_flow_page(
     else:
         form = FlowPageInteractionEmailForm(review_uri)
 
-    return render_course_page(
+    return c_utils.render_course_page(
             pctx, "course/generic-course-form.html", {
                 "form": form,
                 "form_description": _("Send interaction email"),
@@ -2534,7 +2523,7 @@ class FlowPageInteractionEmailForm(StyledForm):
 
 # {{{ view: update page bookmark state
 
-@course_view
+@c_utils.course_view
 def update_page_bookmark_state(
             pctx: CoursePageContext,
             flow_session_id: int | str,
@@ -2568,7 +2557,7 @@ def update_page_bookmark_state(
 
 # {{{ view: update expiration mode
 
-@course_view
+@c_utils.course_view
 def update_expiration_mode(
         pctx: CoursePageContext, flow_session_id: int) -> http.HttpResponse:
     if pctx.request.method != "POST":
@@ -2591,10 +2580,10 @@ def update_expiration_mode(
         raise SuspiciousOperation(_("invalid expiration mode"))
     assert expmode is not None
 
-    fctx = FlowContext(pctx.repo, pctx.course, flow_session.flow_id,
+    fctx = c_utils.FlowContext(pctx.repo, pctx.course, flow_session.flow_id,
             participation=pctx.participation)
 
-    access_rule = get_session_access_mode(
+    access_rule = c_utils.get_session_access_mode(
             flow_session, fctx.flow_desc,
             get_now_or_fake_time(pctx.request),
             facilities=pctx.request.relate_facilities,
@@ -2614,7 +2603,7 @@ def update_expiration_mode(
 
 # {{{ view: finish flow
 
-@course_view
+@c_utils.course_view
 def finish_flow_session_view(
             pctx: CoursePageContext,
             flow_session_id: int
@@ -2632,10 +2621,10 @@ def finish_flow_session_view(
             pctx, flow_session_id)
     flow_id = flow_session.flow_id
 
-    fctx = FlowContext(pctx.repo, pctx.course, flow_id,
+    fctx = c_utils.FlowContext(pctx.repo, pctx.course, flow_id,
             participation=pctx.participation)
 
-    access_rule = get_session_access_mode(
+    access_rule = c_utils.get_session_access_mode(
             flow_session, fctx.flow_desc, now_datetime,
             facilities=pctx.request.relate_facilities,
             login_exam_ticket=login_exam_ticket,
@@ -2665,11 +2654,11 @@ def finish_flow_session_view(
         }
 
         render_args.update(kwargs)
-        return render_course_page(
+        return c_utils.render_course_page(
                 pctx, template, render_args,
                 allow_instant_flow_requests=False)
 
-    grading_rule = get_session_grading_mode(
+    grading_rule = c_utils.get_session_grading_mode(
             flow_session, fctx.flow_desc, now_datetime)
 
     if request.method == "POST":
@@ -2719,7 +2708,7 @@ def finish_flow_session_view(
                             flow_session.id,
                             0))
 
-            with LanguageOverride(course=pctx.course):
+            with c_utils.LanguageOverride(course=pctx.course):
                 from relate.utils import render_email_template
                 participation = flow_session.participation
                 message = render_email_template("course/submit-notify.txt", {
@@ -2854,7 +2843,7 @@ class RegradeFlowForm(StyledForm):
                 Submit("regrade", _("Regrade")))
 
 
-@course_view
+@c_utils.course_view
 def regrade_flows_view(pctx: CoursePageContext) -> http.HttpResponse:
     if not pctx.has_permission(PPerm.batch_regrade_flow_session):
         raise PermissionDenied(_("may not batch-regrade flows"))
@@ -2883,7 +2872,7 @@ def regrade_flows_view(pctx: CoursePageContext) -> http.HttpResponse:
     else:
         form = RegradeFlowForm(flow_ids)
 
-    return render_course_page(pctx, "course/generic-course-form.html", {
+    return c_utils.render_course_page(pctx, "course/generic-course-form.html", {
         "form": form,
         "form_text": string_concat(
             "<p>",
@@ -2910,7 +2899,7 @@ class UnsubmitFlowPageForm(forms.Form):
         self.helper.add_input(Submit("cancel", _("Cancel")))
 
 
-@course_view
+@c_utils.course_view
 def view_unsubmit_flow_page(
             pctx: CoursePageContext,
             flow_session_id: int,
@@ -2958,7 +2947,7 @@ def view_unsubmit_flow_page(
     else:
         form = UnsubmitFlowPageForm()
 
-    return render_course_page(pctx, "course/generic-course-form.html", {
+    return c_utils.render_course_page(pctx, "course/generic-course-form.html", {
         "form_description": _("Re-allow Changes to Flow Page"),
         "form": form
         })
