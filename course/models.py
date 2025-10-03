@@ -24,11 +24,9 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
-
 from typing import (
     TYPE_CHECKING,
     Any,
-    cast,
 )
 
 from django.conf import settings
@@ -40,6 +38,8 @@ from django.dispatch import receiver
 from django.urls import reverse
 from django.utils.timezone import now
 from django.utils.translation import gettext_lazy as _, pgettext_lazy
+from pytools import not_none
+from typing_extensions import override
 
 from course.constants import (  # noqa
     COURSE_ID_REGEX,
@@ -54,17 +54,18 @@ from course.constants import (  # noqa
     PARTICIPATION_PERMISSION_CHOICES,
     PARTICIPATION_STATUS_CHOICES,
     USER_STATUS_CHOICES,
-    exam_ticket_states,
-    flow_permission,
-    flow_rule_kind,
-    flow_session_expiration_mode,
-    grade_aggregation_strategy,
-    grade_state_change_types,
-    participation_permission,
-    participation_status,
-    user_status,
+    ExamTicketState,
+    FlowRuleKind,
+    FlowSessionExpirationMode,
+    GradeAggregationStrategy,
+    GradeStateChangeType,
 )
-from relate.utils import not_none, string_concat
+from course.content import (
+    access_rule_ta,
+    grading_rule_ta,
+    start_rule_ta,
+)
+from relate.utils import string_concat
 
 
 # {{{ mypy
@@ -259,9 +260,11 @@ class Course(models.Model):
         verbose_name = _("Course")
         verbose_name_plural = _("Courses")
 
+    @override
     def __str__(self) -> str:
         return self.identifier
 
+    @override
     def clean(self) -> None:
         if self.force_lang:
             self.force_lang = self.force_lang.strip()
@@ -338,12 +341,14 @@ class Event(models.Model):
         ordering = ("course", "time")
         unique_together = (("course", "kind", "ordinal"))
 
+    @override
     def __str__(self) -> str:
         if self.ordinal is not None:
             return f"{self.kind} {self.ordinal}"
         else:
             return self.kind
 
+    @override
     def clean(self) -> None:
         super().clean()
 
@@ -397,6 +402,7 @@ class ParticipationTag(models.Model):
     shown_to_participant = models.BooleanField(default=False,
             verbose_name=_("Shown to participant"))
 
+    @override
     def clean(self):
         super().clean()
 
@@ -406,6 +412,7 @@ class ParticipationTag(models.Model):
                 {field_name:
                      _("'%s' contains invalid characters.") % field_name})
 
+    @override
     def __str__(self) -> str:
         return f"{self.name} ({self.course})"
 
@@ -435,6 +442,7 @@ class ParticipationRole(models.Model):
     is_default_for_unenrolled = models.BooleanField(default=False,
             verbose_name=_("Is default role for unenrolled users"))
 
+    @override
     def clean(self):
         super().clean()
 
@@ -444,6 +452,7 @@ class ParticipationRole(models.Model):
                 {field_name:
                      _("'%s' contains invalid characters.") % field_name})
 
+    @override
     def __str__(self) -> str:
         return _("%(identifier)s in %(course)s") % {
             "identifier": self.identifier,
@@ -494,6 +503,7 @@ class ParticipationPermissionBase(models.Model):
     class Meta:
         abstract = True
 
+    @override
     def __str__(self) -> str:
         if self.argument:
             return f"{self.permission} {self.argument}"
@@ -508,6 +518,7 @@ class ParticipationRolePermission(ParticipationPermissionBase):
             verbose_name=_("Role"), on_delete=models.CASCADE,
             related_name="permissions")
 
+    @override
     def __str__(self) -> str:
         # Translators: permissions for roles
         return _("%(permission)s for %(role)s") % {
@@ -556,6 +567,7 @@ class Participation(models.Model):
     notes = models.TextField(blank=True, null=True,
             verbose_name=_("Notes"))
 
+    @override
     def __str__(self) -> str:
         # Translators: displayed format of Participation: some user in some
         # course as some role
@@ -640,6 +652,7 @@ class ParticipationPreapproval(models.Model):
     creation_time = models.DateTimeField(default=now, db_index=True,
             verbose_name=_("Creation time"))
 
+    @override
     def __str__(self) -> str:
         if self.email:
             # Translators: somebody's email in some course in Participation
@@ -665,91 +678,91 @@ class ParticipationPreapproval(models.Model):
 def add_default_roles_and_permissions(course,
         role_model=ParticipationRole,
         role_permission_model=ParticipationRolePermission):
-    from course.constants import participation_permission as pp
+    from course.constants import ParticipationPermission as PPerm
 
     rpm = role_permission_model
 
     def add_unenrolled_permissions(role):
-        rpm(role=role, permission=pp.view_calendar).save()
-        rpm(role=role, permission=pp.access_files_for,
+        rpm(role=role, permission=PPerm.view_calendar).save()
+        rpm(role=role, permission=PPerm.access_files_for,
                 argument="unenrolled").save()
-        rpm(role=role, permission=pp.access_files_for,
+        rpm(role=role, permission=PPerm.access_files_for,
                 argument="public").save()
 
     def add_student_permissions(role):
-        rpm(role=role, permission=pp.send_instant_message).save()
-        rpm(role=role, permission=pp.access_files_for,
+        rpm(role=role, permission=PPerm.send_instant_message).save()
+        rpm(role=role, permission=PPerm.access_files_for,
                 argument="student").save()
 
         add_unenrolled_permissions(role)
 
     def add_teaching_assistant_permissions(role):
-        rpm(role=role, permission=pp.impersonate_role,
+        rpm(role=role, permission=PPerm.impersonate_role,
                 argument="student").save()
-        rpm(role=role, permission=pp.set_fake_time).save()
-        rpm(role=role, permission=pp.set_pretend_facility).save()
-        rpm(role=role, permission=pp.view_hidden_course_page).save()
-        rpm(role=role, permission=pp.access_files_for,
+        rpm(role=role, permission=PPerm.set_fake_time).save()
+        rpm(role=role, permission=PPerm.set_pretend_facility).save()
+        rpm(role=role, permission=PPerm.view_hidden_course_page).save()
+        rpm(role=role, permission=PPerm.access_files_for,
                 argument="ta").save()
-        rpm(role=role, permission=pp.access_files_for,
+        rpm(role=role, permission=PPerm.access_files_for,
                 argument="in_exam").save()
 
-        rpm(role=role, permission=pp.issue_exam_ticket).save()
+        rpm(role=role, permission=PPerm.issue_exam_ticket).save()
 
-        rpm(role=role, permission=pp.view_flow_sessions_from_role,
+        rpm(role=role, permission=PPerm.view_flow_sessions_from_role,
                 argument="student").save()
-        rpm(role=role, permission=pp.view_gradebook).save()
-        rpm(role=role, permission=pp.assign_grade).save()
-        rpm(role=role, permission=pp.skip_during_manual_grading).save()
-        rpm(role=role, permission=pp.view_grader_stats).save()
-        rpm(role=role, permission=pp.batch_download_submission).save()
+        rpm(role=role, permission=PPerm.view_gradebook).save()
+        rpm(role=role, permission=PPerm.assign_grade).save()
+        rpm(role=role, permission=PPerm.skip_during_manual_grading).save()
+        rpm(role=role, permission=PPerm.view_grader_stats).save()
+        rpm(role=role, permission=PPerm.batch_download_submission).save()
 
-        rpm(role=role, permission=pp.impose_flow_session_deadline).save()
-        rpm(role=role, permission=pp.end_flow_session).save()
-        rpm(role=role, permission=pp.regrade_flow_session).save()
-        rpm(role=role, permission=pp.recalculate_flow_session_grade).save()
+        rpm(role=role, permission=PPerm.impose_flow_session_deadline).save()
+        rpm(role=role, permission=PPerm.end_flow_session).save()
+        rpm(role=role, permission=PPerm.regrade_flow_session).save()
+        rpm(role=role, permission=PPerm.recalculate_flow_session_grade).save()
 
-        rpm(role=role, permission=pp.reopen_flow_session).save()
-        rpm(role=role, permission=pp.grant_exception).save()
-        rpm(role=role, permission=pp.view_analytics).save()
+        rpm(role=role, permission=PPerm.reopen_flow_session).save()
+        rpm(role=role, permission=PPerm.grant_exception).save()
+        rpm(role=role, permission=PPerm.view_analytics).save()
 
-        rpm(role=role, permission=pp.preview_content).save()
-        rpm(role=role, permission=pp.use_markup_sandbox).save()
-        rpm(role=role, permission=pp.use_page_sandbox).save()
-        rpm(role=role, permission=pp.test_flow).save()
-        rpm(role=role, permission=pp.query_participation).save()
-        rpm(role=role, permission=pp.edit_participation).save()
+        rpm(role=role, permission=PPerm.preview_content).save()
+        rpm(role=role, permission=PPerm.use_markup_sandbox).save()
+        rpm(role=role, permission=PPerm.use_page_sandbox).save()
+        rpm(role=role, permission=PPerm.test_flow).save()
+        rpm(role=role, permission=PPerm.query_participation).save()
+        rpm(role=role, permission=PPerm.edit_participation).save()
 
         add_student_permissions(role)
 
     def add_instructor_permissions(role):
-        rpm(role=role, permission=pp.use_admin_interface).save()
-        rpm(role=role, permission=pp.impersonate_role,
+        rpm(role=role, permission=PPerm.use_admin_interface).save()
+        rpm(role=role, permission=PPerm.impersonate_role,
                 argument="ta").save()
-        rpm(role=role, permission=pp.edit_course_permissions).save()
-        rpm(role=role, permission=pp.edit_course).save()
-        rpm(role=role, permission=pp.manage_authentication_tokens).save()
-        rpm(role=role, permission=pp.access_files_for,
+        rpm(role=role, permission=PPerm.edit_course_permissions).save()
+        rpm(role=role, permission=PPerm.edit_course).save()
+        rpm(role=role, permission=PPerm.manage_authentication_tokens).save()
+        rpm(role=role, permission=PPerm.access_files_for,
                 argument="instructor").save()
 
-        rpm(role=role, permission=pp.edit_exam).save()
-        rpm(role=role, permission=pp.batch_issue_exam_ticket).save()
+        rpm(role=role, permission=PPerm.edit_exam).save()
+        rpm(role=role, permission=PPerm.batch_issue_exam_ticket).save()
 
-        rpm(role=role, permission=pp.view_flow_sessions_from_role,
+        rpm(role=role, permission=PPerm.view_flow_sessions_from_role,
                 argument="ta").save()
-        rpm(role=role, permission=pp.edit_grading_opportunity).save()
-        rpm(role=role, permission=pp.batch_import_grade).save()
-        rpm(role=role, permission=pp.batch_export_grade).save()
+        rpm(role=role, permission=PPerm.edit_grading_opportunity).save()
+        rpm(role=role, permission=PPerm.batch_import_grade).save()
+        rpm(role=role, permission=PPerm.batch_export_grade).save()
 
-        rpm(role=role, permission=pp.batch_impose_flow_session_deadline).save()
-        rpm(role=role, permission=pp.batch_end_flow_session).save()
-        rpm(role=role, permission=pp.batch_regrade_flow_session).save()
-        rpm(role=role, permission=pp.batch_recalculate_flow_session_grade).save()
+        rpm(role=role, permission=PPerm.batch_impose_flow_session_deadline).save()
+        rpm(role=role, permission=PPerm.batch_end_flow_session).save()
+        rpm(role=role, permission=PPerm.batch_regrade_flow_session).save()
+        rpm(role=role, permission=PPerm.batch_recalculate_flow_session_grade).save()
 
-        rpm(role=role, permission=pp.update_content).save()
-        rpm(role=role, permission=pp.edit_events).save()
-        rpm(role=role, permission=pp.manage_instant_flow_requests).save()
-        rpm(role=role, permission=pp.preapprove_participation).save()
+        rpm(role=role, permission=PPerm.update_content).save()
+        rpm(role=role, permission=PPerm.edit_events).save()
+        rpm(role=role, permission=PPerm.manage_instant_flow_requests).save()
+        rpm(role=role, permission=PPerm.preapprove_participation).save()
 
         add_teaching_assistant_permissions(role)
 
@@ -772,8 +785,8 @@ def add_default_roles_and_permissions(course,
             is_default_for_unenrolled=True)
     unenrolled.save()
 
-    rpm(role=student, permission=pp.included_in_grade_statistics).save()
-    rpm(role=unenrolled, permission=pp.included_in_grade_statistics).save()
+    rpm(role=student, permission=PPerm.included_in_grade_statistics).save()
+    rpm(role=unenrolled, permission=PPerm.included_in_grade_statistics).save()
 
     add_unenrolled_permissions(unenrolled)
     add_student_permissions(student)
@@ -826,6 +839,7 @@ class AuthenticationToken(models.Model):
             null=True, blank=True, unique=True,
             verbose_name=_("Hash of git authentication token"))
 
+    @override
     def __str__(self) -> str:
         return _("Token %(id)d for %(participation)s: %(description)s") % {
                 "id": self.id,
@@ -858,6 +872,7 @@ class InstantFlowRequest(models.Model):
         verbose_name = _("Instant flow request")
         verbose_name_plural = _("Instant flow requests")
 
+    @override
     def __str__(self) -> str:
         return _("Instant flow request for "
                 "%(flow_id)s in %(course)s at %(start_time)s") \
@@ -918,7 +933,7 @@ class FlowSession(models.Model):
             blank=True,
             verbose_name=_("Access rules tag"))
     expiration_mode = models.CharField(max_length=20, null=True,
-            default=flow_session_expiration_mode.end,
+            default=FlowSessionExpirationMode.end,
             choices=FLOW_SESSION_EXPIRATION_MODE_CHOICES,
             verbose_name=_("Expiration mode"))
 
@@ -941,6 +956,7 @@ class FlowSession(models.Model):
         verbose_name_plural = _("Flow sessions")
         ordering = ("course", "-start_time")
 
+    @override
     def __str__(self) -> str:
         if self.participation is None:
             return _("anonymous session %(session_id)d on '%(flow_id)s'") % {
@@ -1033,6 +1049,7 @@ class FlowPageData(models.Model):
         verbose_name = _("Flow page data")
         verbose_name_plural = _("Flow page data")
 
+    @override
     def __str__(self) -> str:
         # flow page data
         return (_("Data for page '%(group_id)s/%(page_id)s' "
@@ -1107,6 +1124,7 @@ class FlowPageVisit(models.Model):
             verbose_name=_("Is submitted answer"),
             null=True)
 
+    @override
     def __str__(self) -> str:
         result = (
                 # Translators: flow page visit
@@ -1225,6 +1243,7 @@ class FlowPageVisitGrade(models.Model):
 
         ordering = ("visit", "grade_time")
 
+    @override
     def __str__(self) -> str:
         # information on FlowPageVisitGrade class
         # Translators: return the information of the grade of a user
@@ -1407,6 +1426,7 @@ class FlowAccessException(models.Model):  # pragma: no cover (deprecated and not
     comment = models.TextField(blank=True, null=True,
             verbose_name=_("Comment"))
 
+    @override
     def __str__(self) -> str:
         return (
                 # Translators: flow access exception in admin (deprecated)
@@ -1433,6 +1453,7 @@ class FlowAccessExceptionEntry(models.Model):  # pragma: no cover (deprecated an
         # Translators: FlowAccessExceptionEntry (deprecated)
         verbose_name_plural = _("Flow access exception entries")
 
+    @override
     def __str__(self) -> str:
         return self.permission
 
@@ -1468,6 +1489,7 @@ class FlowRuleException(models.Model):
             verbose_name=pgettext_lazy(
                 "Is the flow rule exception activated?", "Active"))
 
+    @override
     def __str__(self) -> str:
         return (
                 # Translators: For FlowRuleException
@@ -1481,6 +1503,7 @@ class FlowRuleException(models.Model):
                     "exception_id":
                         " id %d" % self.id if self.id is not None else ""})
 
+    @override
     def clean(self) -> None:
         super().clean()
 
@@ -1489,58 +1512,40 @@ class FlowRuleException(models.Model):
                 # Translators: the rule refers to FlowRuleException rule
                 string_concat(_("invalid exception rule kind"), ": ", self.kind))
 
-        if (self.kind == flow_rule_kind.grading
+        if (self.kind == FlowRuleKind.grading
                 and self.expiration is not None):
             raise ValidationError(_("grading rules may not expire"))
+
+        from pydantic import ValidationError as ContentValidationError
 
         from course.content import (
             get_course_commit_sha,
             get_course_repo,
-            get_flow_desc,
         )
-        from course.validation import (
-            ValidationContext,
-            ValidationError as ContentValidationError,
-            validate_session_access_rule,
-            validate_session_grading_rule,
-            validate_session_start_rule,
-        )
-        from relate.utils import dict_to_struct
-        rule = dict_to_struct(self.rule)
+        from course.validation import ValidationContext
 
         with get_course_repo(self.participation.course) as repo:
             commit_sha = get_course_commit_sha(
                     self.participation.course, self.participation)
-            ctx = ValidationContext(
+            vctx = ValidationContext(
                     repo=repo,
-                    commit_sha=commit_sha)
+                    commit_sha=commit_sha,
+                    course=self.participation.course)
 
-            flow_desc = get_flow_desc(repo,
-                    self.participation.course,
-                    self.flow_id, commit_sha)
+            try:
+                if self.kind == FlowRuleKind.start:
+                    start_rule_ta.validate_python(self.rule, context=vctx)
+                elif self.kind == FlowRuleKind.access:
+                    access_rule_ta.validate_python(self.rule, context=vctx)
+                elif self.kind == FlowRuleKind.grading:
+                    grading_rule_ta.validate_python(self.rule, context=vctx)
+                else:
+                    raise ValueError("invalid exception rule kind")
 
-        tags: list[str] = []
-        grade_identifier = None
-        if hasattr(flow_desc, "rules"):
-            tags = cast("list[str]", getattr(flow_desc.rules, "tags", []))
-            grade_identifier = flow_desc.rules.grade_identifier
-
-        try:
-            if self.kind == flow_rule_kind.start:
-                validate_session_start_rule(ctx, str(self), rule, tags)
-            elif self.kind == flow_rule_kind.access:
-                validate_session_access_rule(ctx, str(self), rule, tags)
-            elif self.kind == flow_rule_kind.grading:
-                validate_session_grading_rule(
-                        ctx, str(self), rule, tags,
-                        grade_identifier)
-            else:  # pragma: no cover. This won't happen
-                raise ValueError("invalid exception rule kind")
-
-        except ContentValidationError as e:
-            # the rule refers to FlowRuleException rule
-            raise ValidationError(
-                string_concat(_("invalid existing_session_rules"), ": ", str(e)))
+            except ContentValidationError as e:
+                # the rule refers to FlowRuleException rule
+                raise ValidationError(
+                    string_concat(_("invalid existing_session_rules"), ": ", str(e)))
 
     class Meta:
         verbose_name = _("Flow rule exception")
@@ -1617,6 +1622,7 @@ class GradingOpportunity(models.Model):
         ordering = ("course", "due_time", "identifier")
         unique_together = (("course", "identifier"),)
 
+    @override
     def __str__(self) -> str:
         return (
                 # Translators: For GradingOpportunity
@@ -1693,6 +1699,7 @@ class GradeChange(models.Model):
             "state": self.state,
             "opportunityname": self.opportunity.name}
 
+    @override
     def clean(self) -> None:
         super().clean()
 
@@ -1768,12 +1775,12 @@ class GradeStateMachine:
             assert gchange.grade_time >= self._last_grade_change_time
         self._last_grade_change_time = gchange.grade_time
 
-        if gchange.state == grade_state_change_types.graded:
-            if self.state == grade_state_change_types.unavailable:
+        if gchange.state == GradeStateChangeType.graded:
+            if self.state == GradeStateChangeType.unavailable:
                 raise ValueError(
                         _("cannot accept grade once opportunity has been "
                             "marked 'unavailable'"))
-            if self.state == grade_state_change_types.exempt:
+            if self.state == GradeStateChangeType.exempt:
                 raise ValueError(
                         _("cannot accept grade once opportunity has been "
                         "marked 'exempt'"))
@@ -1793,26 +1800,26 @@ class GradeStateMachine:
 
             self.last_graded_time = gchange.grade_time
 
-        elif gchange.state == grade_state_change_types.unavailable:
+        elif gchange.state == GradeStateChangeType.unavailable:
             self._clear_grades()
             self.state = gchange.state
 
-        elif gchange.state == grade_state_change_types.do_over:
+        elif gchange.state == GradeStateChangeType.do_over:
             self._clear_grades()
 
-        elif gchange.state == grade_state_change_types.exempt:
+        elif gchange.state == GradeStateChangeType.exempt:
             self._clear_grades()
             self.state = gchange.state
 
-        elif gchange.state == grade_state_change_types.report_sent:
+        elif gchange.state == GradeStateChangeType.report_sent:
             self.last_report_time = gchange.grade_time
 
-        elif gchange.state == grade_state_change_types.extension:
+        elif gchange.state == GradeStateChangeType.extension:
             self.due_time = gchange.due_time
 
         elif gchange.state in [
-                grade_state_change_types.grading_started,
-                grade_state_change_types.retrieved,
+                GradeStateChangeType.grading_started,
+                GradeStateChangeType.retrieved,
                 ]:
             pass
         else:
@@ -1849,15 +1856,15 @@ class GradeStateMachine:
 
         strategy = self.opportunity.aggregation_strategy
 
-        if strategy == grade_aggregation_strategy.max_grade:
+        if strategy == GradeAggregationStrategy.max_grade:
             return max(self.valid_percentages)
-        elif strategy == grade_aggregation_strategy.min_grade:
+        elif strategy == GradeAggregationStrategy.min_grade:
             return min(self.valid_percentages)
-        elif strategy == grade_aggregation_strategy.avg_grade:
+        elif strategy == GradeAggregationStrategy.avg_grade:
             return sum(self.valid_percentages)/len(self.valid_percentages)
-        elif strategy == grade_aggregation_strategy.use_earliest:
+        elif strategy == GradeAggregationStrategy.use_earliest:
             return self.valid_percentages[0]
-        elif strategy == grade_aggregation_strategy.use_latest:
+        elif strategy == GradeAggregationStrategy.use_latest:
             return self.valid_percentages[-1]
         else:
             raise ValueError(
@@ -1866,9 +1873,9 @@ class GradeStateMachine:
     def stringify_state(self):
         if self.state is None:
             return "- ∅ -"
-        elif self.state == grade_state_change_types.exempt:
+        elif self.state == GradeStateChangeType.exempt:
             return _("(exempt)")
-        elif self.state == grade_state_change_types.graded:
+        elif self.state == GradeStateChangeType.graded:
             if self.valid_percentages:
                 result = f"{self.percentage():.1f}%"
                 if len(self.valid_percentages) > 1:
@@ -1882,9 +1889,9 @@ class GradeStateMachine:
     def stringify_machine_readable_state(self):
         if self.state is None:
             return "NONE"
-        elif self.state == grade_state_change_types.exempt:
+        elif self.state == GradeStateChangeType.exempt:
             return "EXEMPT"
-        elif self.state == grade_state_change_types.graded:
+        elif self.state == GradeStateChangeType.graded:
             if self.valid_percentages:
                 return f"{self.percentage():.3f}"
             else:
@@ -1893,7 +1900,7 @@ class GradeStateMachine:
             return "OTHER_STATE"
 
     def stringify_percentage(self):
-        if self.state == grade_state_change_types.graded:
+        if self.state == GradeStateChangeType.graded:
             if self.valid_percentages:
                 return f"{self.percentage():.1f}"
             else:
@@ -1906,8 +1913,11 @@ class GradeStateMachine:
 # {{{ flow <-> grading integration
 
 def get_flow_grading_opportunity(
-        course: Course, flow_id: str, flow_desc: FlowDesc,
-        grade_identifier: str, grade_aggregation_strategy: str
+            course: Course,
+            flow_id: str,
+            flow_desc: FlowDesc,
+            grade_identifier: str,
+            grade_aggregation_strategy: GradeAggregationStrategy | None
         ) -> GradingOpportunity:
 
     default_name = (
@@ -1952,6 +1962,7 @@ class InstantMessage(models.Model):
         verbose_name_plural = _("Instant messages")
         ordering = ("participation__course", "time")
 
+    @override
     def __str__(self) -> str:
         return f"{self.participation}: {self.text}"
 
@@ -1991,6 +2002,7 @@ class Exam(models.Model):
         verbose_name_plural = _("Exams")
         ordering = ("course", "no_exams_before",)
 
+    @override
     def __str__(self) -> str:
         return _("Exam  %(description)s in %(course)s") % {
                 "description": self.description,
@@ -2049,12 +2061,14 @@ class ExamTicket(models.Model):
                 ("can_issue_exam_tickets", _("Can issue exam tickets to student")),
                 )
 
+    @override
     def __str__(self) -> str:
         return _("Exam  ticket for %(participation)s in %(exam)s") % {
                 "participation": self.participation,
                 "exam": self.exam,
                 }
 
+    @override
     def clean(self):
         super().clean()
 

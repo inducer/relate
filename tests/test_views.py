@@ -583,7 +583,7 @@ class CoursePageTest(SingleCourseTestMixin, MockAddMessageMixing, TestCase):
 
     def test_requested_not_show_enroll_button(self):
         requested = factories.ParticipationFactory(
-            course=self.course, status=constants.participation_status.requested)
+            course=self.course, status=constants.ParticipationStatus.requested)
         with self.temporarily_switch_to_user(requested.user):
             resp = self.client.get(self.get_course_page_url())
             self.assertEqual(resp.status_code, 200)
@@ -596,7 +596,7 @@ class CoursePageTest(SingleCourseTestMixin, MockAddMessageMixing, TestCase):
 
     def test_requested_hint_for_set_instid(self):
         requested = factories.ParticipationFactory(
-            course=self.course, status=constants.participation_status.requested)
+            course=self.course, status=constants.ParticipationStatus.requested)
         factories.ParticipationPreapprovalFactory(
             course=self.course, institutional_id="inst_id1234")
         with self.temporarily_switch_to_user(requested.user):
@@ -1686,7 +1686,7 @@ class GrantExceptionStage3Test(GrantExceptionTestMixin, TestCase):
             self.assertEqual(models.FlowRuleException.objects.count(), 1)
             self.assertEqual(
                 models.FlowRuleException.objects.filter(
-                    kind=constants.flow_rule_kind.access).count(), 1)
+                    kind=constants.FlowRuleKind.access).count(), 1)
             self.assertAddMessageCallCount(2)
             self.assertAddMessageCalledWith(
                 ["Access rules tag of the selected session updated "
@@ -1716,7 +1716,7 @@ class GrantExceptionStage3Test(GrantExceptionTestMixin, TestCase):
             self.assertEqual(models.FlowRuleException.objects.count(), 2)
             self.assertEqual(
                 models.FlowRuleException.objects.filter(
-                    kind=constants.flow_rule_kind.access).count(), 2)
+                    kind=constants.FlowRuleKind.access).count(), 2)
             self.assertAddMessageCallCount(2)
             self.assertAddMessageCalledWith(
                 ["Removed access rules tag of the selected session.",
@@ -1754,7 +1754,7 @@ class GrantExceptionStage3Test(GrantExceptionTestMixin, TestCase):
             self.assertEqual(models.FlowRuleException.objects.count(), 1)
             self.assertEqual(
                 models.FlowRuleException.objects.filter(
-                    kind=constants.flow_rule_kind.access).count(), 1)
+                    kind=constants.FlowRuleKind.access).count(), 1)
 
             self.fs.refresh_from_db()
             self.assertEqual(self.fs.access_rules_tag, flow_desc_access_rule_tags[1])
@@ -1792,7 +1792,7 @@ class GrantExceptionStage3Test(GrantExceptionTestMixin, TestCase):
             self.assertEqual(models.FlowRuleException.objects.count(), 1)
             self.assertEqual(
                 models.FlowRuleException.objects.filter(
-                    kind=constants.flow_rule_kind.access).count(), 1)
+                    kind=constants.FlowRuleKind.access).count(), 1)
 
             self.assertAddMessageCallCount(1)
             self.assertAddMessageCalledWith(
@@ -1895,7 +1895,7 @@ class GrantExceptionStage3Test(GrantExceptionTestMixin, TestCase):
         self.assertEqual(excs.count(), 1)
         self.assertEqual(
             excs.filter(
-                kind=constants.flow_rule_kind.grading).count(), 1)
+                kind=constants.FlowRuleKind.grading).count(), 1)
         if_completed_before = excs[0].rule.get("if_completed_before")
         self.assertIsNone(if_completed_before)
 
@@ -1920,7 +1920,7 @@ class GrantExceptionStage3Test(GrantExceptionTestMixin, TestCase):
         self.assertEqual(excs.count(), 1)
         self.assertEqual(
             excs.filter(
-                kind=constants.flow_rule_kind.grading).count(), 1)
+                kind=constants.FlowRuleKind.grading).count(), 1)
         if_completed_before = excs[0].rule.get("if_completed_before")
         self.assertIsNone(if_completed_before)
 
@@ -1949,7 +1949,7 @@ class GrantExceptionStage3Test(GrantExceptionTestMixin, TestCase):
         self.assertEqual(excs.count(), 1)
         self.assertEqual(
             excs.filter(
-                kind=constants.flow_rule_kind.grading).count(), 1)
+                kind=constants.FlowRuleKind.grading).count(), 1)
         if_completed_before = excs[0].rule.get("if_completed_before")
         self.assertIsNone(if_completed_before)
 
@@ -1987,7 +1987,7 @@ class GrantExceptionStage3Test(GrantExceptionTestMixin, TestCase):
         self.assertEqual(excs.count(), 1)
         self.assertEqual(
             excs.filter(
-                kind=constants.flow_rule_kind.grading).count(), 1)
+                kind=constants.FlowRuleKind.grading).count(), 1)
         description = excs[0].rule.get("description")
         self.assertIsNotNone(description)
         self.assertIn("89.1%", description)
@@ -2009,7 +2009,7 @@ class GrantExceptionStage3Test(GrantExceptionTestMixin, TestCase):
         self.assertEqual(excs.count(), 1)
         self.assertEqual(
             excs.filter(
-                kind=constants.flow_rule_kind.grading).count(), 1)
+                kind=constants.FlowRuleKind.grading).count(), 1)
         generates_grade = excs[0].rule.get("generates_grade")
         self.assertFalse(generates_grade)
 
@@ -2028,7 +2028,7 @@ class GrantExceptionStage3Test(GrantExceptionTestMixin, TestCase):
         self.assertEqual(excs.count(), 2)
         self.assertEqual(
             excs.filter(
-                kind=constants.flow_rule_kind.grading).count(), 2)
+                kind=constants.FlowRuleKind.grading).count(), 2)
         generates_grade = excs[1].rule.get("generates_grade")
         self.assertTrue(generates_grade)
 
@@ -2084,7 +2084,7 @@ class GrantExceptionStage3Test(GrantExceptionTestMixin, TestCase):
             self.assertEqual(models.FlowRuleException.objects.count(), 1)
             self.assertEqual(
                 models.FlowRuleException.objects.filter(
-                    kind=constants.flow_rule_kind.grading).count(), 1)
+                    kind=constants.FlowRuleKind.grading).count(), 1)
 
             # the session had the same tag as in the grading rule
             self.fs.refresh_from_db()
@@ -2126,7 +2126,7 @@ class GrantExceptionStage3Test(GrantExceptionTestMixin, TestCase):
             self.assertEqual(models.FlowRuleException.objects.count(), 1)
             self.assertEqual(
                 models.FlowRuleException.objects.filter(
-                    kind=constants.flow_rule_kind.grading).count(), 1)
+                    kind=constants.FlowRuleKind.grading).count(), 1)
 
             self.assertAddMessageCallCount(1)
             self.assertAddMessageCalledWith("'Grading' exception granted to ")

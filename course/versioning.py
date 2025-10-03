@@ -36,6 +36,7 @@ from typing import (
 
 import django.forms as forms
 import dulwich.client
+import dulwich.repo
 import dulwich.web
 import paramiko
 import paramiko.client
@@ -58,16 +59,16 @@ from django_select2.forms import Select2Widget
 from dulwich.repo import Repo
 
 from course.auth import with_course_api_auth
-from course.constants import participation_permission as pperm, participation_status
+from course.constants import ParticipationPermission as PPerm, ParticipationStatus
 from course.models import Course, Participation, ParticipationRole
 from course.utils import (
+    CoursePageContext,
     course_view,
     get_course_specific_language_choices,
     render_course_page,
 )
 from relate.utils import (
     HTML5DateInput,
-    Repo_ish,
     StyledForm,
     StyledModelForm,
     string_concat,
@@ -81,6 +82,7 @@ if TYPE_CHECKING:
     from dulwich.objects import Commit
 
     from course.auth import APIContext
+    from course.repo import Repo_ish
 
 # }}}
 
@@ -93,7 +95,9 @@ def _remove_prefix(prefix: bytes, s: bytes) -> bytes:
 
 
 def transfer_remote_refs(
-        repo: Repo_ish, fetch_pack_result: dulwich.client.FetchPackResult) -> None:
+            repo: dulwich.repo.Repo,
+            fetch_pack_result: dulwich.client.FetchPackResult
+        ) -> None:
 
     valid_refs = []
 
@@ -232,7 +236,7 @@ def set_up_new_course(request: http.HttpRequest) -> http.HttpResponse:
                         part = Participation()
                         part.user = request.user
                         part.course = new_course
-                        part.status = participation_status.active
+                        part.status = ParticipationStatus.active
                         part.save()
 
                         part.roles.set([
@@ -382,8 +386,11 @@ def run_course_update_command(
                 content_repo, pctx.course.course_file, pctx.course.events_file,
                 new_sha, course=pctx.course)
     except ValidationError as e:
+        from traceback import print_exc
+        print_exc()
+
         messages.add_message(request, messages.ERROR,
-                _("Course content did not validate successfully: '%s' "
+                _("Course content did not validate successfully:<pre>%s</pre>"
                 "Update not applied.") % str(e))
         return
 
@@ -498,10 +505,10 @@ def _get_commit_message_as_html(repo, commit_sha):
 
 @login_required
 @course_view
-def update_course(pctx):
+def update_course(pctx: CoursePageContext):
     if not (
-            pctx.has_permission(pperm.update_content)
-            or pctx.has_permission(pperm.preview_content)):
+            pctx.has_permission(PPerm.update_content)
+            or pctx.has_permission(PPerm.preview_content)):
         raise PermissionDenied()
 
     course = pctx.course
@@ -513,13 +520,14 @@ def update_course(pctx):
         repo = content_repo.repo
     else:
         repo = content_repo
+    assert isinstance(repo, dulwich.repo.Repo)
 
     participation = pctx.participation
 
     previewing = bool(participation is not None
             and participation.preview_git_commit_sha)
 
-    may_update = pctx.has_permission(pperm.update_content)
+    may_update = pctx.has_permission(PPerm.update_content)
 
     response_form = None
     form = None
@@ -674,7 +682,7 @@ def git_endpoint(api_ctx: APIContext, course_identifier: str,
     course = api_ctx.course
     request = api_ctx.request
 
-    if not api_ctx.has_permission(pperm.use_git_endpoint):
+    if not api_ctx.has_permission(PPerm.use_git_endpoint):
         raise PermissionDenied("insufficient privileges")
 
     from course.content import get_course_repo

@@ -27,18 +27,19 @@ import stat
 
 from django.core.exceptions import ObjectDoesNotExist
 from django.test import TestCase
-from dulwich.repo import Tree
+from dulwich.objects import Tree
+from yaml import safe_load as load_yaml
 
 from course import validation
-from course.constants import DEFAULT_ACCESS_KINDS, participation_permission as pperm
-from course.content import get_repo_blob, get_yaml_from_repo, load_yaml
+from course.constants import DEFAULT_ACCESS_KINDS, ParticipationPermission as PPerm
+from course.content import get_yaml_from_repo
 from course.models import (
     ParticipationPermission,
     ParticipationRole,
     ParticipationRolePermission,
 )
-from course.validation import ValidationError, get_yaml_from_repo_safely
-from relate.utils import dict_to_struct
+from course.repo import get_repo_blob
+from course.validation import ValidationError
 from tests import factories
 from tests.base_test_mixins import CoursesTestMixinBase
 from tests.utils import mock
@@ -142,53 +143,39 @@ staticpage2_desc = mock.MagicMock()
 flow1_path = "flows/flow1.yml"
 flow1_location = "flow1.yml"
 flow1_id = "flow1"
-flow1_no_rule_desc = dict_to_struct(load_yaml(FLOW_WITHOUT_RULE_YAML))
-flow1_with_access_rule_desc = dict_to_struct(load_yaml(FLOW_WITH_ACCESS_RULE_YAML))
+flow1_no_rule_desc = load_yaml(FLOW_WITHOUT_RULE_YAML)
+flow1_with_access_rule_desc = load_yaml(FLOW_WITH_ACCESS_RULE_YAML)
 
 flow2_path = "flows/flow2.yml"
 flow2_location = "flow2.yml"
 flow2_id = "flow2"
 flow2_grade_identifier = "la_quiz"
-flow2_default_desc = dict_to_struct(load_yaml(
+flow2_default_desc = load_yaml(
     FLOW_WITH_GRADING_RULE_YAML_PATTERN % {
-        "grade_identifier": flow2_grade_identifier}))
+        "grade_identifier": flow2_grade_identifier})
 
 flow3_path = "flows/flow3.yml"
 flow3_location = "flow3.yml"
 flow3_id = "flow3"
 flow3_grade_identifier = "la_quiz2"
-flow3_default_desc = dict_to_struct(load_yaml(
+flow3_default_desc = load_yaml(
     FLOW_WITH_GRADING_RULE_YAML_PATTERN % {
-        "grade_identifier": flow3_grade_identifier}))
+        "grade_identifier": flow3_grade_identifier})
 
 flow3_with_duplicated_grade_identifier_desc = flow2_default_desc
 
 
 def get_yaml_from_repo_side_effect(repo, full_name, commit_sha, cached=True):
     if full_name == events_file:
-        return dict_to_struct(
-            {"event_kinds": dict_to_struct({
-                "lecture": dict_to_struct({
+        return {"event_kinds": {
+                "lecture": {
                     "title": "Lecture {nr}",
                     "color": "blue"
-                })}),
-                "events": dict_to_struct({
-                    "lecture 1": dict_to_struct({
-                        "title": "l1"})
-                })})
-    else:
-        return get_yaml_from_repo(repo, full_name, commit_sha, cached)
-
-
-def get_yaml_from_repo_no_events_file_side_effect(
-        repo, full_name, commit_sha, cached=True):
-    if full_name in [events_file, my_events_file]:
-        raise ObjectDoesNotExist
-    else:
-        return get_yaml_from_repo(repo, full_name, commit_sha, cached)
-
-
-def get_yaml_from_repo_safely_side_effect(repo, full_name, commit_sha):
+                }},
+                "events": {
+                    "lecture 1": {
+                        "title": "l1"}
+                }}
     if full_name == course_file:
         return course_desc
     if full_name == flow1_path:
@@ -203,10 +190,18 @@ def get_yaml_from_repo_safely_side_effect(repo, full_name, commit_sha):
     if full_name == staticpage2_path:
         return staticpage2_desc
 
-    return get_yaml_from_repo_safely(repo, full_name, commit_sha)
+    return get_yaml_from_repo(repo, full_name, commit_sha, cached)
 
 
-def get_yaml_from_repo_safely_with_duplicate_grade_identifier_side_effect(
+def get_yaml_from_repo_no_events_file_side_effect(
+        repo, full_name, commit_sha, cached=True):
+    if full_name in [events_file, my_events_file]:
+        raise ObjectDoesNotExist
+    else:
+        return get_yaml_from_repo(repo, full_name, commit_sha, cached)
+
+
+def get_yaml_from_repo_with_duplicate_grade_identifier_side_effect(
         repo, full_name, commit_sha):
     if full_name == course_file:
         return course_desc
@@ -223,7 +218,7 @@ def get_yaml_from_repo_safely_with_duplicate_grade_identifier_side_effect(
     if full_name == staticpage2_path:
         return staticpage2_desc
 
-    return get_yaml_from_repo_safely(repo, full_name, commit_sha)
+    return get_yaml_from_repo(repo, full_name, commit_sha)
 
 
 def get_repo_blob_side_effect(repo, full_name, commit_sha, allow_tree=True):
@@ -315,12 +310,12 @@ class ValidateCourseContentTest(CoursesTestMixinBase, TestCase):
 
         self.course = factories.CourseFactory()
 
-        fake_get_yaml_from_repo_safely = mock.patch(
-            "course.validation.get_yaml_from_repo_safely")
-        self.mock_get_yaml_from_repo_safely = fake_get_yaml_from_repo_safely.start()
-        self.mock_get_yaml_from_repo_safely.side_effect = (
-            get_yaml_from_repo_safely_side_effect)
-        self.addCleanup(fake_get_yaml_from_repo_safely.stop)
+        fake_get_yaml_from_repo = mock.patch(
+            "course.validation.get_yaml_from_repo")
+        self.mock_get_yaml_from_repo = fake_get_yaml_from_repo.start()
+        self.mock_get_yaml_from_repo.side_effect = (
+            get_yaml_from_repo_side_effect)
+        self.addCleanup(fake_get_yaml_from_repo.stop)
 
         fake_validate_staticpage_desc = mock.patch(
             "course.validation.validate_staticpage_desc")
@@ -368,13 +363,13 @@ class ValidateCourseContentTest(CoursesTestMixinBase, TestCase):
         self.addCleanup(fake_check_grade_identifier_link.stop)
 
         fake_get_repo_blob = (
-            mock.patch("course.content.get_repo_blob"))
+            mock.patch("course.repo.get_repo_blob"))
         self.mock_get_repo_blob = fake_get_repo_blob.start()
         self.mock_get_repo_blob.side_effect = get_repo_blob_side_effect
         self.addCleanup(fake_get_repo_blob.stop)
 
         fake_get_repo_tree = (
-            mock.patch("course.content.get_repo_tree"))
+            mock.patch("course.repo.get_repo_tree"))
         self.mock_get_repo_tree = fake_get_repo_tree.start()
         self.mock_get_repo_tree.side_effect = get_repo_blob_side_effect
         self.addCleanup(fake_get_repo_tree.stop)
@@ -666,8 +661,8 @@ class ValidateCourseContentTest(CoursesTestMixinBase, TestCase):
         self.assertEqual(self.mock_validate_static_page_name.call_count, 0)
 
     def test_duplicated_grade_identifier(self):
-        self.mock_get_yaml_from_repo_safely.side_effect = (
-            get_yaml_from_repo_safely_with_duplicate_grade_identifier_side_effect
+        self.mock_get_yaml_from_repo.side_effect = (
+            get_yaml_from_repo_with_duplicate_grade_identifier_side_effect
         )
         with self.assertRaises(ValidationError) as cm:
             validation.validate_course_content(
@@ -681,7 +676,7 @@ class ValidateCourseContentTest(CoursesTestMixinBase, TestCase):
 
     def test_course_not_none_check_attributes_yml(self):
         # This test check_attributes_yml args access_type
-        # is generated with course-specific pperm.access_files_for
+        # is generated with course-specific PPerm.access_files_for
 
         user = factories.UserFactory()
 
@@ -702,24 +697,24 @@ class ValidateCourseContentTest(CoursesTestMixinBase, TestCase):
         another_course_ppm_access_files_for_roles = "another_role"
         ParticipationPermission(
             participation=another_course_participation,
-            permission=pperm.access_files_for,
+            permission=PPerm.access_files_for,
             argument=another_course_ppm_access_files_for_roles
         ).save()
 
         another_course_rpm_access_files_for_roles = "another_course_everyone"
         ParticipationRolePermission(
             role=another_course_prole,
-            permission=pperm.access_files_for,
+            permission=PPerm.access_files_for,
             argument=another_course_rpm_access_files_for_roles).save()
 
         self.assertTrue(
             another_course_participation.has_permission(
-                pperm.access_files_for,
+                PPerm.access_files_for,
                 argument=another_course_ppm_access_files_for_roles))
 
         self.assertTrue(
             another_course_participation.has_permission(
-                pperm.access_files_for,
+                PPerm.access_files_for,
                 argument=another_course_rpm_access_files_for_roles))
         # }}}
 
@@ -739,24 +734,24 @@ class ValidateCourseContentTest(CoursesTestMixinBase, TestCase):
         this_course_ppm_access_files_for_roles = "this_course_some_role"
         ParticipationPermission(
             participation=this_course_participation,
-            permission=pperm.access_files_for,
+            permission=PPerm.access_files_for,
             argument=this_course_ppm_access_files_for_roles
         ).save()
 
         this_course_rpm_access_files_for_roles = "this_course_everyone"
         ParticipationRolePermission(
             role=this_course_prole,
-            permission=pperm.access_files_for,
+            permission=PPerm.access_files_for,
             argument=this_course_rpm_access_files_for_roles).save()
 
         self.assertTrue(
             this_course_participation.has_permission(
-                pperm.access_files_for,
+                PPerm.access_files_for,
                 argument=this_course_ppm_access_files_for_roles))
 
         self.assertTrue(
             this_course_participation.has_permission(
-                pperm.access_files_for,
+                PPerm.access_files_for,
                 argument=this_course_rpm_access_files_for_roles))
         # }}}
 

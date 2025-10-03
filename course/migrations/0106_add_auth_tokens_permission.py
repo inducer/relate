@@ -2,7 +2,7 @@ from django.db import migrations
 
 
 def add_manage_auth_tokens_permission(apps, schema_editor):
-    from course.constants import participation_permission as pperm
+    from course.constants import ParticipationPermission as pperm
 
     ParticipationRolePermission = apps.get_model("course", "ParticipationRolePermission")
 

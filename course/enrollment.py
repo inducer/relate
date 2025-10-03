@@ -47,7 +47,9 @@ from pytools.lex import RE, LexTable
 from course.auth import UserSearchWidget
 from course.constants import (
     PARTICIPATION_PERMISSION_CHOICES,
-    participation_permission as pperm,
+    ParticipationPermission as PPerm,
+    ParticipationStatus,
+    UserStatus,
 )
 from course.models import (
     Course,
@@ -56,8 +58,6 @@ from course.models import (
     ParticipationPreapproval,
     ParticipationRole,
     ParticipationTag,
-    participation_status,
-    user_status,
 )
 from course.utils import LanguageOverride, course_view, render_course_page
 from relate.utils import StyledForm, StyledModelForm, string_concat
@@ -66,6 +66,8 @@ from relate.utils import StyledForm, StyledModelForm, string_concat
 # {{{ for mypy
 
 if TYPE_CHECKING:
+    from collections.abc import Set
+
     from django.contrib.auth.models import AnonymousUser
 
     import accounts.models
@@ -85,7 +87,7 @@ def get_participation_for_user(
     participations = list(Participation.objects.filter(
             user=user,
             course=course,
-            status=participation_status.active
+            status=ParticipationStatus.active
             ))
 
     # The uniqueness constraint should have ensured that.
@@ -107,16 +109,16 @@ def get_participation_for_request(
 # {{{ get_participation_role_identifiers
 
 def get_participation_role_identifiers(
-        course: Course, participation: Participation | None) -> list[str]:
+        course: Course, participation: Participation | None) -> Set[str]:
     if participation is None:
-        return list(
+        return frozenset(
                 ParticipationRole.objects.filter(
                     course=course,
                     is_default_for_unenrolled=True)
                 .values_list("identifier", flat=True))
 
     else:
-        return [r.identifier for r in participation.roles.all()]
+        return {r.identifier for r in participation.roles.all()}
 
 # }}}
 
@@ -165,24 +167,24 @@ def enroll_view(
         participation = participations.first()
 
     if participation is not None:
-        if participation.status == participation_status.requested:
+        if participation.status == ParticipationStatus.requested:
             messages.add_message(request, messages.ERROR,
                                  _("You have previously sent the enrollment "
                                    "request. Re-sending the request is not "
                                    "allowed."))
             return redirect("relate-course_page", course_identifier)
-        elif participation.status == participation_status.denied:
+        elif participation.status == ParticipationStatus.denied:
             messages.add_message(request, messages.ERROR,
                                  _("Your enrollment request had been denied. "
                                    "Enrollment is not allowed."))
             return redirect("relate-course_page", course_identifier)
-        elif participation.status == participation_status.dropped:
+        elif participation.status == ParticipationStatus.dropped:
             messages.add_message(request, messages.ERROR,
                                  _("You had been dropped from the course. "
                                    "Re-enrollment is not allowed."))
             return redirect("relate-course_page", course_identifier)
         else:
-            assert participation.status == participation_status.active
+            assert participation.status == ParticipationStatus.active
             messages.add_message(request, messages.ERROR,
                                  _("Already enrolled. Cannot re-enroll."))
         return redirect("relate-course_page", course_identifier)
@@ -199,7 +201,7 @@ def enroll_view(
                 _("Can only enroll using POST request"))
         return redirect("relate-course_page", course_identifier)
 
-    if user.status != user_status.active:
+    if user.status != UserStatus.active:
         messages.add_message(request, messages.ERROR,
                 _("Your email address is not yet confirmed. "
                 "Confirm your email to continue."))
@@ -252,7 +254,7 @@ def enroll_view(
     try:
         if course.enrollment_approval_required and preapproval is None:
             participation = handle_enrollment_request(
-                    course, user, participation_status.requested,
+                    course, user, ParticipationStatus.requested,
                     roles_list, request)
 
             assert participation is not None
@@ -290,7 +292,7 @@ def enroll_view(
                     _("Enrollment request sent. You will receive notification "
                     "by email once your request has been acted upon."))
         else:
-            handle_enrollment_request(course, user, participation_status.active,
+            handle_enrollment_request(course, user, ParticipationStatus.active,
                                       roles_list, request)
 
             messages.add_message(request, messages.SUCCESS,
@@ -329,9 +331,9 @@ def handle_enrollment_request(
     if roles is not None:
         participation.roles.set(roles)
 
-    if status == participation_status.active:
+    if status == ParticipationStatus.active:
         send_enrollment_decision(participation, True, request)
-    elif status == participation_status.denied:
+    elif status == ParticipationStatus.denied:
         send_enrollment_decision(participation, False, request)
 
     return participation
@@ -345,13 +347,13 @@ def decide_enrollment(approved, modeladmin, request, queryset):
     count = 0
 
     for participation in queryset:
-        if participation.status != participation_status.requested:
+        if participation.status != ParticipationStatus.requested:
             continue
 
         if approved:
-            participation.status = participation_status.active
+            participation.status = ParticipationStatus.active
         else:
-            participation.status = participation_status.denied
+            participation.status = ParticipationStatus.denied
         participation.save()
 
         send_enrollment_decision(participation, approved, request)
@@ -460,7 +462,7 @@ class BulkPreapprovalsForm(StyledForm):
 @transaction.atomic
 @course_view
 def create_preapprovals(pctx):
-    if not pctx.has_permission(pperm.preapprove_participation):
+    if not pctx.has_permission(PPerm.preapprove_participation):
         raise PermissionDenied(_("may not preapprove participation"))
 
     request = pctx.request
@@ -499,14 +501,14 @@ def create_preapprovals(pctx):
                     try:
                         pending = Participation.objects.get(
                                 course=pctx.course,
-                                status=participation_status.requested,
+                                status=ParticipationStatus.requested,
                                 **user_filter_kwargs)
 
                     except Participation.DoesNotExist:
                         pass
 
                     else:
-                        pending.status = participation_status.active
+                        pending.status = ParticipationStatus.active
                         pending.save()
                         send_enrollment_decision(pending, True, request)
                         pending_approved_count += 1
@@ -829,8 +831,8 @@ class ParticipationQueryForm(StyledForm):
 @course_view
 def query_participations(pctx):
     if (
-            not pctx.has_permission(pperm.query_participation)
-            or pctx.has_permission(pperm.view_participant_masked_profile)):
+            not pctx.has_permission(PPerm.query_participation)
+            or pctx.has_permission(PPerm.view_participant_masked_profile)):
         raise PermissionDenied(_("may not query participations"))
 
     request = pctx.request
@@ -889,7 +891,7 @@ def query_participations(pctx):
                     else:
                         assert form.cleaned_data["op"] == "drop"
                         for p in result:
-                            p.status = participation_status.dropped
+                            p.status = ParticipationStatus.dropped
                             p.save()
 
                     messages.add_message(request, messages.INFO,
@@ -935,7 +937,7 @@ class EditParticipationForm(StyledModelForm):
             )
         self.add_new = add_new
 
-        may_edit_permissions = pctx.has_permission(pperm.edit_course_permissions)
+        may_edit_permissions = pctx.has_permission(PPerm.edit_course_permissions)
         if not may_edit_permissions:
             self.fields["roles"].disabled = True
 
@@ -956,10 +958,10 @@ class EditParticipationForm(StyledModelForm):
 
         self.helper.add_input(
                 Submit("submit", _("Update")))
-        if participation.status != participation_status.active:
+        if participation.status != ParticipationStatus.active:
             self.helper.add_input(
                     Submit("approve", _("Approve"), css_class="btn-success"))
-            if participation.status == participation_status.requested:
+            if participation.status == ParticipationStatus.requested:
                 self.helper.add_input(
                         Submit("deny", _("Deny"), css_class="btn-danger"))
         else:
@@ -970,7 +972,7 @@ class EditParticipationForm(StyledModelForm):
         user = self.cleaned_data["user"]
         if not self.add_new:
             return user
-        if user.status == user_status.active:
+        if user.status == UserStatus.active:
             return user
 
         raise forms.ValidationError(
@@ -1010,7 +1012,7 @@ class EditParticipationForm(StyledModelForm):
 @course_view
 def edit_participation(
         pctx: CoursePageContext, participation_id: int) -> http.HttpResponse:
-    if not pctx.has_permission(pperm.edit_participation):
+    if not pctx.has_permission(PPerm.edit_participation):
         raise PermissionDenied()
 
     request = pctx.request
@@ -1020,7 +1022,7 @@ def edit_participation(
     if num_participation_id == -1:
         participation = Participation(
                 course=pctx.course,
-                status=participation_status.active)
+                status=ParticipationStatus.active)
         add_new = True
     else:
         participation = get_object_or_404(Participation, id=num_participation_id)
@@ -1046,7 +1048,7 @@ def edit_participation(
 
                     # FIXME: Double-saving
                     participation = form.save()
-                    participation.status = participation_status.active
+                    participation.status = ParticipationStatus.active
                     participation.save()
                     reset_form = True
 
@@ -1059,7 +1061,7 @@ def edit_participation(
 
                     # FIXME: Double-saving
                     participation = form.save()
-                    participation.status = participation_status.denied
+                    participation.status = ParticipationStatus.denied
                     participation.save()
                     reset_form = True
 
@@ -1071,7 +1073,7 @@ def edit_participation(
                 elif "drop" in request.POST:
                     # FIXME: Double-saving
                     participation = form.save()
-                    participation.status = participation_status.dropped
+                    participation.status = ParticipationStatus.dropped
                     participation.save()
                     reset_form = True
 

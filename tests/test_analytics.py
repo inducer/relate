@@ -30,13 +30,11 @@ from django.urls import reverse
 
 from course import analytics
 from course.models import FlowSession
-from relate.utils import dict_to_struct
 from tests import factories
 from tests.base_test_mixins import (
     CoursesTestMixinBase,
     HackRepoMixin,
     MockAddMessageMixing,
-    SingleCoursePageTestMixin,
     SingleCourseQuizPageTestMixin,
     SingleCourseTestMixin,
 )
@@ -140,110 +138,6 @@ class HistogramTest(CoursesTestMixinBase, TestCase):
 
             his.html()
             self.assertTemplateUsed("course/histogram.html")
-
-
-@pytest.mark.slow
-class IsFlowMultipleSubmitTest(SingleCourseTestMixin, TestCase):
-    """test course.analytics.is_flow_multiple_submit"""
-    def test_flow_desc_has_no_rule(self):
-        flow_desc = self.get_hacked_flow_desc(del_rules=True)
-        self.assertFalse(analytics.is_flow_multiple_submit(flow_desc))
-
-    def test_flow_desc_access_rule_has_no_change_answer_perm(self):
-        flow_desc_dict = self.get_hacked_flow_desc(as_dict=True)
-        rules = flow_desc_dict["rules"]
-        rules.access = [dict_to_struct(
-            {"permissions": ["submit_answer"]})]
-        flow_desc = dict_to_struct(flow_desc_dict)
-        self.assertFalse(analytics.is_flow_multiple_submit(flow_desc))
-
-    def test_flow_desc_access_rule_has_change_answer_perm(self):
-        flow_desc_dict = self.get_hacked_flow_desc(as_dict=True)
-        rules = flow_desc_dict["rules"]
-        rules.access = [dict_to_struct(
-            {"permissions": ["submit_answer", "change_answer"]})]
-        flow_desc = dict_to_struct(flow_desc_dict)
-        self.assertTrue(analytics.is_flow_multiple_submit(flow_desc))
-
-
-@pytest.mark.slow
-class IsPageMultipleSubmitTest(SingleCoursePageTestMixin, HackRepoMixin, TestCase):
-    """test course.analytics.is_page_multiple_submit"""
-    @classmethod
-    def setUpTestData(cls):
-        super().setUpTestData()
-        cls.course.active_git_commit_sha = "my_fake_commit_sha_for_page_analytics"
-        cls.course.save()
-
-        client = Client()
-        client.force_login(cls.student_participation.user)
-        # cache the page_descs
-        cls.start_flow(client, cls.flow_id)
-        cls.flow_desc = cls.get_hacked_flow_desc()
-
-    def setUp(self):
-        super().setUp()
-        faked_is_flow_multiple_submit = \
-            mock.patch("course.analytics.is_flow_multiple_submit")
-        self.mock_is_flow_multiple_submit = faked_is_flow_multiple_submit.start()
-        self.mock_is_flow_multiple_submit.return_value = False
-        self.addCleanup(faked_is_flow_multiple_submit.stop)
-
-    def get_page_desc_by_page_id(self, page_id):
-        for group_desc in self.flow_desc.groups:
-            for page_desc in group_desc.pages:
-                if page_desc.id == page_id:
-                    return page_desc
-
-    def test_page_has_no_access_rules(self):
-        page_id = "fear"
-        page_desc = self.get_page_desc_by_page_id(page_id)
-
-        self.assertFalse(analytics.is_page_multiple_submit(
-            self.flow_desc, page_desc))
-
-        self.mock_is_flow_multiple_submit.return_value = True
-        self.assertTrue(analytics.is_page_multiple_submit(
-            self.flow_desc, page_desc))
-
-    def test_page_access_rules_remove_permissions_not_remove_change_permission(self):
-        page_id = "half"
-        page_desc = self.get_page_desc_by_page_id(page_id)
-
-        self.mock_is_flow_multiple_submit.return_value = True
-        self.assertTrue(analytics.is_page_multiple_submit(
-            self.flow_desc, page_desc))
-
-    def test_page_access_rules_remove_permissions_removed_change_permission(self):
-        page_id = "ice_cream_toppings"
-        page_desc = self.get_page_desc_by_page_id(page_id)
-
-        self.mock_is_flow_multiple_submit.return_value = True
-        self.assertFalse(analytics.is_page_multiple_submit(
-            self.flow_desc, page_desc))
-
-    def test_page_access_rules_add_permissions_not_add_change_permission(self):
-        page_id = "lsq"
-        page_desc = self.get_page_desc_by_page_id(page_id)
-        self.assertFalse(analytics.is_page_multiple_submit(
-            self.flow_desc, page_desc))
-
-    def test_page_access_rules_add_permissions_added_change_permission(self):
-        page_id = "krylov"
-        page_desc = self.get_page_desc_by_page_id(page_id)
-        self.assertTrue(analytics.is_page_multiple_submit(
-            self.flow_desc, page_desc))
-
-    def test_page_access_rules_neither_add_nor_remove_permission(self):
-        page_id = "age_group"
-        page_desc = self.get_page_desc_by_page_id(page_id)
-        self.assertFalse(analytics.is_page_multiple_submit(
-            self.flow_desc, page_desc))
-
-        self.mock_is_flow_multiple_submit.return_value = True
-        page_desc = self.get_page_desc_by_page_id(page_id)
-        self.assertTrue(analytics.is_page_multiple_submit(
-            self.flow_desc, page_desc))
 
 
 @pytest.mark.slow

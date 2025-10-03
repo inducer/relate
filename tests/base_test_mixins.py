@@ -42,14 +42,15 @@ from django.contrib.auth import get_user_model
 from django.core.exceptions import ImproperlyConfigured
 from django.test import Client, RequestFactory, override_settings
 from django.urls import resolve, reverse
+from jsonpatch import JsonPatch
 
 from course.constants import (
-    flow_permission as fperm,
-    grade_aggregation_strategy as g_strategy,
-    participation_status,
-    user_status,
+    FlowPermission as FPerm,
+    GradeAggregationStrategy as GAStrategy,
+    ParticipationStatus,
+    UserStatus,
 )
-from course.content import get_course_repo_path, get_repo_blob
+from course.content import FlowDesc, flow_desc_ta, get_course_repo_path
 from course.flow import GradeInfo
 from course.models import (
     Course,
@@ -60,6 +61,8 @@ from course.models import (
     Participation,
     ParticipationRole,
 )
+from course.repo import get_repo_blob
+from course.validation import ValidationContext
 from tests.constants import (
     COMMIT_SHA_MAP,
     FAKED_YAML_PATH,
@@ -108,7 +111,7 @@ SINGLE_COURSE_SETUP_LIST = [
                     "email": "test_instructor@example.com",
                     "first_name": "Test_ins",
                     "last_name": "Instructor"},
-                "status": participation_status.active
+                "status": ParticipationStatus.active
             },
             {
                 "role_identifier": "ta",
@@ -118,7 +121,7 @@ SINGLE_COURSE_SETUP_LIST = [
                     "email": "test_ta@example.com",
                     "first_name": "Test_ta",
                     "last_name": "TA"},
-                "status": participation_status.active
+                "status": ParticipationStatus.active
             },
             {
                 "role_identifier": "student",
@@ -128,7 +131,7 @@ SINGLE_COURSE_SETUP_LIST = [
                     "email": "test_student@example.com",
                     "first_name": "Test_stu",
                     "last_name": "Student"},
-                "status": participation_status.active
+                "status": ParticipationStatus.active
             }
         ],
     }
@@ -148,7 +151,7 @@ NONE_PARTICIPATION_USER_CREATE_KWARG_LIST = [
         "last_name": "User1",
         "institutional_id": "test_user1_institutional_id",
         "institutional_id_verified": True,
-        "status": user_status.active
+        "status": UserStatus.active
     },
     {
         "username": "test_user2",
@@ -158,7 +161,7 @@ NONE_PARTICIPATION_USER_CREATE_KWARG_LIST = [
         "last_name": "User2",
         "institutional_id": "test_user2_institutional_id",
         "institutional_id_verified": False,
-        "status": user_status.active
+        "status": UserStatus.active
     },
     {
         "username": "test_user3",
@@ -168,7 +171,7 @@ NONE_PARTICIPATION_USER_CREATE_KWARG_LIST = [
         "last_name": "User3",
         "institutional_id": "test_user3_institutional_id",
         "institutional_id_verified": True,
-        "status": user_status.unconfirmed
+        "status": UserStatus.unconfirmed
     },
     {
         "username": "test_user4",
@@ -178,7 +181,7 @@ NONE_PARTICIPATION_USER_CREATE_KWARG_LIST = [
         "last_name": "User4",
         "institutional_id": "test_user4_institutional_id",
         "institutional_id_verified": False,
-        "status": user_status.unconfirmed
+        "status": UserStatus.unconfirmed
     }
 ]
 
@@ -760,7 +763,7 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
                         user_or_create_user_kwargs=create_user_kwargs,
                         role_identifier=role_identifier,
                         status=participation.get("status",
-                                                 participation_status.active)
+                                                 ParticipationStatus.active)
                     )
 
             # Remove superuser from participation for further test
@@ -809,7 +812,7 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
             assert isinstance(user_or_create_user_kwargs, dict)
             user = cls.create_user(user_or_create_user_kwargs)
         if status is None:
-            status = participation_status.active
+            status = ParticipationStatus.active
         participation, p_created = Participation.objects.get_or_create(
             user=user,
             course=course,
@@ -1236,7 +1239,7 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
         return Participation.objects.filter(
             course__identifier=course_identifier,
             roles__identifier="instructor",
-            status=participation_status.active
+            status=ParticipationStatus.active
         ).first().user
 
     @classmethod
@@ -1769,13 +1772,13 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
                 mock_get_nrule.return_value = (
                     self.get_hacked_session_start_rule())
         """
-        from course.utils import FlowSessionStartRule
+        from course.content import FlowSessionStartMode
         defaults = deepcopy(self.default_session_start_rule)
         defaults.update(kwargs)
-        return FlowSessionStartRule(**defaults)
+        return FlowSessionStartMode(**defaults)
 
     default_session_access_rule = {
-        "permissions": [fperm.view, fperm.end_session]}
+        "permissions": [FPerm.view, FPerm.end_session]}
 
     def get_hacked_session_access_rule(self, **kwargs):
         """
@@ -1791,14 +1794,14 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
                     self.get_hacked_session_access_rule(
                         permissions=[fperm.end_session]))
         """
-        from course.utils import FlowSessionAccessRule
+        from course.content import FlowSessionAccessMode
         defaults = deepcopy(self.default_session_access_rule)
         defaults.update(kwargs)
-        return FlowSessionAccessRule(**defaults)
+        return FlowSessionAccessMode(**defaults)
 
     default_session_grading_rule = {
         "grade_identifier": "la_quiz",
-        "grade_aggregation_strategy": g_strategy.use_latest,
+        "grade_aggregation_strategy": GAStrategy.use_latest,
         "due": None,
         "generates_grade": True,
         "description": None,
@@ -1822,10 +1825,10 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
                 mock_get_grule.return_value = \
                     self.get_hacked_session_grading_rule(bonus_points=2)
         """
-        from course.utils import FlowSessionGradingRule
+        from course.utils import FlowSessionGradingModeWithFlowLevelInfo
         defaults = deepcopy(self.default_session_grading_rule)
         defaults.update(kwargs)
-        return FlowSessionGradingRule(**defaults)
+        return FlowSessionGradingModeWithFlowLevelInfo(**defaults)
 
     # }}}
 
@@ -1891,21 +1894,21 @@ class SingleCourseTestMixin(CoursesTestMixinBase):
         cls.instructor_participation = Participation.objects.filter(
             course=cls.course,
             roles__identifier="instructor",
-            status=participation_status.active
+            status=ParticipationStatus.active
         ).first()
         assert cls.instructor_participation
 
         cls.student_participation = Participation.objects.filter(
             course=cls.course,
             roles__identifier="student",
-            status=participation_status.active
+            status=ParticipationStatus.active
         ).first()
         assert cls.student_participation
 
         cls.ta_participation = Participation.objects.filter(
             course=cls.course,
             roles__identifier="ta",
-            status=participation_status.active
+            status=ParticipationStatus.active
         ).first()
         assert cls.ta_participation
 
@@ -1956,7 +1959,9 @@ class SingleCourseTestMixin(CoursesTestMixinBase):
     @classmethod
     def get_hacked_flow_desc(
             cls, user=None, flow_id=None, commit_sha=None,
-            del_rules=False, as_dict=False, **kwargs):
+            del_rules=False, as_dict: bool = False,
+            patch: JsonPatch | None = None,
+            **kwargs) -> FlowDesc:
         """
         Get a hacked version of flow_desc
         :param user: the flow_desc viewed by which user, default to a student
@@ -1987,33 +1992,27 @@ class SingleCourseTestMixin(CoursesTestMixinBase):
             flow_desc = get_flow_desc(
                 pctx.repo, pctx.course, flow_id, commit_sha)
 
-        # }}}
+            flow_desc_dict = flow_desc_ta.dump_python(flow_desc)
 
-        from relate.utils import dict_to_struct, struct_to_dict
-        flow_desc_dict = struct_to_dict(flow_desc)
+            if del_rules:
+                del flow_desc_dict["rules"]
 
-        if del_rules:
-            del flow_desc_dict["rules"]
+            flow_desc_dict.update(kwargs)
 
-        flow_desc_dict.update(kwargs)
+            if as_dict:
+                return flow_desc_dict
 
-        if as_dict:
-            return flow_desc_dict
+            if patch is not None:
+                flow_desc_dict = patch.apply(flow_desc_dict)
 
-        return dict_to_struct(flow_desc_dict)
+            vctx = ValidationContext(pctx.repo, commit_sha, pctx.course)
+            return flow_desc_ta.validate_python(flow_desc_dict, context=vctx)
 
     def get_hacked_flow_desc_with_access_rule_tags(self, rule_tags):
         assert isinstance(rule_tags, list)
-        from relate.utils import dict_to_struct, struct_to_dict
-        hacked_flow_desc_dict = self.get_hacked_flow_desc(as_dict=True)
-        rules = hacked_flow_desc_dict["rules"]
-        rules_dict = struct_to_dict(rules)
-        rules_dict["tags"] = rule_tags
-        rules = dict_to_struct(rules_dict)
-        hacked_flow_desc_dict["rules"] = rules
-        hacked_flow_desc = dict_to_struct(hacked_flow_desc_dict)
-        assert hacked_flow_desc.rules.tags == rule_tags
-        return hacked_flow_desc
+        return self.get_hacked_flow_desc(patch=JsonPatch([
+                     {"op": "replace", "path": "/rules/tags", "value": rule_tags}
+             ]))
 
 # }}}
 
@@ -2032,21 +2031,21 @@ class TwoCourseTestMixin(CoursesTestMixinBase):
         cls.course1_instructor_participation = Participation.objects.filter(
             course=cls.course1,
             roles__identifier="instructor",
-            status=participation_status.active
+            status=ParticipationStatus.active
         ).first()
         assert cls.course1_instructor_participation
 
         cls.course1_student_participation = Participation.objects.filter(
             course=cls.course1,
             roles__identifier="student",
-            status=participation_status.active
+            status=ParticipationStatus.active
         ).first()
         assert cls.course1_student_participation
 
         cls.course1_ta_participation = Participation.objects.filter(
             course=cls.course1,
             roles__identifier="ta",
-            status=participation_status.active
+            status=ParticipationStatus.active
         ).first()
         assert cls.course1_ta_participation
         cls.course1_page_url = cls.get_course_page_url(cls.course1.identifier)
@@ -2055,21 +2054,21 @@ class TwoCourseTestMixin(CoursesTestMixinBase):
         cls.course2_instructor_participation = Participation.objects.filter(
             course=cls.course2,
             roles__identifier="instructor",
-            status=participation_status.active
+            status=ParticipationStatus.active
         ).first()
         assert cls.course2_instructor_participation
 
         cls.course2_student_participation = Participation.objects.filter(
             course=cls.course2,
             roles__identifier="student",
-            status=participation_status.active
+            status=ParticipationStatus.active
         ).first()
         assert cls.course2_student_participation
 
         cls.course2_ta_participation = Participation.objects.filter(
             course=cls.course2,
             roles__identifier="ta",
-            status=participation_status.active
+            status=ParticipationStatus.active
         ).first()
         assert cls.course2_ta_participation
         cls.course2_page_url = cls.get_course_page_url(cls.course2.identifier)
@@ -2829,7 +2828,7 @@ class HackRepoMixin:
 
     # This need to be configured when the module tested imported get_repo_blob
     # at module level
-    get_repo_blob_patching_path = "course.content.get_repo_blob"
+    get_repo_blob_patching_path = "course.repo.get_repo_blob"
 
     @classmethod
     def setUpTestData(cls):

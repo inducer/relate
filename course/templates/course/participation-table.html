@@ -2,20 +2,20 @@
 
 <table class="table table-striped gradebook-participants">
   <thead>
-    {% if not pperm.view_participant_masked_profile %}
+    {% if not PPerm.view_participant_masked_profile %}
         <th class="datacol">{% trans "User ID" %}</th>
     {% else %}
         <th class="datacol">{% trans "User" %}</th>
     {% endif %}
-    {% if pperm.edit_participation %}
+    {% if PPerm.edit_participation %}
       <th class="datacol">{% trans "Actions" %}</th>
     {% endif %}
     <th class="datacol">{% trans "Status" %}</th>
-    {% if not pperm.view_participant_masked_profile %}
+    {% if not PPerm.view_participant_masked_profile %}
         <th class="datacol">{% trans "Name" context "real name of a user" %}</th>
     {% endif %}
     <th class="datacol">{% trans "Role" %}</th>
-    {% if not pperm.view_participant_masked_profile %}
+    {% if not PPerm.view_participant_masked_profile %}
         <th class="datacol">{% trans "Institutional ID" %}</th>
     {% endif %}
     <th class="datacol">{% trans "Tags" %}</th>
@@ -25,7 +25,7 @@
     <tr class="relate-participation-{{ participation.status }}">
       <td class="headcol"><a href="{% url "relate-view_participant_grades" course.identifier participation.id %}">
           <span class="sensitive">
-              {% if not pperm.view_participant_masked_profile %}
+              {% if not PPerm.view_participant_masked_profile %}
                   {{ participation.user.username }}
               {% else %}
                   {% if participation.user == user %}{% trans "Me" %}{% else %}{{ participation.user.get_masked_profile }}{% endif %}
@@ -33,17 +33,17 @@
           </span>
         </a>
       </td>
-      {% if pperm.edit_participation %}
+      {% if PPerm.edit_participation %}
         <td class="datacol">
           <a href="{% url "relate-edit_participation" course.identifier participation.id %}" class="btn btn-outline-secondary btn-sm">{% trans "Edit" %}</a>
         </td>
       {% endif %}
       <td class="datacol">{% trans participation.status %}</td>
-      {% if not pperm.view_participant_masked_profile %}
+      {% if not PPerm.view_participant_masked_profile %}
         <td class="datacol"><span class="sensitive">{{ participation.user.get_full_name }}</span></td>
       {% endif %}
       <td class="datacol">{{ participation.get_role_desc }}</td>
-      {% if not pperm.view_participant_masked_profile %}
+      {% if not PPerm.view_participant_masked_profile %}
         <td class="datacol"><span class="sensitive">{{ participation.user.institutional_id }}</span></td>
       {% endif %}
       <td class="datacol">

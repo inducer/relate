@@ -45,7 +45,7 @@
                 {% block navbar %}{% endblock %}
 
                 {% block navbar_dropdown_staff %}
-                  {% if user.is_staff or currently_impersonating or perms.course.can_issue_exam_tickets or pperm.impersonate_role or pperm.set_fake_time or pperm.set_pretend_facility or request.relate_impersonate_original_user|may_set_fake_time or request.relate_impersonate_original_user|may_set_pretend_facility %}
+                  {% if user.is_staff or currently_impersonating or perms.course.can_issue_exam_tickets or PPerm.impersonate_role or PPerm.set_fake_time or PPerm.set_pretend_facility or request.relate_impersonate_original_user|may_set_fake_time or request.relate_impersonate_original_user|may_set_pretend_facility %}
                     <li class="nav-item relate-dropdown-menu">
                       <a href="#" id="dropdownStaffMenu" data-bs-toggle="dropdown" aria-expanded="false">
                         {% trans "Staff" %}
@@ -57,7 +57,7 @@
                           {% endif %}
                         {% endblock %}
                         {% block navbar_dropdown_staff_menu_purge_page_view_data %}
-                          {% if user.is_superuser or pperm.use_admin_interface %}
+                          {% if user.is_superuser or PPerm.use_admin_interface %}
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item" href="{% url 'relate-purge_page_view_data' %}">{% trans "Purge page view data" %}</a></li>
                           {% endif %}
@@ -72,7 +72,7 @@
                         {% endblock %}
 
                         {% block navbar_dropdown_staff_menu_trouble_shoot %}
-                          {% if currently_impersonating or pperm.impersonate_role or pperm.set_fake_time or request.relate_impersonate_original_user|may_set_fake_time  or request.relate_impersonate_original_user|may_set_pretend_facility %}
+                          {% if currently_impersonating or PPerm.impersonate_role or PPerm.set_fake_time or request.relate_impersonate_original_user|may_set_fake_time  or request.relate_impersonate_original_user|may_set_pretend_facility %}
                             <li class="dropdown-divider"></li>
                             <li><h6 class="dropdown-header">{% trans "Test/Troubleshoot" %}</h6></li>
                             {% if currently_impersonating %}
@@ -80,10 +80,10 @@
                             {% else %}
                               <li><a class="dropdown-item" href="{% url 'relate-impersonate' %}">{% trans "Impersonate user" %}</a></li>
                             {% endif %}
-                            {% if pperm.set_fake_time or request.relate_impersonate_original_user|may_set_fake_time %}
+                            {% if PPerm.set_fake_time or request.relate_impersonate_original_user|may_set_fake_time %}
                               <li><a class="dropdown-item" href="{% url 'relate-set_fake_time' %}">{% trans "Set fake time" %}</a></li>
                             {% endif %}
-                            {% if pperm.set_pretend_facility  or request.relate_impersonate_original_user|may_set_pretend_facility %}
+                            {% if PPerm.set_pretend_facility  or request.relate_impersonate_original_user|may_set_pretend_facility %}
                               <li><a class="dropdown-item" href="{% url 'relate-set_pretend_facilities' %}">{% trans "Pretend to be in facilities" %}</a></li>
                             {% endif %}
                           {% endif %}

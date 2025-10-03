@@ -35,9 +35,9 @@ from django.utils.timezone import now, timedelta
 
 from course import constants, grades, models
 from course.constants import (
-    grade_aggregation_strategy as g_strategy,
-    grade_state_change_types as g_state,
-    participation_permission as pperm,
+    GradeAggregationStrategy as GAStrategy,
+    GradeStateChangeType as GSChangeType,
+    ParticipationPermission as PPerm,
 )
 from course.flow import reopen_session
 from course.grades import (
@@ -58,8 +58,8 @@ from tests.utils import mock
 def get_session_grading_rule_use_last_activity_as_cmplt_time_side_effect(
         session, flow_desc, now_datetime):
     # The testing flow "quiz-test" didn't set the attribute
-    from course.utils import get_session_grading_rule
-    actual_grading_rule = get_session_grading_rule(session, flow_desc, now_datetime)
+    from course.utils import get_session_grading_mode
+    actual_grading_rule = get_session_grading_mode(session, flow_desc, now_datetime)
     actual_grading_rule.use_last_activity_as_completion_time = True
     return actual_grading_rule
 
@@ -71,7 +71,7 @@ class GradesTestMixin(SingleCoursePageTestMixin, MockAddMessageMixing):
     def setUpTestData(cls):
         super().setUpTestData()
         cls.gopp = factories.GradingOpportunityFactory(
-            course=cls.course, aggregation_strategy=g_strategy.use_latest)
+            course=cls.course, aggregation_strategy=GAStrategy.use_latest)
 
     def setUp(self):
         super().setUp()
@@ -112,7 +112,7 @@ class GradesTestMixin(SingleCoursePageTestMixin, MockAddMessageMixing):
         gc_kwargs = {
             "opportunity": opportunity or cls.gopp,
             "participation": cls.student_participation,
-            "state": state or g_state.graded,
+            "state": state or GSChangeType.graded,
             "attempt_id": attempt_id,
             "points": points,
             "max_points": max_points or 100,
@@ -388,7 +388,7 @@ class GetGradeTableTest(GradesTestMixin, TestCase):
 
         # this make sure it filtered by participation status active
         factories.ParticipationFactory(
-            course=cls.course, status=constants.participation_status.dropped)
+            course=cls.course, status=constants.ParticipationStatus.dropped)
 
         # another course and a gopp, this make sure it filtered by course
         another_course = factories.CourseFactory(identifier="another-course")
@@ -766,10 +766,10 @@ class ViewGradesByOpportunityTest(GradesTestMixin, TestCase):
     def test_batch_op_no_permission2(self):
         # with partial permission
         permission_ops = [
-            (pperm.batch_end_flow_session, "end"),
-            (pperm.batch_impose_flow_session_deadline, "expire"),
-            (pperm.batch_regrade_flow_session, "regrade"),
-            (pperm.batch_recalculate_flow_session_grade, "recalculate")]
+            (PPerm.batch_end_flow_session, "end"),
+            (PPerm.batch_impose_flow_session_deadline, "expire"),
+            (PPerm.batch_regrade_flow_session, "regrade"),
+            (PPerm.batch_recalculate_flow_session_grade, "recalculate")]
 
         from itertools import combinations
         comb = list(combinations(permission_ops, 2))
@@ -971,13 +971,13 @@ class GradesChangeStateMachineTest(GradesTestMixin, TestCase):
 
     def test_change_aggregate_strategy_average(self):
         self.use_default_setup()
-        self.update_gopp_strategy(g_strategy.avg_grade)
+        self.update_gopp_strategy(GAStrategy.avg_grade)
         self.assertGradeChangeMachineReadableStateEqual(4.333)
         self.assertGradeChangeStateEqual("4.3% (/3)")
 
     def test_change_aggregate_strategy_earliest(self):
         self.use_default_setup()
-        self.update_gopp_strategy(g_strategy.use_earliest)
+        self.update_gopp_strategy(GAStrategy.use_earliest)
         self.assertGradeChangeMachineReadableStateEqual(0)
         self.assertGradeChangeStateEqual("0.0% (/3)")
 
@@ -988,7 +988,7 @@ class GradesChangeStateMachineTest(GradesTestMixin, TestCase):
 
     def test_change_aggregate_strategy_max(self):
         self.use_default_setup()
-        self.update_gopp_strategy(g_strategy.max_grade)
+        self.update_gopp_strategy(GAStrategy.max_grade)
         self.assertGradeChangeMachineReadableStateEqual(7)
         self.assertGradeChangeStateEqual("7.0% (/3)")
 
@@ -999,7 +999,7 @@ class GradesChangeStateMachineTest(GradesTestMixin, TestCase):
 
     def test_change_aggregate_strategy_max_none(self):
         # when no grade change has percentage
-        self.update_gopp_strategy(g_strategy.max_grade)
+        self.update_gopp_strategy(GAStrategy.max_grade)
         self.assertGradeChangeMachineReadableStateEqual("NONE")
         self.assertGradeChangeStateEqual("- ∅ -")
 
@@ -1014,13 +1014,13 @@ class GradesChangeStateMachineTest(GradesTestMixin, TestCase):
 
     def test_change_aggregate_strategy_min(self):
         self.use_default_setup()
-        self.update_gopp_strategy(g_strategy.min_grade)
+        self.update_gopp_strategy(GAStrategy.min_grade)
         self.assertGradeChangeMachineReadableStateEqual(0)
         self.assertGradeChangeStateEqual("0.0% (/3)")
 
     def test_change_aggregate_strategy_min_none(self):
         # when no grade change has percentage
-        self.update_gopp_strategy(g_strategy.min_grade)
+        self.update_gopp_strategy(GAStrategy.min_grade)
         self.assertGradeChangeMachineReadableStateEqual("NONE")
         self.assertGradeChangeStateEqual("- ∅ -")
 
@@ -1040,7 +1040,7 @@ class GradesChangeStateMachineTest(GradesTestMixin, TestCase):
         self.assertGradeChangeMachineReadableStateEqual(6)
         self.assertGradeChangeStateEqual("6.0% (/3)")
 
-        # make sure participations with pperm.included_in_grade_statistics
+        # make sure participations with PPerm.included_in_grade_statistics
         # are not included
         factories.GradeChangeFactory.create(**(self.gc(
             participation=self.instructor_participation, points=2)))
@@ -1111,7 +1111,7 @@ class GradesChangeStateMachineTest(GradesTestMixin, TestCase):
     def test_gc_unavailable(self):
         factories.GradeChangeFactory.create(**(self.gc(points=9.1)))
         factories.GradeChangeFactory.create(
-            **(self.gc(points=0, state=g_state.unavailable)))
+            **(self.gc(points=0, state=GSChangeType.unavailable)))
         machine = self.get_gc_machine()
         self.assertGradeChangeMachineReadableStateEqual("OTHER_STATE")
         self.assertEqual(machine.valid_percentages, [])
@@ -1133,7 +1133,7 @@ class GradesChangeStateMachineTest(GradesTestMixin, TestCase):
     def test_gc_exempt(self):
         factories.GradeChangeFactory.create(**(self.gc(points=6)))
         factories.GradeChangeFactory.create(
-            **(self.gc(points=0, state=g_state.exempt)))
+            **(self.gc(points=0, state=GSChangeType.exempt)))
         machine = self.get_gc_machine()
         self.assertGradeChangeMachineReadableStateEqual("EXEMPT")
         self.assertEqual(machine.valid_percentages, [])
@@ -1157,7 +1157,7 @@ class GradesChangeStateMachineTest(GradesTestMixin, TestCase):
 
         # This creates a GradeChange object with no attempt_id
         factories.GradeChangeFactory.create(
-            **(self.gc(points=0, state=g_state.do_over,
+            **(self.gc(points=0, state=GSChangeType.do_over,
                        null_attempt_id=True)))
         machine = self.get_gc_machine()
         self.assertGradeChangeMachineReadableStateEqual("NONE")
@@ -1175,7 +1175,7 @@ class GradesChangeStateMachineTest(GradesTestMixin, TestCase):
     def test_gc_do_over_average_grade_value(self):
         self.use_default_setup()
         factories.GradeChangeFactory.create(
-            **(self.gc(points=None, state=g_state.do_over,
+            **(self.gc(points=None, state=GSChangeType.do_over,
                        flow_session=self.session2)))
 
         with self.temporarily_switch_to_user(self.student_participation.user):
@@ -1186,7 +1186,7 @@ class GradesChangeStateMachineTest(GradesTestMixin, TestCase):
     def test_gc_report_sent(self):
         factories.GradeChangeFactory.create(**(self.gc(points=6)))
         gc2 = factories.GradeChangeFactory.create(
-            **(self.gc(points=0, state=g_state.report_sent)))
+            **(self.gc(points=0, state=GSChangeType.report_sent)))
         machine = self.get_gc_machine()
         self.assertGradeChangeMachineReadableStateEqual("6")
         self.assertGradeChangeStateEqual("6.0%")
@@ -1195,7 +1195,7 @@ class GradesChangeStateMachineTest(GradesTestMixin, TestCase):
     def test_gc_extension(self):
         factories.GradeChangeFactory.create(**(self.gc(points=6)))
         gc2 = factories.GradeChangeFactory.create(
-            **(self.gc(points=0, state=g_state.extension,
+            **(self.gc(points=0, state=GSChangeType.extension,
                        due_time=self.time + timedelta(days=1))))
         machine = self.get_gc_machine()
         self.assertGradeChangeMachineReadableStateEqual("6")
@@ -1205,14 +1205,14 @@ class GradesChangeStateMachineTest(GradesTestMixin, TestCase):
     def test_gc_grading_started(self):
         factories.GradeChangeFactory.create(**(self.gc(points=6)))
         factories.GradeChangeFactory.create(
-            **(self.gc(points=0, state=g_state.grading_started)))
+            **(self.gc(points=0, state=GSChangeType.grading_started)))
         self.assertGradeChangeMachineReadableStateEqual("6")
         self.assertGradeChangeStateEqual("6.0%")
 
     def test_gc_retrieved(self):
         factories.GradeChangeFactory.create(**(self.gc(points=6)))
         factories.GradeChangeFactory.create(
-            **(self.gc(points=0, state=g_state.retrieved)))
+            **(self.gc(points=0, state=GSChangeType.retrieved)))
         self.assertGradeChangeMachineReadableStateEqual("6")
         self.assertGradeChangeStateEqual("6.0%")
 
@@ -1237,12 +1237,12 @@ class ViewParticipantGradesTest2(GradesTestMixin, TestCase):
         super().setUp()
         self.use_default_setup()
         self.gopp_hidden_in_gradebook = factories.GradingOpportunityFactory(
-            course=self.course, aggregation_strategy=g_strategy.use_latest,
+            course=self.course, aggregation_strategy=GAStrategy.use_latest,
             flow_id=None, shown_in_grade_book=False,
             identifier="hidden_in_instructor_grade_book")
 
         self.gopp_hidden_in_gradebook = factories.GradingOpportunityFactory(
-            course=self.course, aggregation_strategy=g_strategy.use_latest,
+            course=self.course, aggregation_strategy=GAStrategy.use_latest,
             flow_id=None, shown_in_grade_book=False,
             identifier="only_hidden_in_grade_book")
 
@@ -1250,19 +1250,19 @@ class ViewParticipantGradesTest2(GradesTestMixin, TestCase):
             factories.GradingOpportunityFactory(
                 course=self.course,
                 shown_in_participant_grade_book=False,
-                aggregation_strategy=g_strategy.use_latest,
+                aggregation_strategy=GAStrategy.use_latest,
                 flow_id=None, identifier="all_hidden_in_ptcp_gradebook"))
 
         self.gopp_result_hidden_in_participation_gradebook = (
             factories.GradingOpportunityFactory(
                 course=self.course, result_shown_in_participant_grade_book=False,
-                aggregation_strategy=g_strategy.use_latest,
+                aggregation_strategy=GAStrategy.use_latest,
                 flow_id=None, identifier="result_hidden_in_ptcp_gradebook"))
 
         self.gc_gopp_result_hidden = factories.GradeChangeFactory(
             **self.gc(points=66.67,
                       opportunity=self.gopp_result_hidden_in_participation_gradebook,
-                      state=g_state.graded))
+                      state=GSChangeType.graded))
 
     def test_view_my_grade(self):
         with self.temporarily_switch_to_user(self.student_participation.user):
@@ -1500,10 +1500,10 @@ class ViewSingleGradeTest(GradesTestMixin, TestCase):
         another_participation = factories.ParticipationFactory(
             course=self.course)
 
-        # only view_gradebook pperm
+        # only view_gradebook PPerm
         pp = models.ParticipationPermission(
             participation=another_participation,
-            permission=pperm.view_gradebook)
+            permission=PPerm.view_gradebook)
         pp.save()
 
         fs = factories.FlowSessionFactory(
@@ -1692,7 +1692,7 @@ class EditGradingOpportunityTest(GradesTestMixin, TestCase):
             self, name, identifier, page_scores_in_participant_gradebook=False,
             hide_superseded_grade_history_before=None,
             op="submit", shown_in_participant_grade_book=True,
-            aggregation_strategy=constants.grade_aggregation_strategy.use_latest,
+            aggregation_strategy=constants.GradeAggregationStrategy.use_latest,
             shown_in_grade_book=True, result_shown_in_participant_grade_book=True,
             **kwargs):
 
@@ -2150,7 +2150,7 @@ class FixingTest(GradesTestMixin, TestCase):
         self.assertEqual(expected_n_gc, n_gc + 1)
         self.assertEqual(
             models.GradeChange.objects.order_by("grade_time").last().state,
-            g_state.do_over)
+            GSChangeType.do_over)
 
         self.assertGradeChangeMachineReadableStateEqual("NONE")
         self.assertGradeChangeStateEqual("- ∅ - (/3)")
@@ -2179,7 +2179,7 @@ class FixingTest(GradesTestMixin, TestCase):
         self.assertEqual(expected_n_gc, n_gc + 1)
         self.assertEqual(
             models.GradeChange.objects.order_by("grade_time").last().state,
-            g_state.do_over)
+            GSChangeType.do_over)
 
         # session 1 is not the latest session
         self.assertGradeChangeMachineReadableStateEqual("6")
@@ -2216,7 +2216,7 @@ class FixingTest(GradesTestMixin, TestCase):
             models.GradeChange.objects
             .order_by("-grade_time").first())
         self.assertIsNone(last_gchange.flow_session)
-        self.assertEqual(last_gchange.state, g_state.exempt)
+        self.assertEqual(last_gchange.state, GSChangeType.exempt)
 
     def test_delete_flow_session_admin_no_new_gradechange_created(self):
         session_temp = factories.FlowSessionFactory.create(

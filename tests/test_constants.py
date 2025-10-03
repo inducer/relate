@@ -31,25 +31,25 @@ from course import constants
 class IsExpirationModeAllowedTest(unittest.TestCase):
     # test course.constants.is_expiration_mode_allowed
     def test_roll_over(self):
-        expmode = constants.flow_session_expiration_mode.roll_over
+        expmode = constants.FlowSessionExpirationMode.roll_over
         permissions = frozenset([])
         self.assertFalse(
             constants.is_expiration_mode_allowed(expmode, permissions))
 
         permissions = frozenset([
-            constants.flow_permission.set_roll_over_expiration_mode
+            constants.FlowPermission.set_roll_over_expiration_mode
         ])
         self.assertTrue(
             constants.is_expiration_mode_allowed(expmode, permissions))
 
     def test_end(self):
-        expmode = constants.flow_session_expiration_mode.end
-        permissions = frozenset([constants.flow_permission.end_session])
+        expmode = constants.FlowSessionExpirationMode.end
+        permissions = frozenset([constants.FlowPermission.end_session])
         self.assertTrue(
             constants.is_expiration_mode_allowed(expmode, permissions))
 
         permissions = frozenset([
-            constants.flow_permission.set_roll_over_expiration_mode
+            constants.FlowPermission.set_roll_over_expiration_mode
         ])
         self.assertTrue(
             constants.is_expiration_mode_allowed(expmode, permissions))
@@ -67,8 +67,8 @@ class IsExpirationModeAllowedTest(unittest.TestCase):
         self.assertEqual(expected_error_msg, str(cm.exception))
 
         permissions = frozenset([
-            constants.flow_permission.set_roll_over_expiration_mode,
-            constants.flow_permission.end_session
+            constants.FlowPermission.set_roll_over_expiration_mode,
+            constants.FlowPermission.end_session
         ])
 
         with self.assertRaises(ValueError) as cm:

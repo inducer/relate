@@ -30,12 +30,12 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 
 from accounts.models import User
+from course.constants import ParticipationStatus
 from course.models import (
     Course,
     Participation,
     ParticipationPreapproval,
     ParticipationRole,
-    participation_status,
 )
 
 
@@ -59,13 +59,13 @@ def update_requested_participation_status(
         course_updated = True
         course = instance
         requested_qset = Participation.objects.filter(
-                course=course, status=participation_status.requested)
+                course=course, status=ParticipationStatus.requested)
     else:
         assert isinstance(instance, User)
         user_updated = True
         user = instance
         requested_qset = Participation.objects.filter(
-                user=user, status=participation_status.requested)
+                user=user, status=ParticipationStatus.requested)
 
     for requested in requested_qset:
         if course_updated:
@@ -80,7 +80,7 @@ def update_requested_participation_status(
             from course.enrollment import handle_enrollment_request
 
             handle_enrollment_request(
-                course, user, participation_status.active, roles)
+                course, user, ParticipationStatus.active, roles)
 
 
 def may_preapprove_role(

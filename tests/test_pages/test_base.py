@@ -25,7 +25,9 @@ THE SOFTWARE.
 
 import unittest
 
+import pytest
 from django.test import Client, TestCase
+from pydantic import ValidationError as PdValidationError
 
 from course.page.base import (
     HumanTextFeedbackForm,
@@ -34,7 +36,8 @@ from course.page.base import (
     get_editor_interaction_mode,
 )
 from course.page.static import Page
-from relate.utils import dict_to_struct
+from course.repo import EmptyRepo
+from course.validation import ValidationContext
 from tests.base_test_mixins import SingleCourseQuizPageTestMixin
 from tests.constants import PAGE_ERRORS
 from tests.test_grading import SingleCourseQuizPageGradeInterfaceTestMixin
@@ -167,7 +170,7 @@ class CreateDefaultPointScaleTest(unittest.TestCase):
 def correct_answer_side_effect_super(
         self, page_context, page_data, answer_data, grade_data):
     from course.page.text import TextQuestionBase
-    return super(TextQuestionBase, self).correct_answer(
+    return super(TextQuestionBase, self).page_correct_answer(
         page_context, page_data, answer_data, grade_data)
 
 
@@ -202,7 +205,7 @@ class PageBaseAPITest(SingleCourseQuizPageTestMixin, TestCase):
         self.assertResponseContextIsNotNone(resp, "correct_answer")
 
         # make sure PageBase.correctness works
-        with mock.patch("course.page.text.TextQuestion.correct_answer",
+        with mock.patch("course.page.text.TextQuestion.page_correct_answer",
                         autospec=True) as mock_correctness:
             mock_correctness.side_effect = correct_answer_side_effect_super
             resp = self.client.get(self.get_page_url_by_page_id(self.page_id))
@@ -243,82 +246,78 @@ class PageBaseGetModifiedPermissionsForPageTest(unittest.TestCase):
 
         page_base_desc = {
                 "id": "abcd",
-                "type": "SomePageType",
+                # "type": "SomePageType",
                 "content": "Um?",
                 "title": "Title",
             }
+        vctx = ValidationContext(EmptyRepo(), b"norev")
         with self.subTest(access_rules="Not present"):
-            page_desc = dict_to_struct(
+            page_desc = (
                 page_base_desc
             )
-            page = Page(None, "", page_desc)
+            page = Page.model_validate(page_desc, context=vctx)
             self.assertSetEqual(
                 page.get_modified_permissions_for_page(access_rule_permissions),
                 access_rule_permissions)
 
         with self.subTest(access_rules={}):
-            page_desc = dict_to_struct(
+            page_desc = (
                 {
                     **page_base_desc,
                     "access_rules": {},
                 }
             )
-            page = Page(None, "", page_desc)
+            page = Page.model_validate(page_desc, context=vctx)
             self.assertSetEqual(
                 page.get_modified_permissions_for_page(access_rule_permissions),
                 access_rule_permissions)
 
         with self.subTest(access_rules={"add_permissions": [],
                                         "remove_permissions": []}):
-            page_desc = dict_to_struct(
+            page_desc = (
                 {
                     **page_base_desc,
                     "access_rules": {"add_permissions": [],
                                      "remove_permissions": []}
                 }
             )
-            page = Page(None, "", page_desc)
+            page = Page.model_validate(page_desc, context=vctx)
             self.assertSetEqual(
                 page.get_modified_permissions_for_page(access_rule_permissions),
                 access_rule_permissions)
 
         with self.subTest(access_rules={"add_permissions": ["some_perm"],
                                         "remove_permissions": []}):
-            page_desc = dict_to_struct(
+            page_desc = (
                 {
                     **page_base_desc,
                     "access_rules": {"add_permissions": ["some_perm"],
                                      "remove_permissions": []}
                 }
             )
-            page = Page(None, "", page_desc)
-            self.assertSetEqual(
-                page.get_modified_permissions_for_page(access_rule_permissions),
-                frozenset([*access_rule_permissions_list, "some_perm"]))
+            with pytest.raises(PdValidationError):
+                page = Page.model_validate(page_desc, context=vctx)
 
         with self.subTest(access_rules={"remove_permissions": ["none_exist_perm"]}):
-            page_desc = dict_to_struct(
+            page_desc = (
                 {
                     **page_base_desc,
                     "access_rules": {"remove_permissions": ["none_exist_perm"]}
                 }
             )
-            page = Page(None, "", page_desc)
-
-            self.assertSetEqual(
-                page.get_modified_permissions_for_page(access_rule_permissions),
-                access_rule_permissions)
+            with pytest.raises(PdValidationError):
+                page = Page.model_validate(page_desc, context=vctx)
 
         with self.subTest(access_rules={
                 "remove_permissions": [access_rule_permissions_list[0]]}):
-            page_desc = dict_to_struct(
+            page_desc = (
                 {
                     **page_base_desc,
                     "access_rules": {
                         "remove_permissions": [access_rule_permissions_list[0]]}
                 }
             )
-            page = Page(None, "", page_desc)
+            page = Page.model_validate(page_desc, context=vctx)
 
             self.assertSetEqual(
                 page.get_modified_permissions_for_page(access_rule_permissions),
@@ -610,8 +609,7 @@ class PageBaseWithValueTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
         self.assertSandboxNotHasValidPage(resp)
         self.assertResponseContextContains(
             resp, PAGE_ERRORS,
-            "Attribute 'value' should be removed when "
-            "'is_optional_page' is True.")
+            "may not specify value for optional pages")
 
     def test_optional_page_with_negative_value_attr(self):
         markdown = TEXT_QUESTION_WITH_NEGATIVE_VALUE_MARKDOWN
@@ -620,42 +618,10 @@ class PageBaseWithValueTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
         self.assertSandboxNotHasValidPage(resp)
         self.assertResponseContextContains(
             resp, PAGE_ERRORS,
-            "sandboxAttribute 'value' expects a non-negative value, "
-            "got -2 instead")
+            "value\n  Input should be greater than or equal to 0")
 
 
 class PageBaseWithTitleTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
-
-    def test_markup_body_for_title_not_implemented(self):
-        with mock.patch("course.page.static.Page.markup_body_for_title")\
-                as mock_markup_body_for_title, \
-                mock.patch("warnings.warn") as mock_warn:
-            mock_markup_body_for_title.side_effect = NotImplementedError
-
-            markdown = (
-                    PAGE_WITH_TITLE_MARKDOWN_PATTERN
-                    % {"attr_title": "",
-                       "content_title": ""})
-
-            resp = self.get_page_sandbox_preview_response(markdown)
-            self.assertEqual(resp.status_code, 200)
-            self.assertSandboxNotHasValidPage(resp)
-            self.assertResponseContextContains(
-                resp, PAGE_ERRORS,
-                "no title found in body or title attribute")
-
-            # There may be other warnings besides this expected warning
-            self.assertTrue(mock_warn.call_count >= 1)
-            warned_with_expected_msg = False
-            expected_warn_msg = ("PageBaseWithTitle subclass 'Page' does not "
-                                 "implement markup_body_for_title()")
-            for args in mock_warn.call_args_list:
-                if expected_warn_msg in args[0]:
-                    warned_with_expected_msg = True
-                    break
-
-            if not warned_with_expected_msg:
-                self.fail(f"{expected_warn_msg} is not warned as expected")
 
     def test_no_title(self):
         markdown = (
@@ -667,7 +633,7 @@ class PageBaseWithTitleTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
         self.assertSandboxNotHasValidPage(resp)
         self.assertResponseContextContains(
             resp, PAGE_ERRORS,
-            "no title found in body or title attribute")
+            "no title could be determined")
 
     def test_no_actual_title(self):
         markdown = (
@@ -679,7 +645,7 @@ class PageBaseWithTitleTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
         self.assertSandboxNotHasValidPage(resp)
         self.assertResponseContextContains(
             resp, PAGE_ERRORS,
-            "no title found in body or title attribute")
+            "no title could be determined")
 
         markdown = (
                 PAGE_WITH_TITLE_MARKDOWN_PATTERN
@@ -690,7 +656,7 @@ class PageBaseWithTitleTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
         self.assertSandboxNotHasValidPage(resp)
         self.assertResponseContextContains(
             resp, PAGE_ERRORS,
-            "no title found in body or title attribute")
+            "no title could be determined")
 
     def test_attr_title(self):
         expected_title_str = "This is attribute title"

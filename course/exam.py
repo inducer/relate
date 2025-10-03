@@ -23,7 +23,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, cast
 
@@ -33,14 +32,13 @@ from django import http
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import permission_required
-from django.core.exceptions import (  # noqa
+from django.core.exceptions import (
     ObjectDoesNotExist,
     PermissionDenied,
-    SuspiciousOperation,
 )
 from django.db import transaction
 from django.db.models import Q
-from django.shortcuts import get_object_or_404, redirect, render  # noqa
+from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.utils.html import escape
 from django.utils.safestring import mark_safe
@@ -48,12 +46,13 @@ from django.utils.translation import gettext, gettext_lazy as _, pgettext
 from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.debug import sensitive_post_parameters
+from pytools import not_none
 
 from course.constants import (
     SESSION_LOCKED_TO_FLOW_PK,
-    exam_ticket_states,
-    participation_permission as pperm,
-    participation_status,
+    ExamTicketState,
+    ParticipationPermission as PPerm,
+    ParticipationStatus,
 )
 from course.models import (
     Course,
@@ -68,7 +67,6 @@ from relate.utils import (
     HTML5DateTimeInput,
     RelateHttpRequest,
     StyledForm,
-    not_none,
     string_concat,
 )
 
@@ -176,7 +174,7 @@ def issue_exam_ticket(request):
                 participation = Participation.objects.get(
                                 course=exam.course,
                                 user=form.cleaned_data["user"],
-                                status=participation_status.active,
+                                status=ParticipationStatus.active,
                                 )
 
             except ObjectDoesNotExist:
@@ -190,16 +188,16 @@ def issue_exam_ticket(request):
                             exam=exam,
                             participation=participation,
                             state__in=(
-                                exam_ticket_states.valid,
-                                exam_ticket_states.used,
+                                ExamTicketState.valid,
+                                ExamTicketState.used,
                                 )
-                            ).update(state=exam_ticket_states.revoked)
+                            ).update(state=ExamTicketState.revoked)
 
                 ticket = ExamTicket()
                 ticket.exam = exam
                 ticket.participation = participation
                 ticket.creator = request.user
-                ticket.state = exam_ticket_states.valid
+                ticket.state = ExamTicketState.valid
                 if form.cleaned_data["code"]:
                     ticket.code = form.cleaned_data["code"]
                 else:
@@ -400,7 +398,7 @@ class TicketInfo:
 
 @course_view
 def batch_issue_exam_tickets(pctx):
-    if not pctx.has_permission(pperm.batch_issue_exam_ticket):
+    if not pctx.has_permission(PPerm.batch_issue_exam_ticket):
         raise PermissionDenied(_("may not batch-issue tickets"))
 
     form_text = ""
@@ -422,16 +420,16 @@ def batch_issue_exam_tickets(pctx):
                         ExamTicket.objects.filter(
                                 exam=exam,
                                 state__in=(
-                                    exam_ticket_states.valid,
-                                    exam_ticket_states.used,
+                                    ExamTicketState.valid,
+                                    ExamTicketState.used,
                                     )
-                                ).update(state=exam_ticket_states.revoked)
+                                ).update(state=ExamTicketState.revoked)
 
                     tickets = []
                     participation_qset = (
                             Participation.objects.filter(
                                 course=pctx.course,
-                                status=participation_status.active)
+                                status=ParticipationStatus.active)
                             .order_by("user__last_name"))
                     if form.cleaned_data["limit_to_tag"]:
                         participation_qset = participation_qset.filter(
@@ -442,7 +440,7 @@ def batch_issue_exam_tickets(pctx):
                         ticket.exam = exam
                         ticket.participation = participation
                         ticket.creator = request.user
-                        ticket.state = exam_ticket_states.valid
+                        ticket.state = ExamTicketState.valid
                         if form.cleaned_data["code"]:
                             ticket.code = form.cleaned_data["code"]
                         else:
@@ -509,8 +507,8 @@ def _redirect_to_exam(
         now_datetime: datetime.datetime) -> http.HttpResponse:
     """Assumes ticket is checked and valid."""
 
-    if ticket.state == exam_ticket_states.valid:
-        ticket.state = exam_ticket_states.used
+    if ticket.state == ExamTicketState.valid:
+        ticket.state = ExamTicketState.used
         ticket.usage_time = now_datetime
         ticket.save()
 
@@ -559,8 +557,8 @@ def check_exam_ticket(
         return (False, None, _("User name or ticket code not recognized."))
 
     if ticket.state not in [
-            exam_ticket_states.valid,
-            exam_ticket_states.used
+            ExamTicketState.valid,
+            ExamTicketState.used
             ]:
         return (False, ticket,
                 _("Ticket is not in usable state. (Has it been revoked?)"))
@@ -572,7 +570,7 @@ def check_exam_ticket(
     validity_period = timedelta(
             minutes=settings.RELATE_TICKET_MINUTES_VALID_AFTER_USE)
 
-    if (ticket.state == exam_ticket_states.used
+    if (ticket.state == ExamTicketState.used
             and now_datetime >= not_none(ticket.usage_time) + validity_period):
         return (False, ticket, _("Ticket has exceeded its validity period."))
 
@@ -912,7 +910,7 @@ def list_available_exams(request):
         participations = (
                 Participation.objects.filter(
                     user=request.user,
-                    status=participation_status.active))
+                    status=ParticipationStatus.active))
     else:
         participations = []
 

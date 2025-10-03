@@ -2,7 +2,7 @@ from django.db import migrations
 
 
 def remove_mistakenly_added_individual_pperm(apps, schema_editor):
-    from course.constants import participation_permission as pperm
+    from course.constants import ParticipationPermission as pperm
 
     ParticipationPermission = apps.get_model("course", "ParticipationPermission")
     Participation = apps.get_model("course", "Participation")
@@ -19,7 +19,7 @@ def remove_mistakenly_added_individual_pperm(apps, schema_editor):
 
 
 def add_skip_during_manual_grading_permission_to_roles(apps, schema_editor):
-    from course.constants import participation_permission as pperm
+    from course.constants import ParticipationPermission as pperm
 
     ParticipationRolePermission = apps.get_model("course", "ParticipationRolePermission")
 
