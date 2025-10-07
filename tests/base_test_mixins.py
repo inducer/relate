@@ -2604,10 +2604,10 @@ class SubprocessRunpyContainerMixin:
                 ]
         cls.faked_container_process = subprocess.Popen(
             args,
-            stdout=subprocess.DEVNULL,
+            # stdout=subprocess.DEVNULL,
 
             # because runpy prints to stderr
-            stderr=subprocess.DEVNULL
+            # stderr=subprocess.DEVNULL
         )
 
     def setUp(self):
