@@ -269,7 +269,7 @@ class ResponseContextMixin:
     def assertResponseContextEqual(self, resp, context_name, expected_value):  # noqa
         value = self.get_response_context_value_by_name(resp, context_name)
         try:
-            self.assertTrue(float(value) - float(expected_value) <= 1e-04)
+            self.assertTrue(abs(float(value) - float(expected_value)) <= 1e-04)
             return
         except Exception:
             self.assertEqual(value, expected_value)
