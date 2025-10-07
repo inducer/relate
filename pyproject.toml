@@ -294,6 +294,10 @@ exclude = [
     "local_settings.py",
     "doc/conf.py",
 ]
+include = [
+    ".",
+    "docker-image-run-py/runcode"
+]
 
 [[tool.basedpyright.executionEnvironments]]
 root = "tests"
