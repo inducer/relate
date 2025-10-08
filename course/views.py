@@ -277,6 +277,9 @@ def repo_file_etag_func(request, course_identifier, commit_sha, path):
 @cache_control(max_age=3600*24*31)  # cache for a month
 @http_dec.condition(etag_func=repo_file_etag_func)
 def get_repo_file(request, course_identifier, commit_sha, path):
+    # NB: This endpoint is available in an exam. It is responsible for
+    # not allowing access to unauthorized material in a locked-down setting.
+
     commit_sha = commit_sha.encode()
 
     course = get_object_or_404(Course, identifier=course_identifier)
@@ -304,6 +307,9 @@ def current_repo_file_etag_func(
 def get_current_repo_file(
         request: http.HttpRequest, course_identifier: str, path: str
         ) -> http.HttpResponse:
+    # NB: This endpoint is available in an exam. It is responsible for
+    # not allowing access to unauthorized material in a locked-down setting.
+
     course = get_object_or_404(Course, identifier=course_identifier)
     participation = get_participation_for_request(request, course)
 
