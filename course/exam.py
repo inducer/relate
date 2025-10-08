@@ -844,6 +844,8 @@ class ExamLockdownMiddleware:
 
             ok = False
             if resolver_match.func in [
+                    # NB: These two recognize and manage file access specific to
+                    # exams lockdown.
                     get_repo_file,
                     get_current_repo_file,
 
