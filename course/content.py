@@ -1505,9 +1505,14 @@ def markup_to_html(
     if jinja_env is None:
         jinja_env = {}
 
-    disable_codehilite = bool(
-        getattr(settings,
-                "RELATE_DISABLE_CODEHILITE_MARKDOWN_EXTENSION", True))
+    if course is not None:
+        # use that as a proxy for whether Django is initialized and settings are
+        # available
+        disable_codehilite = bool(
+            getattr(settings,
+                    "RELATE_DISABLE_CODEHILITE_MARKDOWN_EXTENSION", True))
+    else:
+        disable_codehilite = False
 
     if course is not None and not jinja_env:
         try:
