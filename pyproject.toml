@@ -293,6 +293,7 @@ exclude = [
     "prairietest/migrations",
     "local_settings.py",
     "doc/conf.py",
+    "node_modules",
 ]
 include = [
     ".",
