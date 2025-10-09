@@ -157,6 +157,8 @@ def _eval_generic_conditions(
         if not has_access_to_exam(
                     course,
                     participation.user.email,
+                    (participation.user.institutional_id
+                        if participation.user.institutional_id_verified else None),
                     rule.if_has_prairietest_exam_access,
                     now_datetime,
                     remote_ip_address,
