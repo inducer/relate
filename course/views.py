@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from course.validation import ValidationContext
-
 
 __copyright__ = "Copyright (C) 2014 Andreas Kloeckner"
 
@@ -86,12 +84,14 @@ from course.utils import (
     get_course_specific_language_choices,
     render_course_page,
 )
+from course.validation import ValidationContext
 from relate.utils import (
     HTML5DateInput,
     HTML5DateTimeInput,
     RelateHttpRequest,
     StyledForm,
     StyledModelForm,
+    is_authed,
     string_concat,
 )
 
@@ -256,13 +256,22 @@ def static_page(pctx: CoursePageContext, page_path: str) -> http.HttpResponse:
 
 # {{{ media
 
-def media_etag_func(request, course_identifier, commit_sha, media_path):
+def media_etag_func(
+            request: RelateHttpRequest,  # pyright: ignore[reportUnusedParameter]
+            course_identifier: str,
+            commit_sha: str,
+            media_path: str):
     return ":".join([course_identifier, commit_sha, media_path])
 
 
 @cache_control(max_age=3600*24*31)  # cache for a month
 @http_dec.condition(etag_func=media_etag_func)
-def get_media(request, course_identifier, commit_sha, media_path):
+def get_media(
+            request: RelateHttpRequest,  # pyright: ignore[reportUnusedParameter]
+            course_identifier: str,
+            commit_sha: str,
+            media_path: str
+        ):
     course = get_object_or_404(Course, identifier=course_identifier)
 
     with get_course_repo(course) as repo:
@@ -270,28 +279,39 @@ def get_media(request, course_identifier, commit_sha, media_path):
             repo, "media/" + media_path, commit_sha.encode())
 
 
-def repo_file_etag_func(request, course_identifier, commit_sha, path):
+def repo_file_etag_func(
+            request: RelateHttpRequest,  # pyright: ignore[reportUnusedParameter]
+            course_identifier: str,
+            commit_sha: str,
+            path: str):
     return ":".join([course_identifier, commit_sha, path])
 
 
 @cache_control(max_age=3600*24*31)  # cache for a month
 @http_dec.condition(etag_func=repo_file_etag_func)
-def get_repo_file(request, course_identifier, commit_sha, path):
+def get_repo_file(
+            request: RelateHttpRequest,
+            course_identifier: str,
+            commit_sha: str,
+            path: str):
     # NB: This endpoint is available in an exam. It is responsible for
     # not allowing access to unauthorized material in a locked-down setting.
 
-    commit_sha = commit_sha.encode()
+    commit_sha_bytes = commit_sha.encode()
 
     course = get_object_or_404(Course, identifier=course_identifier)
 
     participation = get_participation_for_request(request, course)
 
     return get_repo_file_backend(
-            request, course, participation, commit_sha, path)
+            request, course, participation, commit_sha_bytes, path)
 
 
 def current_repo_file_etag_func(
-        request: http.HttpRequest, course_identifier: str, path: str) -> str:
+            request: http.HttpRequest,
+            course_identifier: str,
+            path: str
+        ) -> str:
     course = get_object_or_404(Course, identifier=course_identifier)
     participation = get_participation_for_request(request, course)
 
@@ -435,7 +455,9 @@ def may_set_fake_time(user: User | None) -> bool:
 
 
 @login_required
-def set_fake_time(request):
+def set_fake_time(request: RelateHttpRequest):
+    assert is_authed(request.user)
+
     # allow staff to set fake time when impersonating
     pre_imp_user = get_pre_impersonation_user(request)
     if not (
@@ -470,7 +492,7 @@ def set_fake_time(request):
     })
 
 
-def fake_time_context_processor(request):
+def fake_time_context_processor(request: RelateHttpRequest):
     return {
             "fake_time": get_fake_time(request),
             }
@@ -528,7 +550,9 @@ def may_set_pretend_facility(user: User | None) -> bool:
 
 
 @login_required
-def set_pretend_facilities(request):
+def set_pretend_facilities(request: RelateHttpRequest):
+    assert is_authed(request.user)
+
     # allow staff to set fake time when impersonating
     pre_imp_user = get_pre_impersonation_user(request)
     if not (
@@ -573,7 +597,7 @@ def set_pretend_facilities(request):
     })
 
 
-def pretend_facilities_context_processor(request):
+def pretend_facilities_context_processor(request: RelateHttpRequest):
     return {
             "pretend_facilities": request.session.get(
                 "relate_pretend_facilities", []),
@@ -611,7 +635,7 @@ class InstantFlowRequestForm(StyledForm):
 
 
 @course_view
-def manage_instant_flow_requests(pctx):
+def manage_instant_flow_requests(pctx: CoursePageContext):
     if not pctx.has_permission(PPerm.manage_instant_flow_requests):
         raise PermissionDenied()
 
@@ -688,7 +712,7 @@ class FlowTestForm(StyledForm):
 
 
 @course_view
-def test_flow(pctx):
+def test_flow(pctx: CoursePageContext):
     if not pctx.has_permission(PPerm.test_flow):
         raise PermissionDenied()
 
@@ -757,7 +781,7 @@ class ExceptionStage1Form(StyledForm):
 
 
 @course_view
-def grant_exception(pctx):
+def grant_exception(pctx: CoursePageContext):
     if not pctx.has_permission(PPerm.grant_exception):
         raise PermissionDenied(_("may not grant exceptions"))
 
@@ -850,8 +874,9 @@ class ExceptionStage2Form(StyledForm):
 
 @course_view
 def grant_exception_stage_2(
-        pctx: CoursePageContext, participation_id: str, flow_id: str
-        ) -> http.HttpResponse:
+            pctx: CoursePageContext,
+            participation_id: str,
+            flow_id: str) -> http.HttpResponse:
 
     if not pctx.has_permission(PPerm.grant_exception):
         raise PermissionDenied(_("may not grant exceptions"))
@@ -1424,7 +1449,7 @@ class EditCourseForm(StyledModelForm):
 
 
 @course_view
-def edit_course(pctx):
+def edit_course(pctx: CoursePageContext):
     if not pctx.has_permission(PPerm.edit_course):
         raise PermissionDenied()
 
