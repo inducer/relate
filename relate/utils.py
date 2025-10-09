@@ -25,6 +25,7 @@ THE SOFTWARE.
 
 
 import datetime
+from abc import ABC
 from ipaddress import IPv4Address, IPv6Address, ip_address, ip_network
 from typing import (
     TYPE_CHECKING,
@@ -55,7 +56,7 @@ ResultT = TypeVar("ResultT")
 P = ParamSpec("P")
 
 
-class RelateHttpRequest(HttpRequest):
+class RelateHttpRequest(HttpRequest, ABC):
     # add monkey-patched request attributes
 
     # added by FacilityFindingMiddleware
@@ -63,6 +64,8 @@ class RelateHttpRequest(HttpRequest):
 
     # added by ExamLockdownMiddleware
     relate_exam_lockdown: bool
+
+    relate_impersonate_original_user: User
 
 
 def is_authed(user: AbstractUser | AnonymousUser | User) -> TypeIs[User]:

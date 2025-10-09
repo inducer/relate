@@ -24,9 +24,13 @@ THE SOFTWARE.
 """
 
 import re
+from collections.abc import Callable
 from typing import (
     TYPE_CHECKING,
     Any,
+    Concatenate,
+    ParamSpec,
+    TypeAlias,
     cast,
 )
 
@@ -77,6 +81,7 @@ from course.models import (
 from course.utils import CoursePageContext, course_view, render_course_page
 from relate.utils import (
     HTML5DateTimeInput,
+    RelateHttpRequest,
     StyledForm,
     StyledModelForm,
     get_site_name,
@@ -93,7 +98,7 @@ if TYPE_CHECKING:
 
 # {{{ impersonation
 
-def get_pre_impersonation_user(request):
+def get_pre_impersonation_user(request: RelateHttpRequest):
     is_impersonating = hasattr(
             request, "relate_impersonate_original_user")
     if is_impersonating:
@@ -566,14 +571,14 @@ class ResetPasswordFormByInstid(StyledForm):
                 Submit("submit", _("Send email")))
 
 
-def masked_email(email):
+def masked_email(email: str):
     # return a masked email address
     at = email.find("@")
     return email[:2] + "*" * (len(email[3:at])-1) + email[at-1:]
 
 
 @logout_confirmation_required
-def reset_password(request, field="email"):
+def reset_password(request: RelateHttpRequest, field: str = "email"):
     if not settings.RELATE_REGISTRATION_ENABLED:
         raise SuspiciousOperation(
                 _("self-registration is not enabled"))
@@ -702,12 +707,15 @@ class ResetPasswordStage2Form(StyledForm):
 
 
 @logout_confirmation_required
-def reset_password_stage2(request, user_id, sign_in_key):
+def reset_password_stage2(
+            request: RelateHttpRequest,
+            user_id: str,
+            sign_in_key: str):
     if not settings.RELATE_REGISTRATION_ENABLED:
         raise SuspiciousOperation(
                 _("self-registration is not enabled"))
 
-    def check_sign_in_key(user_id, token):
+    def check_sign_in_key(user_id: int, token: str):
         user = get_user_model().objects.get(id=user_id)
         return user.sign_in_key == token
 
@@ -1277,9 +1285,17 @@ BASIC_AUTH_DATA_RE = re.compile(
     r"^(?P<username>\w+):(?P<token_id>[0-9]+)_(?P<token_hash>[a-z0-9]+)$")
 
 
-def auth_course_with_token(method, func, request,
-        course_identifier, *args, **kwargs):
+P = ParamSpec("P")
+APICallable: TypeAlias = Callable[Concatenate[APIContext, str, P], http.HttpResponse]
 
+
+def auth_course_with_token(
+            method: str,
+            func: APICallable[P],
+            request: RelateHttpRequest,
+            course_identifier: str,
+            *args: P.args,
+            **kwargs: P.kwargs):
     from django.utils.timezone import now
     now_datetime = now()
 
@@ -1325,12 +1341,13 @@ def auth_course_with_token(method, func, request,
                 "now_datetime": now_datetime}
 
         # FIXME: Redundant db roundtrip
-        token = find_matching_token(**auth_data_dict)
+        # mypy type-ignore because it gives a confused error message
+        token = find_matching_token(**auth_data_dict)  # type: ignore[arg-type]
         if token is None:
             raise PermissionDenied("invalid authentication token")
 
         from django.contrib.auth import authenticate, login
-        user = authenticate(**auth_data_dict)
+        user = authenticate(request, **auth_data_dict)
 
         assert user is not None
 
@@ -1367,9 +1384,14 @@ def auth_course_with_token(method, func, request,
 
 
 def with_course_api_auth(method: str) -> Any:
-    def wrapper_with_method(func):
-        def wrapper(*args, **kwargs):
-            return auth_course_with_token(method, func, *args, **kwargs)
+    def wrapper_with_method(func: APICallable[P]):
+        def wrapper(
+                    request: RelateHttpRequest,
+                    course_identifier: str,
+                    *args: P.args,
+                    **kwargs: P.kwargs):
+            return auth_course_with_token(
+                        method, func, request, course_identifier, *args, **kwargs)
 
         from functools import update_wrapper
         update_wrapper(wrapper, func)

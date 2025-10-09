@@ -62,11 +62,12 @@ from course.models import (
     Participation,
     ParticipationTag,
 )
-from course.utils import course_view, render_course_page
+from course.utils import CoursePageContext, course_view, render_course_page
 from relate.utils import (
     HTML5DateTimeInput,
     RelateHttpRequest,
     StyledForm,
+    is_authed,
     string_concat,
 )
 
@@ -75,7 +76,7 @@ from relate.utils import (
 
 if TYPE_CHECKING:
     import datetime
-    from collections.abc import Collection
+    from collections.abc import Collection, Iterable
 
     from django.http.request import HttpRequest
 
@@ -87,7 +88,7 @@ ticket_alphabet = "ABCDEFGHJKLPQRSTUVWXYZabcdefghjkpqrstuvwxyz23456789"
 
 def gen_ticket_code():
     from random import choice
-    return "".join(choice(ticket_alphabet) for i in range(8))
+    return "".join(choice(ticket_alphabet) for _i in range(8))
 
 
 # {{{ issue ticket
@@ -160,7 +161,9 @@ class IssueTicketForm(StyledForm):
 
 
 @permission_required("course.can_issue_exam_tickets", raise_exception=True)
-def issue_exam_ticket(request):
+def issue_exam_ticket(request: HttpRequest):
+    assert is_authed(request.user)
+
     # must import locally for mock to work
     from course.views import get_now_or_fake_time
     now_datetime = get_now_or_fake_time(request)
@@ -397,13 +400,14 @@ class TicketInfo:
 
 
 @course_view
-def batch_issue_exam_tickets(pctx):
+def batch_issue_exam_tickets(pctx: CoursePageContext):
     if not pctx.has_permission(PPerm.batch_issue_exam_ticket):
         raise PermissionDenied(_("may not batch-issue tickets"))
 
     form_text = ""
 
     request = pctx.request
+    assert is_authed(request.user)
     if request.method == "POST":
         form = BatchIssueTicketsForm(pctx.course, request.user.editor_mode,
                 request.POST)
@@ -456,7 +460,7 @@ def batch_issue_exam_tickets(pctx):
                         tickets.append(
                                TicketInfo(
                                    user_name=ticket.participation.user.username,
-                                   full_name=(
+                                   full_name=not_none(
                                        ticket.participation.user.get_full_name()),
                                    code=ticket.code,
                                    exam_description=ticket.exam.description,
@@ -804,7 +808,7 @@ class ExamLockdownMiddleware:
     def __init__(self, get_response):
         self.get_response = get_response
 
-    def __call__(self, request):
+    def __call__(self, request: RelateHttpRequest):
         request.relate_exam_lockdown = False
 
         if SESSION_LOCKED_TO_FLOW_PK in request.session:
@@ -903,11 +907,12 @@ class ExamLockdownMiddleware:
 
 # {{{ list available exams
 
-def list_available_exams(request):
+def list_available_exams(request: RelateHttpRequest):
     # must import locally for mock to work
     from course.views import get_now_or_fake_time
     now_datetime = get_now_or_fake_time(request)
 
+    participations: Iterable[Participation]
     if request.user.is_authenticated:
         participations = (
                 Participation.objects.filter(
@@ -963,7 +968,7 @@ class ExamAccessForm(StyledForm):
 
 
 @course_view
-def access_exam(pctx):
+def access_exam(pctx: CoursePageContext):
     if pctx.participation is None:
         raise PermissionDenied(_("must be logged in to access an exam"))
 
