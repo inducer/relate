@@ -40,9 +40,10 @@ resulting from their use.
 
 import hashlib
 import hmac
+import operator
 import time
 from datetime import datetime
-from functools import lru_cache
+from functools import lru_cache, reduce
 from ipaddress import IPv4Address, IPv4Network, IPv6Address, IPv6Network, ip_network
 from typing import TYPE_CHECKING
 from zoneinfo import ZoneInfo
@@ -129,17 +130,26 @@ def check_signature(
 
 def has_access_to_exam(
             course: Course,
-            user_uid: str,
+            user_uid: str | None,
+            user_uin: str | None,
             exam_uuid: str,
             now: datetime,
             ip_address: IPv4Address | IPv6Address
         ) -> AllowEvent | None:
+    user_filters: list[Q] = []
+    if user_uid and "@" in user_uid:
+        user_filters.append(Q(user_uid=user_uid))
+    if user_uin:
+        user_filters.append(Q(user_uin=user_uin))
+    if not user_filters:
+        return None
+    user_filter = reduce(operator.or_, user_filters)
+
     facility_id_to_most_recent_allow_event: dict[int, AllowEvent] = {}
     for allow_event in AllowEvent.objects.filter(
                 facility__course=course,
-                user_uid=user_uid,
                 exam_uuid=exam_uuid
-            ).order_by("created").prefetch_related("facility"):
+            ).filter(user_filter).order_by("created").prefetch_related("facility"):
         facility_id_to_most_recent_allow_event[
                 allow_event.facility.id] = allow_event
 

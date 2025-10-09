@@ -116,12 +116,13 @@ def fix_facility(fix_course) -> Facility:
 def test_allow_event_processing(fix_facility):
     course = fix_facility.course
     uid = "test@illinois.edu"
+    uin = "1234897234"
     exam1_uuid = str(uuid1())
     exam2_uuid = str(uuid1())
     now = tz_now()
 
     assert not has_access_to_exam(
-                    course, uid, exam1_uuid, now, ip_address("192.168.123.32"))
+                    course, uid, uin, exam1_uuid, now, ip_address("192.168.123.32"))
 
     aevt = AllowEvent(
         facility=fix_facility,
@@ -130,7 +131,7 @@ def test_allow_event_processing(fix_facility):
         received_time=now,
 
         user_uid=uid,
-        user_uin="1234",
+        user_uin=uin,
         exam_uuid=exam1_uuid,
         start=now - timedelta(hours=1),
         end=now + timedelta(hours=1),
@@ -140,23 +141,29 @@ def test_allow_event_processing(fix_facility):
 
     ip_addr = ip_address("192.168.123.32")
 
-    assert has_access_to_exam(
-            course, uid, exam1_uuid, now, ip_addr)
-    assert has_access_to_exam(
-            course, uid, exam1_uuid, now + timedelta(minutes=30),
-            ip_addr)
-    assert not has_access_to_exam(
-            course, "joe@illinois.edu", exam1_uuid, now, ip_addr)
-    assert not has_access_to_exam(
-            course, uid, exam2_uuid, now, ip_addr)
-    assert not has_access_to_exam(
-            course, uid, exam1_uuid, now - timedelta(hours=2),
-            ip_addr)
-    assert not has_access_to_exam(
-            course, uid, exam1_uuid, now + timedelta(hours=2),
-            ip_addr)
-    assert not has_access_to_exam(
-            course, uid, exam1_uuid, now, ip_address("192.168.123.31"))
+    for test_uid, test_uin in [
+        (uid, None),
+        (uid, uin),
+        (None, uin),
+    ]:
+        assert has_access_to_exam(
+                course, test_uid, test_uin, exam1_uuid, now, ip_addr)
+        assert has_access_to_exam(
+                course, test_uid, test_uin, exam1_uuid, now + timedelta(minutes=30),
+                ip_addr)
+        assert not has_access_to_exam(
+                course, "joe@illinois.edu", "1234", exam1_uuid, now, ip_addr)
+        assert not has_access_to_exam(
+                course, test_uid, test_uin, exam2_uuid, now, ip_addr)
+        assert not has_access_to_exam(
+                course, test_uid, test_uin, exam1_uuid, now - timedelta(hours=2),
+                ip_addr)
+        assert not has_access_to_exam(
+                course, test_uid, test_uin, exam1_uuid, now + timedelta(hours=2),
+                ip_addr)
+        assert not has_access_to_exam(
+                course, test_uid, test_uin, exam1_uuid, now,
+                ip_address("192.168.123.31"))
 
     # override for shorter duration
     aevt.pk = None
@@ -165,10 +172,10 @@ def test_allow_event_processing(fix_facility):
     aevt.save()
 
     assert has_access_to_exam(
-            course, uid, exam1_uuid, now + timedelta(minutes=5),
+            course, uid, uin, exam1_uuid, now + timedelta(minutes=5),
             ip_addr)
     assert not has_access_to_exam(
-            course, uid, exam1_uuid, now + timedelta(minutes=30),
+            course, uid, uin, exam1_uuid, now + timedelta(minutes=30),
             ip_addr)
 
     # no-op override from the past
@@ -178,10 +185,10 @@ def test_allow_event_processing(fix_facility):
     aevt.save()
 
     assert has_access_to_exam(
-            course, uid, exam1_uuid, now + timedelta(minutes=5),
+            course, uid, uin, exam1_uuid, now + timedelta(minutes=5),
             ip_addr)
     assert not has_access_to_exam(
-            course, uid, exam1_uuid, now + timedelta(minutes=30),
+            course, uid, uin, exam1_uuid, now + timedelta(minutes=30),
             ip_addr)
 
 
