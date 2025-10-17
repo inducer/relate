@@ -6,9 +6,9 @@ Relate is an Environment for Learning And TEaching
 .. image:: https://gitlab.tiker.net/inducer/relate/badges/main/pipeline.svg
     :alt: Gitlab Build Status
     :target: https://gitlab.tiker.net/inducer/relate/commits/main
-.. image:: https://github.com/inducer/relate/workflows/CI/badge.svg?branch=main
+.. image:: https://github.com/inducer/relate/actions/workflows/CI.yml/badge.svg
     :alt: Github Build Status
-    :target: https://github.com/inducer/relate/actions?query=branch%3Amain+workflow%3ACI
+    :target: https://github.com/inducer/relate/actions/workflows/CI.yml
 .. image:: https://badge.fury.io/py/relate-courseware.png
     :alt: Python Package Index Release Page
     :target: https://pypi.org/project/relate-courseware/
