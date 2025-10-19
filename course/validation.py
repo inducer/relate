@@ -84,7 +84,6 @@ __doc__ = """
 Stub Docs
 =========
 
-.. class:: Course
 .. class:: Repo_ish
 """
 

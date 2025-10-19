@@ -295,10 +295,6 @@ class ChoiceQuestion(ChoiceQuestionBase, PageBaseWithoutHumanGrading):
 
         |is-optional-page-attr|
 
-    .. attribute:: access_rules
-
-        |access-rules-page-attr|
-
     .. attribute:: title
 
         |title-page-attr|
@@ -470,10 +466,6 @@ class MultipleChoiceQuestion(ChoiceQuestionBase, PageBaseWithoutHumanGrading):
     .. attribute:: is_optional_page
 
         |is-optional-page-attr|
-
-    .. attribute:: access_rules
-
-        |access-rules-page-attr|
 
     .. attribute:: title
 
@@ -711,10 +703,6 @@ class SurveyChoiceQuestion(PageBaseWithTitle, PageBaseUngraded):
     .. attribute:: is_optional_page
 
         |is-optional-page-attr|
-
-    .. attribute:: access_rules
-
-        |access-rules-page-attr|
 
     .. attribute:: title
 
