@@ -125,8 +125,9 @@ class ChunkRuleDesc:
     """
 
     if_has_role: frozenset[ParticipationRoleStr] = Field(default_factory=frozenset)
-    """(Optional) A list of a subset of the roles defined in the course, by
-    default ``unenrolled``, ``ta``, ``student``, ``instructor``."""
+    """A list of a subset of the roles defined in the course, by
+    default ``unenrolled``, ``ta``, ``student``, ``instructor``.
+    Considered true if the participant has any of the roles listed."""
 
     if_before: Datespec | None = None
     """(Optional) A :ref:`datespec <datespec>` that determines a date/time before which
@@ -333,7 +334,8 @@ class FlowSessionStartRuleDesc(FlowRule, FlowSessionStartMode):
 
     if_has_role: list[ParticipationRoleStr] | None = None
     """A list of a subset of the roles defined in the course, by
-    default ``unenrolled``, ``ta``, ``student``, ``instructor``."""
+    default ``unenrolled``, ``ta``, ``student``, ``instructor``.
+    Considered true if the participant has any of the roles listed."""
 
     if_has_participation_tags_any: list[ParticipationTagStr] | None = None
     """A list of participation tags. Rule applies when the
@@ -429,7 +431,9 @@ class FlowSessionAccessRuleDesc(FlowSessionAccessMode, FlowRule):
     was started before this time."""
 
     if_has_role: list[ParticipationRoleStr] = field(default_factory=list)
-    """A list of a subset of ``[unenrolled, ta, student, instructor]``."""
+    """A list of a subset of the roles defined in the course, by
+    default ``unenrolled``, ``ta``, ``student``, ``instructor``.
+    Considered true if the participant has any of the roles listed."""
 
     if_has_participation_tags_any: list[ParticipationTagStr] | None = None
     """A list of participation tags. Rule applies when the
@@ -580,7 +584,9 @@ class FlowSessionGradingRuleDesc(FlowSessionGradingMode):
     # conditions
 
     if_has_role: list[ParticipationRoleStr] = field(default_factory=list)
-    """A list of a subset of ``[unenrolled, ta, student, instructor]``."""
+    """A list of a subset of the roles defined in the course, by
+    default ``unenrolled``, ``ta``, ``student``, ``instructor``.
+    Considered true if the participant has any of the roles listed."""
 
     if_has_participation_tags_any: list[ParticipationTagStr] | None = None
     """A list of participation tags. Rule applies when the
