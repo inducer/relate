@@ -112,13 +112,60 @@ ModelT = TypeVar("ModelT")
 # {{{ chunks and static pages
 
 @content_dataclass()
-class ChunkRulesDesc:
+class ChunkRuleDesc:
+    """
+    .. autoattribute:: if_has_role
+    .. autoattribute:: if_before
+    .. autoattribute:: if_after
+    .. autoattribute:: if_in_facility
+    .. autoattribute:: if_has_participation_tags_any
+    .. autoattribute:: if_has_participation_tags_all
+    .. autoattribute:: shown
+    .. autoattribute:: weight
+    """
+
     if_has_role: frozenset[ParticipationRoleStr] = Field(default_factory=frozenset)
+    """(Optional) A list of a subset of the roles defined in the course, by
+    default ``unenrolled``, ``ta``, ``student``, ``instructor``."""
+
     if_before: Datespec | None = None
+    """(Optional) A :ref:`datespec <datespec>` that determines a date/time before which
+    this rule applies."""
+
     if_after: Datespec | None = None
+    """(Optional) A :ref:`datespec <datespec>` that determines a date/time after which
+    this rule applies."""
+
     if_in_facility: FacilityStr | None = None
+    """(Optional) Name of a facility known to the RELATE web page. This rule allows
+    (for example) showing chunks based on whether a user is physically
+    located in a computer-based testing center (which RELATE can
+    recognize based on IP ranges)."""
+
     shown: bool | None = None
     weight: float
+    """(Required) An integer indicating how far up the page the block
+    will be shown. Blocks with identical weight retain the order
+    in which they are given in the course information file."""
+
+    if_has_participation_tags_any: Set[ParticipationTagStr] | None = None
+    """(Optional) A list of participation tags. Rule applies when the
+    participation has at least one tag in this list."""
+
+    if_has_participation_tags_all: Set[ParticipationTagStr] \
+        = field(default_factory=frozenset[ParticipationTagStr])
+
+    # deprecated
+    roles: list[str] = field(default_factory=list)
+
+    @model_validator(mode="after")
+    def check_has_roles(self, info: ValidationInfo) -> Self:
+        vctx = get_validation_context(info)
+        if self.roles:
+            vctx.add_warning(_("Static page chunk had attribute 'roles'."
+                               "This is deprecated and has no effect."))
+
+        return self
 
 
 @content_dataclass()
@@ -132,9 +179,23 @@ class ChunkDesc:
     """
 
     id: IdentifierStr
+    """An identifier used as page anchors and for tracking. Not
+    user-visible otherwise."""
+
     weight: float = 0
     title: str | None = None
-    rules: list[ChunkRulesDesc] = Field(default_factory=list)
+    """A plain text description of the chunk to be used in a table of
+    contents. A string. No markup allowed. Optional. If not supplied,
+    the first ten lines of the page body are searched for a
+    Markdown heading (``# My title``) and this heading is used as a title."""
+
+    rules: list[ChunkRuleDesc] = Field(default_factory=list)
+    """A list of :class:`ChunkRuleDesc` that will be tried in
+    order. The first rule whose conditions match determines whether
+    the chunk will be shown and how where on the page it will be.
+    Optional. If not given, the chunk is shown and has a default
+    weight of 0."""
+
     shown: bool = True
     content: Markup
 
@@ -160,6 +221,14 @@ class ChunkDesc:
 
 @content_dataclass()
 class StaticPageDesc:
+    """.. attribute:: content
+
+        :ref:`markup`. If given, this contains the entirety of the page's
+        content.
+        May only specify exactly one of :attr:`content` or :attr:`chunks`.
+
+    .. autoattribute:: chunks
+    """
     chunks: list[ChunkDesc]
 
     @model_validator(mode="before")
@@ -1607,12 +1676,17 @@ class ChunkWeightShown:
 
 
 def _compute_chunk_weight_and_shown(
-        course: Course,
-        chunk: ChunkDesc,
-        roles: Set[str],
-        now_datetime: datetime.datetime,
-        facilities: Collection[str],
+            course: Course,
+            chunk: ChunkDesc,
+            roles: Set[str],
+            now_datetime: datetime.datetime,
+            facilities: Collection[str],
+            participation: Participation | None,
         ) -> ChunkWeightShown:
+    from course.enrollment import get_participation_role_identifiers
+    roles = get_participation_role_identifiers(course, participation)
+
+    from course.utils import eval_participation_tags_conditions
     for rule in chunk.rules:
         if not rule.if_has_role <= roles:
             continue
@@ -1627,6 +1701,13 @@ def _compute_chunk_weight_and_shown(
 
         if rule.if_in_facility is not None:
             if rule.if_in_facility not in facilities:
+                continue
+
+        if not eval_participation_tags_conditions(rule, participation):
+            continue
+
+        if rule.if_has_role:
+            if all(role not in rule.if_has_role for role in roles):
                 continue
 
         shown = True
@@ -1644,9 +1725,11 @@ def get_processed_page_chunks(
             roles: Set[str],
             now_datetime: datetime.datetime,
             facilities: Collection[str],
+            participation: Participation | None,
         ) -> list[tuple[ChunkDesc, SafeString]]:
     cwss = [
-        _compute_chunk_weight_and_shown(course, chunk, roles, now_datetime, facilities)
+        _compute_chunk_weight_and_shown(course, chunk, roles, now_datetime, facilities,
+                                        participation)
         for chunk in page_desc.chunks]
 
     cwss = sorted(cwss, key=lambda cws: cws.weight, reverse=True)

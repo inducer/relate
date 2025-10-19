@@ -180,7 +180,8 @@ def course_page(pctx: CoursePageContext) -> http.HttpResponse:
     chunks = get_processed_page_chunks(
             pctx.course, page_desc,
             pctx.role_identifiers(), get_now_or_fake_time(pctx.request),
-            facilities=pctx.request.relate_facilities)
+            facilities=pctx.request.relate_facilities,
+            participation=pctx.participation)
 
     show_enroll_button = (
             pctx.course.accepts_enrollment
@@ -244,7 +245,8 @@ def static_page(pctx: CoursePageContext, page_path: str) -> http.HttpResponse:
     chunks = get_processed_page_chunks(
             pctx.course, page_desc,
             pctx.role_identifiers(), get_now_or_fake_time(pctx.request),
-            facilities=pctx.request.relate_facilities)
+            facilities=pctx.request.relate_facilities,
+            participation=pctx.participation)
 
     return render_course_page(pctx, "course/static-page.html", {
         "chunks_with_html": chunks,

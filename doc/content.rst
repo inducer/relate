@@ -397,60 +397,14 @@ the information shown on the main course page.
 A static page looks as follows and is either the main course file
 or a file in the ``staticpages`` subfolder of the course repository.
 
-.. class:: Page
+.. currentmodule:: course.content
 
-    .. attribute:: content
-
-        :ref:`markup`. If given, this contains the entirety of the page's
-        content.
-        May only specify exactly one of :attr:`content` or :attr:`chunks`.
-
-    .. attribute:: chunks
-
-        A list of :ref:`course-chunks`. Chunks allow dynamic reordering
-        and hiding of course information based on time and rules.
-
-        May only specify exactly one of :attr:`content` or :attr:`chunks`.
-
-.. comment:
-    .. attribute:: grade_summary_code
-
-        Python code to categorize grades and compute summary grades.
-
-        This code must be both valid Python version 2 and 3.
-
-        It has access to a the following variables:
-
-        * ``grades``: a dictionary that maps grade
-          identifiers to objects with the following attributes:
-
-          * ``points`` a non-negative floating-point number, or *None*
-          * ``max_points`` a non-negative floating-point number
-          * ``percentage`` a non-negative floating-point number, or *None*
-          * ``done`` whether a grade of *None* should be counted as zero
-            points
-
-          The code may modify this variable.
-
-        * ``grade_names``
-
-          The code may modify this variable.
-
-        It should create the following variables:
-
-        * ``categories`` a dictionary from grade identifiers to category
-          names.
-
-        * ``cat_order`` a list of tuples ``(category_name, grade_id_list)``
-          indicating (a) the order in which categories are displayed and
-          (b) the order in which grades are shown within each category.
+.. autoclass:: StaticPageDesc
 
 .. _course-chunks:
 
 Course Page Chunks
 ^^^^^^^^^^^^^^^^^^
-
-.. _events:
 
 A 'chunk' of the course page is a piece of :ref:`markup` that can shown,
 hidden, and ordered based on a few conditions.
@@ -476,78 +430,11 @@ Here's an example:
 
             Please take our introductory [quiz](flow:quiz-intro).
 
-.. class:: CourseChunk
+.. autoclass:: ChunkDesc
 
-    .. attribute:: title
+.. autoclass:: ChunkRuleDesc
 
-        A plain text description of the chunk to be used in a table of
-        contents. A string. No markup allowed. Optional. If not supplied,
-        the first ten lines of the page body are searched for a
-        Markdown heading (``# My title``) and this heading is used as a title.
-
-    .. attribute:: id
-
-        An identifier used as page anchors and for tracking. Not
-        user-visible otherwise.
-
-    .. attribute:: rules
-
-        A list of :class:`CoursePageChunkRules` that will be tried in
-        order. The first rule whose conditions match determines whether
-        the chunk will be shown and how where on the page it will be.
-        Optional. If not given, the chunk is shown and has a default
-        :attr:`CoursePageChunkRules.weight` of 0.
-
-    .. attribute:: content
-
-        The content of the chunk in :ref:`markup`.
-
-
-.. class:: CoursePageChunkRules
-
-    .. attribute:: weight
-
-        (Required) An integer indicating how far up the page the block
-        will be shown. Blocks with identical weight retain the order
-        in which they are given in the course information file.
-
-    .. attribute:: if_after
-
-        (Optional) A :ref:`datespec <datespec>` that determines a date/time after which this rule
-        applies.
-
-    .. attribute:: if_before
-
-        (Optional) A :ref:`datespec <datespec>` that determines a date/time before which this rule
-        applies.
-
-    .. attribute:: if_has_role
-
-        (Optional) A list of a subset of the roles defined in the course, by
-        default ``unenrolled``, ``ta``, ``student``, ``instructor``.
-
-    .. attribute:: if_has_participation_tags_any
-
-        (Optional) A list of participation tags. Rule applies when the
-        participation has at least one tag in this list.
-
-    .. attribute:: if_has_participation_tags_all
-
-        (Optional) A list of participation tags. Rule applies if only the
-        participation's tags include all items in this list.
-
-    .. attribute:: if_in_facility
-
-        (Optional) Name of a facility known to the RELATE web page. This rule allows
-        (for example) showing chunks based on whether a user is physically
-        located in a computer-based testing center (which RELATE can
-        recognize based on IP ranges).
-
-    .. attribute:: shown
-
-        (Optional) A boolean (``true`` or ``false``) indicating whether the chunk
-        should be shown.
-
+.. _events:
 
 Calendar and Events
 -------------------
