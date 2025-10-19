@@ -23,6 +23,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
+
 import dataclasses
 import re
 from dataclasses import dataclass, field, replace
@@ -146,6 +147,9 @@ class ValidationContext:
 
     warnings: list[ValidationWarning] = field(default_factory=list)
 
+    def replace_location(self, s: str) -> Self:
+        return replace(self, _location=s)
+
     def with_location(self, s: str) -> Self:
         if self._location is None:
             return replace(self, _location=s)
@@ -246,29 +250,15 @@ Markup: TypeAlias = Annotated[str, AfterValidator(_pydantic_validate_markup)]
 ID_RE = re.compile(r"^[a-zA-Z_]\w*$")
 
 
-def validate_identifier(s: str) -> str:
-    if not ID_RE.match(s):
-        raise ValueError(_("expected an identifier, got: '{}'").format(s))
-
-    return s
-
-
-IdentifierStr: TypeAlias = Annotated[str, AfterValidator(validate_identifier)]
+IdentifierStr: TypeAlias = Annotated[str, StringConstraints(pattern=ID_RE)]
 
 
 DOTTED_ID_RE = re.compile(r"^[\w]+(\.[\w]+)*$")
 
 
-def validate_dotted_identifier(s: str) -> str:
-    if not DOTTED_ID_RE.match(s):
-        raise ValueError(_("expected a dotted identifier, got: '{}'").format(s))
-
-    return s
-
-
 DottedIdentifierStr: TypeAlias = Annotated[
         str,
-        AfterValidator(validate_dotted_identifier)]
+        StringConstraints(pattern=DOTTED_ID_RE)]
 
 
 def _pydantic_validate_role(role: str, info: ValidationInfo):
