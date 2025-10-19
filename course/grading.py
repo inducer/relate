@@ -358,7 +358,7 @@ def grade_flow_page(
     # }}}
 
     grading_rule = get_session_grading_mode(
-            flow_session, fpctx.flow_desc, get_now_or_fake_time(pctx.request))
+            flow_session, fpctx.flow_desc.rules, get_now_or_fake_time(pctx.request))
 
     if grading_rule.grade_identifier is not None:
         grading_opportunity: GradingOpportunity | None = \
@@ -420,7 +420,7 @@ def _save_grade(
             bulk_feedback_json)
 
     grading_rule = get_session_grading_mode(
-            flow_session, fpctx.flow_desc, now_datetime)
+            flow_session, fpctx.flow_desc.rules, now_datetime)
 
     from course.flow import grade_flow_session
     grade_flow_session(fpctx, flow_session, grading_rule)
