@@ -122,10 +122,6 @@ class FileUploadQuestion(PageBaseWithTitle, PageBaseWithValue,
 
         |is-optional-page-attr|
 
-    .. attribute:: access_rules
-
-        |access-rules-page-attr|
-
     .. attribute:: title
 
         |title-page-attr|
