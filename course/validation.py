@@ -253,6 +253,12 @@ ID_RE = re.compile(r"^[a-zA-Z_]\w*$")
 IdentifierStr: TypeAlias = Annotated[str, StringConstraints(pattern=ID_RE)]
 
 
+DOM_ID_RE = re.compile(r"^[-a-zA-Z_]\w*$")
+
+
+DOMIdentifierStr: TypeAlias = Annotated[str, StringConstraints(pattern=DOM_ID_RE)]
+
+
 DOTTED_ID_RE = re.compile(r"^[\w]+(\.[\w]+)*$")
 
 
