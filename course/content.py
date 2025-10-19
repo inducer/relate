@@ -1688,9 +1688,6 @@ def _compute_chunk_weight_and_shown(
 
     from course.utils import eval_participation_tags_conditions
     for rule in chunk.rules:
-        if not rule.if_has_role <= roles:
-            continue
-
         if rule.if_after is not None:
             if now_datetime < rule.if_after.eval(course):
                 continue
