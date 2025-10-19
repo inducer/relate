@@ -30,6 +30,7 @@ from typing import (
     Any,
     Concatenate,
     ParamSpec,
+    Protocol,
     TypeVar,
     cast,
 )
@@ -64,7 +65,7 @@ from course.content import (
     get_rule_ta,
 )
 from course.page.base import PageBase, PageContext
-from course.validation import ValidationContext
+from course.validation import ParticipationTagStr, ValidationContext
 from relate.utils import (
     RelateHttpRequest,
     remote_address_from_request,
@@ -184,8 +185,18 @@ def _eval_generic_session_conditions(
     return True
 
 
-def _eval_participation_tags_conditions(
-        rule: Any,
+class RuleAboutParticipationTags(Protocol):
+    @property
+    def if_has_participation_tags_any(self) -> Collection[ParticipationTagStr] | None:
+        ...
+
+    @property
+    def if_has_participation_tags_all(self) -> Collection[ParticipationTagStr]:
+        ...
+
+
+def eval_participation_tags_conditions(
+        rule: RuleAboutParticipationTags,
         participation: Participation | None,
         ) -> bool:
 
@@ -300,7 +311,7 @@ def get_session_start_mode(
                 remote_ip_address=remote_ip_address):
             continue
 
-        if not _eval_participation_tags_conditions(rule, participation):
+        if not eval_participation_tags_conditions(rule, participation):
             continue
 
         if not for_rollover and rule.if_in_facility is not None:
@@ -384,7 +395,7 @@ def get_session_access_mode(
                 ):
             continue
 
-        if not _eval_participation_tags_conditions(rule, session.participation):
+        if not eval_participation_tags_conditions(rule, session.participation):
             continue
 
         if not _eval_generic_session_conditions(rule, session):
@@ -456,7 +467,7 @@ def get_session_grading_mode(
         if not _eval_generic_session_conditions(rule, session):
             continue
 
-        if not _eval_participation_tags_conditions(rule, session.participation):
+        if not eval_participation_tags_conditions(rule, session.participation):
             continue
 
         if rule.if_completed_before is not None:

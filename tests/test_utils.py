@@ -506,7 +506,7 @@ class EvalGenericSessionConditionsTest(unittest.TestCase):
 
 
 class EvalParticipationTagsConditionsTest(CoursesTestMixinBase, TestCase):
-    # test utils._eval_participation_tags_conditions
+    # test utils.eval_participation_tags_conditions
     @classmethod
     def setUpTestData(cls):
         course = factories.CourseFactory()
@@ -537,20 +537,20 @@ class EvalParticipationTagsConditionsTest(CoursesTestMixinBase, TestCase):
             if_has_participation_tags_any=["tag1"],
         )
         self.assertFalse(
-            utils._eval_participation_tags_conditions(rule, None))
+            utils.eval_participation_tags_conditions(rule, None))
 
     def test_true(self):
         rule = FlowSessionAccessRuleDesc(
             permissions=set(),
         )
         self.assertTrue(
-            utils._eval_participation_tags_conditions(rule, None))
+            utils.eval_participation_tags_conditions(rule, None))
         self.assertTrue(
-            utils._eval_participation_tags_conditions(rule, self.participation1))
+            utils.eval_participation_tags_conditions(rule, self.participation1))
         self.assertTrue(
-            utils._eval_participation_tags_conditions(rule, self.participation2))
+            utils.eval_participation_tags_conditions(rule, self.participation2))
         self.assertTrue(
-            utils._eval_participation_tags_conditions(rule, self.participation3))
+            utils.eval_participation_tags_conditions(rule, self.participation3))
 
     def test_if_has_participation_tags_any(self):
         rule = FlowSessionAccessRuleDesc(
@@ -559,20 +559,20 @@ class EvalParticipationTagsConditionsTest(CoursesTestMixinBase, TestCase):
         )
 
         self.assertFalse(
-            utils._eval_participation_tags_conditions(rule, self.participation1))
+            utils.eval_participation_tags_conditions(rule, self.participation1))
 
         self.assertTrue(
-            utils._eval_participation_tags_conditions(rule, self.participation2))
+            utils.eval_participation_tags_conditions(rule, self.participation2))
 
         self.assertTrue(
-            utils._eval_participation_tags_conditions(rule, self.participation3))
+            utils.eval_participation_tags_conditions(rule, self.participation3))
 
         rule = FlowSessionAccessRuleDesc(
             permissions=set(),
             if_has_participation_tags_any=["foo"],
         )
         self.assertFalse(
-            utils._eval_participation_tags_conditions(rule, self.participation3))
+            utils.eval_participation_tags_conditions(rule, self.participation3))
 
     def test_if_has_participation_tags_all(self):
         rule = FlowSessionAccessRuleDesc(
@@ -581,13 +581,13 @@ class EvalParticipationTagsConditionsTest(CoursesTestMixinBase, TestCase):
         )
 
         self.assertFalse(
-            utils._eval_participation_tags_conditions(rule, self.participation1))
+            utils.eval_participation_tags_conditions(rule, self.participation1))
 
         self.assertFalse(
-            utils._eval_participation_tags_conditions(rule, self.participation2))
+            utils.eval_participation_tags_conditions(rule, self.participation2))
 
         self.assertTrue(
-            utils._eval_participation_tags_conditions(rule, self.participation3))
+            utils.eval_participation_tags_conditions(rule, self.participation3))
 
 
 class GetFlowRulesTest(SingleCourseTestMixin, TestCase):
@@ -857,7 +857,7 @@ class GetSessionRuleMixin:
         self.addCleanup(fake_eval_generic_conditions.stop)
 
         fake_eval_participation_tags_conditions = mock.patch(
-            "course.utils._eval_participation_tags_conditions")
+            "course.utils.eval_participation_tags_conditions")
         self.mock_eval_participation_tags_conditions = (
             fake_eval_participation_tags_conditions.start())
         self.addCleanup(fake_eval_participation_tags_conditions.stop)
