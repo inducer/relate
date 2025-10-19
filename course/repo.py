@@ -41,7 +41,7 @@ if TYPE_CHECKING:
     from types import TracebackType
 
 
-CACHE_KEY_ROOT = "py4"
+CACHE_KEY_ROOT = "py5"
 
 
 # {{{ repo-ish types
