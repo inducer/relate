@@ -39,11 +39,13 @@ from typing import (
 
 import django.forms as forms
 import django.http
+from annotated_types import Ge
 from django.conf import settings
 from django.forms import ValidationError as FormValidationError
 from django.utils.safestring import mark_safe
 from django.utils.translation import gettext, gettext_lazy as _, gettext_noop
 from pydantic import (
+    AllowInfNan,
     BaseModel,
     ConfigDict,
     Field,
@@ -60,7 +62,6 @@ from course.validation import (
     DottedIdentifierStr,
     IdentifierStr,
     Markup,
-    PointCount,
     content_dataclass,
     get_validation_context,
 )
@@ -888,7 +889,10 @@ class PageBaseWithTitle(PageBase, ABC):
 
 
 class PageBaseWithValue(PageBase, ABC):
-    value: PointCount | None = None
+    value: Annotated[
+        float,
+        AllowInfNan(False),
+        Ge(0)] | None = None
 
     @model_validator(mode="after")
     def check_optional_no_value(self) -> Self:
