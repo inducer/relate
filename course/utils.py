@@ -53,18 +53,23 @@ from course.content import (
     CourseCommitSHADoesNotExist,
     FlowDesc,
     FlowRule,
+    FlowRulesDesc,
     FlowSessionAccessMode,
     FlowSessionAccessRuleDesc,
     FlowSessionGradingMode,
     FlowSessionGradingRuleDesc,
     FlowSessionStartMode,
+    FlowSessionStartRuleCode,
     FlowSessionStartRuleDesc,
+    access_rule_ta,
     get_course_commit_sha,
     get_course_repo,
     get_flow_desc,
-    get_rule_ta,
+    grading_rule_ta,
+    start_rule_ta,
 )
 from course.page.base import PageBase, PageContext
+from course.starlark.use_case.rules import FlowStartRulesUseCase
 from course.validation import NotSpecified, ParticipationTagStr, ValidationContext
 from relate.utils import (
     RelateHttpRequest,
@@ -80,6 +85,8 @@ if TYPE_CHECKING:
     from collections.abc import Callable, Collection, Hashable, Iterable, Sequence, Set
     from ipaddress import IPv4Address, IPv6Address
 
+    from pydantic.type_adapter import TypeAdapter
+
     from course.models import (
         Course,
         ExamTicket,
@@ -88,7 +95,7 @@ if TYPE_CHECKING:
         FlowSession,
         Participation,
     )
-    from course.repo import Repo_ish
+    from course.repo import Repo_ish, RevisionID_ish
 
 # }}}
 
@@ -113,6 +120,21 @@ def getattr_with_fallback(
 
 
 # {{{ flow permissions
+
+def does_exam_ticket_match(
+            login_exam_ticket: ExamTicket | None,
+            participation: Participation | None,
+            flow_id: str,
+        ):
+    if login_exam_ticket is None:
+        return False
+    if login_exam_ticket.exam.flow_id != flow_id:
+        return False
+    if login_exam_ticket.participation != participation:
+        return False
+
+    return True
+
 
 def _eval_generic_conditions(
         rule: FlowSessionStartRuleDesc
@@ -141,11 +163,7 @@ def _eval_generic_conditions(
             return False
 
     if rule.if_signed_in_with_matching_exam_ticket:
-        if login_exam_ticket is None:
-            return False
-        if login_exam_ticket.exam.flow_id != flow_id:
-            return False
-        if login_exam_ticket.participation != participation:
+        if not does_exam_ticket_match(login_exam_ticket, participation, flow_id):
             return False
 
     if rule.if_has_prairietest_exam_access is not None:
@@ -227,33 +245,22 @@ def eval_participation_tags_conditions(
 
 
 FlowRuleT = TypeVar("FlowRuleT", bound=FlowRule)
+FlowRule2T = TypeVar("FlowRule2T", bound=FlowRule)
 
 
 def get_flow_rules(
-        flow_desc: FlowDesc,
-        type: type[FlowRuleT],
+        flow_desc_rules: Sequence[FlowRuleT] | FlowRule2T,
+        type_adapter: TypeAdapter[FlowRuleT],
         participation: Participation | None,
         flow_id: str,
         now_datetime: datetime.datetime,
         consider_exceptions: bool = True,
-        ) -> list[FlowRuleT]:
-    from course.content import (
-        FlowSessionAccessRuleDesc,
-        FlowSessionGradingRuleDesc,
-        FlowSessionStartRuleDesc,
-    )
-
-    rules: list[FlowRuleT] = []
-    if type is FlowSessionStartRuleDesc:
-        rules = cast("list[FlowRuleT]", flow_desc.rules.start)
-    elif type is FlowSessionAccessRuleDesc:
-        rules = cast("list[FlowRuleT]", flow_desc.rules.access)
-    elif type is FlowSessionGradingRuleDesc:
-        rules = cast("list[FlowRuleT]", flow_desc.rules.grading)
-    else:
-        raise AssertionError()
-
-    rules = rules.copy()
+        ) -> Sequence[FlowRuleT | FlowRule2T]:
+    rules: list[FlowRuleT | FlowRule2T] = (
+            [flow_desc_rules]
+            if isinstance(flow_desc_rules, FlowRule) else
+            list(flow_desc_rules)
+        )
 
     from course.models import FlowRuleException
     if consider_exceptions and participation is not None:
@@ -269,7 +276,7 @@ def get_flow_rules(
                 .filter(
                     participation=participation,
                     active=True,
-                    kind=type.kind,
+                    kind=type_adapter._type.kind,  # pyright: ignore[reportPrivateUsage]
                     flow_id=flow_id)
                 # rules created first will get inserted first, and show up last
                 .order_by("creation_time")):
@@ -277,16 +284,18 @@ def get_flow_rules(
             if exc.expiration is not None and now_datetime > exc.expiration:
                 continue
 
-            rules.insert(0, get_rule_ta(type).validate_python(exc.rule, context=vctx))
+            rules.insert(0, type_adapter.validate_python(exc.rule, context=vctx))
 
     return rules
 
 
 def get_session_start_mode(
+        repo: Repo_ish,
+        commit_sha: RevisionID_ish,
         course: Course,
         participation: Participation | None,
         flow_id: str,
-        flow_desc: FlowDesc,
+        flow_rules: FlowRulesDesc,
         now_datetime: datetime.datetime,
         facilities: Collection[str] | None = None,
         for_rollover: bool = False,
@@ -299,12 +308,32 @@ def get_session_start_mode(
         facilities = frozenset()
 
     rules = get_flow_rules(
-            flow_desc, FlowSessionStartRuleDesc,
+            flow_rules.start, start_rule_ta,
             participation, flow_id, now_datetime,
             )
 
     from course.models import FlowSession
+    sessions = list(FlowSession.objects.filter(
+            participation=participation,
+            flow_id=flow_id,
+            participation__isnull=False,
+        ).order_by("start_time"))
+
     for rule in rules:
+        if isinstance(rule, FlowSessionStartRuleCode):
+            use_case = FlowStartRulesUseCase()
+            mod = use_case.get_module(
+                    repo, commit_sha, "<start rule>", rule.code)
+
+            return use_case(mod,
+                    course=course,
+                    now=now_datetime,
+                    participation=participation,
+                    sessions=sessions,
+                    facilities=facilities,
+                    has_matching_exam_ticket=does_exam_ticket_match(
+                                login_exam_ticket, participation, flow_id))
+
         if not _eval_generic_conditions(rule, course, participation,
                 now_datetime, flow_id=flow_id,
                 login_exam_ticket=login_exam_ticket,
@@ -360,18 +389,23 @@ def get_session_start_mode(
         return FlowSessionStartMode(
                 tag_session=rule.tag_session,
                 may_start_new_session=rule.may_start_new_session,
-                may_list_existing_sessions=rule.may_list_existing_sessions,
+                session_list_ids=[s.id for s in FlowSession.objects.filter(
+                    participation=participation,
+                    flow_id=flow_id,
+                    participation__isnull=False,
+                ).order_by("start_time")],
                 default_expiration_mode=rule.default_expiration_mode,
                 )
 
     return FlowSessionStartMode(
-            may_list_existing_sessions=False,
-            may_start_new_session=False)
+            may_start_new_session=False,
+            session_list_ids=[],
+        )
 
 
 def get_session_access_mode(
         session: FlowSession,
-        flow_desc: FlowDesc,
+        flow_rules: FlowRulesDesc,
         now_datetime: datetime.datetime,
         facilities: Collection[str] | None = None,
         login_exam_ticket: ExamTicket | None = None,
@@ -382,8 +416,8 @@ def get_session_access_mode(
     if facilities is None:
         facilities = frozenset()
 
-    rules: list[FlowSessionAccessRuleDesc] = get_flow_rules(
-            flow_desc, FlowSessionAccessRuleDesc,
+    rules = get_flow_rules(
+            flow_rules.access, access_rule_ta,
             session.participation, session.flow_id, now_datetime)
 
     for rule in rules:
@@ -447,12 +481,12 @@ class FlowSessionGradingModeWithFlowLevelInfo(FlowSessionGradingMode):
 
 def get_session_grading_mode(
         session: FlowSession,
-        flow_desc: FlowDesc,
+        flow_rules: FlowRulesDesc,
         now_datetime: datetime.datetime
         ) -> FlowSessionGradingModeWithFlowLevelInfo:
 
-    rules: list[FlowSessionGradingRuleDesc] = get_flow_rules(
-            flow_desc, FlowSessionGradingRuleDesc,
+    rules = get_flow_rules(
+            flow_rules.grading, grading_rule_ta,
             session.participation, session.flow_id, now_datetime,
             )
 
@@ -489,8 +523,8 @@ def get_session_grading_mode(
         due = rule.due
         generates_grade = rule.generates_grade
 
-        grade_identifier = flow_desc.rules.grade_identifier
-        grade_aggregation_strategy = flow_desc.rules.grade_aggregation_strategy
+        grade_identifier = flow_rules.grade_identifier
+        grade_aggregation_strategy = flow_rules.grade_aggregation_strategy
 
         return FlowSessionGradingModeWithFlowLevelInfo(
                 grade_identifier=grade_identifier,

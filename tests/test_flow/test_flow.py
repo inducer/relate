@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from course.datespec import Datespec
-
 
 __copyright__ = "Copyright (C) 2018 Dong Zhuang"
 
@@ -48,6 +46,7 @@ from course.content import (
     FlowSessionStartMode,
     flow_desc_ta,
 )
+from course.datespec import Datespec
 from course.repo import EmptyRepo
 from course.utils import FlowSessionGradingModeWithFlowLevelInfo
 from course.validation import ValidationContext
@@ -282,7 +281,7 @@ class StartFlowTest(CoursesTestMixinBase, unittest.TestCase):
 
         session_start_rule = FlowSessionStartMode(
             may_start_new_session=True,
-            may_list_existing_sessions=True,
+            session_list_ids=[],
             tag_session="my_tag",
             default_expiration_mode=constants.FlowSessionExpirationMode.roll_over)
 
@@ -330,7 +329,7 @@ class StartFlowTest(CoursesTestMixinBase, unittest.TestCase):
         # no exp_mode
         session_start_rule = FlowSessionStartMode(
             may_start_new_session=True,
-            may_list_existing_sessions=True,
+            session_list_ids=[],
             )
 
         # flow_desc no rules
@@ -373,7 +372,7 @@ class StartFlowTest(CoursesTestMixinBase, unittest.TestCase):
         # no exp_mode
         session_start_rule = FlowSessionStartMode(
             may_start_new_session=True,
-            may_list_existing_sessions=True,
+            session_list_ids=[],
             )
 
         vctx = ValidationContext(EmptyRepo(), b"norev")
@@ -1858,7 +1857,7 @@ class ExpireFlowSessionTest(SingleCourseTestMixin, TestCase):
             FlowSessionStartMode(
                 tag_session="roll_over_tag",
                 may_start_new_session=False,
-                may_list_existing_sessions=False,
+                session_list_ids=[],
             ))
 
         grading_rule = FlowSessionGradingModeWithFlowLevelInfo(
@@ -3067,14 +3066,21 @@ class ViewStartFlowTest(SingleCourseTestMixin, TestCase):
             self.assertEqual(len(past_sessions_and_properties), 0)
 
     def test_get_may_list_existing_sessions(self):
-        session_start_rule = self.get_hacked_session_start_rule()
-
         # create 2 session with different access_rule and grading_rule
         fs1 = self.get_test_flow_session(in_progress=False,
                                          start_time=now() - timedelta(days=3))
         fs2 = self.get_test_flow_session(in_progress=True,
                                          start_time=now() - timedelta(days=2),
                                          completion_time=None)
+
+        session_start_rule = self.get_hacked_session_start_rule(
+            session_list_ids=[
+                sess.id for sess in models.FlowSession.objects.filter(
+                    participation=self.student_participation,
+                    flow_id=self.flow_id,
+                ).order_by("start_time")
+            ]
+        )
 
         access_rule_for_session1 = self.get_hacked_session_access_rule(
             permissions=[FPerm.cannot_see_flow_result]

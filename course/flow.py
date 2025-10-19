@@ -1038,8 +1038,9 @@ def expire_flow_session(
 
     if flow_session.expiration_mode == FlowSessionExpirationMode.roll_over:
         session_start_rule = c_utils.get_session_start_mode(
+                fctx.repo, fctx.course_commit_sha,
                 flow_session.course, flow_session.participation,
-                flow_session.flow_id, fctx.flow_desc, now_datetime,
+                flow_session.flow_id, fctx.flow_desc.rules, now_datetime,
                 for_rollover=True)
 
         if not session_start_rule.may_start_new_session:
@@ -1054,7 +1055,7 @@ def expire_flow_session(
             # {{{ FIXME: This is weird and should probably not exist.
 
             access_rule = c_utils.get_session_access_mode(
-                    flow_session, fctx.flow_desc, now_datetime)
+                    flow_session, fctx.flow_desc.rules, now_datetime)
 
             flow_session.expiration_mode = session_start_rule.default_expiration_mode
 
@@ -1250,7 +1251,7 @@ def finish_flow_session_standalone(
 
     fctx = c_utils.FlowContext(repo, course, session.flow_id)
 
-    grading_rule = c_utils.get_session_grading_mode(session, fctx.flow_desc,
+    grading_rule = c_utils.get_session_grading_mode(session, fctx.flow_desc.rules,
             now_datetime_filled)
 
     if past_due_only:
@@ -1279,7 +1280,7 @@ def expire_flow_session_standalone(
     fctx = c_utils.FlowContext(repo, course, session.flow_id)
 
     grading_rule = c_utils.get_session_grading_mode(
-                                                session, fctx.flow_desc, now_datetime)
+                    session, fctx.flow_desc.rules, now_datetime)
 
     return expire_flow_session(fctx, session, grading_rule, now_datetime,
             past_due_only=past_due_only)
@@ -1386,30 +1387,39 @@ def view_start_flow(pctx: CoursePageContext, flow_id: str) -> http.HttpResponse:
     login_exam_ticket = get_login_exam_ticket(pctx.request)
     now_datetime = get_now_or_fake_time(request)
 
-    session_start_rule = c_utils.get_session_start_mode(
+    session_start_mode = c_utils.get_session_start_mode(
+            pctx.repo, pctx.course_commit_sha,
             pctx.course, pctx.participation,
-            flow_id, fctx.flow_desc, now_datetime,
+            flow_id, fctx.flow_desc.rules, now_datetime,
             facilities=pctx.request.relate_facilities,
             login_exam_ticket=login_exam_ticket,
             remote_ip_address=remote_address_from_request(pctx.request))
 
-    if session_start_rule.may_list_existing_sessions:
-        past_sessions = (FlowSession.objects
-                .filter(
-                    participation=pctx.participation,
-                    flow_id=fctx.flow_id,
-                    participation__isnull=False)
-               .order_by("start_time"))
+    id_to_past_session = {
+        sess.id: sess
+        for sess in FlowSession.objects
+            .filter(
+                participation=pctx.participation,
+                flow_id=fctx.flow_id,
+                participation__isnull=False)
+           }
+
+    if session_start_mode.session_list_ids:
+        past_sessions = [
+            sess
+            for sid in session_start_mode.session_list_ids
+            if (sess := id_to_past_session[sid])
+        ]
 
         past_sessions_and_properties: list[tuple[FlowSession, SessionProperties]] = []
         for session in past_sessions:
             access_rule = c_utils.get_session_access_mode(
-                    session, fctx.flow_desc, now_datetime,
+                    session, fctx.flow_desc.rules, now_datetime,
                     facilities=pctx.request.relate_facilities,
                     login_exam_ticket=login_exam_ticket,
                     remote_ip_address=remote_address_from_request(pctx.request))
             grading_rule = c_utils.get_session_grading_mode(
-                    session, fctx.flow_desc, now_datetime)
+                    session, fctx.flow_desc.rules, now_datetime)
 
             session_properties = SessionProperties(
                     may_view=FlowPermission.view in access_rule.permissions,
@@ -1427,7 +1437,7 @@ def view_start_flow(pctx: CoursePageContext, flow_id: str) -> http.HttpResponse:
     else:
         past_sessions_and_properties = []
 
-    may_start = session_start_rule.may_start_new_session
+    may_start = session_start_mode.may_start_new_session
     new_session_grading_rule = None
     start_may_decrease_grade = False
     grade_aggregation_strategy_descr = None
@@ -1442,13 +1452,13 @@ def view_start_flow(pctx: CoursePageContext, flow_id: str) -> http.HttpResponse:
             # default_expiration_mode ignored
             expiration_mode=FlowSessionExpirationMode.end,
 
-            access_rules_tag=session_start_rule.tag_session)
+            access_rules_tag=session_start_mode.tag_session)
 
         new_session_grading_rule = c_utils.get_session_grading_mode(
-                potential_session, fctx.flow_desc, now_datetime)
+                potential_session, fctx.flow_desc.rules, now_datetime)
 
         start_may_decrease_grade = (
-                bool(past_sessions_and_properties)
+                bool(id_to_past_session)
                 and new_session_grading_rule.grade_aggregation_strategy
                 not in [
                     None,
@@ -1510,8 +1520,9 @@ def post_start_flow(
                 pctx.course.identifier, latest_session.id, 0)
 
     session_start_rule = c_utils.get_session_start_mode(
+            pctx.repo, pctx.course_commit_sha,
             pctx.course, pctx.participation,
-            flow_id, fctx.flow_desc, now_datetime,
+            flow_id, fctx.flow_desc.rules, now_datetime,
             facilities=pctx.request.relate_facilities,
             login_exam_ticket=login_exam_ticket,
             remote_ip_address=remote_address_from_request(pctx.request))
@@ -1532,7 +1543,7 @@ def post_start_flow(
             now_datetime=now_datetime)
 
     access_rule = c_utils.get_session_access_mode(
-            session, fctx.flow_desc, now_datetime,
+            session, fctx.flow_desc.rules, now_datetime,
             facilities=pctx.request.relate_facilities,
             login_exam_ticket=login_exam_ticket,
             remote_ip_address=remote_address_from_request(pctx.request))
@@ -1564,7 +1575,7 @@ def view_resume_flow(
     login_exam_ticket = get_login_exam_ticket(pctx.request)
 
     access_rule = c_utils.get_session_access_mode(
-            flow_session, fctx.flow_desc, now_datetime,
+            flow_session, fctx.flow_desc.rules, now_datetime,
             facilities=pctx.request.relate_facilities,
             login_exam_ticket=login_exam_ticket,
             remote_ip_address=remote_address_from_request(pctx.request))
@@ -1804,13 +1815,13 @@ def view_flow_page(
 
     now_datetime = get_now_or_fake_time(request)
     access_rule = c_utils.get_session_access_mode(
-            flow_session, fpctx.flow_desc, now_datetime,
+            flow_session, fpctx.flow_desc.rules, now_datetime,
             facilities=pctx.request.relate_facilities,
             login_exam_ticket=login_exam_ticket,
             remote_ip_address=remote_address_from_request(pctx.request))
 
     grading_rule = c_utils.get_session_grading_mode(
-            flow_session, fpctx.flow_desc, now_datetime)
+            flow_session, fpctx.flow_desc.rules, now_datetime)
     generates_grade = (
             grading_rule.grade_identifier is not None
             and grading_rule.generates_grade)
@@ -2373,7 +2384,7 @@ def send_email_about_flow_page(
     now_datetime = get_now_or_fake_time(request)
     login_exam_ticket = get_login_exam_ticket(request)
     access_rule = c_utils.get_session_access_mode(
-            flow_session, fpctx.flow_desc, now_datetime,
+            flow_session, fpctx.flow_desc.rules, now_datetime,
             facilities=pctx.request.relate_facilities,
             login_exam_ticket=login_exam_ticket,
             remote_ip_address=remote_address_from_request(pctx.request))
@@ -2587,7 +2598,7 @@ def update_expiration_mode(
             participation=pctx.participation)
 
     access_rule = c_utils.get_session_access_mode(
-            flow_session, fctx.flow_desc,
+            flow_session, fctx.flow_desc.rules,
             get_now_or_fake_time(pctx.request),
             facilities=pctx.request.relate_facilities,
             login_exam_ticket=login_exam_ticket,
@@ -2628,7 +2639,7 @@ def finish_flow_session_view(
             participation=pctx.participation)
 
     access_rule = c_utils.get_session_access_mode(
-            flow_session, fctx.flow_desc, now_datetime,
+            flow_session, fctx.flow_desc.rules, now_datetime,
             facilities=pctx.request.relate_facilities,
             login_exam_ticket=login_exam_ticket,
             remote_ip_address=remote_address_from_request(pctx.request))
@@ -2662,7 +2673,7 @@ def finish_flow_session_view(
                 allow_instant_flow_requests=False)
 
     grading_rule = c_utils.get_session_grading_mode(
-            flow_session, fctx.flow_desc, now_datetime)
+            flow_session, fctx.flow_desc.rules, now_datetime)
 
     if request.method == "POST":
         if "submit" not in request.POST:
