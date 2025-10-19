@@ -82,6 +82,7 @@ from course.repo import (
     get_repo_tree,
 )
 from course.validation import (
+    DOMIdentifierStr,
     EventStr,
     FacilityStr,
     IdentifierStr,
@@ -179,7 +180,7 @@ class ChunkDesc:
     .. autoattribute:: content
     """
 
-    id: IdentifierStr
+    id: DOMIdentifierStr
     """An identifier used as page anchors and for tracking. Not
     user-visible otherwise."""
 
