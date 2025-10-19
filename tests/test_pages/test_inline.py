@@ -959,7 +959,7 @@ class InlineMultiQuestionTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
         self.assertSandboxNotHasValidPage(resp)
         self.assertResponseContextContains(
             resp, PAGE_ERRORS,
-            "expected an identifier, got: '2choice'")
+            "2choice.[key]\n  String should match pattern")
 
     def test_embedded_naming_duplicated(self):
         markdown = INLINE_MULTI_MARKDOWN_EMBEDDED_NAMING_DUPLICATED

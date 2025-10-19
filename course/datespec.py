@@ -242,8 +242,9 @@ def parse_date_spec(
         event_kind = datespec_str
         ordinal = None
 
-    from course.validation import validate_identifier
-    validate_identifier(event_kind)
+    from course.validation import ID_RE
+    if not ID_RE.match(event_kind):
+        raise ValueError(_("expected an identifier, got: '{}'").format(event_kind))
 
     if course is None:
         return now()
