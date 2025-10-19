@@ -51,9 +51,9 @@ nitpick_ignore_regex = [
     ("py:class", "Ge|Le|Gt|Lt|AllowInfNan"),
 ]
 
-copyright = "2014-21, Andreas Kloeckner"
+copyright = "2014-25, Andreas Kloeckner"
 
-version = "2021.1"
+version = "2025.1"
 release = version
 
 sphinxconfig_missing_reference_aliases = {
