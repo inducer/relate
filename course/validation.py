@@ -23,6 +23,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
+
 import dataclasses
 import re
 from dataclasses import dataclass, field, replace
@@ -145,6 +146,9 @@ class ValidationContext:
     _location: str | None = None
 
     warnings: list[ValidationWarning] = field(default_factory=list)
+
+    def replace_location(self, s: str) -> Self:
+        return replace(self, _location=s)
 
     def with_location(self, s: str) -> Self:
         if self._location is None:

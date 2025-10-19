@@ -53,6 +53,8 @@ dependencies = [
     "email-validator~=2.3.0",
     "annotated-types~=0.7.0",
 
+    "starlark-pyo3>=2025.2.1",
+
     "packaging>=25",
 
     # prevent spurious downgrade by uv? Counters upper bound by pysaml2:

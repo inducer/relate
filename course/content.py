@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from course.starlark import StarlarkCode
+
 
 __copyright__ = "Copyright (C) 2014 Andreas Kloeckner"
 
@@ -306,6 +308,13 @@ class FlowSessionStartRuleDesc(FlowRule, FlowSessionStartMode):
 
 start_rule_ta = TypeAdapter(FlowSessionStartRuleDesc)
 
+
+@dataclass(frozen=True, kw_only=True)
+class FlowSessionStartRuleCode(FlowRule):
+    kind: ClassVar[FlowRuleKind] = FlowRuleKind.start
+
+    code: StarlarkCode
+
 # }}}
 
 
@@ -559,7 +568,7 @@ grading_rule_ta = TypeAdapter(FlowSessionGradingRuleDesc)
 
 # {{{ flow rules
 
-def default_start_rules():
+def default_start_rules() -> list[FlowSessionStartRuleDesc | FlowSessionStartRuleCode]:
     return [FlowSessionStartRuleDesc(
                     may_start_new_session=True,
                     may_list_existing_sessions=False)]
@@ -596,7 +605,8 @@ class FlowRulesDesc:
 
     tags: list[IdentifierStr] = field(default_factory=list)
 
-    start: list[FlowSessionStartRuleDesc] = field(default_factory=default_start_rules)
+    start: list[FlowSessionStartRuleDesc | FlowSessionStartRuleCode] \
+        = field(default_factory=default_start_rules)
     """Rules that govern when a new session may be started and whether
     existing sessions may be listed.
 
