@@ -1457,7 +1457,10 @@ def view_start_flow(pctx: CoursePageContext, flow_id: str) -> http.HttpResponse:
 
         grade_aggregation_strategy_descr = (
             dict(GRADE_AGGREGATION_STRATEGY_CHOICES).get(
-                not_none(new_session_grading_rule.grade_aggregation_strategy)))
+                new_session_grading_rule.grade_aggregation_strategy)
+            if new_session_grading_rule.grade_aggregation_strategy else
+            None
+        )
 
     print(new_session_grading_rule)
     from course.content import markup_to_html
