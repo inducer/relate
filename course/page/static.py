@@ -57,10 +57,6 @@ class Page(PageBaseWithCorrectAnswer, PageBaseWithTitle, PageBaseUngraded):
 
         ``Page``
 
-    .. attribute:: access_rules
-
-        |access-rules-page-attr|
-
     .. attribute:: title
 
         |title-page-attr|

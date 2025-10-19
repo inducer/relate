@@ -93,10 +93,6 @@ Stub Docs of Internals
 
     See ``relate.utils.Repo_ish``.
 
-.. class:: Course
-
-    See ``course.models.Course``.
-
 .. class:: FlowSession
 
     See ``course.models.FlowSession``.
@@ -152,31 +148,18 @@ class PageContext:
     request: django.http.HttpRequest | None = None
 
 
-@final
+@dataclass(frozen=True)
 class PageBehavior:
     """
     .. attribute:: show_correctness
+    .. attribute:: show_feedback
     .. attribute:: show_answer
     .. attribute:: may_change_answer
     """
-
-    def __init__(
-            self,
-            show_correctness: bool,
-            show_answer: bool,
-            may_change_answer: bool,
-            ) -> None:
-
-        self.show_correctness = show_correctness
-        self.show_answer = show_answer
-        self.may_change_answer = may_change_answer
-
-    def __bool__(self):
-        # This is for compatibility: page_behavior used to be a bool argument
-        # 'answer_is_final'.
-        return not self.may_change_answer
-
-    __nonzero__ = __bool__
+    show_correctness: bool
+    show_feedback: bool
+    show_answer: bool
+    may_change_answer: bool
 
 
 def markup_to_html(

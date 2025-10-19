@@ -25,13 +25,8 @@ THE SOFTWARE.
 
 
 from enum import StrEnum
-from typing import TYPE_CHECKING
 
-from django.utils.translation import gettext, pgettext_lazy
-
-
-if TYPE_CHECKING:
-    from collections.abc import Set as AbstractSet
+from django.utils.translation import pgettext_lazy
 
 
 # Allow 10x extra credit at the very most.
@@ -302,21 +297,6 @@ FLOW_SESSION_EXPIRATION_MODE_CHOICES = (
             pgettext_lazy("Flow expiration mode",
                 "Do not submit session for grading")),
         )
-
-
-def is_expiration_mode_allowed(
-        expmode: str, permissions: AbstractSet[FlowPermission]
-        ) -> bool:
-    if expmode == FlowSessionExpirationMode.roll_over:
-        if (FlowPermission.set_roll_over_expiration_mode
-                in permissions):
-            return True
-    elif expmode == FlowSessionExpirationMode.end:
-        return True
-    else:
-        raise ValueError(gettext("unknown expiration mode"))
-
-    return False
 
 # }}}
 
