@@ -438,7 +438,7 @@ def make_time_histogram(pctx: CoursePageContext, flow_id: str):
             num_log_bins=True,
             num_bin_title_formatter=(
                 lambda minutes: string_concat(
-                    "$>$ %.1f ",
+                    "> %.1f ",
                     pgettext("Minute (time unit)", "min"))
                 % minutes))
     for session in qset:
