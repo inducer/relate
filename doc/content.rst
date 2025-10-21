@@ -248,23 +248,13 @@ a RELATE site:
 
   To avoid exposing sensitive files, a special file :file:`.attributes.yml`
   must be present in the same directory as the file which allows public
-  access to the file. This file should be valid YAML and look like this::
+  access to the file. This file should be valid YAML and conform to the following
+  data model:
 
-      unenrolled:
-      - "*.png"
-      - "*.jpeg"
+  .. currentmodule:: course.validation
 
-  In addition to ``unenrolled``, the file can also include the following
-  sections:
+  .. autoclass:: AttributesFile
 
-  * ``unenrolled``: Allow access to these files from anywhere on the
-    Internet, except for locked-down exam sessions.
-  * ``in_exam``: Allow access to these files when a locked-down exam
-    is ongoing.
-  * ``student``: Allow access to these files for ``student``, ``ta``, and
-    ``instructor`` roles
-  * ``ta``: Allow access to these files for ``ta`` and ``instructor`` roles
-  * ``instructor``: Allow access to these files only for the ``instructor`` role
 
 * The URL schema ``repocur:some/file/name.png``
   generally works the same way as ``repo:``, with these differences:
