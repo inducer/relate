@@ -444,6 +444,34 @@ class CSSDimensionSum:
 
 @content_dataclass()
 class AttributesFile:
+    """
+    .. autoattribute:: access_if_has_role
+
+    Here is an example of a YAML representation::
+
+        access_if_has_role:
+            unenrolled:
+            - "*.png"
+            - "*.jpeg"
+
+    The roles for which access may be granted include
+
+    * ``unenrolled``: Allow access to these files from anywhere on the
+      Internet, except for locked-down exam sessions.
+    * ``in_exam``: Allow access to these files when a locked-down exam
+      is ongoing.
+    * Any participation role defined. By default, these include
+      ``student``, ``ta``, and ``instructor``. Also by default,
+      the 'higher-rank' roles inherit permissions granted to
+      'lower-rank' ones.
+
+    .. note::
+
+        :attr:`access_if_has_role` is, for now, the only key accepted at the
+        top level, and, prior to late 2025, its content lived at the top
+        level at the file. (This will continue to be accepted for some time.)
+
+    """
     access_if_has_role: dict[ParticipationRoleStr, list[str]]
 
     @model_validator(mode="before")

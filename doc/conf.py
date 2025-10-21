@@ -44,6 +44,7 @@ nitpick_ignore_regex = [
     ("py:class", "annotated_types.[A-Za-z]+"),
     ("py:class", "PositiveInt"),
     ("py:class", "IdentifierStr"),
+    ("py:class", "ParticipationRoleStr"),
     ("py:class", "SerializeAsAny"),
     ("py:class", "AfterValidator"),
     ("py:class", "FileSystemFakeRepo"),
