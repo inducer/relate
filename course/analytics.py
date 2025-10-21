@@ -315,6 +315,18 @@ class PageAnswerStats:
     def average_wrongness_ui(self):
         return self.average_wrongness * self._ui_scale_factor
 
+    @property
+    def average_correctness_percent(self):
+        return self.average_correctness * 100
+
+    @property
+    def average_emptiness_percent(self):
+        return self.average_emptiness * 100
+
+    @property
+    def average_wrongness_percent(self):
+        return self.average_wrongness * 100
+
 
 def safe_div(num: float, denom: float):
     if denom == 0:
