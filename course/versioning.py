@@ -40,7 +40,6 @@ import dulwich.client
 import dulwich.repo
 import dulwich.web
 import paramiko
-import paramiko.client
 from crispy_forms.layout import Submit
 from django import http
 from django.contrib import messages
