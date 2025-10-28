@@ -534,4 +534,14 @@ colors can also be overridden for each event specifically.
 All attributes in each section (as well as the entire calendar information
 file) are optional.
 
+Special values
+^^^^^^^^^^^^^^
+
+.. currentmodule:: course.validation
+
+.. class:: NotSpecified
+
+    Used as a default/sentinel value in a few places where ``None`` (or ``null``
+    in YAML) is a valid value, to indicate that a value was not provided.
+
 .. # vim: textwidth=75

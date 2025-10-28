@@ -93,6 +93,10 @@ R = TypeVar("R")
 T = TypeVar("T")
 
 
+class NotSpecified:
+    pass
+
+
 # {{{ validation tools
 
 @dataclass_transform(
