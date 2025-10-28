@@ -26,6 +26,7 @@ THE SOFTWARE.
 import os
 import sys
 from dataclasses import dataclass
+from hashlib import sha256
 from pathlib import Path
 from typing import TYPE_CHECKING, TypeAlias, cast
 
@@ -41,7 +42,40 @@ if TYPE_CHECKING:
     from types import TracebackType
 
 
-CACHE_KEY_ROOT = "py5"
+def _get_cache_key_root():
+    # Not bumping the cache key for semantically-significant model updates has
+    # potentially catastrophic consequences, since stale/invalid models
+    # will get pulled from the model cache without warning. In addition to being
+    # catastrophic, these failures will also be puzzling, because they are
+    # not connected to *just* currently-running code. As a result, this
+    # takes a very belt-and-supenders approach to constructing a cache
+    # key that changes whenever the code changes.
+
+    pieces: list[str] = ["6"]
+
+    from pytools import find_module_git_revision
+    git_rev = find_module_git_revision(__file__, 1)
+    if git_rev is not None:
+        pieces.append(git_rev[:7])
+
+    hash = sha256()
+    count = 0
+    for p in Path(__file__).parent.glob("*.py"):
+        count += 1
+        hash.update(p.read_bytes())
+    if count < 25:
+        raise RuntimeError("cache key computation did not find enough source files")
+    pieces.append(hash.hexdigest()[:7])
+
+    # Why limit pieces to seven characters, you ask? Memcache has a key length limit
+    # of 250 characters, so we've got to be somewhat conservative. 16**-7 is 3e-9,
+    # square that: I can live with that failure probability.
+    # https://stackoverflow.com/q/1125806
+
+    return "-".join(pieces)
+
+
+CACHE_KEY_ROOT = _get_cache_key_root()
 
 
 # {{{ repo-ish types
