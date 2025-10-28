@@ -22036,14 +22036,6 @@
         ],
         "./course/versioning.py": [
             {
-                "code": "reportUnusedImport",
-                "range": {
-                    "startColumn": 7,
-                    "endColumn": 22,
-                    "lineCount": 1
-                }
-            },
-            {
                 "code": "reportMissingTypeStubs",
                 "range": {
                     "startColumn": 5,
