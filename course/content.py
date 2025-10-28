@@ -1780,7 +1780,8 @@ def get_flow_desc(
 
     vctx = ValidationContext(repo, commit_sha, course)
     location = f"flows/{flow_id}.yml"
-    return vctx.with_location(location).annotate_errors(
+    return vctx.with_location(location).annotate_errors_except(
+            (ObjectDoesNotExist,),
             get_model_from_repo,
             flow_desc_ta, repo, location, commit_sha, tolerate_tabs=tolerate_tabs)
 
