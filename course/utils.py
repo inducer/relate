@@ -65,7 +65,7 @@ from course.content import (
     get_rule_ta,
 )
 from course.page.base import PageBase, PageContext
-from course.validation import ParticipationTagStr, ValidationContext
+from course.validation import NotSpecified, ParticipationTagStr, ValidationContext
 from relate.utils import (
     RelateHttpRequest,
     remote_address_from_request,
@@ -174,7 +174,7 @@ def _eval_generic_session_conditions(
         session: FlowSession,
         ) -> bool:
 
-    if rule.if_has_tag:
+    if rule.if_has_tag is not NotSpecified:
         if session.access_rules_tag != rule.if_has_tag:
             return False
 
@@ -328,7 +328,7 @@ def get_session_start_mode(
             if bool(session_count) != rule.if_has_in_progress_session:
                 continue
 
-        if not for_rollover and rule.if_has_session_tagged is not None:
+        if not for_rollover and rule.if_has_session_tagged is not NotSpecified:
             tagged_session_count = FlowSession.objects.filter(
                     participation=participation,
                     course=course,
@@ -489,8 +489,6 @@ def get_session_grading_mode(
         due = rule.due
         generates_grade = rule.generates_grade
 
-        grade_identifier = None
-        grade_aggregation_strategy = None
         grade_identifier = flow_desc.rules.grade_identifier
         grade_aggregation_strategy = flow_desc.rules.grade_aggregation_strategy
 

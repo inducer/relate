@@ -87,6 +87,7 @@ from course.validation import (
     FacilityStr,
     IdentifierStr,
     Markup,
+    NotSpecified,
     ParticipationRoleStr,
     ParticipationTagStr,
     ValidationContext,
@@ -357,7 +358,7 @@ class FlowSessionStartRuleDesc(FlowRule, FlowSessionStartMode):
     """A Boolean (True/False) value, indicating that the rule only
     applies if the participant has an in-progress session."""
 
-    if_has_session_tagged: IdentifierStr | None = None
+    if_has_session_tagged: IdentifierStr | type[NotSpecified] | None = NotSpecified
     """An identifier (or ``null``) indicating that the rule only applies
     if the participant has a session with the corresponding tag."""
 
@@ -451,7 +452,8 @@ class FlowSessionAccessRuleDesc(FlowSessionAccessMode, FlowRule):
     located in a computer-based testing center (which RELATE can
     recognize based on IP ranges)."""
 
-    if_has_tag: IdentifierStr | None = None
+    if_has_tag: IdentifierStr | type[NotSpecified] | None = NotSpecified
+
     """Rule applies if session has this tag (see
     :attr:`FlowSessionStartRuleDesc.tag_session`), an identifier."""
 
@@ -598,7 +600,7 @@ class FlowSessionGradingRuleDesc(FlowSessionGradingMode):
     """A list of participation tags. Rule applies if only the
     participation's tags include all items in this list."""
 
-    if_has_tag: IdentifierStr | None = None
+    if_has_tag: IdentifierStr | type[NotSpecified] | None = NotSpecified
     """Rule applies if session has this tag (see
     :attr:`FlowSessionStartRuleDesc.tag_session`), an identifier."""
 
@@ -622,7 +624,7 @@ class FlowSessionGradingRuleDesc(FlowSessionGradingMode):
             self.if_has_role
             or self.if_has_participation_tags_any
             or self.if_has_participation_tags_all
-            or self.if_has_tag
+            or self.if_has_tag is not NotSpecified
             or self.if_started_before is not None
             or self.if_completed_before is not None
         )
@@ -736,6 +738,7 @@ class FlowRulesDesc:
         if self.start:
             for i, srule in enumerate(self.start):
                 if (srule.if_has_session_tagged is not None
+                        and srule.if_has_session_tagged is not NotSpecified
                         and srule.if_has_session_tagged not in tags):
                     raise ValueError(f"access rule {i+1}: "
                             f"unknown session tag {srule.if_has_session_tagged}")
@@ -746,13 +749,17 @@ class FlowRulesDesc:
 
         if self.access:
             for i, arule in enumerate(self.access):
-                if arule.if_has_tag is not None and arule.if_has_tag not in tags:
+                if (arule.if_has_tag is not None
+                        and arule.if_has_tag is not NotSpecified
+                        and arule.if_has_tag not in tags):
                     raise ValueError(f"access rule {i+1}: "
                             f"unknown session tag {arule.if_has_tag}")
 
         if self.grading:
             for i, grule in enumerate(self.grading):
-                if grule.if_has_tag is not None and grule.if_has_tag not in tags:
+                if (grule.if_has_tag is not None
+                        and grule.if_has_tag is not NotSpecified
+                        and grule.if_has_tag not in tags):
                     raise ValueError(f"grading rule {i+1}: "
                             f"unknown session tag {grule.if_has_tag}")
 
