@@ -405,7 +405,7 @@ def get_session_access_mode(
             if rule.if_in_facility not in facilities:
                 continue
 
-        if rule.if_in_progress:
+        if rule.if_in_progress is not None:
             if session.in_progress != rule.if_in_progress:
                 continue
 
