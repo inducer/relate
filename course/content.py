@@ -475,7 +475,7 @@ class FlowSessionAccessRuleDesc(FlowSessionAccessMode, FlowRule):
     less than the specified number of minutes. Fractional values (e.g. "0.5")
     are accepted here."""
 
-    if_signed_in_with_matching_exam_ticket: bool | None = False
+    if_signed_in_with_matching_exam_ticket: bool | None = None
     """The rule applies if the participant signed in with an exam
     ticket matching this flow."""
 
