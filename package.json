@@ -41,7 +41,7 @@
     "prosemirror-model": "^1.24.1",
     "prosemirror-schema-basic": "^1.2.4",
     "prosemirror-schema-list": "^1.5.1",
-    "prosemirror-state": "^1.4.3",
+    "prosemirror-state": "^1.4.4",
     "prosemirror-view": "^1.40.0",
     "select2": "^4.0.5",
     "select2-bootstrap-theme": "^0.1.0-beta.10",
