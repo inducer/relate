@@ -22,14 +22,13 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
-
-
 import datetime
 import html.parser as html_parser
 import os
 import re
 from collections.abc import Set
 from dataclasses import dataclass, field
+from functools import partial
 from itertools import starmap
 from pathlib import Path
 from typing import (
@@ -38,6 +37,7 @@ from typing import (
     Any,
     ClassVar,
     Self,
+    TypeAlias,
     TypeVar,
     cast,
 )
@@ -81,6 +81,8 @@ from course.repo import (
     get_repo_blob_data_cached,
     get_repo_tree,
 )
+from course.starlark.use_case import validate_starlark_code
+from course.starlark.use_case.rules import FlowStartRulesUseCase
 from course.validation import (
     DOMIdentifierStr,
     EventStr,
@@ -271,14 +273,10 @@ class FlowRule:
 # {{{ flow start rule
 
 @dataclass(frozen=True, kw_only=True)
-class FlowSessionStartMode:
+class FlowSessionStartModeBase:
     may_start_new_session: bool
     """(Mandatory) A Boolean (True/False) value indicating whether, if the
     rule applies, the participant may start a new session."""
-
-    may_list_existing_sessions: bool
-    """(Mandatory) A Boolean (True/False) value indicating whether, if the
-    rule applies, the participant may view a list of existing sessions."""
 
     tag_session: IdentifierStr | None = None
     """An identifier that will be applied to a newly-created
@@ -294,7 +292,22 @@ class FlowSessionStartMode:
 
 
 @dataclass(frozen=True, kw_only=True)
-class FlowSessionStartRuleDesc(FlowRule, FlowSessionStartMode):
+class FlowSessionStartRuleOutcomeDesc(FlowSessionStartModeBase):
+    may_list_existing_sessions: bool
+    """(Mandatory) A Boolean (True/False) value indicating whether, if the
+    rule applies, the participant may view a list of existing sessions."""
+
+
+@dataclass(frozen=True, kw_only=True)
+class FlowSessionStartMode(FlowSessionStartModeBase):
+    session_list_ids: list[int]
+
+
+flow_session_start_mode_ta = TypeAdapter(FlowSessionStartMode)
+
+
+@dataclass(frozen=True, kw_only=True)
+class FlowSessionStartRuleDesc(FlowRule, FlowSessionStartRuleOutcomeDesc):
     """Rules that govern when a new session may be started and whether
     existing sessions may be listed.
 
@@ -378,6 +391,19 @@ class FlowSessionStartRuleDesc(FlowRule, FlowSessionStartMode):
 
 
 start_rule_ta = TypeAdapter(FlowSessionStartRuleDesc)
+
+
+StartRuleCode: TypeAlias = Annotated[
+    str,
+    AfterValidator(partial(validate_starlark_code, FlowStartRulesUseCase()))
+]
+
+
+@dataclass(frozen=True, kw_only=True)
+class FlowSessionStartRuleCode(FlowRule):
+    kind: ClassVar[FlowRuleKind] = FlowRuleKind.start
+
+    code: StartRuleCode
 
 # }}}
 
@@ -489,17 +515,6 @@ access_rule_ta = TypeAdapter(FlowSessionAccessRuleDesc)
 
 
 FlowRuleT = TypeVar("FlowRuleT", bound=FlowRule)
-
-
-def get_rule_ta(tp: type[FlowRuleT]) -> TypeAdapter[FlowRuleT]:
-    if tp is FlowSessionStartRuleDesc:
-        return cast("TypeAdapter[FlowRuleT]", start_rule_ta)
-    elif tp is FlowSessionAccessRuleDesc:
-        return cast("TypeAdapter[FlowRuleT]", access_rule_ta)
-    elif tp is FlowSessionGradingRuleDesc:
-        return cast("TypeAdapter[FlowRuleT]", grading_rule_ta)
-    else:
-        raise AssertionError()
 
 
 # {{{ flow grading rule
@@ -637,7 +652,7 @@ grading_rule_ta = TypeAdapter(FlowSessionGradingRuleDesc)
 
 # {{{ flow rules
 
-def default_start_rules():
+def default_start_rules() -> list[FlowSessionStartRuleDesc | FlowSessionStartRuleCode]:
     return [FlowSessionStartRuleDesc(
                     may_start_new_session=True,
                     may_list_existing_sessions=False)]
@@ -674,7 +689,8 @@ class FlowRulesDesc:
 
     tags: list[IdentifierStr] = field(default_factory=list)
 
-    start: list[FlowSessionStartRuleDesc] = field(default_factory=default_start_rules)
+    start: list[FlowSessionStartRuleDesc | FlowSessionStartRuleCode] \
+        = field(default_factory=default_start_rules)
     """Rules that govern when a new session may be started and whether
     existing sessions may be listed.
 
@@ -737,15 +753,16 @@ class FlowRulesDesc:
 
         if self.start:
             for i, srule in enumerate(self.start):
-                if (srule.if_has_session_tagged is not None
-                        and srule.if_has_session_tagged is not NotSpecified
-                        and srule.if_has_session_tagged not in tags):
-                    raise ValueError(f"access rule {i+1}: "
-                            f"unknown session tag {srule.if_has_session_tagged}")
+                if isinstance(srule, FlowSessionStartRuleDesc):
+                    if (srule.if_has_session_tagged is not None
+                            and srule.if_has_session_tagged is not NotSpecified
+                            and srule.if_has_session_tagged not in tags):
+                        raise ValueError(f"access rule {i+1}: "
+                                f"unknown session tag {srule.if_has_session_tagged}")
 
-                if srule.tag_session is not None and srule.tag_session not in tags:
-                    raise ValueError(f"access rule {i+1}: "
-                            f"unknown session tag {srule.if_has_session_tagged}")
+                    if srule.tag_session is not None and srule.tag_session not in tags:
+                        raise ValueError(f"access rule {i+1}: "
+                                f"unknown session tag {srule.if_has_session_tagged}")
 
         if self.access:
             for i, arule in enumerate(self.access):
