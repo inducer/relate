@@ -909,8 +909,10 @@ def grant_exception_stage_2(
     access_rules_tags = flow_desc.rules.tags
 
     from course.utils import get_session_start_mode
-    session_start_rule = get_session_start_mode(pctx.course, participation,
-            flow_id, flow_desc, now_datetime)
+    session_start_rule = get_session_start_mode(
+            pctx.repo, pctx.course_commit_sha,
+            pctx.course, participation,
+            flow_id, flow_desc.rules, now_datetime)
 
     create_session_is_override = False
     if not session_start_rule.may_start_new_session:
@@ -1160,8 +1162,8 @@ def grant_exception_stage_3(
 
     now_datetime = get_now_or_fake_time(pctx.request)
     from course.utils import get_session_access_mode, get_session_grading_mode
-    access_rule = get_session_access_mode(session, flow_desc, now_datetime)
-    grading_rule = get_session_grading_mode(session, flow_desc, now_datetime)
+    access_rule = get_session_access_mode(session, flow_desc.rules, now_datetime)
+    grading_rule = get_session_grading_mode(session, flow_desc.rules, now_datetime)
 
     request = pctx.request
     if request.method == "POST":

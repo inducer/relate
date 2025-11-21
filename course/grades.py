@@ -1016,7 +1016,7 @@ def view_single_grade(pctx: CoursePageContext, participation_id: str,
                         respect_preview=False)
 
                 grading_rule = get_session_grading_mode(
-                        session, flow_desc, now_datetime)
+                        session, flow_desc.rules, now_datetime)
 
                 session_properties = SessionProperties(
                         due=grading_rule.due,
