@@ -862,7 +862,9 @@ def gather_grade_info(
 
             if feedback is None or feedback.correctness is None:
                 unknown_count += 1
-                points = None
+                if grade.max_points:
+                    points = None
+
                 continue
 
             max_reachable_points += grade.max_points
