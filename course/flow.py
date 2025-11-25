@@ -1835,11 +1835,23 @@ def view_flow_page(
     prev_visit_id = None
     viewing_prior_version = False
 
+    prev_visit_id_str = pctx.request.GET.get("visit_id")
+    if prev_visit_id_str is not None:
+        try:
+            prev_visit_id = int(prev_visit_id_str)
+        except ValueError:
+            raise SuspiciousOperation("non-integer passed for 'visit_id'")
+    else:
+        prev_visit_id = prev_visit_id_str
+
     if request.method == "POST":
         if "finish" in request.POST:
             return redirect("relate-finish_flow_session_view",
                     pctx.course.identifier, flow_session_id)
         else:
+            if prev_visit_id is not None:
+                raise SuspiciousOperation("POST to previous visit")
+
             post_result = post_flow_page(
                     flow_session, fpctx, request, permissions, generates_grade)
 
@@ -1867,15 +1879,6 @@ def view_flow_page(
                 get_prev_answer_visits_qset(fpctx.page_data))
 
         # {{{ fish out previous answer_visit
-
-        prev_visit_id_str = pctx.request.GET.get("visit_id")
-        if prev_visit_id_str is not None:
-            try:
-                prev_visit_id = int(prev_visit_id_str)
-            except ValueError:
-                raise SuspiciousOperation("non-integer passed for 'visit_id'")
-        else:
-            prev_visit_id = prev_visit_id_str
 
         if prev_answer_visits and prev_visit_id is not None:
             answer_visit = prev_answer_visits[0]
