@@ -31,7 +31,6 @@ from pydantic import ValidationError as PdValidationError
 
 from course.page.base import (
     HumanTextFeedbackForm,
-    PageBehavior,
     create_default_point_scale,
     get_editor_interaction_mode,
 )
@@ -811,24 +810,5 @@ class GetEditorInteractionModeTest(unittest.TestCase):
         page_context.flow_session.participation.user.editor_mode = "some_mode"
         self.assertEqual(get_editor_interaction_mode(page_context), "some_mode")
 
-
-class PageBehaviorTest(unittest.TestCase):
-    def test_page_behavior_backward_compatibility(self):
-        answer_is_final = PageBehavior(show_correctness=False, show_answer=False,
-                          may_change_answer=False)
-        if not answer_is_final:
-            self.fail(
-                "PageBehavior object expected to be True "
-                "when may_change_answer is False for backward "
-                "compatibility")
-
-        answer_is_final = PageBehavior(show_correctness=False, show_answer=False,
-                          may_change_answer=True)
-
-        if answer_is_final:
-            self.fail(
-                "PageBehavior object expected to be False "
-                "when may_change_answer is True for backward "
-                "compatibility")
 
 # vim: fdm=marker

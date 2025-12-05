@@ -422,10 +422,6 @@ class InlineMultiQuestion(
 
         |is-optional-page-attr|
 
-    .. attribute:: access_rules
-
-        |access-rules-page-attr|
-
     .. attribute:: title
 
         |title-page-attr|

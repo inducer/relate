@@ -1,0 +1,38 @@
+{% load i18n %}
+{% blocktrans with
+    course_identifier=course.identifier
+    error_message=error_message|safe
+    func_name=func_name
+    source=source
+    pprint_args=pprint_args
+    pprint_kwargs=pprint_kwargs
+%}
+Hi there,
+
+This message was sent from {{ site }} at {{ time }}.
+
+Bad news! Starlark code in '{{ course_identifier }}' just failed to execute.
+
+Specifically, calling '{{ func_name }}' within the following code:
+---------------------------------------------------------------------------
+{{ source }}
+---------------------------------------------------------------------------
+
+failed with the following error:
+{{ error_message }}
+
+The following positional arguments were provided:
+---------------------------------------------------------------------------
+{{ pprint_args }}
+---------------------------------------------------------------------------
+
+The following keyword arguments were provided:
+---------------------------------------------------------------------------
+{{ pprint_kwargs }}
+---------------------------------------------------------------------------
+
+{% endblocktrans %}
+
+- {{ relate_site_name }}
+
+

@@ -909,8 +909,10 @@ def grant_exception_stage_2(
     access_rules_tags = flow_desc.rules.tags
 
     from course.utils import get_session_start_mode
-    session_start_rule = get_session_start_mode(pctx.course, participation,
-            flow_id, flow_desc, now_datetime)
+    session_start_rule = get_session_start_mode(
+            pctx.repo, pctx.course_commit_sha,
+            pctx.course, participation,
+            flow_id, flow_desc.rules, now_datetime)
 
     create_session_is_override = False
     if not session_start_rule.may_start_new_session:
@@ -1160,8 +1162,11 @@ def grant_exception_stage_3(
 
     now_datetime = get_now_or_fake_time(pctx.request)
     from course.utils import get_session_access_mode, get_session_grading_mode
-    access_rule = get_session_access_mode(session, flow_desc, now_datetime)
-    grading_rule = get_session_grading_mode(session, flow_desc, now_datetime)
+    access_mode = get_session_access_mode(
+                            pctx.repo, pctx.course_commit_sha,
+                            session, flow_desc.rules, now_datetime,
+                            page_data=None)
+    grading_rule = get_session_grading_mode(session, flow_desc.rules, now_datetime)
 
     request = pctx.request
     if request.method == "POST":
@@ -1335,8 +1340,23 @@ def grant_exception_stage_3(
                 "max_points": grading_rule.max_points,
                 "max_points_enforced_cap": grading_rule.max_points_enforced_cap,
                 }
-        for perm in access_rule.permissions:
-            data[perm] = True
+
+        # We don't have the per-page permission data, so...
+        data["view"] = True
+        data["submit_answer"] = True
+        data["change_answer"] = False
+        data["see_correctness"] = False
+        data["see_answer_before_submission"] = False
+        data["see_answer_after_submission"] = False
+        data["hide_point_count"] = False
+        data["send_email_about_flow_page"] = False
+
+        data["end_session"] = access_mode.may_end
+        data["cannot_see_flow_result"] = not access_mode.show_flow_grade
+        data["set_roll_over_expiration_mode"] = \
+            access_mode.may_set_rollover_expiration_mode
+        data["see_session_time"] = access_mode.show_session_time
+        data["lock_down_as_exam_session"] = access_mode.lock_down_as_exam_session
 
         form = ExceptionStage3Form(data, flow_desc, session.access_rules_tag)
 

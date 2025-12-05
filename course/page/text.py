@@ -618,10 +618,6 @@ class TextQuestionBase(PageBaseWithTitle, ABC):
 
         |is-optional-page-attr|
 
-    .. attribute:: access_rules
-
-        |access-rules-page-attr|
-
     .. attribute:: title
 
         |title-page-attr|
@@ -753,10 +749,6 @@ class SurveyTextQuestion(TextQuestionBase, PageBaseUngraded):
 
         |is-optional-page-attr|
 
-    .. attribute:: access_rules
-
-        |access-rules-page-attr|
-
     .. attribute:: title
 
         |title-page-attr|
@@ -845,10 +837,6 @@ class TextQuestion(TextQuestionBase, PageBaseWithValue, PageBaseWithoutHumanGrad
     .. attribute:: is_optional_page
 
         |is-optional-page-attr|
-
-    .. attribute:: access_rules
-
-        |access-rules-page-attr|
 
     .. attribute:: title
 
@@ -1044,10 +1032,6 @@ class HumanGradedTextQuestion(TextQuestionBase, PageBaseWithValue,
 
         |is-optional-page-attr|
 
-    .. attribute:: access_rules
-
-        |access-rules-page-attr|
-
     .. attribute:: title
 
         |title-page-attr|
@@ -1134,10 +1118,6 @@ class HumanGradedRichTextQuestion(PageBaseWithValue, PageBaseWithTitle,
     .. attribute:: is_optional_page
 
         |is-optional-page-attr|
-
-    .. attribute:: access_rules
-
-        |access-rules-page-attr|
 
     .. attribute:: title
 

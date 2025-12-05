@@ -47,7 +47,6 @@ from pydantic import (
 from pytools import not_none
 from typing_extensions import override
 
-from course.constants import FlowPermission
 from course.page.base import (
     AnswerData,
     AnswerFeedback,
@@ -456,20 +455,6 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue, ABC):
     is in the specified language.  This class should be treated as an
     interface and used only as a superclass.
 
-    If you are not including the
-    :attr:`course.constants.FlowPermission.change_answer`
-    permission for your entire flow, you likely want to
-    include this snippet in your question definition:
-
-    .. code-block:: yaml
-
-        access_rules:
-            add_permissions:
-                - change_answer
-
-    This will allow participants multiple attempts at getting
-    the right answer.
-
     .. attribute:: id
 
         |id-page-attr|
@@ -481,10 +466,6 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue, ABC):
     .. attribute:: is_optional_page
 
         |is-optional-page-attr|
-
-    .. attribute:: access_rules
-
-        |access-rules-page-attr|
 
     .. attribute:: title
 
@@ -576,12 +557,6 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue, ABC):
         available to :attr:`setup_code` and :attr:`test_code` through the
         ``data_files`` dictionary. (see below)
 
-    .. attribute:: single_submission
-
-        Optional, a Boolean. If the question does not allow multiple submissions
-        based on its :attr:`access_rules` (not the ones of the flow), a warning
-        is shown. Setting this attribute to True will silence the warning.
-
     .. attribute:: docker_image
 
         Optional.
@@ -625,38 +600,26 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue, ABC):
     check_user_code: str | None = None
 
     @model_validator(mode="after")
-    def check_has_multi_submit(self, info: ValidationInfo) -> Self:
-        vctx = get_validation_context(info)
-
-        if not self.single_submission:
-            is_multi_submit = False
-
-            if self.access_rules is not None:
-                if FlowPermission.change_answer in self.access_rules.add_permissions:
-                    is_multi_submit = True
-
-            if not is_multi_submit:
-                vctx.add_warning(_("code question does not explicitly "
-                    "allow multiple submission. Either add "
-                    "access_rules/add_permissions/change_answer "
-                    "or add 'single_submission: True' to confirm that you intend "
-                    "for only a single submission to be allowed. "
-                    "While you're at it, consider adding "
-                    "access_rules/add_permissions/see_correctness."))
-
-        return self
-
-    @model_validator(mode="after")
     def check_check_user_code_without_file_repo(self, info: ValidationInfo) -> Self:
         vctx = get_validation_context(info)
 
-        # use this as a proxy for 'running in the CLI' (plus the test suite is
-        # allowed, too)
         if self.check_user_code is not None:
+            # use this as a proxy for 'running in the CLI' (plus the test suite is
+            # allowed, too)
             if (not isinstance(vctx.repo, FileSystemFakeRepo)
                     and "PYTEST_CURRENT_TEST" not in os.environ):
                 raise ValueError("check_user_code is not None while "
                                  "not running in the CLI")
+
+        return self
+
+    @model_validator(mode="after")
+    def check_deprecate_single_submission(self, info: ValidationInfo) -> Self:
+        vctx = get_validation_context(info).with_location(f"page '{self.id}'")
+
+        if self.single_submission:
+            vctx.add_warning("'single_submission' is deprecated and will stop "
+                             "being accepted in 2H2026.")
 
         return self
 
@@ -1171,9 +1134,6 @@ class PythonCodeQuestion(CodeQuestion, PageBaseWithoutHumanGrading):
 
         type: PythonCodeQuestion
         id: addition
-        access_rules:
-            add_permissions:
-                - change_answer
         value: 1
         timeout: 10
         prompt: |
@@ -1200,20 +1160,6 @@ class PythonCodeQuestion(CodeQuestion, PageBaseWithoutHumanGrading):
             else:
                 feedback.finish(0, "Your computed c was incorrect.")
 
-    If you are not including the
-    :attr:`course.constants.FlowPermission.change_answer`
-    permission for your entire flow, you likely want to
-    include this snippet in your question definition:
-
-    .. code-block:: yaml
-
-        access_rules:
-            add_permissions:
-                - change_answer
-
-    This will allow participants multiple attempts at getting
-    the right answer.
-
     .. attribute:: id
 
         |id-page-attr|
@@ -1225,10 +1171,6 @@ class PythonCodeQuestion(CodeQuestion, PageBaseWithoutHumanGrading):
     .. attribute:: is_optional_page
 
         |is-optional-page-attr|
-
-    .. attribute:: access_rules
-
-        |access-rules-page-attr|
 
     .. attribute:: title
 
@@ -1320,12 +1262,6 @@ class PythonCodeQuestion(CodeQuestion, PageBaseWithoutHumanGrading):
         available to :attr:`setup_code` and :attr:`test_code` through the
         ``data_files`` dictionary. (see below)
 
-    .. attribute:: single_submission
-
-        Optional, a Boolean. If the question does not allow multiple submissions
-        based on its :attr:`access_rules` (not the ones of the flow), a warning
-        is shown. Setting this attribute to True will silence the warning.
-
     The following symbols are available in :attr:`setup_code` and :attr:`test_code`:
 
     * ``GradingComplete``: An exception class that can be raised to indicated
@@ -1398,20 +1334,6 @@ class PythonCodeQuestionWithHumanTextFeedback(
     A question allowing an answer consisting of Python code.
     This page type allows both automatic grading and grading
     by a human grader.
-
-    If you are not including the
-    :attr:`course.constants.FlowPermission.change_answer`
-    permission for your entire flow, you likely want to
-    include this snippet in your question definition:
-
-    .. code-block:: yaml
-
-        access_rules:
-            add_permissions:
-                - change_answer
-
-    This will allow participants multiple attempts at getting
-    the right answer.
 
     Besides those defined in :class:`PythonCodeQuestion`, the
     following additional, allowed/required attribute are introduced:
