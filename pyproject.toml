@@ -7,12 +7,12 @@ name = "relate-courseware"
 version = "2024.1"
 description = "RELATE courseware"
 authors = [{ name = "Andreas Kloeckner", email = "inform@tiker.net" }]
-requires-python = ">=3.11,<4"
+requires-python = ">=3.12,<4"
 readme = "README.rst"
 license = "MIT"
 dependencies = [
     # upgrade django-stubs below when bumping this
-    "django>=5.2,<6",
+    "django>=6,<7",
 
     "django-crispy-forms>=1.13.0",
     "crispy-bootstrap5~=2025.4",
