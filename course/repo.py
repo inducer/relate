@@ -169,7 +169,7 @@ class FileSystemFakeRepo:
 
     @override
     def __str__(self):
-        return f"<FAKEREPO:{self.root}>"
+        return f"<FS FAKEREPO:{self.root}>"
 
     def decode(self):
         return self
@@ -188,7 +188,7 @@ class FileSystemFakeRepo:
         self.close()
 
 
-@dataclass
+@dataclass(frozen=True)
 class FileSystemFakeRepoTreeEntry:  # pragma: no cover
     path: bytes
     mode: int
