@@ -25,6 +25,7 @@ THE SOFTWARE.
 
 import unittest
 from copy import deepcopy
+from typing import TYPE_CHECKING, ClassVar
 
 import pytest
 from django.test import RequestFactory, TestCase
@@ -34,6 +35,7 @@ from dulwich.contrib.paramiko_vendor import ParamikoSSHVendor
 from course import versioning
 from course.constants import ParticipationPermission as PPerm
 from course.models import Course
+from course.repo import python_repo_class
 from course.validation import ValidationWarning
 from relate.utils import force_remove_path
 from tests import factories
@@ -43,7 +45,11 @@ from tests.base_test_mixins import (
     MockAddMessageMixing,
     SingleCourseTestMixin,
 )
-from tests.utils import mock, suppress_stdout_decorator
+from tests.utils import make_pyclass_course, mock, suppress_stdout_decorator
+
+
+if TYPE_CHECKING:
+    from django.contrib.auth.models import User
 
 
 TEST_PRIVATE_KEY = """\
@@ -1222,3 +1228,31 @@ class UpdateCourseTest(SingleCourseTestMixin, MockAddMessageMixing, TestCase):
 
             from course.content import SubdirRepoWrapper
             self.assertIsInstance(mock_run_update.call_args[0][1], Repo)
+
+
+@python_repo_class
+class BasicCourse:
+    course_dot_yml: ClassVar[str] = """
+        content: "# Blah"
+        """
+
+    class Flows:
+        myflow_dot_yml: ClassVar[str] = """
+            title: "Blah"
+            description: "Blah"
+            pages:
+            -
+
+                type: Page
+                id: vectors
+                content: |
+
+                    # Vectors
+
+                    A vector is pretty straight.
+            """
+
+
+@pytest.mark.django_db
+def test_code_repo(admin_user: User):
+    make_pyclass_course(BasicCourse, admin_user)
