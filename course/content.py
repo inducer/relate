@@ -75,7 +75,10 @@ from course.datespec import Datespec  # noqa: TC001
 from course.page.base import PageBase  # noqa: TC001
 from course.repo import (
     CACHE_KEY_ROOT,
+    PYTHON_CLASS_REPO_PREFIX,
+    PYTHON_CLASS_REPO_REGISTRY,
     FileSystemFakeRepo,
+    PythonClassFakeRepo,
     RevisionID_ish,
     SubdirRepoWrapper,
     get_repo_blob_data_cached,
@@ -944,6 +947,11 @@ def get_course_repo_path(course: Course) -> Path:
 
 
 def get_course_repo(course: Course) -> Repo_ish:
+    if course.git_source.startswith(PYTHON_CLASS_REPO_PREFIX):
+        return PythonClassFakeRepo(
+            PYTHON_CLASS_REPO_REGISTRY[
+                course.git_source[len(PYTHON_CLASS_REPO_PREFIX):]])
+
     from dulwich.repo import Repo
     repo = Repo(get_course_repo_path(course))
 
