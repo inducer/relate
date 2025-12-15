@@ -4,15 +4,26 @@ updates:
       directory: "/"
       schedule:
           interval: "monthly"
-
+      groups:
+          actions:
+              patterns:
+                  - "*"
     - package-ecosystem: "pip"
       directory: "/"
       schedule:
           interval: "monthly"
+      groups:
+          pip:
+              patterns:
+                  - "*"
 
     - package-ecosystem: "npm"
       directory: "/"
       schedule:
           interval: "monthly"
+      groups:
+          npm:
+              patterns:
+                  - "*"
 
 # vim: sw=4
