@@ -241,6 +241,7 @@ ignore_errors = true
 
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "relate.settings"
+FAIL_INVALID_TEMPLATE_VARS = true
 python_files = [
     "tests.py",
     "test_*.py",
