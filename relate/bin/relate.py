@@ -82,7 +82,7 @@ def validate_pages(args):
 
     from yaml import safe_load
     for yaml_filename in args.PROBLEM_YMLS:
-        yaml_data = safe_load(expand_yaml(yaml_filename, Path(args.repo_root)))
+        yaml_data = safe_load(expand_yaml(yaml_filename, Path(args.REPO_ROOT)))
         PageBase.model_validate(yaml_data, context=vctx)
 
     if vctx.warnings:
