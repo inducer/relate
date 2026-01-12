@@ -1,5 +1,10 @@
 from __future__ import annotations
 
+from annotated_types import Ge
+from pydantic import AllowInfNan
+
+from course.validation import PointCount
+
 
 __copyright__ = "Copyright (C) 2025 University of Illinois Board of Trustees"
 
@@ -25,7 +30,7 @@ THE SOFTWARE.
 
 from dataclasses import dataclass
 from datetime import datetime  # noqa: TC003
-from typing import TYPE_CHECKING, Self, TypeAlias
+from typing import TYPE_CHECKING, Annotated, Self, TypeAlias
 
 from pytools import not_none
 
@@ -101,6 +106,7 @@ class FlowSession:
     .. autoattribute:: id
     .. autoattribute:: start_time
     .. autoattribute:: completion_time
+    .. autoattribute:: last_activity
     .. autoattribute:: expiration_mode
     .. autoattribute:: access_rules_tag
     .. autoattribute:: points
@@ -109,6 +115,7 @@ class FlowSession:
     id: int
     start_time: datetime
     completion_time: datetime | None
+    last_activity: datetime
     expiration_mode: FlowSessionExpirationMode | None
     access_rules_tag: str | None
     points: float | None
@@ -123,10 +130,15 @@ class FlowSession:
         from course.models import FlowSession as FlowSessionModel
         assert isinstance(sess, FlowSessionModel)
 
+        last_activity = sess.last_activity()
+        if last_activity is None:
+            last_activity = sess.start_time
+
         return cls(
             id=sess.id,
             start_time=sess.start_time,
             completion_time=sess.completion_time,
+            last_activity=last_activity,
             expiration_mode=FlowSessionExpirationMode(sess.expiration_mode)
                 if sess.expiration_mode is not None else None,
             access_rules_tag=sess.access_rules_tag,
@@ -235,3 +247,53 @@ class FlowPageAccessRuleArgs(FlowSessionAccessRuleArgs):
     """
     page_id: FlowPageId | None
     attempts: list[FlowPageAttempt] | None
+
+
+@dataclass(frozen=True, kw_only=True)
+class FlowPageGrade:
+    """
+    .. autoattribute:: grade
+    .. autoattribute:: message
+    """
+    grade: PointCount | None
+    message: str | None
+
+
+SessionPointCount = Annotated[
+        float,
+        AllowInfNan(False),
+        Ge(0)]
+
+
+@dataclass(frozen=True, kw_only=True)
+class FlowSessionGrade:
+    """
+    .. autoattribute:: points
+    .. autoattribute:: certain_points
+    .. autoattribute:: possible_points
+    .. autoattribute:: max_reachable_points
+    .. autoattribute:: message
+    """
+    points: SessionPointCount | None
+    """Non-None only if the final grade is available."""
+
+    certain_points: SessionPointCount | None
+
+    possible_points: SessionPointCount | None
+
+    max_reachable_points: SessionPointCount | None
+    """The maximum number of actually attainable points on the flow, subject
+    to the grading rules, but independent of the particular page results.
+    """
+
+    message: str | None
+
+
+@dataclass(frozen=True, kw_only=True)
+class FlowGrade:
+    """
+    .. autoattribute:: points
+    .. autoattribute:: message
+    """
+    points: PointCount | None
+    message: str | None
