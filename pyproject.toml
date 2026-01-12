@@ -90,7 +90,8 @@ dev = [
     # https://github.com/pyupio/safety/issues/784
     "typer<0.21",
 
-    "sphinx>=8.1.3,<10",
+    # <9 because of https://github.com/sphinx-doc/sphinx/issues/3866#issuecomment-311181219
+    "sphinx>=8.1.3,<9",
     "furo>=2024.8.6,<2026",
     "sphinx-copybutton>=0.5.2,<0.6",
     "django-upgrade>=1.22.1,<2",
