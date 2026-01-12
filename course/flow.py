@@ -666,6 +666,7 @@ def get_session_answered_page_data(
     return (answered_page_data_list, unanswered_page_data_list, is_interactive_flow)
 
 
+@dataclass(frozen=True)
 class GradeInfo:
     """An object to hold a tally of points and page counts of various types in
     a flow.
@@ -686,33 +687,18 @@ class GradeInfo:
         to :attr:`FlowSessionGradingRule.max_points_enforced_cap`.
     """
 
-    def __init__(
-            self,
-            points: float | None,
-            provisional_points: float | None,
-            max_points: float | None,
-            max_reachable_points: float | None,
-            fully_correct_count: int,
-            partially_correct_count: int,
-            incorrect_count: int,
-            unknown_count: int,
-            optional_fully_correct_count: int = 0,
-            optional_partially_correct_count: int = 0,
-            optional_incorrect_count: int = 0,
-            optional_unknown_count: int = 0,
-            ) -> None:
-        self.points = points
-        self.provisional_points = provisional_points
-        self.max_points = max_points
-        self.max_reachable_points = max_reachable_points
-        self.fully_correct_count = fully_correct_count
-        self.partially_correct_count = partially_correct_count
-        self.incorrect_count = incorrect_count
-        self.unknown_count = unknown_count
-        self.optional_fully_correct_count = optional_fully_correct_count
-        self.optional_partially_correct_count = optional_partially_correct_count
-        self.optional_incorrect_count = optional_incorrect_count
-        self.optional_unknown_count = optional_unknown_count
+    points: float | None
+    provisional_points: float | None
+    max_points: float | None
+    max_reachable_points: float | None
+    fully_correct_count: int
+    partially_correct_count: int
+    incorrect_count: int
+    unknown_count: int
+    optional_fully_correct_count: int = 0
+    optional_partially_correct_count: int = 0
+    optional_incorrect_count: int = 0
+    optional_unknown_count: int = 0
 
     # Rounding to larger than 100% will break the percent bars on the
     # flow results page.
