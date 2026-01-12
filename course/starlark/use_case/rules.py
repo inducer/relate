@@ -217,3 +217,22 @@ class FlowPageAccessRulesUseCase(FlowRulesUseCaseBase):
     @override
     def run_tests(self, mod: StarlarkModuleWithSource, course: Course | None):
         pass
+
+
+class FlowPageGradingRulesUseCase(FlowRulesUseCaseBase):
+    def __call__(self,
+                mod: StarlarkModuleWithSource,
+                *,
+                course: Course | None,
+                now: datetime,
+                participation: Participation | StarlarkParticipation | None,
+                flow_id: str,
+                session: FlowSession | StarlarkFlowSession,
+                page_data: FlowPageData,
+                attempts: Sequence[FlowPageVisit | FlowPageAttempt]
+            ) -> FlowPageGrade:
+        pass
+
+    @override
+    def run_tests(self, mod: StarlarkModuleWithSource, course: Course | None):
+        pass
