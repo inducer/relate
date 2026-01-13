@@ -1573,12 +1573,6 @@ crypto = [
 ]
 
 [[package]]
-name = "pylibmc"
-version = "1.6.3"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/ad/eb/8767d00eef0d4012e63a1b76025da5dbf307888246b2b50476841416c12b/pylibmc-1.6.3.tar.gz", hash = "sha256:eefa46115537abad65fbe2e032acd1b3463d9bf9e335af4b0916df4e4d3206e0", size = 63224, upload-time = "2022-08-30T07:33:38.884Z" }
-
-[[package]]
 name = "pymbolic"
 version = "2025.1"
 source = { registry = "https://pypi.org/simple" }
@@ -1590,6 +1584,15 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/3f/34/dbf12e9379faf31c32f56e9fae9a4f2e70bcb6afb4d2a253cfb98f043d11/pymbolic-2025.1.tar.gz", hash = "sha256:31efa99e1f2a6407d1d7128d356dd625d56d2002d23b3f104da5b9c3fb0a270b", size = 113053, upload-time = "2025-10-03T19:21:24.174Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/ab/91/8e3af987d8ff0f80c8a02022e391c428033ed6b8b0f32f283c09faf5c029/pymbolic-2025.1-py3-none-any.whl", hash = "sha256:bf16406b24b53f45d707d7492d85107ace3116465586859cebc2f59dbdf90fd0", size = 138972, upload-time = "2025-10-03T19:21:22.903Z" },
+]
+
+[[package]]
+name = "pymemcache"
+version = "4.0.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/d9/b6/4541b664aeaad025dfb8e851dcddf8e25ab22607e674dd2b562ea3e3586f/pymemcache-4.0.0.tar.gz", hash = "sha256:27bf9bd1bbc1e20f83633208620d56de50f14185055e49504f4f5e94e94aff94", size = 70176, upload-time = "2022-10-17T16:53:07.726Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/41/ba/2f7b22d8135b51c4fefb041461f8431e1908778e6539ff5af6eeaaee367a/pymemcache-4.0.0-py2.py3-none-any.whl", hash = "sha256:f507bc20e0dc8d562f8df9d872107a278df049fa496805c1431b926f3ddd0eab", size = 60772, upload-time = "2022-10-17T16:53:04.388Z" },
 ]
 
 [[package]]
@@ -1719,15 +1722,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/66/c0/0c8b6ad9f17a802ee498c46e004a0eb49bc148f2fd230864601a86dcf6db/python-dateutil-2.9.0.post0.tar.gz", hash = "sha256:37dd54208da7e1cd875388217d5e00ebd4179249f90fb72437e91a35459a0ad3", size = 342432, upload-time = "2024-03-01T18:36:20.211Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/ec/57/56b9bcc3c9c6a792fcbaf139543cee77261f3651ca9da0c93f5c1221264b/python_dateutil-2.9.0.post0-py2.py3-none-any.whl", hash = "sha256:a8b2bc7bffae282281c8140a97d3aa9c14da0b136dfe83f850eea9a5f7470427", size = 229892, upload-time = "2024-03-01T18:36:18.57Z" },
-]
-
-[[package]]
-name = "python-memcached"
-version = "1.62"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/e8/3c/204e5c6087efc85b52a68edce8678d44eb28718f5f145e036c277beb467c/python-memcached-1.62.tar.gz", hash = "sha256:0285470599b7f593fbf3bec084daa1f483221e68c1db2cf1d846a9f7c2655103", size = 28591, upload-time = "2024-01-14T15:56:03.134Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/8f/1b/3b15a37831ae34a264d7d5b71f3ae9fe74a81251453a3ec2135e76888ef1/python_memcached-1.62-py2.py3-none-any.whl", hash = "sha256:1bdd8d2393ff53e80cd5e9442d750e658e0b35c3eebb3211af137303e3b729d1", size = 15136, upload-time = "2024-01-14T15:56:01.725Z" },
 ]
 
 [[package]]
@@ -1930,7 +1924,6 @@ dependencies = [
     { name = "pymbolic" },
     { name = "pyopenssl" },
     { name = "pysaml2" },
-    { name = "python-memcached" },
     { name = "pytools" },
     { name = "pyyaml" },
     { name = "slixmpp" },
@@ -1943,7 +1936,7 @@ dependencies = [
 
 [package.optional-dependencies]
 memcache = [
-    { name = "pylibmc" },
+    { name = "pymemcache" },
 ]
 postgres = [
     { name = "psycopg2" },
@@ -2019,11 +2012,10 @@ requires-dist = [
     { name = "psycopg2", marker = "extra == 'postgres'", specifier = ">=2.9.10,<3" },
     { name = "pydantic", specifier = "~=2.12" },
     { name = "pygments", specifier = ">=2.6.1,<3" },
-    { name = "pylibmc", marker = "extra == 'memcache'", specifier = ">=1.6.0,<2" },
     { name = "pymbolic", specifier = ">=2024.2.2" },
+    { name = "pymemcache", marker = "extra == 'memcache'", specifier = "~=4.0" },
     { name = "pyopenssl", specifier = ">=24.2.1" },
     { name = "pysaml2", specifier = ">=7.5.2,<8" },
-    { name = "python-memcached", specifier = "~=1.59" },
     { name = "pytools", specifier = ">=2024.1.8" },
     { name = "pyyaml", specifier = ">=6.0.2" },
     { name = "slixmpp", specifier = ">=1.8.3,<2" },

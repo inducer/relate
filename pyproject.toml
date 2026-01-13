@@ -33,7 +33,6 @@ dependencies = [
     "pysaml2>=7.5.2,<8",
     "djangosaml2>=1.7.0,<2",
     "attrs>=19",
-    "python-memcached~=1.59",
     "celery>=5.2.2,<6",
     "kombu>=5.4.2,<6",
     "django-celery-results>=2.4.0,<3",
@@ -61,8 +60,12 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-postgres = ["psycopg2>=2.9.10,<3"]
-memcache = ["pylibmc>=1.6.0,<2"]
+postgres = [
+    "psycopg2>=2.9.10,<3"
+]
+memcache = [
+    "pymemcache~=4.0",
+]
 
 [project.urls]
 Repository = "https://github.com/inducer/relate"
