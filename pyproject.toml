@@ -136,7 +136,10 @@ include = [
 [tool.ruff]
 preview = true
 target-version = "py310"
-exclude = ["contrib/jupyterlite"]
+exclude = [
+        "contrib/jupyterlite",
+        "check-exam-access.py",
+        ]
 include = ["*.py", "docker-image-run-py/runcode"]
 
 [tool.ruff.lint]
@@ -190,7 +193,10 @@ multiline-quotes = "double"
 "local_settings_example.py" = ["I002"]
 
 # copy-pasted from elsewhere, not our problem
-"saml-config/attribute-maps/*.py" = ["Q", "E231", "W292", "W291", "E501", "I002"]
+"saml-config/attribute-maps/*.py" = [
+        "Q", "E231", "W292", "W291", "E501", "I002",
+        "W391"
+]
 
 # mostly generated
 "*/migrations/*.py" = ["Q", "E501", "RUF012", "F401", "I002", "UP", "N813"]
