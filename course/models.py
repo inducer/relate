@@ -1293,7 +1293,6 @@ def update_bulk_feedback(page_data: FlowPageData, grade: FlowPageVisitGrade,
                         BULK_FEEDBACK_FILENAME_KEY]
 
                 def delete_bulk_fb_file():
-                    print(f"DELETING {storage_fn_to_delete}!")
                     settings.RELATE_BULK_STORAGE.delete(storage_fn_to_delete)
 
                 transaction.on_commit(delete_bulk_fb_file)

@@ -1462,7 +1462,6 @@ def view_start_flow(pctx: CoursePageContext, flow_id: str) -> http.HttpResponse:
             None
         )
 
-    print(new_session_grading_rule)
     from course.content import markup_to_html
     return c_utils.render_course_page(pctx, "course/flow-start.html", {
         "flow_desc": fctx.flow_desc,
