@@ -45,15 +45,11 @@ from django.utils.translation import gettext_noop  # noqa
 # properly if you enable this. (or a similar out-of-process cache
 # backend)
 #
-# You must 'pip install pylibmc' to use this (which in turn may require
-# installing 'libmemcached-dev').
-#
-# Btw, do not be tempted to use 'MemcachedCache'--it's unmaintained and
-# broken in Python 33, as of 2016-08-01.
+# To use this, make sure to install with the 'memcache' extra.
 #
 # CACHES = {
 #     "default": {
-#         "BACKEND": "django.core.cache.backends.memcached.PyLibMCCache",
+#         "BACKEND": "django.core.cache.backends.memcached.PyMemcacheCache",
 #         "LOCATION": '127.0.0.1:11211',
 #     }
 # }

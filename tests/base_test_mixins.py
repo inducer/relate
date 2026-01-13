@@ -27,7 +27,6 @@ import datetime
 import hashlib
 import os
 import re
-import shutil
 import sys
 import tempfile
 from collections import OrderedDict
@@ -36,7 +35,6 @@ from functools import partial
 from pathlib import Path
 from types import MethodType
 
-import memcache
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ImproperlyConfigured
@@ -51,7 +49,7 @@ from course.constants import (
     ParticipationStatus,
     UserStatus,
 )
-from course.content import FlowDesc, flow_desc_ta, get_course_repo_path
+from course.content import FlowDesc, flow_desc_ta
 from course.flow import GradeInfo
 from course.models import (
     Course,
@@ -73,8 +71,6 @@ from tests.constants import (
 )
 from tests.utils import mock
 
-
-# {{{ data
 
 CORRECTNESS_ATOL = 1e-05
 
@@ -186,12 +182,6 @@ NONE_PARTICIPATION_USER_CREATE_KWARG_LIST = [
         "status": UserStatus.unconfirmed
     }
 ]
-
-try:
-    mc = memcache.Client(["127.0.0.1:11211"])
-except Exception:
-    pass
-
 
 SELECT2_HTML_FIELD_ID_SEARCH_PATTERN = re.compile(r'data-field_id="([^"]+)"')
 
@@ -871,42 +861,13 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
                         create_course_kwargs["trusted_for_markup"]
                 last_course.save()
 
-            url_cache_key, commit_sha_cache_key = (
-                git_source_url_to_cache_keys(last_course.git_source))
-            mc.set_multi({url_cache_key: get_course_repo_path(last_course),
-                          commit_sha_cache_key: last_course.active_git_commit_sha},
-                         time=120000
-                         )
         return resp
 
     @classmethod_with_client
     def create_course(cls, client, create_course_kwargs, *,  # noqa: N805
             raise_error=True):
-        has_cached_repo = False
-        repo_cache_key, commit_sha_cache_key = (
-            git_source_url_to_cache_keys(create_course_kwargs["git_source"]))
-        try:
-            exist_course_repo_path = mc.get(repo_cache_key)
-            exist_commit_sha = mc.get(commit_sha_cache_key)
-            if os.path.isdir(exist_course_repo_path):
-                has_cached_repo = bool(exist_course_repo_path and exist_commit_sha)
-            else:
-                has_cached_repo = False
-        except Exception:
-            pass
-
-        if not has_cached_repo:
-            # fall back to post create
-            return cls.post_create_course(
-                    client, create_course_kwargs, raise_error=raise_error)
-        existing_course_count = Course.objects.count()
-        new_course_repo_path = os.path.join(settings.GIT_ROOT,
-                                        create_course_kwargs["identifier"])
-        shutil.copytree(exist_course_repo_path, new_course_repo_path)
-        create_kwargs = deepcopy(create_course_kwargs)
-        create_kwargs["active_git_commit_sha"] = exist_commit_sha
-        Course.objects.create(**create_kwargs)
-        assert Course.objects.count() == existing_course_count + 1
+        return cls.post_create_course(
+                        client, create_course_kwargs, raise_error=raise_error)
 
     @classmethod
     def get_course_view_url(cls, view_name, course_identifier=None):
