@@ -173,8 +173,8 @@ The following assumes you are using systemd on your deployment system.
 Additional Setup Steps for Deploying to Production
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-*   Install nginx for reverse proxying and uwsgi to run the app server. See below
-    for configuration.
+*   Install nginx for reverse proxying. See below for configuration.
+*   Install a systemd service file to start/manage the app server.
 *   Use postgres as a database. You need to create a user and a database that relate
     will use and enter the details (database name, user name, password) into
     :file:`local_settings.py`. You will also need to::
@@ -194,29 +194,41 @@ Additional Setup Steps for Deploying to Production
     (Do not run ``python manage.py collectstatic`` directly; it will fail
     because it cannot resolve some source map URLs in mathjax.)
 
-Configuring uwsgi
-^^^^^^^^^^^^^^^^^
+Starting the app server
+^^^^^^^^^^^^^^^^^^^^^^^
 
-The following should be in :file:`/etc/uwsgi/apps-available/relate.ini`::
+The following should be in :file:`"/etc/systemd/system/relate.service"` (or similar)::
 
-    [uwsgi]
-    plugins = python
-    # or plugins = python3
-    socket = /tmp/uwsgi-relate.sock
-    chdir=/home/andreas/relate
-    virtualenv=/home/andreas/my-relate-env
-    module=relate.wsgi:application
-    need-app = 1
-    reload-mercy=8
-    max-requests=300
-    workers=8
-    autoload=false
+    [Unit]
+    Description=RELATE via Granian
+    After=network.target
+
+    [Service]
+    #Type=forking
+    User=www-data
+    Group=www-data
+
+    WorkingDirectory=/home/andreas/relate
+
+    Environment="GRANIAN_HOST=127.0.0.1"
+    Environment="GRANIAN_PORT=8123"
+    Environment="GRANIAN_WORKERS=16"
+    Environment="GRANIAN_WORKERS_MAX_RSS=500"
+    Environment="GRANIAN_INTERFACE=wsgi"
+    Environment="GRANIAN_RESPAWN_FAILED_WORKERS=true"
+
+    ExecStart=/home/andreas/relate/.venv/bin/granian relate.wsgi:application
+
+    [Install]
+    WantedBy=multi-user.target
+
+Make sure to change the paths (in ``WorkingDirectory`` and ``ExecStart``) appropriately.
 
 Then run::
 
-    # cd /etc/uwsgi/apps-enabled
-    # ln -s ../apps-available/relate.ini
-    # service uwsgi restart
+    # systemctl daemon-reload
+    # systemctl enable relate
+    # systemctl start relate
 
 Configuring nginx
 ^^^^^^^^^^^^^^^^^
@@ -244,10 +256,18 @@ Adapt the following snippet to serve as part of your `nginx
       client_max_body_size 100M;
 
       location / {
-        include uwsgi_params;
-        uwsgi_read_timeout 300;
-        uwsgi_pass unix:/tmp/uwsgi-relate.sock;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Host $host;
+
+        proxy_read_timeout 300;
+        proxy_connect_timeout 30;
+
+        proxy_pass http://127.0.0.1:8123;
       }
+
       location /static {
         alias /home/andreas/relate/static;
       }

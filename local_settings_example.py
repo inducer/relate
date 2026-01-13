@@ -13,6 +13,9 @@ SECRET_KEY = "<CHANGE ME TO SOME RANDOM STRING ONCE IN PRODUCTION>"
 ALLOWED_HOSTS = [
         "relate.example.edu",
         ]
+# Enable if using behind reverse proxy. That proxy must set the
+# X-Forwarded-Host header.
+# USE_X_FORWARDED_HOST = True
 
 # Configure the following as url as above.
 RELATE_BASE_URL = "http://YOUR/RELATE/SITE/DOMAIN"
