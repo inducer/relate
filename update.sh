@@ -2,7 +2,7 @@
 
 set -eo pipefail
 
-uv sync --all-extras --frozen
+uv sync --all-extras --all-groups --no-group mypy --frozen
 npm install
 npm run build
 ./collectstatic.sh

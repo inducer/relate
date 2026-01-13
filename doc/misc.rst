@@ -26,7 +26,7 @@ To install, clone the repository and enter it::
 Install the dependencies. Uv will automatically create a virtualenv
 (in ``.venv```) for this::
 
-    uv sync --frozen
+    uv sync --all-extras --all-groups --no-group mypy --frozen
 
 Copy (and, optionally, edit) the example configuration::
 
