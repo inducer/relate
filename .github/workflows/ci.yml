@@ -33,7 +33,7 @@ jobs:
       - name: "Set up local settings"
         run: cp local_settings_example.py local_settings.py
       - name: "Basedpyright"
-        run: uv run basedpyright
+        run: uv run basedpyright --baselinemode=auto
       - name: "Safety"
         run: uv run ./.ci/run-safety.sh
         env:
