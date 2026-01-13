@@ -23,11 +23,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-try:
-    from test.support import EnvironmentVarGuard
-except ImportError:
-    from test.test_support import EnvironmentVarGuard  # noqa
-
 from django.test import override_settings
 
 
