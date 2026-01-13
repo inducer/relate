@@ -165,6 +165,7 @@ extend-ignore = [
     "E242", # tab after comma
     "E402", # module level import not at the top of file
     "N818", # error suffix in exception names
+    "RUF067", # no code in __init__
 
     # TODO
     "B904", # raise in except needs from
