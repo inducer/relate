@@ -1,54 +1,57 @@
 #! /usr/bin/env python3
 
-from __future__ import print_function
-from os.path import join, basename
-from urllib.parse import quote_plus
-from glob import glob
+from __future__ import annotations
+
+from pathlib import Path
 import re
+from dataclasses import dataclass
+from glob import glob
+from os.path import basename, join
+from typing import TYPE_CHECKING, NotRequired, TypedDict
+from urllib.parse import quote_plus
+
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping, Sequence
 
 
 section_nr = [1]
 
 
-def rewrite_org_element(args, org_el):
-    el_type = org_el[0]
-    org_props = org_el[1]
-    assert org_props is None or isinstance(org_props, dict)
-    contents = org_el[2:]
+class Node(TypedDict):
+    text: str
+    link: str
+    icon: str
+    section: NotRequired[str]
+    section_nr: NotRequired[int]
+    nodes: NotRequired[Sequence[Node]]
+    opened: NotRequired[bool]
+
+
+# Assumes org json export from https://github.com/jlumpe/ox-json
+def rewrite_org_element(
+            args, org_el
+        ) -> tuple[Node, Sequence[Node], bool]:
+    if isinstance(org_el, str):
+        return {}, [], False
+
+    el_type = org_el["$$data_type"]
+    el_subtype = org_el.get("type")
+    org_props = org_el["properties"]
+    assert isinstance(org_props, dict)
+    contents = org_el["contents"]
 
     had_relate_properties = False
     promote_to_parent_level = False
-    node_props = {}
-    if el_type == "org-data":
-        title, = [
-                subel[1]["key"]
-                for el in contents
-                if el[0] == "section"
-                for subel in el[2:]
-                if subel[0] == "keyword"
-                if subel[1]["key"] == "TITLE"]
+    node_props: Node = {}
+    if el_type == "org-document":
+        title = org_props["title"]
         node_props["text"] = title
 
-    elif el_type == "headline":
+    elif el_type == "org-node" and el_subtype == "headline":
         node_props["text"] = org_props["raw-value"]
 
-        prop_container = [
-                subel[2:]
-                for el in contents
-                if el[0] == "section"
-                for subel in el[2:]
-                if subel[0] == "property-drawer"]
-
-        if prop_container:
-            prop_kws = prop_container[0]
-        else:
-            prop_kws = []
-
-        properties = {
-                ch[1]["key"]: ch[1]["value"]
-                for ch in prop_kws
-                if ch[0] == "node-property"
-                }
+        properties= org_el.get("drawer", {})
 
         had_relate_properties = had_relate_properties or any(
                 key.startswith("RELATE_") for key in properties)
@@ -74,21 +77,20 @@ def rewrite_org_element(args, org_el):
             and level < len(args.org_level_icon)):
         node_props["icon"] = args.org_level_icon[level]
 
-    siblings = []
-    children = []
+    siblings: list[Node] = []
+    children: list[Node] = []
     node_props["nodes"] = children
 
     for ch in contents:
-        if isinstance(ch, list):
-            child_props, child_siblings, promote_child_to_parent_level = \
-                    rewrite_org_element(args, ch)
-            if "text" in child_props:
-                if promote_child_to_parent_level:
-                    siblings.append(child_props)
-                else:
-                    children.append(child_props)
+        child_props, child_siblings, promote_child_to_parent_level = \
+                rewrite_org_element(args, ch)
+        if "text" in child_props:
+            if promote_child_to_parent_level:
+                siblings.append(child_props)
+            else:
+                children.append(child_props)
 
-            children.extend(child_siblings)
+        children.extend(child_siblings)
 
     if args.org_stop_level:
         if (level is not None
@@ -106,12 +108,11 @@ def rewrite_org_element(args, org_el):
     return node_props, siblings, promote_to_parent_level
 
 
-def load_org_json(args, infile_name):
+def load_org_json(args, infile_name: str):
     # https://github.com/ludios/org-to-json
 
     from json import loads
-    with open(infile_name, "rb") as inf:
-        json = loads(inf.read())
+    json = loads(Path(infile_name).read_bytes())
 
     node_props, siblings, promote_to_parent_level = \
             rewrite_org_element(args, json)
@@ -156,20 +157,25 @@ def find_section_nodes(section_dict, node):
         find_section_nodes(section_dict, subnode)
 
 
+@dataclass(frozen=True)
 class RenderSettings:
-    def __init__(self, default_icon, number_sections, tree_replacements):
-        self.default_icon = default_icon
-        self.number_sections = number_sections
-        self.tree_replacements = tree_replacements
+    default_icon: str
+    number_sections: bool
+    tree_replacements: Mapping[str, str]
 
-    def apply_replacements(self, s):
+    def apply_replacements(self, s: str):
         for key, val in self.tree_replacements.items():
             s = s.replace(key, val)
 
         return s
 
 
-def render(settings, outf, node, indent=0, skip=1):
+def render(
+            settings: RenderSettings,
+            outf: str,
+            node: Node,
+            indent=0,
+            skip=1):
     attrs = {}
 
     icon = settings.default_icon
@@ -249,7 +255,10 @@ def get_section_id_and_display_name(trunk, include_extension):
     return section_id, display_name
 
 
-def blacklisted_glob(basedir, pattern, blacklist_regexps):
+def blacklisted_glob(
+            basedir: str,
+            pattern: str,
+            blacklist_regexps: Sequence[re.Pattern[str]]):
     return sorted(
             name
             for name in glob(join(basedir, pattern))
@@ -348,7 +357,7 @@ def main():
             link_html = link_ipynb.replace(".ipynb", ".html")
             main_link = link_html
 
-            sub_nodes = [{
+            sub_nodes: list[Node] = [{
                         "text": "View on the web",
                         "link": link_html,
                         "icon": "bi bi-newspaper",
@@ -392,7 +401,7 @@ def main():
                     "icon": "bi bi-download",
                     })
 
-            demo_node = {
+            demo_node: Node = {
                 "text": "Demo: " + display_name,
                 "link": main_link,
                 "icon": "bi bi-keyboard",
