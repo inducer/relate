@@ -1,0 +1,31 @@
+---
+- hosts: webservers
+  vars:
+    relate_server_name: relate.localhost
+    self_signed_cert:
+      key: /etc/ssl/private/server.key
+      cert: /etc/ssl/certs/server.crt
+    relate_cert:
+      key: "{{ self_signed_cert.key }}"
+      cert: "{{ self_signed_cert.cert }}"
+
+  remote_user: root
+  tasks:
+
+  - name: Create self-signed certificate, if configured.
+    command: >
+      openssl req -x509 -nodes -subj '/CN={{ relate_server_name }}' -days 365
+      -newkey rsa:4096 -sha256 -keyout {{ self_signed_cert.key }} -out {{ self_signed_cert.cert }}
+      creates={{ self_signed_cert.cert }}
+
+  - name: Ensure nginx is at the latest version
+    apt:
+      name: nginx-light
+      state: latest
+
+  - name: Write nginx config file
+    template:
+      src: relate-nginx-site.j2
+      dest: /etc/nginx/sites-available/relate-nginx-site
+
+# vim: shiftwidth=2
