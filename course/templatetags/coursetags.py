@@ -23,8 +23,15 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
+from typing import TYPE_CHECKING
+
 from django.template import Library, Node, TemplateSyntaxError
 from django.utils import translation
+
+
+if TYPE_CHECKING:
+    from course.datespec import Datespec
+    from course.models import Course, Participation
 
 
 register = Library()
@@ -73,8 +80,8 @@ def do_get_current_js_lang_name(parser, token):
 
 # {{{ filter for participation.has_permission()
 
-@register.filter(name="has_permission")
-def has_permission(participation, arg):
+@register.filter
+def has_permission(participation: Participation, arg: str):
     """
     Check if a participation instance has specific permission.
     :param participation: a :class:`participation:` instance
@@ -98,7 +105,7 @@ def has_permission(participation, arg):
 # }}}
 
 
-@register.filter(name="may_set_fake_time")
+@register.filter
 def may_set_fake_time(user):
     """
     Check if a user may set fake time.
@@ -109,7 +116,7 @@ def may_set_fake_time(user):
     return msf(user)
 
 
-@register.filter(name="may_set_pretend_facility")
+@register.filter
 def may_set_pretend_facility(user):
     """
     Check if a user may set pretend_facility
@@ -120,22 +127,22 @@ def may_set_pretend_facility(user):
     return mspf(user)
 
 
-@register.filter(name="commit_message_as_html")
+@register.filter
 def commit_message_as_html(commit_sha, repo):
     from course.versioning import _get_commit_message_as_html
     return _get_commit_message_as_html(repo, commit_sha)
 
 
-@register.filter(name="get_item")
+@register.filter
 def get_item(dictionary, key):
     return dictionary.get(key, None)
 
 
-@register.filter(name="get_item_or_key")
+@register.filter
 def get_item_or_key(dictionary, key):
     return dictionary.get(key, key)
 
 
-@register.filter(name="startswith")
-def startswith(s, arg):
+@register.filter
+def startswith(s: str, arg: str):
     return s.startswith(arg)
