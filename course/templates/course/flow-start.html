@@ -101,8 +101,8 @@
             {% endif %}
             {% if new_session_grading_rule.due %}
               <li>
-                  {% blocktrans trimmed with due=new_session_grading_rule.due %}
-                    Your session will be due on <b>{{ due }}</b>.
+                  {% blocktrans trimmed with due=new_session_grading_rule.due|eval_datespec:course  %}
+                    Your session will be due on <b>{{ due}}</b>.
                   {% endblocktrans %}
               </li>
             {% endif %}
