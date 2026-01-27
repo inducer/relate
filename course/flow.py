@@ -1476,6 +1476,7 @@ def view_start_flow(pctx: CoursePageContext, flow_id: str) -> http.HttpResponse:
         "grade_aggregation_strategy_descr": grade_aggregation_strategy_descr,
         "start_may_decrease_grade": start_may_decrease_grade,
         "past_sessions_and_properties": past_sessions_and_properties,
+        "course": fctx.course,
         },
         allow_instant_flow_requests=False)
 

@@ -146,3 +146,8 @@ def get_item_or_key(dictionary, key):
 @register.filter
 def startswith(s: str, arg: str):
     return s.startswith(arg)
+
+
+@register.filter
+def eval_datespec(dspec: Datespec, course: Course):
+    return dspec.eval(course)
