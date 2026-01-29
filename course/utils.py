@@ -23,8 +23,10 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
+import re
 from contextlib import ContextDecorator
 from dataclasses import dataclass
+from itertools import starmap
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -33,6 +35,7 @@ from typing import (
     Protocol,
     TypeVar,
     cast,
+    overload,
 )
 
 from django import forms, http
@@ -41,11 +44,12 @@ from django.shortcuts import get_object_or_404, render
 from django.utils import translation
 from django.utils.safestring import SafeString, mark_safe
 from django.utils.translation import gettext as _, pgettext_lazy
+from pydantic.type_adapter import TypeAdapter
 from pytools import not_none
 from typing_extensions import override
 
 from course.constants import (
-    FlowPermission,
+    FlowPermission as FPerm,
     GradeAggregationStrategy,
     ParticipationPermission,
 )
@@ -53,18 +57,27 @@ from course.content import (
     CourseCommitSHADoesNotExist,
     FlowDesc,
     FlowRule,
-    FlowSessionAccessMode,
+    FlowRulesDesc,
+    FlowSessionAccessRuleCode,
     FlowSessionAccessRuleDesc,
     FlowSessionGradingMode,
     FlowSessionGradingRuleDesc,
     FlowSessionStartMode,
+    FlowSessionStartRuleCode,
     FlowSessionStartRuleDesc,
+    access_rule_ta,
     get_course_commit_sha,
     get_course_repo,
     get_flow_desc,
-    get_rule_ta,
+    grading_rule_ta,
+    start_rule_ta,
 )
 from course.page.base import PageBase, PageContext
+from course.starlark.use_case.rules import (
+    FlowPageAccessRulesUseCase,
+    FlowSessionAccessRulesUseCase,
+    FlowStartRulesUseCase,
+)
 from course.validation import NotSpecified, ParticipationTagStr, ValidationContext
 from relate.utils import (
     RelateHttpRequest,
@@ -72,8 +85,6 @@ from relate.utils import (
     string_concat,
 )
 
-
-# {{{ mypy
 
 if TYPE_CHECKING:
     import datetime
@@ -88,12 +99,7 @@ if TYPE_CHECKING:
         FlowSession,
         Participation,
     )
-    from course.repo import Repo_ish
-
-# }}}
-
-import re
-from itertools import starmap
+    from course.repo import Repo_ish, RevisionID_ish
 
 
 P = ParamSpec("P")
@@ -113,6 +119,21 @@ def getattr_with_fallback(
 
 
 # {{{ flow permissions
+
+def does_exam_ticket_match(
+            login_exam_ticket: ExamTicket | None,
+            participation: Participation | None,
+            flow_id: str,
+        ):
+    if login_exam_ticket is None:
+        return False
+    if login_exam_ticket.exam.flow_id != flow_id:
+        return False
+    if login_exam_ticket.participation != participation:
+        return False
+
+    return True
+
 
 def _eval_generic_conditions(
         rule: FlowSessionStartRuleDesc
@@ -141,11 +162,7 @@ def _eval_generic_conditions(
             return False
 
     if rule.if_signed_in_with_matching_exam_ticket:
-        if login_exam_ticket is None:
-            return False
-        if login_exam_ticket.exam.flow_id != flow_id:
-            return False
-        if login_exam_ticket.participation != participation:
+        if not does_exam_ticket_match(login_exam_ticket, participation, flow_id):
             return False
 
     if rule.if_has_prairietest_exam_access is not None:
@@ -227,33 +244,22 @@ def eval_participation_tags_conditions(
 
 
 FlowRuleT = TypeVar("FlowRuleT", bound=FlowRule)
+FlowRule2T = TypeVar("FlowRule2T", bound=FlowRule)
 
 
 def get_flow_rules(
-        flow_desc: FlowDesc,
-        type: type[FlowRuleT],
+        flow_desc_rules: Sequence[FlowRuleT] | FlowRule2T,
+        type_adapter: TypeAdapter[FlowRuleT],
         participation: Participation | None,
         flow_id: str,
         now_datetime: datetime.datetime,
         consider_exceptions: bool = True,
-        ) -> list[FlowRuleT]:
-    from course.content import (
-        FlowSessionAccessRuleDesc,
-        FlowSessionGradingRuleDesc,
-        FlowSessionStartRuleDesc,
-    )
-
-    rules: list[FlowRuleT] = []
-    if type is FlowSessionStartRuleDesc:
-        rules = cast("list[FlowRuleT]", flow_desc.rules.start)
-    elif type is FlowSessionAccessRuleDesc:
-        rules = cast("list[FlowRuleT]", flow_desc.rules.access)
-    elif type is FlowSessionGradingRuleDesc:
-        rules = cast("list[FlowRuleT]", flow_desc.rules.grading)
-    else:
-        raise AssertionError()
-
-    rules = rules.copy()
+        ) -> Sequence[FlowRuleT | FlowRule2T]:
+    rules: list[FlowRuleT | FlowRule2T] = (
+            [flow_desc_rules]
+            if isinstance(flow_desc_rules, FlowRule) else
+            list(flow_desc_rules)
+        )
 
     from course.models import FlowRuleException
     if consider_exceptions and participation is not None:
@@ -269,7 +275,7 @@ def get_flow_rules(
                 .filter(
                     participation=participation,
                     active=True,
-                    kind=type.kind,
+                    kind=type_adapter._type.kind,  # pyright: ignore[reportPrivateUsage]
                     flow_id=flow_id)
                 # rules created first will get inserted first, and show up last
                 .order_by("creation_time")):
@@ -277,16 +283,18 @@ def get_flow_rules(
             if exc.expiration is not None and now_datetime > exc.expiration:
                 continue
 
-            rules.insert(0, get_rule_ta(type).validate_python(exc.rule, context=vctx))
+            rules.insert(0, type_adapter.validate_python(exc.rule, context=vctx))
 
     return rules
 
 
 def get_session_start_mode(
+        repo: Repo_ish,
+        commit_sha: RevisionID_ish,
         course: Course,
         participation: Participation | None,
         flow_id: str,
-        flow_desc: FlowDesc,
+        flow_rules: FlowRulesDesc,
         now_datetime: datetime.datetime,
         facilities: Collection[str] | None = None,
         for_rollover: bool = False,
@@ -299,12 +307,33 @@ def get_session_start_mode(
         facilities = frozenset()
 
     rules = get_flow_rules(
-            flow_desc, FlowSessionStartRuleDesc,
+            flow_rules.start, start_rule_ta,
             participation, flow_id, now_datetime,
             )
 
     from course.models import FlowSession
+    sessions = list(FlowSession.objects.filter(
+            participation=participation,
+            flow_id=flow_id,
+            participation__isnull=False,
+        ).order_by("start_time"))
+
     for rule in rules:
+        if isinstance(rule, FlowSessionStartRuleCode):
+            use_case = FlowStartRulesUseCase()
+            mod = use_case.get_module(
+                    repo, commit_sha, "<start rule>", rule.code)
+
+            return use_case(mod,
+                    course=course,
+                    now=now_datetime,
+                    participation=participation,
+                    flow_id=flow_id,
+                    sessions=sessions,
+                    facilities=facilities,
+                    has_matching_exam_ticket=does_exam_ticket_match(
+                                login_exam_ticket, participation, flow_id))
+
         if not _eval_generic_conditions(rule, course, participation,
                 now_datetime, flow_id=flow_id,
                 login_exam_ticket=login_exam_ticket,
@@ -360,33 +389,167 @@ def get_session_start_mode(
         return FlowSessionStartMode(
                 tag_session=rule.tag_session,
                 may_start_new_session=rule.may_start_new_session,
-                may_list_existing_sessions=rule.may_list_existing_sessions,
+                session_list_ids=[s.id for s in FlowSession.objects.filter(
+                    participation=participation,
+                    flow_id=flow_id,
+                    participation__isnull=False,
+                ).order_by("start_time")],
                 default_expiration_mode=rule.default_expiration_mode,
                 )
 
     return FlowSessionStartMode(
-            may_list_existing_sessions=False,
-            may_start_new_session=False)
+            may_start_new_session=False,
+            session_list_ids=[],
+        )
+
+
+@dataclass(frozen=True, kw_only=True)
+class FlowSessionAccessMode:
+    """
+    .. autoattribute:: may_view
+    .. autoattribute:: may_end
+    .. autoattribute:: show_flow_grade
+    .. autoattribute:: may_set_rollover_expiration_mode
+    .. autoattribute:: lock_down_as_exam_session
+    """
+    may_view: bool
+    may_end: bool
+    show_flow_grade: bool
+    may_set_rollover_expiration_mode: bool
+    lock_down_as_exam_session: bool
+    show_session_time: bool
+
+
+session_access_mode_ta = TypeAdapter(FlowSessionAccessMode)
+
+
+@dataclass(frozen=True, kw_only=True)
+class FlowPageAccessMode:
+    """
+    .. autoattribute:: may_view
+    .. autoattribute:: may_submit
+    .. autoattribute:: will_receive_feedback
+    .. autoattribute:: show_correctness
+    .. autoattribute:: show_feedback
+    .. autoattribute:: show_answer
+    .. autoattribute:: may_send_email
+    .. autoattribute:: show_point_count
+
+    .. autoattribute:: message
+    """
+    may_view: bool
+    may_submit: bool
+    will_receive_feedback: bool
+    show_correctness: bool
+    show_feedback: bool
+    show_answer: bool
+    may_send_email: bool
+    show_point_count: bool
+
+    message: str | None = None
+
+    submit_message: str | None = None
+    """Message shown in the vicinity of the 'Submit' button."""
+
+
+page_access_mode_ta = TypeAdapter(FlowPageAccessMode)
+
+
+@overload
+def get_session_access_mode(
+            repo: Repo_ish,
+            commit_sha: RevisionID_ish,
+            session: FlowSession,
+            flow_rules: FlowRulesDesc,
+            now_datetime: datetime.datetime,
+            page_data: None,
+            facilities: Collection[str] | None = None,
+            login_exam_ticket: ExamTicket | None = None,
+            *,
+            permission_modifier: Callable[[Set[FPerm]], Set[FPerm]] | None = None,
+            remote_ip_address: IPv4Address | IPv6Address | None = None,
+        ) -> FlowSessionAccessMode: ...
+
+
+@overload
+def get_session_access_mode(
+            repo: Repo_ish,
+            commit_sha: RevisionID_ish,
+            session: FlowSession,
+            flow_rules: FlowRulesDesc,
+            now_datetime: datetime.datetime,
+            page_data: FlowPageData,
+            facilities: Collection[str] | None,
+            login_exam_ticket: ExamTicket | None = None,
+            *,
+            permission_modifier: Callable[[Set[FPerm]], Set[FPerm]],
+            remote_ip_address: IPv4Address | IPv6Address | None = None,
+        ) -> tuple[FlowSessionAccessMode, FlowPageAccessMode]: ...
 
 
 def get_session_access_mode(
-        session: FlowSession,
-        flow_desc: FlowDesc,
-        now_datetime: datetime.datetime,
-        facilities: Collection[str] | None = None,
-        login_exam_ticket: ExamTicket | None = None,
-        *,
-        remote_ip_address: IPv4Address | IPv6Address | None = None,
-        ) -> FlowSessionAccessMode:
+            repo: Repo_ish,
+            commit_sha: RevisionID_ish,
+            session: FlowSession,
+            flow_rules: FlowRulesDesc,
+            now_datetime: datetime.datetime,
+            page_data: FlowPageData | None,
+            facilities: Collection[str] | None = None,
+            login_exam_ticket: ExamTicket | None = None,
+            *,
+            permission_modifier: Callable[[Set[FPerm]], Set[FPerm]] | None = None,
+            remote_ip_address: IPv4Address | IPv6Address | None = None,
+        ) -> FlowSessionAccessMode | tuple[FlowSessionAccessMode, FlowPageAccessMode]:
 
     if facilities is None:
         facilities = frozenset()
 
-    rules: list[FlowSessionAccessRuleDesc] = get_flow_rules(
-            flow_desc, FlowSessionAccessRuleDesc,
+    rules = get_flow_rules(
+            flow_rules.access, access_rule_ta,
             session.participation, session.flow_id, now_datetime)
 
     for rule in rules:
+        if isinstance(rule, FlowSessionAccessRuleCode):
+            session_use_case = FlowSessionAccessRulesUseCase()
+            session_mod = session_use_case.get_module(
+                    repo, commit_sha, "<session access rule>", rule.session)
+
+            from course.flow import get_prev_answer_visits_qset
+            attempts = (
+                list(get_prev_answer_visits_qset(page_data))
+                if page_data is not None else [])
+
+            exam_ticket_matches = does_exam_ticket_match(
+                                login_exam_ticket, session.participation,
+                                session.flow_id)
+
+            session_mode = session_use_case(session_mod,
+                    course=session.course,
+                    now=now_datetime,
+                    participation=session.participation,
+                    flow_id=session.flow_id,
+                    session=session,
+                    facilities=facilities,
+                    has_matching_exam_ticket=exam_ticket_matches)
+
+            if page_data is None:
+                return session_mode
+            else:
+                page_use_case = FlowPageAccessRulesUseCase()
+                page_mod = session_use_case.get_module(
+                        repo, commit_sha, "<page access rule>", rule.page)
+                page_mode = page_use_case(page_mod,
+                        course=session.course,
+                        now=now_datetime,
+                        participation=session.participation,
+                        flow_id=session.flow_id,
+                        session=session,
+                        page_data=page_data,
+                        attempts=attempts,
+                        facilities=facilities,
+                        has_matching_exam_ticket=exam_ticket_matches)
+                return session_mode, page_mode
+
         if not _eval_generic_conditions(
                     rule, session.course, session.participation,
                     now_datetime, flow_id=session.flow_id,
@@ -422,21 +585,87 @@ def get_session_access_mode(
             if duration_min > rule.if_session_duration_shorter_than_minutes:
                 continue
 
-        permissions = set(rule.permissions)
+        perms = frozenset(rule.permissions)
+        if permission_modifier is not None:
+            perms = permission_modifier(perms)
 
-        # Remove 'modify' permission from not-in-progress sessions
-        if not session.in_progress:
-            permissions.difference_update([
-                    FlowPermission.submit_answer,
-                    FlowPermission.end_session,
-                    ])
-
-        return FlowSessionAccessMode(
-                permissions=frozenset(permissions),
-                message=rule.message,
+        session_mode = FlowSessionAccessMode(
+                may_view=FPerm.view in perms,
+                may_end=FPerm.end_session in perms and session.in_progress,
+                show_flow_grade=FPerm.cannot_see_flow_result not in perms,
+                may_set_rollover_expiration_mode=(
+                    FPerm.set_roll_over_expiration_mode in perms),
+                lock_down_as_exam_session=FPerm.lock_down_as_exam_session in perms,
+                show_session_time=FPerm.see_session_time in perms,
                 )
+        if page_data is None:
+            return session_mode
+        else:
+            if permission_modifier is None:
+                # This is to make sure people don't forget to have per-page
+                # rules adequately accounted for.
+                raise ValueError("permission_modifier is required if page_data "
+                                 "is specified")
 
-    return FlowSessionAccessMode(permissions=frozenset())
+            from course.flow import get_prev_answer_visits_qset
+            attempts = list(get_prev_answer_visits_qset(page_data))
+            return session_mode, FlowPageAccessMode(
+                # Note how FPerm.view is overloaded to mean both 'view page'
+                # and 'view session'.
+                may_view=FPerm.view in perms,
+                may_submit=session.in_progress and (
+                    (
+                        FPerm.change_answer in perms
+                        and FPerm.submit_answer in perms
+                    )
+                    if attempts else
+                    (FPerm.submit_answer in perms)
+                ),
+                will_receive_feedback=(
+                    FPerm.see_correctness in perms
+                    or FPerm.see_answer_after_submission in perms
+                ),
+                show_correctness=FPerm.see_correctness in perms,
+                show_feedback=FPerm.see_correctness in perms,
+                show_answer=(
+                    (FPerm.see_answer_after_submission in perms
+                        # Don't reveal the answer if they can still change their mind
+                        and FPerm.change_answer not in perms)
+                    if attempts else
+                    (FPerm.see_answer_before_submission in perms)
+                ),
+                may_send_email=FPerm.send_email_about_flow_page in perms,
+                show_point_count=FPerm.hide_point_count not in perms,
+
+                message=rule.message,
+                submit_message=(
+                    _("You may change your answer after submission.")
+                    if FPerm.change_answer in perms and session.in_progress
+                    else None
+                )
+            )
+
+    session_mode = FlowSessionAccessMode(
+        may_view=False,
+        may_end=False,
+        show_flow_grade=True,
+        may_set_rollover_expiration_mode=False,
+        lock_down_as_exam_session=False,
+        show_session_time=False,
+    )
+    if page_data is None:
+        return session_mode
+    else:
+        return session_mode, FlowPageAccessMode(
+            may_view=False,
+            may_submit=False,
+            will_receive_feedback=False,
+            show_correctness=False,
+            show_feedback=False,
+            show_answer=False,
+            may_send_email=False,
+            show_point_count=False,
+        )
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -447,12 +676,12 @@ class FlowSessionGradingModeWithFlowLevelInfo(FlowSessionGradingMode):
 
 def get_session_grading_mode(
         session: FlowSession,
-        flow_desc: FlowDesc,
+        flow_rules: FlowRulesDesc,
         now_datetime: datetime.datetime
         ) -> FlowSessionGradingModeWithFlowLevelInfo:
 
-    rules: list[FlowSessionGradingRuleDesc] = get_flow_rules(
-            flow_desc, FlowSessionGradingRuleDesc,
+    rules = get_flow_rules(
+            flow_rules.grading, grading_rule_ta,
             session.participation, session.flow_id, now_datetime,
             )
 
@@ -489,8 +718,8 @@ def get_session_grading_mode(
         due = rule.due
         generates_grade = rule.generates_grade
 
-        grade_identifier = flow_desc.rules.grade_identifier
-        grade_aggregation_strategy = flow_desc.rules.grade_aggregation_strategy
+        grade_identifier = flow_rules.grade_identifier
+        grade_aggregation_strategy = flow_rules.grade_aggregation_strategy
 
         return FlowSessionGradingModeWithFlowLevelInfo(
                 grade_identifier=grade_identifier,

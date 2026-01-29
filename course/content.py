@@ -22,14 +22,13 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
-
-
 import datetime
 import html.parser as html_parser
 import os
 import re
 from collections.abc import Set
 from dataclasses import dataclass, field
+from functools import partial
 from itertools import starmap
 from pathlib import Path
 from typing import (
@@ -38,8 +37,8 @@ from typing import (
     Any,
     ClassVar,
     Self,
+    TypeAlias,
     TypeVar,
-    cast,
 )
 from xml.etree.ElementTree import Element, tostring
 
@@ -75,11 +74,20 @@ from course.datespec import Datespec  # noqa: TC001
 from course.page.base import PageBase  # noqa: TC001
 from course.repo import (
     CACHE_KEY_ROOT,
+    PYTHON_CLASS_REPO_PREFIX,
+    PYTHON_CLASS_REPO_REGISTRY,
     FileSystemFakeRepo,
+    PythonClassFakeRepo,
     RevisionID_ish,
     SubdirRepoWrapper,
     get_repo_blob_data_cached,
     get_repo_tree,
+)
+from course.starlark.use_case import validate_starlark_code
+from course.starlark.use_case.rules import (
+    FlowPageAccessRulesUseCase,
+    FlowSessionAccessRulesUseCase,
+    FlowStartRulesUseCase,
 )
 from course.validation import (
     DOMIdentifierStr,
@@ -271,14 +279,10 @@ class FlowRule:
 # {{{ flow start rule
 
 @dataclass(frozen=True, kw_only=True)
-class FlowSessionStartMode:
+class FlowSessionStartModeBase:
     may_start_new_session: bool
     """(Mandatory) A Boolean (True/False) value indicating whether, if the
     rule applies, the participant may start a new session."""
-
-    may_list_existing_sessions: bool
-    """(Mandatory) A Boolean (True/False) value indicating whether, if the
-    rule applies, the participant may view a list of existing sessions."""
 
     tag_session: IdentifierStr | None = None
     """An identifier that will be applied to a newly-created
@@ -294,7 +298,29 @@ class FlowSessionStartMode:
 
 
 @dataclass(frozen=True, kw_only=True)
-class FlowSessionStartRuleDesc(FlowRule, FlowSessionStartMode):
+class FlowSessionStartRuleOutcomeDesc(FlowSessionStartModeBase):
+    may_list_existing_sessions: bool
+    """(Mandatory) A Boolean (True/False) value indicating whether, if the
+    rule applies, the participant may view a list of existing sessions."""
+
+
+@dataclass(frozen=True, kw_only=True)
+class FlowSessionStartMode(FlowSessionStartModeBase):
+    """
+    .. autoattribute:: may_start_new_session
+    .. autoattribute:: tag_session
+    .. autoattribute:: lock_down_as_exam_session
+    .. autoattribute:: default_expiration_mode
+    .. autoattribute:: session_list_ids
+    """
+    session_list_ids: list[int]
+
+
+flow_session_start_mode_ta = TypeAdapter(FlowSessionStartMode)
+
+
+@dataclass(frozen=True, kw_only=True)
+class FlowSessionStartRuleDesc(FlowRule, FlowSessionStartRuleOutcomeDesc):
     """Rules that govern when a new session may be started and whether
     existing sessions may be listed.
 
@@ -379,19 +405,36 @@ class FlowSessionStartRuleDesc(FlowRule, FlowSessionStartMode):
 
 start_rule_ta = TypeAdapter(FlowSessionStartRuleDesc)
 
+
+StartRuleCode: TypeAlias = Annotated[
+    str,
+    AfterValidator(partial(validate_starlark_code, FlowStartRulesUseCase()))
+]
+
+
+@dataclass(frozen=True, kw_only=True)
+class FlowSessionStartRuleCode(FlowRule):
+    """
+    .. attribute:: code
+
+        :ref:`Starlark <starlark>` code specifying ability to list and
+        start flow sessions.
+        Must define a function ``rule`` that receives
+        :class:`~course.starlark.data.FlowSessionStartRuleArgs`
+        and returns a
+        :class:`~course.content.FlowSessionStartMode`.
+    """
+    kind: ClassVar[FlowRuleKind] = FlowRuleKind.start
+
+    code: StartRuleCode
+
 # }}}
 
 
 # {{{ flow access rule
 
 @dataclass(frozen=True, kw_only=True)
-class FlowSessionAccessMode(FlowRule):
-    permissions: Set[FlowPermission]
-    message: str | None = None
-
-
-@dataclass(frozen=True, kw_only=True)
-class FlowSessionAccessRuleDesc(FlowSessionAccessMode, FlowRule):
+class FlowSessionAccessRuleDesc(FlowRule):
     """Rules that govern what a user may do with an existing session.
 
     Found in the ``access`` attribute of :class:`FlowRulesDesc`.
@@ -414,7 +457,6 @@ class FlowSessionAccessRuleDesc(FlowSessionAccessMode, FlowRule):
     .. rubric:: Rules specified
     .. autoattribute:: permissions
     .. autoattribute:: message
-
     """
 
     kind: ClassVar[FlowRuleKind] = FlowRuleKind.access
@@ -481,25 +523,53 @@ class FlowSessionAccessRuleDesc(FlowSessionAccessMode, FlowRule):
 
     if_has_prairietest_exam_access: str | None = None
 
+    permissions: Set[FlowPermission]
+    message: str | None = None
+
 
 access_rule_ta = TypeAdapter(FlowSessionAccessRuleDesc)
 
+
+SessionAccessRuleCode: TypeAlias = Annotated[
+    str,
+    AfterValidator(partial(validate_starlark_code, FlowSessionAccessRulesUseCase()))
+]
+
+
+PageAccessRuleCode: TypeAlias = Annotated[
+    str,
+    AfterValidator(partial(validate_starlark_code, FlowPageAccessRulesUseCase()))
+]
+
+
+@dataclass(frozen=True, kw_only=True)
+class FlowSessionAccessRuleCode(FlowRule):
+    """
+    .. attribute:: session
+
+        :ref:`Starlark <starlark>` code specifying access to a flow session.
+        Must define a function ``rule`` that receives
+        :class:`~course.starlark.data.FlowSessionAccessRuleArgs`
+        and returns a
+        :class:`~course.utils.FlowSessionAccessMode`.
+
+    .. attribute:: page
+
+        :ref:`Starlark <starlark>` code specifying access to a flow page.
+        Must define a function ``rule`` that receives
+        :class:`~course.starlark.data.FlowPageAccessRuleArgs`
+        and returns a
+        :class:`~course.utils.FlowPageAccessMode`.
+    """
+    kind: ClassVar[FlowRuleKind] = FlowRuleKind.access
+
+    session: SessionAccessRuleCode
+    page: PageAccessRuleCode
 
 # }}}
 
 
 FlowRuleT = TypeVar("FlowRuleT", bound=FlowRule)
-
-
-def get_rule_ta(tp: type[FlowRuleT]) -> TypeAdapter[FlowRuleT]:
-    if tp is FlowSessionStartRuleDesc:
-        return cast("TypeAdapter[FlowRuleT]", start_rule_ta)
-    elif tp is FlowSessionAccessRuleDesc:
-        return cast("TypeAdapter[FlowRuleT]", access_rule_ta)
-    elif tp is FlowSessionGradingRuleDesc:
-        return cast("TypeAdapter[FlowRuleT]", grading_rule_ta)
-    else:
-        raise AssertionError()
 
 
 # {{{ flow grading rule
@@ -637,7 +707,7 @@ grading_rule_ta = TypeAdapter(FlowSessionGradingRuleDesc)
 
 # {{{ flow rules
 
-def default_start_rules():
+def default_start_rules() -> list[FlowSessionStartRuleDesc]:
     return [FlowSessionStartRuleDesc(
                     may_start_new_session=True,
                     may_list_existing_sessions=False)]
@@ -674,15 +744,16 @@ class FlowRulesDesc:
 
     tags: list[IdentifierStr] = field(default_factory=list)
 
-    start: list[FlowSessionStartRuleDesc] = field(default_factory=default_start_rules)
+    start: list[FlowSessionStartRuleDesc] | FlowSessionStartRuleCode \
+        = field(default_factory=default_start_rules)
     """Rules that govern when a new session may be started and whether
     existing sessions may be listed.
 
     Rules are tested from top to bottom. The first rule
     whose conditions apply determines the access."""
 
-    access: list[FlowSessionAccessRuleDesc] = field(
-                        default_factory=default_access_rules)
+    access: list[FlowSessionAccessRuleDesc] | FlowSessionAccessRuleCode \
+        = field(default_factory=default_access_rules)
 
     """Rules that govern what a user may do while they are interacting with an
     existing session.
@@ -735,25 +806,27 @@ class FlowRulesDesc:
     def check_tags_valid(self) -> Self:
         tags = set(self.tags)
 
-        if self.start:
+        if isinstance(self.start, list):
             for i, srule in enumerate(self.start):
-                if (srule.if_has_session_tagged is not None
-                        and srule.if_has_session_tagged is not NotSpecified
-                        and srule.if_has_session_tagged not in tags):
-                    raise ValueError(f"access rule {i+1}: "
-                            f"unknown session tag {srule.if_has_session_tagged}")
+                if isinstance(srule, FlowSessionStartRuleDesc):
+                    if (srule.if_has_session_tagged is not None
+                            and srule.if_has_session_tagged is not NotSpecified
+                            and srule.if_has_session_tagged not in tags):
+                        raise ValueError(f"access rule {i+1}: "
+                                f"unknown session tag {srule.if_has_session_tagged}")
 
-                if srule.tag_session is not None and srule.tag_session not in tags:
-                    raise ValueError(f"access rule {i+1}: "
-                            f"unknown session tag {srule.if_has_session_tagged}")
+                    if srule.tag_session is not None and srule.tag_session not in tags:
+                        raise ValueError(f"access rule {i+1}: "
+                                f"unknown session tag {srule.if_has_session_tagged}")
 
-        if self.access:
-            for i, arule in enumerate(self.access):
-                if (arule.if_has_tag is not None
-                        and arule.if_has_tag is not NotSpecified
-                        and arule.if_has_tag not in tags):
-                    raise ValueError(f"access rule {i+1}: "
-                            f"unknown session tag {arule.if_has_tag}")
+        if isinstance(self.access, list):
+            if self.access:
+                for i, arule in enumerate(self.access):
+                    if (arule.if_has_tag is not None
+                            and arule.if_has_tag is not NotSpecified
+                            and arule.if_has_tag not in tags):
+                        raise ValueError(f"access rule {i+1}: "
+                                f"unknown session tag {arule.if_has_tag}")
 
         if self.grading:
             for i, grule in enumerate(self.grading):
@@ -767,17 +840,19 @@ class FlowRulesDesc:
 
     @model_validator(mode="after")
     def check_for_ignored_permissions(self) -> Self:
-        for i, arule in enumerate(self.access):
-            if arule.if_in_progress is False and (
-                    FlowPermission.submit_answer in arule.permissions
-                    or FlowPermission.end_session in arule.permissions):
-                # pydantic dataclasses do not get context, and so we can't really
-                # warn here. This has been a warning for a while, so maybe that's OK?
-                raise ValueError(
-                        _("Access Rule {} Rule specifies "
-                            "'submit_answer' or 'end_session' "
-                            "permissions for non-in-progress flow. These "
-                            "permissions will be ignored.").format(i+1))
+        if isinstance(self.access, list):
+            for i, arule in enumerate(self.access):
+                if arule.if_in_progress is False and (
+                        FlowPermission.submit_answer in arule.permissions
+                        or FlowPermission.end_session in arule.permissions):
+                    # pydantic dataclasses do not get context, and so we can't really
+                    # warn here. This has been a warning for a while, so maybe that's
+                    # OK?
+                    raise ValueError(
+                            _("Access Rule {} Rule specifies "
+                                "'submit_answer' or 'end_session' "
+                                "permissions for non-in-progress flow. These "
+                                "permissions will be ignored.").format(i+1))
 
         return self
 
@@ -944,6 +1019,11 @@ def get_course_repo_path(course: Course) -> Path:
 
 
 def get_course_repo(course: Course) -> Repo_ish:
+    if course.git_source.startswith(PYTHON_CLASS_REPO_PREFIX):
+        return PythonClassFakeRepo(
+            PYTHON_CLASS_REPO_REGISTRY[
+                course.git_source[len(PYTHON_CLASS_REPO_PREFIX):]])
+
     from dulwich.repo import Repo
     repo = Repo(get_course_repo_path(course))
 

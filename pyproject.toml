@@ -45,12 +45,15 @@ dependencies = [
     "social-auth-app-django>=5.4.1,<6",
     "urllib3>=2.3.0,<3",
     "typing_extensions>=4.14.1",
+    "lru-dict>=1.4.1",
 
     "pydantic~=2.12",
 
     # needed by pydantic EmailStr
     "email-validator~=2.3.0",
     "annotated-types~=0.7.0",
+
+    "starlark-pyo3>=2025.2.5",
 
     "packaging>=25",
 
@@ -241,6 +244,7 @@ ignore_errors = true
 
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "relate.settings"
+FAIL_INVALID_TEMPLATE_VARS = true
 python_files = [
     "tests.py",
     "test_*.py",

@@ -168,11 +168,11 @@ DATESPEC_POSTPROCESSORS: list[type[DatespecPostprocessor]] = [
         ]
 
 
-def parse_date_spec(
+def parse_date_spec_or_none(
         course: Course | None,
         datespec: str | datetime.date | datetime.datetime,
         vctx: ValidationContext | None = None,
-        ) -> datetime.datetime:
+        ) -> datetime.datetime | None:
     orig_datespec = datespec
 
     def localize_if_needed(d: datetime.datetime) -> datetime.datetime:
@@ -247,7 +247,7 @@ def parse_date_spec(
         raise ValueError(_("expected an identifier, got: '{}'").format(event_kind))
 
     if course is None:
-        return now()
+        return None
 
     from course.models import Event
 
@@ -261,10 +261,10 @@ def parse_date_spec(
         if vctx is not None:
             vctx.add_warning(
                     _("Unrecognized date/time specification: '%s' "
-                    "(interpreted as 'now'). "
+                    "(possibly interpreted as 'now'). "
                     "You should add an event with this name.")
                     % orig_datespec)
-        return now()
+        return None
 
     if is_end:
         if event_obj.end_time is not None:
@@ -280,6 +280,15 @@ def parse_date_spec(
         result = event_obj.time
 
     return apply_postprocs(result)
+
+
+def parse_date_spec(
+        course: Course | None,
+        datespec: str | datetime.date | datetime.datetime,
+        vctx: ValidationContext | None = None,
+        ) -> datetime.datetime:
+    result = parse_date_spec_or_none(course, datespec, vctx)
+    return now() if result is None else result
 
 # }}}
 
