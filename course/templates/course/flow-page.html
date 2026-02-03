@@ -388,7 +388,10 @@
           <p>{% trans feedback.bulk_feedback|safe %}</p>
         {% endif %}
       {% if show_answer and correct_answer %}
-        <p>{{ correct_answer|safe }}</p>
+        <details>
+          <summary>Correct answer, click to reveal</summary>
+          <p>{{ correct_answer|safe }}</p>
+        </details>
       {% endif %}
     </div>
   {% elif show_answer and correct_answer %}
