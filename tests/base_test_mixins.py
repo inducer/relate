@@ -1725,7 +1725,7 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
     default_session_start_rule = {
         "tag_session": None,
         "may_start_new_session": True,
-        "may_list_existing_sessions": True,
+        "session_list_ids": [],
         "default_expiration_mode": FlowSessionExpirationMode.end}
 
     def get_hacked_session_start_rule(self, **kwargs):
