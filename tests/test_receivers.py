@@ -36,7 +36,7 @@ HANDLE_ENROLLMENT_PATH = "course.enrollment.handle_enrollment_request"
 
 
 @pytest.mark.slow
-class UpdateCouresOrUserSignalTest(SingleCourseTestMixin, TestCase):
+class UpdateCoursesOrUserSignalTest(SingleCourseTestMixin, TestCase):
 
     def test_update_course_no_requested(self):
         with mock.patch(HANDLE_ENROLLMENT_PATH) as mock_handle_enrollment:
