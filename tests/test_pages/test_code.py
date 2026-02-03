@@ -562,7 +562,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
                     "srO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4eLj5OXm5+jp6vHy8/T"
                     "19vf4+fr/xAAfAQADAQEBAQEBAQEBAAAAAAAAAQIDBAUGBwgJCgv/xA"
                     "C1EQACAQIEBAMEBwUEBAABAncAAQIDEQQFITEGEkFRB2FxEyIygQgUQp"  # spellchecker: disable-line  # noqa: E501
-                    "GhscEJIzNS8BVictEKFiQ04SXxFxgZGiYnKCkqNTY3ODk6Q0RFRkdIS"
+                    "GhscEJIzNS8BVictEKFiQ04SXxFxgZGiYnKCkqNTY3ODk6Q0RFRkdIS"  # spellchecker: disable-line  # noqa: E501
                     "UpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqCg4SFhoeIiYqSk5SVlpeY"
                     "mZqio6Slpqeoqaqys7S1tre4ubrCw8TFxsfIycrS09TV1tfY2dri4+T"  # spellchecker: disable-line  # noqa: E501
                     "l5ufo6ery8/T19vf4+fr/2gAMAwEAAhEDEQA/AP38ooooA//Z")
