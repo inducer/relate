@@ -188,7 +188,7 @@
 
               <td>
                 {% if session_properties.due %}
-                  {{ session_properties.due }}
+                  {{ session_properties.due|eval_datespec:course }}
                 {% endif %}
               </td>
 
