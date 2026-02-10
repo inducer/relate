@@ -217,8 +217,7 @@ class GetCourseCommitShaTest(SingleCourseTestMixin, TestCase):
                 course=self.course, participation=self.ta_participation,
                 raise_on_nonexistent_preview_commit=True)
 
-        expected_error_msg = (f"Preview revision '{invalid_sha}' does not exist--"
-                      "showing active course content instead.")
+        expected_error_msg = (f"Preview revision '{invalid_sha}' does not exist")
         self.assertIn(expected_error_msg, str(cm.exception))
 
     def test_passed_repo_not_none(self):

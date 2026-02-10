@@ -1732,6 +1732,7 @@ def _compute_chunk_weight_and_shown(
 
 def get_processed_page_chunks(
             course: Course,
+            commit_sha: RevisionID_ish,
             page_desc: StaticPageDesc,
             roles: Set[str],
             now_datetime: datetime.datetime,
@@ -1747,7 +1748,7 @@ def get_processed_page_chunks(
     return [
         (cws.chunk, mark_safe(
                     markup_to_html(course, get_course_repo(course),
-                                   course.active_git_commit_sha.encode(),
+                                   commit_sha,
                                    cws.chunk.content)))
         for cws in cwss if cws.shown]
 
@@ -1827,8 +1828,7 @@ def get_course_commit_sha(
         except KeyError:
             if raise_on_nonexistent_preview_commit:
                 raise CourseCommitSHADoesNotExist(
-                    _("Preview revision '{}' does not exist--"
-                      "showing active course content instead.").format(commit_sha))
+                    _("Preview revision '{}' does not exist").format(commit_sha))
             return False
 
         return True
