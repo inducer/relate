@@ -1605,8 +1605,7 @@ class CoursePageContextTest(SingleCourseTestMixin, MockAddMessageMixing, TestCas
 
         self.assertAddMessageCallCount(1)
         expected_error_msg = (
-                f"Preview revision '{commit_sha}' does not exist--"
-                "showing active course content instead.")
+                f"Preview revision '{commit_sha}' does not exist")
 
         self.assertAddMessageCalledWith(expected_error_msg)
 
