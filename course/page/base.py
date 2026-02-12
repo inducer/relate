@@ -39,7 +39,7 @@ from typing import (
 
 import django.forms as forms
 import django.http
-from annotated_types import Ge
+from annotated_types import Ge, Len
 from django.conf import settings
 from django.forms import ValidationError as FormValidationError
 from django.utils.safestring import mark_safe
@@ -92,10 +92,6 @@ Stub Docs of Internals
 .. class:: Repo_ish
 
     See ``relate.utils.Repo_ish``.
-
-.. class:: Course
-
-    See ``course.models.Course``.
 
 .. class:: FlowSession
 
@@ -152,31 +148,18 @@ class PageContext:
     request: django.http.HttpRequest | None = None
 
 
-@final
+@dataclass(frozen=True)
 class PageBehavior:
     """
     .. attribute:: show_correctness
+    .. attribute:: show_feedback
     .. attribute:: show_answer
     .. attribute:: may_change_answer
     """
-
-    def __init__(
-            self,
-            show_correctness: bool,
-            show_answer: bool,
-            may_change_answer: bool,
-            ) -> None:
-
-        self.show_correctness = show_correctness
-        self.show_answer = show_answer
-        self.may_change_answer = may_change_answer
-
-    def __bool__(self):
-        # This is for compatibility: page_behavior used to be a bool argument
-        # 'answer_is_final'.
-        return not self.may_change_answer
-
-    __nonzero__ = __bool__
+    show_correctness: bool
+    show_feedback: bool
+    show_answer: bool
+    may_change_answer: bool
 
 
 def markup_to_html(
@@ -363,7 +346,21 @@ class PageAccessRules:
     """
 
     add_permissions: list[FlowPermission] = Field(default_factory=list)
-    remove_permissions: list[FlowPermission] = Field(default_factory=list)
+    remove_permissions: Annotated[list[FlowPermission], Len(max_length=0)] = \
+        Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def limit_specified_rules(self) -> Self:
+        if not set(self.add_permissions) <= {
+                         FlowPermission.change_answer,
+                         FlowPermission.see_correctness,
+                         FlowPermission.send_email_about_flow_page,
+                     }:
+            raise ValueError(_("'add_permissions' may only contain "
+                               "'change_answer', 'see_correctness', "
+                               "'send_email_about_flow_page'"))
+
+        return self
 
 
 class PageBase(BaseModel, ABC):  # pyright: ignore[reportUnsafeMultipleInheritance]
@@ -452,6 +449,17 @@ class PageBase(BaseModel, ABC):  # pyright: ignore[reportUnsafeMultipleInheritan
         PageBase._discriminating_type_adapter.rebuild()
 
     # }}
+
+    @model_validator(mode="after")
+    def warn_about_deprecated_per_page_permissions(self, info: ValidationInfo) -> Self:
+        vctx = get_validation_context(info).with_location(f"page '{self.id}'")
+        if self.access_rules is not None and type(self):
+            vctx.add_warning(gettext(
+                    "per-page 'access_rules' are deprecated "
+                    "and will stop having an effect in 2027. "
+                    "Use Starlark code for rules instead."))
+
+        return self
 
     def get_modified_permissions_for_page(
             self, permissions: Set[FlowPermission]) -> Set[FlowPermission]:

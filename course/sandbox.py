@@ -359,6 +359,7 @@ def view_page_sandbox(pctx: CoursePageContext) -> http.HttpResponse:
             from course.page.base import PageBehavior
             page_behavior = PageBehavior(
                     show_correctness=True,
+                    show_feedback=True,
                     show_answer=True,
                     may_change_answer=True)
 

@@ -208,10 +208,18 @@ Overall structure
 Rules for starting new sessions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+.. autoclass:: FlowSessionStartRuleCode
+
+Alternatively, the older YAML-based rules specification remains available:
+
 .. autoclass:: FlowSessionStartRuleDesc
 
 Rules about accessing and interacting with a flow
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. autoclass:: FlowSessionAccessRuleCode
+
+Alternatively, the older YAML-based rules specification remains available:
 
 .. autoclass:: FlowSessionAccessRuleDesc
 
@@ -229,6 +237,10 @@ Determining how final (overall) grades of flows are computed
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. currentmodule:: course.content
+
+.. autoclass:: FlowSessionGradingRuleCode
+
+Alternatively, the older YAML-based rules specification remains available:
 
 .. autoclass:: FlowSessionGradingRuleDesc
 
@@ -267,30 +279,6 @@ Each group allows the following attributes:
 .. currentmodule:: course.content
 
 .. autoclass:: FlowPageGroupDesc
-
-.. _page-permissions:
-
-Per-page permissions
-^^^^^^^^^^^^^^^^^^^^
-
-The granted access permissions for the entire flow (see
-:class:`~course.content.FlowSessionAccessRuleDesc`) can be modified on a
-per-page basis.  This happens in the ``access_rules`` sub-block of each page,
-e.g. in :attr:`course.page.ChoiceQuestion.access_rules`:
-
-.. currentmodule:: course.page.base
-
-.. autoclass:: PageAccessRules
-
-For example, to grant permission to revise an answer on a
-:class:`course.page.PythonCodeQuestion`, one might type::
-
-    type: PythonCodeQuestion
-    id: addition
-    access_rules:
-        add_permissions:
-            - change_answer
-    value: 1
 
 .. _tabbed-page-view:
 

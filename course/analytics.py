@@ -35,8 +35,8 @@ from django.urls import reverse
 from django.utils.translation import gettext as _, pgettext
 from pytools import not_none
 
-from course.constants import FlowPermission, ParticipationPermission as PPerm
-from course.content import FlowDesc, get_flow_desc
+from course.constants import ParticipationPermission as PPerm
+from course.content import get_flow_desc
 from course.models import FlowPageVisit, FlowSession
 from course.utils import (
     CoursePageContext,
@@ -49,7 +49,6 @@ from course.utils import (
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-    from course.page.base import PageBase
     from course.utils import CoursePageContext
 
 
@@ -235,29 +234,6 @@ class Histogram:
 # }}}
 
 
-def is_flow_multiple_submit(flow_desc: FlowDesc):
-    return any(FlowPermission.change_answer in rule.permissions
-            for rule in flow_desc.rules.access)
-
-
-def is_page_multiple_submit(flow_desc: FlowDesc, page: PageBase):
-    result = is_flow_multiple_submit(flow_desc)
-
-    page_rules = page.access_rules
-    if page_rules is None:
-        return result
-
-    if result:
-        if FlowPermission.change_answer in page_rules.remove_permissions:
-            result = False
-
-    else:
-        if FlowPermission.change_answer in page_rules.add_permissions:
-            result = True
-
-    return result
-
-
 # {{{ flow analytics
 
 def make_grade_histogram(pctx: CoursePageContext, flow_id: str):
@@ -370,7 +346,7 @@ def make_page_answer_stats_list(
                             .distinct("flow_session__participation__id")
                             .order_by("flow_session__participation__id",
                                 "visit_time"))
-                elif is_page_multiple_submit(flow_desc, page_desc):
+                else:
                     visits = (visits
                             .distinct("page_data__id")
                             .order_by("page_data__id", "-visit_time"))
@@ -528,9 +504,6 @@ def page_analytics(pctx: CoursePageContext, flow_id: str, group_id: str, page_id
     if not pctx.has_permission(PPerm.view_analytics):
         raise PermissionDenied(_("may not view analytics"))
 
-    flow_desc = get_flow_desc(pctx.repo, pctx.course, flow_id,
-            pctx.course_commit_sha)
-
     restrict_to_first_attempt = int(
             bool(pctx.request.GET.get("restrict_to_first_attempt") == "1"))
 
@@ -549,13 +522,11 @@ def page_analytics(pctx: CoursePageContext, flow_id: str, group_id: str, page_id
 
     if connection.features.can_distinct_on_fields:
 
-        is_multiple_submit = is_flow_multiple_submit(flow_desc)
-
         if restrict_to_first_attempt:
             visits = (visits
                     .distinct("flow_session__participation__id")
                     .order_by("flow_session__participation__id", "visit_time"))
-        elif is_multiple_submit:
+        else:
             visits = (visits
                     .distinct("page_data__id")
                     .order_by("page_data__id", "-visit_time"))

@@ -28,7 +28,7 @@ import sys
 from dataclasses import dataclass
 from hashlib import sha256
 from pathlib import Path
-from typing import TYPE_CHECKING, TypeAlias, cast
+from typing import TYPE_CHECKING, ClassVar, Protocol, TypeAlias, cast
 
 import dulwich.objects
 import dulwich.repo
@@ -38,7 +38,7 @@ from typing_extensions import override
 
 
 if TYPE_CHECKING:
-    from collections.abc import Mapping
+    from collections.abc import Mapping, Sequence
     from types import TracebackType
 
 
@@ -146,6 +146,151 @@ class EmptyRepo:
         self.close()
 
 
+# {{{ python class fake repo
+
+def attr_name_to_file_name(name: str):
+    # 'Subdirectories' aka inner classes are upper case because of PEP8.
+    # We can get by without upper case letters in filenames, I guess.
+    name = name.lower()
+
+    chars: list[str] = []
+    i = 0
+    while i < len(name):
+        ch = name[i]
+        if ch == "_":
+            next_underscore = name.find("_", i+1)
+            if next_underscore == -1:
+                raise ValueError("lone underscore found")
+
+            key = name[i+1:next_underscore]
+            i = next_underscore+1
+
+            if key == "dot":
+                chars.append(".")
+            else:
+                raise ValueError()
+        else:
+            chars.append(ch)
+            i += 1
+
+    return "".join(chars)
+
+
+class ProcessedRepoClass(Protocol):
+    _file_name_to_attr_name: ClassVar[dict[str, str]]
+
+
+class ProcessedRepoRootClass(ProcessedRepoClass, Protocol):
+    _registry_url: ClassVar[str]
+
+
+@dataclass(frozen=True)
+class PythonClassFakeRepo:
+    cls: type[ProcessedRepoRootClass]
+
+    def close(self):
+        pass
+
+    @property
+    def tree(self):
+        return PythonClassFakeRepoTree(self.cls)
+
+    def controldir(self):
+        return f"{self.cls.__module__}:{self.cls.__qualname__}"
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self,
+                exc_type: type[Exception],
+                exc_val: Exception,
+                exc_tb: TracebackType) -> None:
+        pass
+
+@dataclass(frozen=True)
+class PythonClassFakeRepoTreeEntry:
+    path: bytes
+    mode: int
+
+
+@dataclass(frozen=True)
+class PythonClassFakeRepoTree:
+    cls: type[ProcessedRepoClass]
+
+    MODE_DIR: ClassVar[int] = 0o0040777
+    MODE_FILE: ClassVar[int] = 0o666
+
+    def __getitem__(self, name: bytes):
+        decoded_name = name.decode("utf-8")
+        attr_name = self.cls._file_name_to_attr_name.get(decoded_name)  # pyright: ignore[reportPrivateUsage]
+        if attr_name is None:
+            raise ObjectDoesNotExist(name)
+
+        entry = getattr(self.cls, attr_name)
+        if isinstance(entry, type):
+            return self.MODE_DIR, PythonClassFakeRepoTree(entry)
+        else:
+            return self.MODE_FILE, PythonClassFakeRepoFile(entry)
+
+    def items(self) -> Sequence[PythonClassFakeRepoTreeEntry]:
+        return [
+            PythonClassFakeRepoTreeEntry(
+                path=name.encode("utf-8"),
+                mode=(
+                    self.MODE_DIR
+                    if isinstance(getattr(self.cls, attr_name), type)
+                    else self.MODE_FILE),
+            )
+            for name, attr_name in self.cls._file_name_to_attr_name.items()  # pyright: ignore[reportPrivateUsage]
+        ]
+
+
+@dataclass(frozen=True)
+class PythonClassFakeRepoFile:
+    obj: object
+
+    def data(self):
+        assert isinstance(self.obj, str)
+        return self.obj.encode("utf-8")
+
+
+PYTHON_CLASS_REPO_PREFIX = "pyclass://"
+
+PYTHON_CLASS_REPO_REGISTRY: dict[tuple[str, str], type[ProcessedRepoRootClass]] = {}
+
+
+def _make_filename_map(cls: type) -> None:
+    file_name_to_attr_name: dict[str, str] = {}
+    for attr_name in dir(cls):
+        if not attr_name.startswith("__"):
+            file_name = attr_name_to_file_name(attr_name)
+            file_name_to_attr_name[file_name] = attr_name
+
+            entry = getattr(cls, attr_name)
+            if isinstance(entry, type):
+                _make_filename_map(entry)
+
+    cls._file_name_to_attr_name = file_name_to_attr_name
+
+
+def python_repo_class(cls: type) -> type[ProcessedRepoClass]:
+    key = (cls.__module__, cls.__qualname__)
+    url = f"{PYTHON_CLASS_REPO_PREFIX}{key}"
+    existing_entry = PYTHON_CLASS_REPO_REGISTRY.get(key)
+    if existing_entry is not None:
+        assert cls is existing_entry
+        return cls
+
+    PYTHON_CLASS_REPO_REGISTRY[key] = cls
+    _make_filename_map(cls)
+    cls._registry_url = url
+    return cls
+
+# }}}
+
+
+# {{{ file system repo
+
 class FileSystemFakeRepo:
     root: Path
 
@@ -169,7 +314,7 @@ class FileSystemFakeRepo:
 
     @override
     def __str__(self):
-        return f"<FAKEREPO:{self.root}>"
+        return f"<FS FAKEREPO:{self.root}>"
 
     def decode(self):
         return self
@@ -188,7 +333,7 @@ class FileSystemFakeRepo:
         self.close()
 
 
-@dataclass
+@dataclass(frozen=True)
 class FileSystemFakeRepoTreeEntry:  # pragma: no cover
     path: bytes
     mode: int
@@ -246,9 +391,12 @@ class FileSystemFakeRepoFile:
         except FileNotFoundError as e:
             raise ObjectDoesNotExist(self.name) from e
 
+# }}}
+
 
 Repo_ish: TypeAlias = (dulwich.repo.Repo
     | SubdirRepoWrapper
+    | PythonClassFakeRepo
     | FileSystemFakeRepo
     | EmptyRepo)
 Blob_ish: TypeAlias = dulwich.objects.Blob | FileSystemFakeRepoFile

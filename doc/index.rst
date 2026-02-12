@@ -52,6 +52,7 @@ Table of Contents
     :maxdepth: 2
 
     content
+    starlark
     flow
     page-types
     api

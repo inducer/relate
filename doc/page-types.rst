@@ -1,5 +1,5 @@
-Predefined Page Types
----------------------
+Flow Page Types
+---------------
 
 .. currentmodule:: course.page
 
@@ -37,10 +37,6 @@ The following page types are predefined:
     The page's title, a string. No markup allowed. Required. If not supplied,
     the first ten lines of the page body are searched for a
     Markdown heading (``# My title``) and this heading is used as a title.
-
-.. |access-rules-page-attr| replace::
-
-    Optional. See :ref:`page-permissions`.
 
 .. |value-page-attr| replace::
 
