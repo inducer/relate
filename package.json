@@ -27,7 +27,7 @@
     "datatables.net-fixedcolumns-bs5": "^5.0.5",
     "datatables.net-plugins": "^2.3.6",
     "htmx.org": "^2",
-    "jquery": "^4.0.0",
+    "jquery": "^3.5 <4",
     "jstree": "^3.3.17",
     "katex": "^0.16.28",
     "markdown-it": "^14.1.0",
@@ -51,6 +51,9 @@
     "select2": "^4.0.5",
     "select2-bootstrap-theme": "^0.1.0-beta.10",
     "video.js": "^8.23.4"
+  },
+  "//dependencies": {
+    "jquery": "jquery 4 breaaks jstree"
   },
   "//devDependencies": {
     "sass": "https://github.com/twbs/bootstrap/issues/40849"
