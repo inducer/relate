@@ -30,7 +30,7 @@
     "jquery": "^3.5 <4",
     "jstree": "^3.3.17",
     "katex": "^0.16.28",
-    "markdown-it": "^14.1.0",
+    "markdown-it": "^14.1.1",
     "mathjax": "^4.1.0",
     "@mathjax/mathjax-newcm-font": "^4.1.0",
     "@mathjax/mathjax-mhchem-font-extension": "^4.1.0",
