@@ -247,6 +247,7 @@ LOGIN_REDIRECT_URL = "/"
 STATICFILES_DIRS = (
         join(BASE_DIR, "relate", "static"),
         join(BASE_DIR, "node_modules", "mathjax"),
+        join(BASE_DIR, "node_modules", "@mathjax"),
         join(BASE_DIR, "frontend-dist"),
         )
 
