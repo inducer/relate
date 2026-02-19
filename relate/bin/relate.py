@@ -10,7 +10,10 @@ from pytools import not_none
 
 from course.content import flow_desc_ta
 from course.page.base import PageBase
-from course.page.code import PythonCodeQuestion, PythonCodeQuestionWithHumanTextFeedback as PythonCodeQuestionWHTF
+from course.page.code import (
+    PythonCodeQuestion,
+    PythonCodeQuestionWithHumanTextFeedback as PythonCodeQuestionWHTF,
+)
 from course.page.code_run_backend import RunRequest
 from course.repo import FileSystemFakeRepo
 from course.validation import (
