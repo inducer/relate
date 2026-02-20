@@ -4,6 +4,7 @@ from __future__ import annotations
 import io
 import sys
 from pathlib import Path
+from typing import TypeAlias
 
 from pydantic import TypeAdapter
 from pytools import not_none
@@ -19,6 +20,9 @@ from course.repo import FileSystemFakeRepo
 from course.validation import (
     ValidationContext,
 )
+
+
+CodeQuestion: TypeAlias = PythonCodeQuestion | PythonCodeQuestionWHTF
 
 
 # {{{ expand YAML
@@ -270,7 +274,7 @@ def test_code_yml(yml_file: str, repo_root: Path):
                          ).with_location(yml_file)
 
     if "id" in data and "type" in data:
-        adapter = TypeAdapter(PythonCodeQuestion | PythonCodeQuestionWHTF)
+        adapter = TypeAdapter[CodeQuestion](CodeQuestion)
         page = adapter.validate_python(data, context=vctx)
         return test_code_question(page)
 
@@ -279,7 +283,7 @@ def test_code_yml(yml_file: str, repo_root: Path):
 
         for group in flow.groups:
             for grp_page in group.pages:
-                if not isinstance(grp_page, PythonCodeQuestion):
+                if not isinstance(grp_page, CodeQuestion):
                     continue
                 res = test_code_question(grp_page)
                 if not res:
