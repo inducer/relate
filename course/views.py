@@ -30,10 +30,9 @@ from typing import (
     cast,
 )
 
-import django.forms as forms
 import django.views.decorators.http as http_dec
 from crispy_forms.layout import Div, Layout, Submit
-from django import http
+from django import forms, http
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import (
@@ -263,7 +262,7 @@ def media_etag_func(
             course_identifier: str,
             commit_sha: str,
             media_path: str):
-    return ":".join([course_identifier, commit_sha, media_path])
+    return f"{course_identifier}:{commit_sha}:{media_path}"
 
 
 @cache_control(max_age=3600*24*31)  # cache for a month
@@ -286,7 +285,7 @@ def repo_file_etag_func(
             course_identifier: str,
             commit_sha: str,
             path: str):
-    return ":".join([course_identifier, commit_sha, path])
+    return f"{course_identifier}:{commit_sha}:{path}"
 
 
 @cache_control(max_age=3600*24*31)  # cache for a month
@@ -322,7 +321,7 @@ def current_repo_file_etag_func(
     from course.content import get_course_commit_sha
     commit_sha = get_course_commit_sha(course, participation)
 
-    return ":".join([course_identifier, commit_sha.decode(), path])
+    return f"{course_identifier}:{commit_sha.decode()}:{path}"
 
 
 @http_dec.condition(etag_func=current_repo_file_etag_func)
@@ -1406,10 +1405,9 @@ def monitor_task(request: http.HttpRequest, task_id: str) -> http.HttpResponse:
                 _("%(current)d out of %(total)d items processed.")
                 % {"current": current, "total": total})
 
-    if async_res.state == states.SUCCESS:
-        if (isinstance(async_res.result, dict)
-                and "message" in async_res.result):
-            progress_statement = async_res.result["message"]
+    if async_res.state == states.SUCCESS and (isinstance(async_res.result, dict)
+            and "message" in async_res.result):
+        progress_statement = async_res.result["message"]
 
     traceback = None
     if async_res.state == states.FAILURE:

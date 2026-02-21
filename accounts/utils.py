@@ -79,14 +79,13 @@ class RelateUserMethodSettingsInitializer:
                 custom_user_profile_mask_method = (
                     import_string(custom_user_profile_mask_method))
             except ImportError:
-                errors = [RelateCriticalCheckMessage(
+                return [RelateCriticalCheckMessage(
                     msg=(
                         f"{RELATE_USER_PROFILE_MASK_METHOD}: "
                         f"`{custom_user_profile_mask_method}` failed to be imported. "
                     ),
                     id="relate_user_profile_mask_method.E001"
                 )]
-                return errors
 
         self._custom_profile_mask_method = custom_user_profile_mask_method
         if not callable(custom_user_profile_mask_method):
@@ -201,7 +200,7 @@ class RelateUserMethodSettingsInitializer:
                 relate_user_full_name_format_method = (
                     import_string(relate_user_full_name_format_method))
             except ImportError:
-                errors = [Warning(
+                return [Warning(
                     msg=(
                             f"{RELATE_USER_FULL_NAME_FORMAT_METHOD}: "
                             f"`{relate_user_full_name_format_method}` "
@@ -210,7 +209,6 @@ class RelateUserMethodSettingsInitializer:
                     ),
                     id="relate_user_full_name_format_method.W001"
                 )]
-                return errors
 
         self._custom_full_name_method = relate_user_full_name_format_method
         if not callable(relate_user_full_name_format_method):

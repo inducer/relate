@@ -1,7 +1,7 @@
 # See https://docs.djangoproject.com/en/dev/howto/deployment/checklist/
 
 import os  # noqa: F401  # pyright: ignore[reportUnusedImport]
-import os.path as path
+from os import path
 
 
 _BASEDIR = path.dirname(path.abspath(__file__))

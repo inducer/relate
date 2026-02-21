@@ -116,7 +116,6 @@ class DenyEvent(Event):
 class MostRecentDenyEvent(models.Model):
     id = models.BigAutoField(primary_key=True)
 
-    id = models.BigAutoField(primary_key=True)
     deny_uuid = models.UUIDField(unique=True)
     end = models.DateTimeField(verbose_name=_("End time"))
     event = models.ForeignKey(DenyEvent, on_delete=models.CASCADE)

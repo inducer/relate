@@ -66,7 +66,7 @@ from relate.utils import StyledForm, StyledModelForm, string_concat
 # {{{ for mypy
 
 if TYPE_CHECKING:
-    from collections.abc import Set
+    from collections.abc import Set as AbstractSet
 
     from django.contrib.auth.models import AnonymousUser
 
@@ -109,7 +109,7 @@ def get_participation_for_request(
 # {{{ get_participation_role_identifiers
 
 def get_participation_role_identifiers(
-        course: Course, participation: Participation | None) -> Set[str]:
+        course: Course, participation: Participation | None) -> AbstractSet[str]:
     if participation is None:
         return frozenset(
                 ParticipationRole.objects.filter(
@@ -140,11 +140,10 @@ def get_participation_permissions(
                     role__is_default_for_unenrolled=True)
                 .values_list("permission", "argument"))
 
-        perm = frozenset(
+        return frozenset(
                 (permission, argument) if argument else (permission, None)
                 for permission, argument in perm_list)
 
-        return perm
 
 # }}}
 
@@ -215,22 +214,21 @@ def enroll_view(
         except ParticipationPreapproval.DoesNotExist:
             pass
 
-    if preapproval is None:
-        if user.institutional_id:
-            if not (course.preapproval_require_verified_inst_id
-                    and not user.institutional_id_verified):
-                try:
-                    preapproval = ParticipationPreapproval.objects.get(
-                            course=course,
-                            institutional_id__iexact=user.institutional_id)
-                except ParticipationPreapproval.DoesNotExist:
-                    pass
+    if preapproval is None and user.institutional_id:
+        if not (course.preapproval_require_verified_inst_id
+                and not user.institutional_id_verified):
+            try:
+                preapproval = ParticipationPreapproval.objects.get(
+                        course=course,
+                        institutional_id__iexact=user.institutional_id)
+            except ParticipationPreapproval.DoesNotExist:
+                pass
 
     def email_suffix_matches(email: str, suffix: str) -> bool:
         if suffix.startswith("@"):
             return email.endswith(suffix)
         else:
-            return email.endswith(f"@{suffix}") or email.endswith(f".{suffix}")
+            return email.endswith((f"@{suffix}", f".{suffix}"))
 
     if (preapproval is None
         and course.enrollment_required_email_suffix
@@ -818,11 +816,10 @@ class ParticipationQueryForm(StyledForm):
     def clean_tag(self):
         tag = self.cleaned_data.get("tag")
 
-        if tag:
-            if not tag.isidentifier():
-                self.add_error(
-                    "tag",
-                    _("Name contains invalid characters."))
+        if tag and not tag.isidentifier():
+            self.add_error(
+                "tag",
+                _("Name contains invalid characters."))
         return tag
 
 

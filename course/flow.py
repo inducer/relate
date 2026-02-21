@@ -90,7 +90,7 @@ from relate.utils import (
 
 if TYPE_CHECKING:
     import datetime
-    from collections.abc import Iterable, Set
+    from collections.abc import Iterable, Set as AbstractSet
 
     from django.db.models import query
 
@@ -466,11 +466,9 @@ def get_multiple_flow_session_graded_answers_qset(
     # Ungraded answers *can* show up in non-in-progress flows as a result
     # of a race between a 'save' and the 'end session'. If this happens,
     # we'll go ahead and ignore those.
-    qset = qset.filter(
+    return qset.filter(
         (Q(flow_session__in_progress=False) & Q(is_submitted_answer=True))
         | Q(flow_session__in_progress=True))
-
-    return qset
 
 
 def get_flow_session_graded_answers_qset(
@@ -535,11 +533,11 @@ def assemble_page_grades(
         if not flow_sessions[fsess_idx].in_progress:
             assert answer_visit["is_submitted_answer"] is True
 
-    flat_answer_visit_ids = []
+    flat_answer_visit_ids: list[int] = []
     for visit_id_list in answer_visit_ids:
-        for visit_id in visit_id_list:
-            if visit_id is not None:
-                flat_answer_visit_ids.append(visit_id)
+        flat_answer_visit_ids.extend(
+            visit_id for visit_id in visit_id_list
+            if visit_id is not None)
 
     # Get all grade visits associated with the answer visits.
     grades = (FlowPageVisitGrade.objects
@@ -1027,9 +1025,8 @@ def expire_flow_session(
         raise RuntimeError(_("Can't expire an anonymous flow session"))
 
     if past_due_only:
-        if grading_mode.due is None:
-            return False
-        elif now_datetime < grading_mode.due.eval(fctx.course):
+        if (grading_mode.due is None
+                or now_datetime < grading_mode.due.eval(fctx.course)):
             return False
 
     adjust_flow_session_page_data(fctx.repo, flow_session,
@@ -1254,9 +1251,8 @@ def finish_flow_session_standalone(
             now_datetime_filled)
 
     if past_due_only:
-        if grading_rule.due is None:
-            return False
-        elif now_datetime_filled < grading_rule.due.eval(course):
+        if (grading_rule.due is None
+                or now_datetime_filled < grading_rule.due.eval(course)):
             return False
 
     finish_flow_session(fctx, session, grading_rule,
@@ -1354,7 +1350,7 @@ def recalculate_session_grade(
 
 def lock_down_if_needed(
         request: http.HttpRequest,
-        permissions: Set[str],
+        permissions: AbstractSet[str],
         flow_session: FlowSession,
         ) -> None:
 
@@ -1628,14 +1624,14 @@ def get_and_check_flow_session(
     return flow_session
 
 
-def will_receive_feedback(permissions: Set[FlowPermission]) -> bool:
+def will_receive_feedback(permissions: AbstractSet[FlowPermission]) -> bool:
     return (
             FlowPermission.see_correctness in permissions
             or FlowPermission.see_answer_after_submission in permissions)
 
 
 def may_send_email_about_flow_page(
-        flow_session: FlowSession, permissions: Set[FlowPermission]) -> bool:
+        flow_session: FlowSession, permissions: AbstractSet[FlowPermission]) -> bool:
     return (
         flow_session.participation is not None
         and flow_session.user is not None
@@ -1644,7 +1640,7 @@ def may_send_email_about_flow_page(
 
 def get_page_behavior(
         page: PageBase,
-        permissions: Set[FlowPermission],
+        permissions: AbstractSet[FlowPermission],
         session_in_progress: bool,
         answer_was_graded: bool,
         generates_grade: bool,
@@ -1702,7 +1698,7 @@ def add_buttons_to_form(
         form: StyledFormBase,
         fpctx: c_utils.FlowPageContext,
         flow_session: FlowSession,
-        permissions: Set[FlowPermission]) -> StyledFormBase:
+        permissions: AbstractSet[FlowPermission]) -> StyledFormBase:
     from crispy_forms.layout import Submit
     form.helper.add_input(
             Submit("save", _("Save answer"),
@@ -2181,7 +2177,7 @@ def post_flow_page(
         flow_session: FlowSession,
         fpctx: c_utils.FlowPageContext,
         request: http.HttpRequest,
-        permissions: Set[FlowPermission],
+        permissions: AbstractSet[FlowPermission],
         generates_grade: bool,
         ) -> tuple[
             PageBehavior, list[FlowPageVisit],
@@ -2997,14 +2993,13 @@ def purge_page_view_data(request: http.HttpRequest):
         raise PermissionDenied()
     if request.method == "POST":
         form = PurgePageViewData(request.user, request.POST)
-        if form.is_valid():
-            if "submit" in request.POST:
-                course = form.cleaned_data["course"]
+        if form.is_valid() and "submit" in request.POST:
+            course = form.cleaned_data["course"]
 
-                from course.tasks import purge_page_view_data
-                async_res = purge_page_view_data.delay(course.id)
+            from course.tasks import purge_page_view_data
+            async_res = purge_page_view_data.delay(course.id)
 
-                return redirect("relate-monitor_task", async_res.id)
+            return redirect("relate-monitor_task", async_res.id)
     else:
         form = PurgePageViewData(request.user)
 

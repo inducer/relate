@@ -71,9 +71,7 @@ class ExportGradebook(GradesTestMixin, TestCase):
     def assertResponseCsvResultEqual(self, resp, expected_result):  # noqa
         file_contents = StringIO(resp.content.decode())
         spamreader = csv.reader(file_contents)
-        result = []
-        for row in spamreader:
-            result.append(row)
+        result = list(spamreader)
         self.assertEqual(result, expected_result)
 
     def assertResponseHasCsv(self, resp):  # noqa

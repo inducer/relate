@@ -77,10 +77,9 @@ def _filter_courses_for_user(
         ) -> QuerySet[Course]:
     if user.is_superuser:
         return queryset
-    z = queryset.filter(
+    return queryset.filter(
             participations__user=user,
             participations__roles__permissions__permission=PPerm.use_admin_interface)
-    return z
 
 
 CourseLinked: TypeAlias = "Participation | Facility"

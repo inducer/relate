@@ -26,9 +26,8 @@ THE SOFTWARE.
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, cast
 
-import django.forms as forms
 from crispy_forms.layout import Submit
-from django import http
+from django import forms, http
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import permission_required
@@ -216,14 +215,15 @@ def issue_exam_ticket(request: HttpRequest):
                 if form.cleaned_data["code"]:
                     messages.add_message(request, messages.SUCCESS,
                             _(
-                                f"Ticket issued for <b>{participation}</b>. "
-                                ))
+                                "Ticket issued for <b>{participation}</b>. "
+                                ).format(participation=participation))
                 else:
                     messages.add_message(request, messages.SUCCESS,
                             _(
-                                f"Ticket issued for <b>{participation}</b>. "
-                                f"The ticket code is <b>{ticket.code}</b>."
-                                ))
+                                "Ticket issued for <b>{participation}</b>. "
+                                "The ticket code is <b>{ticket_code}</b>."
+                                ).format(participation=participation,
+                                         ticket_code=ticket.code))
 
                 form = IssueTicketForm(now_datetime, initial_exam=exam)
 
@@ -619,10 +619,9 @@ class ExamTicketBackend:
         if not is_valid:
             return None
 
-        user = get_user_model().objects.get(
+        return get_user_model().objects.get(
                 username=username,
                 is_active=True)
-        return user
 
     def get_user(self, user_id):
         try:
@@ -759,32 +758,26 @@ class ExamFacilityMiddleware:
         from course.views import set_pretend_facilities
 
         ok = False
-        if resolver_match.func in [
-                sign_in_choice,
-                sign_in_by_email,
-                sign_in_stage2_with_token,
-                sign_in_by_user_pw,
-                impersonate,
-                stop_impersonating,
-                check_in_for_exam,
-                list_available_exams,
-                view_start_flow,
-                view_resume_flow,
-                user_profile,
-                sign_out,
-                set_pretend_facilities]:
-            ok = True
-
-        elif request.path.startswith("/saml2"):
-            ok = True
-
-        elif request.path.startswith("/select2"):
-            ok = True
-
-        elif (
-                (request.user.is_staff
+        if (
+                resolver_match.func in [
+                    sign_in_choice,
+                    sign_in_by_email,
+                    sign_in_stage2_with_token,
+                    sign_in_by_user_pw,
+                    impersonate,
+                    stop_impersonating,
+                    check_in_for_exam,
+                    list_available_exams,
+                    view_start_flow,
+                    view_resume_flow,
+                    user_profile,
+                    sign_out,
+                    set_pretend_facilities]
+                or request.path.startswith("/saml2")
+                or request.path.startswith("/select2")
+                or ((request.user.is_staff
                     or request.user.has_perm("course.can_issue_exam_tickets"))
-                and resolver_match.func == issue_exam_ticket):
+                    and resolver_match.func == issue_exam_ticket)):
             ok = True
 
         if not ok:
@@ -847,7 +840,8 @@ class ExamLockdownMiddleware:
             from course.views import get_current_repo_file, get_repo_file
 
             ok = False
-            if resolver_match.func in [
+            if (
+                resolver_match.func in [
                     # NB: These two recognize and manage file access specific to
                     # exams lockdown.
                     get_repo_file,
@@ -861,16 +855,10 @@ class ExamLockdownMiddleware:
                     sign_in_stage2_with_token,
                     sign_in_by_user_pw,
                     user_profile,
-                    sign_out]:
-                ok = True
-
-            elif request.path.startswith("/saml2"):
-                ok = True
-
-            elif request.path.startswith("/select2"):
-                ok = True
-
-            elif (
+                    sign_out]
+                or request.path.startswith("/saml2")
+                or request.path.startswith("/select2")
+                or (
                     resolver_match.func in [
                         view_resume_flow,
                         view_flow_page,
@@ -880,14 +868,12 @@ class ExamLockdownMiddleware:
                         finish_flow_session_view]
                     and (
                         int(resolver_match.kwargs["flow_session_id"])
-                        == exam_flow_session_pk)):
-                ok = True
-
-            elif (
+                        == exam_flow_session_pk))
+                or (
                     resolver_match.func == view_start_flow
                     and (
                         resolver_match.kwargs["flow_id"]
-                        == exam_flow_session.flow_id)):
+                        == exam_flow_session.flow_id))):
                 ok = True
 
             if not ok:

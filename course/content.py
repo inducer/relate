@@ -28,7 +28,7 @@ import datetime
 import html.parser as html_parser
 import os
 import re
-from collections.abc import Set
+from collections.abc import Set as AbstractSet
 from dataclasses import dataclass, field
 from itertools import starmap
 from pathlib import Path
@@ -43,8 +43,8 @@ from typing import (
 )
 from xml.etree.ElementTree import Element, tostring
 
-import django.core.cache as cache
 from django.conf import settings
+from django.core import cache
 from django.core.exceptions import ImproperlyConfigured, ObjectDoesNotExist
 from django.urls import NoReverseMatch
 from django.utils.safestring import SafeString, mark_safe
@@ -99,7 +99,7 @@ from course.validation import (
 
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Collection, Mapping, Set
+    from collections.abc import Callable, Collection, Mapping, Set as AbstractSet
 
     from course.models import Course, Participation
     from course.repo import Repo_ish
@@ -151,11 +151,11 @@ class ChunkRuleDesc:
     will be shown. Blocks with identical weight retain the order
     in which they are given in the course information file."""
 
-    if_has_participation_tags_any: Set[ParticipationTagStr] | None = None
+    if_has_participation_tags_any: AbstractSet[ParticipationTagStr] | None = None
     """(Optional) A list of participation tags. Rule applies when the
     participation has at least one tag in this list."""
 
-    if_has_participation_tags_all: Set[ParticipationTagStr] \
+    if_has_participation_tags_all: AbstractSet[ParticipationTagStr] \
         = field(default_factory=frozenset[ParticipationTagStr])
 
     # deprecated
@@ -386,7 +386,7 @@ start_rule_ta = TypeAdapter(FlowSessionStartRuleDesc)
 
 @dataclass(frozen=True, kw_only=True)
 class FlowSessionAccessMode(FlowRule):
-    permissions: Set[FlowPermission]
+    permissions: AbstractSet[FlowPermission]
     message: str | None = None
 
 
@@ -710,9 +710,8 @@ class FlowRulesDesc:
 
     @model_validator(mode="after")
     def check_has_grading_rules_if_needed(self) -> Self:
-        if self.grade_identifier is not None:
-            if not self.grading:
-                raise ValueError("must have grading rules if it has grade_identifier")
+        if self.grade_identifier is not None and not self.grading:
+            raise ValueError("must have grading rules if it has grade_identifier")
         return self
 
     @model_validator(mode="after")
@@ -726,9 +725,8 @@ class FlowRulesDesc:
 
     @model_validator(mode="after")
     def check_last_grading_rule_unconditional(self) -> Self:
-        if self.grading:
-            if self.grading[-1].has_conditionals():
-                raise ValueError("last grading rule must be unconditional")
+        if self.grading and self.grading[-1].has_conditionals():
+            raise ValueError("last grading rule must be unconditional")
         return self
 
     @model_validator(mode="after")
@@ -1152,9 +1150,8 @@ def expand_yaml_macros(
     # }}}
 
     jinja_str = process_yaml_for_expansion(yaml_str)
-    yaml_str = jinja_env.render_str(jinja_str)
+    return jinja_env.render_str(jinja_str)
 
-    return yaml_str
 
 # }}}
 
@@ -1239,7 +1236,7 @@ def get_model_from_repo(
 
     if cached:
         try:
-            import django.core.cache as cache
+            from django.core import cache
         except ImproperlyConfigured:
             cached = False
         else:
@@ -1543,7 +1540,7 @@ def expand_markup(
         def render_notebook_cells(*args, **kwargs):
             return "[The ability to render notebooks was removed.]"
 
-        env.add_function("render_notebook_cells", render_notebook_cells)
+        env.add_function("render_notebook_cells", render_notebook_cells)  # type: ignore[attr-defined]
 
         text = env.render_str(text, **jinja_env)
 
@@ -1569,7 +1566,7 @@ def filter_html_attributes(tag: str, name: str, value: str):
     elif tag == "i":
         result = result or (name == "class" and value.startswith("bi bi-"))
     elif tag == "table":
-        result = (result or (name == "class") or (name == "bootstrap"))
+        result = (result or name in {"class", "bootstrap"})
 
     return result
 
@@ -1599,7 +1596,7 @@ def markup_to_html(
 
     if course is not None and not jinja_env:
         try:
-            import django.core.cache as cache
+            from django.core import cache
         except ImproperlyConfigured:
             cache_key = None
         else:
@@ -1692,7 +1689,7 @@ class ChunkWeightShown:
 def _compute_chunk_weight_and_shown(
             course: Course,
             chunk: ChunkDesc,
-            roles: Set[str],
+            roles: AbstractSet[str],
             now_datetime: datetime.datetime,
             facilities: Collection[str],
             participation: Participation | None,
@@ -1734,7 +1731,7 @@ def get_processed_page_chunks(
             course: Course,
             commit_sha: RevisionID_ish,
             page_desc: StaticPageDesc,
-            roles: Set[str],
+            roles: AbstractSet[str],
             now_datetime: datetime.datetime,
             facilities: Collection[str],
             participation: Participation | None,
@@ -1833,33 +1830,31 @@ def get_course_commit_sha(
 
         return True
 
-    if participation is not None:
-        if participation.preview_git_commit_sha:
-            preview_sha = participation.preview_git_commit_sha
+    if participation is not None and participation.preview_git_commit_sha:
+        preview_sha = participation.preview_git_commit_sha
 
-            if repo is not None:
+        if repo is not None:
+            preview_sha_valid = is_commit_sha_valid(repo, preview_sha)
+        else:
+            with get_course_repo(course) as repo:  # noqa: PLR1704
                 preview_sha_valid = is_commit_sha_valid(repo, preview_sha)
-            else:
-                with get_course_repo(course) as repo:
-                    preview_sha_valid = is_commit_sha_valid(repo, preview_sha)
 
-            if preview_sha_valid:
-                sha = preview_sha
+        if preview_sha_valid:
+            sha = preview_sha
 
     return sha.encode()
 
 
 def list_flow_ids(repo: Repo_ish, commit_sha: RevisionID_ish) -> list[str]:
-    flow_ids = []
+    flow_ids: list[str] = []
     try:
         flows_tree = get_repo_tree(repo, "flows", commit_sha)
     except ObjectDoesNotExist:
         # That's OK--no flows yet.
         pass
     else:
-        for entry in flows_tree.items():
-            if entry.path.endswith(b".yml"):
-                flow_ids.append(entry.path[:-4].decode("utf-8"))
+        flow_ids.extend(entry.path[:-4].decode("utf-8")
+            for entry in flows_tree.items() if entry.path.endswith(b".yml"))
 
     return sorted(flow_ids)
 

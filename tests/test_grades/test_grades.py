@@ -335,44 +335,43 @@ class ViewParticipantGradesTest(GradesTestMixin, TestCase):
                 self.assertContains(resp, "(not released)", count=2)  # for hidden_gopp  # noqa
 
         user = self.ta_participation.user
-        with self.temporarily_switch_to_user(user):
-            with self.subTest(user=user):
-                with mock.patch(
-                        "course.models.GradeStateMachine.consume") as mock_consume:
-                    resp = self.get_view_participant_grades(
-                        self.student_participation.pk)
-                    self.assertEqual(resp.status_code, 200)
-
-                    # testing call of GradeStateMachine consume
-                    expected_called = [
-                        [gchange_shown1, gchange_shown2, gchange_shown3],
-                        [gchange_hidden],
-                        [gchange_result_hidden]]
-
-                    # no expected to be consumed
-                    not_expected_called = [
-                        [gchange_hidden_all]]
-
-                    actually_called = []
-                    for call in mock_consume.call_args_list:
-                        arg, _ = call
-                        for not_expected in not_expected_called:
-                            self.assertNotIn(not_expected, arg)
-                        if len(arg[0]):
-                            actually_called.append(arg[0])
-
-                    self.assertListEqual(actually_called, expected_called)
-
-                # non mock call
+        with self.temporarily_switch_to_user(user), self.subTest(user=user):
+            with mock.patch(
+                    "course.models.GradeStateMachine.consume") as mock_consume:
                 resp = self.get_view_participant_grades(
                     self.student_participation.pk)
-                self.assertEqual(
-                    len(resp.context["grading_opportunities"]), 4)
-                self.assertEqual(len(resp.context["grade_table"]), 4)
-                self.assertTrue(resp.context["is_privileged_view"])
+                self.assertEqual(resp.status_code, 200)
 
-                self.assertContains(resp, "60.0%", count=1)  # for shown_gopp
-                self.assertContains(resp, "40.0%", count=1)  # for hidden_gopp
+                # testing call of GradeStateMachine consume
+                expected_called = [
+                    [gchange_shown1, gchange_shown2, gchange_shown3],
+                    [gchange_hidden],
+                    [gchange_result_hidden]]
+
+                # no expected to be consumed
+                not_expected_called = [
+                    [gchange_hidden_all]]
+
+                actually_called = []
+                for call in mock_consume.call_args_list:
+                    arg, _ = call
+                    for not_expected in not_expected_called:
+                        self.assertNotIn(not_expected, arg)
+                    if len(arg[0]):
+                        actually_called.append(arg[0])
+
+                self.assertListEqual(actually_called, expected_called)
+
+            # non mock call
+            resp = self.get_view_participant_grades(
+                self.student_participation.pk)
+            self.assertEqual(
+                len(resp.context["grading_opportunities"]), 4)
+            self.assertEqual(len(resp.context["grade_table"]), 4)
+            self.assertTrue(resp.context["is_privileged_view"])
+
+            self.assertContains(resp, "60.0%", count=1)  # for shown_gopp
+            self.assertContains(resp, "40.0%", count=1)  # for hidden_gopp
 
 
 @pytest.mark.slow

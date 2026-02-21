@@ -26,8 +26,8 @@ THE SOFTWARE.
 import datetime
 from dataclasses import dataclass
 
-import django.forms as forms
 from crispy_forms.layout import Submit
+from django import forms
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import (

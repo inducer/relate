@@ -34,10 +34,9 @@ from typing import (
     cast,
 )
 
-import django.forms as forms
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Button, Div, Layout, Submit
-from django import http
+from django import forms, http
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import (
@@ -990,10 +989,9 @@ def user_profile(request):
 
     def is_inst_id_locked(user):
         if is_inst_id_editable_before_validation():
-            return True if (user.institutional_id
-                    and user.institutional_id_verified) else False
+            return bool(user.institutional_id and user.institutional_id_verified)
         else:
-            return True if user.institutional_id else False
+            return bool(user.institutional_id)
 
     def is_requesting_inst_id():
         return not is_inst_id_locked(request.user) and (
@@ -1001,35 +999,34 @@ def user_profile(request):
             or (request.GET.get("set_inst_id")
                 and request.GET.get("referer")))
 
-    if request.method == "POST":
-        if "submit_user" in request.POST:
+    if request.method == "POST" and "submit_user" in request.POST:
+        user_form = UserForm(
+                request.POST,
+                instance=request.user,
+                is_inst_id_locked=is_inst_id_locked(request.user),
+        )
+        if user_form.is_valid():
+            if user_form.has_changed():
+                user_form.save()
+                messages.add_message(request, messages.SUCCESS,
+                        _("Profile data updated."))
+                request.user.refresh_from_db()
+
+            else:
+                messages.add_message(request, messages.INFO,
+                        _("No change was made on your profile."))
+
+            if request.GET.get("first_login"):
+                return redirect("relate-home")
+
+            if (request.GET.get("set_inst_id")
+                    and request.GET.get("referer")):
+                return redirect(request.GET["referer"])
+
             user_form = UserForm(
-                    request.POST,
-                    instance=request.user,
-                    is_inst_id_locked=is_inst_id_locked(request.user),
+                instance=request.user,
+                is_inst_id_locked=is_inst_id_locked(request.user),
             )
-            if user_form.is_valid():
-                if user_form.has_changed():
-                    user_form.save()
-                    messages.add_message(request, messages.SUCCESS,
-                            _("Profile data updated."))
-                    request.user.refresh_from_db()
-
-                else:
-                    messages.add_message(request, messages.INFO,
-                            _("No change was made on your profile."))
-
-                if request.GET.get("first_login"):
-                    return redirect("relate-home")
-
-                if (request.GET.get("set_inst_id")
-                        and request.GET.get("referer")):
-                    return redirect(request.GET["referer"])
-
-                user_form = UserForm(
-                    instance=request.user,
-                    is_inst_id_locked=is_inst_id_locked(request.user),
-                )
 
     if user_form is None:
         request.user.refresh_from_db()
@@ -1120,7 +1117,6 @@ def social_set_user_email_verified(backend, details, user=None, *args, **kwargs)
         user.save()
 
     # continue the social auth pipeline
-    return None
 
 
 def social_auth_check_domain_against_blacklist(backend, details, *args, **kwargs):
@@ -1135,7 +1131,6 @@ def social_auth_check_domain_against_blacklist(backend, details, *args, **kwargs
             raise SocialAuthBaseException(domain_blacklist[domain])
 
     # continue the social auth pipeline
-    return None
 
 # }}}
 
@@ -1362,7 +1357,8 @@ def auth_course_with_token(
 
     except PermissionDenied as e:
         if method == "Basic":
-            realm = _(f"Relate direct git access for {course_identifier}")
+            realm = _("Relate direct git access for {course_identifier}"
+                      ).format(course_identifier=course_identifier)
             response = http.HttpResponse("Forbidden: " + str(e),
                         content_type="text/plain")
             response["WWW-Authenticate"] = f'Basic realm="{realm}"'

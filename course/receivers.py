@@ -95,16 +95,15 @@ def may_preapprove_role(
                     course=course, email__iexact=user.email)
         except ParticipationPreapproval.DoesNotExist:
             pass
-    if preapproval is None:
-        if user.institutional_id:
-            if not (course.preapproval_require_verified_inst_id
-                    and not user.institutional_id_verified):
-                try:
-                    preapproval = ParticipationPreapproval.objects.get(
-                                course=course,
-                                institutional_id__iexact=user.institutional_id)
-                except ParticipationPreapproval.DoesNotExist:
-                    pass
+    if preapproval is None and user.institutional_id:
+        if not (course.preapproval_require_verified_inst_id
+                and not user.institutional_id_verified):
+            try:
+                preapproval = ParticipationPreapproval.objects.get(
+                            course=course,
+                            institutional_id__iexact=user.institutional_id)
+            except ParticipationPreapproval.DoesNotExist:
+                pass
 
     if preapproval:
         return True, list(preapproval.roles.all())

@@ -24,6 +24,7 @@ THE SOFTWARE.
 """
 
 from typing import TYPE_CHECKING
+from warnings import warn
 
 from django.template import Library, Node, TemplateSyntaxError
 from django.utils import translation
@@ -96,9 +97,8 @@ def has_permission(participation: Participation, arg: str):
         if len(arg_list) > 1:
             argument = arg_list[1]
         has_pperm = participation.has_permission(perm, argument)
-    except Exception:
-        # fail silently
-        pass
+    except Exception as e:
+        warn(f"has_permission failed with error '{e}'")
 
     return has_pperm
 

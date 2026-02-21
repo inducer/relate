@@ -1626,10 +1626,8 @@ class CoursePageContextTest(SingleCourseTestMixin, MockAddMessageMixing, TestCas
         self.request.user = self.ta_participation.user
         pctx = utils.CoursePageContext(self.request, self.course.identifier)
 
-        with self.assertRaises(RuntimeError) as cm:
-            with pctx:
-                with pctx:
-                    pass
+        with self.assertRaises(RuntimeError) as cm, pctx, pctx:
+            pass
 
         expected_error_msg = (
             "Nested use of 'course_view' as context manager "

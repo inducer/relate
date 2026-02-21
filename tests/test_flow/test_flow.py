@@ -1239,7 +1239,6 @@ class FinishFlowSessionViewTest(HackRepoMixin,
             page_ids = self.get_current_page_ids()
             for page_id in page_ids:
                 self.submit_page_answer_by_page_id_and_test(page_id)
-            #
             resp = self.end_flow()
 
             expected_grade_info_dict = {
@@ -3363,8 +3362,7 @@ class GetAndCheckFlowSessionTest(SingleCourseTestMixin, TestCase):
         request.user = request_user
 
         from course.utils import CoursePageContext
-        pctx = CoursePageContext(request, self.course.identifier)
-        return pctx
+        return CoursePageContext(request, self.course.identifier)
 
     def test_object_does_not_exist(self):
         pctx = self.get_pctx(self.student_participation.user)
@@ -4461,9 +4459,7 @@ class PostFlowPageTest(HackRepoMixin, SingleCourseQuizPageTestMixin, TestCase):
         used = []
         for calls in self.mock_add_message.call_args_list:
             args, _ = calls
-            for msg in msgs:
-                if msg in args:
-                    used.append(msg)
+            used.extend(msg for msg in msgs if msg in args)
 
         for msg in msgs:
             if msg not in used:

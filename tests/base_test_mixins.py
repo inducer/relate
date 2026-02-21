@@ -632,10 +632,9 @@ class SuperuserCreateMixin(ResponseContextMixin):
             else:
                 return
 
-        if form_errors:
-            if not errors:
-                self.fail(
-                    f"{form_name} unexpectedly has following errors: {form_errors!r}")
+        if form_errors and not errors:
+            self.fail(
+                f"{form_name} unexpectedly has following errors: {form_errors!r}")
 
         for err in errors:
             self.assertIn(err, form_errors)
@@ -785,11 +784,7 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
         user, created = get_user_model().objects.get_or_create(
             email__iexact=create_user_kwargs["email"], defaults=create_user_kwargs)
         if created:
-            try:
-                # TODO: why pop failed here?
-                password = create_user_kwargs["password"]
-            except Exception:
-                raise
+            password = create_user_kwargs["password"]
             user.set_password(password)
             user.save()
         return user
@@ -830,7 +825,7 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
                               data=create_course_kwargs)
         if raise_error:
             all_courses = Course.objects.all()
-            if not all_courses.count() == existing_course_count + 1:
+            if all_courses.count() != existing_course_count + 1:
                 error_string = None
                 # most probably the reason course creation form error
                 form_context = resp.context.__getitem__("form")
@@ -1262,11 +1257,10 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
                 raise RuntimeError(
                     "There's no started flow_sessions, or "
                     "the session is not started by start_flow")
-        resp = client.post(
+        return client.post(
             cls.get_finish_flow_session_view_url(
                 course_identifier, flow_session_id),
             data={post_parameter: [""]})
-        return resp
 
     @classmethod
     def get_resume_flow_url(cls, course_identifier=None, flow_session_id=None):
@@ -1371,11 +1365,10 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
             course_identifier=None, flow_session_id=None, visit_id=None):
         submit_data = answer_data
         submit_data.update({"submit": ["Submit final answer"]})
-        resp = client.post(
+        return client.post(
             cls.get_page_url_by_ordinal(
                 page_ordinal, course_identifier, flow_session_id, visit_id),
             submit_data)
-        return resp
 
     @classmethod_with_client
     def post_answer_by_page_id(
@@ -1400,8 +1393,7 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
             "page_ordinal": page_ordinal
         }
         page_url = reverse("relate-view_flow_page", kwargs=page_params)
-        resp = client.post(page_url, submit_data)
-        return resp
+        return client.post(page_url, submit_data)
 
     @classmethod_with_client
     def post_answer_by_page_id_class(cls, client,  # noqa: N805
@@ -1427,11 +1419,10 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
                 page_params["course_identifier"])
 
         with cls.temporarily_switch_to_user(client, force_login_user):
-            response = client.post(
+            return client.post(
                 cls.get_page_grading_url_by_ordinal(**page_params),
                 data=post_data,
                 follow=True)
-        return response
 
     @classmethod_with_client
     def post_grade_by_page_id(cls, client,  # noqa: N805
@@ -1487,21 +1478,19 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
     def get_page_submit_history_by_ordinal(
             cls, client, page_ordinal, *,  # noqa: N805
             course_identifier=None, flow_session_id=None):
-        resp = client.get(
+        return client.get(
             cls.get_page_submit_history_url_by_ordinal(
                 page_ordinal, course_identifier, flow_session_id),
             HTTP_X_REQUESTED_WITH="XMLHttpRequest")
-        return resp
 
     @classmethod_with_client
     def get_page_grade_history_by_ordinal(
             cls, client, page_ordinal, *,  # noqa: N805
             course_identifier=None, flow_session_id=None):
-        resp = client.get(
+        return client.get(
             cls.get_page_grade_history_url_by_ordinal(
                 page_ordinal, course_identifier, flow_session_id),
             HTTP_X_REQUESTED_WITH="XMLHttpRequest")
-        return resp
 
     def assertSubmitHistoryItemsCount(  # noqa
             self, page_ordinal, expected_count, course_identifier=None,
@@ -1569,10 +1558,8 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
         # refresh_from_db
         course = course or cls.get_default_course()
 
-        try:
+        if isinstance(commit_sha, bytes):
             commit_sha = commit_sha.decode()
-        except Exception:
-            pass
 
         data: dict[str, object] = {"new_sha": [commit_sha]}
 
@@ -1593,9 +1580,8 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
                 cls.get_update_course_url(course.identifier), data)
             course.refresh_from_db()
 
-            if expect_success:
-                if command == CourseRevisionCommand.update:
-                    assert course.active_git_commit_sha == commit_sha
+            if expect_success and command == CourseRevisionCommand.update:
+                assert course.active_git_commit_sha == commit_sha
                 # FIXME: Check success for other cases
 
         return response
@@ -1922,8 +1908,7 @@ class SingleCourseTestMixin(CoursesTestMixinBase):
         request.user = user
 
         from course.utils import CoursePageContext
-        pctx = CoursePageContext(request, cls.course.identifier)
-        return pctx
+        return CoursePageContext(request, cls.course.identifier)
 
     @classmethod
     def get_hacked_flow_desc(
@@ -2510,10 +2495,7 @@ class MockAddMessageMixing:
         if not isinstance(expected_messages, list):
             expected_messages = [expected_messages]
 
-        not_called = []
-        for msg in expected_messages:
-            if msg not in joined_msgs:
-                not_called.append(msg)
+        not_called = [msg for msg in expected_messages if msg not in joined_msgs]
 
         if not_called:
             fail_msg = f"{not_called!r} unexpectedly not added in messages. "
@@ -2529,10 +2511,7 @@ class MockAddMessageMixing:
         if not isinstance(expected_messages, list):
             expected_messages = [expected_messages]
 
-        called = []
-        for msg in expected_messages:
-            if msg in joined_msgs:
-                called.append(msg)
+        called = [msg for msg in expected_messages if msg in joined_msgs]
 
         if called:
             fail_msg = f"{called!r} unexpectedly added in messages. "
@@ -2771,12 +2750,11 @@ class APITestMixin(SingleCoursePageTestMixin):
         from tests.factories import AuthenticationTokenFactory
         with mock.patch("tests.factories.make_sign_in_key") as mock_mk_sign_in_key:
             mock_mk_sign_in_key.return_value = token_hash_str
-            token = AuthenticationTokenFactory(
+            return AuthenticationTokenFactory(
                 user=participation.user,
                 participation=participation,
                 **kwargs
             )
-            return token
 
     def create_basic_auth(self, token=None, participation=None, user=None):
         participation = participation or self.instructor_participation
@@ -2848,11 +2826,7 @@ class HackRepoMixin:
         assert isinstance(expected_grade_info_dict, dict)
 
         grade_info_dict = grade_info.__dict__
-        not_match_infos = []
-        for k in grade_info_dict.keys():
-            if grade_info_dict[k] != expected_grade_info_dict[k]:
-                not_match_infos.append(
-                    f"'{k}' is expected to be {expected_grade_info_dict[k]!s}, while got {grade_info_dict[k]!s}")  # noqa: E501
+        not_match_infos = [f"'{k}' is expected to be {expected_grade_info_dict[k]!s}, while got {grade_info_dict[k]!s}" for k in grade_info_dict if grade_info_dict[k] != expected_grade_info_dict[k]]  # noqa: E501
 
         if not_match_infos:
             self.fail("\n".join(not_match_infos))

@@ -32,8 +32,8 @@ from typing import (
     Self,
 )
 
-import django.forms as forms
 from annotated_types import Ge, Le
+from django import forms
 from django.utils.html import escape
 from django.utils.safestring import mark_safe
 from django.utils.translation import gettext as _
@@ -89,22 +89,14 @@ def is_allowed_data_uri(allowed_mimetypes: list[str], uri: str):
 
 
 def filter_audio_attributes(tag, name, value):
-    if name == "controls":
-        return True
-    else:
-        return False
+    return name == "controls"
 
 
 def filter_source_attributes(tag, name, value):
     if name == "type":
         return True
     elif name == "src":
-        if is_allowed_data_uri([
-                "audio/wav",
-                ], value):
-            return True
-        else:
-            return False
+        return bool(is_allowed_data_uri(["audio/wav"], value))
     else:
         return False
 

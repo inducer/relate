@@ -359,11 +359,10 @@ class Event(models.Model):
                 {"course":
                      _("Course must be given.")})
 
-        if self.end_time and self.time:
-            if self.end_time < self.time:
-                raise ValidationError(
-                    {"end_time":
-                         _("End time must not be ahead of start time.")})
+        if self.end_time and self.time and self.end_time < self.time:
+            raise ValidationError(
+                {"end_time":
+                     _("End time must not be ahead of start time.")})
 
         if self.ordinal is None:
             null_ordinal_qset = Event.objects.filter(
@@ -1166,10 +1165,7 @@ class FlowPageVisit(models.Model):
             return get_feedback_for_grade(grade)
 
     def is_impersonated(self):
-        if self.impersonated_by:
-            return True
-        else:
-            return False
+        return bool(self.impersonated_by)
 
 # }}}
 
@@ -1506,7 +1502,7 @@ class FlowRuleException(models.Model):
     def clean(self) -> None:
         super().clean()
 
-        if self.kind not in dict(FLOW_RULE_KIND_CHOICES).keys():
+        if self.kind not in dict(FLOW_RULE_KIND_CHOICES):
             raise ValidationError(
                 # Translators: the rule refers to FlowRuleException rule
                 string_concat(_("invalid exception rule kind"), ": ", self.kind))
@@ -1934,10 +1930,9 @@ def get_flow_grading_opportunity(
                 })
 
     # update gopp.name when flow_desc.title changed
-    if not created:
-        if gopp.name != default_name:
-            gopp.name = default_name
-            gopp.save()
+    if not created and gopp.name != default_name:
+        gopp.name = default_name
+        gopp.save()
 
     return gopp
 

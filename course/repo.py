@@ -34,7 +34,7 @@ import dulwich.objects
 import dulwich.repo
 from django.core.exceptions import ImproperlyConfigured, ObjectDoesNotExist
 from django.utils.translation import gettext as _
-from typing_extensions import override
+from typing_extensions import Self, override
 
 
 if TYPE_CHECKING:
@@ -97,13 +97,13 @@ class SubdirRepoWrapper:
     def close(self) -> None:
         self.repo.close()
 
-    def __enter__(self) -> SubdirRepoWrapper:
+    def __enter__(self) -> Self:
         return self
 
     def __exit__(self,
-                exc_type: type[Exception],
-                exc_val: Exception,
-                exc_tb: TracebackType) -> None:
+                exc_type: type[BaseException] | None,
+                exc_val: BaseException | None,
+                exc_tb: TracebackType | None) -> None:
         self.close()
 
     def get_refs(self) -> Mapping[bytes, bytes]:
@@ -140,9 +140,9 @@ class EmptyRepo:
         return self
 
     def __exit__(self,
-                exc_type: type[Exception],
-                exc_val: Exception,
-                exc_tb: TracebackType) -> None:
+                exc_type: type[BaseException] | None,
+                exc_val: BaseException | None,
+                exc_tb: TracebackType | None) -> None:
         self.close()
 
 
@@ -182,9 +182,9 @@ class FileSystemFakeRepo:
         return self
 
     def __exit__(self,
-                exc_type: type[Exception],
-                exc_val: Exception,
-                exc_tb: TracebackType) -> None:
+                exc_type: type[BaseException] | None,
+                exc_val: BaseException | None,
+                exc_tb: TracebackType | None) -> None:
         self.close()
 
 
@@ -446,7 +446,7 @@ def get_repo_blob_data_cached(
         cache_key = None
 
     try:
-        import django.core.cache as cache
+        from django.core import cache
     except ImproperlyConfigured:
         cache_key = None
 

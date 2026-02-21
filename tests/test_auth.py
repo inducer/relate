@@ -1215,8 +1215,7 @@ class UserProfileTest(CoursesTestMixinBase, AuthTestMixin,
         request.session = mock.MagicMock()
 
         from course.auth import user_profile
-        response = user_profile(request)
-        return response
+        return user_profile(request)
 
     def get_profile_by_request_factory(self):
         request = self.rf.get(self.get_profile_view_url())
@@ -1224,8 +1223,7 @@ class UserProfileTest(CoursesTestMixinBase, AuthTestMixin,
         request.session = mock.MagicMock()
 
         from course.auth import user_profile
-        response = user_profile(request)
-        return response
+        return user_profile(request)
 
     def generate_profile_form_data(self, **kwargs):
         form_data = {

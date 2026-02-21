@@ -273,8 +273,8 @@ class FloatOrSympyEvalfTest(unittest.TestCase):
         assert float_or_sympy_evalf(1) == 1
         assert float_or_sympy_evalf(-1) == -1
         assert float_or_sympy_evalf(0) == 0
-        assert float_or_sympy_evalf(-0.2) == -0.2
-        assert float_or_sympy_evalf(-0.333) == -0.333
+        assert float_or_sympy_evalf(-0.2) == -0.2  # noqa: RUF069
+        assert float_or_sympy_evalf(-0.333) == -0.333  # noqa: RUF069
         assert float_or_sympy_evalf("inf") == float("inf")
 
     def test_float_or_sympy_evalf_value_empty(self):
