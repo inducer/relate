@@ -28,7 +28,7 @@ from abc import ABC, abstractmethod
 from enum import StrEnum
 from typing import Annotated, Any, ClassVar, Literal, Self
 
-import django.forms as forms
+from django import forms
 from django.utils.html import format_html_join
 from django.utils.safestring import mark_safe
 from django.utils.translation import gettext, gettext_lazy as _
@@ -82,7 +82,7 @@ class ChoiceDesc(BaseModel):
 
         try:
             data = str(data)
-        except Exception:
+        except Exception:  # noqa: S110
             pass
         else:
 
@@ -176,9 +176,7 @@ class ChoiceQuestionBase(PageBaseWithTitle, PageBaseWithValue, ABC):
     def process_choice_string(cls, page_context: PageContext, s: str):
         s = markup_to_html(page_context, s)
         # allow HTML in option
-        s = mark_safe(s)
-
-        return s
+        return mark_safe(s)
 
     @override
     def body(self, page_context: PageContext, page_data: PageData) -> str:
@@ -748,9 +746,7 @@ class SurveyChoiceQuestion(PageBaseWithTitle, PageBaseUngraded):
             s = str(s)
         s = markup_to_html(page_context, s)
         # allow HTML in option
-        s = mark_safe(s)
-
-        return s
+        return mark_safe(s)
 
     @override
     def page_correct_answer(self,

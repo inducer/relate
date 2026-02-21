@@ -36,7 +36,7 @@ from typing import (
     TypeAlias,
 )
 
-import django.forms as forms
+from django import forms
 from django.utils.translation import gettext, gettext_lazy as _
 from pydantic import (
     AfterValidator,
@@ -981,9 +981,7 @@ class TextQuestion(TextQuestionBase, PageBaseWithValue, PageBaseWithoutHumanGrad
 
             matcher_afb = matcher.grade(answer)
             if matcher_afb.correctness is not None:
-                if afb is None:
-                    afb = matcher_afb
-                elif matcher_afb.correctness > not_none(afb.correctness):
+                if afb is None or matcher_afb.correctness > not_none(afb.correctness):
                     afb = matcher_afb
 
         if afb is None:

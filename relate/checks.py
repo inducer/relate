@@ -406,15 +406,15 @@ def check_relate_settings(app_configs, **kwargs):
             options_dict = OrderedDict(tuple(settings.LANGUAGES))
             all_lang_codes = [lang_code for lang_code, lang_descr
                               in tuple(settings.LANGUAGES)]
-            for lang_code in options_dict.keys():
-                if all_lang_codes.count(lang_code) > 1:
-                    errors.append(Warning(
+            errors.extend(Warning(
                         msg=(
                             "Duplicate language entries were found in "
                             f"settings.LANGUAGES for '{lang_code}', '{options_dict[lang_code]}' will be used "  # noqa: E501
                             "as its language_description"),
                         id="relate_languages.W001"
-                    ))
+                    )
+                for lang_code in options_dict
+                if all_lang_codes.count(lang_code) > 1)
 
     # }}}
 
@@ -467,15 +467,14 @@ def check_relate_settings(app_configs, **kwargs):
                     msg=(f"'{RELATE_OVERRIDE_TEMPLATES_DIRS}' must contain only string of paths."),  # noqa: E501
                     id="relate_override_templates_dirs.E002"))
             else:
-                for directory in relate_override_templates_dirs:
-                    if not os.path.isdir(directory):
-                        errors.append(
-                            Warning(
+                errors.extend(Warning(
                                 msg=(
                                     f"Invalid Templates Dirs item '{directory}' in '{RELATE_OVERRIDE_TEMPLATES_DIRS}', "  # noqa: E501
                                     "it will be ignored."),
                                 id="relate_override_templates_dirs.W001"
-                            ))
+                            )
+                    for directory in relate_override_templates_dirs
+                    if not os.path.isdir(directory))
 
     # }}}
 

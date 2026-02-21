@@ -95,9 +95,8 @@ def view_participant_grades(pctx, participation_id=None):
 
     is_privileged_view = pctx.has_permission(PPerm.view_gradebook)
 
-    if grade_participation != pctx.participation:
-        if not is_privileged_view:
-            raise PermissionDenied(_("may not view other people's grades"))
+    if grade_participation != pctx.participation and not is_privileged_view:
+        raise PermissionDenied(_("may not view other people's grades"))
 
     # NOTE: It's important that these two queries are sorted consistently,
     # also consistently with the code below.
@@ -908,7 +907,7 @@ def view_single_grade(pctx: CoursePageContext, participation_id: str,
     if pctx.request.method == "POST":
         action_re = re.compile(r"^([a-z]+)_([0-9]+)$")
         action_match = None
-        for key in request.POST.keys():
+        for key in request.POST:
             action_match = action_re.match(key)
             if action_match:
                 break

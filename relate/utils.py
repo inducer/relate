@@ -35,7 +35,7 @@ from typing import (
 )
 from zoneinfo import ZoneInfo
 
-import django.forms as forms
+from django import forms
 from django.http import HttpRequest
 from django.utils.text import format_lazy
 from django.utils.translation import gettext_lazy as _
@@ -384,9 +384,7 @@ def ignore_no_such_table(f, *args):
     except ProgrammingError as e:
         cause = getattr(e, "__cause__", None)
         pgcode = getattr(cause, "pgcode", None)
-        if pgcode == "42P01":
-            local_rollback()
-        elif "no such table" in str(e):
+        if pgcode == "42P01" or "no such table" in str(e):
             local_rollback()
         else:
             raise

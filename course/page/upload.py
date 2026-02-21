@@ -25,8 +25,8 @@ THE SOFTWARE.
 
 from typing import TYPE_CHECKING, Any, Literal, Self, TypeAlias
 
-import django.forms as forms
 from crispy_forms.layout import Field, Layout
+from django import forms
 from django.utils.translation import gettext as _, gettext_lazy
 from pydantic import NonNegativeFloat, ValidationInfo, model_validator
 from typing_extensions import override
@@ -269,9 +269,8 @@ class FileUploadQuestion(PageBaseWithTitle, PageBaseWithValue,
             answer_data: AnswerData,
             page_behavior: PageBehavior,
             ) -> StyledFormBase:
-        form = FileUploadForm(
+        return FileUploadForm(
                 self.maximum_megabytes, self.mime_types)
-        return form
 
     @override
     def process_form_post(
@@ -282,10 +281,9 @@ class FileUploadQuestion(PageBaseWithTitle, PageBaseWithValue,
             files_data: Any,
             page_behavior: PageBehavior,
             ) -> StyledFormBase:
-        form = FileUploadForm(
+        return FileUploadForm(
                 self.maximum_megabytes, self.mime_types,
                 post_data, files_data)
-        return form
 
     @override
     def form_to_html(

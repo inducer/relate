@@ -539,7 +539,7 @@ class SingleCourseQuizPageGradeInterfaceTest(
             true_g_rule = get_session_grading_mode(
                 session, flow_desc, now_datetime)
 
-            fake_grading_rule = FlowSessionGradingModeWithFlowLevelInfo(
+            return FlowSessionGradingModeWithFlowLevelInfo(
                 # make grade_identifier None
                 grade_identifier=None,
                 grade_aggregation_strategy=true_g_rule.grade_aggregation_strategy,
@@ -552,7 +552,6 @@ class SingleCourseQuizPageGradeInterfaceTest(
                 bonus_points=true_g_rule.bonus_points,
                 max_points=true_g_rule.max_points,
                 max_points_enforced_cap=true_g_rule.max_points_enforced_cap)
-            return fake_grading_rule
 
         with mock.patch(
                 "course.grading.get_session_grading_mode"
@@ -616,13 +615,12 @@ class GraderSetUpMixin:
                         grader=graders[0],
                         grade_time=grade_time)
 
-        n_non_null_answer_fpv = (
+        return (
                 n_participations_per_course
                 * n_sessions_per_participation
                 * n_non_null_answer_visits_per_session)
 
         # print(n_non_null_answer_fpv)
-        return n_non_null_answer_fpv
 
 
 class ShowGraderStatisticsTest(

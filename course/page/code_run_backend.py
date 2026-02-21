@@ -106,8 +106,7 @@ def substitute_correct_code_into_test_code(
         match = CORRECT_CODE_TAG.match(line)
         if match is not None:
             prefix = match.group(1)
-            for cc_l in correct_code.split("\n"):
-                new_test_code_lines.append(prefix+cc_l)
+            new_test_code_lines.extend(prefix+cc_l for cc_l in correct_code.split("\n"))
         else:
             new_test_code_lines.append(line)
 
@@ -137,7 +136,7 @@ def user_code_thread(
             user_ctx: dict[str, object],
             exc_info: list[ExcInfo]) -> None:
     try:
-        exec(user_code, user_ctx)
+        exec(user_code, user_ctx)  # noqa: S102
     except BaseException:
         tp, val, tb = sys.exc_info()
         assert tp is not None
@@ -212,7 +211,7 @@ def run_code(run_req: RunRequest) -> RunResponse:
 
     if setup_code is not None:
         try:
-            exec(setup_code, maint_ctx)
+            exec(setup_code, maint_ctx)  # noqa: S102
         except BaseException:
             return package_exception("setup_error")
 
@@ -234,7 +233,7 @@ def run_code(run_req: RunRequest) -> RunResponse:
     # Running user code in a thread makes it harder for it to get at the (sensitive)
     # data held in this stack frame. Hiding sys._current_frames adds more difficulty.
     old_scf = sys._current_frames  # pyright: ignore[reportPrivateUsage]
-    sys._current_frames = lambda: {}  # pyright: ignore[reportPrivateUsage]
+    sys._current_frames = dict  # pyright: ignore[reportPrivateUsage]
 
     exc_info: list[ExcInfo] = []
     user_thread = threading.Thread(
@@ -268,8 +267,8 @@ def run_code(run_req: RunRequest) -> RunResponse:
             bio = BytesIO()
             try:
                 pt.savefig(bio, format=format)
-            except Exception:
-                pass
+            except Exception as e:
+                feedback.add_feedback(f"savefig failed with error '{e!s}'")
             else:
                 figures.append(
                     (fignum, mime, b64encode(bio.getvalue()).decode()))
@@ -286,7 +285,7 @@ def run_code(run_req: RunRequest) -> RunResponse:
 
     if test_code is not None:
         try:
-            exec(test_code, maint_ctx)
+            exec(test_code, maint_ctx)  # noqa: S102
         except GradingComplete:
             pass
         except BaseException:

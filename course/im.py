@@ -23,11 +23,11 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-import django.forms as forms
 import slixmpp
 from asgiref.sync import async_to_sync
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Submit
+from django import forms
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied
 from django.shortcuts import get_object_or_404, redirect, render  # noqa

@@ -332,15 +332,14 @@ def _pydantic_validate_facility(
 
     from course.utils import get_facilities_config
     facilities = get_facilities_config()
-    if facilities is not None:
-        if facility not in facilities:
-            vctx.add_warning(_(
-                "Name of facility not recognized: '%(fac_name)s'. "
-                "Known facility names: '%(known_fac_names)s'")
-                % {
-                    "fac_name": facility,
-                    "known_fac_names": ", ".join(facilities),
-                    })
+    if facilities is not None and facility not in facilities:
+        vctx.add_warning(_(
+            "Name of facility not recognized: '%(fac_name)s'. "
+            "Known facility names: '%(known_fac_names)s'")
+            % {
+                "fac_name": facility,
+                "known_fac_names": ", ".join(facilities),
+                })
 
     return facility
 
@@ -414,7 +413,7 @@ class CSSDimension:
             else:
                 try:
                     data = float(data)
-                except Exception:
+                except Exception:  # noqa: S110
                     pass
 
         if isinstance(data, (int, float)):

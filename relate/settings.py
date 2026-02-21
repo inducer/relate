@@ -42,7 +42,7 @@ if not os.path.isfile(_local_settings_file):
 local_settings_module_name, ext = (
     os.path.splitext(os.path.split(_local_settings_file)[-1]))
 assert ext == ".py"
-exec(f"import {local_settings_module_name} as local_settings_module")
+exec(f"import {local_settings_module_name} as local_settings_module")  # noqa: S102
 
 local_settings = local_settings_module.__dict__  # type: ignore  # noqa
 

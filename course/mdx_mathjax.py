@@ -21,8 +21,7 @@ class MathJaxPattern(Pattern):
 class MathJaxPostprocessor(Postprocessor):
     def run(self, text):
         text = text.replace("<mathjax>", "")
-        text = text.replace("</mathjax>", "")
-        return text
+        return text.replace("</mathjax>", "")
 
 
 class MathJaxExtension(markdown.Extension):

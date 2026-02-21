@@ -35,13 +35,12 @@ from typing import (
     cast,
 )
 
-import django.forms as forms
 import dulwich.client
 import dulwich.repo
 import dulwich.web
 import paramiko
 from crispy_forms.layout import Submit
-from django import http
+from django import forms, http
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, permission_required
 from django.core.exceptions import PermissionDenied, SuspiciousOperation
@@ -103,7 +102,7 @@ def transfer_remote_refs(
             valid_refs.append(new_ref)
             repo[new_ref] = sha
 
-    for ref in repo.get_refs().keys():
+    for ref in repo.get_refs():
         if ref.startswith(b"refs/remotes/origin/") and ref not in valid_refs:
             del repo[ref]
 
@@ -119,8 +118,7 @@ def get_dulwich_client_and_remote_path_from_course(
 
     def get_dulwich_ssh_vendor():
         from dulwich.contrib.paramiko_vendor import ParamikoSSHVendor
-        vendor = ParamikoSSHVendor(**ssh_kwargs)
-        return vendor
+        return ParamikoSSHVendor(**ssh_kwargs)
 
     # writing to another module's global variable: gross!
     dulwich.client.get_ssh_vendor = get_dulwich_ssh_vendor  # type: ignore[assignment]
@@ -244,7 +242,7 @@ def set_up_new_course(request: http.HttpRequest) -> http.HttpResponse:
                         messages.add_message(request, messages.INFO,
                                 _("Course content validated, creation "
                                 "succeeded."))
-                except Exception as e:
+                except Exception:
                     # Don't coalesce this handler with the one below. We only want
                     # to delete the directory if we created it. Trust me.
 
@@ -264,7 +262,7 @@ def set_up_new_course(request: http.HttpRequest) -> http.HttpResponse:
 
                     # We don't raise the OSError thrown by force_remove_path
                     # This is to ensure correct error msg for PY2.
-                    raise e
+                    raise
 
                 else:
                     assert repo is not None

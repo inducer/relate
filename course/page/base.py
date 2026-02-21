@@ -37,9 +37,9 @@ from typing import (
     final,
 )
 
-import django.forms as forms
 import django.http
 from annotated_types import Ge
+from django import forms
 from django.conf import settings
 from django.forms import ValidationError as FormValidationError
 from django.utils.safestring import mark_safe
@@ -74,7 +74,7 @@ from relate.utils import (
 
 if TYPE_CHECKING:
     import builtins
-    from collections.abc import Callable, Sequence, Set
+    from collections.abc import Callable, Sequence, Set as AbstractSet
 
     from course.models import Course, FlowSession
     from course.repo import Repo_ish
@@ -454,7 +454,8 @@ class PageBase(BaseModel, ABC):  # pyright: ignore[reportUnsafeMultipleInheritan
     # }}
 
     def get_modified_permissions_for_page(
-            self, permissions: Set[FlowPermission]) -> Set[FlowPermission]:
+                self, permissions: AbstractSet[FlowPermission]
+            ) -> AbstractSet[FlowPermission]:
         rw_permissions = set(permissions)
 
         if self.access_rules is not None:
@@ -896,9 +897,8 @@ class PageBaseWithValue(PageBase, ABC):
 
     @model_validator(mode="after")
     def check_optional_no_value(self) -> Self:
-        if self.is_optional_page:
-            if self.value is not None:
-                raise ValueError(_("may not specify value for optional pages"))
+        if self.is_optional_page and self.value is not None:
+            raise ValueError(_("may not specify value for optional pages"))
         return self
 
     @override
@@ -919,7 +919,7 @@ class PageBaseWithValue(PageBase, ABC):
 
 # {{{ human text feedback page base
 
-def create_default_point_scale(total_points: float | int) -> Sequence[float]:
+def create_default_point_scale(total_points: float) -> Sequence[float]:
     """
     Return a scale that has sensible intervals for assigning points.
     """
@@ -932,7 +932,7 @@ def create_default_point_scale(total_points: float | int) -> Sequence[float]:
     else:
         incr = 5
 
-    def as_int(x: float | int) -> float | int:
+    def as_int(x: float) -> float | int:
         return int(x) if int(x) == x else x
 
     points = [as_int(idx*incr) for idx in range(int(total_points/incr))]
@@ -959,14 +959,12 @@ class TextInputWithButtons(forms.TextInput):
         def make_feedback_func(feedback):
             return f"'$(\"#{id}\").val(\"{escapejs(feedback)}\")'"
 
-        buttons = []
         # Add buttons.
-        for button_value in self.button_values:
-            buttons.append(format_html(
+        buttons = [format_html(
                 "<button class='btn btn-sm btn-outline-secondary me-1' "
                 "type='button' onclick={func}>{val}</button>",
                 func=mark_safe(make_feedback_func(button_value)),
-                val=button_value))
+                val=button_value) for button_value in self.button_values]
 
         # Add a clear button.
         buttons.append(format_html(

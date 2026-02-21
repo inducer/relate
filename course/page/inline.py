@@ -28,9 +28,9 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, replace
 from typing import TYPE_CHECKING, Annotated, Any, ClassVar, Literal, Self, cast
 
-import django.forms as forms
 from crispy_forms.bootstrap import PrependedAppendedText
 from crispy_forms.layout import HTML, Layout
+from django import forms
 from django.utils.html import format_html_join
 from django.utils.safestring import mark_safe
 from django.utils.translation import gettext, gettext_lazy as _
@@ -315,9 +315,7 @@ class ChoicesAnswer(AnswerBase):
     def process_choice_string(cls, page_context: PageContext, s: str):
         s = markup_to_html(page_context, s)
         # allow HTML in option
-        s = mark_safe(s)
-
-        return s
+        return mark_safe(s)
 
     @override
     def get_answer_text(self, page_context: PageContext, answer: str):
@@ -660,9 +658,7 @@ class InlineMultiQuestion(
             f"<div class=\"{' '.join([*div_start_css_class_list, 'mb-4'])}\">")
 
         # https://stackoverflow.com/a/59082116/3437454
-        question_html = last_div_start.join(question_html.rsplit(replace_p_start, 1))
-
-        return question_html
+        return last_div_start.join(question_html.rsplit(replace_p_start, 1))
 
     def get_form_info(self, page_context: PageContext):
         return FormInfo(

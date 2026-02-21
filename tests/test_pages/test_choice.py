@@ -316,9 +316,9 @@ class MultiChoicesQuestionTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
 
         permutation = page_data["permutation"]
         unpermed_correct_answer_idx = [0, 1, 4]
-        correct_idx = []
-        for idx in unpermed_correct_answer_idx:
-            correct_idx.append(str(permutation.index(idx)))
+        correct_idx = [
+            str(permutation.index(idx))
+            for idx in unpermed_correct_answer_idx]
 
         resp = self.get_page_sandbox_submit_answer_response(
             markdown,

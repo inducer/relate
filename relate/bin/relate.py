@@ -1,4 +1,3 @@
-#! /usr/bin/env python3
 from __future__ import annotations
 
 import io
@@ -309,7 +308,6 @@ def expand_yaml_ui(args):
 
 
 def main() -> None:
-    pass
     import argparse
     import os
 

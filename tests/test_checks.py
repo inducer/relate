@@ -404,19 +404,18 @@ class CheckRelateUserFullNameFormatMethod(CheckRelateSettingsBase):
             # clear cached_property
             from accounts.utils import relate_user_method_settings
             relate_user_method_settings.__dict__ = {}
-            with self.subTest(id=kwargs["id"]):
-                with override_settings(
-                        RELATE_USER_FULL_NAME_FORMAT_METHOD=kwargs[
-                            "custom_method"]):
-                    check_messages = kwargs.get("check_messages", [])
-                    self.assertCheckMessages(check_messages)
+            with self.subTest(id=kwargs["id"]), override_settings(
+                    RELATE_USER_FULL_NAME_FORMAT_METHOD=kwargs[
+                        "custom_method"]):
+                check_messages = kwargs.get("check_messages", [])
+                self.assertCheckMessages(check_messages)
 
-                    user = UserFactory(**kwargs["user_dict"])
-                    self.assertEqual(user.get_full_name(), kwargs["default"])
-                    self.assertEqual(user.get_full_name(allow_blank=False),
-                                     kwargs["not_allow_blank"])
-                    self.assertEqual(user.get_full_name(force_verbose_blank=True),
-                                     kwargs["force_verbose_blank"])
+                user = UserFactory(**kwargs["user_dict"])
+                self.assertEqual(user.get_full_name(), kwargs["default"])
+                self.assertEqual(user.get_full_name(allow_blank=False),
+                                 kwargs["not_allow_blank"])
+                self.assertEqual(user.get_full_name(force_verbose_blank=True),
+                                 kwargs["force_verbose_blank"])
 
 
 class CheckRelateEmailAppellationPriorityList(CheckRelateSettingsBase):
@@ -763,9 +762,7 @@ class CheckRelateTicketMinutesValidAfterUse(CheckRelateSettingsBase):
 
 
 def side_effect_os_path_is_dir(*args, **kwargs):
-    if args[0].startswith("dir"):
-        return True
-    return False
+    return bool(args[0].startswith("dir"))
 
 
 def side_effect_os_access(*args, **kwargs):
@@ -774,9 +771,8 @@ def side_effect_os_access(*args, **kwargs):
     elif args[0].endswith("W_FAIL"):
         if args[1] == os.W_OK:
             return False
-    elif args[0].endswith("R_FAIL"):
-        if args[1] == os.R_OK:
-            return False
+    elif args[0].endswith("R_FAIL") and args[1] == os.R_OK:
+        return False
     return True
 
 
@@ -956,10 +952,7 @@ TEST_MY_OVERRIDING_TEMPLATES_DIR = "/path/to/my_template/"
 
 
 def is_dir_side_effect(*args, **kwargs):
-    if TEST_MY_OVERRIDING_TEMPLATES_DIR in args:
-        return True
-    else:
-        return False
+    return TEST_MY_OVERRIDING_TEMPLATES_DIR in args
 
 
 class CheckRelateTemplatesDirs(CheckRelateSettingsBase):

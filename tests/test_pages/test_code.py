@@ -974,13 +974,11 @@ class CodeQuestionWithHumanTextFeedbackSpecialCase(
         grade_data.setdefault("released", True)
         grade_data.setdefault("feedback_text", "")
         page_data = fpctx.page_data
-        feedback = page.grade(
+        return page.grade(
             page_context=page_context,
             answer_data=answer_data,
             page_data=page_data,
             grade_data=grade_data)
-
-        return feedback
 
     def test_code_with_human_feedback(self):
         answer_data = {"answer": "b = [a + 0] * 50"}

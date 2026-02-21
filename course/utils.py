@@ -77,8 +77,16 @@ from relate.utils import (
 
 if TYPE_CHECKING:
     import datetime
-    from collections.abc import Callable, Collection, Hashable, Iterable, Sequence, Set
+    from collections.abc import (
+        Callable,
+        Collection,
+        Hashable,
+        Iterable,
+        Sequence,
+        Set as AbstractSet,
+    )
     from ipaddress import IPv4Address, IPv6Address
+    from types import TracebackType
 
     from course.models import (
         Course,
@@ -126,13 +134,11 @@ def _eval_generic_conditions(
         remote_ip_address: IPv4Address | IPv6Address | None = None,
         ) -> bool:
 
-    if rule.if_before:
-        if not (now_datetime <= rule.if_before.eval(course)):
-            return False
+    if rule.if_before and not (now_datetime <= rule.if_before.eval(course)):
+        return False
 
-    if rule.if_after:
-        if not (now_datetime >= rule.if_after.eval(course)):
-            return False
+    if rule.if_after and not (now_datetime >= rule.if_after.eval(course)):
+        return False
 
     if rule.if_has_role:
         from course.enrollment import get_participation_role_identifiers
@@ -401,9 +407,8 @@ def get_session_access_mode(
         if not _eval_generic_session_conditions(rule, session):
             continue
 
-        if rule.if_in_facility:
-            if rule.if_in_facility not in facilities:
-                continue
+        if rule.if_in_facility and rule.if_in_facility not in facilities:
+            continue
 
         if rule.if_in_progress is not None:
             if session.in_progress != rule.if_in_progress:
@@ -532,7 +537,7 @@ class CoursePageContext:
     course_commit_sha: bytes
 
     _permissions_cache: frozenset[tuple[str, str | None]] | None
-    _role_identifiers_cache: Set[str] | None
+    _role_identifiers_cache: AbstractSet[str] | None
     _is_in_context_manager: bool
 
     def __init__(self, request: http.HttpRequest, course_identifier: str) -> None:
@@ -573,7 +578,7 @@ class CoursePageContext:
 
         self.course_commit_sha = sha
 
-    def role_identifiers(self) -> Set[str]:
+    def role_identifiers(self) -> AbstractSet[str]:
         if self._role_identifiers_cache is not None:
             return self._role_identifiers_cache
 
@@ -879,9 +884,7 @@ def repr_js(obj: Any) -> str:
         return "{{{}}}".format(", ".join(f"{k}: {repr_js(v)}" for k, v in obj.items()))
     elif isinstance(obj, bool):
         return repr(obj).lower()
-    elif isinstance(obj, int | float):
-        return repr(obj)
-    elif isinstance(obj, str):
+    elif isinstance(obj, (int | float, str)):
         return repr(obj)
     elif isinstance(obj, JsLiteral):
         return obj.js
@@ -1244,7 +1247,10 @@ class LanguageOverride(ContextDecorator):
         else:
             translation.deactivate_all()
 
-    def __exit__(self, exc_type: Any, exc_value: Any, traceback: Any) -> None:
+    def __exit__(self,
+                exc_type: type[BaseException] | None,
+                exc_value: BaseException | None,
+                traceback: TracebackType | None) -> None:
         if self.old_language is None:
             translation.deactivate_all()
         elif self.deactivate:

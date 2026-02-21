@@ -280,7 +280,7 @@ class EnrollViewTest(EnrollmentTestMixin, TestCase):
         self.assertEqual(len(mail.outbox), 0)
 
     def test_user_not_active(self):
-        for status in dict(constants.USER_STATUS_CHOICES).keys():
+        for status in dict(constants.USER_STATUS_CHOICES):
             if status != UStatus.active:
                 with self.subTest(user_status=status):
                     user = factories.UserFactory(status=status)

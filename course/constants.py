@@ -31,7 +31,7 @@ from django.utils.translation import gettext, pgettext_lazy
 
 
 if TYPE_CHECKING:
-    from collections.abc import Set
+    from collections.abc import Set as AbstractSet
 
 
 # Allow 10x extra credit at the very most.
@@ -305,7 +305,7 @@ FLOW_SESSION_EXPIRATION_MODE_CHOICES = (
 
 
 def is_expiration_mode_allowed(
-        expmode: str, permissions: Set[FlowPermission]
+        expmode: str, permissions: AbstractSet[FlowPermission]
         ) -> bool:
     if expmode == FlowSessionExpirationMode.roll_over:
         if (FlowPermission.set_roll_over_expiration_mode
