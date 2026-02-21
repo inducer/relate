@@ -1019,9 +1019,13 @@ def user_profile(request):
             if request.GET.get("first_login"):
                 return redirect("relate-home")
 
-            if (request.GET.get("set_inst_id")
-                    and request.GET.get("referer")):
-                return redirect(request.GET["referer"])
+            if request.GET.get("set_inst_id"):
+                referer = request.GET.get("referer")
+                if referer and url_has_allowed_host_and_scheme(
+                        referer, allowed_hosts={request.get_host()}):
+                    return redirect(referer)
+                else:
+                    return redirect("relate-home")
 
             user_form = UserForm(
                 instance=request.user,
