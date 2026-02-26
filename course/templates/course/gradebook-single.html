@@ -341,6 +341,66 @@
       </a>
     </div>
   {% endif %}
+
+  {% if flow_rule_exceptions != None %}
+    <h2>{% trans "Flow rule exceptions" %}</h2>
+    {% if not flow_rule_exceptions %}
+      <p><i>{% trans "(no exceptions)" %}</i></p>
+    {% else %}
+      <table class="table table-condensed table-striped">
+        <thead>
+          <tr>
+            <th>{% trans "Kind" %}</th>
+            <th>{% trans "Created" %}</th>
+            <th>{% trans "Creator" %}</th>
+            <th>{% trans "Expiration" %}</th>
+            <th>{% trans "Comment" %}</th>
+            <th>{% trans "Active" %}</th>
+            {% if pperm.grant_exception %}
+              <th>{% trans "Actions" %}</th>
+            {% endif %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for exc in flow_rule_exceptions %}
+            <tr{% if not exc.active %} class="text-muted"{% endif %}>
+              <td>
+                {% if not exc.active %}<s>{% endif %}
+                {{ exc.get_kind_display }}
+                {% if not exc.active %}</s>{% endif %}
+              </td>
+              <td>{{ exc.creation_time }}</td>
+              <td>{% if exc.creator %}{{ exc.creator.username }}{% else %}<i>{% trans "(none)" %}</i>{% endif %}</td>
+              <td>{% if exc.expiration %}{{ exc.expiration }}{% else %}<i>{% trans "(none)" %}</i>{% endif %}</td>
+              <td>{% if exc.comment %}<span class="sensitive">{{ exc.comment }}</span>{% endif %}</td>
+              <td>
+                {% if exc.active %}
+                  <span class="badge bg-success">{% trans "Yes" %}</span>
+                {% else %}
+                  <span class="badge bg-secondary">{% trans "No" %}</span>
+                {% endif %}
+              </td>
+              {% if pperm.grant_exception %}
+                <td>
+                  {% if exc.active %}
+                    <form method="POST"
+                          action="{% url "relate-deactivate_flow_exception" course.identifier exc.id opportunity.id %}"
+                          style="display:inline"
+                          onsubmit="return confirm('{% trans "Deactivate this exception?" %}')">
+                      {% csrf_token %}
+                      <button type="submit" class="btn btn-outline-warning btn-sm">
+                        {% trans "Deactivate" %}
+                      </button>
+                    </form>
+                  {% endif %}
+                </td>
+              {% endif %}
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% endif %}
+  {% endif %}
   {# }}} #}
 
 {% endblock %}
