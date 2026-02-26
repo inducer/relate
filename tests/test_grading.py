@@ -575,6 +575,65 @@ class SingleCourseQuizPageGradeInterfaceTest(
                 self.assertResponseContextIsNone(
                     resp, "grading_opportunity")
 
+    def test_participation_tags_shown_in_grading_interface(self):
+        tag = factories.ParticipationTagFactory(
+            course=self.course, name="test_tag")
+        self.student_participation.tags.add(tag)
+
+        with self.temporarily_switch_to_user(self.instructor_participation.user):
+            resp = self.client.get(
+                self.get_page_grading_url_by_page_id(self.page_id))
+            self.assertEqual(resp.status_code, 200)
+            self.assertContains(resp, "test_tag")
+
+    def test_participation_tags_shown_when_grading_opportunity_is_none(self):
+        tag = factories.ParticipationTagFactory(
+            course=self.course, name="test_tag_no_opp")
+        self.student_participation.tags.add(tag)
+
+        def get_session_grading_rule_side_effect(session, flow_desc, now_datetime):
+            from course.utils import (
+                FlowSessionGradingModeWithFlowLevelInfo,
+                get_session_grading_mode,
+            )
+            true_g_rule = get_session_grading_mode(
+                session, flow_desc, now_datetime)
+
+            return FlowSessionGradingModeWithFlowLevelInfo(
+                grade_identifier=None,
+                grade_aggregation_strategy=true_g_rule.grade_aggregation_strategy,
+                due=true_g_rule.due,
+                generates_grade=true_g_rule.generates_grade,
+                description=true_g_rule.description,
+                credit_percent=true_g_rule.credit_percent,
+                use_last_activity_as_completion_time=(
+                    true_g_rule.use_last_activity_as_completion_time),
+                bonus_points=true_g_rule.bonus_points,
+                max_points=true_g_rule.max_points,
+                max_points_enforced_cap=true_g_rule.max_points_enforced_cap)
+
+        with mock.patch(
+                "course.grading.get_session_grading_mode"
+        ) as mock_get_grading_rule:
+            mock_get_grading_rule.side_effect = get_session_grading_rule_side_effect
+
+            with self.temporarily_switch_to_user(self.instructor_participation.user):
+                resp = self.client.get(
+                    self.get_page_grading_url_by_page_id(self.page_id))
+                self.assertEqual(resp.status_code, 200)
+                self.assertResponseContextIsNone(resp, "grading_opportunity")
+                self.assertContains(resp, "test_tag_no_opp")
+
+    def test_no_tags_row_when_no_tags(self):
+        # Ensure no tags row is rendered when participation has no tags
+        self.student_participation.tags.clear()
+
+        with self.temporarily_switch_to_user(self.instructor_participation.user):
+            resp = self.client.get(
+                self.get_page_grading_url_by_page_id(self.page_id))
+            self.assertEqual(resp.status_code, 200)
+            self.assertNotContains(resp, "text-bg-primary")
+
 
 class GraderSetUpMixin:
     @classmethod

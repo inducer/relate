@@ -25,6 +25,18 @@
         </span>
       </td>
     </tr>
+    {% with tags=grade_participation.tags.all %}
+    {% if tags %}
+    <tr>
+      <td>{% trans "Tags" %}</td>
+      <td>
+        {% for ptag in tags %}
+          <span class="badge rounded-pill text-bg-primary">{{ ptag.name }}</span>
+        {% endfor %}
+      </td>
+    </tr>
+    {% endif %}
+    {% endwith %}
     <tr>
       <td>{% trans "Grading Opportunity ID" %}</td><td><tt>{{ opportunity.identifier }}</tt></td>
     </tr>
