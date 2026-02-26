@@ -1778,7 +1778,10 @@ def view_flow_page(
 
     flow_id = flow_session.flow_id
 
-    adjust_flow_session_page_data(pctx.repo, flow_session, respect_preview=True)
+    try:
+        adjust_flow_session_page_data(pctx.repo, flow_session, respect_preview=True)
+    except ObjectDoesNotExist:
+        raise http.Http404()
 
     try:
         fpctx = c_utils.FlowPageContext(pctx.repo, pctx.course, flow_id, page_ordinal,
@@ -2110,7 +2113,10 @@ def view_flow_page_with_ext_resource_tabs(
 
     flow_id = flow_session.flow_id
 
-    adjust_flow_session_page_data(pctx.repo, flow_session, respect_preview=True)
+    try:
+        adjust_flow_session_page_data(pctx.repo, flow_session, respect_preview=True)
+    except ObjectDoesNotExist:
+        raise http.Http404()
 
     fctx = c_utils.FlowContext(pctx.repo, pctx.course, flow_id,
                             participation=pctx.participation)
