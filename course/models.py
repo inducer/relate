@@ -1271,6 +1271,9 @@ BULK_FEEDBACK_FILENAME_KEY = "_rl_stor_fn"
 
 def update_bulk_feedback(page_data: FlowPageData, grade: FlowPageVisitGrade,
         bulk_feedback_json: Any) -> None:
+    """NOTE: This will abort on conflict under SERIALIZABLE, so make sure
+    each call to this function is nested in retry loop.
+    """
 
     import json
     import zlib
@@ -1279,6 +1282,10 @@ def update_bulk_feedback(page_data: FlowPageData, grade: FlowPageVisitGrade,
 
     from django.db import transaction
     with transaction.atomic():
+        # Lock the FlowPageData row to serialize concurrent bulk feedback
+        # creation and avoid a race on the unique constraint.
+        FlowPageData.objects.select_for_update().get(pk=page_data.pk)
+
         try:
             fp_bulk_feedback = FlowPageBulkFeedback.objects.get(page_data=page_data)
 

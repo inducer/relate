@@ -27,6 +27,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
+import threading
 import unittest
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
@@ -34,11 +35,20 @@ from zoneinfo import ZoneInfo
 import pytest
 from django.conf import settings
 from django.core.exceptions import ValidationError
-from django.test import TestCase, override_settings
+from django.db import connection
+from django.db.models.query import QuerySet
+from django.db.utils import OperationalError
+from django.test import (
+    TestCase,
+    TransactionTestCase,
+    override_settings,
+    skipUnlessDBFeature,
+)
 from django.utils.timezone import now
 
 from course import constants, models
 from course.constants import ParticipationPermission as PPerm
+from course.models import FlowPageBulkFeedback
 from tests import factories
 from tests.base_test_mixins import CoursesTestMixinBase
 from tests.utils import mock
@@ -897,3 +907,72 @@ class ExamTicketTest(RelateModelTestMixin, unittest.TestCase):
         et1 = models.ExamTicket(
             exam=self.exam, participation=None, code="abcd")
         et1.clean()
+
+
+@skipUnlessDBFeature("has_select_for_update")
+class UpdateBulkFeedbackConcurrencyTest(TransactionTestCase):
+    """Regression test: concurrent first writes for the same page_data must
+    not raise IntegrityError due to a race on the unique constraint of
+    FlowPageBulkFeedback."""
+
+    def test_concurrent_first_write(self):
+        page_data = factories.FlowPageDataFactory()
+        grade1 = factories.FlowPageVisitGradeFactory(
+            visit=factories.FlowPageVisitFactory(page_data=page_data))
+        grade2 = factories.FlowPageVisitGradeFactory(
+            visit=factories.FlowPageVisitFactory(page_data=page_data))
+
+        # A Barrier placed on QuerySet.select_for_update guarantees that both
+        # threads are inside transaction.atomic() before either attempts to
+        # acquire the row lock, reliably triggering the race scenario.
+        #
+        # Under SERIALIZABLE isolation PostgreSQL may abort one transaction
+        # with OperationalError instead of blocking it.  In production
+        # post_flow_page is wrapped with @retry_transaction_decorator, which
+        # retries the whole request on such failures.  Here we replicate that
+        # behaviour in write() because the test bypasses the view layer.
+        # After a retry only one thread reaches the barrier, so
+        # BrokenBarrierError is caught and the thread proceeds without
+        # synchronisation.
+        barrier = threading.Barrier(2, timeout=3)
+        errors: list[Exception] = []
+
+        real_sfu = QuerySet.select_for_update
+
+        def _synchronized_sfu(self_, *args, **kwargs):
+            try:
+                barrier.wait()
+            except threading.BrokenBarrierError:
+                pass  # Retry path – synchronisation already done
+            return real_sfu(self_, *args, **kwargs)
+
+        def write(grade):
+            try:
+                for _ in range(5):
+                    try:
+                        models.update_bulk_feedback(page_data, grade, {"score": 1})
+                        return
+                    except OperationalError:
+                        pass  # Serialization failure under SERIALIZABLE – retry
+                errors.append(RuntimeError(
+                    "update_bulk_feedback still failing after retries"))
+            except Exception as exc:
+                errors.append(exc)
+            finally:
+                # Each thread opens its own DB connection; close it so the
+                # TransactionTestCase flush after the test can proceed cleanly.
+                connection.close()
+
+        with mock.patch.object(QuerySet, "select_for_update", _synchronized_sfu):
+            threads = [
+                threading.Thread(target=write, args=(g,))
+                for g in (grade1, grade2)
+            ]
+            for t in threads:
+                t.start()
+            for t in threads:
+                t.join(timeout=20)
+
+        self.assertFalse(errors, f"Concurrent writes raised: {errors}")
+        self.assertEqual(
+            FlowPageBulkFeedback.objects.filter(page_data=page_data).count(), 1)
