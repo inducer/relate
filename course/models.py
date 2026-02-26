@@ -45,7 +45,6 @@ from course.constants import (  # noqa
     COURSE_ID_REGEX,
     EVENT_KIND_REGEX,
     EXAM_TICKET_STATE_CHOICES,
-    FLOW_PERMISSION_CHOICES,
     FLOW_RULE_KIND_CHOICES,
     FLOW_SESSION_EXPIRATION_MODE_CHOICES,
     GRADE_AGGREGATION_STRATEGY_CHOICES,
@@ -1359,6 +1358,15 @@ def get_feedback_for_grade(
 
     from course.page.base import AnswerFeedback
     return AnswerFeedback.from_json(grade.feedback, bulk_feedback_json)
+
+# }}}
+
+
+# {{{ kept for historical migrations
+
+def validate_stipulations(_stip: object) -> None:  # pragma: no cover
+    # This function is kept for use in historical migrations only.
+    pass
 
 # }}}
 
