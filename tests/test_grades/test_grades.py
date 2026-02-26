@@ -947,6 +947,22 @@ class ViewGradesByOpportunityTest(GradesTestMixin, TestCase):
         resp = self.get_gradebook_by_opp_view(gopp.identifier)
         self.assertEqual(resp.status_code, 200)
 
+    def test_participation_tags_shown_in_gradebook_by_opp(self):
+        tag = factories.ParticipationTagFactory(
+            course=self.course, name="test_tag_by_opp")
+        self.student_participation.tags.add(tag)
+
+        resp = self.get_gradebook_by_opp_view(self.gopp_id)
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, "test_tag_by_opp")
+
+    def test_no_tags_in_gradebook_by_opp_when_no_tags(self):
+        self.student_participation.tags.clear()
+
+        resp = self.get_gradebook_by_opp_view(self.gopp_id)
+        self.assertEqual(resp.status_code, 200)
+        self.assertNotContains(resp, "text-bg-primary")
+
 
 class GradesChangeStateMachineTest(GradesTestMixin, TestCase):
 
@@ -1460,6 +1476,22 @@ class ViewSingleGradeTest(GradesTestMixin, TestCase):
         resp = self.get_view_single_grade(
             self.student_participation, self.gopp)
         self.assertEqual(resp.status_code, 200)
+
+    def test_participation_tags_shown_in_gradebook_single(self):
+        tag = factories.ParticipationTagFactory(
+            course=self.course, name="test_tag_gb")
+        self.student_participation.tags.add(tag)
+
+        resp = self.get_view_single_grade(self.student_participation, self.gopp)
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, "test_tag_gb")
+
+    def test_no_tags_row_when_no_tags_in_gradebook_single(self):
+        self.student_participation.tags.clear()
+
+        resp = self.get_view_single_grade(self.student_participation, self.gopp)
+        self.assertEqual(resp.status_code, 200)
+        self.assertNotContains(resp, "text-bg-primary")
 
     def test_view_not_shown_in_grade_book(self):
         hidden_gopp = factories.GradingOpportunityFactory(
