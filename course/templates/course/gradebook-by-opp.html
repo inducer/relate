@@ -152,7 +152,7 @@
                 ({{ participation.get_role_desc }})
               {% endif %}
               {% for ptag in participation.tags.all %}
-                <span class="badge rounded-pill text-bg-primary">{{ ptag.name }}</span>
+                <span class="relate-participation-tag">{{ ptag.name }}</span>
               {% endfor %}
             </td>
         {% endif %}

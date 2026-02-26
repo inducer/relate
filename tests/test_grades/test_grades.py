@@ -961,7 +961,7 @@ class ViewGradesByOpportunityTest(GradesTestMixin, TestCase):
 
         resp = self.get_gradebook_by_opp_view(self.gopp_id)
         self.assertEqual(resp.status_code, 200)
-        self.assertNotContains(resp, "text-bg-primary")
+        self.assertNotContains(resp, "relate-participation-tag")
 
 
 class GradesChangeStateMachineTest(GradesTestMixin, TestCase):
@@ -1491,7 +1491,7 @@ class ViewSingleGradeTest(GradesTestMixin, TestCase):
 
         resp = self.get_view_single_grade(self.student_participation, self.gopp)
         self.assertEqual(resp.status_code, 200)
-        self.assertNotContains(resp, "text-bg-primary")
+        self.assertNotContains(resp, "relate-participation-tag")
 
     def test_view_not_shown_in_grade_book(self):
         hidden_gopp = factories.GradingOpportunityFactory(

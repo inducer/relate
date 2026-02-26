@@ -351,4 +351,10 @@ div.rendered_html div.highlight > pre {
   @extend .mb-3;
 }
 
+.relate-participation-tag {
+  @extend .badge;
+  @extend .rounded-pill;
+  @extend .text-bg-primary;
+}
+
 /* vim: set foldmethod=marker:sw=2 */

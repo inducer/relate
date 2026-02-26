@@ -632,7 +632,7 @@ class SingleCourseQuizPageGradeInterfaceTest(
             resp = self.client.get(
                 self.get_page_grading_url_by_page_id(self.page_id))
             self.assertEqual(resp.status_code, 200)
-            self.assertNotContains(resp, "text-bg-primary")
+            self.assertNotContains(resp, "relate-participation-tag")
 
 
 class GraderSetUpMixin:
