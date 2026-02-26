@@ -45,7 +45,6 @@ from course.constants import (  # noqa
     COURSE_ID_REGEX,
     EVENT_KIND_REGEX,
     EXAM_TICKET_STATE_CHOICES,
-    FLOW_PERMISSION_CHOICES,
     FLOW_RULE_KIND_CHOICES,
     FLOW_SESSION_EXPIRATION_MODE_CHOICES,
     GRADE_AGGREGATION_STRATEGY_CHOICES,
@@ -1363,101 +1362,11 @@ def get_feedback_for_grade(
 # }}}
 
 
-# {{{ deprecated flow rule exception stuff
+# {{{ kept for historical migrations
 
-def validate_stipulations(stip):  # pragma: no cover (deprecated and not tested)
-    if stip is None:
-        return
-
-    if not isinstance(stip, dict):
-        raise ValidationError(_("stipulations must be a dictionary"))
-    allowed_keys = {"credit_percent", "allowed_session_count"}
-    if not set(stip.keys()) <= allowed_keys:
-        raise ValidationError(
-                string_concat(
-                    _("unrecognized keys in stipulations"),
-                    ": %s")
-                % ", ".join(set(stip.keys()) - allowed_keys))
-
-    if "credit_percent" in stip and not isinstance(
-            stip["credit_percent"], int | float):
-        raise ValidationError(_("credit_percent must be a float"))
-    if ("allowed_session_count" in stip
-            and (
-                not isinstance(stip["allowed_session_count"], int)
-                or stip["allowed_session_count"] < 0)):
-        raise ValidationError(
-                _("'allowed_session_count' must be a non-negative integer"))
-
-
-class FlowAccessException(models.Model):  # pragma: no cover (deprecated and not tested)  # noqa
-    # deprecated
-
-    participation = models.ForeignKey(Participation, db_index=True,
-            verbose_name=_("Participation"), on_delete=models.CASCADE)
-    flow_id = models.CharField(max_length=200, blank=False, null=False,
-            verbose_name=_("Flow ID"))
-    expiration = models.DateTimeField(blank=True, null=True,
-            verbose_name=_("Expiration"))
-
-    stipulations = JSONField(blank=True, null=True,
-            # Translators: help text for stipulations in FlowAccessException
-            # (deprecated)
-            help_text=_("A dictionary of the same things that can be added "
-            "to a flow access rule, such as allowed_session_count or "
-            "credit_percent. If not specified here, values will default "
-            "to the stipulations in the course content."),
-            validators=[validate_stipulations],
-            dump_kwargs={"ensure_ascii": False},
-            verbose_name=_("Stipulations"))
-
-    creator = models.ForeignKey(settings.AUTH_USER_MODEL, null=True,
-            verbose_name=_("Creator"), on_delete=models.SET_NULL)
-    creation_time = models.DateTimeField(default=now, db_index=True,
-            verbose_name=_("Creation time"))
-
-    is_sticky = models.BooleanField(
-            default=False,
-            # Translators: deprecated
-            help_text=_("Check if a flow started under this "
-            "exception rule set should stay "
-            "under this rule set until it is expired."),
-            # Translators: deprecated
-            verbose_name=_("Is sticky"))
-
-    comment = models.TextField(blank=True, null=True,
-            verbose_name=_("Comment"))
-
-    @override
-    def __str__(self) -> str:
-        return (
-                # Translators: flow access exception in admin (deprecated)
-                _("Access exception for '%(user)s' to '%(flow_id)s' "
-                "in '%(course)s'") %
-                {
-                    "user": self.participation.user,
-                    "flow_id": self.flow_id,
-                    "course": self.participation.course
-                    })
-
-
-class FlowAccessExceptionEntry(models.Model):  # pragma: no cover (deprecated and not tested)  # noqa
-    # deprecated
-
-    exception = models.ForeignKey(FlowAccessException,
-            related_name="entries",
-            verbose_name=_("Exception"), on_delete=models.CASCADE)
-    permission = models.CharField(max_length=50,
-            choices=FLOW_PERMISSION_CHOICES,
-            verbose_name=_("Permission"))
-
-    class Meta:
-        # Translators: FlowAccessExceptionEntry (deprecated)
-        verbose_name_plural = _("Flow access exception entries")
-
-    @override
-    def __str__(self) -> str:
-        return self.permission
+def validate_stipulations(_stip: object) -> None:  # pragma: no cover
+    # This function is kept for use in historical migrations only.
+    pass
 
 # }}}
 

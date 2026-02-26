@@ -41,7 +41,6 @@ from course.models import (
     Event,
     Exam,
     ExamTicket,
-    FlowAccessException,
     FlowPageData,
     FlowPageVisit,
     FlowPageVisitGrade,
@@ -102,7 +101,6 @@ ParticipationLinked: TypeAlias = (
             ParticipationPermission
             | AuthenticationToken
             | FlowSession
-            | FlowAccessException
             | FlowRuleException
             | GradeChange
             | InstantMessage
