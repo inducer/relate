@@ -219,7 +219,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
     def test_data_files_missing_random_question_data_file(self):
         file_name = "foo"
         markdown = (
-                markdowns.CODE_MARKDWON_PATTERN_WITH_DATAFILES
+                markdowns.CODE_MARKDOWN_PATTERN_WITH_DATAFILES
                 % {"extra_data_file": f"- {file_name}"}
         )
         resp = self.get_page_sandbox_preview_response(markdown)
@@ -229,7 +229,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
             resp, PAGE_ERRORS, f" file '{file_name}' not found in course repository ")
 
     def test_data_files_missing_random_question_data_file_bad_format(self):
-        markdown = markdowns.CODE_MARKDWON_WITH_DATAFILES_BAD_FORMAT
+        markdown = markdowns.CODE_MARKDOWN_WITH_DATAFILES_BAD_FORMAT
         resp = self.get_page_sandbox_preview_response(markdown)
         self.assertEqual(resp.status_code, 200)
         self.assertSandboxNotHasValidPage(resp)
@@ -238,7 +238,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
 
     def test_not_multiple_submit_warning(self):
         markdown = (
-                markdowns.CODE_MARKDWON_PATTERN_WITH_DATAFILES
+                markdowns.CODE_MARKDOWN_PATTERN_WITH_DATAFILES
                 % {"extra_data_file": ""}
         )
         resp = self.get_page_sandbox_preview_response(markdown)
@@ -250,7 +250,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
         )
 
     def test_not_multiple_submit_warning2(self):
-        markdown = markdowns.CODE_MARKDWON_NOT_EXPLICITLY_NOT_ALLOW_MULTI_SUBMIT1
+        markdown = markdowns.CODE_MARKDOWN_NOT_EXPLICITLY_NOT_ALLOW_MULTI_SUBMIT1
         resp = self.get_page_sandbox_preview_response(markdown)
         self.assertEqual(resp.status_code, 200)
         self.assertSandboxHasValidPage(resp)
@@ -260,7 +260,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
         )
 
     def test_not_multiple_submit_warning3(self):
-        markdown = markdowns.CODE_MARKDWON_NOT_EXPLICITLY_NOT_ALLOW_MULTI_SUBMIT2
+        markdown = markdowns.CODE_MARKDOWN_NOT_EXPLICITLY_NOT_ALLOW_MULTI_SUBMIT2
         resp = self.get_page_sandbox_preview_response(markdown)
         self.assertEqual(resp.status_code, 200)
         self.assertSandboxHasValidPage(resp)
@@ -270,7 +270,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
         )
 
     def test_allow_multiple_submit(self):
-        markdown = markdowns.CODE_MARKDWON
+        markdown = markdowns.CODE_MARKDOWN
         resp = self.get_page_sandbox_preview_response(markdown)
         self.assertEqual(resp.status_code, 200)
         self.assertSandboxHasValidPage(resp)
@@ -278,7 +278,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
 
     def test_explicitly_not_allow_multiple_submit(self):
         markdown = (
-                markdowns.CODE_MARKDWON_PATTERN_EXPLICITLY_NOT_ALLOW_MULTI_SUBMIT
+                markdowns.CODE_MARKDOWN_PATTERN_EXPLICITLY_NOT_ALLOW_MULTI_SUBMIT
                 % {"extra_data_file": ""}
         )
         resp = self.get_page_sandbox_preview_response(markdown)
@@ -287,7 +287,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
         self.assertSandboxWarningTextContain(resp, None)
 
     def test_question_without_test_code(self):
-        markdown = markdowns.CODE_MARKDWON_PATTERN_WITHOUT_TEST_CODE
+        markdown = markdowns.CODE_MARKDOWN_PATTERN_WITHOUT_TEST_CODE
         resp = self.get_page_sandbox_preview_response(markdown)
         self.assertEqual(resp.status_code, 200)
         self.assertSandboxHasValidPage(resp)
@@ -302,7 +302,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
             resp, NO_CORRECTNESS_INFO_MSG)
 
     def test_question_without_correct_code(self):
-        markdown = markdowns.CODE_MARKDWON_PATTERN_WITHOUT_CORRECT_CODE
+        markdown = markdowns.CODE_MARKDOWN_PATTERN_WITHOUT_CORRECT_CODE
         resp = self.get_page_sandbox_preview_response(markdown)
         self.assertEqual(resp.status_code, 200)
         self.assertSandboxHasValidPage(resp)
@@ -315,7 +315,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
         self.assertResponseContextAnswerFeedbackCorrectnessEquals(resp, 1)
 
     def test_question_with_human_feedback_neither_feedback_value_feedback_percentage_present(self):  # noqa
-        markdown = (markdowns.CODE_WITH_HUMAN_FEEDBACK_MARKDWON_PATTERN
+        markdown = (markdowns.CODE_WITH_HUMAN_FEEDBACK_MARKDOWN_PATTERN
                     % {"value": 3,
                        "human_feedback": "",
                        "extra_attribute": ""})
@@ -326,7 +326,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
             resp, PAGE_ERRORS, "human_feedback_percentage\n  Field required")
 
     def test_question_with_human_feedback_value_0_feedback_full_percentage(self):
-        markdown = (markdowns.CODE_WITH_HUMAN_FEEDBACK_MARKDWON_PATTERN
+        markdown = (markdowns.CODE_WITH_HUMAN_FEEDBACK_MARKDOWN_PATTERN
                     % {"value": 0,
                        "human_feedback": "human_feedback_percentage: 100",
                        "extra_attribute": ""})
@@ -336,7 +336,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
         self.assertSandboxWarningTextContain(resp, None)
 
     def test_question_with_human_feedback_value_0_feedback_0_percentage(self):
-        markdown = (markdowns.CODE_WITH_HUMAN_FEEDBACK_MARKDWON_PATTERN
+        markdown = (markdowns.CODE_WITH_HUMAN_FEEDBACK_MARKDOWN_PATTERN
                     % {"value": 0,
                        "human_feedback": "human_feedback_percentage: 0",
                        "extra_attribute": ""})
@@ -362,7 +362,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
             mock_runpy.side_effect = RuntimeError(expected_error_str)
 
             resp = self.get_page_sandbox_submit_answer_response(
-                markdowns.CODE_MARKDWON,
+                markdowns.CODE_MARKDOWN,
                 answer_data={"answer": ["c = 1 + 2\r"]})
             self.assertEqual(resp.status_code, 200)
             self.assertResponseContextAnswerFeedbackCorrectnessEquals(resp,
@@ -384,7 +384,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
 
             with override_settings(DEBUG=True):
                 resp = self.get_page_sandbox_submit_answer_response(
-                    markdowns.CODE_MARKDWON,
+                    markdowns.CODE_MARKDOWN,
                     answer_data={"answer": ["c = 1 + 2\r"]})
                 self.assertEqual(resp.status_code, 200)
                 self.assertResponseContextAnswerFeedbackCorrectnessEquals(resp,
@@ -411,7 +411,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
                 mock_page_context.return_value.commit_sha = b"1234"
 
                 resp = self.get_page_sandbox_submit_answer_response(
-                    markdowns.CODE_MARKDWON,
+                    markdowns.CODE_MARKDOWN,
                     answer_data={"answer": ["c = 1 + 2\r"]})
                 self.assertEqual(resp.status_code, 200)
                 self.assertResponseContextAnswerFeedbackCorrectnessEquals(resp,
@@ -441,7 +441,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
                     mock_send.side_effect = RuntimeError("some email send error")
 
                     resp = self.get_page_sandbox_submit_answer_response(
-                        markdowns.CODE_MARKDWON,
+                        markdowns.CODE_MARKDOWN,
                         answer_data={"answer": ["c = 1 + 2\r"]})
                     self.assertContains(resp, expected_error_str)
                     self.assertEqual(resp.status_code, 200)
@@ -459,7 +459,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
             mock_runpy.return_value = result
 
             resp = self.get_page_sandbox_submit_answer_response(
-                markdowns.CODE_MARKDWON,
+                markdowns.CODE_MARKDOWN,
                 answer_data={"answer": ["c = 1 + 2\r"]})
 
             if expected_msgs is not None:
@@ -719,7 +719,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
     # {{{ https://github.com/inducer/relate/pull/448
 
     def test_feedback_points_close_to_1(self):
-        markdown = (markdowns.FEEDBACK_POINTS_CODE_MARKDWON_PATTERN
+        markdown = (markdowns.FEEDBACK_POINTS_CODE_MARKDOWN_PATTERN
                     % {
                         "full_points": 1.000000000002,
                         "min_points": 0
@@ -736,7 +736,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
 
     def test_feedback_code_exceed_1(self):
         feedback_points = 1.1
-        markdown = (markdowns.FEEDBACK_POINTS_CODE_MARKDWON_PATTERN
+        markdown = (markdowns.FEEDBACK_POINTS_CODE_MARKDOWN_PATTERN
                     % {
                         "full_points": feedback_points,
                         "min_points": 0
@@ -758,7 +758,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
 
     def test_feedback_code_positive_close_to_0(self):
         # https://github.com/inducer/relate/pull/448#issuecomment-363655132
-        markdown = (markdowns.FEEDBACK_POINTS_CODE_MARKDWON_PATTERN
+        markdown = (markdowns.FEEDBACK_POINTS_CODE_MARKDOWN_PATTERN
                     % {
                         "full_points": 1,
                         "min_points": 0.00000000001
@@ -776,7 +776,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
 
     def test_feedback_code_negative_close_to_0(self):
         # https://github.com/inducer/relate/pull/448#issuecomment-363655132
-        markdown = (markdowns.FEEDBACK_POINTS_CODE_MARKDWON_PATTERN
+        markdown = (markdowns.FEEDBACK_POINTS_CODE_MARKDOWN_PATTERN
                     % {
                         "full_points": 1,
                         "min_points": -0.00000000001
@@ -794,7 +794,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
 
     def test_feedback_code_error_close_below_max_auto_feedback_points(self):
         feedback_points = MAX_EXTRA_CREDIT_FACTOR - 1e-6
-        markdown = (markdowns.FEEDBACK_POINTS_CODE_MARKDWON_PATTERN
+        markdown = (markdowns.FEEDBACK_POINTS_CODE_MARKDOWN_PATTERN
                     % {
                         "full_points": feedback_points,
                         "min_points": 0
@@ -812,7 +812,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
 
     def test_feedback_code_error_close_above_max_auto_feedback_points(self):
         feedback_points = MAX_EXTRA_CREDIT_FACTOR + 1e-6
-        markdown = (markdowns.FEEDBACK_POINTS_CODE_MARKDWON_PATTERN
+        markdown = (markdowns.FEEDBACK_POINTS_CODE_MARKDOWN_PATTERN
                     % {
                         "full_points": feedback_points,
                         "min_points": 0
@@ -830,7 +830,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
 
     def test_feedback_code_error_negative_feedback_points(self):
         invalid_feedback_points = -0.1
-        markdown = (markdowns.FEEDBACK_POINTS_CODE_MARKDWON_PATTERN
+        markdown = (markdowns.FEEDBACK_POINTS_CODE_MARKDOWN_PATTERN
                     % {
                         "full_points": 1,
                         "min_points": invalid_feedback_points
@@ -857,7 +857,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
 
     def test_feedback_code_error_exceed_max_extra_credit_factor(self):
         invalid_feedback_points = 10.1
-        markdown = (markdowns.FEEDBACK_POINTS_CODE_MARKDWON_PATTERN
+        markdown = (markdowns.FEEDBACK_POINTS_CODE_MARKDOWN_PATTERN
                     % {
                         "full_points": invalid_feedback_points,
                         "min_points": 0
@@ -882,7 +882,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
 
     def test_feedback_code_error_exceed_max_extra_credit_factor_email(self):
         invalid_feedback_points = 10.1
-        markdown = (markdowns.FEEDBACK_POINTS_CODE_MARKDWON_PATTERN
+        markdown = (markdowns.FEEDBACK_POINTS_CODE_MARKDOWN_PATTERN
                     % {
                         "full_points": invalid_feedback_points,
                         "min_points": 0

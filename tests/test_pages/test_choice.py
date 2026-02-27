@@ -125,7 +125,7 @@ choices:
 answer_explanation: This is the explanation.
 """
 
-MULTIPLE_CHOICES_MARKDWON_NORMAL_PATTERN = """
+MULTIPLE_CHOICES_MARKDOWN_NORMAL_PATTERN = """
 type: MultipleChoiceQuestion
 id: ice_cream_toppings
 %(credit_mode_str)s
@@ -145,7 +145,7 @@ choices:
 %(extra_attr)s
 """
 
-MULTIPLE_CHOICES_MARKDWON_WITH_MULTIPLE_MODE1 = """
+MULTIPLE_CHOICES_MARKDOWN_WITH_MULTIPLE_MODE1 = """
 type: MultipleChoiceQuestion
 id: ice_cream_toppings
 credit_mode: exact
@@ -163,7 +163,7 @@ choices:
   - ~CORRECT~ Almond bits
 """
 
-MULTIPLE_CHOICES_MARKDWON_WITH_MULTIPLE_MODE2 = """
+MULTIPLE_CHOICES_MARKDOWN_WITH_MULTIPLE_MODE2 = """
 type: MultipleChoiceQuestion
 id: ice_cream_toppings
 credit_mode: exact
@@ -181,7 +181,7 @@ choices:
   - ~CORRECT~ Almond bits
 """
 
-MULTIPLE_CHOICES_MARKDWON_WITH_DISREGARD_PATTERN = """
+MULTIPLE_CHOICES_MARKDOWN_WITH_DISREGARD_PATTERN = """
 type: MultipleChoiceQuestion
 id: ice_cream_toppings
 credit_mode: %(credit_mode)s
@@ -200,7 +200,7 @@ choices:
   - ~DISREGARD~ A flawed option
 """
 
-MULTIPLE_CHOICES_MARKDWON_WITH_ALWAYS_CORRECT_PATTERN = """
+MULTIPLE_CHOICES_MARKDOWN_WITH_ALWAYS_CORRECT_PATTERN = """
 type: MultipleChoiceQuestion
 id: ice_cream_toppings
 credit_mode: %(credit_mode)s
@@ -286,7 +286,7 @@ class MultiChoicesQuestionTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
     # {{{ choice with multiple modes
     def test_choice_item_with_multiple_modes1(self):
         resp = self.get_page_sandbox_preview_response(
-            MULTIPLE_CHOICES_MARKDWON_WITH_MULTIPLE_MODE1)
+            MULTIPLE_CHOICES_MARKDOWN_WITH_MULTIPLE_MODE1)
         self.assertEqual(resp.status_code, 200)
         self.assertSandboxNotHasValidPage(resp)
         expected_page_error = ("more than one choice mode encountered")
@@ -294,7 +294,7 @@ class MultiChoicesQuestionTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
 
     def test_choice_item_with_multiple_modes2(self):
         resp = self.get_page_sandbox_preview_response(
-            MULTIPLE_CHOICES_MARKDWON_WITH_MULTIPLE_MODE2)
+            MULTIPLE_CHOICES_MARKDOWN_WITH_MULTIPLE_MODE2)
         self.assertEqual(resp.status_code, 200)
         self.assertSandboxNotHasValidPage(resp)
         expected_page_error = ("more than one choice mode encountered")
@@ -303,7 +303,7 @@ class MultiChoicesQuestionTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
     # }}}
 
     def test_shuffle(self):
-        markdown = (MULTIPLE_CHOICES_MARKDWON_NORMAL_PATTERN
+        markdown = (MULTIPLE_CHOICES_MARKDOWN_NORMAL_PATTERN
                     % {"shuffle": "True",
                        "credit_mode_str": "credit_mode: exact",
                        "extra_attr": ""})
@@ -327,7 +327,7 @@ class MultiChoicesQuestionTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
         self.assertResponseContextAnswerFeedbackCorrectnessEquals(resp, 1)
 
     def test_exact_mode(self):
-        markdown = (MULTIPLE_CHOICES_MARKDWON_NORMAL_PATTERN
+        markdown = (MULTIPLE_CHOICES_MARKDOWN_NORMAL_PATTERN
                     % {"shuffle": "False",
                        "credit_mode_str": "credit_mode: exact",
                        "extra_attr": ""})
@@ -355,7 +355,7 @@ class MultiChoicesQuestionTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
         self.assertResponseContextAnswerFeedbackCorrectnessEquals(resp, 0)
 
     def test_proportional_mode(self):
-        markdown = (MULTIPLE_CHOICES_MARKDWON_NORMAL_PATTERN
+        markdown = (MULTIPLE_CHOICES_MARKDOWN_NORMAL_PATTERN
                     % {"shuffle": "False",
                        "credit_mode_str": "credit_mode: proportional",
                        "extra_attr": ""})
@@ -379,7 +379,7 @@ class MultiChoicesQuestionTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
     # {{{ choices with disregard or always_correct tag
 
     def test_choice_item_with_disregard(self):
-        markdown = (MULTIPLE_CHOICES_MARKDWON_WITH_DISREGARD_PATTERN
+        markdown = (MULTIPLE_CHOICES_MARKDOWN_WITH_DISREGARD_PATTERN
                     % {"credit_mode": "proportional_correct"})
         resp = self.get_page_sandbox_preview_response(markdown)
         self.assertEqual(resp.status_code, 200)
@@ -403,7 +403,7 @@ class MultiChoicesQuestionTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
         self.assertResponseContextAnswerFeedbackCorrectnessEquals(resp, 2/3)
 
     def test_choice_item_with_always_correct(self):
-        markdown = (MULTIPLE_CHOICES_MARKDWON_WITH_ALWAYS_CORRECT_PATTERN
+        markdown = (MULTIPLE_CHOICES_MARKDOWN_WITH_ALWAYS_CORRECT_PATTERN
                     % {"credit_mode": "proportional_correct"})
         resp = self.get_page_sandbox_preview_response(markdown)
         self.assertEqual(resp.status_code, 200)
@@ -440,7 +440,7 @@ class MultiChoicesQuestionTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
     # }}}
 
     def test_with_explanation(self):
-        markdown = (MULTIPLE_CHOICES_MARKDWON_NORMAL_PATTERN
+        markdown = (MULTIPLE_CHOICES_MARKDOWN_NORMAL_PATTERN
                     % {"shuffle": "False",
                        "credit_mode_str": "credit_mode: proportional",
                        "extra_attr":
@@ -457,7 +457,7 @@ class MultiChoicesQuestionTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
         expected_error = (
             "credit_mode\n  Input should be")
 
-        markdown = (MULTIPLE_CHOICES_MARKDWON_NORMAL_PATTERN
+        markdown = (MULTIPLE_CHOICES_MARKDOWN_NORMAL_PATTERN
                     % {"shuffle": "False",
                        "credit_mode_str": "credit_mode: invalid_mode",
                        "extra_attr": ""})
