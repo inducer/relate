@@ -1810,7 +1810,8 @@ class DeactivateFlowExceptionTest(GradesTestMixin, TestCase):
             active=True)
         url = self.get_deactivate_url(exc, self.gopp)
         with self.temporarily_switch_to_user(
-                self.get_default_instructor_user()):
+                self.get_default_instructor_user(
+                    self.get_default_course_identifier())):
             resp = self.client.get(url)
         self.assertEqual(resp.status_code, 405)
         exc.refresh_from_db()
