@@ -11,7 +11,7 @@ markdowns for page sandbox tests
 from __future__ import annotations
 
 
-CODE_MARKDWON = """
+CODE_MARKDOWN = """
 type: PythonCodeQuestion
 access_rules:
     add_permissions:
@@ -47,7 +47,7 @@ correct_code: |
 correct_code_explanation: This is the [explanation](http://example.com/1).
 """
 
-CODE_MARKDWON_PATTERN_WITH_DATAFILES = """
+CODE_MARKDOWN_PATTERN_WITH_DATAFILES = """
 type: PythonCodeQuestion
 id: addition
 value: 1
@@ -86,7 +86,7 @@ correct_code: |
     c = a + b
 """
 
-CODE_MARKDWON_WITH_DATAFILES_BAD_FORMAT = """
+CODE_MARKDOWN_WITH_DATAFILES_BAD_FORMAT = """
 type: PythonCodeQuestion
 id: addition
 value: 1
@@ -127,7 +127,7 @@ correct_code: |
 """
 
 
-CODE_MARKDWON_NOT_EXPLICITLY_NOT_ALLOW_MULTI_SUBMIT1 = """
+CODE_MARKDOWN_NOT_EXPLICITLY_NOT_ALLOW_MULTI_SUBMIT1 = """
 type: PythonCodeQuestion
 access_rules:
     add_permissions:
@@ -166,7 +166,7 @@ correct_code: |
     c = a + b
 """
 
-CODE_MARKDWON_NOT_EXPLICITLY_NOT_ALLOW_MULTI_SUBMIT2 = """
+CODE_MARKDOWN_NOT_EXPLICITLY_NOT_ALLOW_MULTI_SUBMIT2 = """
 type: PythonCodeQuestion
 access_rules:
     remove_permissions:
@@ -205,7 +205,7 @@ correct_code: |
     c = a + b
 """
 
-CODE_MARKDWON_PATTERN_EXPLICITLY_NOT_ALLOW_MULTI_SUBMIT = """
+CODE_MARKDOWN_PATTERN_EXPLICITLY_NOT_ALLOW_MULTI_SUBMIT = """
 type: PythonCodeQuestion
 id: addition
 value: 1
@@ -241,7 +241,7 @@ correct_code: |
     c = a + b
 """
 
-CODE_MARKDWON_PATTERN_WITHOUT_TEST_CODE = """
+CODE_MARKDOWN_PATTERN_WITHOUT_TEST_CODE = """
 type: PythonCodeQuestion
 id: addition
 value: 1
@@ -265,7 +265,7 @@ correct_code: |
     c = a + b
 """
 
-CODE_MARKDWON_PATTERN_WITHOUT_CORRECT_CODE = """
+CODE_MARKDOWN_PATTERN_WITHOUT_CORRECT_CODE = """
 type: PythonCodeQuestion
 id: addition
 value: 1
@@ -299,7 +299,7 @@ test_code: |
 
 """
 
-FEEDBACK_POINTS_CODE_MARKDWON_PATTERN = """
+FEEDBACK_POINTS_CODE_MARKDOWN_PATTERN = """
 type: PythonCodeQuestion
 id: addition
 value: 1
@@ -335,7 +335,7 @@ correct_code: |
     c = a + b
 """
 
-FEEDBACK_POINTS_CODE_MARKDWON_PATTERN = """
+FEEDBACK_POINTS_CODE_MARKDOWN_PATTERN = """
 type: PythonCodeQuestion
 id: addition
 value: 1
@@ -371,7 +371,7 @@ correct_code: |
     c = a + b
 """
 
-CODE_WITH_HUMAN_FEEDBACK_MARKDWON_PATTERN = """
+CODE_WITH_HUMAN_FEEDBACK_MARKDOWN_PATTERN = """
 type: PythonCodeQuestionWithHumanTextFeedback
 id: pymult
 access_rules:
