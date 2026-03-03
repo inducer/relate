@@ -26,7 +26,7 @@ THE SOFTWARE.
 
 from abc import ABC, abstractmethod
 from enum import StrEnum
-from typing import Annotated, Any, ClassVar, Literal, Self
+from typing import TYPE_CHECKING, Annotated, Any, ClassVar, Literal, Self
 
 from django import forms
 from django.utils.html import format_html_join
@@ -50,6 +50,10 @@ from course.page.base import (
 )
 from course.validation import Markup, validate_nonempty
 from relate.utils import StyledFormBase, StyledVerticalForm, string_concat
+
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
 
 
 # {{{ data model/validation
@@ -634,18 +638,31 @@ class MultipleChoiceQuestion(ChoiceQuestionBase, PageBaseWithoutHumanGrading):
             answer_data: AnswerData | None,
             grade_data: GradeData | None,
             ) -> str | None:
-        corr_idx_list = self.unpermuted_correct_indices()
-        always_correct_idx_list = self.unpermuted_always_correct_indices()
+        permutation: Sequence[int] = page_data.get(
+                                    "permutation", list(range(len(self.choices))))
 
-        result = (string_concat(_("The correct answer is"), ": %s")
-                    % self.get_answer_html(page_context, corr_idx_list))
+        correct_set = set(self.unpermuted_correct_indices())
+        always_correct_set = set(self.unpermuted_always_correct_indices())
+        disregard_set = set(self.unpermuted_disregard_indices())
 
-        if len(always_correct_idx_list) > 0:
-            result = (string_concat(result,
-                        string_concat(_("Additional acceptable options are"),
-                            ": %s")
-                        % self.get_answer_html(page_context,
-                            always_correct_idx_list)))
+        rows: list[str] = []
+        for idx in permutation:
+            if idx in disregard_set:
+                continue
+            if idx in correct_set:
+                icon = mark_safe(
+                    '<i class="bi bi-check-square"></i>')
+            elif idx in always_correct_set:
+                icon = mark_safe(
+                    '<i class="bi bi-question-square"></i>')
+            else:
+                icon = mark_safe(
+                    '<i class="bi bi-square"></i>')
+            choice_str = self.process_choice_string(
+                page_context, f"{icon} {self.choices[idx].text}")
+            rows.append(choice_str)
+
+        result = "\n".join(rows)
 
         if self.answer_explanation is not None:
             result += markup_to_html(page_context, self.answer_explanation)

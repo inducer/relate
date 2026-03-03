@@ -428,16 +428,56 @@ class MultiChoicesQuestionTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
             answer_data={"choice": ["0", "1", "5"]})
         self.assertEqual(resp.status_code, 200)
         self.assertResponseContextAnswerFeedbackCorrectnessEquals(resp, 0.75)
+
+        self.maxDiff = None
         self.assertResponseContextEqual(
             resp, "correct_answer",
-            "The correct answer is: "
-            "<div class='relate-markup'><p>Sprinkles</p></div>\n"
-            "<div class='relate-markup'><p>Chocolate chunks</p></div>\n"
-            "<div class='relate-markup'><p>Almond bits</p></div>"
-            "Additional acceptable options are: "
-            "<div class='relate-markup'><p>A flawed option</p></div>")
+            '<div class=\'relate-markup\'><p><i class="bi bi-check-square"></i> Sprinkles</p></div>\n'  # noqa: E501
+            '<div class=\'relate-markup\'><p><i class="bi bi-check-square"></i> Chocolate chunks</p></div>\n'  # noqa: E501
+            '<div class=\'relate-markup\'><p><i class="bi bi-square"></i> Vacuum cleaner dust</p></div>\n'  # noqa: E501
+            '<div class=\'relate-markup\'><p><i class="bi bi-square"></i> Spider webs</p></div>\n'  # noqa: E501
+            '<div class=\'relate-markup\'><p><i class="bi bi-check-square"></i> Almond bits</p></div>\n'  # noqa: E501
+            '<div class=\'relate-markup\'><p><i class="bi bi-question-square"></i> A flawed option</p></div>')  # noqa: E501
 
     # }}}
+
+    def test_correct_answer_shows_all_choices_with_icons(self):
+        # Tests that the correct answer shows all choices (not just correct ones)
+        # with Bootstrap Icons checkboxes indicating correctness.
+        markdown = (MULTIPLE_CHOICES_MARKDOWN_NORMAL_PATTERN
+                    % {"shuffle": "False",
+                       "credit_mode_str": "credit_mode: exact",
+                       "extra_attr": ""})
+        resp = self.get_page_sandbox_preview_response(markdown)
+        self.assertEqual(resp.status_code, 200)
+        self.assertSandboxHasValidPage(resp)
+        self.assertResponseContextEqual(
+            resp, "correct_answer",
+            '<div class=\'relate-markup\'><p><i class="bi bi-check-square"></i> Sprinkles</p></div>\n'  # noqa: E501
+            '<div class=\'relate-markup\'><p><i class="bi bi-check-square"></i> Chocolate chunks</p></div>\n'  # noqa: E501
+            '<div class=\'relate-markup\'><p><i class="bi bi-square"></i> Vacuum cleaner dust</p></div>\n'  # noqa: E501
+            '<div class=\'relate-markup\'><p><i class="bi bi-square"></i> Spider webs</p></div>\n'  # noqa: E501
+            '<div class=\'relate-markup\'><p><i class="bi bi-check-square"></i> Almond bits</p></div>')  # noqa: E501
+
+    def test_correct_answer_disregard_excluded(self):
+        # Tests that ~DISREGARD~ choices are excluded from the correct answer display.
+        markdown = (MULTIPLE_CHOICES_MARKDOWN_WITH_DISREGARD_PATTERN
+                    % {"credit_mode": "proportional_correct"})
+        resp = self.get_page_sandbox_preview_response(markdown)
+        self.assertEqual(resp.status_code, 200)
+        self.assertSandboxHasValidPage(resp)
+        correct_answer = self.get_response_context_value_by_name(
+            resp, "correct_answer")
+        # The ~DISREGARD~ item "A flawed option" should not appear in correct_answer
+        self.assertNotIn("A flawed option", correct_answer)
+        # Correct choices should appear with check-square icons
+        self.assertResponseContextContains(
+            resp, "correct_answer",
+            '<i class="bi bi-check-square"></i>')
+        # Incorrect choices should appear with square icons
+        self.assertResponseContextContains(
+            resp, "correct_answer",
+            '<i class="bi bi-square"></i>')
 
     def test_with_explanation(self):
         markdown = (MULTIPLE_CHOICES_MARKDOWN_NORMAL_PATTERN
