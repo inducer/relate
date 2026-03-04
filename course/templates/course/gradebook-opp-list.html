@@ -36,7 +36,7 @@
           <a href="{% url "relate-view_grades_by_opportunity" course.identifier opp.id %}">{{ opp.name }}</a>
           <span style="font-size:x-small">(<tt>{{ opp.identifier }}</tt>)</span>
         </td>
-        {% if pperm.edit_participation %}
+        {% if pperm.edit_grading_opportunity %}
           <td class="datacol">
             <a href="{% url "relate-edit_grading_opportunity" course.identifier opp.id %}" class="btn btn-outline-secondary btn-sm">{% trans "Edit" %}</a>
           </td>
