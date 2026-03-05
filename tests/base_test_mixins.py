@@ -183,7 +183,11 @@ NONE_PARTICIPATION_USER_CREATE_KWARG_LIST = [
     }
 ]
 
-SELECT2_HTML_FIELD_ID_SEARCH_PATTERN = re.compile(r'data-field_id="([^"]+)"')
+TOMSELECT_AUTOCOMPLETE_URL_SEARCH_PATTERN = re.compile(
+    r"autocompleteUrl:\s*'([^']+)'")
+
+# Keep old name for backwards compatibility in the codebase.
+SELECT2_HTML_FIELD_ID_SEARCH_PATTERN = TOMSELECT_AUTOCOMPLETE_URL_SEARCH_PATTERN
 
 # }}}
 
@@ -382,26 +386,45 @@ class ResponseContextMixin:
 
     def get_select2_field_id_from_response(self, response,
                                            form_context_name="form"):
+        """Return the autocomplete URL embedded in the TomSelect widget HTML.
+
+        The returned value is used as the ``field_id`` argument to
+        :meth:`select2_get_request` – for TomSelect this is the full
+        autocomplete URL rather than the legacy Select2 ``field_id`` token.
+        """
         self.assertResponseContextIsNotNone(
             response, form_context_name,
             f"The response doesn't contain a context named '{form_context_name}'")
         form_str = str(response.context[form_context_name])
-        m = SELECT2_HTML_FIELD_ID_SEARCH_PATTERN.search(form_str)
+        m = TOMSELECT_AUTOCOMPLETE_URL_SEARCH_PATTERN.search(form_str)
         assert m, f"pattern not found in {form_str}"
-        return m.group(1)
+        raw_url = m.group(1)
+        # Django's |escapejs filter encodes special characters like '-' as
+        # \u002D.  Decode those escapes so we get a plain URL path suitable
+        # for use in test client requests.
+        return re.sub(
+            r"\\u([0-9a-fA-F]{4})",
+            lambda match: chr(int(match.group(1), 16)),
+            raw_url,
+        )
 
     def select2_get_request(self, field_id, term=None,
-                            select2_urlname="django_select2:auto-json"):
+                            select2_urlname=None):
+        """Make an autocomplete AJAX request compatible with TomSelect.
 
-        select2_url = reverse(select2_urlname)
-        params = {"field_id": field_id}
+        ``field_id`` should be the autocomplete URL obtained from
+        :meth:`get_select2_field_id_from_response`.  ``select2_urlname`` is
+        kept for API compatibility but ignored when ``field_id`` already is a
+        URL path.
+        """
+        autocomplete_url = field_id
+        params = {}
         if term is not None:
             assert isinstance(term, str)
             term = term.strip()
-            if term:
-                params["term"] = term
+            params["q"] = term
 
-        return self.client.get(select2_url, params,
+        return self.client.get(autocomplete_url, params,
                           HTTP_X_REQUESTED_WITH="XMLHttpRequest")
 
     def get_select2_response_data(self, response, key="results"):

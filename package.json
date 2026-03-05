@@ -48,8 +48,7 @@
     "prosemirror-schema-list": "^1.5.1",
     "prosemirror-state": "^1.4.4",
     "prosemirror-view": "^1.41.6",
-    "select2": "^4.0.5",
-    "select2-bootstrap-theme": "^0.1.0-beta.10",
+    "tom-select": "^2.5.2",
     "video.js": "^8.23.7"
   },
   "//dependencies": {

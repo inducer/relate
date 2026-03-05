@@ -63,7 +63,9 @@ from django.utils.translation import gettext_lazy as _
 from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.debug import sensitive_post_parameters
-from django_select2.forms import ModelSelect2Widget
+from django_tomselect.app_settings import TomSelectConfig
+from django_tomselect.autocompletes import AutocompleteModelView
+from django_tomselect.forms import TomSelectModelChoiceField
 from djangosaml2.backends import Saml2Backend
 
 from accounts.models import User
@@ -176,38 +178,55 @@ class ImpersonateMiddleware:
         return self.get_response(request)
 
 
-class UserSearchWidget(ModelSelect2Widget):
+class UserAutocompleteView(AutocompleteModelView):
+    """Autocomplete view for user search in the impersonation form."""
+
     model = User
-    search_fields = [
+    search_lookups = [
             "username__icontains",
             "email__icontains",
             "first_name__icontains",
             "last_name__icontains",
             ]
+    value_fields = ["id", "username", "email", "first_name", "last_name"]
+    virtual_fields = ["label"]
 
-    def label_from_instance(self, u):
-        if u.first_name and u.last_name:
-            return (
-                    f"{u.get_full_name()} ({u.username} - {u.email})")
-        else:
-            # for users with "None" fullname
-            return (
-                    f"{u.username} ({u.email})")
+    def get_queryset(self):
+        qset = get_impersonable_user_qset(cast("User", self.request.user))
+        queryset = (User.objects
+                .filter(pk__in=qset.values_list("pk", flat=True))
+                .order_by("last_name", "first_name", "username"))
+        return self.search(queryset, self.query)
+
+    def hook_prepare_results(self, results):
+        prepared = []
+        for item in results:
+            if item.get("first_name") and item.get("last_name"):
+                label = (
+                    f"{item['first_name']} {item['last_name']}"
+                    f" ({item['username']} - {item['email']})")
+            else:
+                label = f"{item['username']} ({item['email']})"
+            item["label"] = label
+            prepared.append(item)
+        return prepared
 
 
 class ImpersonateForm(StyledForm):
     def __init__(self, *args: Any, **kwargs: Any) -> None:
 
-        qset = kwargs.pop("impersonable_qset")
+        kwargs.pop("impersonable_qset")
         super().__init__(*args, **kwargs)
 
-        self.fields["user"] = forms.ModelChoiceField(
-                queryset=qset,
+        self.fields["user"] = TomSelectModelChoiceField(
                 required=True,
                 help_text=_("Select user to impersonate."),
-                widget=UserSearchWidget(
-                    queryset=qset,
-                    attrs={"data-minimum-input-length": 0},
+                config=TomSelectConfig(
+                    url="user-autocomplete",
+                    value_field="id",
+                    label_field="label",
+                    minimum_query_length=0,
+                    preload=True,
                 ),
                 label=_("User"))
 

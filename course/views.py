@@ -49,7 +49,6 @@ from django.utils.translation import (
     pgettext_lazy,
 )
 from django.views.decorators.cache import cache_control
-from django_select2.forms import Select2Widget
 
 from course.auth import get_pre_impersonation_user
 from course.constants import (
@@ -618,8 +617,7 @@ class InstantFlowRequestForm(StyledForm):
         self.fields["flow_id"] = forms.ChoiceField(
                 choices=[(fid, fid) for fid in flow_ids],
                 required=True,
-                label=_("Flow ID"),
-                widget=Select2Widget())
+                label=_("Flow ID"))
         self.fields["duration_in_minutes"] = forms.IntegerField(
                 required=True, initial=20,
                 label=pgettext_lazy("Duration for instant flow",
@@ -699,8 +697,7 @@ class FlowTestForm(StyledForm):
         self.fields["flow_id"] = forms.ChoiceField(
                 choices=[(fid, fid) for fid in flow_ids],
                 required=True,
-                label=_("Flow ID"),
-                widget=Select2Widget())
+                label=_("Flow ID"))
 
         self.helper.add_input(
                 Submit(
@@ -765,8 +762,7 @@ class ExceptionStage1Form(StyledForm):
                 required=True,
                 help_text=_("Select participant for whom exception is to "
                 "be granted."),
-                label=_("Participant"),
-                widget=Select2Widget())
+                label=_("Participant"))
         self.fields["flow_id"] = forms.ChoiceField(
                 choices=[(fid, fid) for fid in flow_ids],
                 required=True,

@@ -1,7 +1,7 @@
 $color-mode-type: media-query;
 
 @import "node_modules/bootstrap/scss/bootstrap.scss";
-@import "node_modules/select2/dist/css/select2";
+@import "node_modules/tom-select/dist/scss/tom-select.bootstrap5";
 
 // work around spurious extra quoting in woff include
 $bootstrap-icons-font-file: "./fonts/bootstrap-icons";

@@ -44,7 +44,6 @@ from django.utils.safestring import mark_safe
 from django.utils.translation import gettext_lazy as _, pgettext
 from pytools.lex import RE, LexTable
 
-from course.auth import UserSearchWidget
 from course.constants import (
     PARTICIPATION_PERMISSION_CHOICES,
     ParticipationPermission as PPerm,
@@ -1000,10 +999,6 @@ class EditParticipationForm(StyledModelForm):
                 "role",
                 "course",
                 )
-
-        widgets = {
-                "user": UserSearchWidget,
-                }
 
 
 @course_view

@@ -43,7 +43,6 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.safestring import mark_safe
 from django.utils.translation import gettext, gettext_lazy as _
-from django_select2.forms import Select2Widget
 from pytools import not_none
 
 import course.utils as c_utils  # These are mocked, so import as module
@@ -2825,8 +2824,7 @@ class RegradeFlowForm(StyledForm):
         self.fields["flow_id"] = forms.ChoiceField(
                 choices=[(fid, fid) for fid in flow_ids],
                 required=True,
-                label=_("Flow ID"),
-                widget=Select2Widget())
+                label=_("Flow ID"))
         self.fields["access_rules_tag"] = forms.CharField(
                 required=False,
                 help_text=_("If non-empty, limit the regrading to sessions "

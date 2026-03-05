@@ -776,7 +776,7 @@ class ExamFacilityMiddlewareTest(SingleCoursePageTestMixin,
                     self.client.get(reverse("saml2_login"))
 
     def test_ok_with_select2_views(self):
-        # test by using the select2 widget of impersonating form
+        # test by using the user autocomplete widget of impersonating form
         with self.temporarily_switch_to_user(self.ta_participation.user):
             resp = self.get_impersonate_view()
             field_id = self.get_select2_field_id_from_response(resp)
@@ -935,8 +935,8 @@ class ExamLockdownMiddlewareTest(SingleCoursePageTestMixin,
                 self.assertAddMessageCallCount(0)
 
     def test_ok_with_select2_views(self):
-        # There's currently no views using select2 when locked down.
-        # Here we are testing by using link from the select2 widget of
+        # There's currently no autocomplete views being used when locked down.
+        # Here we are testing by using link from the user autocomplete widget of
         # impersonating form
         with self.temporarily_switch_to_user(self.ta_participation.user):
             resp = self.get_impersonate_view()
