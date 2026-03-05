@@ -192,7 +192,8 @@ class UserAutocompleteView(AutocompleteModelView):
     virtual_fields = ["label"]
 
     def get_queryset(self):
-        qset = get_impersonable_user_qset(cast("User", self.request.user))
+        qset = get_impersonable_user_qset(
+                cast("User", self.request.user))  # type: ignore[attr-defined]
         queryset = (User.objects
                 .filter(pk__in=qset.values_list("pk", flat=True))
                 .order_by("last_name", "first_name", "username"))
