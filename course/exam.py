@@ -98,13 +98,10 @@ class IssueTicketForm(StyledForm):
 
         super().__init__(*args, **kwargs)
 
-        from course.auth import UserSearchWidget
-
         self.fields["user"] = forms.ModelChoiceField(
                 queryset=(get_user_model().objects
                     .filter(is_active=True)
                     .order_by("last_name")),
-                widget=UserSearchWidget(),
                 required=True,
                 help_text=_("Select participant for whom ticket is to "
                 "be issued."),
@@ -774,7 +771,7 @@ class ExamFacilityMiddleware:
                     sign_out,
                     set_pretend_facilities]
                 or request.path.startswith("/saml2")
-                or request.path.startswith("/select2")
+                or request.path.startswith("/user-autocomplete")
                 or ((request.user.is_staff
                     or request.user.has_perm("course.can_issue_exam_tickets"))
                     and resolver_match.func == issue_exam_ticket)):
@@ -857,7 +854,7 @@ class ExamLockdownMiddleware:
                     user_profile,
                     sign_out]
                 or request.path.startswith("/saml2")
-                or request.path.startswith("/select2")
+                or request.path.startswith("/user-autocomplete")
                 or (
                     resolver_match.func in [
                         view_resume_flow,

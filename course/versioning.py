@@ -54,7 +54,6 @@ from django.utils.translation import (
     pgettext_lazy,
 )
 from django.views.decorators.csrf import csrf_exempt
-from django_select2.forms import Select2Widget
 from dulwich.repo import Repo
 
 from course.auth import with_course_api_auth
@@ -473,7 +472,6 @@ class GitUpdateForm(StyledForm):
                     for entry in commit_iter
                     ]),
                 required=True,
-                widget=Select2Widget(),
                 label=pgettext_lazy(
                     "new git SHA for revision of course contents",
                     "New git SHA"))

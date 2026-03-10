@@ -61,7 +61,7 @@ INSTALLED_APPS = [
     "crispy_bootstrap5",
 
     "jsonfield",
-    "django_select2",
+    "django_tomselect",
 
     # message queue
     "django_celery_results",
@@ -91,6 +91,7 @@ MIDDLEWARE = (
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "django_tomselect.middleware.TomSelectMiddleware",
     "course.auth.ImpersonateMiddleware",
     "course.utils.FacilityFindingMiddleware",
     "course.exam.ExamFacilityMiddleware",
@@ -261,10 +262,6 @@ STORAGES = {
         "BACKEND": "django.contrib.staticfiles.storage.ManifestStaticFilesStorage",
     },
 }
-
-# bundled select2 "static" resources instead of from CDN
-SELECT2_JS = ""
-SELECT2_CSS = ""
 
 # }}}
 
