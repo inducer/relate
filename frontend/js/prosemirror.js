@@ -42,7 +42,7 @@ import 'prosemirror-menu/style/menu.css';
 import { exampleSetup } from 'prosemirror-example-setup';
 import 'prosemirror-example-setup/style/style.css';
 
-import { MarkdownParser } from 'prosemirror-markdown';
+import { MarkdownParser, MarkdownSerializer, defaultMarkdownSerializer } from 'prosemirror-markdown';
 import MarkdownIt from 'markdown-it';
 import markdownItMath from '@vscode/markdown-it-katex';
 
@@ -191,6 +191,43 @@ const pasteMarkdownPlugin = new Plugin({
 
 // }}}
 
+// {{{ serialize to markdown for clipboard
+
+const markdownSerializer = new MarkdownSerializer(
+  {
+    ...defaultMarkdownSerializer.nodes,
+    math_inline(state, node) {
+      state.write('$');
+      state.text(node.textContent, false);
+      state.write('$');
+    },
+    math_display(state, node) {
+      state.write('$$\n');
+      state.text(node.textContent, false);
+      state.write('\n$$');
+      state.closeBlock(node);
+    },
+  },
+  defaultMarkdownSerializer.marks,
+);
+
+function clipboardTextSerializer(slice) {
+  // Try to create a full document from the slice content to serialize as Markdown
+  let doc;
+  try {
+    doc = schema.topNodeType.createAndFill(null, slice.content);
+  } catch (e) {
+    doc = null;
+  }
+  if (doc) {
+    return markdownSerializer.serialize(doc).trim();
+  }
+  // Fall back to math-aware plain text serialization for partial inline selections
+  return mathSerializer.serializeSlice(slice);
+}
+
+// }}}
+
 // eslint-disable-next-line import/prefer-default-export
 export function editorFromTextArea(textarea, autofocus) {
   const plugins = [
@@ -234,7 +271,7 @@ export function editorFromTextArea(textarea, autofocus) {
   editorElt.classList.add('rl-prosemirror-container');
   const view = new EditorView(editorElt, {
     state,
-    clipboardTextSerializer: mathSerializer.serializeSlice,
+    clipboardTextSerializer,
   });
 
   if (autofocus) {
