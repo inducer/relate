@@ -1009,12 +1009,15 @@ class ProseMirrorTextarea(forms.Textarea):
     More tips for using this editor to type math:
     <ul>
         <li>
-        You may paste in Markdown-with-math (as accepted by
+        Clipboard/copy-paste (inbound and outbound) will work using
+        Markdown-with-math (as accepted by
         <a
         href="https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/writing-mathematical-expressions"
         >Github</a>,
         <a href="https://pandoc.org/MANUAL.html#math">Pandoc</a>, or
         <a href="https://meta.discourse.org/t/discourse-math/65770">Discourse</a>).
+        You may use this to externally save your work.
+        </li>
         <li>
         Inline math nodes are delimited with <code>$</code>.
         After typing the closing dollar sign in
@@ -1022,7 +1025,7 @@ class ProseMirrorTextarea(forms.Textarea):
         </li>
 
         <li>
-        To start a block math node, press Enter to create a blank line,
+        To start a block/display math node, press Enter to create a blank line,
         then type <code>$$</code> followed by Space. You can type multi-line math
         expressions, and the result will render in display style.
         </li>
@@ -1030,6 +1033,10 @@ class ProseMirrorTextarea(forms.Textarea):
         Math nodes behave like regular text when using arrow keys or Backspace.
         From within a math node, press Ctrl-Backspace to delete the entire node.
         You can select, copy, and paste math nodes just like regular text!
+        </li>
+        <li>
+        Save frequently. The editor will not be able to recover its state if
+        you navigate back after a submission failure.
         </li>
     </ul>
     """)
