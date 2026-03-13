@@ -970,4 +970,218 @@ class ViewCalendarTest(SingleCourseTestMixin, HackRepoMixin, TestCase):
              "end": lecture2_end_time.isoformat()
              })
 
+
+class ListEventsTest(SingleCourseTestMixin, MockAddMessageMixing, TestCase):
+    """test course.calendar.list_events"""
+
+    def get_list_events_url(self, course_identifier=None):
+        course_identifier = course_identifier or self.get_default_course_identifier()
+        return self.get_course_view_url("relate-list_events", course_identifier)
+
+    def get_list_events_view(self, course_identifier=None,
+                             force_login_instructor=True):
+        course_identifier = course_identifier or self.get_default_course_identifier()
+        if not force_login_instructor:
+            user = self.get_logged_in_user()
+        else:
+            user = self.instructor_participation.user
+        with self.temporarily_switch_to_user(user):
+            return self.client.get(self.get_list_events_url(course_identifier))
+
+    def test_not_authenticated(self):
+        with self.temporarily_switch_to_user(None):
+            resp = self.get_list_events_view(force_login_instructor=False)
+            self.assertEqual(resp.status_code, 302)
+
+    def test_no_pperm(self):
+        with self.temporarily_switch_to_user(self.student_participation.user):
+            resp = self.get_list_events_view(force_login_instructor=False)
+            self.assertEqual(resp.status_code, 403)
+
+    def test_get_success_empty(self):
+        resp = self.get_list_events_view()
+        self.assertEqual(resp.status_code, 200)
+        self.assertQuerySetEqual(resp.context["events"], Event.objects.none())
+
+    def test_get_success_with_events(self):
+        evt = factories.EventFactory(course=self.course, kind="lecture", ordinal=1)
+        resp = self.get_list_events_view()
+        self.assertEqual(resp.status_code, 200)
+        self.assertIn(evt, resp.context["events"])
+
+
+class EditEventTest(SingleCourseTestMixin, MockAddMessageMixing, TestCase):
+    """test course.calendar.edit_event"""
+
+    def get_edit_event_url(self, event_id, course_identifier=None):
+        from django.urls import reverse
+        course_identifier = course_identifier or self.get_default_course_identifier()
+        return reverse("relate-edit_event", args=[course_identifier, event_id])
+
+    def get_edit_event_view(self, event_id, course_identifier=None,
+                            force_login_instructor=True):
+        course_identifier = course_identifier or self.get_default_course_identifier()
+        if not force_login_instructor:
+            user = self.get_logged_in_user()
+        else:
+            user = self.instructor_participation.user
+        with self.temporarily_switch_to_user(user):
+            return self.client.get(
+                self.get_edit_event_url(event_id, course_identifier))
+
+    def post_edit_event_view(self, event_id, data, course_identifier=None,
+                             force_login_instructor=True):
+        course_identifier = course_identifier or self.get_default_course_identifier()
+        if not force_login_instructor:
+            user = self.get_logged_in_user()
+        else:
+            user = self.instructor_participation.user
+        with self.temporarily_switch_to_user(user):
+            return self.client.post(
+                self.get_edit_event_url(event_id, course_identifier), data)
+
+    def get_event_post_data(self, **kwargs):
+        data = {
+            "kind": "lecture",
+            "time": now().replace(tzinfo=None).strftime(
+                DATE_TIME_PICKER_TIME_FORMAT),
+            "all_day": False,
+            "shown_in_calendar": True,
+        }
+        data.update(kwargs)
+        return data
+
+    def test_not_authenticated(self):
+        with self.temporarily_switch_to_user(None):
+            resp = self.get_edit_event_view(-1, force_login_instructor=False)
+            self.assertEqual(resp.status_code, 302)
+
+    def test_no_pperm(self):
+        with self.temporarily_switch_to_user(self.student_participation.user):
+            resp = self.get_edit_event_view(-1, force_login_instructor=False)
+            self.assertEqual(resp.status_code, 403)
+
+    def test_get_create_new(self):
+        resp = self.get_edit_event_view(-1)
+        self.assertEqual(resp.status_code, 200)
+
+    def test_get_edit_existing(self):
+        evt = factories.EventFactory(course=self.course, kind="lecture", ordinal=1)
+        resp = self.get_edit_event_view(evt.id)
+        self.assertEqual(resp.status_code, 200)
+
+    def test_get_nonexistent_event(self):
+        resp = self.get_edit_event_view(999999)
+        self.assertEqual(resp.status_code, 404)
+
+    def test_post_create_new_success(self):
+        self.assertEqual(Event.objects.count(), 0)
+        resp = self.post_edit_event_view(-1, self.get_event_post_data(ordinal=3))
+        self.assertRedirects(
+            resp,
+            self.get_course_view_url("relate-list_events"),
+            fetch_redirect_response=False)
+        self.assertEqual(Event.objects.count(), 1)
+        evt = Event.objects.first()
+        assert evt is not None
+        self.assertEqual(evt.kind, "lecture")
+        self.assertEqual(evt.ordinal, 3)
+
+    def test_post_update_existing_success(self):
+        evt = factories.EventFactory(course=self.course, kind="lecture", ordinal=1)
+        resp = self.post_edit_event_view(
+            evt.id, self.get_event_post_data(kind="exam", ordinal=2))
+        self.assertRedirects(
+            resp,
+            self.get_course_view_url("relate-list_events"),
+            fetch_redirect_response=False)
+        evt.refresh_from_db()
+        self.assertEqual(evt.kind, "exam")
+        self.assertEqual(evt.ordinal, 2)
+
+    def test_post_form_invalid(self):
+        resp = self.post_edit_event_view(-1, {"kind": "", "time": ""})
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(Event.objects.count(), 0)
+
+    def test_post_wrong_course(self):
+        other_course = factories.CourseFactory(identifier="other-course")
+        evt = factories.EventFactory(course=other_course, kind="lecture", ordinal=1)
+        resp = self.post_edit_event_view(
+            evt.id, self.get_event_post_data(),
+            course_identifier=self.course.identifier)
+        self.assertEqual(resp.status_code, 400)
+
+
+class DeleteEventTest(SingleCourseTestMixin, MockAddMessageMixing, TestCase):
+    """test course.calendar.delete_event"""
+
+    def get_delete_event_url(self, event_id, course_identifier=None):
+        from django.urls import reverse
+        course_identifier = course_identifier or self.get_default_course_identifier()
+        return reverse("relate-delete_event", args=[course_identifier, event_id])
+
+    def get_delete_event_view(self, event_id, course_identifier=None,
+                              force_login_instructor=True):
+        course_identifier = course_identifier or self.get_default_course_identifier()
+        if not force_login_instructor:
+            user = self.get_logged_in_user()
+        else:
+            user = self.instructor_participation.user
+        with self.temporarily_switch_to_user(user):
+            return self.client.get(
+                self.get_delete_event_url(event_id, course_identifier))
+
+    def post_delete_event_view(self, event_id, course_identifier=None,
+                               force_login_instructor=True):
+        course_identifier = course_identifier or self.get_default_course_identifier()
+        if not force_login_instructor:
+            user = self.get_logged_in_user()
+        else:
+            user = self.instructor_participation.user
+        with self.temporarily_switch_to_user(user):
+            return self.client.post(
+                self.get_delete_event_url(event_id, course_identifier),
+                {"submit": ""})
+
+    def test_not_authenticated(self):
+        evt = factories.EventFactory(course=self.course, kind="lecture", ordinal=1)
+        with self.temporarily_switch_to_user(None):
+            resp = self.get_delete_event_view(evt.id, force_login_instructor=False)
+            self.assertEqual(resp.status_code, 302)
+
+    def test_no_pperm(self):
+        evt = factories.EventFactory(course=self.course, kind="lecture", ordinal=1)
+        with self.temporarily_switch_to_user(self.student_participation.user):
+            resp = self.get_delete_event_view(evt.id, force_login_instructor=False)
+            self.assertEqual(resp.status_code, 403)
+
+    def test_get_confirmation(self):
+        evt = factories.EventFactory(course=self.course, kind="lecture", ordinal=1)
+        resp = self.get_delete_event_view(evt.id)
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(Event.objects.count(), 1)
+
+    def test_get_nonexistent_event(self):
+        resp = self.get_delete_event_view(999999)
+        self.assertEqual(resp.status_code, 404)
+
+    def test_post_delete_success(self):
+        evt = factories.EventFactory(course=self.course, kind="lecture", ordinal=1)
+        self.assertEqual(Event.objects.count(), 1)
+        resp = self.post_delete_event_view(evt.id)
+        self.assertRedirects(
+            resp,
+            self.get_course_view_url("relate-list_events"),
+            fetch_redirect_response=False)
+        self.assertEqual(Event.objects.count(), 0)
+        self.assertAddMessageCalledWith("Event deleted.")
+
+    def test_post_wrong_course(self):
+        other_course = factories.CourseFactory(identifier="other-course")
+        evt = factories.EventFactory(course=other_course, kind="lecture", ordinal=1)
+        resp = self.post_delete_event_view(
+            evt.id, course_identifier=self.course.identifier)
+        self.assertEqual(resp.status_code, 400)
+
 # vim: fdm=marker

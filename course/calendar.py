@@ -33,9 +33,11 @@ from django.contrib.auth.decorators import login_required
 from django.core.exceptions import (
     ObjectDoesNotExist,
     PermissionDenied,
+    SuspiciousOperation,
     ValidationError,
 )
 from django.db import transaction
+from django.shortcuts import get_object_or_404, redirect
 from django.utils.safestring import mark_safe
 from django.utils.translation import get_language, gettext_lazy as _, pgettext_lazy
 
@@ -44,7 +46,13 @@ from course.content import CalendarDesc, calendar_ta, get_model_from_repo
 from course.models import Event
 from course.utils import CoursePageContext, course_view, render_course_page
 from course.validation import ValidationContext
-from relate.utils import HTML5DateTimeInput, StyledForm, as_local_time, string_concat
+from relate.utils import (
+    HTML5DateTimeInput,
+    StyledForm,
+    StyledModelForm,
+    as_local_time,
+    string_concat,
+)
 
 
 class ListTextWidget(forms.TextInput):
@@ -343,6 +351,113 @@ def renumber_events(pctx: CoursePageContext):
     return render_course_page(pctx, "course/generic-course-form.html", {
         "form": form,
         "form_description": _("Renumber events"),
+    })
+
+# }}}
+
+
+# {{{ single-event CRUD
+
+class SingleEventForm(StyledModelForm):
+    def __init__(self, add_new: bool, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+
+        self.helper.add_input(
+            Submit("submit", _("Add event") if add_new else _("Update event")))
+
+    class Meta:
+        model = Event
+        exclude = ("course",)
+        widgets = {
+            "time": HTML5DateTimeInput(),
+            "end_time": HTML5DateTimeInput(),
+        }
+
+
+@login_required
+@course_view
+def list_events(pctx: CoursePageContext):
+    if not pctx.has_permission(PPerm.edit_events):
+        raise PermissionDenied(_("may not edit events"))
+
+    events = (Event.objects
+              .filter(course=pctx.course)
+              .order_by("kind", "ordinal", "time"))
+
+    return render_course_page(pctx, "course/events-list.html", {
+        "events": events,
+    })
+
+
+@login_required
+@course_view
+def edit_event(pctx: CoursePageContext, event_id: int) -> object:
+    if not pctx.has_permission(PPerm.edit_events):
+        raise PermissionDenied(_("may not edit events"))
+
+    request = pctx.request
+    num_event_id = int(event_id)
+
+    if num_event_id == -1:
+        event = Event(course=pctx.course)
+        add_new = True
+    else:
+        event = get_object_or_404(Event, id=num_event_id)
+        add_new = False
+
+    if not add_new and event.course.id != pctx.course.id:
+        raise SuspiciousOperation(
+            "may not edit event in a different course")
+
+    if request.method == "POST":
+        form = SingleEventForm(add_new, request.POST, instance=event)
+        if form.is_valid():
+            evt = form.save(commit=False)
+            evt.course = pctx.course
+            evt.save()
+            return redirect("relate-list_events", pctx.course.identifier)
+    else:
+        form = SingleEventForm(add_new, instance=event)
+
+    return render_course_page(pctx, "course/generic-course-form.html", {
+        "form": form,
+        "form_description": _("Add event") if add_new else _("Edit event"),
+    })
+
+
+class DeleteEventForm(StyledForm):
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.helper.add_input(Submit("submit", _("Yes, delete")))
+
+
+@login_required
+@course_view
+def delete_event(pctx: CoursePageContext, event_id: int) -> object:
+    if not pctx.has_permission(PPerm.edit_events):
+        raise PermissionDenied(_("may not edit events"))
+
+    request = pctx.request
+    event = get_object_or_404(Event, id=int(event_id))
+
+    if event.course.id != pctx.course.id:
+        raise SuspiciousOperation(
+            "may not delete event in a different course")
+
+    if request.method == "POST":
+        form = DeleteEventForm(request.POST)
+        if form.is_valid():
+            event.delete()
+            messages.add_message(request, messages.SUCCESS, _("Event deleted."))
+            return redirect("relate-list_events", pctx.course.identifier)
+    else:
+        form = DeleteEventForm()
+
+    return render_course_page(pctx, "course/generic-course-form.html", {
+        "form": form,
+        "form_description": _("Delete event"),
+        "form_text":
+            _("Sure you want to delete '%(event)s'?") % {"event": event},
     })
 
 # }}}
