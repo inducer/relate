@@ -203,12 +203,11 @@
             {% if grade_info.flow_id %}
               {% include "course/flow-session-state.html" with flow_session=grade_info.flow_session %}
               {% if grade_info.flow_session %}
-                {% if not grade_info.flow_session.in_progress %}
-                  ({{ grade_info.flow_session.completion_time }})
-                {% endif %}
-                {% if grade_info.flow_session.access_rules_tag %}
-                  ({% trans "Rules tag" %}: <tt>{{ grade_info.flow_session.access_rules_tag }}</tt>)
-                {% endif %}
+              {% if not grade_info.flow_session.in_progress %}
+                ({{ grade_info.flow_session.completion_time }})
+              {% endif %}
+              {% trans "(none)" as none_label %}
+              ({% trans "Session tag" %}: <tt>{{ grade_info.flow_session.access_rules_tag|default:none_label }}</tt>)
               {% endif %}
             {% endif %}
           </td>

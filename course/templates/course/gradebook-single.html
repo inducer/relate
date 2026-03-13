@@ -8,6 +8,7 @@
 {% block content %}
   <h1>{% trans "Understand a grade" %}: {{ opportunity.name }} </h1>
 
+  {% trans "(none)" as none_label %}
   <table class="table table-condensed">
     <thead>
       <th>{% trans "Property" %}</th><th>{% trans "Value" %}</th>
@@ -170,12 +171,14 @@
               <td>
                 {% include "course/flow-session-state.html" %}
                 <hr>
-                {% if flow_session.access_rules_tag %}
+                <p>
+                  <b>{% trans "Session tag" %}:</b>
+                  <tt>{{ flow_session.access_rules_tag|default:none_label }}</tt>
+                </p>
+                {% if session_properties.grade_description %}
                   <p>
                     <b>{% trans "Grading rules" %}:</b>
-                    {% if session_properties.grade_description %}
-                      {{ session_properties.grade_description }}
-                    {% endif %}
+                    {{ session_properties.grade_description }}
                   </p>
                 {% endif %}
                 <p>
