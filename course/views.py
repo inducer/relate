@@ -1356,6 +1356,39 @@ def grant_exception_stage_3(
 # }}}
 
 
+# {{{ deactivate flow rule exception
+
+@http_dec.require_POST
+@course_view
+@transaction.atomic
+def deactivate_flow_exception(pctx: CoursePageContext,
+        exception_id: str, opportunity_id: str) -> http.HttpResponse:
+
+    if not pctx.has_permission(PPerm.grant_exception):
+        raise PermissionDenied(_("may not grant exceptions"))
+
+    exception = get_object_or_404(FlowRuleException, id=int(exception_id))
+
+    if exception.participation.course != pctx.course:
+        raise SuspiciousOperation(_("exception does not belong to this course"))
+
+    if not exception.active:
+        messages.add_message(pctx.request, messages.INFO,
+                _("Exception was already deactivated."))
+    else:
+        exception.active = False
+        exception.save()
+        messages.add_message(pctx.request, messages.SUCCESS,
+                _("Exception deactivated."))
+
+    return redirect("relate-view_single_grade",
+            pctx.course.identifier,
+            exception.participation.id,
+            opportunity_id)
+
+# }}}
+
+
 # {{{ ssh keypair
 
 @login_required

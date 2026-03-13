@@ -1684,6 +1684,154 @@ class ViewSingleGradeTest(GradesTestMixin, TestCase):
             self.assertEqual(len(resp_gchanges), 2)
 
 
+class ViewSingleGradeFlowRuleExceptionsTest(GradesTestMixin, TestCase):
+    # Tests for flow_rule_exceptions context in view_single_grade
+
+    def test_flow_rule_exceptions_not_in_context_for_no_flow_id(self):
+        gopp = factories.GradingOpportunityFactory(
+            course=self.course, identifier="no_flow_id", flow_id=None)
+        resp = self.get_view_single_grade(self.student_participation, gopp)
+        self.assertEqual(resp.status_code, 200)
+        self.assertIsNone(resp.context["flow_rule_exceptions"])
+
+    def test_flow_rule_exceptions_empty(self):
+        resp = self.get_view_single_grade(
+            self.student_participation, self.gopp)
+        self.assertEqual(resp.status_code, 200)
+        exceptions = resp.context["flow_rule_exceptions"]
+        self.assertIsNotNone(exceptions)
+        self.assertEqual(len(exceptions), 0)
+
+    def test_flow_rule_exceptions_shown(self):
+        exc = factories.FlowRuleExceptionFactory(
+            participation=self.student_participation,
+            flow_id=self.flow_id,
+            kind=constants.FlowRuleKind.access,
+            active=True)
+        resp = self.get_view_single_grade(
+            self.student_participation, self.gopp)
+        self.assertEqual(resp.status_code, 200)
+        exceptions = resp.context["flow_rule_exceptions"]
+        self.assertIsNotNone(exceptions)
+        self.assertEqual(len(exceptions), 1)
+        self.assertEqual(exceptions[0].pk, exc.pk)
+
+    def test_flow_rule_exceptions_includes_inactive(self):
+        factories.FlowRuleExceptionFactory(
+            participation=self.student_participation,
+            flow_id=self.flow_id,
+            kind=constants.FlowRuleKind.access,
+            active=False)
+        resp = self.get_view_single_grade(
+            self.student_participation, self.gopp)
+        self.assertEqual(resp.status_code, 200)
+        exceptions = resp.context["flow_rule_exceptions"]
+        self.assertIsNotNone(exceptions)
+        self.assertEqual(len(exceptions), 1)
+
+    def test_flow_rule_exceptions_not_shown_to_student(self):
+        factories.FlowRuleExceptionFactory(
+            participation=self.student_participation,
+            flow_id=self.flow_id,
+            kind=constants.FlowRuleKind.access,
+            active=True)
+        with self.temporarily_switch_to_user(self.student_participation.user):
+            resp = self.get_view_single_grade(
+                self.student_participation, self.gopp,
+                force_login_instructor=False)
+        self.assertEqual(resp.status_code, 200)
+        self.assertIsNone(resp.context["flow_rule_exceptions"])
+
+
+class DeactivateFlowExceptionTest(GradesTestMixin, TestCase):
+    # Tests for views.deactivate_flow_exception
+
+    def get_deactivate_url(self, exception, opportunity, course_identifier=None):
+        course_identifier = (
+            course_identifier or self.get_default_course_identifier())
+        return reverse("relate-deactivate_flow_exception", kwargs={
+            "course_identifier": course_identifier,
+            "exception_id": exception.pk,
+            "opportunity_id": opportunity.pk,
+        })
+
+    def post_deactivate(self, exception, opportunity, course_identifier=None,
+                        force_login_instructor=True):
+        url = self.get_deactivate_url(exception, opportunity, course_identifier)
+        if force_login_instructor:
+            switch_to = self.get_default_instructor_user(
+                course_identifier or self.get_default_course_identifier())
+        else:
+            switch_to = None
+        with self.temporarily_switch_to_user(switch_to):
+            return self.client.post(url)
+
+    def test_deactivate_success(self):
+        exc = factories.FlowRuleExceptionFactory(
+            participation=self.student_participation,
+            flow_id=self.flow_id,
+            kind=constants.FlowRuleKind.access,
+            active=True)
+        resp = self.post_deactivate(exc, self.gopp)
+        self.assertEqual(resp.status_code, 302)
+        exc.refresh_from_db()
+        self.assertFalse(exc.active)
+        self.assertAddMessageCalledWith("Exception deactivated.")
+
+    def test_deactivate_already_inactive(self):
+        exc = factories.FlowRuleExceptionFactory(
+            participation=self.student_participation,
+            flow_id=self.flow_id,
+            kind=constants.FlowRuleKind.access,
+            active=False)
+        resp = self.post_deactivate(exc, self.gopp)
+        self.assertEqual(resp.status_code, 302)
+        exc.refresh_from_db()
+        self.assertFalse(exc.active)
+        self.assertAddMessageCalledWith("Exception was already deactivated.")
+
+    def test_deactivate_no_permission(self):
+        exc = factories.FlowRuleExceptionFactory(
+            participation=self.student_participation,
+            flow_id=self.flow_id,
+            kind=constants.FlowRuleKind.access,
+            active=True)
+        with self.temporarily_switch_to_user(self.student_participation.user):
+            resp = self.client.post(self.get_deactivate_url(exc, self.gopp))
+        self.assertEqual(resp.status_code, 403)
+        exc.refresh_from_db()
+        self.assertTrue(exc.active)
+
+    def test_deactivate_get_not_allowed(self):
+        exc = factories.FlowRuleExceptionFactory(
+            participation=self.student_participation,
+            flow_id=self.flow_id,
+            kind=constants.FlowRuleKind.access,
+            active=True)
+        url = self.get_deactivate_url(exc, self.gopp)
+        with self.temporarily_switch_to_user(
+                self.get_default_instructor_user(
+                    self.get_default_course_identifier())):
+            resp = self.client.get(url)
+        self.assertEqual(resp.status_code, 405)
+        exc.refresh_from_db()
+        self.assertTrue(exc.active)
+
+    def test_deactivate_wrong_course(self):
+        another_course = factories.CourseFactory(identifier="another-course")
+        another_participation = factories.ParticipationFactory(
+            course=another_course)
+        exc = factories.FlowRuleExceptionFactory(
+            participation=another_participation,
+            flow_id=self.flow_id,
+            kind=constants.FlowRuleKind.access,
+            active=True)
+        resp = self.post_deactivate(exc, self.gopp)
+        self.assertEqual(resp.status_code, 400)
+        exc.refresh_from_db()
+        self.assertTrue(exc.active)
+
+
 class EditGradingOpportunityTest(GradesTestMixin, TestCase):
     # test grades.edit_grading_opportunity
 
