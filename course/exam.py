@@ -34,10 +34,11 @@ from django.contrib.auth.decorators import permission_required
 from django.core.exceptions import (
     ObjectDoesNotExist,
     PermissionDenied,
+    SuspiciousOperation,
 )
 from django.db import transaction
 from django.db.models import Q
-from django.shortcuts import redirect, render
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.html import escape
 from django.utils.safestring import mark_safe
@@ -66,6 +67,7 @@ from relate.utils import (
     HTML5DateTimeInput,
     RelateHttpRequest,
     StyledForm,
+    StyledModelForm,
     is_authed,
     string_concat,
 )
@@ -927,7 +929,71 @@ def list_available_exams(request: RelateHttpRequest):
 # }}}
 
 
-# {{{ lockdown context processor
+# {{{ edit exam
+
+class EditExamForm(StyledModelForm):
+    def __init__(self, add_new: bool, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+
+        self.fields["course"].disabled = True
+
+        self.helper.add_input(
+                Submit("submit", _("Create") if add_new else _("Update")))
+
+    class Meta:
+        model = Exam
+        fields = [
+                "course",
+                "description",
+                "flow_id",
+                "active",
+                "listed",
+                "no_exams_before",
+                "no_exams_after",
+                ]
+        widgets = {
+                "no_exams_before": HTML5DateTimeInput(),
+                "no_exams_after": HTML5DateTimeInput(),
+                }
+
+
+@course_view
+def edit_exam(pctx: CoursePageContext, exam_id: int) -> http.HttpResponse:
+    if not pctx.has_permission(PPerm.edit_exam):
+        raise PermissionDenied()
+
+    request = pctx.request
+
+    num_exam_id = int(exam_id)
+    if num_exam_id == -1:
+        exam = Exam(course=pctx.course)
+        add_new = True
+    else:
+        exam = get_object_or_404(Exam, id=num_exam_id)
+        add_new = False
+
+    if exam.course.id != pctx.course.id:
+        raise SuspiciousOperation(
+                "may not edit exam in a different course")
+
+    if request.method == "POST":
+        form = EditExamForm(add_new, request.POST, instance=exam)
+
+        if form.is_valid():
+            form.save()
+            return redirect("relate-edit_exam",
+                    pctx.course.identifier, form.instance.id)
+
+    else:
+        form = EditExamForm(add_new, instance=exam)
+
+    return render_course_page(pctx, "course/generic-course-form.html", {
+        "form_description": _("Create Exam") if add_new else _("Edit Exam"),
+        "form": form
+        })
+
+# }}}
+
 
 def exam_lockdown_context_processor(request):
     return {

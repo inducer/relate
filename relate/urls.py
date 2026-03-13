@@ -543,6 +543,13 @@ urlpatterns = [
         "/$",
         course.exam.batch_issue_exam_tickets,
         name="relate-batch_issue_exam_tickets"),
+    re_path(r"^course"
+        "/" + COURSE_ID_REGEX
+        + "/edit-exam"
+        "/(?P<exam_id>[-0-9]+)"
+        "/$",
+        course.exam.edit_exam,
+        name="relate-edit_exam"),
     path("exam-check-in/",
         course.exam.check_in_for_exam,
         name="relate-check_in_for_exam"),
