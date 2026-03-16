@@ -41,7 +41,6 @@ dependencies = [
     "html5lib~=1.1",
     "pytools>=2024.1.8",
     "colorama>=0.4.6",
-    "cryptography>=3.2.1",
     "social-auth-app-django>=5.4.1,<6",
     "urllib3>=2.3.0,<3",
     "typing_extensions>=4.14.1",
@@ -54,13 +53,16 @@ dependencies = [
 
     "packaging>=25",
 
-    # prevent spurious downgrade by uv? Counters upper bound by pysaml2:
-    # https://github.com/IdentityPython/pysaml2/blob/0252ec96058c87c43f89e05d978e72b6ba2e6978/CHANGELOG.md?plain=1#L10
-    "pyopenssl>=24.2.1",
+    # pysaml2 PR #1021 bumps its floor to >=25.3.0; match that here
+    "pyopenssl>=25.3.0",
 
     # Hard dependency because even the dev server uses relate.wsgi, where this
     # is imported.
     "granian>=2.6.1,<3",
+
+    # Hard dependency to resolve vulnerability
+    # https://github.com/inducer/relate/security/dependabot/130
+    "cryptography>=46.0.5",
 ]
 
 [project.optional-dependencies]
@@ -122,6 +124,13 @@ types = [
 
 [tool.uv.sources]
 django-yamlfield = { git = "https://github.com/bakatrouble/django-yamlfield.git", rev = "c92d0373d12a02d1e52fb09b44010f156111d7ea" }
+# Use fork from PR #1021 until merged: migrates away from removed OpenSSL.crypto.verify,
+# allowing pyopenssl>=25.3.0 and cryptography>=46.0.5
+# https://github.com/IdentityPython/pysaml2/pull/1021
+# Remove once either that or
+# https://github.com/IdentityPython/pysaml2/pull/977
+# is merged.
+pysaml2 = { git = "https://github.com/ascii-dev/pysaml2.git", rev = "26f4ca7d5a156b9a13e0cac0c8e3f61f558a56b0" }
 
 [tool.hatch.build.targets.sdist]
 include = [
