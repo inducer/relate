@@ -1,8 +1,13 @@
 name: xeus-python-kernel
 channels:
-- https://repo.mamba.pm/emscripten-forge
-- https://repo.mamba.pm/conda-forge
+# view these URLs in a browser to see package availability
+  - https://prefix.dev/emscripten-forge-4x
+  - https://prefix.dev/conda-forge
 dependencies:
+- xeus-python
+- traitlets >=5.9
+- typing_extensions >=4.6
+- python >=3.13
 - numpy
 - scipy
 - matplotlib
