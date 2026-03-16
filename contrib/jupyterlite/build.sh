@@ -8,13 +8,13 @@ if test "$1" == "--exam"; then
     EXAM=1
 fi
 
-MATHJAX_VER=2.7.7
-
 ./cleanup.sh
 
 EXTRA_BUILD_FLAGS=()
 
 if false; then
+    # Pyodide is not a good option because it unconditionally tries to access
+    # the (global) Python package index.
     python3 -m venv env
 
     source env/bin/activate
@@ -38,9 +38,9 @@ mkdir -p pack
 if [[ "$EXAM" = 0 ]]; then
     mkdir -p files/{cs450,cs555,cs598apk}-kloeckner
 
-    git clone https://github.com/inducer/numerics-notes pack/numerics-notes
-    git clone https://github.com/inducer/numpde-notes pack/numpde-notes
-    git clone https://github.com/inducer/fast-alg-ie-notes pack/fast-alg-ie-notes
+    git clone --depth 1 https://github.com/inducer/numerics-notes pack/numerics-notes
+    git clone --depth 1 https://github.com/inducer/numpde-notes pack/numpde-notes
+    git clone --depth 1 https://github.com/inducer/fast-alg-ie-notes pack/fast-alg-ie-notes
 
     cp -R pack/numerics-notes/demos files/cs450-kloeckner/demos
     cp -R pack/numerics-notes/cleared-demos files/cs450-kloeckner/cleared
@@ -50,14 +50,7 @@ if [[ "$EXAM" = 0 ]]; then
     cp -R pack/fast-alg-ie-notes/cleared-demos files/cs598apk-kloeckner/cleared
 fi
 
-curl -L "https://github.com/mathjax/MathJax/archive/$MATHJAX_VER.zip" \
-        -o "pack/mathjax-$MATHJAX_VER.zip"
-
-(cd pack; unzip -q mathjax-$MATHJAX_VER.zip)
-
 jupyter lite init
-jupyter lite build \
-        --mathjax-dir "pack/MathJax-$MATHJAX_VER" \
-        "${EXTRA_BUILD_FLAGS[@]}"
+jupyter lite build "${EXTRA_BUILD_FLAGS[@]}"
 
 # vim: sw=4
