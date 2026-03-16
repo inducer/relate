@@ -41,11 +41,11 @@ from course import (
 )
 from course.constants import FlowPermission as FPerm
 from course.content import (
-    FlowSessionAccessMode,
     FlowSessionAccessRuleDesc,
     FlowSessionGradingMode,
     FlowSessionStartMode,
     FlowSessionStartRuleDesc,
+    start_rule_ta,
 )
 from course.datespec import Datespec, parse_date_spec
 from tests import factories
@@ -613,7 +613,7 @@ class GetFlowRulesTest(SingleCourseTestMixin, TestCase):
         )
 
         result = utils.get_flow_rules(
-            flow_desc, FlowSessionStartRuleDesc,
+            flow_desc.rules.start, start_rule_ta,
             self.student_participation,
             self.flow_id,
             now(),
@@ -648,7 +648,7 @@ class GetFlowRulesTest(SingleCourseTestMixin, TestCase):
 
         # consider_exceptions not specified
         result = utils.get_flow_rules(
-            flow_desc, FlowSessionStartRuleDesc,
+            flow_desc.rules.start, start_rule_ta,
             self.student_participation,
             self.flow_id,
             now(),
@@ -688,7 +688,7 @@ class GetFlowRulesTest(SingleCourseTestMixin, TestCase):
         )
 
         result = utils.get_flow_rules(
-            flow_desc, FlowSessionStartRuleDesc,
+            flow_desc.rules.start, start_rule_ta,
             self.student_participation,
             self.flow_id,
             now(),
@@ -740,7 +740,7 @@ class GetFlowRulesTest(SingleCourseTestMixin, TestCase):
         now_datetime = now() - timedelta(days=3)
 
         result = utils.get_flow_rules(
-            flow_desc, FlowSessionStartRuleDesc,
+            flow_desc.rules.start, start_rule_ta,
             self.student_participation,
             self.flow_id,
             now_datetime,
@@ -758,7 +758,7 @@ class GetFlowRulesTest(SingleCourseTestMixin, TestCase):
         now_datetime = now()
 
         result = utils.get_flow_rules(
-            flow_desc, FlowSessionStartRuleDesc,
+            flow_desc.rules.start, start_rule_ta,
             self.student_participation,
             self.flow_id,
             now_datetime,
@@ -776,7 +776,7 @@ class GetFlowRulesTest(SingleCourseTestMixin, TestCase):
         now_datetime = now() + timedelta(days=5)
 
         result = utils.get_flow_rules(
-            flow_desc, FlowSessionStartRuleDesc,
+            flow_desc.rules.start, start_rule_ta,
             self.student_participation,
             self.flow_id,
             now_datetime,
@@ -889,7 +889,7 @@ class GetSessionStartRuleTest(GetSessionRuleMixin, SingleCourseTestMixin, TestCa
     rule_klass = FlowSessionStartMode
 
     fallback_rule = FlowSessionStartMode(
-            may_list_existing_sessions=False,
+            session_list_ids=[],
             may_start_new_session=False)
 
     @property
@@ -1090,9 +1090,9 @@ class GetSessionStartRuleTest(GetSessionRuleMixin, SingleCourseTestMixin, TestCa
 class GetSessionAccessRuleTest(GetSessionRuleMixin, SingleCourseTestMixin, TestCase):
     # test utils.get_session_access_rule
     call_func = utils.get_session_access_mode
-    rule_klass = FlowSessionAccessMode
+    rule_klass = utils.FlowSessionAccessMode
 
-    fallback_rule = FlowSessionAccessMode(permissions=frozenset())
+    # fallback_rule = utils.FlowSessionAccessMode(permissions=frozenset())
     default_permissions = [FPerm.view]
 
     @property

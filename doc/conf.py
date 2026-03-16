@@ -50,6 +50,8 @@ nitpick_ignore_regex = [
     ("py:class", "FileSystemFakeRepo"),
     ("py:class", "pydantic.functional_serializers.SerializeAsAny"),
     ("py:class", "Ge|Le|Gt|Lt|AllowInfNan"),
+    # deprecated, undocumented
+    ("py:class", "course.page.base.PageAccessRules"),
 ]
 
 copyright = "2014-25, Andreas Kloeckner"

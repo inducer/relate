@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from course.datespec import Datespec
-
 
 __copyright__ = "Copyright (C) 2018 Dong Zhuang"
 
@@ -48,6 +46,7 @@ from course.content import (
     FlowSessionStartMode,
     flow_desc_ta,
 )
+from course.datespec import Datespec
 from course.repo import EmptyRepo
 from course.utils import FlowSessionGradingModeWithFlowLevelInfo
 from course.validation import ValidationContext
@@ -282,7 +281,7 @@ class StartFlowTest(CoursesTestMixinBase, unittest.TestCase):
 
         session_start_rule = FlowSessionStartMode(
             may_start_new_session=True,
-            may_list_existing_sessions=True,
+            session_list_ids=[],
             tag_session="my_tag",
             default_expiration_mode=constants.FlowSessionExpirationMode.roll_over)
 
@@ -330,7 +329,7 @@ class StartFlowTest(CoursesTestMixinBase, unittest.TestCase):
         # no exp_mode
         session_start_rule = FlowSessionStartMode(
             may_start_new_session=True,
-            may_list_existing_sessions=True,
+            session_list_ids=[],
             )
 
         # flow_desc no rules
@@ -373,7 +372,7 @@ class StartFlowTest(CoursesTestMixinBase, unittest.TestCase):
         # no exp_mode
         session_start_rule = FlowSessionStartMode(
             may_start_new_session=True,
-            may_list_existing_sessions=True,
+            session_list_ids=[],
             )
 
         vctx = ValidationContext(EmptyRepo(), b"norev")
@@ -1857,7 +1856,7 @@ class ExpireFlowSessionTest(SingleCourseTestMixin, TestCase):
             FlowSessionStartMode(
                 tag_session="roll_over_tag",
                 may_start_new_session=False,
-                may_list_existing_sessions=False,
+                session_list_ids=[],
             ))
 
         grading_rule = FlowSessionGradingModeWithFlowLevelInfo(
@@ -2966,14 +2965,14 @@ class LockDownIfNeededTest(unittest.TestCase):
 
     def test_no_lock_down_as_exam_session_flow_permission(self):
         flow_permissions = ["other_flow_permission"]
-        flow.lock_down_if_needed(self.request, flow_permissions, self.flow_session)
+        flow.lock_session_to_flow(self.request, flow_permissions, self.flow_session)
 
         self.assertIsNone(self.request.session.get(SESSION_LOCKED_TO_FLOW_PK))
 
     def test_has_lock_down_as_exam_session_flow_permission(self):
         flow_permissions = [FPerm.lock_down_as_exam_session,
                             "other_flow_permission"]
-        flow.lock_down_if_needed(self.request, flow_permissions, self.flow_session)
+        flow.lock_session_to_flow(self.request, flow_permissions, self.flow_session)
 
         self.assertEqual(
             self.request.session.get(SESSION_LOCKED_TO_FLOW_PK),
@@ -2997,8 +2996,16 @@ class ViewStartFlowTest(SingleCourseTestMixin, TestCase):
         self.mock_flow_context = fake_flow_context.start()
         self.fctx = mock.MagicMock()
         self.fctx.flow_id = self.flow_id
-        self.fctx.flow_desc = {
-            "title": "test page title", "description_html": "foo bar"}
+        vctx = ValidationContext(EmptyRepo(), b"norev")
+        self.fctx.flow_desc = flow_desc_ta.validate_python({
+                "title": "",
+                "description": "",
+                "pages": [{"type": "Page", "id": "mypage", "content": "# Yo"}],
+                "rules": {
+                    "grade_identifier": None,
+                    "grade_aggregation_strategy": GAStrategy.use_earliest,
+                    },
+                }, context=vctx)
         self.mock_flow_context.return_value = self.fctx
         self.addCleanup(fake_flow_context.stop)
 
@@ -3066,14 +3073,21 @@ class ViewStartFlowTest(SingleCourseTestMixin, TestCase):
             self.assertEqual(len(past_sessions_and_properties), 0)
 
     def test_get_may_list_existing_sessions(self):
-        session_start_rule = self.get_hacked_session_start_rule()
-
         # create 2 session with different access_rule and grading_rule
         fs1 = self.get_test_flow_session(in_progress=False,
                                          start_time=now() - timedelta(days=3))
         fs2 = self.get_test_flow_session(in_progress=True,
                                          start_time=now() - timedelta(days=2),
                                          completion_time=None)
+
+        session_start_rule = self.get_hacked_session_start_rule(
+            session_list_ids=[
+                sess.id for sess in models.FlowSession.objects.filter(
+                    participation=self.student_participation,
+                    flow_id=self.flow_id,
+                ).order_by("start_time")
+            ]
+        )
 
         access_rule_for_session1 = self.get_hacked_session_access_rule(
             permissions=[FPerm.cannot_see_flow_result]
@@ -3135,7 +3149,6 @@ class ViewStartFlowTest(SingleCourseTestMixin, TestCase):
     def test_get_not_may_list_existing_sessions(self):
         session_start_rule = self.get_hacked_session_start_rule(
             may_start_new_session=False,
-            may_list_existing_sessions=False,
         )
 
         # create 2 session with different access_rule and grading_rule
@@ -3182,8 +3195,16 @@ class PostStartFlowTest(SingleCourseTestMixin, TestCase):
         self.mock_flow_context = fake_flow_context.start()
         self.fctx = mock.MagicMock()
         self.fctx.flow_id = self.flow_id
-        self.fctx.flow_desc = {
-            "title": "test page title", "description_html": "foo bar"}
+        vctx = ValidationContext(EmptyRepo(), b"norev")
+        self.fctx.flow_desc = flow_desc_ta.validate_python({
+                "title": "",
+                "description": "",
+                "pages": [{"type": "Page", "id": "mypage", "content": "# Yo"}],
+                "rules": {
+                    "grade_identifier": None,
+                    "grade_aggregation_strategy": GAStrategy.use_earliest,
+                    },
+                }, context=vctx)
         self.mock_flow_context.return_value = self.fctx
         self.addCleanup(fake_flow_context.stop)
 
@@ -3433,40 +3454,6 @@ class GetAndCheckFlowSessionTest(SingleCourseTestMixin, TestCase):
             student_session)
 
 
-class WillReceiveFeedbackTest(unittest.TestCase):
-    # test flow.will_receive_feedback
-    def test_false(self):
-        combinations = [(frozenset([fp]), False) for fp in
-                        get_flow_permissions_list(
-                            excluded=[FPerm.see_correctness,
-                                      FPerm.see_answer_after_submission])]
-        combinations.append(([], False))
-
-        for permissions, will_receive in combinations:
-            with self.subTest(permissions=permissions):
-                self.assertEqual(
-                    flow.will_receive_feedback(permissions),
-                    will_receive)
-
-    def test_true(self):
-        combinations = [
-            (frozenset([fp, FPerm.see_correctness]), True)
-            for fp in get_flow_permissions_list(
-                excluded=[FPerm.see_correctness])]
-
-        combinations2 = [
-            (frozenset([fp, FPerm.see_answer_after_submission]), True)
-            for fp in get_flow_permissions_list(
-                excluded=[FPerm.see_answer_after_submission])]
-        combinations.extend(combinations2)
-
-        for permissions, will_receive in combinations:
-            with self.subTest(permissions=permissions):
-                self.assertEqual(
-                    flow.will_receive_feedback(permissions),
-                    will_receive)
-
-
 @pytest.mark.django_db
 class MaySendEmailAboutFlowPageTest(TestCase):
     # test flow.may_send_email_about_flow_page
@@ -3564,7 +3551,7 @@ class GetPageBehaviorTest(unittest.TestCase):
                         permissions=permissions):
                     behavior = flow.get_page_behavior(
                         self.page,
-                        permissions=permissions,
+                        page_access_mode=permissions,
                         session_in_progress=session_in_progress,
                         answer_was_graded=answer_was_graded,
                         generates_grade=generate_grade,
@@ -3592,7 +3579,7 @@ class GetPageBehaviorTest(unittest.TestCase):
                 with self.subTest(permissions=permissions):
                     behavior = flow.get_page_behavior(
                         self.page,
-                        permissions=permissions,
+                        page_access_mode=permissions,
                         session_in_progress=session_in_progress,
                         answer_was_graded=True,
                         generates_grade=generate_grade,
@@ -3619,7 +3606,7 @@ class GetPageBehaviorTest(unittest.TestCase):
                 with self.subTest(permissions=permissions):
                     behavior = flow.get_page_behavior(
                         self.page,
-                        permissions=permissions,
+                        page_access_mode=permissions,
                         session_in_progress=session_in_progress,
                         answer_was_graded=False,
                         generates_grade=generate_grade,
@@ -3654,7 +3641,7 @@ class GetPageBehaviorTest(unittest.TestCase):
                 with self.subTest(permissions=permissions):
                     behavior = flow.get_page_behavior(
                         self.page,
-                        permissions=permissions,
+                        page_access_mode=permissions,
                         session_in_progress=session_in_progress,
                         answer_was_graded=answer_was_graded,
                         generates_grade=generate_grade,
@@ -3685,7 +3672,7 @@ class GetPageBehaviorTest(unittest.TestCase):
                 with self.subTest(permissions=permissions):
                     behavior = flow.get_page_behavior(
                         self.page,
-                        permissions=permissions,
+                        page_access_mode=permissions,
                         session_in_progress=session_in_progress,
                         answer_was_graded=False,
                         generates_grade=generate_grade,
@@ -3731,7 +3718,7 @@ class GetPageBehaviorTest(unittest.TestCase):
                 with self.subTest(permissions=permissions):
                     behavior = flow.get_page_behavior(
                         self.page,
-                        permissions=permissions,
+                        page_access_mode=permissions,
                         session_in_progress=False,
                         answer_was_graded=True,
                         generates_grade=generate_grade,
@@ -3777,7 +3764,7 @@ class GetPageBehaviorTest(unittest.TestCase):
                 with self.subTest(permissions=permissions):
                     behavior = flow.get_page_behavior(
                         self.page,
-                        permissions=permissions,
+                        page_access_mode=permissions,
                         session_in_progress=True,
                         answer_was_graded=True,
                         generates_grade=generate_grade,
@@ -3804,7 +3791,7 @@ class GetPageBehaviorTest(unittest.TestCase):
                 with self.subTest(permissions=permissions):
                     behavior = flow.get_page_behavior(
                         self.page,
-                        permissions=permissions,
+                        page_access_mode=permissions,
                         session_in_progress=session_in_progress,
                         answer_was_graded=answer_was_graded,
                         generates_grade=generates_grade,
@@ -3830,7 +3817,7 @@ class GetPageBehaviorTest(unittest.TestCase):
                 with self.subTest(permissions=permissions):
                     behavior = flow.get_page_behavior(
                         self.page,
-                        permissions=permissions,
+                        page_access_mode=permissions,
                         session_in_progress=False,
                         answer_was_graded=answer_was_graded,
                         generates_grade=generates_grade,
@@ -3857,7 +3844,7 @@ class GetPageBehaviorTest(unittest.TestCase):
                 with self.subTest(permissions=permissions):
                     behavior = flow.get_page_behavior(
                         self.page,
-                        permissions=permissions,
+                        page_access_mode=permissions,
                         session_in_progress=session_in_progress,
                         answer_was_graded=answer_was_graded,
                         generates_grade=generates_grade,
@@ -3882,7 +3869,7 @@ class GetPageBehaviorTest(unittest.TestCase):
                 with self.subTest(permissions=permissions):
                     behavior = flow.get_page_behavior(
                         self.page,
-                        permissions=permissions,
+                        page_access_mode=permissions,
                         session_in_progress=session_in_progress,
                         answer_was_graded=True,
                         generates_grade=generates_grade,
@@ -3906,7 +3893,7 @@ class GetPageBehaviorTest(unittest.TestCase):
                 with self.subTest(permissions=permissions):
                     behavior = flow.get_page_behavior(
                         self.page,
-                        permissions=permissions,
+                        page_access_mode=permissions,
                         session_in_progress=True,
                         answer_was_graded=False,
                         generates_grade=True,
@@ -3957,7 +3944,7 @@ class GetPageBehaviorTest(unittest.TestCase):
                             is_unenrolled_session=conf.is_unenrolled_session):
                         behavior = flow.get_page_behavior(
                             self.page,
-                            permissions=permissions,
+                            page_access_mode=permissions,
                             session_in_progress=True,
                             answer_was_graded=conf.answer_was_graded,
                             generates_grade=conf.generates_grade,
