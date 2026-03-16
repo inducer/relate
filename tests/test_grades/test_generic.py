@@ -394,7 +394,7 @@ class GradePermissionsTests(SingleCoursePageTestMixin, TestCase):
                     self.fail(
                         f"Reversal of url named '{urlname}' failed with "
                         "NoReverseMatch")
-                with self.subTest(user=user, urlname=urlname, method="GET"):
+                with self.subTest(user=str(user), urlname=urlname, method="GET"):
                     resp = self.client.get(url)
                     self.assertEqual(
                         resp.status_code,
@@ -405,7 +405,7 @@ class GradePermissionsTests(SingleCoursePageTestMixin, TestCase):
                                 status_codes.get("default_status_code")
                             )))
 
-                with self.subTest(user=user, urlname=urlname, method="POST"):
+                with self.subTest(user=str(user), urlname=urlname, method="POST"):
                     postdata = {}
                     resp = self.client.post(url, data=postdata)
                     self.assertEqual(

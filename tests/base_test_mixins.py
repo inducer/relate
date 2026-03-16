@@ -35,6 +35,7 @@ from functools import partial
 from pathlib import Path
 from types import MethodType
 
+import pytest
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ImproperlyConfigured
@@ -2533,6 +2534,13 @@ class SubprocessRunpyContainerMixin:
     This mixin is used to fake a runpy container, only needed when
     the TestCase include test(s) for code questions
     """
+
+    def __init_subclass__(cls, **kwargs: object) -> None:
+        super().__init_subclass__(**kwargs)
+        # All subclasses must run in the same pytest-xdist worker to avoid
+        # conflicts on the fixed port used by the faked runpy container.
+        pytest.mark.xdist_group("runpy")(cls)
+
     @classmethod
     def setUpClass(cls):
         super().setUpClass()

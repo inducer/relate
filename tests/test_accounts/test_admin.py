@@ -179,7 +179,7 @@ class AccountsAdminTest(AdminTestMixin, TestCase):
                        "see_superuser_only_fields": False}]
 
         for td in test_dicts:
-            with self.subTest(user=td["user"]):
+            with self.subTest(user=str(td["user"])):
                 with self.temporarily_switch_to_user(td["user"]):
                     resp = self.client.get(change_url)
                     self.assertEqual(resp.status_code, 200)

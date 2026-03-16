@@ -79,7 +79,7 @@ class CourseAdminTestMixin(AdminTestMixin):
         modeladmin = model_admin_class(model_class, site)
 
         for user in [self.superuser, self.instructor1, self.instructor2]:
-            with self.subTest(user=user):
+            with self.subTest(user=str(user)):
                 request = self.rf.get(
                     self.get_admin_course_change_list_view_url(
                         model_class.__name__), {})
@@ -256,7 +256,7 @@ class CourseAdminSessionRelatedTest(CourseAdminSessionRelatedMixin, TestCase):
         modeladmin = admin.FlowPageVisitAdmin(models.FlowPageVisit, site)
 
         for user in [self.superuser, self.instructor1, self.instructor2]:
-            with self.subTest(user=user):
+            with self.subTest(user=str(user)):
                 request = self.rf.get(
                     self.get_admin_course_change_list_view_url("FlowPageVisit"), {})
                 request.user = user

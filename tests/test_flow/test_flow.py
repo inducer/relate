@@ -3443,7 +3443,7 @@ class WillReceiveFeedbackTest(unittest.TestCase):
         combinations.append(([], False))
 
         for permissions, will_receive in combinations:
-            with self.subTest(permissions=permissions):
+            with self.subTest(permissions=sorted(str(p) for p in permissions)):
                 self.assertEqual(
                     flow.will_receive_feedback(permissions),
                     will_receive)
@@ -3461,7 +3461,7 @@ class WillReceiveFeedbackTest(unittest.TestCase):
         combinations.extend(combinations2)
 
         for permissions, will_receive in combinations:
-            with self.subTest(permissions=permissions):
+            with self.subTest(permissions=sorted(str(p) for p in permissions)):
                 self.assertEqual(
                     flow.will_receive_feedback(permissions),
                     will_receive)
@@ -3493,7 +3493,8 @@ class MaySendEmailAboutFlowPageTest(TestCase):
 
         for session in [self.fs, self.fs_no_user, self.fs_no_participation_no_user]:
             for permissions, may_send in combinations:
-                with self.subTest(session=session, permissions=permissions):
+                with self.subTest(session=session.pk,
+                        permissions=sorted(str(p) for p in permissions)):
                     self.assertEqual(
                         flow.may_send_email_about_flow_page(session, permissions),
                         may_send)
@@ -3506,7 +3507,8 @@ class MaySendEmailAboutFlowPageTest(TestCase):
 
         for session in [self.fs_no_user, self.fs_no_participation_no_user]:
             for permissions, may_send in combinations:
-                with self.subTest(session=session, permissions=permissions):
+                with self.subTest(session=session.pk,
+                        permissions=sorted(str(p) for p in permissions)):
                     self.assertEqual(
                         flow.may_send_email_about_flow_page(session, permissions),
                         may_send)
@@ -3519,7 +3521,8 @@ class MaySendEmailAboutFlowPageTest(TestCase):
         combinations.append((frozenset([FPerm.send_email_about_flow_page]), True))
 
         for permissions, may_send in combinations:
-            with self.subTest(session=self.fs, permissions=permissions):
+            with self.subTest(session=self.fs.pk,
+                    permissions=sorted(str(p) for p in permissions)):
                 self.assertEqual(
                     flow.may_send_email_about_flow_page(self.fs, permissions),
                     may_send)
@@ -3561,7 +3564,7 @@ class GetPageBehaviorTest(unittest.TestCase):
              is_unenrooled_session, viewing_prior_version) = p
             for permissions, show in combinations:
                 with self.subTest(
-                        permissions=permissions):
+                        permissions=sorted(str(p) for p in permissions)):
                     behavior = flow.get_page_behavior(
                         self.page,
                         permissions=permissions,
@@ -3589,7 +3592,7 @@ class GetPageBehaviorTest(unittest.TestCase):
              is_unenrooled_session, viewing_prior_version) = p
 
             for permissions, show in combinations:
-                with self.subTest(permissions=permissions):
+                with self.subTest(permissions=sorted(str(p) for p in permissions)):
                     behavior = flow.get_page_behavior(
                         self.page,
                         permissions=permissions,
@@ -3616,7 +3619,7 @@ class GetPageBehaviorTest(unittest.TestCase):
              is_unenrooled_session, viewing_prior_version) = p
 
             for permissions, show in combinations:
-                with self.subTest(permissions=permissions):
+                with self.subTest(permissions=sorted(str(p) for p in permissions)):
                     behavior = flow.get_page_behavior(
                         self.page,
                         permissions=permissions,
@@ -3651,7 +3654,7 @@ class GetPageBehaviorTest(unittest.TestCase):
              is_unenrooled_session, viewing_prior_version) = p
 
             for permissions, show in combinations:
-                with self.subTest(permissions=permissions):
+                with self.subTest(permissions=sorted(str(p) for p in permissions)):
                     behavior = flow.get_page_behavior(
                         self.page,
                         permissions=permissions,
@@ -3682,7 +3685,7 @@ class GetPageBehaviorTest(unittest.TestCase):
              is_unenrooled_session, viewing_prior_version) = p
 
             for permissions, show in combinations:
-                with self.subTest(permissions=permissions):
+                with self.subTest(permissions=sorted(str(p) for p in permissions)):
                     behavior = flow.get_page_behavior(
                         self.page,
                         permissions=permissions,
@@ -3728,7 +3731,7 @@ class GetPageBehaviorTest(unittest.TestCase):
             (generate_grade, is_unenrooled_session, viewing_prior_version) = p
 
             for permissions, show in combinations:
-                with self.subTest(permissions=permissions):
+                with self.subTest(permissions=sorted(str(p) for p in permissions)):
                     behavior = flow.get_page_behavior(
                         self.page,
                         permissions=permissions,
@@ -3774,7 +3777,7 @@ class GetPageBehaviorTest(unittest.TestCase):
             (generate_grade, is_unenrooled_session, viewing_prior_version) = p
 
             for permissions, show in combinations:
-                with self.subTest(permissions=permissions):
+                with self.subTest(permissions=sorted(str(p) for p in permissions)):
                     behavior = flow.get_page_behavior(
                         self.page,
                         permissions=permissions,
@@ -3801,7 +3804,7 @@ class GetPageBehaviorTest(unittest.TestCase):
              is_unenrooled_session) = p
 
             for permissions, may_change in combinations:
-                with self.subTest(permissions=permissions):
+                with self.subTest(permissions=sorted(str(p) for p in permissions)):
                     behavior = flow.get_page_behavior(
                         self.page,
                         permissions=permissions,
@@ -3827,7 +3830,7 @@ class GetPageBehaviorTest(unittest.TestCase):
              is_unenrooled_session) = p
 
             for permissions, may_change in combinations:
-                with self.subTest(permissions=permissions):
+                with self.subTest(permissions=sorted(str(p) for p in permissions)):
                     behavior = flow.get_page_behavior(
                         self.page,
                         permissions=permissions,
@@ -3854,7 +3857,7 @@ class GetPageBehaviorTest(unittest.TestCase):
              is_unenrooled_session) = p
 
             for permissions, may_change in combinations:
-                with self.subTest(permissions=permissions):
+                with self.subTest(permissions=sorted(str(p) for p in permissions)):
                     behavior = flow.get_page_behavior(
                         self.page,
                         permissions=permissions,
@@ -3879,7 +3882,7 @@ class GetPageBehaviorTest(unittest.TestCase):
              session_in_progress, generates_grade, is_unenrooled_session) = p
 
             for permissions, may_change in combinations:
-                with self.subTest(permissions=permissions):
+                with self.subTest(permissions=sorted(str(p) for p in permissions)):
                     behavior = flow.get_page_behavior(
                         self.page,
                         permissions=permissions,
@@ -3903,7 +3906,7 @@ class GetPageBehaviorTest(unittest.TestCase):
             (self.page.expects_answer.return_value) = p
 
             for permissions, may_change in combinations:
-                with self.subTest(permissions=permissions):
+                with self.subTest(permissions=sorted(str(p) for p in permissions)):
                     behavior = flow.get_page_behavior(
                         self.page,
                         permissions=permissions,
@@ -3951,7 +3954,7 @@ class GetPageBehaviorTest(unittest.TestCase):
 
                 for permissions, may_change in combinations:
                     with self.subTest(
-                            permissions=permissions,
+                            permissions=sorted(str(p) for p in permissions),
                             answer_was_graded=conf.answer_was_graded,
                             generates_grade=conf.generates_grade,
                             is_unenrolled_session=conf.is_unenrolled_session):
@@ -4028,7 +4031,7 @@ class AddButtonsToFormTest(unittest.TestCase):
         form = StyledForm()
         for permissions, _show in combinations:
             with self.subTest(
-                    permissions=permissions):
+                    permissions=sorted(str(p) for p in permissions)):
                 flow.add_buttons_to_form(
                     form, self.fpctx, self.flow_session, permissions)
 
@@ -4049,7 +4052,7 @@ class AddButtonsToFormTest(unittest.TestCase):
         form = StyledForm()
         for permissions, _show in combinations:
             with self.subTest(
-                    permissions=permissions):
+                    permissions=sorted(str(p) for p in permissions)):
                 flow.add_buttons_to_form(
                     form, self.fpctx, self.flow_session, permissions)
 
@@ -4072,7 +4075,7 @@ class AddButtonsToFormTest(unittest.TestCase):
         form = StyledForm()
         for permissions, _show in combinations:
             with self.subTest(
-                    permissions=permissions):
+                    permissions=sorted(str(p) for p in permissions)):
                 flow.add_buttons_to_form(
                     form, self.fpctx, self.flow_session, permissions)
 
@@ -4718,7 +4721,7 @@ class SendEmailAboutFlowPageTest(HackRepoMixin,
             mail.outbox[0].bcc, [self.student_participation.user.email])
 
         self.assertIn(
-            self.student_participation.user.get_email_appellation(),
+            self.student_participation.user.get_full_name(),
             mail.outbox[0].body)
         self.assertNotIn(
             self.student_participation.user.get_masked_profile(),
@@ -4745,7 +4748,7 @@ class SendEmailAboutFlowPageTest(HackRepoMixin,
         self.assertEqual(len(mail.outbox), 1)
 
         self.assertNotIn(
-            self.student_participation.user.get_email_appellation(),
+            self.student_participation.user.get_full_name(),
             mail.outbox[0].body)
         self.assertIn(
             self.student_participation.user.get_masked_profile(),

@@ -282,7 +282,7 @@ class EnrollViewTest(EnrollmentTestMixin, TestCase):
     def test_user_not_active(self):
         for status in dict(constants.USER_STATUS_CHOICES):
             if status != UStatus.active:
-                with self.subTest(user_status=status):
+                with self.subTest(user_status=str(status)):
                     user = factories.UserFactory(status=status)
                     with self.temporarily_switch_to_user(user):
                         resp = self.client.post(self.enroll_request_url)

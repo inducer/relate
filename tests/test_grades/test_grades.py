@@ -299,7 +299,7 @@ class ViewParticipantGradesTest(GradesTestMixin, TestCase):
 
         user = self.student_participation.user
         with self.temporarily_switch_to_user(user):
-            with self.subTest(user=user):
+            with self.subTest(user=str(user)):
                 with mock.patch(
                         "course.models.GradeStateMachine.consume") as mock_consume:
                     resp = self.get_my_grades_view()
@@ -335,7 +335,7 @@ class ViewParticipantGradesTest(GradesTestMixin, TestCase):
                 self.assertContains(resp, "(not released)", count=2)  # for hidden_gopp  # noqa
 
         user = self.ta_participation.user
-        with self.temporarily_switch_to_user(user), self.subTest(user=user):
+        with self.temporarily_switch_to_user(user), self.subTest(user=str(user)):
             with mock.patch(
                     "course.models.GradeStateMachine.consume") as mock_consume:
                 resp = self.get_view_participant_grades(
@@ -743,7 +743,7 @@ class ViewGradesByOpportunityTest(GradesTestMixin, TestCase):
     def test_batch_op_no_permission(self):
         with self.temporarily_switch_to_user(self.ta_participation.user):
             for op in ["expire", "end", "regrade", "recalculate"]:
-                with self.subTest(user=self.ta_participation.user, op=op):
+                with self.subTest(user=str(self.ta_participation.user), op=op):
                     resp = self.post_gradebook_by_opp_view(
                         self.gopp_id,
                         post_data={"rule_tag": grades.RULE_TAG_NONE_STRING,
@@ -783,7 +783,7 @@ class ViewGradesByOpportunityTest(GradesTestMixin, TestCase):
                 pp.save()
                 op = not_allowed[1]
 
-                with self.subTest(user=self.ta_participation.user, op=op):
+                with self.subTest(user=str(self.ta_participation.user), op=op):
                     resp = self.post_gradebook_by_opp_view(
                         self.gopp_id,
                         post_data={"rule_tag": grades.RULE_TAG_NONE_STRING,
@@ -808,7 +808,7 @@ class ViewGradesByOpportunityTest(GradesTestMixin, TestCase):
     def test_batch_op(self):
         for op in ["expire", "end", "regrade", "recalculate"]:
             for rule_tag in [fake_access_rules_tag, grades.RULE_TAG_NONE_STRING]:
-                with self.subTest(user=self.instructor_participation.user, op=op):
+                with self.subTest(user=str(self.instructor_participation.user), op=op):
                     resp = self.post_gradebook_by_opp_view(
                         self.gopp_id,
                         post_data={"rule_tag": rule_tag,
