@@ -605,6 +605,7 @@ class ViewCalendarTest(SingleCourseTestMixin, HackRepoMixin, TestCase):
         self.mock_get_now_or_fake_time.return_value = now()
         self.addCleanup(fake_get_now_or_fake_time.stop)
 
+        factories.EventFactory.reset_sequence()
         self.addCleanup(factories.EventFactory.reset_sequence)
 
     def get_course_calendar_view(self, course_identifier=None):

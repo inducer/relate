@@ -793,7 +793,7 @@ class ExamFacilityMiddlewareTest(SingleCoursePageTestMixin,
             (self.superuser, 200),)
 
         for user, status_code in tup:
-            with self.subTest(user=user):
+            with self.subTest(user=str(user)):
                 with self.temporarily_switch_to_user(user):
                     resp = self.client.get(reverse("relate-issue_exam_ticket"))
                     self.assertEqual(resp.status_code, status_code)

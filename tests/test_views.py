@@ -710,7 +710,7 @@ class GetRepoFileTest(GetRepoFileTestMixin, TestCase):
                (self.ta_participation.user, 404),
                (self.instructor_participation.user, 404))
         for user, status_code in tup:
-            with self.subTest(user=user):
+            with self.subTest(user=str(user)):
                 with self.temporarily_switch_to_user(user):
                     resp = self.get_repo_file_view(repo_file)
                     self.assertEqual(resp.status_code, status_code)
@@ -725,7 +725,7 @@ class GetRepoFileTest(GetRepoFileTestMixin, TestCase):
                (self.ta_participation.user, 403),
                (self.instructor_participation.user, 403))
         for user, status_code in tup:
-            with self.subTest(user=user):
+            with self.subTest(user=str(user)):
                 with self.temporarily_switch_to_user(user):
                     resp = self.get_repo_file_view(repo_file, commit_sha="123abc")
                     self.assertEqual(resp.status_code, status_code)
@@ -769,7 +769,7 @@ class GetRepoFileTestMocked(GetRepoFileTestMixin, HackRepoMixin, TestCase):
                (self.ta_participation.user, 200),
                (self.instructor_participation.user, 200))
         for user, status_code in tup:
-            with self.subTest(user=user):
+            with self.subTest(user=str(user)):
                 with self.temporarily_switch_to_user(user):
                     resp = self.get_repo_file_view(repo_file)
                     self.assertEqual(resp.status_code, status_code)
@@ -784,7 +784,7 @@ class GetRepoFileTestMocked(GetRepoFileTestMixin, HackRepoMixin, TestCase):
                (self.ta_participation.user, 200),
                (self.instructor_participation.user, 200))
         for user, status_code in tup:
-            with self.subTest(user=user):
+            with self.subTest(user=str(user)):
                 with self.temporarily_switch_to_user(user):
                     resp = self.get_repo_file_view(repo_file)
                     self.assertEqual(resp.status_code, status_code)
@@ -806,7 +806,7 @@ class GetRepoFileTestMocked(GetRepoFileTestMixin, HackRepoMixin, TestCase):
 
         for user in users:
             request.user = user
-            with self.subTest(user=user):
+            with self.subTest(user=str(user)):
                 response = views.get_repo_file(
                     request, self.course.identifier,
                     self.course.active_git_commit_sha, repo_file)
@@ -1794,7 +1794,7 @@ class GrantExceptionStage3Test(GrantExceptionTestMixin, TestCase):
         comb = comb[:15]
 
         for permissions in comb:
-            with self.subTest(permissions=permissions):
+            with self.subTest(permissions=sorted(str(p) for p in permissions)):
                 kwargs = dict.fromkeys(permissions, True)
                 resp = self.post_grant_exception_stage_3_view(
                     data=self.get_default_post_data(

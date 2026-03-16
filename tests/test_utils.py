@@ -210,6 +210,11 @@ class LanguageOverrideTest(SingleCoursePageTestMixin,
     def setUp(self):
         super().setUp()
         self.client.force_login(self.instructor_participation.user)
+        # Ensure a known language state at the start of each test, since
+        # translation state is global within the worker process and other
+        # tests may have left it in a different state.
+        translation.activate(settings.LANGUAGE_CODE)
+        self.addCleanup(translation.deactivate)
 
     @override_settings(RELATE_ADMIN_EMAIL_LOCALE="de", LANGUAGE_CODE="ko")
     def test_language_override_no_course_force_lang(self):
