@@ -316,6 +316,7 @@ reportAny = "none"
 
 exclude = [
     ".venv",
+    "contrib/jupyterlite",
     "bulk-storage",
     "git-roots",
     "node_modules",
