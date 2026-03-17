@@ -2537,9 +2537,18 @@ class SubprocessRunpyContainerMixin:
 
     def __init_subclass__(cls, **kwargs: object) -> None:
         super().__init_subclass__(**kwargs)
-        # All subclasses must run in the same pytest-xdist worker to avoid
-        # conflicts on the fixed port used by the faked runpy container.
-        pytest.mark.xdist_group("runpy")(cls)
+        # All subclasses must not run concurrently in multiple pytest-xdist
+        # workers to avoid conflicts on the fixed port used by the faked
+        # runpy container. When running under xdist, only the first worker
+        # ("gw0") will execute these tests; other workers skip them.
+        worker = os.environ.get("PYTEST_XDIST_WORKER")
+        if worker is not None and worker != "gw0":
+            pytest.mark.skip(
+                reason=(
+                    "SubprocessRunpyContainerMixin tests are restricted to a "
+                    "single pytest-xdist worker to avoid port conflicts."
+                )
+            )(cls)
 
     @classmethod
     def setUpClass(cls):
