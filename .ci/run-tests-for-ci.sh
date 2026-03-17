@@ -36,7 +36,7 @@ rm local_settings.py
 echo "Start testing"
 export RELATE_LOCAL_TEST_SETTINGS="local_settings_example.py"
 
-PYTEST_COMMON_FLAGS=()
+PYTEST_COMMON_FLAGS=(-n 3)
 
 if test "$CI_SERVER_NAME" = "GitLab"; then
     # I don't *really* know what's going on, but I observed EADDRNOTAVAIL

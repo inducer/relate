@@ -39,8 +39,8 @@ Run `uv run basedpyright` and aim to keep it passing.  Use judgment:
 Run tests with:
 
 ```
-uv run pytest          # standard test suite
-uv run pytest --slow   # includes slow tests
+uv run pytest -n 4           # standard test suite
+uv run pytest --slow -n 4    # includes slow tests
 ```
 
 Both commands can take multiple minutes. Focus test runs on newly-created or
