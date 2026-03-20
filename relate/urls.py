@@ -39,6 +39,7 @@ import course.im
 import course.sandbox
 import course.versioning
 import course.views
+from course.auth import UserAutocompleteView
 from course.constants import COURSE_ID_REGEX, FLOW_ID_REGEX, STATICPAGE_PATH_REGEX
 
 
@@ -560,7 +561,9 @@ urlpatterns = [
 
     # }}}
 
-    path(r"select2/", include("django_select2.urls")),
+    path("user-autocomplete/",
+        UserAutocompleteView.as_view(),
+        name="user-autocomplete"),
 
     re_path(r"^course"
         "/" + COURSE_ID_REGEX

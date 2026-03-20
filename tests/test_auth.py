@@ -321,13 +321,13 @@ class ImpersonateTest(SingleCoursePageTestMixin, MockAddMessageMixing, TestCase)
             self.assertEqual(resp.status_code, 400)
             self.assertIsNotNone(self.client.session.get("impersonate_id"))
 
-    # {{{ ImpersonateForm select2 result test
+    # {{{ ImpersonateForm tomselect result test
 
     def test_impersonate_select2_user_search_widget_instructor(self):
 
         p = factories.ParticipationFactory.create(course=self.course)
         # make sure user have/don't have first_name and last_name get
-        # rendered in UserSearchWidget when requested.
+        # rendered in UserAutocompleteView when requested.
         if p.user.last_name:
             p.user.last_name = ""
             p.user.save()
@@ -355,12 +355,12 @@ class ImpersonateTest(SingleCoursePageTestMixin, MockAddMessageMixing, TestCase)
             impersonatable_pks = list(impersonatable.values_list("pk", flat=True))
             self.assertSetEqual(set(impersonatable_pks), set(all_ids))
 
-            all_text = [r["text"] for r in result]
-            for s in all_text:
+            all_labels = [r["label"] for r in result]
+            for s in all_labels:
                 for bad_string in ["(), None, none"]:
                     if bad_string in s:
-                        self.fail("label_from_instance method in "
-                                  "course.auth.UserSearchWidget should not "
+                        self.fail("hook_prepare_results in "
+                                  "course.auth.UserAutocompleteView should not "
                                   f"return {bad_string}")
 
             # Search ta by ta's last name
@@ -406,12 +406,12 @@ class ImpersonateTest(SingleCoursePageTestMixin, MockAddMessageMixing, TestCase)
             impersonatable_pks = list(impersonatable.values_list("pk", flat=True))
             self.assertSetEqual(set(impersonatable_pks), set(all_ids))
 
-            all_text = [r["text"] for r in result]
-            for s in all_text:
+            all_labels = [r["label"] for r in result]
+            for s in all_labels:
                 for bad_string in ["(), None, none"]:
                     if bad_string in s:
-                        self.fail("label_from_instance method in "
-                                  "course.auth.UserSearchWidget should not "
+                        self.fail("hook_prepare_results in "
+                                  "course.auth.UserAutocompleteView should not "
                                   f"return {bad_string}")
 
             # Search student by his email
