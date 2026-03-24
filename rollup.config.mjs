@@ -88,6 +88,16 @@ const bundles = {
       name: 'rlProsemirror',
     },
   },
+  analytics: {
+    input: 'frontend/js/analytics.js',
+    output: {
+      // "analytics" as a file name is commonly blocked (e.g. by uBlock)
+      file: 'frontend-dist/bundle-analysis.js',
+      format: 'iife',
+      sourcemap: true,
+    },
+    plugins: defaultPlugins,
+  },
 };
 
 export default function (commandLineArgs) {
