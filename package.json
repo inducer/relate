@@ -15,6 +15,11 @@
     "@fullcalendar/list": "^6.1.20",
     "@fullcalendar/timegrid": "^6.1.20",
     "@lezer/highlight": "^1.2.3",
+    "@mathjax/mathjax-bbm-font-extension": "^4.1.1",
+    "@mathjax/mathjax-bboldx-font-extension": "^4.1.1",
+    "@mathjax/mathjax-dsfont-font-extension": "^4.1.1",
+    "@mathjax/mathjax-mhchem-font-extension": "^4.1.1",
+    "@mathjax/mathjax-newcm-font": "^4.1.0",
     "@popperjs/core": "^2.11.2",
     "@replit/codemirror-emacs": "^6.1.0",
     "@replit/codemirror-vim": "^6.3.0",
@@ -32,11 +37,6 @@
     "katex": "^0.16.33",
     "markdown-it": "^14.1.1",
     "mathjax": "^4.1.1",
-    "@mathjax/mathjax-newcm-font": "^4.1.0",
-    "@mathjax/mathjax-mhchem-font-extension": "^4.1.1",
-    "@mathjax/mathjax-bbm-font-extension": "^4.1.1",
-    "@mathjax/mathjax-bboldx-font-extension": "^4.1.1",
-    "@mathjax/mathjax-dsfont-font-extension": "^4.1.1",
     "prosemirror-commands": "^1.7.1",
     "prosemirror-example-setup": "^1.2.3",
     "prosemirror-inputrules": "^1.5.1",
@@ -59,14 +59,12 @@
     "sass": "https://github.com/twbs/bootstrap/issues/40849"
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.4.9",
     "@rollup/plugin-commonjs": "^29.0.0",
     "@rollup/plugin-node-resolve": "^16.0.3",
     "@rollup/plugin-replace": "^6.0.3",
     "@rollup/plugin-terser": "^0.4.4",
     "autoprefixer": "^10.4.27",
-    "eslint": "^8.57.1",
-    "eslint-config-airbnb-base": "^15.0.0",
-    "eslint-plugin-import": "^2.32.0",
     "less": "^4.5.1",
     "npm-run-all": "^4.1.5",
     "rollup": "^4.59.0",
@@ -83,6 +81,7 @@
     "build:codemirror": "rollup --config --configBundle=codemirror",
     "build:prosemirror": "rollup --config --configBundle=prosemirror",
     "build": "run-p build:*",
-    "dev": "rollup --config --watch"
+    "dev": "rollup --config --watch",
+    "lint": "biome check frontend/js/ rollup.config.mjs"
   }
 }
