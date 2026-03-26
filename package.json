@@ -76,7 +76,13 @@
     "serve": "^14.2.5"
   },
   "scripts": {
-    "build": "rollup --config",
+    "build:base": "rollup --config --configBundle=base",
+    "build:base-with-markup": "rollup --config --configBundle=base-with-markup",
+    "build:fullcalendar": "rollup --config --configBundle=fullcalendar",
+    "build:datatables": "rollup --config --configBundle=datatables",
+    "build:codemirror": "rollup --config --configBundle=codemirror",
+    "build:prosemirror": "rollup --config --configBundle=prosemirror",
+    "build": "run-p build:*",
     "dev": "rollup --config --watch"
   }
 }
