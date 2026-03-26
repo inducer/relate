@@ -31,26 +31,24 @@ const defaultPlugins = [
   }),
 ];
 
-export default [
-  {
+const bundles = {
+  base: {
     input: 'frontend/js/base.js',
     output: {
       file: 'frontend-dist/bundle-base.js',
       format: 'iife',
       sourcemap: true,
     },
-    plugins: defaultPlugins,
   },
-  {
+  'base-with-markup': {
     input: 'frontend/js/base-with-markup.js',
     output: {
       file: 'frontend-dist/bundle-base-with-markup.js',
       format: 'iife',
       sourcemap: true,
     },
-    plugins: defaultPlugins,
   },
-  {
+  fullcalendar: {
     input: 'frontend/js/fullcalendar.js',
     output: {
       file: 'frontend-dist/bundle-fullcalendar.js',
@@ -58,9 +56,8 @@ export default [
       sourcemap: true,
       name: 'rlFullCalendar',
     },
-    plugins: defaultPlugins,
   },
-  {
+  datatables: {
     input: 'frontend/js/datatables.js',
     output: {
       file: 'frontend-dist/bundle-datatables.js',
@@ -71,9 +68,8 @@ export default [
       // on window.
       strict: false,
     },
-    plugins: defaultPlugins,
   },
-  {
+  codemirror: {
     input: 'frontend/js/codemirror.js',
     output: {
       file: 'frontend-dist/bundle-codemirror.js',
@@ -81,9 +77,8 @@ export default [
       sourcemap: true,
       name: 'rlCodemirror',
     },
-    plugins: defaultPlugins,
   },
-  {
+  prosemirror: {
     input: 'frontend/js/prosemirror.js',
     output: {
       file: 'frontend-dist/bundle-prosemirror.js',
@@ -91,6 +86,18 @@ export default [
       sourcemap: true,
       name: 'rlProsemirror',
     },
-    plugins: defaultPlugins,
   },
-];
+};
+
+export default function(commandLineArgs) {
+  const { configBundle } = commandLineArgs;
+
+  if (configBundle) {
+    if (!(configBundle in bundles)) {
+      throw new Error(`Unknown bundle: ${configBundle}. Available: ${Object.keys(bundles).join(', ')}`);
+    }
+    return [{ ...bundles[configBundle], plugins: defaultPlugins }];
+  }
+
+  return Object.values(bundles).map((bundle) => ({ ...bundle, plugins: defaultPlugins }));
+}
