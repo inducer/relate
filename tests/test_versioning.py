@@ -1222,3 +1222,273 @@ class UpdateCourseTest(SingleCourseTestMixin, MockAddMessageMixing, TestCase):
 
             from course.content import SubdirRepoWrapper
             self.assertIsInstance(mock_run_update.call_args[0][1], Repo)
+
+
+# {{{ UpdateCourseFromBranchTest
+
+class UpdateCourseFromBranchTest(SingleCourseTestMixin, MockAddMessageMixing,
+                                  TestCase):
+
+    default_branch_name = "main"
+
+    def get_branch_preview_url(self, branch_name=None, course_identifier=None):
+        if branch_name is None:
+            branch_name = self.default_branch_name
+        if course_identifier is None:
+            course_identifier = self.course.identifier
+        from django.urls import reverse
+        return reverse("relate-update_course_from_branch",
+                       args=[course_identifier, branch_name])
+
+    def post_branch_preview(self, branch_name=None, command="preview",
+                            navigate_to_modified_flow=True,
+                            force_login_instructor=True):
+        if branch_name is None:
+            branch_name = self.default_branch_name
+        data = {command: "on"}
+        if navigate_to_modified_flow:
+            data["navigate_to_modified_flow"] = "on"
+        url = self.get_branch_preview_url(branch_name)
+        if force_login_instructor:
+            user = self.instructor_participation.user
+        else:
+            user = self.get_logged_in_user(self.client)
+        with self.temporarily_switch_to_user(user):
+            return self.client.post(url, data)
+
+    def test_no_permission(self):
+        with self.temporarily_switch_to_user(self.student_participation.user):
+            resp = self.client.get(self.get_branch_preview_url())
+            self.assertEqual(resp.status_code, 403)
+
+    def test_get(self):
+        with self.temporarily_switch_to_user(self.instructor_participation.user):
+            resp = self.client.get(self.get_branch_preview_url())
+            self.assertEqual(resp.status_code, 200)
+
+    def test_get_with_existing_branch(self):
+        # The repo has refs we can look up
+        from course.utils import CoursePageContext
+        rf = RequestFactory()
+        request = rf.get(self.get_branch_preview_url())
+        request.user = self.instructor_participation.user
+        with CoursePageContext(request, self.course.identifier) as pctx:
+            repo = pctx.repo
+            refs = repo.get_refs()
+        # Check that some refs exist (from the test course setup)
+        self.assertGreater(len(refs), 0)
+
+    def test_unknown_command(self):
+        with self.temporarily_switch_to_user(self.instructor_participation.user):
+            resp = self.client.post(
+                self.get_branch_preview_url(),
+                {"unknown_command": "on"})
+            self.assertEqual(resp.status_code, 400)
+
+    @suppress_stdout_decorator(suppress_stderr=True)
+    def test_preview_branch_not_found(self):
+        # Branch doesn't exist locally → should show error
+        resp = self.post_branch_preview(
+            branch_name="nonexistent-branch",
+            command="preview",
+            navigate_to_modified_flow=False)
+        self.assertEqual(resp.status_code, 200)
+        self.assertAddMessageCalledWith("not found", reset=False)
+
+    @suppress_stdout_decorator(suppress_stderr=True)
+    def test_end_preview(self):
+        # Set up a preview SHA first
+        self.instructor_participation.preview_git_commit_sha = (
+            self.course.active_git_commit_sha)
+        self.instructor_participation.save()
+
+        resp = self.post_branch_preview(command="end_preview")
+        self.assertEqual(resp.status_code, 200)
+        self.instructor_participation.refresh_from_db()
+        self.assertIsNone(self.instructor_participation.preview_git_commit_sha)
+        self.assertAddMessageCalledWith("Preview ended")
+
+    @suppress_stdout_decorator(suppress_stderr=True)
+    def test_preview_with_branch(self):
+        # Set up a branch ref in the local repo
+        from course.utils import CoursePageContext
+        rf = RequestFactory()
+        request = rf.get(self.get_branch_preview_url())
+        request.user = self.instructor_participation.user
+        with CoursePageContext(request, self.course.identifier) as pctx:
+            from course.repo import SubdirRepoWrapper
+            repo = pctx.repo
+            if isinstance(repo, SubdirRepoWrapper):
+                real_repo = repo.repo
+            else:
+                real_repo = repo
+            head_sha = real_repo.head()
+            branch_ref = b"refs/remotes/origin/" + self.default_branch_name.encode()
+            real_repo[branch_ref] = head_sha
+
+        with mock.patch(
+                "course.validation.validate_course_content",
+                return_value=[]):
+            resp = self.post_branch_preview(
+                command="preview",
+                navigate_to_modified_flow=False)
+        self.assertEqual(resp.status_code, 200)
+        self.instructor_participation.refresh_from_db()
+        self.assertIsNotNone(
+            self.instructor_participation.preview_git_commit_sha)
+        self.assertAddMessageCalledWith("Preview activated")
+
+    @suppress_stdout_decorator(suppress_stderr=True)
+    def test_preview_navigate_single_modified_flow(self):
+        # Set up branch ref pointing to same SHA as active (no modifications)
+        # but mock get_modified_flow_ids to return a single flow
+        from course.utils import CoursePageContext
+        rf = RequestFactory()
+        request = rf.get(self.get_branch_preview_url())
+        request.user = self.instructor_participation.user
+        with CoursePageContext(request, self.course.identifier) as pctx:
+            from course.repo import SubdirRepoWrapper
+            repo = pctx.repo
+            if isinstance(repo, SubdirRepoWrapper):
+                real_repo = repo.repo
+            else:
+                real_repo = repo
+            head_sha = real_repo.head()
+            branch_ref = b"refs/remotes/origin/" + self.default_branch_name.encode()
+            real_repo[branch_ref] = head_sha
+
+        with mock.patch(
+                "course.validation.validate_course_content",
+                return_value=[]):
+            with mock.patch(
+                    "course.versioning.get_modified_flow_ids",
+                    return_value=["quiz-test"]):
+                resp = self.post_branch_preview(
+                    command="preview",
+                    navigate_to_modified_flow=True)
+
+        # Should redirect to the single modified flow
+        self.assertEqual(resp.status_code, 302)
+        from django.urls import reverse
+        expected_url = reverse("relate-view_start_flow",
+                               args=[self.course.identifier, "quiz-test"])
+        self.assertRedirects(resp, expected_url, fetch_redirect_response=False)
+
+    @suppress_stdout_decorator(suppress_stderr=True)
+    def test_preview_navigate_multiple_modified_flows(self):
+        # Branch ref pointing to same SHA
+        from course.utils import CoursePageContext
+        rf = RequestFactory()
+        request = rf.get(self.get_branch_preview_url())
+        request.user = self.instructor_participation.user
+        with CoursePageContext(request, self.course.identifier) as pctx:
+            from course.repo import SubdirRepoWrapper
+            repo = pctx.repo
+            if isinstance(repo, SubdirRepoWrapper):
+                real_repo = repo.repo
+            else:
+                real_repo = repo
+            head_sha = real_repo.head()
+            branch_ref = b"refs/remotes/origin/" + self.default_branch_name.encode()
+            real_repo[branch_ref] = head_sha
+
+        with mock.patch(
+                "course.validation.validate_course_content",
+                return_value=[]):
+            with mock.patch(
+                    "course.versioning.get_modified_flow_ids",
+                    return_value=["flow-a", "flow-b"]):
+                resp = self.post_branch_preview(
+                    command="preview",
+                    navigate_to_modified_flow=True)
+
+        # Should render page (200) with modified_flow_ids in context
+        self.assertEqual(resp.status_code, 200)
+        self.assertIn("flow-a", resp.context["modified_flow_ids"])
+        self.assertIn("flow-b", resp.context["modified_flow_ids"])
+
+    @suppress_stdout_decorator(suppress_stderr=True)
+    def test_form_not_valid(self):
+        with mock.patch(
+                "course.versioning.BranchPreviewForm.is_valid",
+                return_value=False):
+            resp = self.post_branch_preview(
+                command="preview",
+                navigate_to_modified_flow=False)
+        self.assertEqual(resp.status_code, 200)
+
+    @suppress_stdout_decorator(suppress_stderr=True)
+    def test_fetch_preview_calls_fetch(self):
+        from dulwich.client import FetchPackResult
+
+        from course.utils import CoursePageContext
+        rf = RequestFactory()
+        request = rf.get(self.get_branch_preview_url())
+        request.user = self.instructor_participation.user
+        with CoursePageContext(request, self.course.identifier) as pctx:
+            from course.repo import SubdirRepoWrapper
+            repo = pctx.repo
+            if isinstance(repo, SubdirRepoWrapper):
+                real_repo = repo.repo
+            else:
+                real_repo = repo
+            head_sha = real_repo.head()
+
+        mock_client = mock.MagicMock()
+        mock_client.fetch.return_value = FetchPackResult(
+            refs={b"HEAD": head_sha,
+                  b"refs/heads/main": head_sha},
+            symrefs={},
+            agent="Git")
+
+        with mock.patch(
+                "course.versioning."
+                "get_dulwich_client_and_remote_path_from_course",
+                return_value=(mock_client, "/remote")):
+            with mock.patch(
+                    "course.versioning.transfer_remote_refs") as mock_transfer:
+                with mock.patch(
+                        "course.validation.validate_course_content",
+                        return_value=[]):
+                    resp = self.post_branch_preview(
+                        command="fetch_preview",
+                        navigate_to_modified_flow=False)
+
+        self.assertEqual(mock_client.fetch.call_count, 1)
+        self.assertEqual(mock_transfer.call_count, 1)
+        # Response may be 200 (branch not found after mock) or 200 (found & previewed)
+        self.assertEqual(resp.status_code, 200)
+
+
+class GetModifiedFlowIdsTest(SingleCourseTestMixin, TestCase):
+
+    def test_same_commit_no_changes(self):
+        from course.utils import CoursePageContext
+        rf = RequestFactory()
+        from django.urls import reverse
+        request = rf.get(reverse("relate-update_course",
+                                 args=[self.course.identifier]))
+        request.user = self.instructor_participation.user
+        with CoursePageContext(request, self.course.identifier) as pctx:
+            repo = pctx.repo
+            head_sha = repo.get_refs()[b"HEAD"]
+            result = versioning.get_modified_flow_ids(repo, head_sha, head_sha)
+        # Same commit → no modifications
+        self.assertEqual(result, [])
+
+    def test_no_flows_tree(self):
+        # If flows tree doesn't exist in old or new commit,
+        # all flows in new are "modified"
+        old_sha = b"nonexistent000000000000000000000000000000"
+        new_sha = b"nonexistent000000000000000000000000000001"
+
+        mock_repo = mock.MagicMock()
+
+        from django.core.exceptions import ObjectDoesNotExist
+        with mock.patch(
+                "course.repo.get_repo_tree",
+                side_effect=ObjectDoesNotExist):
+            result = versioning.get_modified_flow_ids(mock_repo, old_sha, new_sha)
+        self.assertEqual(result, [])
+
+# }}}

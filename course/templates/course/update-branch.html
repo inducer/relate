@@ -1,0 +1,48 @@
+{% extends "course/course-base.html" %}
+{% load i18n %}
+{% load crispy_forms_tags %}
+
+{% block title %}
+  {{ form_description }} - {{ relate_site_name }}
+{% endblock %}
+
+{% block content %}
+  <h1>{{ form_description }}</h1>
+
+  <table class="table">
+    <tr>
+      <th>{% trans "Branch" %}</th>
+      <td><tt>{{ branch_name }}</tt></td>
+    </tr>
+    <tr>
+      <th>{% trans "Branch SHA" %}</th>
+      <td>
+        {% if branch_sha %}
+          <tt>{{ branch_sha }}</tt>
+        {% else %}
+          {% trans "Not found locally – use 'Fetch and preview' to retrieve it." %}
+        {% endif %}
+      </td>
+    </tr>
+  </table>
+
+  <div class="relate-well">
+    {% crispy form %}
+  </div>
+
+  {% if modified_flow_ids %}
+    <div class="relate-well">
+      <h3>{% trans "Modified flows" %}</h3>
+      <p>{% trans "The following flows were modified in this branch compared to the currently-live revision. Click a flow to preview it:" %}</p>
+      <ul>
+        {% for flow_id in modified_flow_ids %}
+          <li>
+            <a href="{% url "relate-view_start_flow" course.identifier flow_id %}">
+              <tt>{{ flow_id }}</tt>
+            </a>
+          </li>
+        {% endfor %}
+      </ul>
+    </div>
+  {% endif %}
+{% endblock %}
