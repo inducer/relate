@@ -1,30 +1,46 @@
+import {
+  autocompletion,
+  closeBrackets,
+  closeBracketsKeymap,
+  completionKeymap,
+} from '@codemirror/autocomplete';
+import {
+  defaultKeymap,
+  history,
+  historyKeymap,
+  indentWithTab,
+} from '@codemirror/commands';
+import { markdown } from '@codemirror/lang-markdown';
+import { python } from '@codemirror/lang-python';
+import {
+  bracketMatching,
+  foldGutter,
+  foldKeymap,
+  HighlightStyle,
+  indentOnInput,
+  indentUnit,
+  StreamLanguage,
+  syntaxHighlighting,
+} from '@codemirror/language';
+import { yaml as yamlStreamParser } from '@codemirror/legacy-modes/mode/yaml';
+import { highlightSelectionMatches, searchKeymap } from '@codemirror/search';
 import { Compartment, EditorState } from '@codemirror/state';
 import {
-  EditorView, keymap, lineNumbers, highlightActiveLine, highlightActiveLineGutter,
-  drawSelection, rectangularSelection, dropCursor, highlightSpecialChars,
+  drawSelection,
+  dropCursor,
+  EditorView,
+  highlightActiveLine,
+  highlightActiveLineGutter,
+  highlightSpecialChars,
   highlightTrailingWhitespace,
+  keymap,
+  lineNumbers,
+  rectangularSelection,
 } from '@codemirror/view';
-import {
-  defaultKeymap, history, historyKeymap, indentWithTab,
-} from '@codemirror/commands';
-import { searchKeymap, highlightSelectionMatches } from '@codemirror/search';
-import {
-  HighlightStyle,
-  syntaxHighlighting, indentOnInput, bracketMatching,
-  foldGutter, foldKeymap, indentUnit, StreamLanguage,
-} from '@codemirror/language';
-import {
-  autocompletion, completionKeymap,
-  closeBrackets, closeBracketsKeymap,
-} from '@codemirror/autocomplete';
-import { python } from '@codemirror/lang-python';
-import { markdown } from '@codemirror/lang-markdown';
-import { yaml as yamlStreamParser } from '@codemirror/legacy-modes/mode/yaml';
 
 import { tags } from '@lezer/highlight';
-
-import { vim, Vim } from '@replit/codemirror-vim';
 import { emacs } from '@replit/codemirror-emacs';
+import { Vim, vim } from '@replit/codemirror-vim';
 
 let anyEditorChangedFlag = false;
 
@@ -84,22 +100,23 @@ const defaultExtensionsBase = [
 ];
 
 // based on https://codemirror.net/docs/migration/
-export function editorFromTextArea(textarea, extensions, autofocus, additionalKeys) {
+export function editorFromTextArea(
+  textarea,
+  extensions,
+  autofocus,
+  additionalKeys,
+) {
   // vim/emacs must come before other extensions
   extensions.push(
     ...defaultExtensionsBase,
-    keymap.of([
-      ...rlDefaultKeymap,
-      ...additionalKeys,
-    ]),
+    keymap.of([...rlDefaultKeymap, ...additionalKeys]),
     EditorView.updateListener.of((viewUpdate) => {
       if (viewUpdate.docChanged) {
         anyEditorChangedFlag = true;
       }
     }),
-    myListener.of(EditorView.updateListener.of(
-      () => { },
-    )),
+    // biome-ignore lint/suspicious/noEmptyBlockStatements: placeholder listener required by CodeMirror API
+    myListener.of(EditorView.updateListener.of(() => {})),
   );
 
   if (textarea.disabled || textarea.readOnly) {
@@ -112,11 +129,9 @@ export function editorFromTextArea(textarea, extensions, autofocus, additionalKe
   const view = new EditorView({ doc: textarea.value, extensions });
 
   textarea.parentNode.insertBefore(view.dom, textarea);
-  // eslint-disable-next-line no-param-reassign
   textarea.style.display = 'none';
   if (textarea.form) {
     textarea.form.addEventListener('submit', () => {
-      // eslint-disable-next-line no-param-reassign
       textarea.value = view.state.doc.toString();
     });
   }
@@ -133,9 +148,7 @@ export function editorFromTextArea(textarea, extensions, autofocus, additionalKe
 
 export function setListener(view, fn) {
   view.dispatch({
-    effects: myListener.reconfigure(
-      EditorView.updateListener.of(fn),
-    ),
+    effects: myListener.reconfigure(EditorView.updateListener.of(fn)),
   });
 }
 
@@ -143,7 +156,9 @@ Vim.defineEx('write', 'w', (cm) => {
   const form = cm.cm6.dom.closest('form');
   if (form) {
     // prefer 'submit' over 'save' on flow pages
-    let submitButton = form.querySelector("input[type='submit'][name='submit']");
+    let submitButton = form.querySelector(
+      "input[type='submit'][name='submit']",
+    );
     if (submitButton) {
       anyEditorChangedFlag = false;
       submitButton.click();
@@ -161,7 +176,10 @@ Vim.defineEx('write', 'w', (cm) => {
 export {
   EditorState,
   EditorView,
+  emacs,
   indentUnit,
-  vim, emacs,
-  python, markdown, yaml,
+  markdown,
+  python,
+  vim,
+  yaml,
 };

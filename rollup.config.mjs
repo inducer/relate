@@ -1,11 +1,11 @@
-import resolve from '@rollup/plugin-node-resolve';
-import { brotliCompress } from 'zlib';
-import { promisify } from 'util';
 import commonjs from '@rollup/plugin-commonjs';
-import terser from '@rollup/plugin-terser';
-import styles from 'rollup-plugin-styler';
-import gzipPlugin from 'rollup-plugin-gzip';
+import resolve from '@rollup/plugin-node-resolve';
 import replace from '@rollup/plugin-replace';
+import terser from '@rollup/plugin-terser';
+import gzipPlugin from 'rollup-plugin-gzip';
+import styles from 'rollup-plugin-styler';
+import { promisify } from 'util';
+import { brotliCompress } from 'zlib';
 
 // `npm run build` -> `production` is true
 // `npm run dev` -> `production` is false
@@ -19,10 +19,11 @@ const defaultPlugins = [
   commonjs(),
   production && terser(), // minify, but only in production
   production && gzipPlugin(),
-  production && gzipPlugin({
-    customCompression: (content) => brotliPromise(Buffer.from(content)),
-    fileName: '.br',
-  }),
+  production &&
+    gzipPlugin({
+      customCompression: (content) => brotliPromise(Buffer.from(content)),
+      fileName: '.br',
+    }),
   replace({
     values: {
       'process.env.NODE_ENV': JSON.stringify('production'),
@@ -89,15 +90,20 @@ const bundles = {
   },
 };
 
-export default function(commandLineArgs) {
+export default function (commandLineArgs) {
   const { configBundle } = commandLineArgs;
 
   if (configBundle) {
     if (!(configBundle in bundles)) {
-      throw new Error(`Unknown bundle: ${configBundle}. Available: ${Object.keys(bundles).join(', ')}`);
+      throw new Error(
+        `Unknown bundle: ${configBundle}. Available: ${Object.keys(bundles).join(', ')}`,
+      );
     }
     return [{ ...bundles[configBundle], plugins: defaultPlugins }];
   }
 
-  return Object.values(bundles).map((bundle) => ({ ...bundle, plugins: defaultPlugins }));
+  return Object.values(bundles).map((bundle) => ({
+    ...bundle,
+    plugins: defaultPlugins,
+  }));
 }

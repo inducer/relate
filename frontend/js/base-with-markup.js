@@ -6,8 +6,14 @@ import '../css/base-with-markup.css';
 
 window.MathJax = {
   tex: {
-    inlineMath: [['$', '$'], ['\\(', '\\)']],
-    displayMath: [['$$', '$$'], ['\\[', '\\]']],
+    inlineMath: [
+      ['$', '$'],
+      ['\\(', '\\)'],
+    ],
+    displayMath: [
+      ['$$', '$$'],
+      ['\\[', '\\]'],
+    ],
   },
   // based on https://github.com/mathjax/MathJax/issues/3436#issuecomment-3481724702
   loader: {
