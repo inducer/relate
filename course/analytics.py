@@ -33,13 +33,14 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ObjectDoesNotExist, PermissionDenied
 from django.db import connection
+from django.db.models import FloatField, OuterRef, Subquery
 from django.urls import reverse
 from django.utils.translation import gettext as _, pgettext
 from pytools import not_none
 
 from course.constants import FlowPermission, ParticipationPermission as PPerm
 from course.content import FlowDesc, get_flow_desc
-from course.models import FlowPageVisit, FlowSession
+from course.models import FlowPageVisit, FlowPageVisitGrade, FlowSession
 from course.utils import (
     CoursePageContext,
     PageInstanceCache,
@@ -425,9 +426,17 @@ def make_page_answer_stats_list(
                             .distinct("page_data__id")
                             .order_by("page_data__id", "-visit_time"))
 
+            latest_grade_correctness = Subquery(
+                    FlowPageVisitGrade.objects.filter(
+                        visit=OuterRef("pk"),
+                    ).order_by("-grade_time").values("correctness")[:1],
+                    output_field=FloatField(),
+                    )
+
             visits = (visits
                     .select_related("flow_session")
-                    .select_related("page_data"))
+                    .select_related("page_data")
+                    .annotate(latest_grade_correctness=latest_grade_correctness))
 
             answer_expected = False
 
@@ -447,7 +456,7 @@ def make_page_answer_stats_list(
 
                 title = page.page_title(grading_page_context, visit.page_data.data)
 
-                answer_feedback = visit.get_most_recent_feedback()
+                correctness: float | None = visit.latest_grade_correctness
 
                 if visit.answer is not None:
                     answer_count += 1
@@ -456,19 +465,18 @@ def make_page_answer_stats_list(
 
                 total_count += 1
 
-                if (answer_feedback is not None
-                        and answer_feedback.correctness is not None):
+                if correctness is not None:
                     if visit.answer is None:
-                        assert answer_feedback.correctness == 0
+                        assert correctness == 0
                     else:
-                        points += answer_feedback.correctness
+                        points += correctness
 
                     graded_count += 1
 
                     quartile = session_quartile_map.get(
                             visit.flow_session_id)
                     if quartile is not None:
-                        quartile_points[quartile] += answer_feedback.correctness
+                        quartile_points[quartile] += correctness
                         quartile_graded_counts[quartile] += 1
 
             if not answer_expected:
