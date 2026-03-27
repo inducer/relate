@@ -22,6 +22,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
+import json
 
 import pytest
 from django.core.exceptions import ObjectDoesNotExist
@@ -138,6 +139,152 @@ class HistogramTest(CoursesTestMixinBase, TestCase):
 
             his.html()
             self.assertTemplateUsed("course/histogram.html")
+
+
+class PageAnswerStatsTest(CoursesTestMixinBase, TestCase):
+    """Test analytics.PageAnswerStats JSON serialization."""
+
+    def _make_stats(self, quartile_correctness_list):
+        return analytics.PageAnswerStats(
+            group_id="grp",
+            page_id="pg",
+            title="Test",
+            average_correctness=0.5,
+            average_emptiness=0.1,
+            answer_count=5,
+            total_count=6,
+            url=None,
+            quartile_correctness_list=quartile_correctness_list,
+        )
+
+    def test_quartile_correctness_json_values(self):
+        stats = self._make_stats([0.25, 0.5, 0.75, 1.0])
+        parsed = json.loads(stats.quartile_correctness_json)
+        self.assertEqual(parsed, [0.25, 0.5, 0.75, 1.0])
+
+    def test_quartile_correctness_json_with_none(self):
+        stats = self._make_stats([None, 0.5, None, 1.0])
+        parsed = json.loads(stats.quartile_correctness_json)
+        self.assertIsNone(parsed[0])
+        self.assertEqual(parsed[1], 0.5)
+        self.assertIsNone(parsed[2])
+        self.assertEqual(parsed[3], 1.0)
+
+    def test_quartile_correctness_json_all_none(self):
+        stats = self._make_stats([None, None, None, None])
+        parsed = json.loads(stats.quartile_correctness_json)
+        self.assertEqual(parsed, [None, None, None, None])
+
+
+@pytest.mark.slow
+class ComputeSessionQuartileMapTest(SingleCourseTestMixin, TestCase):
+    """Test analytics.compute_session_quartile_map."""
+
+    FLOW_ID = "test-quartile-flow"
+
+    def _make_pctx(self):
+        pctx = mock.MagicMock()
+        pctx.course = self.course
+        return pctx
+
+    def _make_session(self, participation, points, max_points,
+                      in_progress=False):
+        return factories.FlowSessionFactory(
+            participation=participation,
+            flow_id=self.FLOW_ID,
+            points=points,
+            max_points=max_points,
+            in_progress=in_progress,
+        )
+
+    def test_no_sessions_returns_empty_map(self):
+        pctx = self._make_pctx()
+        result = analytics.compute_session_quartile_map(pctx, self.FLOW_ID)
+        self.assertEqual(result, {})
+
+    def test_sessions_without_points_excluded(self):
+        pctx = self._make_pctx()
+        self._make_session(self.student_participation, None, 10)
+        result = analytics.compute_session_quartile_map(pctx, self.FLOW_ID)
+        self.assertEqual(result, {})
+
+    def test_in_progress_sessions_excluded(self):
+        pctx = self._make_pctx()
+        self._make_session(
+            self.student_participation, 80, 100, in_progress=True)
+        result = analytics.compute_session_quartile_map(pctx, self.FLOW_ID)
+        self.assertEqual(result, {})
+
+    def test_single_session_assigned_to_first_quartile(self):
+        pctx = self._make_pctx()
+        session = self._make_session(self.student_participation, 7, 10)
+        result = analytics.compute_session_quartile_map(pctx, self.FLOW_ID)
+        # n=1: i=0 → int(0*4/1)=0
+        self.assertEqual(result, {session.id: 0})
+
+    def test_four_sessions_one_per_quartile(self):
+        pctx = self._make_pctx()
+        participations = [
+            factories.ParticipationFactory(course=self.course)
+            for _ in range(4)
+        ]
+        sessions = [
+            self._make_session(p, score, 100)
+            for p, score in zip(
+                participations, [25, 50, 75, 100], strict=True)
+        ]
+        result = analytics.compute_session_quartile_map(pctx, self.FLOW_ID)
+        self.assertEqual(result[sessions[0].id], 0)  # 25% -> Q1
+        self.assertEqual(result[sessions[1].id], 1)  # 50% -> Q2
+        self.assertEqual(result[sessions[2].id], 2)  # 75% -> Q3
+        self.assertEqual(result[sessions[3].id], 3)  # 100% -> Q4
+
+    def test_two_sessions_small_n(self):
+        pctx = self._make_pctx()
+        p1 = factories.ParticipationFactory(course=self.course)
+        p2 = factories.ParticipationFactory(course=self.course)
+        s_low = self._make_session(p1, 30, 100)
+        s_high = self._make_session(p2, 80, 100)
+        result = analytics.compute_session_quartile_map(pctx, self.FLOW_ID)
+        # n=2: i=0 → int(0*4/2)=0; i=1 → int(1*4/2)=2
+        self.assertEqual(result[s_low.id], 0)
+        self.assertEqual(result[s_high.id], 2)
+
+    def test_three_sessions_small_n(self):
+        pctx = self._make_pctx()
+        participations = [
+            factories.ParticipationFactory(course=self.course)
+            for _ in range(3)
+        ]
+        sessions = [
+            self._make_session(p, score, 100)
+            for p, score in zip(
+                participations, [10, 50, 90], strict=True)
+        ]
+        result = analytics.compute_session_quartile_map(pctx, self.FLOW_ID)
+        # n=3: i=0→0, i=1→int(4/3)=1, i=2→int(8/3)=2
+        self.assertEqual(result[sessions[0].id], 0)
+        self.assertEqual(result[sessions[1].id], 1)
+        self.assertEqual(result[sessions[2].id], 2)
+
+    def test_sorted_by_score(self):
+        """Sessions are ranked by score, not by insertion order."""
+        pctx = self._make_pctx()
+        p1 = factories.ParticipationFactory(course=self.course)
+        p2 = factories.ParticipationFactory(course=self.course)
+        p3 = factories.ParticipationFactory(course=self.course)
+        p4 = factories.ParticipationFactory(course=self.course)
+        # Create sessions in non-sorted order
+        s90 = self._make_session(p1, 90, 100)
+        s10 = self._make_session(p2, 10, 100)
+        s50 = self._make_session(p3, 50, 100)
+        s70 = self._make_session(p4, 70, 100)
+        result = analytics.compute_session_quartile_map(pctx, self.FLOW_ID)
+        # Sorted order: 10→Q1, 50→Q2, 70→Q3, 90→Q4
+        self.assertEqual(result[s10.id], 0)
+        self.assertEqual(result[s50.id], 1)
+        self.assertEqual(result[s70.id], 2)
+        self.assertEqual(result[s90.id], 3)
 
 
 @pytest.mark.slow

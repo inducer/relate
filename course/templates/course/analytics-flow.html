@@ -1,5 +1,10 @@
 {% extends "course/course-base-with-markup.html" %}
 {% load i18n %}
+{% load static %}
+
+{% block header_extra %}
+  <script defer src="{% static 'bundle-analysis.js' %}"></script>
+{% endblock %}
 
 {% block title %}
   {% trans "Analytics" %} - {{ relate_site_name }}
@@ -49,8 +54,11 @@
   <h2>{% trans "Page-by-Page Statistics" %}</h2>
 
   <div class="page-by-page-analytics">
+  <table>
+  <thead><tr><th>{% trans "Question" %}</th><th>{% trans "Score by quartile" %}</th></tr></thead>
   {% for astats in page_answer_stats_list %}
-    <div class="page-entry">
+  <tr>
+    <td class="page-entry" style="vertical-align: bottom;">
       {% if astats.url %}
       <a href="{{ astats.url }}?restrict_to_first_attempt={{restrict_to_first_attempt}}">
         <tt>{{ astats.group_id }}/{{ astats.page_id }}</tt></a>:
@@ -86,9 +94,16 @@
           <span class="stats-percentage">{{ astats.average_emptiness_percent|floatformat:1 }}%</span>
         </div>
       </div>
-    </div>
+    </td>
+
+    <td style="text-align: center; vertical-align: bottom;">
+      <span class="relate-sparkline d-inline-block"
+        data-points="{{ astats.quartile_correctness_json }}"
+        style="height: 2em; vertical-align: middle;"></span>
+    </td>
+  </tr>
   {% endfor %}
-  <div>
+  </table>
 
   <h2>{% trans "Time Distribution" %}</h2>
 
