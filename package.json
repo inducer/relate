@@ -71,7 +71,7 @@
     "rollup-plugin-gzip": "^4.1.1",
     "rollup-plugin-styler": "^2.0.0",
     "sass": "<1.98",
-    "serve": "^14.2.5"
+    "serve": "^14.2.6"
   },
   "scripts": {
     "build:base": "rollup --config --configBundle=base",
