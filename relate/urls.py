@@ -501,6 +501,14 @@ urlpatterns = [
         "/$",
         course.views.grant_exception_stage_3,
         name="relate-grant_exception_stage_3"),
+    re_path(r"^course"
+        "/" + COURSE_ID_REGEX
+        + "/deactivate-exception"
+        "/(?P<exception_id>[0-9]+)"
+        "/(?P<opportunity_id>[0-9]+)"
+        "/$",
+        course.views.deactivate_flow_exception,
+        name="relate-deactivate_flow_exception"),
 
     # }}}
 
