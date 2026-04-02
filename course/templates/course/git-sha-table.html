@@ -26,4 +26,16 @@
       <td><tt>{{ git_url }}</tt> (<a href="{{token_url}}">{% trans "Manage access tokens" %}</a>)
       </td>
   </tr>
+  {% if remote_branches %}
+  <tr>
+    <th>{% trans "Branches (click to preview)" %}</th>
+    <td>
+      {% for branch in remote_branches %}
+        <a href="{% url "relate-update_course_from_branch" course.identifier branch %}"
+        class="btn btn-secondary btn-sm mb-1">
+          <tt>{{ branch }}</tt> &raquo;</a>
+      {% endfor %}
+    </td>
+  </tr>
+  {% endif %}
 </table>
