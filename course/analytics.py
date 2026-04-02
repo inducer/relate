@@ -23,6 +23,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
+import json
+import operator
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, ClassVar, final
 
@@ -31,13 +33,14 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ObjectDoesNotExist, PermissionDenied
 from django.db import connection
+from django.db.models import FloatField, OuterRef, Subquery
 from django.urls import reverse
 from django.utils.translation import gettext as _, pgettext
 from pytools import not_none
 
 from course.constants import FlowPermission, ParticipationPermission as PPerm
 from course.content import FlowDesc, get_flow_desc
-from course.models import FlowPageVisit, FlowSession
+from course.models import FlowPageVisit, FlowPageVisitGrade, FlowSession
 from course.utils import (
     CoursePageContext,
     PageInstanceCache,
@@ -286,6 +289,42 @@ def make_grade_histogram(pctx: CoursePageContext, flow_id: str):
     return hist
 
 
+NUM_QUARTILES = 4
+
+
+def compute_session_quartile_map(
+        pctx: CoursePageContext,
+        flow_id: str) -> dict[int, int]:
+    """Return a mapping from session ID to quartile index (0 = Q1, ..., 3 = Q4).
+
+    Quartiles are assigned based on each session's percentage score, using only
+    completed sessions for participants with grade-statistics permission.
+    """
+    sessions = FlowSession.objects.filter(
+            course=pctx.course,
+            flow_id=flow_id,
+            in_progress=False,
+            participation__roles__permissions__permission=(
+                PPerm.included_in_grade_statistics)
+    ).distinct()
+
+    session_scores: list[tuple[int, float]] = []
+    for session in sessions:
+        pperc = session.points_percentage()
+        if pperc is not None:
+            session_scores.append((session.id, float(pperc)))
+
+    if not session_scores:
+        return {}
+
+    session_scores.sort(key=operator.itemgetter(1))
+    n = len(session_scores)
+    return {
+        sid: min(NUM_QUARTILES - 1, int(i * NUM_QUARTILES / n))
+        for i, (sid, _score) in enumerate(session_scores)
+    }
+
+
 @dataclass
 class PageAnswerStats:
     group_id: str
@@ -296,6 +335,13 @@ class PageAnswerStats:
     answer_count: int
     total_count: int
     url: str | None
+    # Average correctness (0–1) per score quartile (index 0 = Q1 … 3 = Q4).
+    # A quartile entry is None when no graded visits exist for that quartile.
+    quartile_correctness_list: list[float | None]
+
+    @property
+    def quartile_correctness_json(self) -> str:
+        return json.dumps(self.quartile_correctness_list)
 
     @property
     def average_wrongness(self):
@@ -343,6 +389,8 @@ def make_page_answer_stats_list(
 
     page_cache = PageInstanceCache(pctx.repo, pctx.course, flow_id)
 
+    session_quartile_map = compute_session_quartile_map(pctx, flow_id)
+
     page_info_list: list[PageAnswerStats] = []
     for group_desc in flow_desc.groups:
         for page_desc in group_desc.pages:
@@ -352,6 +400,9 @@ def make_page_answer_stats_list(
 
             answer_count = 0
             total_count = 0
+
+            quartile_points: list[float] = [0.0] * NUM_QUARTILES
+            quartile_graded_counts: list[int] = [0] * NUM_QUARTILES
 
             visits = (FlowPageVisit.objects
                     .filter(
@@ -375,9 +426,17 @@ def make_page_answer_stats_list(
                             .distinct("page_data__id")
                             .order_by("page_data__id", "-visit_time"))
 
+            latest_grade_correctness = Subquery(
+                    FlowPageVisitGrade.objects.filter(
+                        visit=OuterRef("pk"),
+                    ).order_by("-grade_time").values("correctness")[:1],
+                    output_field=FloatField(),
+                    )
+
             visits = (visits
                     .select_related("flow_session")
-                    .select_related("page_data"))
+                    .select_related("page_data")
+                    .annotate(latest_grade_correctness=latest_grade_correctness))
 
             answer_expected = False
 
@@ -397,7 +456,7 @@ def make_page_answer_stats_list(
 
                 title = page.page_title(grading_page_context, visit.page_data.data)
 
-                answer_feedback = visit.get_most_recent_feedback()
+                correctness: float | None = visit.latest_grade_correctness
 
                 if visit.answer is not None:
                     answer_count += 1
@@ -406,17 +465,28 @@ def make_page_answer_stats_list(
 
                 total_count += 1
 
-                if (answer_feedback is not None
-                        and answer_feedback.correctness is not None):
+                if correctness is not None:
                     if visit.answer is None:
-                        assert answer_feedback.correctness == 0
+                        assert correctness == 0
                     else:
-                        points += answer_feedback.correctness
+                        points += correctness
 
                     graded_count += 1
 
+                    quartile = session_quartile_map.get(
+                            visit.flow_session_id)
+                    if quartile is not None:
+                        quartile_points[quartile] += correctness
+                        quartile_graded_counts[quartile] += 1
+
             if not answer_expected:
                 continue
+
+            quartile_correctness_list: list[float | None] = [
+                    safe_div(quartile_points[q], quartile_graded_counts[q])
+                    if quartile_graded_counts[q] > 0
+                    else None
+                    for q in range(NUM_QUARTILES)]
 
             page_info_list.append(
                     PageAnswerStats(
@@ -435,7 +505,8 @@ def make_page_answer_stats_list(
                                 flow_id,
                                 group_desc.id,
                                 page_desc.id,
-                                ))))
+                                )),
+                        quartile_correctness_list=quartile_correctness_list))
 
     return page_info_list
 
