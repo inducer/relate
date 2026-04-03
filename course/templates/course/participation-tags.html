@@ -1,0 +1,42 @@
+{% extends "course/course-base.html" %}
+{% load i18n %}
+
+{% block title %}
+  {% trans "Participation Tags" %} - {{ relate_site_name }}
+{% endblock %}
+
+{% block content %}
+  <h1>{% trans "Participation Tags" %}</h1>
+
+  <p>
+    <a href="{% url "relate-edit_participation_tag" course.identifier -1 %}" class="btn btn-primary">
+      {% trans "Add participation tag" %}
+    </a>
+  </p>
+
+  {% if participation_tags %}
+    <table class="table table-striped">
+      <thead>
+        <tr>
+          <th>{% trans "Name" %}</th>
+          <th>{% trans "Shown to participant" %}</th>
+          <th>{% trans "Actions" %}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for tag in participation_tags %}
+          <tr>
+            <td>{{ tag.name }}</td>
+            <td>{{ tag.shown_to_participant|yesno }}</td>
+            <td>
+              <a href="{% url "relate-edit_participation_tag" course.identifier tag.id %}" class="btn btn-outline-secondary btn-sm">{% trans "Edit" %}</a>
+              <a href="{% url "relate-delete_participation_tag" course.identifier tag.id %}" class="btn btn-outline-danger btn-sm">{% trans "Delete" %}</a>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p>{% trans "No participation tags defined." %}</p>
+  {% endif %}
+{% endblock %}
