@@ -344,6 +344,25 @@ urlpatterns = [
         name="relate-renumber_events"),
     re_path(r"^course"
         "/" + COURSE_ID_REGEX
+        + "/events/$",
+        course.calendar.list_events,
+        name="relate-list_events"),
+    re_path(r"^course"
+        "/" + COURSE_ID_REGEX
+        + "/events"
+        "/(?P<event_id>[-0-9]+)"
+        "/edit/$",
+        course.calendar.edit_event,
+        name="relate-edit_event"),
+    re_path(r"^course"
+        "/" + COURSE_ID_REGEX
+        + "/events"
+        "/(?P<event_id>[0-9]+)"
+        "/delete/$",
+        course.calendar.delete_event,
+        name="relate-delete_event"),
+    re_path(r"^course"
+        "/" + COURSE_ID_REGEX
         + "/calendar/$",
         course.calendar.view_calendar,
         name="relate-view_calendar"),

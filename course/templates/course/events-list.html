@@ -1,0 +1,59 @@
+{% extends "course/course-base.html" %}
+
+{% load i18n %}
+
+{% block title %}
+  {% trans "Events" %} - {{ relate_site_name }}
+{% endblock %}
+
+{% block content %}
+  <h1>{% trans "Events" %}</h1>
+
+  <a href="{% url "relate-edit_event" course.identifier -1 %}" class="btn btn-outline-secondary">{% trans "Add event" %}</a>
+
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        <th>{% trans "Kind" %}</th>
+        <th>{% trans "Ordinal" %}</th>
+        <th>{% trans "Start time" %}</th>
+        <th>{% trans "End time" %}</th>
+        <th>{% trans "All day" %}</th>
+        <th>{% trans "Shown in calendar" %}</th>
+        <th>{% trans "Actions" %}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for event in events %}
+      <tr>
+        <td>{{ event.kind }}</td>
+        <td>{{ event.ordinal|default:"" }}</td>
+        <td>{{ event.time }}</td>
+        <td>{{ event.end_time|default:"" }}</td>
+        <td>
+          {% if event.all_day %}
+            <i class="bi bi-check-square"></i>
+          {% else %}
+            <i class="bi bi-square"></i>
+          {% endif %}
+        </td>
+        <td>
+          {% if event.shown_in_calendar %}
+            <i class="bi bi-check-square"></i>
+          {% else %}
+            <i class="bi bi-square"></i>
+          {% endif %}
+        </td>
+        <td>
+          <a href="{% url "relate-edit_event" course.identifier event.id %}" class="btn btn-outline-secondary btn-sm">{% trans "Edit" %}</a>
+          <a href="{% url "relate-delete_event" course.identifier event.id %}" class="btn btn-outline-danger btn-sm">{% trans "Delete" %}</a>
+        </td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="7">{% trans "No events." %}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}
