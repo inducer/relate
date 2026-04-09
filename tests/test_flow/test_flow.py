@@ -5226,8 +5226,9 @@ class FlowDescTitleTest(unittest.TestCase):
 
     def test_no_title_no_heading_raises(self):
         """No 'title' attribute and no heading in description: validation error."""
+        from pydantic import ValidationError
         vctx = self._make_vctx()
-        with self.assertRaises(Exception) as cm:
+        with self.assertRaises(ValidationError) as cm:
             flow_desc_ta.validate_python({
                 "description": "Just some text, no heading.",
                 "pages": [{"type": "Page", "id": "p1", "content": "# Page"}],

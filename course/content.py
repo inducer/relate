@@ -933,7 +933,10 @@ class FlowDesc:
             return self.title
 
         result = extract_title_from_markup(self.description)
-        assert result is not None
+        if result is None:
+            raise ValueError(
+                "no title available: 'title' attribute is absent and no "
+                "Markdown heading was found in 'description'")
         return result
 
 
