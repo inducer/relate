@@ -5179,3 +5179,75 @@ class ViewUnsubmitFlowPageTest(SingleCourseQuizPageTestMixin, TestCase):
         self.assertIn(expected_error_msg, self.mock_add_message.call_args[0])
 
 # vim: foldmethod=marker
+
+
+# {{{ test FlowDesc title handling
+
+class FlowDescTitleTest(unittest.TestCase):
+    """Tests for deprecated 'title' attribute and get_title() in FlowDesc."""
+
+    def _make_vctx(self):
+        return ValidationContext(EmptyRepo(), b"norev")
+
+    def _make_flow_desc(self, vctx, **kwargs):
+        base = {
+            "description": "# My Flow Title\n\nSome text.",
+            "pages": [{"type": "Page", "id": "p1", "content": "# Page"}],
+        }
+        base.update(kwargs)
+        return flow_desc_ta.validate_python(base, context=vctx)
+
+    def test_title_derived_from_description(self):
+        """No 'title' attribute: title comes from description heading."""
+        vctx = self._make_vctx()
+        fd = self._make_flow_desc(vctx)
+        self.assertEqual(fd.get_title(), "My Flow Title")
+        self.assertIsNone(fd.title)
+        self.assertEqual(vctx.warnings, [])
+
+    def test_title_attr_with_heading_in_description_warns(self):
+        """Explicit 'title' AND description heading: deprecation warning issued."""
+        vctx = self._make_vctx()
+        fd = self._make_flow_desc(vctx, title="My Flow Title")
+        self.assertEqual(fd.get_title(), "My Flow Title")
+        self.assertEqual(len(vctx.warnings), 1)
+        self.assertIn("deprecated", vctx.warnings[0].text)
+
+    def test_title_attr_no_heading_no_warning(self):
+        """Explicit 'title' but description has no heading: no warning."""
+        vctx = self._make_vctx()
+        fd = flow_desc_ta.validate_python({
+            "title": "My Flow",
+            "description": "Just some text, no heading.",
+            "pages": [{"type": "Page", "id": "p1", "content": "# Page"}],
+        }, context=vctx)
+        self.assertEqual(fd.get_title(), "My Flow")
+        self.assertEqual(vctx.warnings, [])
+
+    def test_no_title_no_heading_raises(self):
+        """No 'title' attribute and no heading in description: validation error."""
+        vctx = self._make_vctx()
+        with self.assertRaises(Exception) as cm:
+            flow_desc_ta.validate_python({
+                "description": "Just some text, no heading.",
+                "pages": [{"type": "Page", "id": "p1", "content": "# Page"}],
+            }, context=vctx)
+        self.assertIn("no title", str(cm.exception).lower())
+
+    def test_get_title_returns_attr_when_set(self):
+        """get_title() returns the explicit title attribute when it is set."""
+        vctx = self._make_vctx()
+        fd = flow_desc_ta.validate_python({
+            "title": "Explicit Title",
+            "description": "No heading here.",
+            "pages": [{"type": "Page", "id": "p1", "content": "# Page"}],
+        }, context=vctx)
+        self.assertEqual(fd.get_title(), "Explicit Title")
+
+    def test_get_title_falls_back_to_description(self):
+        """get_title() extracts title from description when 'title' is absent."""
+        vctx = self._make_vctx()
+        fd = self._make_flow_desc(vctx)
+        self.assertEqual(fd.get_title(), "My Flow Title")
+
+# }}}

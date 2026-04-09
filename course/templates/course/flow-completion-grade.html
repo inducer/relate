@@ -3,14 +3,14 @@
 {% load i18n %}
 
 {% block title %}
-  {{flow_desc.title}} - {{ relate_site_name }}
+  {{flow_desc.get_title}} - {{ relate_site_name }}
 {% endblock %}
 
 {% block content %}
 
   {% if grade_info != None %}
       {% if grade_info.total_count or grade_info.optional_total_count %}
-          <h1>{% trans "Results" %}: {{flow_desc.title}}</h1>
+          <h1>{% trans "Results" %}: {{flow_desc.get_title}}</h1>
           <div class="relate-well flow-well">
               {% if grade_info.total_count %}
                   <p>

@@ -1834,7 +1834,7 @@ def get_flow_grading_opportunity(
     default_name = (
             # Translators: display the name of a flow
             _("Flow: %(flow_desc_title)s")
-            % {"flow_desc_title": flow_desc.title})
+            % {"flow_desc_title": flow_desc.get_title()})
 
     gopp, created = GradingOpportunity.objects.get_or_create(
             course=course,
@@ -1845,7 +1845,7 @@ def get_flow_grading_opportunity(
                 "aggregation_strategy": grade_aggregation_strategy,
                 })
 
-    # update gopp.name when flow_desc.title changed
+    # update gopp.name when flow_desc title changed
     if not created and gopp.name != default_name:
         gopp.name = default_name
         gopp.save()

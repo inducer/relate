@@ -860,8 +860,11 @@ class FlowDesc:
     .. autoattribute:: notify_on_submit
     """
 
-    title: str
-    """A plain-text title of the flow"""
+    title: str | None = None
+    """A plain-text title of the flow. Optional if the description starts with
+    a Markdown heading (e.g. ``# My Flow Title``), in which case the title is
+    derived from that heading. Supplying an explicit title when the description
+    already provides one is deprecated."""
 
     description: Markup
     """A description shown on the start page of the flow."""
@@ -896,10 +899,42 @@ class FlowDesc:
         return data
 
     @model_validator(mode="after")
+    def check_title(self, info: ValidationInfo) -> Self:
+        vctx = get_validation_context(info)
+
+        extracted_title = extract_title_from_markup(self.description)
+
+        if self.title is not None and extracted_title is not None:
+            vctx.add_warning(
+                _("Attribute 'title' is deprecated for flows. "
+                  "Remove it and use a Markdown heading in 'description' "
+                  "instead."))
+        elif self.title is None and extracted_title is None:
+            raise ValueError(
+                _("no title present: either supply a 'title' attribute "
+                  "or begin 'description' with a Markdown heading "
+                  "(e.g. '# My Flow Title')"))
+
+        return self
+
+    @model_validator(mode="after")
     def check_group_id_uniqueness(self) -> Self:
         if len({g.id for g in self.groups}) != len(self.groups):
             raise ValueError("group IDs are not unique")
         return self
+
+    def get_title(self) -> str:
+        """Return the flow's title.
+
+        If :attr:`title` is set, return it.  Otherwise extract the title from
+        the first Markdown heading found in :attr:`description`.
+        """
+        if self.title is not None:
+            return self.title
+
+        result = extract_title_from_markup(self.description)
+        assert result is not None
+        return result
 
 
 flow_desc_ta = TypeAdapter(FlowDesc)

@@ -6,7 +6,7 @@
 
 {% block title %}
   [{{ page_data.next_ordinal }}/{{ flow_session.page_count }}]
-  {{title|safe}} - {{ flow_desc.title}} - {{ relate_site_name }}
+  {{title|safe}} - {{ flow_desc.get_title}} - {{ relate_site_name }}
 {% endblock %}
 
 {% block content %}
@@ -162,7 +162,7 @@
                 <i class="bi bi-list"></i>
               </button>
               <ul class="dropdown-menu dropdown-menu-end shadow" aria-labelledby="FlowPageMenuDropdown">
-                <li><h6 class="dropdown-header">{{ flow_desc.title }}</h6></li>
+                <li><h6 class="dropdown-header">{{ flow_desc.get_title }}</h6></li>
                 <li>
                   <a class="dropdown-item" href='{% url "relate-view_start_flow" course.identifier flow_session.flow_id %}'
                     >{% trans "Return to flow start page" %}</a>
@@ -225,7 +225,7 @@
                   {% if interaction_kind == flow_session_interaction_kind.ungraded %}
                     {% trans "Submit" %}
                   {% elif interaction_kind == flow_session_interaction_kind.permanent_grade %}
-                    {% blocktrans with flow_title=flow_desc.title %}Submit {{ flow_title }}{% endblocktrans %}
+                    {% blocktrans with flow_title=flow_desc.get_title %}Submit {{ flow_title }}{% endblocktrans %}
                   {% else %}
                     {% trans "Finish" %}
                   {% endif %}
