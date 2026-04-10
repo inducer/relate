@@ -2,8 +2,20 @@ from __future__ import annotations
 
 import pytest
 
+from tests.factories import UserFactory
+
 
 # from pytest_factoryboy import register
+
+
+@pytest.fixture
+def admin_user():
+    user = UserFactory.create(
+        username="admin",
+        is_staff=True,
+        is_superuser=True,
+    )
+    yield user
 
 
 def pytest_addoption(parser):
