@@ -108,6 +108,10 @@ dev = [
     "numpy~=2.1",
     "yamllint>=1.32.0,<2",
     { include-group = "types" },
+
+    # - used in python code runner (and helps there with types)
+    # - also helpful for 'relate test-code' when plotting is in use
+    "matplotlib",
 ]
 mypy = [
     "django-stubs[compatible-mypy]==6.0.*",
