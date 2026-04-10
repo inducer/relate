@@ -255,7 +255,7 @@ class SingleCourseQuizPageTest(SingleCourseQuizPageTestMixin,
         self.assertAddMessageCalledWith(MESSAGE_ANSWER_FAILED_SAVE_TEXT)
         self.assertFormErrorLoose(
             submit_answer_response,
-            "at least one 'correct' choice is required"
+            "at least one choice must be marked fully correct"
         )
         page_ordinal = self.get_page_ordinal_via_page_id(page_id)
         self.assertSubmitHistoryItemsCount(page_ordinal=page_ordinal,
