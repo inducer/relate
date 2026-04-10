@@ -57,7 +57,7 @@ from course.page.base import (
     PageData,
     markup_to_html,
 )
-from course.page.choice import ChoiceDesc, ChoiceMode
+from course.page.choice import SingleChoiceDesc  # noqa: TC001
 from course.page.text import Matcher  # noqa: TC001
 from course.validation import (
     CSSDimension,
@@ -298,17 +298,13 @@ class ShortAnswer(AnswerBase):
 class ChoicesAnswer(AnswerBase):
     type: Literal["ChoicesAnswer"] = "ChoicesAnswer"  # pyright: ignore[reportIncompatibleVariableOverride]
 
-    choices: Annotated[list[ChoiceDesc], AfterValidator(validate_nonempty)]
+    choices: Annotated[list[SingleChoiceDesc], AfterValidator(validate_nonempty)]
 
     @model_validator(mode="after")
-    def check_choice_modes(self) -> Self:
-        if any(ch.mode == ChoiceMode.ALWAYS_CORRECT for ch in self.choices):
-            raise ValueError(_("'always_correct' choices not allowed"))
-        if any(ch.mode == ChoiceMode.DISREGARD for ch in self.choices):
-            raise ValueError(_("'disregard' choices not allowed"))
-        if sum(int(ch.mode == ChoiceMode.CORRECT) for ch in self.choices) < 1:
-            raise ValueError(_("at least one 'correct' choice is required"))
-
+    def check_one_fully_correct(self) -> Self:
+        if not [ch for ch in self.choices if ch.correctness >= 1]:
+            raise ValueError(
+                _("at least one choice must be marked fully correct"))
         return self
 
     @classmethod
@@ -333,15 +329,16 @@ class ChoicesAnswer(AnswerBase):
 
     def correct_indices(self):
         return [i for i, choice in enumerate(self.choices)
-            if choice.mode == ChoiceMode.CORRECT]
+            if choice.correctness >= 1]
 
     @override
     def get_correct_answer_text(self, page_context: PageContext):
-        corr_idx = self.correct_indices()[0]
+        corr_indices = self.correct_indices()
+        best_idx = max(corr_indices, key=lambda i: self.choices[i].correctness)
         return ("{}{}{}".format(
                     (self.prepended_text or "").strip(),
                     self.process_choice_string(
-                        page_context, self.choices[corr_idx].text).lstrip(),
+                        page_context, self.choices[best_idx].text).lstrip(),
                     (self.appended_text or "").strip())
                 )
 
@@ -354,9 +351,11 @@ class ChoicesAnswer(AnswerBase):
     def get_correctness(self, answer: str):
         if answer == "":
             return 0
-        if int(answer) in self.correct_indices():
-            return 1
-        return 0
+        correctness = self.choices[int(answer)].correctness
+        if int(correctness) == correctness:
+            # Some tests like integers better than floats :facepalm:
+            correctness = int(correctness)
+        return correctness
 
     @override
     def get_form_field(self, page_context: PageContext, force_required: bool):
@@ -495,6 +494,8 @@ class InlineMultiQuestion(
                 required: True
                 choices:
                 - ~CORRECT~ Correct
+                - text: Half-credit
+                  correctness: 0.5
                 - Wrong
 
             choice2:
