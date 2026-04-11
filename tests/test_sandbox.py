@@ -23,6 +23,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
+from typing import TYPE_CHECKING
+
 from django.test import TestCase
 from django.urls import reverse
 
@@ -39,6 +41,10 @@ from tests.base_test_mixins import (
 )
 from tests.constants import HAVE_VALID_PAGE, PAGE_ERRORS, PAGE_WARNINGS
 from tests.utils import mock
+
+
+if TYPE_CHECKING:
+    from django.http.response import HttpResponse
 
 
 QUESTION_MARKUP = """
@@ -140,10 +146,14 @@ class SingleCoursePageSandboxTestBaseMixin(SingleCourseTestMixin):
     def get_sandbox_page_session(self):
         return self.get_sandbox_data_by_key(PAGE_SESSION_KEY_PREFIX)
 
-    def assertSandboxHasValidPage(self, resp):  # noqa
+    def assertSandboxHasValidPage(self, resp: HttpResponse):  # noqa
         self.assertResponseContextEqual(resp, HAVE_VALID_PAGE, True)
 
-    def assertSandboxWarningTextContain(self, resp, expected_text, loose=False):  # noqa
+    def assertSandboxWarningTextContain(self,   # noqa: N802
+                resp: HttpResponse,
+                expected_text: str | None,
+                loose: bool = False
+            ):
         warnings = self.get_response_context_value_by_name(resp, PAGE_WARNINGS)
         warnings_strs = [w.text for w in warnings]
         if expected_text is None:
