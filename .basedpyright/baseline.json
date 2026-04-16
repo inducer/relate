@@ -18837,7 +18837,47 @@
                 "code": "reportUnknownVariableType",
                 "range": {
                     "startColumn": 11,
-                    "endColumn": 44,
+                    "endColumn": 49,
+                    "lineCount": 1
+                }
+            },
+            {
+                "code": "reportMissingTypeStubs",
+                "range": {
+                    "startColumn": 9,
+                    "endColumn": 14,
+                    "lineCount": 1
+                }
+            },
+            {
+                "code": "reportUnknownVariableType",
+                "range": {
+                    "startColumn": 22,
+                    "endColumn": 30,
+                    "lineCount": 1
+                }
+            },
+            {
+                "code": "reportUnknownVariableType",
+                "range": {
+                    "startColumn": 4,
+                    "endColumn": 8,
+                    "lineCount": 1
+                }
+            },
+            {
+                "code": "reportUnknownVariableType",
+                "range": {
+                    "startColumn": 11,
+                    "endColumn": 30,
+                    "lineCount": 1
+                }
+            },
+            {
+                "code": "reportUnknownArgumentType",
+                "range": {
+                    "startColumn": 20,
+                    "endColumn": 24,
                     "lineCount": 1
                 }
             },
@@ -18910,38 +18950,6 @@
                 "range": {
                     "startColumn": 8,
                     "endColumn": 13,
-                    "lineCount": 1
-                }
-            },
-            {
-                "code": "reportUnknownVariableType",
-                "range": {
-                    "startColumn": 12,
-                    "endColumn": 22,
-                    "lineCount": 1
-                }
-            },
-            {
-                "code": "reportMissingTypeStubs",
-                "range": {
-                    "startColumn": 13,
-                    "endColumn": 18,
-                    "lineCount": 1
-                }
-            },
-            {
-                "code": "reportUnknownVariableType",
-                "range": {
-                    "startColumn": 26,
-                    "endColumn": 34,
-                    "lineCount": 1
-                }
-            },
-            {
-                "code": "reportUnknownArgumentType",
-                "range": {
-                    "startColumn": 35,
-                    "endColumn": 71,
                     "lineCount": 1
                 }
             },
@@ -76526,6 +76534,40 @@
                 "range": {
                     "startColumn": 12,
                     "endColumn": 28,
+                    "lineCount": 1
+                }
+            }
+        ],
+        "./tests/test_relate_utils.py": [
+            {
+                "code": "reportMissingParameterType",
+                "range": {
+                    "startColumn": 18,
+                    "endColumn": 19,
+                    "lineCount": 1
+                }
+            },
+            {
+                "code": "reportMissingParameterType",
+                "range": {
+                    "startColumn": 22,
+                    "endColumn": 29,
+                    "lineCount": 1
+                }
+            },
+            {
+                "code": "reportMissingParameterType",
+                "range": {
+                    "startColumn": 31,
+                    "endColumn": 32,
+                    "lineCount": 1
+                }
+            },
+            {
+                "code": "reportMissingParameterType",
+                "range": {
+                    "startColumn": 23,
+                    "endColumn": 26,
                     "lineCount": 1
                 }
             }
