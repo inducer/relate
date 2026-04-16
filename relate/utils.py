@@ -25,7 +25,10 @@ THE SOFTWARE.
 
 
 import datetime
+import multiprocessing
+import multiprocessing.connection
 from abc import ABC
+from dataclasses import dataclass
 from ipaddress import IPv4Address, IPv6Address, ip_address, ip_network
 from typing import (
     TYPE_CHECKING,
@@ -39,7 +42,7 @@ from django import forms
 from django.http import HttpRequest
 from django.utils.text import format_lazy
 from django.utils.translation import gettext_lazy as _
-from typing_extensions import TypeIs, deprecated, override
+from typing_extensions import Sentinel, TypeIs, deprecated, override
 
 
 if TYPE_CHECKING:
@@ -299,6 +302,60 @@ class retry_transaction_decorator:  # noqa
 
         update_wrapper(wrapper, f)
         return wrapper
+
+
+# {{{ call with timeout
+
+TIMED_OUT = Sentinel("TIMED_OUT")
+
+
+@dataclass(frozen=True)
+class _RaisedException:
+    exc_value: Exception
+
+
+def _call_with_timeout_worker(
+            conn: multiprocessing.connection.Connection,
+            f: Callable[P, ResultT],
+            *args: P.args,
+            **kwargs: P.kwargs,
+        ) -> None:
+    try:
+        conn.send(f(*args, **kwargs))
+
+    except Exception as e:
+        conn.send(_RaisedException(e))
+    finally:
+        conn.close()
+
+
+def call_with_timeout(
+            timeout: float,
+            f: Callable[P, ResultT],
+            *args: P.args,
+            **kwargs: P.kwargs,
+        ) -> ResultT | TIMED_OUT:  # type: ignore[valid-type]
+    parent_conn, child_conn = multiprocessing.Pipe(duplex=False)
+    p = multiprocessing.Process(
+            target=_call_with_timeout_worker,
+            args=(child_conn, f, *args),
+            kwargs=kwargs,
+            daemon=True)
+    p.start()
+    child_conn.close()
+    try:
+        if parent_conn.poll(timeout):
+            result = parent_conn.recv()
+            if isinstance(result, _RaisedException):
+                raise result.exc_value
+            return result
+        return TIMED_OUT
+    finally:
+        p.kill()
+        p.join()
+        parent_conn.close()
+
+# }}}
 
 
 # {{{ hang debugging

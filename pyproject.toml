@@ -319,6 +319,9 @@ pythonPlatform = "All"
 
 reportAny = "none"
 
+# for Sentinel
+enableExperimentalFeatures = true
+
 exclude = [
     ".venv",
     "contrib/jupyterlite",
