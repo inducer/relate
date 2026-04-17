@@ -543,22 +543,31 @@ def check_exam_ticket(
     """
     _ = gettext
 
+    if code is None:
+        return (False, None, _("No ticket code provided."))
+
     try:
         user = get_user_model().objects.get(
                 username=username,
                 is_active=True)
-
-        ticket_kwargs = {}
-        if restrict_to_course is not None:
-            ticket_kwargs["participation__course"] = restrict_to_course
-
-        ticket = ExamTicket.objects.get(
-                participation__user=user,
-                code=code,
-                **ticket_kwargs
-                )
     except ObjectDoesNotExist:
-        return (False, None, _("User name or ticket code not recognized."))
+        return (False, None, _("User name not recognized."))
+
+    ticket_kwargs = {}
+    if restrict_to_course is not None:
+        ticket_kwargs["participation__course"] = restrict_to_course
+
+    ticket = None
+    for cand_ticket in ExamTicket.objects.filter(
+            participation__user=user,
+            code=code,
+            **ticket_kwargs
+            ):
+        if secrets.compare_digest(cand_ticket.code, code):
+            ticket = cand_ticket
+
+    if ticket is None:
+        return (False, None, _("Ticket code not recognized."))
 
     if ticket.state not in [
             ExamTicketState.valid,
