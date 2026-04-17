@@ -24,6 +24,7 @@ THE SOFTWARE.
 """
 
 import re
+import secrets
 from collections.abc import Callable
 from typing import (
     TYPE_CHECKING,
@@ -312,15 +313,7 @@ def impersonation_context_processor(request):
 
 
 def make_sign_in_key(user: User) -> str:
-    # Try to ensure these hashes aren't guessable.
-    import hashlib
-    import random
-    from time import time
-    m = hashlib.sha1()
-    m.update(user.email.encode("utf-8"))
-    m.update(hex(random.getrandbits(128)).encode())
-    m.update(str(time()).encode("utf-8"))
-    return m.hexdigest()
+    return secrets.token_hex(32)
 
 
 def logout_confirmation_required(

@@ -23,6 +23,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
+import secrets
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, cast
 
@@ -86,8 +87,7 @@ ticket_alphabet = "ABCDEFGHJKLPQRSTUVWXYZabcdefghjkpqrstuvwxyz23456789"
 
 
 def gen_ticket_code():
-    from random import choice
-    return "".join(choice(ticket_alphabet) for _i in range(8))
+    return "".join(secrets.choice(ticket_alphabet) for _ in range(12))
 
 
 # {{{ issue ticket
