@@ -313,7 +313,7 @@ def impersonation_context_processor(request):
 
 
 def make_sign_in_key(user: User) -> str:
-    return secrets.token_hex(32)
+    return secrets.token_hex(20)
 
 
 def logout_confirmation_required(
