@@ -350,22 +350,19 @@ class ParticipationAdmin(admin.ModelAdmin[Participation]):
         description=pgettext("real name of a user", "Name"),
         ordering="user__last_name",
     )
-    def get_user(self, obj):
+    def get_user(self, obj: Participation):
         from django.conf import settings
         from django.urls import reverse
-        from django.utils.html import mark_safe
+        from django.utils.html import format_html
 
-        return mark_safe(string_concat(
-                "<a href='%(link)s'>", "%(user_fullname)s",
-                "</a>"
-                ) % {
-                    "link": reverse(
-                        "admin:{}_change".format(
-                            settings.AUTH_USER_MODEL.replace(".", "_").lower()),
-                        args=(obj.user.id,)),
-                    "user_fullname": obj.user.get_full_name(
-                        force_verbose_blank=True),
-                    })
+        return format_html(
+                "<a href='{}'>{}</a>",
+                reverse(
+                    "admin:{}_change".format(
+                        settings.AUTH_USER_MODEL.replace(".", "_").lower()),
+                    args=(obj.user.id,)),
+                obj.user.get_full_name(force_verbose_blank=True),
+                )
 
     list_display = (
             "user",
