@@ -38,7 +38,6 @@ from django.core.exceptions import (
 )
 from django.db import transaction
 from django.utils.html import format_html, format_html_join
-from django.utils.safestring import mark_safe
 from django.utils.translation import get_language, gettext_lazy as _, pgettext_lazy
 
 from course.constants import ParticipationPermission as PPerm
@@ -74,7 +73,7 @@ class ListTextWidget(forms.TextInput):
             format_html_join("", "<option value='{}'>{}</option>",
                              self._list))
 
-        return mark_safe(text_html + data_list)
+        return format_html("{}{}", text_html, data_list)
 
 
 # {{{ creation
