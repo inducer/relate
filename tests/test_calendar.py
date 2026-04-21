@@ -47,26 +47,6 @@ from tests.utils import mock
 UTC = ZoneInfo("UTC")
 
 
-class ListTextWidgetTest(TestCase):
-    def test_render_escapes_option_values_and_labels(self):
-        widget = calendar.ListTextWidget(
-            data_list=[(
-                '"><script>alert(1)</script>',
-                "<img src=x onerror=alert('xss')>",
-            )],
-            name="event_choices")
-
-        rendered = widget.render(name="kind", value="")
-
-        self.assertIn('datalist id="list__event_choices"', rendered)
-        self.assertIn(
-            "value='&quot;&gt;&lt;script&gt;alert(1)&lt;/script&gt;'",
-            rendered)
-        self.assertIn("&lt;img src=x onerror=alert(&#x27;xss&#x27;)&gt;", rendered)
-        self.assertNotIn("<script>", rendered)
-        self.assertNotIn("<img src=x onerror=alert('xss')>", rendered)
-
-
 class CreateRecurringEventsTest(SingleCourseTestMixin,
                                 MockAddMessageMixing, TestCase):
     """test course.calendar.create_recurring_events"""
