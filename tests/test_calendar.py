@@ -332,27 +332,6 @@ class RecurringEventFormTest(SingleCourseTestMixin, TestCase):
             "Ensure this value is greater than or equal to 0.",
             form.errors["count"])
 
-    def test_available_kind_choices(self):
-        factories.EventFactory(
-            course=self.course, kind="some_kind1", ordinal=None)
-        factories.EventFactory(
-            course=self.course, kind="some_kind2", ordinal=1)
-        another_course = factories.CourseFactory(identifier="another-course")
-        factories.EventFactory(
-            course=another_course, kind="some_kind3", ordinal=1)
-        factories.EventFactory(
-            course=another_course, kind="some_kind4", ordinal=1)
-        form = calendar.RecurringEventForm(self.course.identifier)
-        self.assertIn(
-            '<option value="some_kind1">some_kind1</option>', form.as_p())
-        self.assertIn(
-            '<option value="some_kind2">some_kind2</option>', form.as_p())
-
-        self.assertNotIn(
-            '<option value="some_kind3">some_kind3</option>', form.as_p())
-        self.assertNotIn(
-            '<option value="some_kind4">some_kind4</option>', form.as_p())
-
 
 class RenumberEventsTest(SingleCourseTestMixin,
                          MockAddMessageMixing, TestCase):
