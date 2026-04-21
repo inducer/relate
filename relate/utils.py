@@ -27,7 +27,9 @@ THE SOFTWARE.
 import datetime
 import multiprocessing
 import multiprocessing.connection
+import signal
 from abc import ABC
+from contextlib import contextmanager
 from dataclasses import dataclass
 from ipaddress import IPv4Address, IPv6Address, ip_address, ip_network
 from typing import (
@@ -48,6 +50,7 @@ from typing_extensions import Sentinel, TypeIs, deprecated, override
 if TYPE_CHECKING:
     from collections.abc import Callable, Collection, Mapping
     from pathlib import Path
+    from types import FrameType
 
     from django.contrib.auth.models import AbstractUser, AnonymousUser
 
@@ -304,6 +307,15 @@ class retry_transaction_decorator:  # noqa
         return wrapper
 
 
+def is_running_in_celery():
+    try:
+        from celery import current_task
+        # If we are not in a worker, current_task.request is None
+        return current_task.request is not None
+    except Exception:
+        return False
+
+
 # {{{ call with timeout
 
 TIMED_OUT = Sentinel("TIMED_OUT")
@@ -329,14 +341,61 @@ def _call_with_timeout_worker(
         conn.close()
 
 
+# Empirically, 'spawn' is much cheaper than forking a heavily-laden
+# Django process, particularly with the (relatively) lightweight
+# payload functions in course.expr_evaluation.
+MP_CONTEXT = multiprocessing.get_context("spawn")
+
+
+@contextmanager
+def signal_handler(sig: int, handler: Callable[[int, FrameType | None], object]):
+    # Save the current handler
+    old_handler = signal.getsignal(sig)
+    # Install the new handler
+    signal.signal(sig, handler)
+    try:
+        yield
+    finally:
+        # Restore the original handler regardless of what happened
+        signal.signal(sig, old_handler)
+
+
+@contextmanager
+def alarm(timeout: int):
+    signal.alarm(timeout)
+    try:
+        yield
+    finally:
+        signal.alarm(0)
+
+
 def call_with_timeout(
-            timeout: float,
+            timeout: int,
             f: Callable[P, ResultT],
             *args: P.args,
             **kwargs: P.kwargs,
         ) -> ResultT | TIMED_OUT:  # type: ignore[valid-type]
-    parent_conn, child_conn = multiprocessing.Pipe(duplex=False)
-    p = multiprocessing.Process(
+    if hasattr(signal, "alarm") and timeout >= 1:
+        # Use alarm signal if supported and on Unix-like systems
+        # Note: signal.alarm only works on Unix and with integer seconds.
+        # Since timeout is float, we can only use it for integer timeouts,
+        # or fallback if precision is required/platform is Windows.
+        def handler(_signum: int, _frame: FrameType | None):
+            raise TimeoutError()
+
+        with signal_handler(signal.SIGALRM, handler), alarm(timeout):
+            try:
+                return f(*args, **kwargs)
+            except TimeoutError:
+                return TIMED_OUT
+
+    if is_running_in_celery():
+        # Subprocesses and celery don't seem to mix well. AK saw spurious
+        # grading failures.
+        return f(*args, **kwargs)
+
+    parent_conn, child_conn = MP_CONTEXT.Pipe(duplex=False)
+    p = MP_CONTEXT.Process(
             target=_call_with_timeout_worker,
             args=(child_conn, f, *args),
             kwargs=kwargs,

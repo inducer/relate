@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing_extensions import override
+
 
 __copyright__ = "Copyright (C) 2014 Andreas Kloeckner"
 
@@ -1084,7 +1086,7 @@ class GitTemplateLoader:
         self.repo = repo
         self.commit_sha = commit_sha
 
-    def __call__(self, template):
+    def __call__(self, template: str):
         data = get_repo_blob_data_cached(self.repo, template, self.commit_sha)
 
         return data.decode("utf-8")
@@ -1093,7 +1095,8 @@ class GitTemplateLoader:
 class YamlBlockEscapingGitTemplateLoader(GitTemplateLoader):
     # https://github.com/inducer/relate/issues/130
 
-    def __call__(self, template):
+    @override
+    def __call__(self, template: str):
         source = super().__call__(template)
 
         _, ext = os.path.splitext(template)

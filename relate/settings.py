@@ -312,8 +312,8 @@ if "CELERY_BROKER_URL" not in globals():
 
     CELERY_BROKER_URL = "amqp://"
 
-CELERY_ACCEPT_CONTENT = ["pickle", "json"]
-CELERY_TASK_SERIALIZER = "pickle"
+CELERY_ACCEPT_CONTENT = ["json"]
+CELERY_TASK_SERIALIZER = "json"
 # (pickle is buggy in django-celery-results 1.0.1)
 # https://github.com/celery/django-celery-results/issues/50
 CELERY_RESULT_SERIALIZER = "json"
