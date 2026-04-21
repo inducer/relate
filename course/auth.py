@@ -24,6 +24,7 @@ THE SOFTWARE.
 """
 
 import re
+import secrets
 from collections.abc import Callable
 from typing import (
     TYPE_CHECKING,
@@ -54,7 +55,7 @@ from django.core.exceptions import (
     PermissionDenied,
     SuspiciousOperation,
 )
-from django.http import HttpResponseRedirect
+from django.http import HttpRequest, HttpResponseRedirect
 from django.shortcuts import get_object_or_404, redirect, render, resolve_url
 from django.template.response import TemplateResponse
 from django.urls import reverse
@@ -312,15 +313,7 @@ def impersonation_context_processor(request):
 
 
 def make_sign_in_key(user: User) -> str:
-    # Try to ensure these hashes aren't guessable.
-    import hashlib
-    import random
-    from time import time
-    m = hashlib.sha1()
-    m.update(user.email.encode("utf-8"))
-    m.update(hex(random.getrandbits(128)).encode())
-    m.update(str(time()).encode("utf-8"))
-    return m.hexdigest()
+    return secrets.token_hex(20)
 
 
 def logout_confirmation_required(
@@ -342,23 +335,31 @@ def logout_confirmation_required(
 
 
 class EmailedTokenBackend:
-    def authenticate(self, request, user_id=None, token=None):
-        users = get_user_model().objects.filter(
-                id=user_id, sign_in_key=token)
-
-        assert users.count() <= 1
-        if users.count() == 0:
+    def authenticate(self,
+                request: HttpRequest,
+                user_id: int | None = None,
+                token: str | None = None):
+        if user_id is None:
+            return None
+        if token is None:
             return None
 
-        (user,) = users
+        try:
+            user = cast("User", get_user_model().objects.get(id=user_id))  # pyright: ignore[reportInvalidCast]
+        except get_user_model().DoesNotExist:
+            return None
 
-        user.status = UserStatus.active
-        user.sign_in_key = None
-        user.save()
+        if (user.sign_in_key is not None
+                and secrets.compare_digest(user.sign_in_key, token)):
+            user.status = UserStatus.active
+            user.sign_in_key = None
+            user.save()
 
-        return user
+            return user
+        else:
+            return None
 
-    def get_user(self, user_id):
+    def get_user(self, user_id: int):
         try:
             return get_user_model().objects.get(pk=user_id)
         except get_user_model().DoesNotExist:
@@ -715,8 +716,10 @@ def reset_password_stage2(
                 _("self-registration is not enabled"))
 
     def check_sign_in_key(user_id: int, token: str):
-        user = get_user_model().objects.get(id=user_id)
-        return user.sign_in_key == token
+        user = cast("User", get_user_model().objects.get(id=user_id))  # pyright: ignore[reportInvalidCast]
+        if user.sign_in_key is None:
+            return False
+        return secrets.compare_digest(user.sign_in_key, token)
 
     try:
         if not check_sign_in_key(user_id=int(user_id), token=sign_in_key):
@@ -790,7 +793,7 @@ class SignInByEmailForm(StyledForm):
 
 
 @logout_confirmation_required
-def sign_in_by_email(request):
+def sign_in_by_email(request: HttpRequest):
     if not settings.RELATE_SIGN_IN_BY_EMAIL_ENABLED:
         messages.add_message(request, messages.ERROR,
                 _("Email-based sign-in is not being used"))

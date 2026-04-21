@@ -667,6 +667,40 @@ answers:
 """
 
 
+INLINE_MULTI_MARKDOWN_CHOICES_WITH_PARTIAL_CREDIT = """
+type: InlineMultiQuestion
+id: inlinemulti
+value: 10
+prompt: |
+
+    # An InlineMultiQuestion example
+
+    Complete the following paragraph.
+
+question: |
+
+    Foo and [[blank1]] are often used in code examples.
+    A quarter equals [[choice1]].
+
+answers:
+
+    blank1:
+        type: ShortAnswer
+        width: 4em
+        required: False
+        correct_answer:
+        - <plain> BAR
+        - <plain>bar
+
+    choice1:
+        type: ChoicesAnswer
+        choices:
+        - Bad
+        - ~CORRECT~ Well
+        - correctness: 0.5
+          text: Somewhat well
+"""
+
 ADD_QUESTION_TEST_COMMIT_SHA = b"724452f310d8eb2e63bb412cd00004d1aef26e75-inline_add_q"
 
 
@@ -929,7 +963,7 @@ class InlineMultiQuestionTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
         self.assertSandboxNotHasValidPage(resp)
         self.assertResponseContextContains(
             resp, PAGE_ERRORS,
-            "at least one 'correct' choice is required")
+            "at least one choice must be marked fully correct")
 
     def test_embedded_question_no_answer_field_defined(self):
         markdown = INLINE_MULTI_MARKDOWN_NO_ANSWER_FIELD
@@ -1067,5 +1101,39 @@ class InlineMultiPageUpdateTest(SingleCourseQuizPageTestMixin, TestCase):
 
         # 7 answer
         self.assertContains(resp, 'correctness="1"', count=7)
+
+
+class InlineMultiChoicePartialCreditTest(
+        SingleCoursePageSandboxTestBaseMixin, TestCase):
+
+    def test_partial_credit_page_is_valid(self):
+        resp = self.get_page_sandbox_preview_response(
+            INLINE_MULTI_MARKDOWN_CHOICES_WITH_PARTIAL_CREDIT)
+        self.assertEqual(resp.status_code, 200)
+        self.assertSandboxHasValidPage(resp)
+
+    def test_partial_credit_incorrect_choice(self):
+        # blank1 correct (1.0), choice1 wrong (0.0) → overall 0.5
+        resp = self.get_page_sandbox_submit_answer_response(
+            INLINE_MULTI_MARKDOWN_CHOICES_WITH_PARTIAL_CREDIT,
+            answer_data={"blank1": "Bar", "choice1": 0})
+        self.assertEqual(resp.status_code, 200)
+        self.assertResponseContextAnswerFeedbackCorrectnessEquals(resp, 0.5)
+
+    def test_partial_credit_full_correct_choice(self):
+        # blank1 correct (1.0), choice1 correct (1.0) → overall 1.0
+        resp = self.get_page_sandbox_submit_answer_response(
+            INLINE_MULTI_MARKDOWN_CHOICES_WITH_PARTIAL_CREDIT,
+            answer_data={"blank1": "Bar", "choice1": 1})
+        self.assertEqual(resp.status_code, 200)
+        self.assertResponseContextAnswerFeedbackCorrectnessEquals(resp, 1)
+
+    def test_partial_credit_half_correct_choice(self):
+        # blank1 correct (1.0), choice1 half-credit (0.5) → overall 0.75
+        resp = self.get_page_sandbox_submit_answer_response(
+            INLINE_MULTI_MARKDOWN_CHOICES_WITH_PARTIAL_CREDIT,
+            answer_data={"blank1": "Bar", "choice1": 2})
+        self.assertEqual(resp.status_code, 200)
+        self.assertResponseContextAnswerFeedbackCorrectnessEquals(resp, 0.75)
 
 # vim: fdm=marker

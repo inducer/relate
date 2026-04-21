@@ -36,7 +36,6 @@ from django.core.exceptions import (
     ValidationError,
 )
 from django.db import transaction
-from django.utils.safestring import mark_safe
 from django.utils.translation import get_language, gettext_lazy as _, pgettext_lazy
 
 from course.constants import ParticipationPermission as PPerm
@@ -45,25 +44,6 @@ from course.models import Event
 from course.utils import CoursePageContext, course_view, render_course_page
 from course.validation import ValidationContext
 from relate.utils import HTML5DateTimeInput, StyledForm, as_local_time, string_concat
-
-
-class ListTextWidget(forms.TextInput):
-    # Widget which allow free text and choices for CharField
-    def __init__(self, data_list, name, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self._name = name
-        self._list = data_list
-        self.attrs.update({"list": f"list__{self._name}"})
-
-    def render(self, name, value, attrs=None, renderer=None):
-        text_html = super().render(
-            name, value, attrs=attrs, renderer=renderer)
-        data_list = f'<datalist id="list__{self._name}">'
-        for item in self._list:
-            data_list += f'<option value="{item[0]}">{item[1]}</option>'
-        data_list += "</datalist>"
-
-        return mark_safe(text_html + data_list)
 
 
 # {{{ creation
@@ -105,13 +85,6 @@ class RecurringEventForm(StyledForm):
     def __init__(self, course_identifier, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.course_identifier = course_identifier
-
-        exist_event_choices = [(choice, choice) for choice in set(
-            Event.objects.filter(
-                course__identifier=course_identifier)
-            .values_list("kind", flat=True))]
-        self.fields["kind"].widget = ListTextWidget(data_list=exist_event_choices,
-                                                    name="event_choices")
 
         self.helper.add_input(
                 Submit("submit", _("Create")))

@@ -303,7 +303,7 @@ class CheckExamTicketTest(ExamTestMixin, TestCase):
             facilities=self.facilities,
             logged_in=False)
         self.assertFalse(result)
-        self.assertEqual(msg, "User name or ticket code not recognized.")
+        self.assertEqual(msg, "User name not recognized.")
 
     def test_ticket_not_usable(self):
         result, _tkt, msg = exam.check_exam_ticket(

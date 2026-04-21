@@ -194,7 +194,9 @@ def test_code_question(page: PythonCodeQuestion | PythonCodeQuestionWHTF) -> boo
         sys.stdout = stdout
         sys.stderr = stderr
 
-        response = run_code(RunRequest.model_validate(run_req))
+        response = run_code(RunRequest.model_validate(run_req),
+                            # allows matplotlib GUI to work
+                            unsafely_skip_threading=True)
 
         response.stdout = stdout.getvalue()
         response.stderr = stderr.getvalue()

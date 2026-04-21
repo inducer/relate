@@ -4,12 +4,22 @@ import sys
 from functools import wraps
 from importlib import import_module, reload
 from io import StringIO
+from typing import TYPE_CHECKING
 from unittest import mock  # noqa: F401
 
 from django.conf import settings
 from django.core import mail
 from django.test import override_settings
 from django.urls import clear_url_caches
+
+from course.models import Course
+from course.versioning import create_course_with_repo_path
+
+
+if TYPE_CHECKING:
+    from django.contrib.auth.models import User
+
+    from course.repo import ProcessedRepoRootClass
 
 
 # {{{ These are copied (and maybe modified) from django official unit tests
@@ -164,5 +174,25 @@ is_connection_psql = _is_connection_psql()
 
 
 SKIP_NON_PSQL_REASON = "PostgreSQL specific SQL used"
+
+
+def make_pyclass_course(
+            cls: type[ProcessedRepoRootClass],
+            owner: User,
+            identifier: str = "mycourse",
+        ):
+    course = Course(
+        identifier=identifier,
+        name="My course",
+        number="MY123",
+        time_period="Anytime 3000",
+        from_email="instructor@example.com",
+        notify_email="instructor@example.com",
+        git_source=cls.registry_url,
+        active_git_commit_sha="CURRENT",
+    )
+    create_course_with_repo_path(course, owner)
+    return course
+
 
 # vim: fdm=marker

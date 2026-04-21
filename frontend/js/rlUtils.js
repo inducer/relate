@@ -4,10 +4,10 @@ export function getCookie(name) {
   let cookieValue = null;
   if (document.cookie && document.cookie !== '') {
     const cookies = document.cookie.split(';');
-    for (let i = 0; i < cookies.length; ++i) { /* eslint-disable-line no-plusplus */
+    for (let i = 0; i < cookies.length; ++i) {
       const cookie = jQuery.trim(cookies[i]);
       // Does this cookie string begin with the name we want?
-      if (cookie.substring(0, name.length + 1) === (name + '=')) { /* eslint-disable-line prefer-template */
+      if (cookie.substring(0, name.length + 1) === `${name}=`) {
         cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
         break;
       }
@@ -54,7 +54,8 @@ function convertUploadDataUrlToObjectUrl(dataUrlParts) {
     }
 
     const blob = new Blob([view], { type: dataUrlParts.mimeType });
-    return webkitURL.createObjectURL(blob); // eslint-disable-line no-undef
+    // biome-ignore lint/correctness/noUndeclaredVariables: WebKit-specific browser global
+    return webkitURL.createObjectURL(blob);
   }
   return null;
 }
@@ -100,7 +101,7 @@ function regexLastMatch(string, regex, startpos) {
   }
 
   let start;
-  if (typeof (startpos) === 'undefined') {
+  if (typeof startpos === 'undefined') {
     start = string.length;
   } else if (startpos < 0) {
     start = 0;
@@ -111,13 +112,10 @@ function regexLastMatch(string, regex, startpos) {
   const stringToWorkWith = string.substring(0, start);
   let match;
   let lastMatch = null;
-  // eslint-disable-next-line no-param-reassign
   regex.lastIndex = 0;
 
-  // eslint-disable-next-line no-cond-assign
   while ((match = regex.exec(stringToWorkWith)) != null) {
     lastMatch = match;
-    // eslint-disable-next-line no-param-reassign
     regex.lastIndex = match.index + 1;
   }
   return lastMatch;
@@ -153,9 +151,9 @@ function parseFloatRobust(s) {
 export function parsePointsSpecs(feedbackText) {
   const result = [];
   const pointsRegex = /\[pts:\s*([^\]]*)\]/g;
-  const pointsBodyRegex = /^([-0-9.]*)\s*((?:\/\s*[-0-9.]*)?)\s*((?:#[a-zA-Z_]\w*)?)\s*$/;
+  const pointsBodyRegex =
+    /^([-0-9.]*)\s*((?:\/\s*[-0-9.]*)?)\s*((?:#[a-zA-Z_]\w*)?)\s*$/;
 
-  // eslint-disable-next-line no-constant-condition
   while (true) {
     const bodyMatch = pointsRegex.exec(feedbackText);
     if (bodyMatch === null) {
@@ -212,7 +210,7 @@ export function encodeEntities(value) {
     .replace(SURROGATE_PAIR_REGEXP, (val) => {
       const hi = val.charCodeAt(0);
       const low = val.charCodeAt(1);
-      return `&#${((hi - 0xD800) * 0x400) + (low - 0xDC00) + 0x10000};`;
+      return `&#${((hi - 0xd800) * 0x400) + (low - 0xdc00) + 0x10000};`;
     })
     .replace(NON_ALPHANUMERIC_REGEXP, (val) => `&#${val.charCodeAt(0)};`)
     .replace(/</g, '&lt;')

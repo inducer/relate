@@ -256,11 +256,6 @@ class SymbolicExpressionMatcherTest(unittest.TestCase):
         # parse_sympy error
         assert matcher.grade("A^^(-2)").correctness == 0
 
-        # simplify error
-        with mock.patch("sympy.simplify") as mock_simplify:
-            mock_simplify.side_effect = ValueError("my simplify error")
-            assert matcher.grade("abcd").correctness == 0
-
 
 class FloatOrSympyEvalfTest(unittest.TestCase):
     # test float_or_sympy_evalf

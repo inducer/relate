@@ -26,7 +26,7 @@ THE SOFTWARE.
 import sys
 import threading
 import traceback
-from types import TracebackType
+from types import CodeType, TracebackType
 from typing import TYPE_CHECKING, ClassVar, Literal, TypeAlias
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -132,12 +132,12 @@ def package_exception(
 
 
 def user_code_thread(
-            user_code: str,
+            user_code: CodeType,
             user_ctx: dict[str, object],
             exc_info: list[ExcInfo]) -> None:
     try:
         exec(user_code, user_ctx)  # noqa: S102
-    except BaseException:
+    except Exception:
         tp, val, tb = sys.exc_info()
         assert tp is not None
         assert val is not None
@@ -145,7 +145,10 @@ def user_code_thread(
         exc_info.append((tp, val, tb))
 
 
-def run_code(run_req: RunRequest) -> RunResponse:
+def run_code(
+            run_req: RunRequest,
+            *, unsafely_skip_threading: bool = False
+        ) -> RunResponse:
     # {{{ silence matplotlib warnings
 
     import warnings
@@ -235,11 +238,16 @@ def run_code(run_req: RunRequest) -> RunResponse:
     old_scf = sys._current_frames  # pyright: ignore[reportPrivateUsage]
     sys._current_frames = dict  # pyright: ignore[reportPrivateUsage]
 
+    # Matplotlib GUI doesn't work in subthreads, which breaks it in
+    # relate test-code. Thus make threading here optional.
     exc_info: list[ExcInfo] = []
-    user_thread = threading.Thread(
-            target=user_code_thread, args=(user_code, user_ctx, exc_info))
-    user_thread.start()
-    user_thread.join()
+    if unsafely_skip_threading:
+        user_code_thread(user_code, user_ctx, exc_info)
+    else:
+        user_thread = threading.Thread(
+                target=user_code_thread, args=(user_code, user_ctx, exc_info))
+        user_thread.start()
+        user_thread.join()
 
     sys._current_frames = old_scf  # pyright: ignore[reportPrivateUsage]
 

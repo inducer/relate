@@ -48,7 +48,7 @@ from course.page.base import (
     PageData,
     markup_to_html,
 )
-from course.validation import Markup, validate_nonempty
+from course.validation import Markup, PointCount, validate_nonempty
 from relate.utils import StyledFormBase, StyledVerticalForm, string_concat
 
 
@@ -65,22 +65,52 @@ class ChoiceMode(StrEnum):
     ALWAYS_CORRECT = "always_correct"
 
 
-class ChoiceDesc(BaseModel):
-    tag_to_mode: ClassVar[dict[str, ChoiceMode]] = {
-        "~CORRECT~": ChoiceMode.CORRECT,
-        "~DISREGARD~": ChoiceMode.DISREGARD,
-        "~ALWAYS_CORRECT~": ChoiceMode.ALWAYS_CORRECT,
-    }
+CORRECT_TAG = "~CORRECT~"
 
+
+TAG_TO_MODE: dict[str, ChoiceMode] = {
+    CORRECT_TAG: ChoiceMode.CORRECT,
+    "~DISREGARD~": ChoiceMode.DISREGARD,
+    "~ALWAYS_CORRECT~": ChoiceMode.ALWAYS_CORRECT,
+}
+
+
+def mode_from_prefix(s: str):
+    mode: ChoiceMode | None = None
+    found = True
+    while found:
+        found = False
+        for prefix, chk_mode in TAG_TO_MODE.items():
+            if s.startswith(prefix):
+                s = s[len(prefix):].strip()
+                found = True
+
+                if mode is not None:
+                    raise ValueError(
+                            _("more than one choice mode encountered"))
+
+                mode = chk_mode
+                break
+
+    if mode is None:
+        mode = ChoiceMode.INCORRECT
+
+    return mode, s
+
+
+class ChoiceDescBase(BaseModel):
     model_config: ClassVar[ConfigDict] = ConfigDict(
                                     use_enum_values=True, extra="forbid")
 
-    mode: ChoiceMode
     text: Markup
+
+
+class SingleChoiceDesc(ChoiceDescBase):
+    correctness: PointCount = 0.0
 
     @model_validator(mode="before")
     @classmethod
-    def normalize_str_to_dict(cls, data: Any) -> Any:
+    def normalize_from_str(cls, data: Any) -> Any:
         if isinstance(data, dict):
             return data
 
@@ -89,30 +119,48 @@ class ChoiceDesc(BaseModel):
         except Exception:  # noqa: S110
             pass
         else:
+            choice_mode, choice_text = mode_from_prefix(data)
 
-            choice_mode: ChoiceMode | None = None
+            if choice_mode == ChoiceMode.CORRECT:
+                return {
+                    "correctness": 1,
+                    "text": choice_text,
+                }
+            elif choice_mode == ChoiceMode.INCORRECT:
+                return {
+                    "correctness": 0,
+                    "text": choice_text,
+                }
+            elif choice_mode == ChoiceMode.DISREGARD:
+                raise ValueError(_("'disregard' choices not allowed"))
+            elif choice_mode == ChoiceMode.ALWAYS_CORRECT:
+                raise ValueError(_("'always_correct' choices not allowed"))
+            else:
+                raise ValueError(f"unexpected choice mode: '{choice_mode}'")
 
-            def mode_from_prefix(s: str):
-                nonlocal choice_mode
+        return data
 
-                for prefix, mode in cls.tag_to_mode.items():
-                    if s.startswith(prefix):
-                        s = s[len(prefix):].strip()
 
-                        if choice_mode is not None:
-                            raise ValueError(
-                                    _("more than one choice mode encountered"))
+class MultipleChoiceDesc(ChoiceDescBase):
+    mode: ChoiceMode = ChoiceMode.INCORRECT
 
-                        choice_mode = mode
-                        s = mode_from_prefix(s)
-                return s
+    @model_validator(mode="before")
+    @classmethod
+    def normalize_from_str(cls, data: Any) -> Any:
+        if isinstance(data, dict):
+            return data  # pyright: ignore[reportUnknownVariableType]
 
-            s = mode_from_prefix(data)
+        try:
+            data = str(data)
+        except Exception:  # noqa: S110
+            pass
+        else:
+            choice_mode, choice_text = mode_from_prefix(data)
 
-            if choice_mode is None:
-                choice_mode = ChoiceMode.INCORRECT
-
-            return {"mode": str(choice_mode), "text": s}
+            return {
+                "mode": str(choice_mode),
+                "text": choice_text,
+            }
 
         return data
 
@@ -167,10 +215,17 @@ class MultipleChoiceAnswerForm(StyledVerticalForm):
 
 class ChoiceQuestionBase(PageBaseWithTitle, PageBaseWithValue, ABC):
     prompt: Markup
-    choices: Annotated[list[ChoiceDesc], AfterValidator(validate_nonempty)]
 
     shuffle: bool = False
     answer_explanation: Markup | None = None
+
+    @abstractmethod
+    def get_choices(self) -> Sequence[ChoiceDescBase]:
+        ...
+
+    @abstractmethod
+    def unpermuted_correct_indices(self) -> Sequence[int]:
+        ...
 
     @override
     def body_attr_for_title(self) -> str:
@@ -186,9 +241,9 @@ class ChoiceQuestionBase(PageBaseWithTitle, PageBaseWithValue, ABC):
     def body(self, page_context: PageContext, page_data: PageData) -> str:
         return markup_to_html(page_context, self.prompt)
 
-    def initialize_page_data(self, page_context):
+    def initialize_page_data(self, page_context: PageContext):
         import random
-        perm = list(range(len(self.choices)))
+        perm = list(range(len(self.get_choices())))
         if getattr(self, "shuffle", False):
             random.shuffle(perm)
 
@@ -198,24 +253,11 @@ class ChoiceQuestionBase(PageBaseWithTitle, PageBaseWithValue, ABC):
         if (
                 "permutation" not in page_data
                 or (set(page_data["permutation"])
-                    != set(range(len(self.choices))))):
+                    != set(range(len(self.get_choices()))))):
             from course.page import InvalidPageData
             raise InvalidPageData(gettext(
                 "existing choice permutation not "
                 "suitable for number of choices in question"))
-
-    def unpermuted_indices_with_mode(self, mode: ChoiceMode):
-        return [i for i, choice in enumerate(self.choices)
-                if choice.mode == mode]
-
-    def unpermuted_correct_indices(self):
-        return self.unpermuted_indices_with_mode(ChoiceMode.CORRECT)
-
-    def unpermuted_disregard_indices(self):
-        return self.unpermuted_indices_with_mode(ChoiceMode.DISREGARD)
-
-    def unpermuted_always_correct_indices(self):
-        return self.unpermuted_indices_with_mode(ChoiceMode.ALWAYS_CORRECT)
 
     @abstractmethod
     def make_choice_form(self,
@@ -259,6 +301,18 @@ class ChoiceQuestionBase(PageBaseWithTitle, PageBaseWithValue, ABC):
 
 
 # {{{ choice question
+
+class ChoicePageData(BaseModel):
+    model_config: ClassVar[ConfigDict] = ConfigDict(extra="forbid")
+
+    permutation: list[int]
+
+
+class ChoiceAnswerData(BaseModel):
+    model_config: ClassVar[ConfigDict] = ConfigDict(extra="forbid")
+
+    choice: int
+
 
 class ChoiceQuestion(ChoiceQuestionBase, PageBaseWithoutHumanGrading):
     """
@@ -317,8 +371,21 @@ class ChoiceQuestion(ChoiceQuestionBase, PageBaseWithoutHumanGrading):
 
     .. attribute:: choices
 
-        A list of choices, each in :ref:`markup`. Correct
-        choices are indicated by the prefix ``~CORRECT~``.
+        A list of choices, each in :ref:`markup`. Choices marked with the
+        prefix ``~CORRECT~`` are fully correct (correctness 1). Choices without
+        a prefix are incorrect (correctness 0). Partial credit may be assigned
+        by providing a choice as a YAML mapping
+        ``correctness`` value between 0 and 1, and a ``text`` field:
+
+        .. code-block:: yaml
+
+            choices:
+                - ~CORRECT~ The fully correct answer
+                - An incorrect answer
+                - correctness: 0.5
+                  text: A half-credit answer
+
+        At least one choice must have positive correctness.
 
     .. attribute:: shuffle
 
@@ -331,16 +398,23 @@ class ChoiceQuestion(ChoiceQuestionBase, PageBaseWithoutHumanGrading):
     """
     type: Literal["ChoiceQuestion"]  = "ChoiceQuestion"  # pyright: ignore[reportIncompatibleVariableOverride]
 
-    @model_validator(mode="after")
-    def check_choice_modes(self) -> Self:
-        if any(ch.mode == ChoiceMode.ALWAYS_CORRECT for ch in self.choices):
-            raise ValueError(_("'always_correct' choices not allowed"))
-        if any(ch.mode == ChoiceMode.DISREGARD for ch in self.choices):
-            raise ValueError(_("'disregard' choices not allowed"))
-        if sum(int(ch.mode == ChoiceMode.CORRECT) for ch in self.choices) < 1:
-            raise ValueError(_("at least one 'correct' choice is required"))
+    choices: Annotated[tuple[SingleChoiceDesc, ...], AfterValidator(validate_nonempty)]
 
+    @override
+    def get_choices(self):
+        return self.choices
+
+    @model_validator(mode="after")
+    def check_one_fully_correct(self) -> Self:
+        if not [ch for ch in self.choices if ch.correctness >= 1]:
+            raise ValueError(
+                _("at least one choice must be marked fully correct"))
         return self
+
+    @override
+    def unpermuted_correct_indices(self):
+        return [i for i, choice in enumerate(self.choices)
+                if choice.correctness >= 1]
 
     @override
     def make_choice_form(self,
@@ -388,15 +462,12 @@ class ChoiceQuestion(ChoiceQuestionBase, PageBaseWithoutHumanGrading):
             return AnswerFeedback(correctness=0,
                     feedback=gettext("No answer provided."))
 
-        permutation = page_data["permutation"]
-        choice = answer_data["choice"]
+        v_page_data = ChoicePageData.model_validate(page_data)
+        v_answer_data = ChoiceAnswerData.model_validate(answer_data)
 
-        if permutation[choice] in self.unpermuted_correct_indices():
-            correctness = 1
-        else:
-            correctness = 0
-
-        return AnswerFeedback(correctness=correctness)
+        return AnswerFeedback(correctness=self.choices[
+                v_page_data.permutation[v_answer_data.choice]
+            ].correctness)
 
     @override
     def page_correct_answer(self,
@@ -405,11 +476,12 @@ class ChoiceQuestion(ChoiceQuestionBase, PageBaseWithoutHumanGrading):
             answer_data: AnswerData | None,
             grade_data: GradeData | None,
             ) -> str | None:
-        corr_idx = self.unpermuted_correct_indices()[0]
+        corr_indices = self.unpermuted_correct_indices()
+        best_idx = max(corr_indices, key=lambda i: self.choices[i].correctness)
         result = (string_concat(_("A correct answer is"), ": %s")
                 % self.process_choice_string(
                     page_context,
-                    self.choices[corr_idx].text))
+                    self.choices[best_idx].text))
 
         if self.answer_explanation is not None:
             result += markup_to_html(page_context, self.answer_explanation)
@@ -458,6 +530,12 @@ class ChoiceQuestion(ChoiceQuestionBase, PageBaseWithoutHumanGrading):
 
 
 # {{{ multiple choice question
+
+class MultipleChoiceAnswerData(BaseModel):
+    model_config: ClassVar[ConfigDict] = ConfigDict(extra="forbid")
+
+    choice: list[int]
+
 
 class MultipleChoiceQuestion(ChoiceQuestionBase, PageBaseWithoutHumanGrading):
     """
@@ -508,6 +586,12 @@ class MultipleChoiceQuestion(ChoiceQuestionBase, PageBaseWithoutHumanGrading):
         ``~ALWAYS_CORRECT~`` prevents that by grading any answer as
         a correct one, therefore never leading to a point decrease.
 
+        .. note::
+
+            Partial credit (i.e., ``correctness`` values other than 0 or 1)
+            is not allowed in ``MultipleChoiceQuestion``. Each choice must be
+            fully correct (``~CORRECT~``) or fully incorrect (no prefix).
+
     .. attribute:: shuffle
 
         Optional. ``True`` or ``False``. If true, the choices will
@@ -524,9 +608,30 @@ class MultipleChoiceQuestion(ChoiceQuestionBase, PageBaseWithoutHumanGrading):
 
     type: Literal["MultipleChoiceQuestion"] = "MultipleChoiceQuestion"  # pyright: ignore[reportIncompatibleVariableOverride]
 
+    choices: Annotated[list[MultipleChoiceDesc], AfterValidator(validate_nonempty)]
+
     model_config: ClassVar[ConfigDict] = ConfigDict(use_enum_values=True)
 
     credit_mode: CreditMode
+
+    @override
+    def get_choices(self):
+        return self.choices
+
+    def unpermuted_indices_with_mode(self, mode: ChoiceMode):
+        return [i for i, choice in enumerate(self.choices)
+                if choice.mode == mode]
+
+    @override
+    def unpermuted_correct_indices(self):
+        return [i for i, choice in enumerate(self.choices)
+                if choice.mode == ChoiceMode.CORRECT]
+
+    def unpermuted_disregard_indices(self):
+        return self.unpermuted_indices_with_mode(ChoiceMode.DISREGARD)
+
+    def unpermuted_always_correct_indices(self):
+        return self.unpermuted_indices_with_mode(ChoiceMode.ALWAYS_CORRECT)
 
     @override
     def make_choice_form(self,
@@ -575,13 +680,13 @@ class MultipleChoiceQuestion(ChoiceQuestionBase, PageBaseWithoutHumanGrading):
             return AnswerFeedback(correctness=0,
                     feedback=gettext("No answer provided."))
 
-        permutation = page_data["permutation"]
-        choice = answer_data["choice"]
+        v_page_data = ChoicePageData.model_validate(page_data)
+        choice = MultipleChoiceAnswerData.model_validate(answer_data).choice
 
         disregard_idx_set = set(self.unpermuted_disregard_indices())
         always_correct_idx_set = set(self.unpermuted_always_correct_indices())
         unpermed_idx_set = (
-                {permutation[idx] for idx in choice} - disregard_idx_set
+                {v_page_data.permutation[idx] for idx in choice} - disregard_idx_set
                 - always_correct_idx_set)
         correct_idx_set = (
                 set(self.unpermuted_correct_indices()) - disregard_idx_set

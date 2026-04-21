@@ -25,34 +25,43 @@
 
 import 'katex/dist/katex.min.css';
 
+import {
+  chainCommands,
+  deleteSelection,
+  joinBackward,
+  selectNodeBackward,
+} from 'prosemirror-commands';
+import { inputRules } from 'prosemirror-inputrules';
+import { keymap } from 'prosemirror-keymap';
 // prosemirror imports
-import { Schema, Node, Slice } from 'prosemirror-model';
-import { EditorView } from 'prosemirror-view';
-import { EditorState, Plugin, PluginKey } from 'prosemirror-state';
+import { Node, Schema, Slice } from 'prosemirror-model';
 import { schema as basicSchema } from 'prosemirror-schema-basic';
 import { addListNodes } from 'prosemirror-schema-list';
-import {
-  chainCommands, deleteSelection, selectNodeBackward, joinBackward,
-} from 'prosemirror-commands';
-import { keymap } from 'prosemirror-keymap';
-import { inputRules } from 'prosemirror-inputrules';
+import { EditorState, Plugin, PluginKey } from 'prosemirror-state';
+import { EditorView } from 'prosemirror-view';
 import 'prosemirror-view/style/prosemirror.css';
 import 'prosemirror-menu/style/menu.css';
 
 import { exampleSetup } from 'prosemirror-example-setup';
 import 'prosemirror-example-setup/style/style.css';
 
-import { MarkdownParser, MarkdownSerializer, defaultMarkdownSerializer } from 'prosemirror-markdown';
-import MarkdownIt from 'markdown-it';
-import markdownItMath from '@vscode/markdown-it-katex';
-
 import {
-  mathPlugin, mathBackspaceCmd, insertMathCmd, mathSerializer,
-  makeBlockMathInputRule, makeInlineMathInputRule,
-  REGEX_INLINE_MATH_DOLLARS, REGEX_BLOCK_MATH_DOLLARS,
-// I've no idea why eslint can't find the module; rollup can.
-// eslint-disable-next-line import/no-unresolved
+  insertMathCmd,
+  makeBlockMathInputRule,
+  makeInlineMathInputRule,
+  mathBackspaceCmd,
+  mathPlugin,
+  mathSerializer,
+  REGEX_BLOCK_MATH_DOLLARS,
+  REGEX_INLINE_MATH_DOLLARS,
 } from '@benrbray/prosemirror-math';
+import markdownItMath from '@vscode/markdown-it-katex';
+import MarkdownIt from 'markdown-it';
+import {
+  defaultMarkdownSerializer,
+  MarkdownParser,
+  MarkdownSerializer,
+} from 'prosemirror-markdown';
 import '@benrbray/prosemirror-math/dist/prosemirror-math.css';
 
 let anyEditorChangedFlag = false;
@@ -74,9 +83,11 @@ const schema = new Schema({
       inline: true, // important!
       atom: true, // important!
       toDOM: () => ['math-inline', { class: 'math-node' }, 0],
-      parseDOM: [{
-        tag: 'math-inline', // important!
-      }],
+      parseDOM: [
+        {
+          tag: 'math-inline', // important!
+        },
+      ],
     })
     .addToEnd('math_display', {
       group: 'block math',
@@ -84,9 +95,11 @@ const schema = new Schema({
       atom: true, // important!
       code: true, // important!
       toDOM: () => ['math-display', { class: 'math-node' }, 0],
-      parseDOM: [{
-        tag: 'math-display', // important!
-      }],
+      parseDOM: [
+        {
+          tag: 'math-display', // important!
+        },
+      ],
     }),
   marks: basicSchema.spec.marks,
 });
@@ -119,9 +132,11 @@ const changeListenerPlugin = new Plugin({
 // {{{ handle markdown paste
 
 function listIsTight(tokens, i) {
-  // eslint-disable-next-line no-plusplus, no-param-reassign
+  // biome-ignore lint/style/noParameterAssign: intentional loop index mutation
   while (++i < tokens.length) {
-    if (tokens[i].type !== 'list_item_open') return tokens[i].hidden;
+    if (tokens[i].type !== 'list_item_open') {
+      return tokens[i].hidden;
+    }
   }
   return false;
 }
@@ -176,12 +191,16 @@ function markdownToProsemirrorParser() {
 
 const pasteMarkdownPlugin = new Plugin({
   props: {
-    handlePaste(view, event/* , slice */) {
+    handlePaste(view, event /* , slice */) {
       const clipboardText = event.clipboardData.getData('text/plain');
-      if (!clipboardText) return false;
+      if (!clipboardText) {
+        return false;
+      }
 
       const doc = markdownToProsemirrorParser().parse(clipboardText);
-      const transaction = view.state.tr.replaceSelection(new Slice(doc.content, 0, 0));
+      const transaction = view.state.tr.replaceSelection(
+        new Slice(doc.content, 0, 0),
+      );
       view.dispatch(transaction);
 
       return true;
@@ -216,7 +235,7 @@ function clipboardTextSerializer(slice) {
   let doc;
   try {
     doc = schema.topNodeType.createAndFill(null, slice.content);
-  } catch (e) {
+  } catch (_e) {
     doc = null;
   }
   if (doc) {
@@ -228,7 +247,6 @@ function clipboardTextSerializer(slice) {
 
 // }}}
 
-// eslint-disable-next-line import/prefer-default-export
 export function editorFromTextArea(textarea, autofocus) {
   const plugins = [
     ...exampleSetup({ schema }),
@@ -282,11 +300,9 @@ export function editorFromTextArea(textarea, autofocus) {
 
   textarea.parentNode.insertBefore(editorElt, textarea);
 
-  // eslint-disable-next-line no-param-reassign
   textarea.style.display = 'none';
   if (textarea.form) {
     textarea.form.addEventListener('submit', () => {
-      // eslint-disable-next-line no-param-reassign
       textarea.value = JSON.stringify(view.state.doc.toJSON());
     });
   }

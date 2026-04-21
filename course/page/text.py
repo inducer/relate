@@ -74,8 +74,10 @@ from course.validation import (
     validate_nonempty,
 )
 from relate.utils import (
+    TIMED_OUT,
     StyledFormBase,
     StyledVerticalForm,
+    call_with_timeout,
     string_concat,
 )
 
@@ -83,20 +85,44 @@ from relate.utils import (
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
+    from pymbolic import Expression
+
 
 CORRECT_ANSWER_PATTERN = string_concat(_("A correct answer is"), ": '%s'.")
 
 
+def parse_expr(s: float | str):
+    if isinstance(s, (complex, float, int)):
+        return s
+
+    # use pymbolic because it has a semi-secure parser
+    from pymbolic import parse
+    return parse(s)
+
+
+def evaluates_to_constant(expr: Expression) -> bool:
+    from pymbolic.mapper.dependency import DependencyMapper
+    depmap = DependencyMapper[[]]()
+    return not depmap(expr)
+
+
 def parse_sympy(s: float | str):
+    # NOTE Only call this from timeout-protected contexts
     if isinstance(s, (complex, float, int)):
         from sympy import sympify
         return sympify(s)
 
-    from pymbolic import parse
     from pymbolic.interop.sympy import PymbolicToSympyMapper
+    return PymbolicToSympyMapper()(parse_expr(s))
 
-    # use pymbolic because it has a semi-secure parser
-    return PymbolicToSympyMapper()(parse(s))
+
+def _sympy_check_equality(
+        expr_str: str, ref_str: str,
+    ) -> bool:
+    """Subprocess worker: send True iff simplify(expr - ref) == 0."""
+    from sympy import simplify
+    diff = parse_sympy(expr_str) - parse_sympy(ref_str)
+    return simplify(diff) == 0
 
 
 # {{{ data model/validation
@@ -467,27 +493,30 @@ class SymbolicExpressionMatcher(TextAnswerMatcher):
     @override
     def validate_text(self, s: str):
         try:
-            parse_sympy(s)
+            parse_expr(s)
         except Exception as e:
             raise forms.ValidationError(f"{type(e).__name__}: {e!s}")
 
     @override
     def grade(self, s: str):
         try:
-            answer_sym = parse_sympy(s)
+            parse_expr(s)
         except Exception:
             return AnswerFeedback(0)
 
-        from sympy import simplify
         try:
-            simp_result = simplify(answer_sym - parse_sympy(self.value))
-        except Exception:
-            return AnswerFeedback(0)
+            result = call_with_timeout(2, _sympy_check_equality, s, str(self.value))
+        except Exception as e:
+            return AnswerFeedback(0, str(e))
 
-        if simp_result == 0:
-            return AnswerFeedback(self.correctness, self.feedback)
-        else:
-            return AnswerFeedback(0)
+        if result is TIMED_OUT:
+            return AnswerFeedback(
+                0,
+                feedback=gettext(
+                    "Answer could not be evaluated within the time limit."),
+            )
+        return AnswerFeedback(self.correctness, self.feedback) \
+            if result else AnswerFeedback(0)
 
     @override
     def correct_answer_text(self):
@@ -526,17 +555,24 @@ class FloatMatcher(TextAnswerMatcher):
     @override
     def validate_text(self, s: str):
         try:
-            float_or_sympy_evalf(s)
+            expr = parse_expr(s)
         except Exception as e:
             raise forms.ValidationError(f"{type(e).__name__}: {e!s}")
+
+        if not evaluates_to_constant(expr):
+            raise forms.ValidationError(gettext(
+                "Expression does not evaluate to constant"))
 
     @override
     def grade(self, s: str):
         try:
-            answer_float = float_or_sympy_evalf(s)
+            answer_float = call_with_timeout(2, float_or_sympy_evalf, s)
         except Exception:
             # Should not happen, no need to give verbose feedback.
             return AnswerFeedback(0)
+        if answer_float is TIMED_OUT:
+            return AnswerFeedback(0, feedback=gettext(
+                    "Answer could not be evaluated within the time limit."))
 
         good_afb = AnswerFeedback(self.correctness, self.feedback)
         bad_afb = AnswerFeedback(0)

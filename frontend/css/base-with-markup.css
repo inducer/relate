@@ -1,2 +1,8 @@
 @import "jstree/dist/themes/default/style";
 @import "video.js/dist/video-js";
+
+.relate-numpy-copy {
+  display: block;
+  font-size: 0.75em;
+  margin: 0.25em auto 0;
+}

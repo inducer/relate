@@ -1,10 +1,10 @@
 import './jquery-importer';
-import jQuery from 'jquery';
 import * as bootstrap from 'bootstrap';
+import jQuery from 'jquery';
 
 import select2 from 'select2';
-import * as rlUtils from './rlUtils';
 import * as bsUtils from './bsUtils';
+import * as rlUtils from './rlUtils';
 
 import 'htmx.org';
 

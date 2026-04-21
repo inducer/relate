@@ -60,8 +60,9 @@ from dulwich.repo import Repo
 
 from course.auth import with_course_api_auth
 from course.constants import ParticipationPermission as PPerm, ParticipationStatus
+from course.content import get_course_repo
 from course.models import Course, Participation, ParticipationRole
-from course.repo import SubdirRepoWrapper
+from course.repo import RevisionID_ish, SubdirRepoWrapper
 from course.utils import (
     CoursePageContext,
     course_view,
@@ -77,8 +78,11 @@ from relate.utils import (
 
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from dulwich.objects import Commit
 
+    from accounts.models import User
     from course.auth import APIContext
     from course.repo import Repo_ish
 
@@ -132,6 +136,85 @@ def get_dulwich_client_and_remote_path_from_course(
 
 
 # {{{ new course setup
+
+def create_course(
+            repo: Repo_ish,
+            revision_id: RevisionID_ish,
+            course: Course,
+            owner: User,
+            *, skip_validate: bool = False,
+        ):
+    with transaction.atomic():
+        from course.validation import validate_course_content
+        if not skip_validate:
+            validate_course_content(  # type: ignore
+                    repo, course.course_file,
+                    course.events_file, revision_id)
+
+        del repo
+
+        course.active_git_commit_sha = revision_id.decode()
+        course.save()
+
+        # {{{ set up a participation for the course creator
+
+        part = Participation()
+        part.user = owner
+        part.course = course
+        part.status = ParticipationStatus.active
+        part.save()
+
+        part.roles.set([
+            # created by signal handler for course creation
+            ParticipationRole.objects.get(
+                course=course,
+                identifier="instructor")
+            ])
+
+        # }}}
+
+
+def create_course_with_repo_path(
+            course: Course,
+            owner: User,
+            *, skip_validate: bool = False,
+        ):
+    repo = get_course_repo(course)
+    create_course(repo, course.active_git_commit_sha.encode(), course, owner,
+        skip_validate=skip_validate)
+
+
+def git_clone_and_create_course(
+            repo_fs_path: Path,
+            new_course: Course,
+            owner: User,
+            *, skip_validate: bool = False,
+        ):
+    repo = Repo.init(repo_fs_path)
+
+    client, remote_path = \
+        get_dulwich_client_and_remote_path_from_course(
+                new_course)
+
+    fetch_pack_result = client.fetch(remote_path, repo)
+    if not fetch_pack_result.refs:
+        raise RuntimeError(_("No refs found in remote repository"
+                " (i.e. no master branch, no HEAD). "
+                "This looks very much like a blank repository. "
+                "Please create course.yml in the remote "
+                "repository before creating your course."))
+
+    transfer_remote_refs(repo, fetch_pack_result)
+    new_sha = repo[b"HEAD"] = fetch_pack_result.refs[b"HEAD"]
+
+    if new_course.course_root_path:
+        vrepo: Repo_ish = SubdirRepoWrapper(
+                repo, new_course.course_root_path)
+    else:
+        vrepo = repo
+
+    create_course(vrepo, new_sha, new_course, owner, skip_validate=skip_validate)
+
 
 class CourseCreationForm(StyledModelForm):
     class Meta:
@@ -187,62 +270,17 @@ def set_up_new_course(request: http.HttpRequest) -> http.HttpResponse:
                 repo = None
 
                 try:
-                    with transaction.atomic():
-                        repo = Repo.init(repo_path)
+                    assert request.user.is_authenticated
 
-                        client, remote_path = \
-                            get_dulwich_client_and_remote_path_from_course(
-                                    new_course)
+                    git_clone_and_create_course(
+                                repo_path,
+                                new_course,
+                                request.user,  # pyright: ignore[reportArgumentType]
+                            )
 
-                        fetch_pack_result = client.fetch(remote_path, repo)
-                        if not fetch_pack_result.refs:
-                            raise RuntimeError(_("No refs found in remote repository"
-                                    " (i.e. no master branch, no HEAD). "
-                                    "This looks very much like a blank repository. "
-                                    "Please create course.yml in the remote "
-                                    "repository before creating your course."))
-
-                        transfer_remote_refs(repo, fetch_pack_result)
-                        new_sha = repo[b"HEAD"] = fetch_pack_result.refs[b"HEAD"]
-
-                        if new_course.course_root_path:
-                            vrepo: Repo_ish = SubdirRepoWrapper(
-                                    repo, new_course.course_root_path)
-                        else:
-                            vrepo = repo
-
-                        from course.validation import validate_course_content
-                        validate_course_content(  # type: ignore
-                                vrepo, new_course.course_file,
-                                new_course.events_file, new_sha)
-
-                        del vrepo
-
-                        new_course.active_git_commit_sha = new_sha.decode()
-                        new_course.save()
-
-                        # {{{ set up a participation for the course creator
-
-                        assert request.user.is_authenticated
-
-                        part = Participation()
-                        part.user = request.user
-                        part.course = new_course
-                        part.status = ParticipationStatus.active
-                        part.save()
-
-                        part.roles.set([
-                            # created by signal handler for course creation
-                            ParticipationRole.objects.get(
-                                course=new_course,
-                                identifier="instructor")
-                            ])
-
-                        # }}}
-
-                        messages.add_message(request, messages.INFO,
-                                _("Course content validated, creation "
-                                "succeeded."))
+                    messages.add_message(request, messages.INFO,
+                            _("Course content validated, creation "
+                            "succeeded."))
                 except Exception:
                     # Don't coalesce this handler with the one below. We only want
                     # to delete the directory if we created it. Trust me.

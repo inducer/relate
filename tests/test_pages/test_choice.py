@@ -23,6 +23,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
+
 from django.test import Client, TestCase
 
 from tests.base_test_mixins import SingleCoursePageTestMixin
@@ -251,7 +252,7 @@ class ChoicesQuestionTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
         self.assertSandboxNotHasValidPage(resp)
         self.assertResponseContextContains(
             resp, PAGE_ERRORS,
-            "at least one 'correct' choice is required")
+            "at least one choice must be marked fully correct")
 
     def test_choice_with_disregard(self):
         markdown = CHOICE_MARKDOWN_WITH_DISREGARD
@@ -583,5 +584,57 @@ class SurveyChoiceQuestionExtra(SingleCoursePageSandboxTestBaseMixin, TestCase):
         self.assertSandboxHasValidPage(resp)
         self.assertContains(resp, "older")
         self.assertContains(resp, "this is a survey question")
+
+
+# {{{ partial credit tests
+
+CHOICE_MARKDOWN_WITH_PARTIAL_CREDIT = """
+type: ChoiceQuestion
+id: simple
+shuffle: False
+prompt: |
+
+    # Good
+    What is good?
+
+choices:
+
+  - Bad
+  - ~CORRECT~ Well
+  - correctness: 0.5
+    text: Somewhat well
+"""
+
+
+class ChoicePartialCreditTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
+
+    def test_partial_credit_page_is_valid(self):
+        resp = self.get_page_sandbox_preview_response(
+            CHOICE_MARKDOWN_WITH_PARTIAL_CREDIT)
+        self.assertEqual(resp.status_code, 200)
+        self.assertSandboxHasValidPage(resp)
+
+    def test_partial_credit_incorrect_choice(self):
+        resp = self.get_page_sandbox_submit_answer_response(
+            CHOICE_MARKDOWN_WITH_PARTIAL_CREDIT,
+            answer_data={"choice": [0]})
+        self.assertEqual(resp.status_code, 200)
+        self.assertResponseContextAnswerFeedbackCorrectnessEquals(resp, 0)
+
+    def test_partial_credit_full_correct_choice(self):
+        resp = self.get_page_sandbox_submit_answer_response(
+            CHOICE_MARKDOWN_WITH_PARTIAL_CREDIT,
+            answer_data={"choice": [1]})
+        self.assertEqual(resp.status_code, 200)
+        self.assertResponseContextAnswerFeedbackCorrectnessEquals(resp, 1)
+
+    def test_partial_credit_half_correct_choice(self):
+        resp = self.get_page_sandbox_submit_answer_response(
+            CHOICE_MARKDOWN_WITH_PARTIAL_CREDIT,
+            answer_data={"choice": [2]})
+        self.assertEqual(resp.status_code, 200)
+        self.assertResponseContextAnswerFeedbackCorrectnessEquals(resp, 0.5)
+
+# }}}
 
 # vim: fdm=marker

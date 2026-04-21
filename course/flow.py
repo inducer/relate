@@ -24,7 +24,7 @@ THE SOFTWARE.
 """
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Literal, TypeVar, cast
+from typing import TYPE_CHECKING, Any, ClassVar, Literal, TypeVar, cast
 
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Submit
@@ -651,6 +651,7 @@ def get_session_answered_page_data(
     return (answered_page_data_list, unanswered_page_data_list, is_interactive_flow)
 
 
+@dataclass(frozen=True)
 class GradeInfo:
     """An object to hold a tally of points and page counts of various types in
     a flow.
@@ -671,37 +672,22 @@ class GradeInfo:
         to :attr:`FlowSessionGradingRule.max_points_enforced_cap`.
     """
 
-    def __init__(
-            self,
-            points: float | None,
-            provisional_points: float | None,
-            max_points: float | None,
-            max_reachable_points: float | None,
-            fully_correct_count: int,
-            partially_correct_count: int,
-            incorrect_count: int,
-            unknown_count: int,
-            optional_fully_correct_count: int = 0,
-            optional_partially_correct_count: int = 0,
-            optional_incorrect_count: int = 0,
-            optional_unknown_count: int = 0,
-            ) -> None:
-        self.points = points
-        self.provisional_points = provisional_points
-        self.max_points = max_points
-        self.max_reachable_points = max_reachable_points
-        self.fully_correct_count = fully_correct_count
-        self.partially_correct_count = partially_correct_count
-        self.incorrect_count = incorrect_count
-        self.unknown_count = unknown_count
-        self.optional_fully_correct_count = optional_fully_correct_count
-        self.optional_partially_correct_count = optional_partially_correct_count
-        self.optional_incorrect_count = optional_incorrect_count
-        self.optional_unknown_count = optional_unknown_count
+    points: float | None
+    provisional_points: float | None
+    max_points: float | None
+    max_reachable_points: float | None
+    fully_correct_count: int
+    partially_correct_count: int
+    incorrect_count: int
+    unknown_count: int
+    optional_fully_correct_count: int = 0
+    optional_partially_correct_count: int = 0
+    optional_incorrect_count: int = 0
+    optional_unknown_count: int = 0
 
     # Rounding to larger than 100% will break the percent bars on the
     # flow results page.
-    FULL_PERCENT = 99.99
+    FULL_PERCENT: ClassVar[float] = 99.99
 
     # {{{ point percentages
 
@@ -1834,11 +1820,23 @@ def view_flow_page(
     prev_visit_id = None
     viewing_prior_version = False
 
+    prev_visit_id_str = pctx.request.GET.get("visit_id")
+    if prev_visit_id_str is not None:
+        try:
+            prev_visit_id = int(prev_visit_id_str)
+        except ValueError:
+            raise SuspiciousOperation("non-integer passed for 'visit_id'")
+    else:
+        prev_visit_id = prev_visit_id_str
+
     if request.method == "POST":
         if "finish" in request.POST:
             return redirect("relate-finish_flow_session_view",
                     pctx.course.identifier, flow_session_id)
         else:
+            if prev_visit_id is not None:
+                raise SuspiciousOperation("POST to previous visit")
+
             post_result = post_flow_page(
                     flow_session, fpctx, request, permissions, generates_grade)
 
@@ -1866,15 +1864,6 @@ def view_flow_page(
                 get_prev_answer_visits_qset(fpctx.page_data))
 
         # {{{ fish out previous answer_visit
-
-        prev_visit_id_str = pctx.request.GET.get("visit_id")
-        if prev_visit_id_str is not None:
-            try:
-                prev_visit_id = int(prev_visit_id_str)
-            except ValueError:
-                raise SuspiciousOperation("non-integer passed for 'visit_id'")
-        else:
-            prev_visit_id = prev_visit_id_str
 
         if prev_answer_visits and prev_visit_id is not None:
             answer_visit = prev_answer_visits[0]

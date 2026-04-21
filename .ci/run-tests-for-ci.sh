@@ -14,6 +14,7 @@ if [[ "$OSTYPE" != msys ]]; then
 fi
 
 staticfiles=(
+  bundle-analysis.js
   bundle-base.js
   bundle-base-with-markup.js
   bundle-codemirror.js

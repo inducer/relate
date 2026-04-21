@@ -45,6 +45,7 @@ import time
 from datetime import datetime
 from functools import lru_cache, reduce
 from ipaddress import IPv4Address, IPv4Network, IPv6Address, IPv6Network, ip_network
+from secrets import compare_digest
 from typing import TYPE_CHECKING
 from zoneinfo import ZoneInfo
 
@@ -119,7 +120,7 @@ def check_signature(
     signed_payload = bytes(timestamp, "ascii") + b"." + body
     expected_signature = hmac.new(
             secret.encode("utf-8"), signed_payload, hashlib.sha256).digest().hex()
-    if signature != expected_signature:
+    if not compare_digest(signature, expected_signature):
         return False, "Incorrect v1 signature in PrairieTest-Signature"
 
     # everything checks out

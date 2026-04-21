@@ -28,7 +28,7 @@ import sys
 from dataclasses import dataclass
 from hashlib import sha256
 from pathlib import Path
-from typing import TYPE_CHECKING, TypeAlias, cast
+from typing import TYPE_CHECKING, ClassVar, Protocol, TypeAlias, cast
 
 import dulwich.objects
 import dulwich.repo
@@ -38,7 +38,7 @@ from typing_extensions import Self, override
 
 
 if TYPE_CHECKING:
-    from collections.abc import Mapping
+    from collections.abc import Mapping, Sequence
     from types import TracebackType
 
 
@@ -146,6 +146,173 @@ class EmptyRepo:
         self.close()
 
 
+# {{{ python class fake repo
+
+def attr_name_to_file_name(name: str):
+    # 'Subdirectories' aka inner classes are upper case because of PEP8.
+    # We can get by without upper case letters in filenames, I guess.
+    name = name.lower()
+
+    chars: list[str] = []
+    i = 0
+    while i < len(name):
+        ch = name[i]
+        if ch == "_":
+            next_underscore = name.find("_", i+1)
+            if next_underscore == -1:
+                raise ValueError(f"lone underscore found in '{name}'")
+
+            key = name[i+1:next_underscore]
+            i = next_underscore+1
+
+            if key == "dot":
+                chars.append(".")
+            else:
+                raise ValueError()
+        else:
+            chars.append(ch)
+            i += 1
+
+    return "".join(chars)
+
+
+class ProcessedRepoClass(Protocol):
+    _file_name_to_attr_name: ClassVar[dict[str, str]]
+
+
+class ProcessedRepoRootClass(ProcessedRepoClass, Protocol):
+    registry_url: ClassVar[str]
+
+
+@dataclass(frozen=True)
+class PythonClassFakeRepo:
+    cls: type[ProcessedRepoRootClass]
+
+    def close(self):
+        pass
+
+    @property
+    def tree(self):
+        return PythonClassFakeRepoTree(self.cls)
+
+    def controldir(self):
+        return f"{self.cls.__module__}:{self.cls.__qualname__}"
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self,
+                exc_type: type[BaseException] | None,
+                exc_val: BaseException | None,
+                exc_tb: TracebackType | None) -> None:
+        pass
+
+    def __getitem__(self,
+                    obj_id: PythonClassFakeRepoFile | PythonClassFakeRepoTree | bytes
+                ):
+        if isinstance(obj_id, bytes):
+            if obj_id == b"CURRENT":
+                return PythonClassFakeRepoCommit(self.cls)
+
+        return obj_id
+
+
+@dataclass(frozen=True)
+class PythonClassFakeRepoCommit:
+    cls: type[ProcessedRepoRootClass]
+
+    @property
+    def tree(self):
+        return PythonClassFakeRepoTree(self.cls)
+
+
+@dataclass(frozen=True)
+class PythonClassFakeRepoTreeEntry:
+    path: bytes
+    mode: int
+
+
+@dataclass(frozen=True)
+class PythonClassFakeRepoTree:
+    cls: type[ProcessedRepoClass]
+
+    MODE_DIR: ClassVar[int] = 0o0040777
+    MODE_FILE: ClassVar[int] = 0o666
+
+    def __getitem__(self, name: bytes):
+        decoded_name = name.decode("utf-8")
+        attr_name = self.cls._file_name_to_attr_name.get(decoded_name)  # pyright: ignore[reportPrivateUsage]
+        if attr_name is None:
+            raise KeyError(name)
+
+        entry = getattr(self.cls, attr_name)
+        if isinstance(entry, type):
+            return self.MODE_DIR, PythonClassFakeRepoTree(entry)
+        else:
+            return self.MODE_FILE, PythonClassFakeRepoFile(entry)
+
+    def items(self) -> Sequence[PythonClassFakeRepoTreeEntry]:
+        return [
+            PythonClassFakeRepoTreeEntry(
+                path=name.encode("utf-8"),
+                mode=(
+                    self.MODE_DIR
+                    if isinstance(getattr(self.cls, attr_name), type)
+                    else self.MODE_FILE),
+            )
+            for name, attr_name in self.cls._file_name_to_attr_name.items()  # pyright: ignore[reportPrivateUsage]
+        ]
+
+
+@dataclass(frozen=True)
+class PythonClassFakeRepoFile:
+    obj: object
+
+    @property
+    def data(self):
+        assert isinstance(self.obj, str)
+
+        return self.obj.encode("utf-8")
+
+
+PYTHON_CLASS_REPO_PREFIX = "pyclass://"
+
+PYTHON_CLASS_REPO_REGISTRY: dict[str, type[ProcessedRepoRootClass]] = {}
+
+
+def _make_filename_map(cls: type[ProcessedRepoClass]) -> None:
+    file_name_to_attr_name: dict[str, str] = {}
+    for attr_name in dir(cls):
+        if not attr_name.startswith("__"):
+            file_name = attr_name_to_file_name(attr_name)
+            file_name_to_attr_name[file_name] = attr_name
+
+            entry = getattr(cls, attr_name)
+            if isinstance(entry, type):
+                _make_filename_map(entry)
+
+    cls._file_name_to_attr_name = file_name_to_attr_name  # pyright: ignore[reportPrivateUsage]
+
+
+def python_repo_class(cls: type) -> type[ProcessedRepoRootClass]:
+    cls = cast("type[ProcessedRepoRootClass]", cls)
+    key = f"{cls.__module__}:{cls.__qualname__}"
+    url = f"{PYTHON_CLASS_REPO_PREFIX}{key}"
+    existing_entry = PYTHON_CLASS_REPO_REGISTRY.get(key)
+    if existing_entry is not None:
+        assert cls is existing_entry
+        return cls
+
+    PYTHON_CLASS_REPO_REGISTRY[key] = cls
+    _make_filename_map(cls)
+    cls.registry_url = url
+    return cls
+
+# }}}
+
+
+# {{{ file system repo
+
 class FileSystemFakeRepo:
     root: Path
 
@@ -169,7 +336,7 @@ class FileSystemFakeRepo:
 
     @override
     def __str__(self):
-        return f"<FAKEREPO:{self.root}>"
+        return f"<FS FAKEREPO:{self.root}>"
 
     def decode(self):
         return self
@@ -188,7 +355,7 @@ class FileSystemFakeRepo:
         self.close()
 
 
-@dataclass
+@dataclass(frozen=True)
 class FileSystemFakeRepoTreeEntry:  # pragma: no cover
     path: bytes
     mode: int
@@ -246,19 +413,31 @@ class FileSystemFakeRepoFile:
         except FileNotFoundError as e:
             raise ObjectDoesNotExist(self.name) from e
 
+# }}}
 
-Repo_ish: TypeAlias = (dulwich.repo.Repo
-    | SubdirRepoWrapper
+
+UnwrappedRepo_ish: TypeAlias = (dulwich.repo.Repo
+    | PythonClassFakeRepo
     | FileSystemFakeRepo
     | EmptyRepo)
-Blob_ish: TypeAlias = dulwich.objects.Blob | FileSystemFakeRepoFile
-Tree_ish: TypeAlias = dulwich.objects.Tree | FileSystemFakeRepoTree
+Repo_ish: TypeAlias = (dulwich.repo.Repo
+    | SubdirRepoWrapper
+    | UnwrappedRepo_ish)
+Blob_ish: TypeAlias = (dulwich.objects.Blob
+    | FileSystemFakeRepoFile
+    | PythonClassFakeRepoFile)
+Tree_ish: TypeAlias = (dulwich.objects.Tree
+    | FileSystemFakeRepoTree
+    | PythonClassFakeRepoTree)
 RevisionID_ish: TypeAlias = dulwich.objects.ObjectID
+Commit_ish: TypeAlias = dulwich.objects.Commit | PythonClassFakeRepoCommit
 
 
 def _look_up_git_object(
-            repo: dulwich.repo.Repo | FileSystemFakeRepo,
-            root_tree: dulwich.objects.Tree | FileSystemFakeRepoTree,
+            repo: dulwich.repo.Repo | FileSystemFakeRepo | PythonClassFakeRepo,
+            root_tree: dulwich.objects.Tree
+                | FileSystemFakeRepoTree
+                | PythonClassFakeRepoTree,
             full_name: str,
             _max_symlink_depth: int | None = None
         ) -> Tree_ish | Blob_ish:
@@ -310,6 +489,9 @@ def _look_up_git_object(
             elif isinstance(repo, FileSystemFakeRepo):
                 # The filesystem will have resolved these behind our back.
                 raise AssertionError()
+            else:
+                raise ValueError("unexpected repo type")
+
             link_target = os.sep.join([*processed_name_parts, link_data.decode()])
             cur_lookup = _look_up_git_object(repo, root_tree, link_target,
                     _max_symlink_depth=_max_symlink_depth-1)
@@ -318,11 +500,18 @@ def _look_up_git_object(
             if isinstance(repo, dulwich.repo.Repo):
                 assert isinstance(cur_lookup_sha, bytes)
                 lkup = repo[cur_lookup_sha]
-                assert isinstance(lkup, Tree_ish | Blob_ish)
+            elif isinstance(repo, PythonClassFakeRepo):
+                assert isinstance(cur_lookup_sha,
+                    PythonClassFakeRepoTree | PythonClassFakeRepoFile)
+                lkup = repo[cur_lookup_sha]
             elif isinstance(repo, FileSystemFakeRepo):
                 assert isinstance(cur_lookup_sha,
-                                  (FileSystemFakeRepoTree, FileSystemFakeRepoFile))
+                    FileSystemFakeRepoTree | FileSystemFakeRepoFile)
                 lkup = repo[cur_lookup_sha]
+            else:
+                raise ValueError("unexpected repo type")
+
+            assert isinstance(lkup, Tree_ish | Blob_ish)
 
             cur_lookup = lkup
 
@@ -332,7 +521,7 @@ def _look_up_git_object(
 def get_true_repo_and_path(
             repo: Repo_ish,
             path: str
-        ) -> tuple[dulwich.repo.Repo | FileSystemFakeRepo | EmptyRepo, str]:
+        ) -> tuple[UnwrappedRepo_ish, str]:
     while isinstance(repo, SubdirRepoWrapper):
         if path:
             path = f"{repo.subdir}/{path}"
@@ -354,32 +543,30 @@ def get_repo_tree(
     :arg allow_tree: Allow the resulting object to be a directory
     """
 
-    dul_repo, full_name = get_true_repo_and_path(repo, full_name)
+    base_repo, full_name = get_true_repo_and_path(repo, full_name)
 
-    if isinstance(dul_repo, FileSystemFakeRepo):
-        return FileSystemFakeRepoTree(dul_repo.root / full_name)
-    if isinstance(dul_repo, EmptyRepo):
+    if isinstance(base_repo, FileSystemFakeRepo):
+        return FileSystemFakeRepoTree(base_repo.root / full_name)
+    if isinstance(base_repo, EmptyRepo):
         raise ObjectDoesNotExist(full_name)
 
     try:
-        commit_obj = dul_repo[commit_sha]
+        commit_obj = base_repo[commit_sha]
     except KeyError:
         raise ObjectDoesNotExist(
                 _("commit sha '%s' not found") % commit_sha.decode())
-    assert isinstance(commit_obj, dulwich.objects.Commit)
+    assert isinstance(commit_obj, Commit_ish)
     tree_sha = commit_obj.tree
 
-    tree_obj = dul_repo[tree_sha]
-    assert isinstance(tree_obj, dulwich.objects.Tree)
+    tree_obj = base_repo[tree_sha]
+    assert isinstance(tree_obj, Tree_ish)
 
     git_obj = _look_up_git_object(
-            dul_repo, root_tree=tree_obj, full_name=full_name)
-
-    from dulwich.objects import Tree
+            base_repo, root_tree=tree_obj, full_name=full_name)
 
     msg_full_name = full_name or _("(repo root)")
 
-    if isinstance(git_obj, Tree | FileSystemFakeRepoTree):
+    if isinstance(git_obj, Tree_ish):
         return git_obj
     else:
         raise ObjectDoesNotExist(_("resource '%s' is not a tree") % msg_full_name)
@@ -395,33 +582,31 @@ def get_repo_blob(
     :arg commit_sha: A byte string containing the commit hash
     :arg allow_tree: Allow the resulting object to be a directory
     """
-    dul_repo, full_name = get_true_repo_and_path(repo, full_name)
+    base_repo, full_name = get_true_repo_and_path(repo, full_name)
 
-    if isinstance(dul_repo, FileSystemFakeRepo):
+    if isinstance(base_repo, FileSystemFakeRepo):
         return FileSystemFakeRepoFile(Path(full_name))
-    if isinstance(dul_repo, EmptyRepo):
+    if isinstance(base_repo, EmptyRepo):
         raise ObjectDoesNotExist("empty repository")
 
     try:
-        commit_obj = dul_repo[commit_sha]
+        commit_obj = base_repo[commit_sha]
     except KeyError:
         assert commit_sha
         raise ObjectDoesNotExist(
                 _("commit sha '%s' not found") % commit_sha.decode())
 
-    assert isinstance(commit_obj, dulwich.objects.Commit)
+    assert isinstance(commit_obj, Commit_ish)
     tree_sha = commit_obj.tree
-    tree_obj = dul_repo[tree_sha]
-    assert isinstance(tree_obj, dulwich.objects.Tree)
+    tree_obj = base_repo[tree_sha]
+    assert isinstance(tree_obj, Tree_ish)
 
     git_obj = _look_up_git_object(
-            dul_repo, root_tree=tree_obj, full_name=full_name)
-
-    from dulwich.objects import Blob
+            base_repo, root_tree=tree_obj, full_name=full_name)
 
     msg_full_name = full_name or _("(repo root)")
 
-    if isinstance(git_obj, Blob | FileSystemFakeRepoFile):
+    if isinstance(git_obj, Blob_ish):
         return git_obj
     else:
         raise ObjectDoesNotExist(_("resource '%s' is not a file") % msg_full_name)
