@@ -50,6 +50,7 @@
     "prosemirror-view": "^1.41.6",
     "select2": "^4.0.5",
     "select2-bootstrap-theme": "^0.1.0-beta.10",
+    "sparklines": "^1.3.0",
     "video.js": "^8.23.7"
   },
   "//dependencies": {
@@ -80,6 +81,7 @@
     "build:datatables": "rollup --config --configBundle=datatables",
     "build:codemirror": "rollup --config --configBundle=codemirror",
     "build:prosemirror": "rollup --config --configBundle=prosemirror",
+    "build:analytics": "rollup --config --configBundle=analytics",
     "build": "run-p build:*",
     "dev": "rollup --config --watch",
     "lint": "biome check frontend/js/ rollup.config.mjs"
