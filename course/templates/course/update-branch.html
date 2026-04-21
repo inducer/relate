@@ -33,7 +33,7 @@
   {% if modified_flow_ids %}
     <div class="relate-well">
       <h3>{% trans "Modified flows" %}</h3>
-      <p>{% trans "The following flows were modified in this branch compared to the currently-live revision. Click a flow to preview it:" %}</p>
+      <p>{% trans "The following flows were modified in this branch compared to the currently-live revision. Click a flow to preview:" %}</p>
       <ul>
         {% for flow_id in modified_flow_ids %}
           <li>

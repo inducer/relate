@@ -660,7 +660,6 @@ def update_course(pctx: CoursePageContext):
 
 # {{{ branch preview
 
-
 def get_modified_flow_ids(
         content_repo: Repo | SubdirRepoWrapper,
         old_sha: bytes,
@@ -743,10 +742,6 @@ def update_course_from_branch(
 
     branch_ref = ("refs/remotes/origin/" + branch_name).encode()
 
-    modified_flow_ids: list[str] | None = None
-
-    form = None
-    response_form = None
     if request.method == "POST":
         form = BranchPreviewForm(previewing, request.POST)
 
@@ -789,7 +784,6 @@ def update_course_from_branch(
                                 _("Branch '%(branch)s' not found. "
                                     "Use 'Fetch and preview' to fetch it first.")
                                 % {"branch": branch_name})
-                        response_form = form
                     else:
                         new_sha = refs[branch_ref]
 
@@ -807,7 +801,6 @@ def update_course_from_branch(
                                     _("Course content did not validate "
                                         "successfully:<pre>%s</pre>"
                                         "Update not applied.") % str(e))
-                            response_form = form
                         else:
                             if not warnings:
                                 messages.add_message(request, messages.SUCCESS,
@@ -831,10 +824,9 @@ def update_course_from_branch(
                                     _("Preview activated."))
 
                             if navigate_to_modified_flow:
-                                active_sha = \
-                                    course.active_git_commit_sha.encode()
                                 modified_flow_ids = get_modified_flow_ids(
-                                        content_repo, active_sha, new_sha)
+                                        content_repo,
+                                        course.active_git_commit_sha.encode(), new_sha)
 
                                 if len(modified_flow_ids) == 1:
                                     return redirect(
@@ -852,29 +844,28 @@ def update_course_from_branch(
                             ": %(err_type)s %(err_str)s")
                         % {"err_type": type(e).__name__,
                             "err_str": str(e)})
-        else:
-            response_form = form
 
     elif request.method == "GET":
-        pass
-    else:
-        raise SuspiciousOperation("unexpected method")
-
-    if response_form is None:
         previewing = bool(participation.preview_git_commit_sha)
         form = BranchPreviewForm(previewing)
 
-    assert form is not None
+    else:
+        raise SuspiciousOperation("unexpected method")
 
     refs = repo.get_refs()
-    branch_sha: str | None = None
+    branch_sha: bytes | None = None
+    modified_flow_ids: list[str] | None = None
     if branch_ref in refs:
-        branch_sha = refs[branch_ref].decode()
+        branch_sha = refs[branch_ref]
+
+        modified_flow_ids = get_modified_flow_ids(
+                content_repo,
+                course.active_git_commit_sha.encode(), branch_sha)
 
     return render_course_page(pctx, "course/update-branch.html", {
         "form": form,
         "branch_name": branch_name,
-        "branch_sha": branch_sha,
+        "branch_sha": branch_sha.decode() if branch_sha is not None else None,
         "modified_flow_ids": modified_flow_ids,
         "form_description": gettext("Preview Branch"),
     })
