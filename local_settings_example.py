@@ -412,6 +412,25 @@ RELATE_DOCKER_TLS_CONFIG = None
 
 # }}}
 
+# {{{ metrics
+
+# Set to a secret token to enable the Prometheus metrics endpoint at /metrics.
+# If unset (the default), the endpoint returns 404.
+# Prometheus should be configured with:
+#   authorization:
+#     credentials: <token>
+# (which sends 'Authorization: Bearer <token>').
+#
+# Granian must also be started with --metrics (or GRANIAN_METRICS=true).
+# RELATE_METRICS_TOKEN = "some-long-random-string"
+
+# Port on which Granian's internal metrics server listens.
+# Must match --metrics-port / GRANIAN_METRICS_PORT passed to granian.
+# Defaults to 9090 if not set.
+# RELATE_GRANIAN_METRICS_PORT = 9090
+
+# }}}
+
 # {{{ maintenance and announcements
 
 RELATE_MAINTENANCE_MODE = False

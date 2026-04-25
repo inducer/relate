@@ -217,6 +217,12 @@ The following should be in :file:`"/etc/systemd/system/relate.service"` (or simi
     Environment="GRANIAN_INTERFACE=wsgi"
     Environment="GRANIAN_RESPAWN_FAILED_WORKERS=true"
 
+    # Optional: enable Prometheus metrics on http://127.0.0.1:9090/metrics
+    # and expose them (with authentication) at /metrics in the Django app.
+    # See RELATE_METRICS_TOKEN and RELATE_GRANIAN_METRICS_PORT in local_settings.py.
+    #Environment="GRANIAN_METRICS=true"
+    #Environment="GRANIAN_METRICS_PORT=9090"
+
     ExecStart=/home/andreas/relate/.venv/bin/granian relate.wsgi:application
 
     [Install]

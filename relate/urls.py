@@ -39,10 +39,15 @@ import course.im
 import course.sandbox
 import course.versioning
 import course.views
+import relate.metrics
 from course.constants import COURSE_ID_REGEX, FLOW_ID_REGEX, STATICPAGE_PATH_REGEX
 
 
 urlpatterns = [
+    path("metrics",
+        relate.metrics.metrics,
+        name="relate-metrics"),
+
     path("login/",
         course.auth.sign_in_choice,
         name="relate-sign_in_choice"),
