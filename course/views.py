@@ -1187,13 +1187,11 @@ def grant_exception_stage_3(
             # {{{ put together access rule
 
             if form.cleaned_data["create_access_exception"]:
-                new_access_rule_json = {
+                new_access_rule_json: dict[str, object] = {
                         "permissions": [str(p) for p in permissions],
-                        "if_has_tag": (
-                            session.access_rules_tag
-                            if restricted_to_same_tag else
-                            None)
                 }
+                if restricted_to_same_tag:
+                    new_access_rule_json["if_has_tag"] = session.access_rules_tag
                 # Ensure that JSON validates, but do not use it.
                 access_rule_ta.validate_python(new_access_rule_json, context=vctx)
 
@@ -1252,15 +1250,13 @@ def grant_exception_stage_3(
                             as_local_time(due_local_naive)
                             .replace(tzinfo=None))
 
-                new_grading_rule_json = {
+                new_grading_rule_json: dict[str, object] = {
                     "description": descr,
                     "due": due_local_naive,
-                    "if_has_tag": (
-                            session.access_rules_tag
-                            if restricted_to_same_tag else
-                            None),
                     "generates_grade": form.cleaned_data["generates_grade"],
                 }
+                if restricted_to_same_tag:
+                    new_grading_rule_json["if_has_tag"] = session.access_rules_tag
 
                 def transfer_attr(name: str):
                     if form.cleaned_data[name] is not None:
