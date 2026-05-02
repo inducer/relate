@@ -333,6 +333,62 @@ def set_up_new_course(request: http.HttpRequest) -> http.HttpResponse:
 # }}}
 
 
+def fetch_course(
+            request: http.HttpRequest,
+            course: Course,
+            repo: Repo,
+        ):
+    client, remote_path = \
+        get_dulwich_client_and_remote_path_from_course(course)
+    fetch_pack_result = client.fetch(remote_path, repo)
+    transfer_remote_refs(repo, fetch_pack_result)
+    messages.add_message(request, messages.SUCCESS,
+            _("Fetch successful."))
+
+    return fetch_pack_result
+
+
+def validate_course(
+            request: http.HttpRequest,
+            course: Course,
+            content_repo: Repo | SubdirRepoWrapper,
+            new_sha: bytes,
+        ):
+    from course.validation import (
+        ValidationError,
+        validate_course_content,
+    )
+    try:
+        warnings = validate_course_content(
+                content_repo,
+                course.course_file, course.events_file,
+                new_sha, course=course)
+    except ValidationError as e:
+        messages.add_message(request, messages.ERROR,
+                _("Course content did not validate "
+                    "successfully:<pre>%s</pre>"
+                    "Update not applied.") % str(e))
+
+        return False
+    else:
+        if not warnings:
+            messages.add_message(request, messages.SUCCESS,
+                    _("Course content validated "
+                        "successfully."))
+        else:
+            messages.add_message(request, messages.WARNING,
+                    string_concat(
+                        _("Course content validated OK, "
+                            "with warnings: "),
+                        "<ul>%s</ul>")
+                    % ("".join(
+                        "<li><i>%s</i>: %s</li>"
+                        % (w.location, w.text)
+                        for w in warnings)))
+
+    return True
+
+
 # {{{ update
 
 def is_ancestor_commit(
@@ -381,14 +437,8 @@ def run_course_update_command(
             CourseRevisionCommand.fetch,
             CourseRevisionCommand.fetch_update,
             CourseRevisionCommand.fetch_preview]:
-        client, remote_path = \
-            get_dulwich_client_and_remote_path_from_course(pctx.course)
 
-        fetch_pack_result = client.fetch(remote_path, repo)
-
-        assert isinstance(fetch_pack_result, dulwich.client.FetchPackResult)
-
-        transfer_remote_refs(repo, fetch_pack_result)
+        fetch_pack_result = fetch_course(request, pctx.course, repo)
         remote_head_sha = cast("bytes", fetch_pack_result.refs[b"HEAD"])
         if prevent_discarding_revisions:
             # Guard against bad scenario:
@@ -422,36 +472,8 @@ def run_course_update_command(
 
         return
 
-    # {{{ validate
-
-    from course.validation import ValidationError, validate_course_content
-    try:
-        warnings = validate_course_content(
-                content_repo, pctx.course.course_file, pctx.course.events_file,
-                new_sha, course=pctx.course)
-    except ValidationError as e:
-        from traceback import print_exc
-        print_exc()
-
-        messages.add_message(request, messages.ERROR,
-                _("Course content did not validate successfully:<pre>%s</pre>"
-                "Update not applied.") % str(e))
+    if not validate_course(request, pctx.course, content_repo, new_sha):
         return
-
-    else:
-        if not warnings:
-            messages.add_message(request, messages.SUCCESS,
-                    _("Course content validated successfully."))
-        else:
-            messages.add_message(request, messages.WARNING,
-                    string_concat(
-                        _("Course content validated OK, with warnings: "),
-                        "<ul>%s</ul>")
-                    % ("".join(
-                        f"<li><i>{w.location}</i>: {w.text}</li>"
-                        for w in warnings)))
-
-    # }}}
 
     if command in [CourseRevisionCommand.fetch_preview, CourseRevisionCommand.preview]:
         messages.add_message(request, messages.INFO,
@@ -660,31 +682,34 @@ def update_course(pctx: CoursePageContext):
 
 # {{{ branch preview
 
+def get_flow_entry_map(
+            content_repo: Repo | SubdirRepoWrapper,
+            commit_sha: bytes
+        ) -> dict[str, bytes]:
+    from django.core.exceptions import ObjectDoesNotExist
+
+    from course.repo import get_repo_tree
+    try:
+        flows_tree = get_repo_tree(content_repo, "flows", commit_sha)
+    except ObjectDoesNotExist:
+        return {}
+
+    assert isinstance(flows_tree, dulwich.objects.Tree)
+    return {
+        entry.path[:-4].decode("utf-8"): entry.sha
+        for entry in flows_tree.items()
+        if entry.path.endswith(b".yml")
+    }
+
+
 def get_modified_flow_ids(
         content_repo: Repo | SubdirRepoWrapper,
         old_sha: bytes,
         new_sha: bytes) -> list[str]:
     """Return flow IDs that were added or modified between *old_sha* and *new_sha*."""
 
-    from django.core.exceptions import ObjectDoesNotExist
-
-    from course.repo import get_repo_tree
-
-    def get_flow_entry_map(commit_sha: bytes) -> dict[str, bytes]:
-        try:
-            flows_tree = get_repo_tree(content_repo, "flows", commit_sha)
-        except ObjectDoesNotExist:
-            return {}
-
-        assert isinstance(flows_tree, dulwich.objects.Tree)
-        return {
-            entry.path[:-4].decode("utf-8"): entry.sha
-            for entry in flows_tree.items()
-            if entry.path.endswith(b".yml")
-        }
-
-    old_entries = get_flow_entry_map(old_sha)
-    new_entries = get_flow_entry_map(new_sha)
+    old_entries = get_flow_entry_map(content_repo, old_sha)
+    new_entries = get_flow_entry_map(content_repo, new_sha)
 
     return sorted(
         flow_id
@@ -694,7 +719,6 @@ def get_modified_flow_ids(
 
 
 class BranchPreviewForm(StyledForm):
-
     def __init__(self, previewing: bool, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
 
@@ -709,6 +733,7 @@ class BranchPreviewForm(StyledForm):
         if previewing:
             add_button("end_preview", _("End preview"))
 
+        add_button("fetch", _("Fetch"))
         add_button("fetch_preview", _("Fetch and preview"))
         add_button("preview", _("Preview"))
 
@@ -747,6 +772,7 @@ def update_course_from_branch(
 
         command = None
         for cmd in [
+                CourseRevisionCommand.fetch,
                 CourseRevisionCommand.fetch_preview,
                 CourseRevisionCommand.preview,
                 CourseRevisionCommand.end_preview]:
@@ -767,17 +793,16 @@ def update_course_from_branch(
                     participation.save()
                     messages.add_message(request, messages.INFO,
                             _("Preview ended."))
-                else:
-                    if command == CourseRevisionCommand.fetch_preview:
-                        client, remote_path = \
-                            get_dulwich_client_and_remote_path_from_course(course)
-                        fetch_pack_result = client.fetch(remote_path, repo)
-                        assert isinstance(
-                            fetch_pack_result, dulwich.client.FetchPackResult)
-                        transfer_remote_refs(repo, fetch_pack_result)
-                        messages.add_message(request, messages.SUCCESS,
-                                _("Fetch successful."))
+                elif command in [
+                            CourseRevisionCommand.fetch,
+                            CourseRevisionCommand.fetch_preview
+                        ]:
+                    fetch_course(request, course, repo)
 
+                if command in [
+                            CourseRevisionCommand.fetch_preview,
+                            CourseRevisionCommand.preview
+                        ]:
                     refs = repo.get_refs()
                     if branch_ref not in refs:
                         messages.add_message(request, messages.ERROR,
@@ -787,36 +812,7 @@ def update_course_from_branch(
                     else:
                         new_sha = refs[branch_ref]
 
-                        from course.validation import (
-                            ValidationError,
-                            validate_course_content,
-                        )
-                        try:
-                            warnings = validate_course_content(
-                                    content_repo,
-                                    course.course_file, course.events_file,
-                                    new_sha, course=course)
-                        except ValidationError as e:
-                            messages.add_message(request, messages.ERROR,
-                                    _("Course content did not validate "
-                                        "successfully:<pre>%s</pre>"
-                                        "Update not applied.") % str(e))
-                        else:
-                            if not warnings:
-                                messages.add_message(request, messages.SUCCESS,
-                                        _("Course content validated "
-                                            "successfully."))
-                            else:
-                                messages.add_message(request, messages.WARNING,
-                                        string_concat(
-                                            _("Course content validated OK, "
-                                                "with warnings: "),
-                                            "<ul>%s</ul>")
-                                        % ("".join(
-                                            "<li><i>%s</i>: %s</li>"
-                                            % (w.location, w.text)
-                                            for w in warnings)))
-
+                        if validate_course(request, course, repo, new_sha):
                             participation.preview_git_commit_sha = \
                                 new_sha.decode()
                             participation.save()
