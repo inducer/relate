@@ -34,7 +34,19 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ObjectDoesNotExist, PermissionDenied
 from django.db import connection
-from django.db.models import DateTimeField, FloatField, OuterRef, Subquery
+from django.db.models import (
+    Avg,
+    Count,
+    DateTimeField,
+    DurationField,
+    ExpressionWrapper,
+    F,
+    FloatField,
+    Max,
+    Min,
+    OuterRef,
+    Subquery,
+)
 from django.urls import reverse
 from django.utils.translation import gettext as _, pgettext
 from pytools import not_none
@@ -609,38 +621,67 @@ def make_page_timing_stats_list(
                 PPerm.included_in_grade_statistics)
         )
 
-    rows = (visits_qs
+    # Annotate each submitted-answer visit with its elapsed duration and push
+    # Count/Avg/Min/Max aggregation to the database.  StdDev is not universally
+    # supported across database backends (notably absent from SQLite), so sample
+    # standard deviation is computed in Python from the per-page duration lists.
+    annotated_qs = (visits_qs
         .annotate(preceding_visit_time=preceding_time_sq)
         .filter(preceding_visit_time__isnull=False)
-        .values(
-            "page_data__group_id",
-            "page_data__page_id",
-            "visit_time",
-            "preceding_visit_time",
+        .annotate(
+            duration=ExpressionWrapper(
+                F("visit_time") - F("preceding_visit_time"),
+                output_field=DurationField(),
+            )
         )
     )
 
-    # Collect durations (in minutes) per (group_id, page_id).
-    page_times: dict[tuple[str, str], list[float]] = defaultdict(list)
-    for row in rows:
-        delta = row["visit_time"] - row["preceding_visit_time"]
-        minutes = delta.total_seconds() / 60
-        if minutes >= 0:
-            key = (row["page_data__group_id"], row["page_data__page_id"])
-            page_times[key].append(minutes)
+    page_agg = (annotated_qs
+        .values("page_data__group_id", "page_data__page_id")
+        .annotate(
+            count=Count("id"),
+            avg_duration=Avg("duration"),
+            min_duration=Min("duration"),
+            max_duration=Max("duration"),
+        )
+    )
 
-    # Build summary statistics.
+    # Collect individual durations per page for the stddev calculation.
+    page_durations: dict[tuple[str, str], list[float]] = defaultdict(list)
+    for row in (annotated_qs
+            .values_list("page_data__group_id", "page_data__page_id", "duration")):
+        key = (row[0], row[1])
+        minutes = row[2].total_seconds() / 60
+        if minutes >= 0:
+            page_durations[key].append(minutes)
+
+    # Build result list.
     result: list[PageTimingStats] = []
-    for (group_id, page_id), times in page_times.items():
-        count = len(times)
-        avg_time = sum(times) / count
-        min_time = min(times)
-        max_time = max(times)
-        if count >= 2:
-            variance = sum((t - avg_time) ** 2 for t in times) / (count - 1)
-            stddev_time: float | None = variance ** 0.5
-        else:
-            stddev_time = None
+    for agg in page_agg:
+        group_id = agg["page_data__group_id"]
+        page_id = agg["page_data__page_id"]
+        count = agg["count"]
+        avg_time = (
+            agg["avg_duration"].total_seconds() / 60
+            if agg["avg_duration"] is not None else None
+        )
+        min_time = (
+            agg["min_duration"].total_seconds() / 60
+            if agg["min_duration"] is not None else None
+        )
+        max_time = (
+            agg["max_duration"].total_seconds() / 60
+            if agg["max_duration"] is not None else None
+        )
+
+        # Sample stddev (requires at least two observations).
+        stddev_time: float | None = None
+        if count >= 2 and avg_time is not None:
+            times = page_durations.get((group_id, page_id), [])
+            if len(times) >= 2:
+                variance = sum((t - avg_time) ** 2 for t in times) / (len(times) - 1)
+                stddev_time = variance ** 0.5
+
         result.append(PageTimingStats(
             group_id=group_id,
             page_id=page_id,

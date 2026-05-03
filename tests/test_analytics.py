@@ -583,7 +583,7 @@ class MakePageTimingStatsListTest(SingleCourseTestMixin, TestCase):
         self.assertAlmostEqual(stats.avg_time, 4.0, places=3)  # type: ignore[arg-type]
         self.assertAlmostEqual(stats.min_time, 2.0, places=3)  # type: ignore[arg-type]
         self.assertAlmostEqual(stats.max_time, 6.0, places=3)  # type: ignore[arg-type]
-        # Sample stddev of [2,4,6]: variance = ((4+0+4)/2) = 4, stddev = 2
+        # Sample std dev of [2,4,6]: variance = ((4+0+4)/2) = 4, stddev = 2
         self.assertAlmostEqual(stats.stddev_time, 2.0, places=3)  # type: ignore[arg-type]
 
     def test_sorted_by_avg_time_descending(self):
