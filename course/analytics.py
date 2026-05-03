@@ -652,6 +652,8 @@ def make_page_timing_stats_list(
             .values_list("page_data__group_id", "page_data__page_id", "duration")):
         key = (row[0], row[1])
         minutes = row[2].total_seconds() / 60
+        # Skip negative durations; these can arise from clock-skew or data
+        # anomalies where the answer visit was recorded before the page view.
         if minutes >= 0:
             page_durations[key].append(minutes)
 

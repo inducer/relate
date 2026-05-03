@@ -552,7 +552,7 @@ class MakePageTimingStatsListTest(SingleCourseTestMixin, TestCase):
     def test_basic_timing_stats(self):
         """Stats are computed correctly for a single page with known time."""
         pctx = self._make_pctx()
-        # Student spends 5 minutes on page
+        # Student views the page at t=0 min and submits at t=5 min → 5 min elapsed.
         self._make_visits(self.student_participation,
                           "grp", "pg", view_time=0, answer_time=5)
         result = analytics.make_page_timing_stats_list(
