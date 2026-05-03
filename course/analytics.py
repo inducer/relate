@@ -668,7 +668,7 @@ def flow_analytics(pctx: CoursePageContext, flow_id: str):
     restrict_to_first_attempt = bool(
             bool(pctx.request.GET.get("restrict_to_first_attempt") == "1"))
 
-    timing_include_all_sessions = bool(
+    timing_include_all_sessions = (
             pctx.request.GET.get("timing_include_all_sessions") == "1")
 
     try:

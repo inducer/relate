@@ -601,16 +601,19 @@ class MakePageTimingStatsListTest(SingleCourseTestMixin, TestCase):
         self.assertEqual(result[1].page_id, "page_a")
 
     def test_include_all_sessions_vs_grade_stats_only(self):
-        """The include_all_sessions flag filters correctly."""
+        """The include_all_sessions flag filters correctly.
+
+        student_participation has ``included_in_grade_statistics``.
+        ta_participation does NOT (the "ta" role is excluded from grade stats).
+        """
         pctx = self._make_pctx()
 
         # student_participation has included_in_grade_statistics permission
         self._make_visits(self.student_participation,
                           "grp", "pg", view_time=0, answer_time=5)
 
-        # ta_participation typically doesn't have included_in_grade_statistics
-        ta_participation = factories.ParticipationFactory(course=self.course)
-        self._make_visits(ta_participation,
+        # ta_participation does NOT have included_in_grade_statistics.
+        self._make_visits(self.ta_participation,
                           "grp", "pg", view_time=0, answer_time=3)
 
         result_all = analytics.make_page_timing_stats_list(
@@ -618,8 +621,13 @@ class MakePageTimingStatsListTest(SingleCourseTestMixin, TestCase):
         result_graded = analytics.make_page_timing_stats_list(
             pctx, self.FLOW_ID, include_all_sessions=False)
 
-        # include_all_sessions=True should have >= as many results as False
-        if result_all and result_graded:
-            self.assertGreaterEqual(result_all[0].count, result_graded[0].count)
+        # With include_all_sessions=True both sessions are counted.
+        self.assertEqual(len(result_all), 1)
+        self.assertEqual(result_all[0].count, 2)
+
+        # With include_all_sessions=False only the student session is counted.
+        self.assertEqual(len(result_graded), 1)
+        self.assertEqual(result_graded[0].count, 1)
+        self.assertAlmostEqual(result_graded[0].avg_time, 5.0, places=3)  # type: ignore[arg-type]
 
 # vim: fdm=marker
