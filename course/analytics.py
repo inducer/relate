@@ -27,6 +27,7 @@ import json
 import operator
 from collections import defaultdict
 from dataclasses import dataclass
+from datetime import timedelta
 from typing import TYPE_CHECKING, Any, ClassVar, final
 
 from django import http
@@ -621,10 +622,15 @@ def make_page_timing_stats_list(
                 PPerm.included_in_grade_statistics)
         )
 
-    # Annotate each submitted-answer visit with its elapsed duration and push
-    # Count/Avg/Min/Max aggregation to the database.  StdDev is not universally
+    # Annotate each submitted-answer visit with its elapsed duration.
+    # Negative durations (clock-skew or data anomalies where the answer visit
+    # was recorded before the page view) are excluded at the database level so
+    # that the aggregated values and the per-row durations fetched for stddev
+    # are computed from the same filtered set.
+    # Count/Avg/Min/Max are pushed to the database.  StdDev is not universally
     # supported across database backends (notably absent from SQLite), so sample
-    # standard deviation is computed in Python from the per-page duration lists.
+    # standard deviation is computed in Python from a second fetch of the
+    # per-page duration values.  This is a known two-query approach for stddev.
     annotated_qs = (visits_qs
         .annotate(preceding_visit_time=preceding_time_sq)
         .filter(preceding_visit_time__isnull=False)
@@ -634,6 +640,7 @@ def make_page_timing_stats_list(
                 output_field=DurationField(),
             )
         )
+        .filter(duration__gte=timedelta(0))
     )
 
     page_agg = (annotated_qs
@@ -650,12 +657,7 @@ def make_page_timing_stats_list(
     page_durations: dict[tuple[str, str], list[float]] = defaultdict(list)
     for row in (annotated_qs
             .values_list("page_data__group_id", "page_data__page_id", "duration")):
-        key = (row[0], row[1])
-        minutes = row[2].total_seconds() / 60
-        # Skip negative durations; these can arise from clock-skew or data
-        # anomalies where the answer visit was recorded before the page view.
-        if minutes >= 0:
-            page_durations[key].append(minutes)
+        page_durations[row[0], row[1]].append(row[2].total_seconds() / 60)
 
     # Build result list.
     result: list[PageTimingStats] = []
@@ -677,12 +679,13 @@ def make_page_timing_stats_list(
         )
 
         # Sample stddev (requires at least two observations).
+        # avg_time and page_durations are derived from the same filtered set, so
+        # they are consistent.
         stddev_time: float | None = None
-        if count >= 2 and avg_time is not None:
-            times = page_durations.get((group_id, page_id), [])
-            if len(times) >= 2:
-                variance = sum((t - avg_time) ** 2 for t in times) / (len(times) - 1)
-                stddev_time = variance ** 0.5
+        times = page_durations.get((group_id, page_id), [])
+        if len(times) >= 2 and avg_time is not None:
+            variance = sum((t - avg_time) ** 2 for t in times) / (len(times) - 1)
+            stddev_time = variance ** 0.5
 
         result.append(PageTimingStats(
             group_id=group_id,
