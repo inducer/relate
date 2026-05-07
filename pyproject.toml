@@ -58,7 +58,7 @@ dependencies = [
 
     # Hard dependency because even the dev server uses relate.wsgi, where this
     # is imported.
-    "granian>=2.6.1,<3",
+    "granian>=2.7.4,<3",
 
     # Hard dependency to resolve vulnerability
     # https://github.com/inducer/relate/security/dependabot/130
