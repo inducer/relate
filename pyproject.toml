@@ -42,7 +42,7 @@ dependencies = [
     "pytools>=2024.1.8",
     "colorama>=0.4.6",
     "social-auth-app-django>=5.4.1,<6",
-    "urllib3>=2.3.0,<3",
+    "urllib3>=2.7.0,<3",
     "typing_extensions>=4.14.1",
 
     "pydantic~=2.12",
