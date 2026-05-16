@@ -798,11 +798,21 @@ class InlineMultiQuestion(
 
         total_weight = sum(answer.weight for answer in self.answers.values())
 
+        missing_names = [name for name in self.answers if name not in answer_dict]
+        feedback = None
+        if missing_names:
+            feedback = gettext(
+                "WARNING: Some required answers were not part of the answer record: %s "
+                "This means the question was changed in an invalid way between "
+                "your answer and when it was (re-)graded.") % ", ".join(missing_names)
+
         correctness = sum(
             answer.get_weighted_correctness(answer_dict[name])
-            for name, answer in self.answers.items()) / total_weight
+            for name, answer in self.answers.items()
+            if name in answer_dict
+        ) / total_weight
 
-        return AnswerFeedback(correctness=correctness)
+        return AnswerFeedback(correctness=correctness, feedback=feedback)
 
     @override
     def analytic_view_body(self,
