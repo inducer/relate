@@ -253,6 +253,7 @@ def request_run(
                     command_path,
                     "-1"],
                 mem_limit=mem_limit,
+                network_disabled=True,
                 memswap_limit=mem_limit,
                 publish_all_ports=True,
                 detach=True,
