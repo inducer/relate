@@ -1183,7 +1183,25 @@ def grant_exception_stage_3(
                 form.cleaned_data.get("restrict_to_same_tag")
                 and session.access_rules_tag is not None)
 
+            new_access_rules_tag = form.cleaned_data.get("set_access_rules_tag")
+            if new_access_rules_tag == NONE_SESSION_TAG:
+                new_access_rules_tag = None
+
+            if session.access_rules_tag != new_access_rules_tag:
+                session.access_rules_tag = new_access_rules_tag
+                session.save()
+
+                if new_access_rules_tag is not None:
+                    msg = _("Access rules tag of the selected session "
+                            "updated to '%s'.") % new_access_rules_tag
+                else:
+                    msg = _(
+                        "Removed access rules tag of the selected session.")
+
+                messages.add_message(pctx.request, messages.SUCCESS, msg)
+
             vctx = ValidationContext(pctx.repo, pctx.course_commit_sha, pctx.course)
+
             # {{{ put together access rule
 
             if form.cleaned_data["create_access_exception"]:
@@ -1191,7 +1209,8 @@ def grant_exception_stage_3(
                         "permissions": [str(p) for p in permissions],
                 }
                 if restricted_to_same_tag:
-                    new_access_rule_json["if_has_tag"] = session.access_rules_tag
+                    new_access_rule_json["if_has_tag"] = new_access_rules_tag
+
                 # Ensure that JSON validates, but do not use it.
                 access_rule_ta.validate_python(new_access_rule_json, context=vctx)
 
@@ -1210,26 +1229,6 @@ def grant_exception_stage_3(
                         cast("FlowRuleKind", fre_access.kind)]))
 
             # }}}
-
-            session_access_rules_tag_changed = False
-            if not restricted_to_same_tag:
-                new_access_rules_tag = form.cleaned_data.get("set_access_rules_tag")
-                if new_access_rules_tag == NONE_SESSION_TAG:
-                    new_access_rules_tag = None
-
-                if session.access_rules_tag != new_access_rules_tag:
-                    session.access_rules_tag = new_access_rules_tag
-                    session.save()
-                    session_access_rules_tag_changed = True
-
-                    if new_access_rules_tag is not None:
-                        msg = _("Access rules tag of the selected session "
-                                "updated to '%s'.") % new_access_rules_tag
-                    else:
-                        msg = _(
-                            "Removed access rules tag of the selected session.")
-
-                    messages.add_message(pctx.request, messages.SUCCESS, msg)
 
             # {{{ put together grading rule
 
@@ -1256,7 +1255,7 @@ def grant_exception_stage_3(
                     "generates_grade": form.cleaned_data["generates_grade"],
                 }
                 if restricted_to_same_tag:
-                    new_grading_rule_json["if_has_tag"] = session.access_rules_tag
+                    new_grading_rule_json["if_has_tag"] = new_access_rules_tag
 
                 def transfer_attr(name: str):
                     if form.cleaned_data[name] is not None:
@@ -1296,25 +1295,16 @@ def grant_exception_stage_3(
                                 "participation": participation,
                                 "flow_id": flow_id})
             else:
-                if session_access_rules_tag_changed:
-                    messages.add_message(
-                        pctx.request, messages.WARNING,
-                        _(
-                            "No other exception granted to the given flow "
-                            "session of '%(participation)s' "
-                            "for '%(flow_id)s'.")
-                        % {
-                            "participation": participation,
-                            "flow_id": flow_id})
-                else:
-                    messages.add_message(pctx.request, messages.WARNING,
-                            _(
-                                "No exception granted to the given flow "
-                                "session of '%(participation)s' "
-                                "for '%(flow_id)s'.")
-                            % {
-                                "participation": participation,
-                                "flow_id": flow_id})
+                messages.add_message(
+                    pctx.request, messages.WARNING,
+                    _(
+                        "No grading or access exception granted to the given flow "
+                        "session of '%(participation)s' "
+                        "for '%(flow_id)s'.")
+                    % {
+                        "participation": participation,
+                        "flow_id": flow_id})
+
             return redirect(
                     "relate-grant_exception",
                     pctx.course.identifier)

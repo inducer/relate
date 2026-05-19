@@ -1562,7 +1562,7 @@ class GrantExceptionStage3Test(GrantExceptionTestMixin, TestCase):
         self.assertEqual(models.FlowRuleException.objects.count(), 0)
         self.assertAddMessageCallCount(1)
         self.assertAddMessageCalledWith(
-            "No exception granted to the given flow session")
+            "No grading or access exception granted")
 
     def test_flow_desc_has_no_rule(self):
         hacked_flow_desc = self.get_hacked_flow_desc(del_rules=True)
@@ -1588,7 +1588,7 @@ class GrantExceptionStage3Test(GrantExceptionTestMixin, TestCase):
             self.assertEqual(models.FlowRuleException.objects.count(), 0)
         self.assertAddMessageCallCount(1)
         self.assertAddMessageCalledWith(
-            "No exception granted to the given flow session")
+            "No grading or access exception granted")
 
     def test_flow_desc_rule_has_tags(self):
         flow_desc_access_rule_tags = ["fdesc_tag1", "fdesc_tag2"]
@@ -1752,12 +1752,13 @@ class GrantExceptionStage3Test(GrantExceptionTestMixin, TestCase):
         with mock.patch("course.content.get_flow_desc") as mock_get_flow_desc:
             mock_get_flow_desc.return_value = hacked_flow_desc
 
+            new_tag = flow_desc_access_rule_tags[1]
             resp = self.post_grant_exception_stage_3_view(
                 session_id=another_fs.pk,
                 data=self.get_default_post_data(
                     session=another_fs.pk,
                     create_access_exception=True,
-                    set_access_rules_tag=[flow_desc_access_rule_tags[1]],
+                    set_access_rules_tag=[new_tag],
                     restrict_to_same_tag=True  # then the above will be ignored
                 ))
 
@@ -1771,14 +1772,14 @@ class GrantExceptionStage3Test(GrantExceptionTestMixin, TestCase):
                 models.FlowRuleException.objects.filter(
                     kind=constants.FlowRuleKind.access).count(), 1)
 
-            self.assertAddMessageCallCount(1)
+            self.assertAddMessageCallCount(2)
             self.assertAddMessageCalledWith(
                 "'Session Access' exception granted to ")
             another_fs.refresh_from_db()
-            self.assertEqual(another_fs.access_rules_tag, another_fs_tag)
+            self.assertEqual(another_fs.access_rules_tag, new_tag)
 
             exc_rule = models.FlowRuleException.objects.last().rule
-            self.assertEqual(exc_rule["if_has_tag"], another_fs_tag)
+            self.assertEqual(exc_rule["if_has_tag"], new_tag)
 
     def test_access_permissions_created(self):
         # ensure all flow permission is in the form, and will be
@@ -1850,7 +1851,7 @@ class GrantExceptionStage3Test(GrantExceptionTestMixin, TestCase):
             self.assertAddMessageCalledWith(
                 ["Access rules tag of the selected session updated "
                  f"to '{flow_desc_access_rule_tags[1]}'.",
-                 "No other exception granted to "], reset=True)
+                 "No grading or access exception granted"], reset=True)
             self.fs.refresh_from_db()
             self.assertEqual(self.fs.access_rules_tag, flow_desc_access_rule_tags[1])
 
@@ -2067,12 +2068,13 @@ class GrantExceptionStage3Test(GrantExceptionTestMixin, TestCase):
         with mock.patch("course.content.get_flow_desc") as mock_get_flow_desc:
             mock_get_flow_desc.return_value = hacked_flow_desc
 
+            new_tag = flow_desc_access_rule_tags[1]
             resp = self.post_grant_exception_stage_3_view(
                 session_id=another_fs.pk,
                 data=self.get_default_post_data(
                     session=another_fs.pk,
                     create_grading_exception=True,
-                    set_access_rules_tag=[flow_desc_access_rule_tags[1]],
+                    set_access_rules_tag=[new_tag],
                     restrict_to_same_tag=True  # then the above will be ignored
                 ))
 
@@ -2086,13 +2088,13 @@ class GrantExceptionStage3Test(GrantExceptionTestMixin, TestCase):
                 models.FlowRuleException.objects.filter(
                     kind=constants.FlowRuleKind.grading).count(), 1)
 
-            self.assertAddMessageCallCount(1)
+            self.assertAddMessageCallCount(2)
             self.assertAddMessageCalledWith("'Grading' exception granted to ")
             another_fs.refresh_from_db()
-            self.assertEqual(another_fs.access_rules_tag, another_fs_tag)
+            self.assertEqual(another_fs.access_rules_tag, new_tag)
 
             exc_rule = models.FlowRuleException.objects.last().rule
-            self.assertEqual(exc_rule["if_has_tag"], another_fs_tag)
+            self.assertEqual(exc_rule["if_has_tag"], new_tag)
 
     # }}}
 
