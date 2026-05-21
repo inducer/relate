@@ -1,12 +1,10 @@
 from __future__ import annotations
 
-import io
 import sys
 from pathlib import Path
-from typing import TypeAlias
 
-from pydantic import TypeAdapter
-from pytools import not_none
+from pydantic import ValidationError
+from typed_argparse import Parser, SubParser, SubParserGroup, TypedArgs, arg
 
 from course.content import flow_desc_ta
 from course.page.base import PageBase
@@ -21,7 +19,71 @@ from course.validation import (
 )
 
 
-CodeQuestion: TypeAlias = PythonCodeQuestion | PythonCodeQuestionWHTF
+CodeQuestion = PythonCodeQuestion | PythonCodeQuestionWHTF
+
+
+class CommonArgs(TypedArgs):
+    pass
+
+
+class ValidateCourseArgs(CommonArgs):
+    course_file: str = arg(default="course.yml")
+    events_file: str = arg(default="events.yml")
+    warn_error: bool = arg(
+        help="Treat warnings as errors",
+    )
+    repo_root: str = arg(
+        default=".",
+        help="Root of the course repository",
+        positional=True,
+    )
+
+
+class ValidatePageArgs(CommonArgs):
+    warn_error: bool = arg(
+        help="Treat warnings as errors",
+    )
+    repo_root: str = arg(
+        default=".",
+        help="Root of the course repository",
+        positional=True,
+    )
+    problem_ymls: list[str] = arg(
+        positional=True,
+        nargs="+",
+    )
+
+
+class TestCodeArgs(CommonArgs):
+    repo_root: str = arg(
+        default=".",
+        help="Root of the course repository",
+    )
+    flow_or_problem_ymls: list[str] = arg(
+        positional=True,
+        nargs="+",
+    )
+
+
+class ExpandYamlArgs(CommonArgs):
+    repo_root: str = arg(
+        default=".",
+        help="Root of the course repository",
+    )
+    yaml_file: str = arg(positional=True)
+
+
+class LintYamlArgs(CommonArgs):
+    config_file: str = arg(default="./.yamllint")
+    repo_root: str = arg(
+        default=".",
+        help="Root of the course repository",
+    )
+    files: list[str] = arg(
+        positional=True,
+        nargs="+",
+        help="List of directories or files to lint",
+    )
 
 
 # {{{ expand YAML
@@ -52,7 +114,7 @@ def expand_yaml(yml_file: str, repo_root: Path):
 
 # {{{ validate_course
 
-def validate_course(args):
+def validate_course(args: ValidateCourseArgs) -> None:
     from django.conf import settings
     settings.configure(DEBUG=True)
 
@@ -60,53 +122,51 @@ def validate_course(args):
     django.setup()
 
     from course.validation import validate_course_on_filesystem
-    has_warnings = validate_course_on_filesystem(Path(args.REPO_ROOT),
+    has_warnings = validate_course_on_filesystem(Path(args.repo_root),
             course_file=args.course_file,
             events_file=args.events_file)
 
-    if has_warnings and args.warn_error:
-        return 1
-    else:
-        return 0
+    sys.exit(int(has_warnings and args.warn_error))
 
 # }}}
 
 
 # {{{ validate_pages
 
-def validate_pages(args):
+def validate_pages(args: ValidatePageArgs) -> None:
     from django.conf import settings
     settings.configure(DEBUG=True)
 
     import django
     django.setup()
 
-    fake_repo = FileSystemFakeRepo(Path(args.REPO_ROOT))
+    fake_repo = FileSystemFakeRepo(Path(args.repo_root))
     vctx = ValidationContext(
             repo=fake_repo,
-            commit_sha=fake_repo,
+            commit_sha=fake_repo,  # type: ignore[arg-type]
             course=None)
 
     from yaml import safe_load
-    for yaml_filename in args.PROBLEM_YMLS:
-        yaml_data = safe_load(expand_yaml(yaml_filename, Path(args.REPO_ROOT)))
-        PageBase.model_validate(yaml_data, context=vctx)
+    for yaml_filename in args.problem_ymls:
+        yaml_data = safe_load(expand_yaml(yaml_filename, Path(args.repo_root)))
+        try:
+            PageBase.model_validate(yaml_data, context=vctx)
+        except ValidationError as e:
+            raise RuntimeError(f"Validation error in {yaml_filename}: {e!s}") from e
 
     if vctx.warnings:
         print("WARNINGS: ")
         for w in vctx.warnings:
             print("***", w.location, w.text)
 
-    if vctx.warnings and args.warn_error:
-        return 1
-    else:
-        return 0
+    sys.exit(int(bool(vctx.warnings) and args.warn_error))
 
 # }}}
 
 
 # {{{ lint YAML
-def lint_yaml(args):
+
+def lint_yaml(args: LintYamlArgs) -> None:
     import os
 
     from yamllint import linter
@@ -123,7 +183,7 @@ def lint_yaml(args):
         # expanded yaml is missing a newline at the end of the
         # file which causes the linter to complain, so we add a
         # newline :)
-        expanded_yaml = expand_yaml(name, args.repo_root) + "\n"
+        expanded_yaml = expand_yaml(name, Path(args.repo_root)) + "\n"
 
         problems = list(linter.run(expanded_yaml, conf))
         show_problems(problems, name, "auto", None)
@@ -140,14 +200,17 @@ def lint_yaml(args):
         else:
             check_file(item)
 
-    return int(had_problems)
+    sys.exit(int(had_problems))
 
 # }}}
 
 
 # {{{ code test
 
-def test_code_question(page: PythonCodeQuestion | PythonCodeQuestionWHTF) -> bool:
+def test_code_question(page: CodeQuestion) -> bool:
+    import io
+
+    from pytools import not_none
     print(75*"-")
     print("TESTING", page.id, "...", end=" ")
     sys.stdout.flush()
@@ -262,6 +325,7 @@ def test_code_question(page: PythonCodeQuestion | PythonCodeQuestionWHTF) -> boo
 
 
 def test_code_yml(yml_file: str, repo_root: Path):
+    from pydantic import TypeAdapter
     from yaml import safe_load
     data = safe_load(expand_yaml(yml_file, repo_root))
 
@@ -293,74 +357,46 @@ def test_code_yml(yml_file: str, repo_root: Path):
         return True
 
 
-def test_code(args):
-    for yml_file in args.FLOW_OR_PROBLEM_YMLS:
+def test_code(args: TestCodeArgs) -> None:
+    for yml_file in args.flow_or_problem_ymls:
         print(75*"=")
         print("EXAMINING", yml_file)
         if not test_code_yml(yml_file, repo_root=Path(args.repo_root)):
-            return 1
+            sys.exit(1)
 
-    return 0
+    sys.exit(0)
 
 # }}}
 
 
-def expand_yaml_ui(args):
-    print(expand_yaml(args.YAML_FILE, args.repo_root))
+def expand_yaml_ui(args: ExpandYamlArgs) -> None:
+    print(expand_yaml(args.yaml_file, Path(args.repo_root)))
 
 
 def main() -> None:
-    import argparse
     import os
 
     os.environ["RELATE_COMMAND_LINE"] = "1"
 
-    parser = argparse.ArgumentParser(
-            description="RELATE course content command line tool")
-    subp = parser.add_subparsers()
+    parser = Parser(
+        SubParserGroup(
+            SubParser("validate", ValidateCourseArgs),
+            SubParser("validate-page", ValidatePageArgs),
+            SubParser("test-code", TestCodeArgs),
+            SubParser("expand-yaml", ExpandYamlArgs),
+            SubParser("lint-yaml", LintYamlArgs),
+            common_args=CommonArgs,
+        ),
+        description="RELATE course content command line tool",
+    )
 
-    parser_validate_course = subp.add_parser("validate")
-    parser_validate_course.add_argument("--course-file", default="course.yml")
-    parser_validate_course.add_argument("--events-file", default="events.yml")
-    parser_validate_course.add_argument("--warn-error", action="store_true",
-            help="Treat warnings as errors")
-    parser_validate_course.add_argument("REPO_ROOT", default=os.getcwd())
-    parser_validate_course.set_defaults(func=validate_course)
-
-    parser_validate_page = subp.add_parser("validate-page")
-    parser_validate_page.add_argument("--warn-error", action="store_true",
-            help="Treat warnings as errors")
-    parser_validate_page.add_argument("REPO_ROOT", default=os.getcwd())
-    parser_validate_page.add_argument("PROBLEM_YMLS", nargs="+")
-    parser_validate_page.set_defaults(func=validate_pages)
-
-    parser_test_code = subp.add_parser("test-code")
-    parser_test_code.add_argument("--repo-root", default=os.getcwd())
-    parser_test_code.add_argument("FLOW_OR_PROBLEM_YMLS", nargs="+")
-    parser_test_code.set_defaults(func=test_code)
-
-    parser_expand_yaml = subp.add_parser("expand-yaml")
-    parser_expand_yaml.add_argument("--repo-root", default=os.getcwd())
-    parser_expand_yaml.add_argument("YAML_FILE")
-    parser_expand_yaml.set_defaults(func=expand_yaml_ui)
-
-    parser_lint_yaml = subp.add_parser("lint-yaml")
-    parser_lint_yaml.add_argument("--repo-root", default=os.getcwd())
-    parser_lint_yaml.add_argument("--config-file", default="./.yamllint")
-    parser_lint_yaml.add_argument("files", metavar="FILES",
-                                  nargs="+",
-                                  help="List of directories or files to lint")
-    parser_lint_yaml.set_defaults(func=lint_yaml)
-
-    args = parser.parse_args()
-
-    if not hasattr(args, "func"):
-        parser.print_usage()
-        import sys
-        sys.exit(1)
-
-    import sys
-    sys.exit(args.func(args))
+    parser.bind(
+        validate_course,
+        validate_pages,
+        test_code,
+        expand_yaml_ui,
+        lint_yaml,
+    ).run()
 
 
 if __name__ == "__main__":
