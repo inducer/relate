@@ -49,6 +49,13 @@ from pydantic import (
 from pytools import memoize_method, not_none
 from typing_extensions import override
 
+from course.expr_evaluation import (
+    evaluates_to_constant,
+    float_or_sympy_evalf,
+    parse_expr,
+    parse_sympy,
+    sympy_check_equality,
+)
 from course.page.base import (
     AnswerData,
     AnswerFeedback,
@@ -85,44 +92,8 @@ from relate.utils import (
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
-    from pymbolic import Expression
-
 
 CORRECT_ANSWER_PATTERN = string_concat(_("A correct answer is"), ": '%s'.")
-
-
-def parse_expr(s: float | str):
-    if isinstance(s, (complex, float, int)):
-        return s
-
-    # use pymbolic because it has a semi-secure parser
-    from pymbolic import parse
-    return parse(s)
-
-
-def evaluates_to_constant(expr: Expression) -> bool:
-    from pymbolic.mapper.dependency import DependencyMapper
-    depmap = DependencyMapper[[]]()
-    return not depmap(expr)
-
-
-def parse_sympy(s: float | str):
-    # NOTE Only call this from timeout-protected contexts
-    if isinstance(s, (complex, float, int)):
-        from sympy import sympify
-        return sympify(s)
-
-    from pymbolic.interop.sympy import PymbolicToSympyMapper
-    return PymbolicToSympyMapper()(parse_expr(s))
-
-
-def _sympy_check_equality(
-        expr_str: str, ref_str: str,
-    ) -> bool:
-    """Subprocess worker: send True iff simplify(expr - ref) == 0."""
-    from sympy import simplify
-    diff = parse_sympy(expr_str) - parse_sympy(ref_str)
-    return simplify(diff) == 0
 
 
 # {{{ data model/validation
@@ -156,26 +127,6 @@ class WidgetDesc(BaseModel):
 
             return {"type": WidgetType(tp), "language": lang}
         return data
-
-
-def float_or_sympy_evalf(s: str | float) -> float:
-    if isinstance(s, int | float):
-        return s
-
-    if not isinstance(s, str):
-        raise TypeError("expected string, int or float for floating point "
-                "literal")
-
-    try:
-        return float(s)
-    except ValueError:
-        pass
-
-    if s == "":
-        raise ValueError("floating point value expected, empty string found")
-
-    # return a float type value, expression not allowed
-    return float(parse_sympy(s).evalf())
 
 
 def _validate_float_expr(s: float | str):
@@ -505,7 +456,7 @@ class SymbolicExpressionMatcher(TextAnswerMatcher):
             return AnswerFeedback(0)
 
         try:
-            result = call_with_timeout(2, _sympy_check_equality, s, str(self.value))
+            result = call_with_timeout(2, sympy_check_equality, s, str(self.value))
         except Exception as e:
             return AnswerFeedback(0, str(e))
 
