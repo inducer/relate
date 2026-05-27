@@ -458,7 +458,10 @@ class SymbolicExpressionMatcher(TextAnswerMatcher):
         try:
             result = call_with_timeout(2, sympy_check_equality, s, str(self.value))
         except Exception as e:
-            return AnswerFeedback(0, str(e))
+            return AnswerFeedback(0,
+                gettext("An exception occurred while evaluating the answer: %s (%s)")
+                % (type(e).__name__, str(e))
+            )
 
         if result is TIMED_OUT:
             return AnswerFeedback(
@@ -518,9 +521,11 @@ class FloatMatcher(TextAnswerMatcher):
     def grade(self, s: str):
         try:
             answer_float = call_with_timeout(2, float_or_sympy_evalf, s)
-        except Exception:
-            # Should not happen, no need to give verbose feedback.
-            return AnswerFeedback(0)
+        except Exception as e:
+            return AnswerFeedback(0,
+                gettext("An exception occurred while evaluating the answer: %s (%s)")
+                % (type(e).__name__, str(e))
+            )
         if answer_float is TIMED_OUT:
             return AnswerFeedback(0, feedback=gettext(
                     "Answer could not be evaluated within the time limit."))
