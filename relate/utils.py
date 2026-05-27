@@ -304,6 +304,15 @@ class retry_transaction_decorator:  # noqa
         return wrapper
 
 
+def is_running_in_celery():
+    try:
+        from celery import current_task
+        # If we are not in a worker, current_task.request is None
+        return current_task.request is not None
+    except Exception:
+        return False
+
+
 # {{{ call with timeout
 
 TIMED_OUT = Sentinel("TIMED_OUT")
@@ -329,14 +338,25 @@ def _call_with_timeout_worker(
         conn.close()
 
 
+# Empirically, 'spawn' is much cheaper than forking a heavily-laden
+# Django process, particularly with the (relatively) lightweight
+# payload functions in course.expr_evaluation.
+MP_CONTEXT = multiprocessing.get_context("spawn")
+
+
 def call_with_timeout(
             timeout: float,
             f: Callable[P, ResultT],
             *args: P.args,
             **kwargs: P.kwargs,
         ) -> ResultT | TIMED_OUT:  # type: ignore[valid-type]
-    parent_conn, child_conn = multiprocessing.Pipe(duplex=False)
-    p = multiprocessing.Process(
+    if is_running_in_celery():
+        # Subprocesses and celery don't seem to mix well. AK saw spurious
+        # grading failures.
+        return f(*args, **kwargs)
+
+    parent_conn, child_conn = MP_CONTEXT.Pipe(duplex=False)
+    p = MP_CONTEXT.Process(
             target=_call_with_timeout_worker,
             args=(child_conn, f, *args),
             kwargs=kwargs,
