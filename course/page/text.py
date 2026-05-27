@@ -458,14 +458,14 @@ class SymbolicExpressionMatcher(TextAnswerMatcher):
         try:
             result = call_with_timeout(2, sympy_check_equality, s, str(self.value))
         except Exception as e:
-            return AnswerFeedback(0,
+            return AnswerFeedback(None,
                 gettext("An exception occurred while evaluating the answer: %s (%s)")
                 % (type(e).__name__, str(e))
             )
 
         if result is TIMED_OUT:
             return AnswerFeedback(
-                0,
+                None,
                 feedback=gettext(
                     "Answer could not be evaluated within the time limit."),
             )
@@ -522,12 +522,12 @@ class FloatMatcher(TextAnswerMatcher):
         try:
             answer_float = call_with_timeout(2, float_or_sympy_evalf, s)
         except Exception as e:
-            return AnswerFeedback(0,
+            return AnswerFeedback(None,
                 gettext("An exception occurred while evaluating the answer: %s (%s)")
                 % (type(e).__name__, str(e))
             )
         if answer_float is TIMED_OUT:
-            return AnswerFeedback(0, feedback=gettext(
+            return AnswerFeedback(None, feedback=gettext(
                     "Answer could not be evaluated within the time limit."))
 
         good_afb = AnswerFeedback(self.correctness, self.feedback)
