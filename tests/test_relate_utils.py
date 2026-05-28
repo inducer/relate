@@ -44,27 +44,35 @@ def _raise_value_error(msg):
     raise ValueError(msg)
 
 
+def _large_integer_calc() -> int:
+    return 10000000**10000000
+
+
 class TestCallWithTimeout:
     def test_returns_result_on_success(self):
-        result = call_with_timeout(5.0, _return_value, 42)
+        result = call_with_timeout(5, _return_value, 42)
         assert result == 42
 
     def test_returns_result_with_multiple_args(self):
-        result = call_with_timeout(5.0, operator.add, 3, 4)
+        result = call_with_timeout(5, operator.add, 3, 4)
         assert result == 7
 
     def test_returns_timed_out_sentinel_when_slow(self):
-        result = call_with_timeout(0.1, _sleep_and_return, 10.0, "never")
+        result = call_with_timeout(1, _sleep_and_return, 10.0, "never")
+        assert result is TIMED_OUT
+
+    def test_slow_integer_math_times_out(self):
+        result = call_with_timeout(2, _large_integer_calc)
         assert result is TIMED_OUT
 
     def test_raises_exception_on_error(self):
         with pytest.raises(ValueError, match="boom"):
-            call_with_timeout(5.0, _raise_value_error, "boom")
+            call_with_timeout(5, _raise_value_error, "boom")
 
     def test_none_return_value(self):
-        result = call_with_timeout(5.0, _return_value, None)
+        result = call_with_timeout(5, _return_value, None)
         assert result is None
 
     def test_complex_return_value(self):
-        result = call_with_timeout(5.0, _return_value, {"key": [1, 2, 3]})
+        result = call_with_timeout(5, _return_value, {"key": [1, 2, 3]})
         assert result == {"key": [1, 2, 3]}
