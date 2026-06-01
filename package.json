@@ -59,6 +59,9 @@
   "//devDependencies": {
     "sass": "https://github.com/twbs/bootstrap/issues/40849"
   },
+  "overrides": {
+    "katex": "^0.17.0"
+  },
   "devDependencies": {
     "@biomejs/biome": "^2.4.16",
     "@rollup/plugin-commonjs": "^29.0.3",
