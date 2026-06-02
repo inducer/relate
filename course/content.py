@@ -80,11 +80,14 @@ from course.repo import (
     PYTHON_CLASS_REPO_PREFIX,
     PYTHON_CLASS_REPO_REGISTRY,
     FileSystemFakeRepo,
+    NoRevisionNeeded,
     PythonClassFakeRepo,
     RevisionID_ish,
     SubdirRepoWrapper,
+    deserialize_revision,
     get_repo_blob_data_cached,
     get_repo_tree,
+    serialize_revision,
 )
 from course.validation import (
     DOMIdentifierStr,
@@ -1180,7 +1183,9 @@ def get_raw_yaml_from_repo(
     from urllib.parse import quote_plus
     cache_key = "%RAW%%2".join((
         CACHE_KEY_ROOT,
-        quote_plus(str(repo.controldir())), quote_plus(full_name), commit_sha.decode(),
+        quote_plus(str(repo.controldir())),
+        quote_plus(full_name),
+        serialize_revision(commit_sha),
         ))
 
     def_cache = cache.caches["default"]
@@ -1197,7 +1202,7 @@ def get_raw_yaml_from_repo(
 
     yaml_str = expand_yaml_macros(
                 repo, commit_sha,
-                get_repo_blob(repo, full_name, commit_sha).data)
+                get_repo_blob(repo, full_name, commit_sha).data.decode("utf-8"))
 
     result = load_yaml(yaml_str)  # type: ignore
 
@@ -1255,7 +1260,7 @@ def get_model_from_repo(
             cache_key = "%%%2".join(
                     (CACHE_KEY_ROOT,
                         quote_plus(str(repo.controldir())), quote_plus(full_name),
-                        commit_sha.decode()))
+                        serialize_revision(commit_sha)))
 
             def_cache = cache.caches["default"]
             result = None
@@ -1826,23 +1831,28 @@ def get_course_commit_sha(
         repo: Repo_ish | None = None,
         raise_on_nonexistent_preview_commit: bool | None = False
         ) -> RevisionID_ish:
-    sha = course.active_git_commit_sha
+    sha = deserialize_revision(course.active_git_commit_sha)
 
-    def is_commit_sha_valid(repo: Repo_ish, commit_sha: str) -> bool:
+    def is_commit_sha_valid(repo: Repo_ish, commit_sha: RevisionID_ish) -> bool:
+        if isinstance(commit_sha, type):
+            assert commit_sha is NoRevisionNeeded
+            return True
+
         if isinstance(repo, SubdirRepoWrapper):
             repo = repo.repo
         try:
-            repo[commit_sha.encode()]
+            repo[commit_sha]
         except KeyError:
             if raise_on_nonexistent_preview_commit:
                 raise CourseCommitSHADoesNotExist(
-                    _("Preview revision '{}' does not exist").format(commit_sha))
+                    _("Preview revision '{}' does not exist").format(
+                        serialize_revision(commit_sha)))
             return False
 
         return True
 
     if participation is not None and participation.preview_git_commit_sha:
-        preview_sha = participation.preview_git_commit_sha
+        preview_sha = deserialize_revision(participation.preview_git_commit_sha)
 
         if repo is not None:
             preview_sha_valid = is_commit_sha_valid(repo, preview_sha)
@@ -1853,7 +1863,7 @@ def get_course_commit_sha(
         if preview_sha_valid:
             sha = preview_sha
 
-    return sha.encode()
+    return sha
 
 
 def list_flow_ids(repo: Repo_ish, commit_sha: RevisionID_ish) -> list[str]:

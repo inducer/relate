@@ -13,7 +13,7 @@ from course.page.code import (
     PythonCodeQuestionWithHumanTextFeedback as PythonCodeQuestionWHTF,
 )
 from course.page.code_run_backend import RunRequest
-from course.repo import FileSystemFakeRepo
+from course.repo import FileSystemFakeRepo, NoRevisionNeeded
 from course.validation import (
     ValidationContext,
 )
@@ -334,7 +334,7 @@ def test_code_yml(yml_file: str, repo_root: Path):
 
     vctx = ValidationContext(
                              repo=FileSystemFakeRepo(repo_root),
-                             commit_sha=b"WORKINGDIR",
+                             commit_sha=NoRevisionNeeded,
                              course=None,
                          ).with_location(yml_file)
 

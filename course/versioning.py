@@ -55,13 +55,20 @@ from django.utils.translation import (
 )
 from django.views.decorators.csrf import csrf_exempt
 from django_select2.forms import Select2Widget
+from dulwich.refs import HEADREF, Ref
 from dulwich.repo import Repo
+from pytools import not_none
 
 from course.auth import with_course_api_auth
 from course.constants import ParticipationPermission as PPerm, ParticipationStatus
 from course.content import get_course_repo
 from course.models import Course, Participation, ParticipationRole
-from course.repo import RevisionID_ish, SubdirRepoWrapper
+from course.repo import (
+    RevisionID_ish,
+    SubdirRepoWrapper,
+    deserialize_revision,
+    serialize_revision,
+)
 from course.utils import (
     CoursePageContext,
     course_view,
@@ -79,7 +86,8 @@ from relate.utils import (
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from dulwich.objects import Commit
+    from dulwich.objects import Commit, ObjectID
+    from dulwich.server import BackendRepo
 
     from accounts.models import User
     from course.auth import APIContext
@@ -102,9 +110,10 @@ def transfer_remote_refs(
     for ref, sha in fetch_pack_result.refs.items():
         if (ref.startswith(b"refs/heads/")
                 and not ref.startswith(b"refs/heads/origin/")):
-            new_ref = b"refs/remotes/origin/"+_remove_prefix(b"refs/heads/", ref)
+            new_ref = cast("Ref",
+                b"refs/remotes/origin/"+_remove_prefix(b"refs/heads/", ref))
             valid_refs.append(new_ref)
-            repo[new_ref] = sha
+            repo[new_ref] = cast("ObjectID", sha)
 
     for ref in repo.get_refs():
         if ref.startswith(b"refs/remotes/origin/") and ref not in valid_refs:
@@ -121,8 +130,12 @@ def get_dulwich_client_and_remote_path_from_course(
         ssh_kwargs["pkey"] = paramiko.RSAKey.from_private_key(key_file)
 
     def get_dulwich_ssh_vendor():
-        from dulwich.contrib.paramiko_vendor import ParamikoSSHVendor
-        return ParamikoSSHVendor(**ssh_kwargs)
+        from .paramiko_vendor import ParamikoSSHVendor
+        return ParamikoSSHVendor(
+            **ssh_kwargs,
+            # This runs non-interactively, so the default of 'reject'
+            # is unhelpful.
+            missing_host_key_policy=paramiko.AutoAddPolicy())
 
     # writing to another module's global variable: gross!
     dulwich.client.get_ssh_vendor = get_dulwich_ssh_vendor  # type: ignore[assignment]
@@ -152,7 +165,7 @@ def create_course(
 
         del repo
 
-        course.active_git_commit_sha = revision_id.decode()
+        course.active_git_commit_sha = serialize_revision(revision_id)
         course.save()
 
         # {{{ set up a participation for the course creator
@@ -179,8 +192,9 @@ def create_course_with_repo_path(
             *, skip_validate: bool = False,
         ):
     repo = get_course_repo(course)
-    create_course(repo, course.active_git_commit_sha.encode(), course, owner,
-        skip_validate=skip_validate)
+    create_course(repo,
+        deserialize_revision(course.active_git_commit_sha),
+        course, owner, skip_validate=skip_validate)
 
 
 def git_clone_and_create_course(
@@ -204,7 +218,7 @@ def git_clone_and_create_course(
                 "repository before creating your course."))
 
     transfer_remote_refs(repo, fetch_pack_result)
-    new_sha = repo[b"HEAD"] = fetch_pack_result.refs[b"HEAD"]
+    new_sha = repo[HEADREF] = not_none(fetch_pack_result.refs[HEADREF])
 
     if new_course.course_root_path:
         vrepo: Repo_ish = SubdirRepoWrapper(
@@ -212,7 +226,7 @@ def git_clone_and_create_course(
     else:
         vrepo = repo
 
-    create_course(vrepo, new_sha, new_course, owner, skip_validate=skip_validate)
+    create_course(vrepo, Ref(new_sha), new_course, owner, skip_validate=skip_validate)
 
 
 class CourseCreationForm(StyledModelForm):
@@ -338,7 +352,7 @@ def is_ancestor_commit(
         repo: Repo, potential_ancestor: Commit, child: Commit,
         max_history_check_size: int | None = None) -> bool:
 
-    queue = [repo[parent] for parent in child.parents]
+    queue = [cast("Commit", repo[parent]) for parent in child.parents]
 
     while queue:
         entry = queue.pop()
@@ -351,7 +365,7 @@ def is_ancestor_commit(
             if max_history_check_size == 0:
                 return False
 
-        queue.extend(repo[parent] for parent in entry.parents)
+        queue.extend(cast("Commit", repo[parent]) for parent in entry.parents)
 
     return False
 
@@ -371,7 +385,7 @@ def run_course_update_command(
             content_repo: Repo | SubdirRepoWrapper,
             pctx: CoursePageContext,
             command: CourseRevisionCommand,
-            new_sha: bytes,
+            new_sha: Ref,
             may_update: bool,
             prevent_discarding_revisions: bool):
     assert pctx.participation is not None
@@ -388,7 +402,8 @@ def run_course_update_command(
         assert isinstance(fetch_pack_result, dulwich.client.FetchPackResult)
 
         transfer_remote_refs(repo, fetch_pack_result)
-        remote_head_sha = cast("bytes", fetch_pack_result.refs[b"HEAD"])
+        remote_head_sha = fetch_pack_result.refs[HEADREF]
+        assert remote_head_sha is not None
         if prevent_discarding_revisions:
             # Guard against bad scenario:
             # Local is not ancestor of remote, i.e. the branches have diverged.
@@ -407,7 +422,7 @@ def run_course_update_command(
 
         messages.add_message(request, messages.SUCCESS, _("Fetch successful."))
 
-        new_sha = remote_head_sha
+        new_sha = Ref(remote_head_sha)
 
     if command == CourseRevisionCommand.fetch:
         return
@@ -593,9 +608,10 @@ def update_course(pctx: CoursePageContext):
             raise SuspiciousOperation(_("invalid command"))
 
         if form.is_valid():
-            new_sha = form.cleaned_data["new_sha"].encode()
+            new_sha = cast("Ref", deserialize_revision(form.cleaned_data["new_sha"]))
 
             assert isinstance(content_repo, (Repo, SubdirRepoWrapper))
+
             try:
                 run_course_update_command(
                         request, repo, content_repo, pctx, command, new_sha,

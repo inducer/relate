@@ -13,6 +13,7 @@ from django.test import override_settings
 from django.urls import clear_url_caches
 
 from course.models import Course
+from course.repo import NoRevisionNeeded, serialize_revision
 from course.versioning import create_course_with_repo_path
 
 
@@ -189,7 +190,7 @@ def make_pyclass_course(
         from_email="instructor@example.com",
         notify_email="instructor@example.com",
         git_source=cls.registry_url,
-        active_git_commit_sha="CURRENT",
+        active_git_commit_sha=serialize_revision(NoRevisionNeeded),
     )
     create_course_with_repo_path(course, owner)
     return course

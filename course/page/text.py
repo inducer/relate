@@ -73,7 +73,7 @@ from course.page.base import (
     get_editor_interaction_mode,
     markup_to_html,
 )
-from course.repo import EmptyRepo
+from course.repo import EmptyRepo, NoRevisionNeeded
 from course.validation import (
     Markup,
     PointCount,
@@ -263,7 +263,7 @@ class RELATEPageValidator(TextValidatorBase):
             page = PageBase.model_validate(
                         yaml.safe_load(new_page_source),
                         context=ValidationContext(repo=EmptyRepo(),
-                                                  commit_sha=b"(NO REVSISION)"))
+                                                  commit_sha=NoRevisionNeeded))
 
             if page.type != self.page_type:
                 raise ValueError(gettext("page must be of type '%s'")
