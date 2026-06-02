@@ -21938,40 +21938,40 @@
             {
                 "code": "reportUnknownMemberType",
                 "range": {
-                    "startColumn": 12,
-                    "endColumn": 22,
+                    "startColumn": 8,
+                    "endColumn": 18,
                     "lineCount": 1
                 }
             },
             {
                 "code": "reportUnknownMemberType",
                 "range": {
-                    "startColumn": 12,
-                    "endColumn": 34,
+                    "startColumn": 8,
+                    "endColumn": 30,
                     "lineCount": 1
                 }
             },
             {
                 "code": "reportUnknownMemberType",
                 "range": {
-                    "startColumn": 45,
-                    "endColumn": 54,
+                    "startColumn": 41,
+                    "endColumn": 50,
                     "lineCount": 1
                 }
             },
             {
                 "code": "reportUnknownMemberType",
                 "range": {
-                    "startColumn": 15,
-                    "endColumn": 25,
+                    "startColumn": 11,
+                    "endColumn": 21,
                     "lineCount": 1
                 }
             },
             {
                 "code": "reportUnknownMemberType",
                 "range": {
-                    "startColumn": 15,
-                    "endColumn": 34,
+                    "startColumn": 11,
+                    "endColumn": 30,
                     "lineCount": 1
                 }
             },
