@@ -75,6 +75,7 @@ from course.constants import (
 )
 from course.models import (
     AuthenticationToken,
+    Course,
     Participation,
     ParticipationRole,
 )
@@ -1251,7 +1252,13 @@ class APIBearerTokenBackend:
 
 
 class APIContext:
-    def __init__(self, request, token):
+    request: HttpRequest
+    token: AuthenticationToken
+    participation: Participation
+    course: Course
+    restrict_to_role: ParticipationRole | None
+
+    def __init__(self, request: HttpRequest, token: AuthenticationToken):
         self.request = request
 
         self.token = token
