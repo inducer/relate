@@ -24,7 +24,7 @@ dependencies = [
     "pymbolic>=2024.2.2",
     "sympy>=1.13.3",
     "pyyaml>=6.0.2",
-    "dulwich>=0.22.6,<1.3",
+    "dulwich>=1.2.5",
     "paramiko>=3.5.1",
     "slixmpp>=1.8.3,<2",
     "docker>=7.1.0,<8",
@@ -335,6 +335,7 @@ exclude = [
     "local_settings.py",
     "doc/conf.py",
     "node_modules",
+    "course/paramiko_vendor.py",
 ]
 include = [
     ".",

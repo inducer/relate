@@ -63,7 +63,13 @@ from course.constants import (
     MAX_EXTRA_CREDIT_FACTOR,
     ParticipationPermission as PPerm,
 )
-from course.repo import Blob_ish, Tree_ish, get_repo_tree
+from course.repo import (
+    Blob_ish,
+    NoRevisionNeeded,
+    RevisionID_ish,
+    Tree_ish,
+    get_repo_tree,
+)
 from relate.utils import string_concat
 
 
@@ -145,7 +151,7 @@ class ValidationContext:
     """
 
     repo: Repo_ish | FileSystemFakeRepo
-    commit_sha: bytes
+    commit_sha: RevisionID_ish
     course: Course | None = None
     _location: str | None = None
 
@@ -701,7 +707,7 @@ def validate_course_content(
             repo: Repo_ish | FileSystemFakeRepo,
             course_file: str,
             events_file: str,
-            validate_sha: bytes,
+            validate_sha: RevisionID_ish,
             course: Course | None = None):
     from course.content import (
         calendar_ta,
@@ -863,7 +869,8 @@ def validate_course_on_filesystem(root: Path, course_file: str, events_file: str
     from course.repo import FileSystemFakeRepo
     fake_repo = FileSystemFakeRepo(root)
     warnings = validate_course_content(
-            fake_repo, course_file, events_file, validate_sha=b"", course=None)
+            fake_repo, course_file, events_file,
+            validate_sha=NoRevisionNeeded, course=None)
 
     if warnings:
         print(_("WARNINGS: "))

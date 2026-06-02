@@ -65,6 +65,7 @@ from course.content import (
     get_rule_ta,
 )
 from course.page.base import PageBase, PageContext
+from course.repo import deserialize_revision
 from course.validation import NotSpecified, ParticipationTagStr, ValidationContext
 from relate.utils import (
     RelateHttpRequest,
@@ -96,7 +97,7 @@ if TYPE_CHECKING:
         FlowSession,
         Participation,
     )
-    from course.repo import Repo_ish
+    from course.repo import Repo_ish, RevisionID_ish
 
 # }}}
 
@@ -267,7 +268,7 @@ def get_flow_rules(
 
         vctx = ValidationContext(
                 repo=get_course_repo(course),
-                commit_sha=course.active_git_commit_sha.encode(),
+                commit_sha=deserialize_revision(course.active_git_commit_sha),
                 course=course)
 
         for exc in (
@@ -534,7 +535,7 @@ class CoursePageContext:
     course: Course
     participation: Participation | None
     repo: Repo_ish
-    course_commit_sha: bytes
+    course_commit_sha: RevisionID_ish
 
     _permissions_cache: frozenset[tuple[str, str | None]] | None
     _role_identifiers_cache: AbstractSet[str] | None
@@ -574,7 +575,7 @@ class CoursePageContext:
             from django.contrib import messages
             messages.add_message(request, messages.ERROR, str(e))
 
-            sha = self.course.active_git_commit_sha.encode()
+            sha = cast("RevisionID_ish", self.course.active_git_commit_sha.encode())
 
         self.course_commit_sha = sha
 
@@ -643,7 +644,7 @@ class FlowContext:
     repo: Repo_ish
     course: Course
     flow_id: str
-    course_commit_sha: bytes
+    course_commit_sha: RevisionID_ish
     flow_desc: FlowDesc
 
     def __init__(
@@ -833,7 +834,7 @@ class PageInstanceCache:
     repo: Repo_ish
     course: Course
     flow_id: str
-    flow_desc_cache: dict[bytes, FlowDesc]
+    flow_desc_cache: dict[RevisionID_ish, FlowDesc]
     page_cache: dict[Hashable, PageBase]
 
     def __init__(self, repo: Repo_ish, course: Course, flow_id: str):
@@ -843,7 +844,7 @@ class PageInstanceCache:
         self.flow_desc_cache = {}
         self.page_cache = {}
 
-    def get_flow_desc_from_cache(self, commit_sha: bytes):
+    def get_flow_desc_from_cache(self, commit_sha: RevisionID_ish):
         try:
             return self.flow_desc_cache[commit_sha]
         except KeyError:
@@ -852,7 +853,11 @@ class PageInstanceCache:
             self.flow_desc_cache[commit_sha] = flow_desc
             return flow_desc
 
-    def get_page(self, group_id: str, page_id: str, commit_sha: bytes) -> PageBase:
+    def get_page(self,
+                group_id: str,
+                page_id: str,
+                commit_sha: RevisionID_ish
+            ) -> PageBase:
         key = (group_id, page_id, commit_sha)
         try:
             return self.page_cache[key]

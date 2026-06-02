@@ -46,6 +46,7 @@ from course.models import (
     update_bulk_feedback,
 )
 from course.page import InvalidPageData
+from course.repo import serialize_revision
 from course.utils import (
     FlowPageContext,
     course_view,
@@ -313,7 +314,7 @@ def grade_flow_page(
                 most_recent_grade = FlowPageVisitGrade(
                         visit=fpctx.prev_answer_visit,
                         grader=pctx.request.user,
-                        graded_at_git_commit_sha=pctx.course_commit_sha.decode(),
+                        graded_at_git_commit_sha=serialize_revision(pctx.course_commit_sha),
 
                         grade_data=grade_data,
 

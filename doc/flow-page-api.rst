@@ -33,6 +33,10 @@ Stub Docs
 
 .. class:: StyledFormBase
 
+.. currentmodule:: course.repo
+
+.. class:: RevisionID_ish
+
 Canonicalization of Django Names
 --------------------------------
 
