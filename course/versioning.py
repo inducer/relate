@@ -820,15 +820,15 @@ def update_course_from_branch(
                                     _("Preview activated."))
 
                             if navigate_to_modified_flow:
-                                modified_flow_ids = get_modified_flow_ids(
+                                modified_flow_ids_for_redirect = get_modified_flow_ids(
                                         content_repo,
                                         course.active_git_commit_sha.encode(), new_sha)
 
-                                if len(modified_flow_ids) == 1:
+                                if len(modified_flow_ids_for_redirect) == 1:
                                     return redirect(
                                             "relate-view_start_flow",
                                             course.identifier,
-                                            modified_flow_ids[0])
+                                            modified_flow_ids_for_redirect[0])
 
             except Exception as e:
                 import traceback
