@@ -37,7 +37,6 @@ from typing import (
 
 import dulwich.client
 import dulwich.repo
-import dulwich.web
 import paramiko
 from crispy_forms.layout import Submit
 from django import forms, http
@@ -85,6 +84,8 @@ from relate.utils import (
 
 if TYPE_CHECKING:
     from pathlib import Path
+    from types import TracebackType
+    from wsgiref.types import WSGIApplication
 
     from dulwich.objects import Commit, ObjectID
     from dulwich.server import BackendRepo
@@ -678,7 +679,7 @@ def update_course(pctx: CoursePageContext):
 # (BSD-licensed)
 
 def call_wsgi_app(
-        application: dulwich.web.LimitedInputFilter,
+        application: WSGIApplication,
         request: http.HttpRequest,
         prefix: str,
         ) -> http.HttpResponse:
@@ -697,7 +698,7 @@ def call_wsgi_app(
     headers_set: list[tuple[str, str]] = []
     headers_sent: list[bool] = []
 
-    def write(data: str) -> None:
+    def write(data: bytes) -> object:
         if not headers_set:
             raise AssertionError("write() called before start_response()")
         if not headers_sent:
@@ -706,11 +707,19 @@ def call_wsgi_app(
                 response[k] = v
             headers_sent[:] = [True]
         response.write(data)
-        # We could call response.flush() here, but is actually a no-op.
+        return None
 
-    def start_response(status, headers, exc_info=None):
+    def start_response(
+                status: str,
+                headers: list[tuple[str, str]],
+                exc_info: (
+                    tuple[type[BaseException], BaseException, TracebackType]
+                    | tuple[None, None, None]
+                    | None
+                ) = None,
+            ):
         # Let Django handle all errors.
-        if exc_info:
+        if exc_info is not None and exc_info[1] is not None:
             raise exc_info[1].with_traceback(exc_info[2])
         if headers_set:
             raise AssertionError("start_response() called again "
@@ -721,15 +730,11 @@ def call_wsgi_app(
         return write
 
     result = application(environ, start_response)
-    try:
-        for data in result:
-            if data:
-                write(data)
-        if not headers_sent:
-            write("")
-    finally:
-        if hasattr(result, "close"):
-            result.close()
+    for data in result:
+        if data:
+            write(data)
+    if not headers_sent:
+        write(b"")
 
     return response
 
@@ -753,7 +758,7 @@ def git_endpoint(api_ctx: APIContext, course_identifier: str,
     from course.content import get_course_repo
     repo = get_course_repo(course)
 
-    from course.content import SubdirRepoWrapper
+    from course.repo import SubdirRepoWrapper
     if isinstance(repo, SubdirRepoWrapper):
         true_repo = repo.repo
     else:
@@ -764,7 +769,8 @@ def git_endpoint(api_ctx: APIContext, course_identifier: str,
     base_path = base_path[:-1]
 
     import dulwich.web as dweb
-    backend = dweb.DictBackend({"/": true_repo})
+    backend = dweb.DictBackend({
+        b"/": cast("BackendRepo", cast("object", true_repo))})
     app = dweb.make_wsgi_chain(backend)
 
     return call_wsgi_app(app, request, base_path)
