@@ -1151,7 +1151,7 @@ def expand_yaml_macros(
 
     # {{{ process explicit [JINJA] tags (deprecated)
 
-    def compute_replacement(match):  # pragma: no cover  # deprecated
+    def compute_replacement(match: re.Match[str]):  # pragma: no cover  # deprecated
         return jinja_env.render_str(match.group(1))
 
     yaml_str, count = JINJA_YAML_RE.subn(compute_replacement, yaml_str)
