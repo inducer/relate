@@ -55,6 +55,7 @@ from django.utils.translation import (
 )
 from django.views.decorators.csrf import csrf_exempt
 from django_select2.forms import Select2Widget
+from dulwich.objects import ObjectID
 from dulwich.refs import HEADREF, Ref
 from dulwich.repo import Repo
 from pytools import not_none
@@ -88,7 +89,7 @@ if TYPE_CHECKING:
     from types import TracebackType
     from wsgiref.types import WSGIApplication
 
-    from dulwich.objects import Commit, ObjectID
+    from dulwich.objects import Commit
     from dulwich.server import BackendRepo
 
     from accounts.models import User
@@ -228,7 +229,8 @@ def git_clone_and_create_course(
     else:
         vrepo = repo
 
-    create_course(vrepo, Ref(new_sha), new_course, owner, skip_validate=skip_validate)
+    create_course(vrepo, ObjectID(new_sha),
+        new_course, owner, skip_validate=skip_validate)
 
 
 class CourseCreationForm(StyledModelForm):
@@ -367,7 +369,7 @@ def validate_course(
             request: http.HttpRequest,
             course: Course,
             content_repo: Repo | SubdirRepoWrapper,
-            new_sha: bytes,
+            new_sha: RevisionID_ish,
         ):
     from course.validation import (
         ValidationError,
@@ -443,7 +445,7 @@ def run_course_update_command(
             content_repo: Repo | SubdirRepoWrapper,
             pctx: CoursePageContext,
             command: CourseRevisionCommand,
-            new_sha: Ref,
+            new_sha: ObjectID,
             may_update: bool,
             prevent_discarding_revisions: bool):
     assert pctx.participation is not None
@@ -473,7 +475,7 @@ def run_course_update_command(
 
         messages.add_message(request, messages.SUCCESS, _("Fetch successful."))
 
-        new_sha = Ref(remote_head_sha)
+        new_sha = ObjectID(remote_head_sha)
 
     if command == CourseRevisionCommand.fetch:
         return
@@ -631,7 +633,8 @@ def update_course(pctx: CoursePageContext):
             raise SuspiciousOperation(_("invalid command"))
 
         if form.is_valid():
-            new_sha = cast("Ref", deserialize_revision(form.cleaned_data["new_sha"]))
+            new_sha = cast("ObjectID",
+                deserialize_revision(form.cleaned_data["new_sha"]))
 
             assert isinstance(content_repo, (Repo, SubdirRepoWrapper))
 
@@ -700,7 +703,7 @@ def update_course(pctx: CoursePageContext):
 
 def get_flow_entry_map(
             content_repo: Repo | SubdirRepoWrapper,
-            commit_sha: bytes
+            commit_sha: RevisionID_ish
         ) -> dict[str, bytes]:
     from django.core.exceptions import ObjectDoesNotExist
 
@@ -720,8 +723,8 @@ def get_flow_entry_map(
 
 def get_modified_flow_ids(
         content_repo: Repo | SubdirRepoWrapper,
-        old_sha: bytes,
-        new_sha: bytes) -> list[str]:
+        old_sha: RevisionID_ish,
+        new_sha: RevisionID_ish) -> list[str]:
     """Return flow IDs that were added or modified between *old_sha* and *new_sha*."""
 
     old_entries = get_flow_entry_map(content_repo, old_sha)
@@ -781,7 +784,7 @@ def update_course_from_branch(
 
     previewing = bool(participation.preview_git_commit_sha)
 
-    branch_ref = ("refs/remotes/origin/" + branch_name).encode()
+    branch_ref = Ref(f"refs/remotes/origin/{branch_name}".encode())
 
     if request.method == "POST":
         form = BranchPreviewForm(previewing, request.POST)
@@ -838,7 +841,8 @@ def update_course_from_branch(
                             if navigate_to_modified_flow:
                                 modified_flow_ids_for_redirect = get_modified_flow_ids(
                                         content_repo,
-                                        course.active_git_commit_sha.encode(), new_sha)
+                                        deserialize_revision(course.active_git_commit_sha),
+                                        new_sha)
 
                                 if len(modified_flow_ids_for_redirect) == 1:
                                     return redirect(
@@ -872,7 +876,8 @@ def update_course_from_branch(
 
         modified_flow_ids = get_modified_flow_ids(
                 content_repo,
-                course.active_git_commit_sha.encode(), branch_sha)
+                deserialize_revision(course.active_git_commit_sha),
+                branch_sha)
 
     return render_course_page(pctx, "course/update-branch.html", {
         "form": form,

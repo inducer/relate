@@ -34,13 +34,14 @@ import dulwich.objects
 import dulwich.repo
 from django.core.exceptions import ImproperlyConfigured, ObjectDoesNotExist
 from django.utils.translation import gettext as _
-from dulwich.refs import Ref
 from typing_extensions import Self, override
 
 
 if TYPE_CHECKING:
     from collections.abc import Mapping, Sequence
     from types import TracebackType
+
+    from dulwich.refs import Ref
 
 
 def _get_cache_key_root():
@@ -437,7 +438,7 @@ Blob_ish: TypeAlias = (dulwich.objects.Blob
 Tree_ish: TypeAlias = (dulwich.objects.Tree
     | FileSystemFakeRepoTree
     | PythonClassFakeRepoTree)
-RevisionID_ish: TypeAlias = Ref | type[NoRevisionNeeded]
+RevisionID_ish: TypeAlias = dulwich.objects.ObjectID | type[NoRevisionNeeded]
 Commit_ish: TypeAlias = dulwich.objects.Commit | PythonClassFakeRepoCommit
 
 
@@ -455,7 +456,7 @@ def deserialize_revision(serialized_rev: str) -> RevisionID_ish:
     if serialized_rev == _NO_REVISION_TAG:
         return NoRevisionNeeded
 
-    return Ref(serialized_rev.encode())
+    return dulwich.objects.ObjectID(serialized_rev.encode())
 
 
 def _look_up_git_object(
