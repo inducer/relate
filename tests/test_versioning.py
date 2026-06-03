@@ -30,11 +30,11 @@ from typing import TYPE_CHECKING, ClassVar
 import pytest
 from django.test import RequestFactory, TestCase
 from dulwich.client import FetchPackResult
-from dulwich.contrib.paramiko_vendor import ParamikoSSHVendor
 
 from course import versioning
 from course.constants import ParticipationPermission as PPerm
 from course.models import Course
+from course.paramiko_vendor import ParamikoSSHVendor
 from course.repo import python_repo_class
 from course.validation import ValidationWarning
 from relate.utils import force_remove_path
@@ -261,20 +261,20 @@ class ParamikoSSHVendorTest(TestCase):
             # is added to the client
             ssh_vendor.run_command(
                 host="github.com",
-                command="git-upload-pack '/bar/baz'",
+                command=b"git-upload-pack '/bar/baz'",
                 username=None,
                 port=None)
-        self.assertTrue(any(
-            msg in str(cm.exception) for msg in expected_error_msgs))
+        assert any(
+            msg in str(cm.exception) for msg in expected_error_msgs), str(cm.exception)
 
         with self.assertRaises(SSHException) as cm:
             ssh_vendor.run_command(
                 host="github.com",
-                command="git-upload-pack '/bar/baz'",
+                command=b"git-upload-pack '/bar/baz'",
                 username="me",
                 port=22)
-        self.assertTrue(any(
-            msg in str(cm.exception) for msg in expected_error_msgs))
+        assert any(
+            msg in str(cm.exception) for msg in expected_error_msgs), str(cm.exception)
 
         # Hi Andreas, before you start changing these: run the tests
         # with your Yubikey unplugged.
@@ -283,7 +283,7 @@ class ParamikoSSHVendorTest(TestCase):
         with self.assertRaises(SSHException) as cm:
             ssh_vendor.run_command(
                 host="github.com",
-                command="git-upload-pack '/bar/baz'",
+                command=b"git-upload-pack '/bar/baz'",
                 password="mypass")
 
         self.assertIn(expected_error_msg, str(cm.exception))
@@ -291,7 +291,7 @@ class ParamikoSSHVendorTest(TestCase):
         with self.assertRaises(FileNotFoundError) as cm:
             ssh_vendor.run_command(
                 host="github.com",
-                command="git-upload-pack '/bar/baz'",
+                command=b"git-upload-pack '/bar/baz'",
                 key_filename="key_file")
 
         expected_error_msg = "No such file or directory: 'key_file'"
@@ -300,7 +300,7 @@ class ParamikoSSHVendorTest(TestCase):
         with self.assertRaises(AttributeError) as cm:
             ssh_vendor.run_command(
                 host="github.com",
-                command="git-upload-pack '/bar/baz'",
+                command=b"git-upload-pack '/bar/baz'",
                 pkey="invalid_key")
 
     @suppress_stdout_decorator(suppress_stderr=True)
@@ -321,7 +321,7 @@ class ParamikoSSHVendorTest(TestCase):
             try:
                 ssh_vendor.run_command(
                     host="github.com",
-                    command="git-upload-pack '/bar/baz'")
+                    command=b"git-upload-pack '/bar/baz'")
             except StopIteration:
                 pass
 

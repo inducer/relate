@@ -77,6 +77,7 @@ from course.models import (
     InstantFlowRequest,
     Participation,
 )
+from course.repo import deserialize_revision, serialize_revision
 from course.utils import (
     CoursePageContext,
     course_view,
@@ -277,7 +278,7 @@ def get_media(
 
     with get_course_repo(course) as repo:
         return get_repo_file_response(
-            repo, "media/" + media_path, commit_sha.encode())
+            repo, "media/" + media_path, deserialize_revision(commit_sha))
 
 
 def repo_file_etag_func(
@@ -298,7 +299,7 @@ def get_repo_file(
     # NB: This endpoint is available in an exam. It is responsible for
     # not allowing access to unauthorized material in a locked-down setting.
 
-    commit_sha_bytes = commit_sha.encode()
+    commit_sha_bytes = deserialize_revision(commit_sha)
 
     course = get_object_or_404(Course, identifier=course_identifier)
 
@@ -321,7 +322,7 @@ def current_repo_file_etag_func(
     from course.content import get_course_commit_sha
     commit_sha = get_course_commit_sha(course, participation)
 
-    return f"{course_identifier}:{commit_sha.decode()}:{path}"
+    return f"{course_identifier}:{serialize_revision(commit_sha)}:{path}"
 
 
 @http_dec.condition(etag_func=current_repo_file_etag_func)
@@ -384,7 +385,7 @@ def get_repo_file_backend(
 
 
 def get_repo_file_response(
-        repo: Any, path: str, commit_sha: bytes
+        repo: Any, path: str, commit_sha: RevisionID_ish
         ) -> http.HttpResponse:
 
     from course.repo import get_repo_blob_data_cached

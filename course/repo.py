@@ -34,6 +34,7 @@ import dulwich.objects
 import dulwich.repo
 from django.core.exceptions import ImproperlyConfigured, ObjectDoesNotExist
 from django.utils.translation import gettext as _
+from dulwich.refs import Ref
 from typing_extensions import Self, override
 
 
@@ -106,7 +107,7 @@ class SubdirRepoWrapper:
                 exc_tb: TracebackType | None) -> None:
         self.close()
 
-    def get_refs(self) -> Mapping[bytes, bytes]:
+    def get_refs(self) -> Mapping[Ref, dulwich.objects.ObjectID]:
         return self.repo.get_refs()
 
     def __setitem__(self, item: bytes, value: bytes) -> None:
@@ -208,11 +209,14 @@ class PythonClassFakeRepo:
         pass
 
     def __getitem__(self,
-                    obj_id: PythonClassFakeRepoFile | PythonClassFakeRepoTree | bytes
+                    obj_id: (PythonClassFakeRepoFile
+                        | PythonClassFakeRepoTree
+                        | type[NoRevisionNeeded]
+                        | bytes
+                    )
                 ):
-        if isinstance(obj_id, bytes):
-            if obj_id == b"CURRENT":
-                return PythonClassFakeRepoCommit(self.cls)
+        if obj_id is NoRevisionNeeded:
+            return PythonClassFakeRepoCommit(self.cls)
 
         return obj_id
 
@@ -416,6 +420,10 @@ class FileSystemFakeRepoFile:
 # }}}
 
 
+class NoRevisionNeeded:
+    pass
+
+
 UnwrappedRepo_ish: TypeAlias = (dulwich.repo.Repo
     | PythonClassFakeRepo
     | FileSystemFakeRepo
@@ -429,8 +437,25 @@ Blob_ish: TypeAlias = (dulwich.objects.Blob
 Tree_ish: TypeAlias = (dulwich.objects.Tree
     | FileSystemFakeRepoTree
     | PythonClassFakeRepoTree)
-RevisionID_ish: TypeAlias = dulwich.objects.ObjectID
+RevisionID_ish: TypeAlias = Ref | type[NoRevisionNeeded]
 Commit_ish: TypeAlias = dulwich.objects.Commit | PythonClassFakeRepoCommit
+
+
+_NO_REVISION_TAG = "NOREV_AKJDLFKSJFDLKSJDFLKSJDFLJSF"
+
+
+def serialize_revision(rev: RevisionID_ish) -> str:
+    if isinstance(rev, type):
+        return _NO_REVISION_TAG
+    else:
+        return rev.decode()
+
+
+def deserialize_revision(serialized_rev: str) -> RevisionID_ish:
+    if serialized_rev == _NO_REVISION_TAG:
+        return NoRevisionNeeded
+
+    return Ref(serialized_rev.encode())
 
 
 def _look_up_git_object(
@@ -533,6 +558,29 @@ def get_true_repo_and_path(
     return repo, path
 
 
+def get_commit_obj(
+            repo: dulwich.repo.Repo | PythonClassFakeRepo,
+            commit_sha: RevisionID_ish
+        ):
+    try:
+        if isinstance(commit_sha, type):
+            assert commit_sha is NoRevisionNeeded
+            assert isinstance(repo, PythonClassFakeRepo)
+
+            commit_obj = repo[commit_sha]
+        else:
+            assert not isinstance(repo, PythonClassFakeRepo)
+
+            commit_obj = repo[commit_sha]
+
+    except KeyError:
+        raise ObjectDoesNotExist(
+                _("commit sha '%s' not found") % serialize_revision(commit_sha))
+
+    assert isinstance(commit_obj, Commit_ish)
+    return commit_obj
+
+
 def get_repo_tree(
             repo: Repo_ish,
             full_name: str,
@@ -550,15 +598,15 @@ def get_repo_tree(
     if isinstance(base_repo, EmptyRepo):
         raise ObjectDoesNotExist(full_name)
 
-    try:
-        commit_obj = base_repo[commit_sha]
-    except KeyError:
-        raise ObjectDoesNotExist(
-                _("commit sha '%s' not found") % commit_sha.decode())
-    assert isinstance(commit_obj, Commit_ish)
+    commit_obj = get_commit_obj(base_repo, commit_sha)
     tree_sha = commit_obj.tree
 
-    tree_obj = base_repo[tree_sha]
+    if isinstance(tree_sha, PythonClassFakeRepoTree):
+        assert isinstance(base_repo, PythonClassFakeRepo)
+        tree_obj = base_repo[tree_sha]
+    else:
+        assert not isinstance(base_repo, PythonClassFakeRepo)
+        tree_obj = base_repo[tree_sha]
     assert isinstance(tree_obj, Tree_ish)
 
     git_obj = _look_up_git_object(
@@ -589,16 +637,15 @@ def get_repo_blob(
     if isinstance(base_repo, EmptyRepo):
         raise ObjectDoesNotExist("empty repository")
 
-    try:
-        commit_obj = base_repo[commit_sha]
-    except KeyError:
-        assert commit_sha
-        raise ObjectDoesNotExist(
-                _("commit sha '%s' not found") % commit_sha.decode())
+    commit_obj = get_commit_obj(base_repo, commit_sha)
 
-    assert isinstance(commit_obj, Commit_ish)
     tree_sha = commit_obj.tree
-    tree_obj = base_repo[tree_sha]
+    if isinstance(tree_sha, PythonClassFakeRepoTree):
+        assert isinstance(base_repo, PythonClassFakeRepo)
+        tree_obj = base_repo[tree_sha]
+    else:
+        assert not isinstance(base_repo, PythonClassFakeRepo)
+        tree_obj = base_repo[tree_sha]
     assert isinstance(tree_obj, Tree_ish)
 
     git_obj = _look_up_git_object(

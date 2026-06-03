@@ -77,7 +77,7 @@ if TYPE_CHECKING:
     from collections.abc import Callable, Sequence, Set as AbstractSet
 
     from course.models import Course, FlowSession
-    from course.repo import Repo_ish
+    from course.repo import Repo_ish, RevisionID_ish
 
 
 PageData: TypeAlias = dict[str, Any]
@@ -145,7 +145,7 @@ class PageContext:
 
     course: Course
     repo: Repo_ish
-    commit_sha: bytes
+    commit_sha: RevisionID_ish
     flow_session: FlowSession | None
     in_sandbox: bool = False
     page_uri: str | None = None

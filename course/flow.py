@@ -72,6 +72,7 @@ from course.models import (
     update_bulk_feedback,
 )
 from course.page import InvalidPageData
+from course.repo import serialize_revision
 from course.views import get_now_or_fake_time
 from relate.utils import (
     StyledForm,
@@ -104,7 +105,7 @@ if TYPE_CHECKING:
         PageBehavior,
         PageData,
     )
-    from course.repo import Repo_ish
+    from course.repo import Repo_ish, RevisionID_ish
     from course.utils import CoursePageContext
 
 # }}}
@@ -117,7 +118,7 @@ def _adjust_flow_session_page_data_inner(
             repo: Repo_ish,
             flow_session: FlowSession,
             flow_desc: FlowDesc,
-            commit_sha: bytes) -> int:
+            commit_sha: RevisionID_ish) -> int:
     """
     :returns: new page count
     """
@@ -299,7 +300,7 @@ def adjust_flow_session_page_data(
     commit_sha = get_course_commit_sha(
             flow_session.course,
             flow_session.participation if respect_preview else None)
-    revision_key = "2:"+commit_sha.decode()
+    revision_key = "2:"+serialize_revision(commit_sha)
 
     if flow_desc is None:
         flow_desc = get_flow_desc(repo, flow_session.course,
@@ -375,7 +376,7 @@ def grade_page_visit(visit: FlowPageVisit,
         grade.visit = visit
         grade.grade_data = grade_data
         grade.max_points = page.max_points(visit.page_data)
-        grade.graded_at_git_commit_sha = course_commit_sha.decode()
+        grade.graded_at_git_commit_sha = serialize_revision(course_commit_sha)
 
         bulk_feedback_json = None
         if answer_feedback is not None:
@@ -421,7 +422,7 @@ def start_flow(
         course=course,
         participation=participation,
         user=user,
-        active_git_commit_sha=course_commit_sha.decode(),
+        active_git_commit_sha=serialize_revision(course_commit_sha),
         flow_id=flow_id,
         start_time=now_datetime,
         in_progress=True,
@@ -2264,7 +2265,8 @@ def post_flow_page(
                 grade = FlowPageVisitGrade()
                 grade.visit = answer_visit
                 grade.max_points = fpctx.page.max_points(page_data.data)
-                grade.graded_at_git_commit_sha = fpctx.course_commit_sha.decode()
+                grade.graded_at_git_commit_sha = serialize_revision(
+                    fpctx.course_commit_sha)
 
                 bulk_feedback_json = None
                 if feedback is not None:

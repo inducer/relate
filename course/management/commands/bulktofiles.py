@@ -9,6 +9,7 @@ from django.db.models import Q
 from django.db.models.functions import Length
 
 from course.models import FlowPageBulkFeedback, FlowPageVisit
+from course.repo import deserialize_revision
 
 
 def convert_flow_page_visit(stderr: TextIO, fpv: FlowPageVisit):
@@ -21,7 +22,7 @@ def convert_flow_page_visit(stderr: TextIO, fpv: FlowPageVisit):
     )
     repo = get_course_repo(course)
     flow_id = fpv.flow_session.flow_id
-    commit_sha = course.active_git_commit_sha.encode()
+    commit_sha = deserialize_revision(course.active_git_commit_sha)
     try:
         flow_desc = get_flow_desc(repo, course,
                 flow_id, commit_sha, tolerate_tabs=True)
