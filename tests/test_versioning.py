@@ -869,11 +869,10 @@ class RunCourseUpdateCommandTest(MockAddMessageMixing, unittest.TestCase):
             expected_error_type=RuntimeError,
             expected_error_msg="internal git repo has more commits."
                                " Fetch, merge and push.",
-            add_message_expected_call_count=0,
+            add_message_expected_call_count=1,
             prevent_discarding_revisions=True,
             repo=repo,
         )
-        self.assertAddMessageCallCount(0)
 
     def test_fetch_update_success_with_warnings(self):
         self.mock_client.fetch.return_value = FetchPackResult(
