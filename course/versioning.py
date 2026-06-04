@@ -473,8 +473,6 @@ def run_course_update_command(
 
         repo[HEADREF] = remote_head_sha
 
-        messages.add_message(request, messages.SUCCESS, _("Fetch successful."))
-
         new_sha = ObjectID(remote_head_sha)
 
     if command == CourseRevisionCommand.fetch:
