@@ -36,6 +36,7 @@ from typing import (
 )
 
 import dulwich.client
+import dulwich.objects
 import dulwich.repo
 import paramiko
 from crispy_forms.layout import Submit
@@ -54,6 +55,7 @@ from django.utils.translation import (
 )
 from django.views.decorators.csrf import csrf_exempt
 from django_select2.forms import Select2Widget
+from dulwich.objects import ObjectID
 from dulwich.refs import HEADREF, Ref
 from dulwich.repo import Repo
 from pytools import not_none
@@ -87,7 +89,7 @@ if TYPE_CHECKING:
     from types import TracebackType
     from wsgiref.types import WSGIApplication
 
-    from dulwich.objects import Commit, ObjectID
+    from dulwich.objects import Commit
     from dulwich.server import BackendRepo
 
     from accounts.models import User
@@ -227,7 +229,8 @@ def git_clone_and_create_course(
     else:
         vrepo = repo
 
-    create_course(vrepo, Ref(new_sha), new_course, owner, skip_validate=skip_validate)
+    create_course(vrepo, ObjectID(new_sha),
+        new_course, owner, skip_validate=skip_validate)
 
 
 class CourseCreationForm(StyledModelForm):
@@ -347,6 +350,62 @@ def set_up_new_course(request: http.HttpRequest) -> http.HttpResponse:
 # }}}
 
 
+def fetch_course(
+            request: http.HttpRequest,
+            course: Course,
+            repo: Repo,
+        ):
+    client, remote_path = \
+        get_dulwich_client_and_remote_path_from_course(course)
+    fetch_pack_result = client.fetch(remote_path, repo)
+    transfer_remote_refs(repo, fetch_pack_result)
+    messages.add_message(request, messages.SUCCESS,
+            _("Fetch successful."))
+
+    return fetch_pack_result
+
+
+def validate_course(
+            request: http.HttpRequest,
+            course: Course,
+            content_repo: Repo | SubdirRepoWrapper,
+            new_sha: RevisionID_ish,
+        ):
+    from course.validation import (
+        ValidationError,
+        validate_course_content,
+    )
+    try:
+        warnings = validate_course_content(
+                content_repo,
+                course.course_file, course.events_file,
+                new_sha, course=course)
+    except ValidationError as e:
+        messages.add_message(request, messages.ERROR,
+                _("Course content did not validate "
+                    "successfully:<pre>%s</pre>"
+                    "Update not applied.") % str(e))
+
+        return False
+    else:
+        if not warnings:
+            messages.add_message(request, messages.SUCCESS,
+                    _("Course content validated "
+                        "successfully."))
+        else:
+            messages.add_message(request, messages.WARNING,
+                    string_concat(
+                        _("Course content validated OK, "
+                            "with warnings: "),
+                        "<ul>%s</ul>")
+                    % ("".join(
+                        "<li><i>%s</i>: %s</li>"
+                        % (w.location, w.text)
+                        for w in warnings)))
+
+    return True
+
+
 # {{{ update
 
 def is_ancestor_commit(
@@ -386,7 +445,7 @@ def run_course_update_command(
             content_repo: Repo | SubdirRepoWrapper,
             pctx: CoursePageContext,
             command: CourseRevisionCommand,
-            new_sha: Ref,
+            new_sha: ObjectID,
             may_update: bool,
             prevent_discarding_revisions: bool):
     assert pctx.participation is not None
@@ -395,35 +454,26 @@ def run_course_update_command(
             CourseRevisionCommand.fetch,
             CourseRevisionCommand.fetch_update,
             CourseRevisionCommand.fetch_preview]:
-        client, remote_path = \
-            get_dulwich_client_and_remote_path_from_course(pctx.course)
 
-        fetch_pack_result = client.fetch(remote_path, repo)
-
-        assert isinstance(fetch_pack_result, dulwich.client.FetchPackResult)
-
-        transfer_remote_refs(repo, fetch_pack_result)
-        remote_head_sha = fetch_pack_result.refs[HEADREF]
-        assert remote_head_sha is not None
+        fetch_pack_result = fetch_course(request, pctx.course, repo)
+        remote_head_sha = cast("bytes", fetch_pack_result.refs[HEADREF])
         if prevent_discarding_revisions:
             # Guard against bad scenario:
             # Local is not ancestor of remote, i.e. the branches have diverged.
 
             # Do not try to assert these types, the test suite makes a mockery
             # of them.
-            head = cast("Commit", repo[b"HEAD"])
+            head = cast("Commit", repo[HEADREF])
             remote_head = cast("Commit", repo[remote_head_sha])
             if not is_ancestor_commit(repo, head, remote_head,
                     max_history_check_size=20) and \
-                    repo[b"HEAD"] != repo[remote_head_sha]:
+                    repo[HEADREF] != repo[remote_head_sha]:
                 raise RuntimeError(_("internal git repo has more commits. Fetch, "
                                      "merge and push."))
 
-        repo[b"HEAD"] = remote_head_sha
+        repo[HEADREF] = remote_head_sha
 
-        messages.add_message(request, messages.SUCCESS, _("Fetch successful."))
-
-        new_sha = Ref(remote_head_sha)
+        new_sha = ObjectID(remote_head_sha)
 
     if command == CourseRevisionCommand.fetch:
         return
@@ -437,36 +487,8 @@ def run_course_update_command(
 
         return
 
-    # {{{ validate
-
-    from course.validation import ValidationError, validate_course_content
-    try:
-        warnings = validate_course_content(
-                content_repo, pctx.course.course_file, pctx.course.events_file,
-                new_sha, course=pctx.course)
-    except ValidationError as e:
-        from traceback import print_exc
-        print_exc()
-
-        messages.add_message(request, messages.ERROR,
-                _("Course content did not validate successfully:<pre>%s</pre>"
-                "Update not applied.") % str(e))
+    if not validate_course(request, pctx.course, content_repo, new_sha):
         return
-
-    else:
-        if not warnings:
-            messages.add_message(request, messages.SUCCESS,
-                    _("Course content validated successfully."))
-        else:
-            messages.add_message(request, messages.WARNING,
-                    string_concat(
-                        _("Course content validated OK, with warnings: "),
-                        "<ul>%s</ul>")
-                    % ("".join(
-                        f"<li><i>{w.location}</i>: {w.text}</li>"
-                        for w in warnings)))
-
-    # }}}
 
     if command in [CourseRevisionCommand.fetch_preview, CourseRevisionCommand.preview]:
         messages.add_message(request, messages.INFO,
@@ -609,7 +631,8 @@ def update_course(pctx: CoursePageContext):
             raise SuspiciousOperation(_("invalid command"))
 
         if form.is_valid():
-            new_sha = cast("Ref", deserialize_revision(form.cleaned_data["new_sha"]))
+            new_sha = cast("ObjectID",
+                deserialize_revision(form.cleaned_data["new_sha"]))
 
             assert isinstance(content_repo, (Repo, SubdirRepoWrapper))
 
@@ -656,6 +679,11 @@ def update_course(pctx: CoursePageContext):
                     args=(course.identifier, ""))),
             "token_url": reverse("relate-manage_authentication_tokens",
                     args=(course.identifier,)),
+            "remote_branches": sorted(
+                _remove_prefix(b"refs/remotes/origin/", ref).decode("utf-8",
+                    errors="replace")
+                for ref in repo.get_refs()
+                if ref.startswith(b"refs/remotes/origin/")),
         })
 
     assert form is not None
@@ -664,6 +692,197 @@ def update_course(pctx: CoursePageContext):
         "form": form,
         "form_text": form_text,
         "form_description": gettext("Update Course Revision"),
+    })
+
+# }}}
+
+
+# {{{ branch preview
+
+def get_flow_entry_map(
+            content_repo: Repo | SubdirRepoWrapper,
+            commit_sha: RevisionID_ish
+        ) -> dict[str, bytes]:
+    from django.core.exceptions import ObjectDoesNotExist
+
+    from course.repo import get_repo_tree
+    try:
+        flows_tree = get_repo_tree(content_repo, "flows", commit_sha)
+    except ObjectDoesNotExist:
+        return {}
+
+    assert isinstance(flows_tree, dulwich.objects.Tree)
+    return {
+        entry.path[:-4].decode("utf-8"): entry.sha
+        for entry in flows_tree.items()
+        if entry.path.endswith(b".yml")
+    }
+
+
+def get_modified_flow_ids(
+        content_repo: Repo | SubdirRepoWrapper,
+        old_sha: RevisionID_ish,
+        new_sha: RevisionID_ish) -> list[str]:
+    """Return flow IDs that were added or modified between *old_sha* and *new_sha*."""
+
+    old_entries = get_flow_entry_map(content_repo, old_sha)
+    new_entries = get_flow_entry_map(content_repo, new_sha)
+
+    return sorted(
+        flow_id
+        for flow_id, sha in new_entries.items()
+        if old_entries.get(flow_id) != sha
+    )
+
+
+class BranchPreviewForm(StyledForm):
+    def __init__(self, previewing: bool, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+
+        self.fields["navigate_to_modified_flow"] = forms.BooleanField(
+            label=_("Go directly to modified flow after preview"),
+            initial=True,
+            required=False)
+
+        def add_button(desc: str, label: str | object) -> None:
+            self.helper.add_input(Submit(desc, label))
+
+        if previewing:
+            add_button("end_preview", _("End preview"))
+
+        add_button("fetch", _("Fetch"))
+        add_button("fetch_preview", _("Fetch and preview"))
+        add_button("preview", _("Preview"))
+
+
+@login_required
+@course_view
+def update_course_from_branch(
+        pctx: CoursePageContext,
+        branch_name: str) -> http.HttpResponse:
+
+    if not pctx.has_permission(PPerm.preview_content):
+        raise PermissionDenied()
+
+    course = pctx.course
+    request = pctx.request
+    content_repo = pctx.repo
+
+    from course.repo import SubdirRepoWrapper
+    if isinstance(content_repo, SubdirRepoWrapper):
+        repo = content_repo.repo
+    elif isinstance(content_repo, Repo):
+        repo = content_repo
+    else:
+        raise AssertionError("only actual dulwich repos allowed")
+    assert isinstance(repo, dulwich.repo.Repo)
+
+    participation = pctx.participation
+    assert participation is not None
+
+    previewing = bool(participation.preview_git_commit_sha)
+
+    branch_ref = Ref(f"refs/remotes/origin/{branch_name}".encode())
+
+    if request.method == "POST":
+        form = BranchPreviewForm(previewing, request.POST)
+
+        command = None
+        for cmd in [
+                CourseRevisionCommand.fetch,
+                CourseRevisionCommand.fetch_preview,
+                CourseRevisionCommand.preview,
+                CourseRevisionCommand.end_preview]:
+            if cmd.value in form.data:
+                command = cmd
+                break
+
+        if command is None:
+            raise SuspiciousOperation(_("invalid command"))
+
+        if form.is_valid():
+            navigate_to_modified_flow = form.cleaned_data.get(
+                "navigate_to_modified_flow", True)
+
+            try:
+                if command == CourseRevisionCommand.end_preview:
+                    participation.preview_git_commit_sha = None
+                    participation.save()
+                    messages.add_message(request, messages.INFO,
+                            _("Preview ended."))
+                elif command in [
+                            CourseRevisionCommand.fetch,
+                            CourseRevisionCommand.fetch_preview
+                        ]:
+                    fetch_course(request, course, repo)
+
+                if command in [
+                            CourseRevisionCommand.fetch_preview,
+                            CourseRevisionCommand.preview
+                        ]:
+                    refs = repo.get_refs()
+                    if branch_ref not in refs:
+                        messages.add_message(request, messages.ERROR,
+                                _("Branch '%(branch)s' not found. "
+                                    "Use 'Fetch and preview' to fetch it first.")
+                                % {"branch": branch_name})
+                    else:
+                        new_sha = refs[branch_ref]
+
+                        if validate_course(request, course, repo, new_sha):
+                            participation.preview_git_commit_sha = \
+                                new_sha.decode()
+                            participation.save()
+                            messages.add_message(request, messages.INFO,
+                                    _("Preview activated."))
+
+                            if navigate_to_modified_flow:
+                                modified_flow_ids_for_redirect = get_modified_flow_ids(
+                                        content_repo,
+                                        deserialize_revision(course.active_git_commit_sha),
+                                        new_sha)
+
+                                if len(modified_flow_ids_for_redirect) == 1:
+                                    return redirect(
+                                            "relate-view_start_flow",
+                                            course.identifier,
+                                            modified_flow_ids_for_redirect[0])
+
+            except Exception as e:
+                import traceback
+                traceback.print_exc()
+
+                messages.add_message(request, messages.ERROR,
+                        string_concat(
+                            pgettext("Starting of Error message", "Error"),
+                            ": %(err_type)s %(err_str)s")
+                        % {"err_type": type(e).__name__,
+                            "err_str": str(e)})
+
+    elif request.method == "GET":
+        previewing = bool(participation.preview_git_commit_sha)
+        form = BranchPreviewForm(previewing)
+
+    else:
+        raise SuspiciousOperation("unexpected method")
+
+    refs = repo.get_refs()
+    branch_sha: bytes | None = None
+    modified_flow_ids: list[str] | None = None
+    if branch_ref in refs:
+        branch_sha = refs[branch_ref]
+
+        modified_flow_ids = get_modified_flow_ids(
+                content_repo,
+                deserialize_revision(course.active_git_commit_sha),
+                branch_sha)
+
+    return render_course_page(pctx, "course/update-branch.html", {
+        "form": form,
+        "branch_name": branch_name,
+        "branch_sha": branch_sha.decode() if branch_sha is not None else None,
+        "modified_flow_ids": modified_flow_ids,
+        "form_description": gettext("Preview Branch"),
     })
 
 # }}}

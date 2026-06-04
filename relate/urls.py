@@ -362,6 +362,13 @@ urlpatterns = [
         name="relate-update_course"),
     re_path(r"^course"
         "/" + COURSE_ID_REGEX
+        + "/update/branch"
+        r"/(?P<branch_name>[-a-zA-Z0-9_./@]+)"
+        "/$",
+        course.versioning.update_course_from_branch,
+        name="relate-update_course_from_branch"),
+    re_path(r"^course"
+        "/" + COURSE_ID_REGEX
         + "/git"
         "/(?P<git_path>.*)"
         "$",
