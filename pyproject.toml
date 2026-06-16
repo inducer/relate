@@ -63,7 +63,7 @@ dependencies = [
 
     # Hard dependency to resolve vulnerability
     # https://github.com/inducer/relate/security/dependabot/130
-    "cryptography>=46.0.5",
+    "cryptography>=48.0.1",
 ]
 
 [project.optional-dependencies]
