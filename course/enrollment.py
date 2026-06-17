@@ -1096,4 +1096,100 @@ def edit_participation(
 
 # }}}
 
+
+# {{{ edit_participation_tag
+
+class ParticipationTagForm(StyledModelForm):
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+        self.helper.add_input(Submit("submit", _("Save")))
+
+    class Meta:
+        model = ParticipationTag
+        fields = ("name", "shown_to_participant")
+
+
+@course_view
+def edit_participation_tag(
+        pctx: CoursePageContext, tag_id: int) -> http.HttpResponse:
+    if not pctx.has_permission(PPerm.edit_participation):
+        raise PermissionDenied()
+
+    request = pctx.request
+
+    num_tag_id = int(tag_id)
+
+    if num_tag_id == -1:
+        tag = ParticipationTag(course=pctx.course)
+        add_new = True
+    else:
+        tag = get_object_or_404(ParticipationTag, id=num_tag_id)
+        add_new = False
+
+    if tag.course.id != pctx.course.id:
+        raise SuspiciousOperation(
+            "may not edit participation tag in different course")
+
+    if request.method == "POST":
+        form = ParticipationTagForm(request.POST, instance=tag)
+        if form.is_valid():
+            tag = form.save(commit=False)
+            tag.course = pctx.course
+            tag.save()
+            messages.add_message(request, messages.SUCCESS,
+                    _("Changes saved."))
+            return redirect(
+                "relate-list_participation_tags",
+                pctx.course.identifier)
+    else:
+        form = ParticipationTagForm(instance=tag)
+
+    return render_course_page(pctx, "course/generic-course-form.html", {
+        "form_description": (
+            _("Add Participation Tag") if add_new
+            else _("Edit Participation Tag")),
+        "form": form,
+        })
+
+
+@course_view
+def delete_participation_tag(
+        pctx: CoursePageContext, tag_id: int) -> http.HttpResponse:
+    if not pctx.has_permission(PPerm.edit_participation):
+        raise PermissionDenied()
+
+    request = pctx.request
+
+    tag = get_object_or_404(
+        ParticipationTag, id=int(tag_id), course=pctx.course)
+
+    if request.method == "POST":
+        tag.delete()
+        messages.add_message(request, messages.SUCCESS,
+                _("Participation tag deleted."))
+        return redirect(
+            "relate-list_participation_tags",
+            pctx.course.identifier)
+
+    return render_course_page(
+        pctx, "course/confirm-delete-participation-tag.html", {
+            "participation_tag": tag,
+        })
+
+
+@course_view
+def list_participation_tags(pctx: CoursePageContext) -> http.HttpResponse:
+    if not pctx.has_permission(PPerm.edit_participation):
+        raise PermissionDenied()
+
+    tags = ParticipationTag.objects.filter(course=pctx.course).order_by("name")
+
+    return render_course_page(
+        pctx, "course/participation-tags.html", {
+            "participation_tags": tags,
+        })
+
+# }}}
+
 # vim: foldmethod=marker
