@@ -382,7 +382,10 @@ class FlowAnalyticsTest(SingleCourseQuizPageTestMixin, HackRepoMixin,
         ) as mock_make_t_his, mock.patch(
             "course.analytics.count_participants",
             return_value=2,
-        ) as mock_count_particpt:
+        ) as mock_count_particpt, mock.patch(
+            "course.analytics.make_page_timing_stats_list",
+            return_value=[],
+        ) as mock_make_timing:
             resp = self.get_flow_analytics_view(flow_id=self.flow_id)
             self.assertEqual(resp.status_code, 200)
             self.assertResponseContextEqual(
@@ -394,6 +397,7 @@ class FlowAnalyticsTest(SingleCourseQuizPageTestMixin, HackRepoMixin,
             self.assertEqual(mock_make_stats_list.call_count, 1)
             self.assertEqual(mock_make_t_his.call_count, 1)
             self.assertEqual(mock_count_particpt.call_count, 1)
+            self.assertEqual(mock_make_timing.call_count, 1)
 
     def test_success_test_restrict_to_first_attempt(self):
         with mock.patch(
@@ -407,7 +411,10 @@ class FlowAnalyticsTest(SingleCourseQuizPageTestMixin, HackRepoMixin,
         ) as mock_make_t_his, mock.patch(
             "course.analytics.count_participants",
             return_value=2,
-        ) as mock_count_particpt:
+        ) as mock_count_particpt, mock.patch(
+            "course.analytics.make_page_timing_stats_list",
+            return_value=[],
+        ) as mock_make_timing:
             resp = self.get_flow_analytics_view(flow_id=self.flow_id,
                                                 restrict_to_first_attempt=1)
             self.assertEqual(resp.status_code, 200)
@@ -424,6 +431,7 @@ class FlowAnalyticsTest(SingleCourseQuizPageTestMixin, HackRepoMixin,
             self.assertEqual(mock_make_stats_list.call_count, 1)
             self.assertEqual(mock_make_t_his.call_count, 1)
             self.assertEqual(mock_count_particpt.call_count, 1)
+            self.assertEqual(mock_make_timing.call_count, 1)
 
     def test_success_test_restrict_to_first_attempt_invalid(self):
         with mock.patch(
@@ -437,7 +445,10 @@ class FlowAnalyticsTest(SingleCourseQuizPageTestMixin, HackRepoMixin,
         ) as mock_make_t_his, mock.patch(
             "course.analytics.count_participants",
             return_value=2,
-        ) as mock_count_particpt:
+        ) as mock_count_particpt, mock.patch(
+            "course.analytics.make_page_timing_stats_list",
+            return_value=[],
+        ) as mock_make_timing:
             resp = self.get_flow_analytics_view(flow_id=self.flow_id,
                                                 restrict_to_first_attempt="foo")
             self.assertEqual(resp.status_code, 200)
@@ -453,6 +464,7 @@ class FlowAnalyticsTest(SingleCourseQuizPageTestMixin, HackRepoMixin,
             self.assertEqual(mock_make_stats_list.call_count, 1)
             self.assertEqual(mock_make_t_his.call_count, 1)
             self.assertEqual(mock_count_particpt.call_count, 1)
+            self.assertEqual(mock_make_timing.call_count, 1)
 
     def test_flow_id_does_not_exist(self):
         with mock.patch(
@@ -464,5 +476,158 @@ class FlowAnalyticsTest(SingleCourseQuizPageTestMixin, HackRepoMixin,
             self.assertAddMessageCalledWith(
                 f"Flow '{self.flow_id}' was not found in the repository, but it exists in "  # noqa: E501
                     "the database--maybe it was deleted?")
+
+
+@pytest.mark.slow
+class MakePageTimingStatsListTest(SingleCourseTestMixin, TestCase):
+    """Test analytics.make_page_timing_stats_list."""
+
+    FLOW_ID = "test-timing-flow"
+
+    def _make_pctx(self):
+        pctx = mock.MagicMock()
+        pctx.course = self.course
+        return pctx
+
+    def _make_visits(self, participation, group_id, page_id,
+                     view_time, answer_time):
+        """Create a (view, answer) pair of FlowPageVisit records."""
+        from datetime import timedelta
+
+        from django.utils.timezone import now
+
+        base = now()
+        session = factories.FlowSessionFactory(
+            participation=participation,
+            flow_id=self.FLOW_ID,
+        )
+        page_data = factories.FlowPageDataFactory(
+            flow_session=session,
+            group_id=group_id,
+            page_id=page_id,
+        )
+        # Non-answer (page view) visit
+        factories.FlowPageVisitFactory(
+            page_data=page_data,
+            flow_session=session,
+            visit_time=base + timedelta(minutes=view_time),
+            is_submitted_answer=None,
+        )
+        # Submitted-answer visit
+        factories.FlowPageVisitFactory(
+            page_data=page_data,
+            flow_session=session,
+            visit_time=base + timedelta(minutes=answer_time),
+            is_submitted_answer=True,
+        )
+        return session
+
+    def test_empty_when_no_visits(self):
+        pctx = self._make_pctx()
+        result = analytics.make_page_timing_stats_list(
+            pctx, self.FLOW_ID, include_all_sessions=True)
+        self.assertEqual(result, [])
+
+    def test_single_visit_no_preceding_view(self):
+        """A submitted-answer visit without a preceding view yields no stats."""
+        pctx = self._make_pctx()
+        session = factories.FlowSessionFactory(
+            participation=self.student_participation,
+            flow_id=self.FLOW_ID,
+        )
+        page_data = factories.FlowPageDataFactory(
+            flow_session=session,
+            group_id="grp",
+            page_id="pg",
+        )
+        factories.FlowPageVisitFactory(
+            page_data=page_data,
+            flow_session=session,
+            is_submitted_answer=True,
+        )
+        result = analytics.make_page_timing_stats_list(
+            pctx, self.FLOW_ID, include_all_sessions=True)
+        self.assertEqual(result, [])
+
+    def test_basic_timing_stats(self):
+        """Stats are computed correctly for a single page with known time."""
+        pctx = self._make_pctx()
+        # Student views the page at t=0 min and submits at t=5 min → 5 min elapsed.
+        self._make_visits(self.student_participation,
+                          "grp", "pg", view_time=0, answer_time=5)
+        result = analytics.make_page_timing_stats_list(
+            pctx, self.FLOW_ID, include_all_sessions=True)
+        self.assertEqual(len(result), 1)
+        stats = result[0]
+        self.assertEqual(stats.group_id, "grp")
+        self.assertEqual(stats.page_id, "pg")
+        self.assertEqual(stats.count, 1)
+        self.assertAlmostEqual(stats.avg_time, 5.0, places=3)  # type: ignore[arg-type]
+        self.assertAlmostEqual(stats.min_time, 5.0, places=3)  # type: ignore[arg-type]
+        self.assertAlmostEqual(stats.max_time, 5.0, places=3)  # type: ignore[arg-type]
+        self.assertIsNone(stats.stddev_time)  # sample stddev undefined for n=1
+
+    def test_multiple_visits_stats(self):
+        """Mean, min, max, and stddev are correct for multiple visits."""
+        pctx = self._make_pctx()
+        # Three students spend 2, 4, 6 minutes respectively
+        for mins in [2, 4, 6]:
+            p = factories.ParticipationFactory(course=self.course)
+            self._make_visits(p, "grp", "pg",
+                              view_time=0, answer_time=mins)
+        result = analytics.make_page_timing_stats_list(
+            pctx, self.FLOW_ID, include_all_sessions=True)
+        self.assertEqual(len(result), 1)
+        stats = result[0]
+        self.assertEqual(stats.count, 3)
+        self.assertAlmostEqual(stats.avg_time, 4.0, places=3)  # type: ignore[arg-type]
+        self.assertAlmostEqual(stats.min_time, 2.0, places=3)  # type: ignore[arg-type]
+        self.assertAlmostEqual(stats.max_time, 6.0, places=3)  # type: ignore[arg-type]
+        # Sample std dev of [2,4,6]: variance = ((4+0+4)/2) = 4, stddev = 2
+        self.assertAlmostEqual(stats.stddev_time, 2.0, places=3)  # type: ignore[arg-type]
+
+    def test_sorted_by_avg_time_descending(self):
+        """Results are sorted most-time-consuming first."""
+        pctx = self._make_pctx()
+        # Page A: 1 minute, Page B: 10 minutes
+        p1 = factories.ParticipationFactory(course=self.course)
+        p2 = factories.ParticipationFactory(course=self.course)
+        self._make_visits(p1, "grp", "page_a", view_time=0, answer_time=1)
+        self._make_visits(p2, "grp", "page_b", view_time=0, answer_time=10)
+        result = analytics.make_page_timing_stats_list(
+            pctx, self.FLOW_ID, include_all_sessions=True)
+        self.assertEqual(len(result), 2)
+        self.assertEqual(result[0].page_id, "page_b")
+        self.assertEqual(result[1].page_id, "page_a")
+
+    def test_include_all_sessions_vs_grade_stats_only(self):
+        """The include_all_sessions flag filters correctly.
+
+        student_participation has ``included_in_grade_statistics``.
+        ta_participation does NOT (the "ta" role is excluded from grade stats).
+        """
+        pctx = self._make_pctx()
+
+        # student_participation has included_in_grade_statistics permission
+        self._make_visits(self.student_participation,
+                          "grp", "pg", view_time=0, answer_time=5)
+
+        # ta_participation does NOT have included_in_grade_statistics.
+        self._make_visits(self.ta_participation,
+                          "grp", "pg", view_time=0, answer_time=3)
+
+        result_all = analytics.make_page_timing_stats_list(
+            pctx, self.FLOW_ID, include_all_sessions=True)
+        result_graded = analytics.make_page_timing_stats_list(
+            pctx, self.FLOW_ID, include_all_sessions=False)
+
+        # With include_all_sessions=True both sessions are counted.
+        self.assertEqual(len(result_all), 1)
+        self.assertEqual(result_all[0].count, 2)
+
+        # With include_all_sessions=False only the student session is counted.
+        self.assertEqual(len(result_graded), 1)
+        self.assertEqual(result_graded[0].count, 1)
+        self.assertAlmostEqual(result_graded[0].avg_time, 5.0, places=3)  # type: ignore[arg-type]
 
 # vim: fdm=marker
