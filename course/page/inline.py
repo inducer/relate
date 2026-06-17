@@ -633,33 +633,48 @@ class InlineMultiQuestion(
         return markup_to_html(page_context, self.prompt)
 
     def get_question(self, page_context: PageContext):
-        # for correct render of question with more than one
-        # paragraph, replace <p> tags to new input-group.
+        # Replace <p> tags with appropriate containers depending on content:
+        # - paragraphs containing both text and blanks get a flex container
+        #   so that the input widget sits inline with the surrounding text;
+        # - paragraphs containing only a single blank get no wrapper at all,
+        #   letting the form field render as a normal block element; and
+        # - text-only paragraphs are left unchanged as <p> elements.
 
-        div_start_css_class_list = [
+        flex_class_list = [
             "input-group",
             # ensure spacing between input and text, mathjax and text
             "gap-1",
-            "align-items-center"
+            "align-items-center",
         ]
+        flex_div_start = f"<div class=\"{' '.join(flex_class_list)}\">"
 
-        replace_p_start = f"<div class=\"{' '.join(div_start_css_class_list)}\">"
+        question_html = markup_to_html(page_context, self.question)
 
-        question_html = markup_to_html(
-            page_context,
-            self.question
-        ).replace(
-            "<p>",
-            replace_p_start
-        ).replace("</p>", "</div>")
+        def replace_paragraph(m: re.Match[str]) -> str:
+            content = m.group(1)
+            # Blank-only paragraph: strip the <p> wrapper so the form field
+            # renders as a regular block element (no flex container).
+            if re.match(r"^\s*\[\[[a-zA-Z_]\w*\]\]\s*$", content):
+                return content.strip()
+            # Mixed text-and-blank paragraph: use a flex container so the
+            # input widget sits inline with the surrounding text.
+            if WRAPPED_NAME_RE.search(content):
+                return f"{flex_div_start}{content}</div>"
+            # Text-only paragraph: keep as-is.
+            return m.group(0)
 
-        # add mb-4 class to the last paragraph so as to add spacing before
-        # submit buttons.
-        last_div_start = (
-            f"<div class=\"{' '.join([*div_start_css_class_list, 'mb-4'])}\">")
+        result = re.sub(
+            r"<p>(.*?)</p>", replace_paragraph, question_html, flags=re.DOTALL)
 
-        # https://stackoverflow.com/a/59082116/3437454
-        return last_div_start.join(question_html.rsplit(replace_p_start, 1))
+        # Add mb-4 to the last flex div so there is spacing after the last
+        # inline input field (before whatever follows the form).
+        if flex_div_start in result:
+            last_flex_div_start = (
+                f"<div class=\"{' '.join([*flex_class_list, 'mb-4'])}\">")
+            # https://stackoverflow.com/a/59082116/3437454
+            result = last_flex_div_start.join(result.rsplit(flex_div_start, 1))
+
+        return result
 
     def get_form_info(self, page_context: PageContext):
         return FormInfo(
