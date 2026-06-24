@@ -1,7 +1,7 @@
 RELATE
 ======
 
-Relate is an Environment for Learning And TEaching
+Relate is an Environment for Learning And Teaching
 
 .. image:: https://gitlab.tiker.net/inducer/relate/badges/main/pipeline.svg
     :alt: Gitlab Build Status
