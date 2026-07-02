@@ -205,7 +205,7 @@ def git_clone_and_create_course(
             new_course: Course,
             owner: User,
             *, skip_validate: bool = False,
-        ):
+        ) -> Repo:
     repo = Repo.init(repo_fs_path)
 
     client, remote_path = \
@@ -231,6 +231,11 @@ def git_clone_and_create_course(
 
     create_course(vrepo, ObjectID(new_sha),
         new_course, owner, skip_validate=skip_validate)
+
+    # Hand the initialized repo back to the caller so it can be closed. Without
+    # this, set_up_new_course's local `repo` stays None and its post-success
+    # `assert repo is not None` fails (and the clone's file handles leak).
+    return repo
 
 
 class CourseCreationForm(StyledModelForm):
@@ -289,7 +294,7 @@ def set_up_new_course(request: http.HttpRequest) -> http.HttpResponse:
                 try:
                     assert request.user.is_authenticated
 
-                    git_clone_and_create_course(
+                    repo = git_clone_and_create_course(
                                 repo_path,
                                 new_course,
                                 request.user,  # pyright: ignore[reportArgumentType]
