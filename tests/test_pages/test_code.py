@@ -314,7 +314,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
         self.assertEqual(resp.status_code, 200)
         self.assertResponseContextAnswerFeedbackCorrectnessEquals(resp, 1)
 
-    def test_question_with_human_feedback_neither_feedback_value_feedback_percentage_present(self):  # noqa
+    def test_question_with_human_feedback_neither_feedback_value_feedback_percentage_present(self):  # ruff:ignore[line-too-long]
         markdown = (markdowns.CODE_WITH_HUMAN_FEEDBACK_MARKDOWN_PATTERN
                     % {"value": 3,
                        "human_feedback": "",
@@ -419,7 +419,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
                 self.assertEqual(len(mail.outbox), 1)
                 self.assertIn(expected_error_str, mail.outbox[0].body)
 
-    def test_send_email_failure_when_request_run_with_retries_raise_uncaught_error(self):  # noqa
+    def test_send_email_failure_when_request_run_with_retries_raise_uncaught_error(self):  # ruff:ignore[line-too-long]
         with mock.patch(
             RUNCODE_WITH_RETRIES_PATH,
             autospec=True
@@ -437,7 +437,7 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
                 # will cause errors ..."
                 mock_page_context.return_value.commit_sha = b"1234"
 
-                with mock.patch("django.core.mail.message.EmailMessage.send") as mock_send:  # noqa
+                with mock.patch("django.core.mail.message.EmailMessage.send") as mock_send:  # ruff:ignore[line-too-long]
                     mock_send.side_effect = RuntimeError("some email send error")
 
                     resp = self.get_page_sandbox_submit_answer_response(
@@ -561,10 +561,10 @@ class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
                     "2RlZmdoaWpzdHV2d3h5eoOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmq"
                     "srO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4eLj5OXm5+jp6vHy8/T"
                     "19vf4+fr/xAAfAQADAQEBAQEBAQEBAAAAAAAAAQIDBAUGBwgJCgv/xA"
-                    "C1EQACAQIEBAMEBwUEBAABAncAAQIDEQQFITEGEkFRB2FxEyIygQgUQp"  # spellchecker: disable-line  # noqa: E501
-                    "GhscEJIzNS8BVictEKFiQ04SXxFxgZGiYnKCkqNTY3ODk6Q0RFRkdIS"  # spellchecker: disable-line  # noqa: E501
+                    "C1EQACAQIEBAMEBwUEBAABAncAAQIDEQQFITEGEkFRB2FxEyIygQgUQp"  # spellchecker: disable-line  # ruff:ignore[line-too-long]
+                    "GhscEJIzNS8BVictEKFiQ04SXxFxgZGiYnKCkqNTY3ODk6Q0RFRkdIS"  # spellchecker: disable-line  # ruff:ignore[line-too-long]
                     "UpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqCg4SFhoeIiYqSk5SVlpeY"
-                    "mZqio6Slpqeoqaqys7S1tre4ubrCw8TFxsfIycrS09TV1tfY2dri4+T"  # spellchecker: disable-line  # noqa: E501
+                    "mZqio6Slpqeoqaqys7S1tre4ubrCw8TFxsfIycrS09TV1tfY2dri4+T"  # spellchecker: disable-line  # ruff:ignore[line-too-long]
                     "l5ufo6ery8/T19vf4+fr/2gAMAwEAAhEDEQA/AP38ooooA//Z")
         png_b64 = (
             "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAACAQMAAAB"

@@ -116,7 +116,7 @@ class SingleChoiceDesc(ChoiceDescBase):
 
         try:
             data = str(data)
-        except Exception:  # noqa: S110
+        except Exception:  # ruff:ignore[try-except-pass]
             pass
         else:
             choice_mode, choice_text = mode_from_prefix(data)
@@ -152,7 +152,7 @@ class MultipleChoiceDesc(ChoiceDescBase):
 
         try:
             data = str(data)
-        except Exception:  # noqa: S110
+        except Exception:  # ruff:ignore[try-except-pass]
             pass
         else:
             choice_mode, choice_text = mode_from_prefix(data)

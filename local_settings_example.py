@@ -1,6 +1,6 @@
 # See https://docs.djangoproject.com/en/dev/howto/deployment/checklist/
 
-import os  # noqa: F401  # pyright: ignore[reportUnusedImport]
+import os  # ruff:ignore[unused-import]  # pyright: ignore[reportUnusedImport]
 from os import path
 
 
@@ -20,7 +20,7 @@ ALLOWED_HOSTS = [
 # Configure the following as url as above.
 RELATE_BASE_URL = "http://YOUR/RELATE/SITE/DOMAIN"
 
-from django.utils.translation import gettext_noop  # noqa
+from django.utils.translation import gettext_noop  # ruff:ignore[unused-import, unsorted-imports]
 
 # Uncomment this to configure the site name of your relate instance.
 # If not configured, "RELATE" will be used as default value.

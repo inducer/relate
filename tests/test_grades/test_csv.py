@@ -36,7 +36,9 @@ from course.constants import GradeStateChangeType as GSChangeType
 from tests import factories
 from tests.base_test_mixins import CoursesTestMixinBase
 from tests.constants import CSV_PATH
-from tests.factories import GradeChangeFactory as gc_factory  # noqa
+from tests.factories import (
+    GradeChangeFactory as gc_factory,  # ruff:ignore[camelcase-imported-as-lowercase]
+)
 from tests.test_grades.test_grades import GradesTestMixin
 from tests.utils import mock
 
@@ -68,13 +70,13 @@ class ExportGradebook(GradesTestMixin, TestCase):
         self.instructor_gc.refresh_from_db()
         self.student_gc.refresh_from_db()
 
-    def assertResponseCsvResultEqual(self, resp, expected_result):  # noqa
+    def assertResponseCsvResultEqual(self, resp, expected_result):  # ruff:ignore[invalid-function-name]
         file_contents = StringIO(resp.content.decode())
         spamreader = csv.reader(file_contents)
         result = list(spamreader)
         self.assertEqual(result, expected_result)
 
-    def assertResponseHasCsv(self, resp):  # noqa
+    def assertResponseHasCsv(self, resp):  # ruff:ignore[invalid-function-name]
         self.assertEqual(resp["Content-Disposition"],
                          f'attachment; filename="grades-{self.course.identifier}.csv"')
 
@@ -233,7 +235,7 @@ class FindParticipantFromUserAttrTest(CoursesTestMixinBase, TestCase):
                 self.course, "username", another_participation.user.username)
 
             expected_error_msg = (
-                    f"no participant found with username '{another_participation.user.username}'")  # noqa: E501
+                    f"no participant found with username '{another_participation.user.username}'")  # ruff:ignore[line-too-long]
             self.assertIn(expected_error_msg, str(cm.exception))
 
     def test_skip_not_active(self):
@@ -245,7 +247,7 @@ class FindParticipantFromUserAttrTest(CoursesTestMixinBase, TestCase):
                 self.course, "username", dropped_participation.user.username)
 
         expected_error_msg = (
-                f"no participant found with username '{dropped_participation.user.username}'")  # noqa: E501
+                f"no participant found with username '{dropped_participation.user.username}'")  # ruff:ignore[line-too-long]
         self.assertIn(expected_error_msg, str(cm.exception))
 
     def test_multiple_found(self):
@@ -260,7 +262,7 @@ class FindParticipantFromUserAttrTest(CoursesTestMixinBase, TestCase):
                 another_student_participation.user.institutional_id)
 
         expected_error_msg = (
-                f"more than one participant found with Institutional ID '{another_student_participation.user.institutional_id}'")  # noqa: E501
+                f"more than one participant found with Institutional ID '{another_student_participation.user.institutional_id}'")  # ruff:ignore[line-too-long]
         self.assertIn(expected_error_msg, str(cm.exception))
 
 

@@ -104,13 +104,13 @@ class SingleCoursePageSandboxTestBaseMixin(SingleCourseTestMixin):
         return reverse("relate-view_page_sandbox", args=[cls.course.identifier])
 
     @classmethod_with_client
-    def get_page_sandbox_post_response(cls, client, data, action):  # noqa: N805
+    def get_page_sandbox_post_response(cls, client, data, action):  # ruff:ignore[invalid-first-argument-name-for-method]
         post_data = {action: ""}
         post_data.update(data)
         return client.post(cls.get_page_sandbox_url(), post_data)
 
     @classmethod_with_client
-    def get_page_sandbox_preview_response(cls, client, markup_content):  # noqa: N805
+    def get_page_sandbox_preview_response(cls, client, markup_content):  # ruff:ignore[invalid-first-argument-name-for-method]
         """
         Get the preview response of content in page sandbox
         :param markup_content: :class:`String`, RELATE flavored page markdown
@@ -120,7 +120,7 @@ class SingleCoursePageSandboxTestBaseMixin(SingleCourseTestMixin):
         return cls.get_page_sandbox_post_response(client, data, action="preview")
 
     @classmethod_with_client
-    def get_page_sandbox_submit_answer_response(cls, client,  # noqa: N805
+    def get_page_sandbox_submit_answer_response(cls, client,  # ruff:ignore[invalid-first-argument-name-for-method]
             markup_content, answer_data):
         """
         Get the response of preview content and then post an answer, in page sandbox
@@ -146,10 +146,10 @@ class SingleCoursePageSandboxTestBaseMixin(SingleCourseTestMixin):
     def get_sandbox_page_session(self):
         return self.get_sandbox_data_by_key(PAGE_SESSION_KEY_PREFIX)
 
-    def assertSandboxHasValidPage(self, resp: HttpResponse):  # noqa
+    def assertSandboxHasValidPage(self, resp: HttpResponse):  # ruff:ignore[invalid-function-name]
         self.assertResponseContextEqual(resp, HAVE_VALID_PAGE, True)
 
-    def assertSandboxWarningTextContain(self,   # noqa: N802
+    def assertSandboxWarningTextContain(self,   # ruff:ignore[invalid-function-name]
                 resp: HttpResponse,
                 expected_text: str | None,
                 loose: bool = False
@@ -164,7 +164,7 @@ class SingleCoursePageSandboxTestBaseMixin(SingleCourseTestMixin):
             warnings_strs = "".join(warnings_strs)
         self.assertIn(expected_text, warnings_strs)
 
-    def assertSandboxNotHasValidPage(self, resp):  # noqa
+    def assertSandboxNotHasValidPage(self, resp):  # ruff:ignore[invalid-function-name]
         self.assertResponseContextEqual(resp, HAVE_VALID_PAGE, False)
 
     @classmethod
@@ -172,11 +172,11 @@ class SingleCoursePageSandboxTestBaseMixin(SingleCourseTestMixin):
         return reverse("relate-view_markup_sandbox", args=[cls.course.identifier])
 
     @classmethod_with_client
-    def get_markup_sandbox_view(cls, client):  # noqa: N805
+    def get_markup_sandbox_view(cls, client):  # ruff:ignore[invalid-first-argument-name-for-method]
         return client.get(cls.get_markup_sandbox_url())
 
     @classmethod_with_client
-    def post_markup_sandbox_view(cls, client,  # noqa: N805
+    def post_markup_sandbox_view(cls, client,  # ruff:ignore[invalid-first-argument-name-for-method]
             markup_content, *, action="preview"):
         post_data = {
             "content": markup_content,

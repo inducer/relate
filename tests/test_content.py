@@ -68,7 +68,7 @@ class SingleCoursePageCacheTest(SingleCoursePageTestMixin, TestCase):
     def test_disable_cache(self, mock_cache):
         from django.core.exceptions import ImproperlyConfigured
         with self.assertRaises(ImproperlyConfigured):
-            from django.core.cache import cache  # noqa
+            from django.core.cache import cache  # ruff:ignore[unused-import]
 
     def test_view_flow_with_cache(self):
         resp = self.client.get(self.get_page_url_by_ordinal(0))
@@ -390,7 +390,7 @@ content: |
     ## object data
     <object width="400" height="400" data="helloworld.swf">
     <object data="repo:images/cc.png">
-"""  # noqa
+"""  # ruff:ignore[line-too-long]
 
 
 class TagProcessingHTMLParserAndLinkFixerTreeprocessorTest(

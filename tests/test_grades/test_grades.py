@@ -149,14 +149,14 @@ class GradesTestMixin(SingleCoursePageTestMixin, MockAddMessageMixing):
             self.gopp.save()
             self.gopp.refresh_from_db()
 
-    def assertGradeChangeStateEqual(self, expected_state_string=None):  # noqa
+    def assertGradeChangeStateEqual(self, expected_state_string=None):  # ruff:ignore[invalid-function-name]
         # targeting stringify_state
         state_string = self.get_gc_stringify_state()
 
         from django.utils.encoding import force_str
         self.assertEqual(force_str(state_string), expected_state_string)
 
-    def assertGradeChangeMachineReadableStateEqual(self, expected_state_string=None):  # noqa
+    def assertGradeChangeMachineReadableStateEqual(self, expected_state_string=None):  # ruff:ignore[invalid-function-name]
         # targeting stringify_machine_readable_state
         state_string = self.get_gc_stringify_machine_readable_state()
         from decimal import Decimal, InvalidOperation
@@ -332,7 +332,7 @@ class ViewParticipantGradesTest(GradesTestMixin, TestCase):
                 self.assertFalse(resp.context["is_privileged_view"])
                 self.assertContains(resp, "60.0%", count=1)  # for shown_gopp
                 self.assertNotContains(resp, "40.0%")  # for hidden_gopp
-                self.assertContains(resp, "(not released)", count=2)  # for hidden_gopp  # noqa
+                self.assertContains(resp, "(not released)", count=2)  # for hidden_gopp
 
         user = self.ta_participation.user
         with self.temporarily_switch_to_user(user), self.subTest(user=str(user)):
@@ -1872,7 +1872,7 @@ class DownloadAllSubmissionsTest(SingleCourseQuizPageTestMixin,
     def get_zip_file_buf_from_response(self, resp):
         return io.BytesIO(resp.content)
 
-    def assertDownloadedFileZippedExtensionCount(self, resp, extensions, counts):  # noqa
+    def assertDownloadedFileZippedExtensionCount(self, resp, extensions, counts):  # ruff:ignore[invalid-function-name]
 
         assert isinstance(extensions, list)
         assert isinstance(counts, list)

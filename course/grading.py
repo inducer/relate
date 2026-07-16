@@ -33,7 +33,11 @@ from django.core.exceptions import (
     PermissionDenied,
     SuspiciousOperation,
 )
-from django.shortcuts import get_object_or_404, redirect, render  # noqa
+from django.shortcuts import (  # ruff:ignore[unused-import]
+    get_object_or_404,
+    redirect,
+    render,
+)
 from django.utils.translation import gettext as _
 from pytools import not_none
 

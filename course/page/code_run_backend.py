@@ -99,7 +99,7 @@ def substitute_correct_code_into_test_code(
         return test_code
 
     import re
-    CORRECT_CODE_TAG = re.compile(r"^(\s*)###CORRECT_CODE###\s*$")  # noqa
+    CORRECT_CODE_TAG = re.compile(r"^(\s*)###CORRECT_CODE###\s*$")  # ruff:ignore[non-lowercase-variable-in-function]
 
     new_test_code_lines: list[str] = []
     for line in test_code.split("\n"):
@@ -136,7 +136,7 @@ def user_code_thread(
             user_ctx: dict[str, object],
             exc_info: list[ExcInfo]) -> None:
     try:
-        exec(user_code, user_ctx)  # noqa: S102
+        exec(user_code, user_ctx)  # ruff:ignore[exec-builtin]
     except Exception:
         tp, val, tb = sys.exc_info()
         assert tp is not None
@@ -214,7 +214,7 @@ def run_code(
 
     if setup_code is not None:
         try:
-            exec(setup_code, maint_ctx)  # noqa: S102
+            exec(setup_code, maint_ctx)  # ruff:ignore[exec-builtin]
         except BaseException:
             return package_exception("setup_error")
 
@@ -293,7 +293,7 @@ def run_code(
 
     if test_code is not None:
         try:
-            exec(test_code, maint_ctx)  # noqa: S102
+            exec(test_code, maint_ctx)  # ruff:ignore[exec-builtin]
         except GradingComplete:
             pass
         except BaseException:

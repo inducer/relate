@@ -53,7 +53,6 @@ if TYPE_CHECKING:
     from collections.abc import Callable
 
     from course.page.base import PageBase
-    from course.utils import CoursePageContext
 
 
 # {{{ flow list

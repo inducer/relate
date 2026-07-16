@@ -32,15 +32,13 @@ from django.urls import reverse
 from django.utils.safestring import mark_safe
 from typing_extensions import override
 
-from accounts.models import User
+from accounts.models import User  # ruff:ignore[typing-only-first-party-import]
 from course.constants import ParticipationPermission as PPerm
 from prairietest.models import AllowEvent, DenyEvent, Facility, MostRecentDenyEvent
 
 
 if TYPE_CHECKING:
     from django.db.models import QuerySet
-
-    from accounts.models import User
 
 
 class FacilityAdminForm(forms.ModelForm):

@@ -286,7 +286,7 @@ def _retry_transaction(
         sleep(uniform(0.05, 0.2))
 
 
-class retry_transaction_decorator:  # noqa
+class retry_transaction_decorator:  # ruff:ignore[invalid-class-name]
     def __init__(self, max_tries: int | None = None,
             serializable: bool | None = None) -> None:
         self.max_tries: int | None = max_tries

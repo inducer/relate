@@ -585,7 +585,7 @@ def reset_password(request: RelateHttpRequest, field: str = "email"):
                 _("self-registration is not enabled"))
 
     # return form class by string of class name
-    ResetPasswordForm = globals()["ResetPasswordFormBy" + field.title()]  # noqa
+    ResetPasswordForm = globals()["ResetPasswordFormBy" + field.title()]  # ruff:ignore[non-lowercase-variable-in-function]
     if request.method == "POST":
         form = ResetPasswordForm(request.POST)
         user = None
@@ -617,7 +617,7 @@ def reset_password(request: RelateHttpRequest, field: str = "email"):
                           "contact site staff."))
             else:
                 if user is None:
-                    FIELD_DICT = {  # noqa
+                    FIELD_DICT = {  # ruff:ignore[non-lowercase-variable-in-function]
                             "email": _("email address"),
                             "instid": _("institutional ID")
                             }

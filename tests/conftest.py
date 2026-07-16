@@ -10,12 +10,11 @@ from tests.factories import UserFactory
 
 @pytest.fixture
 def admin_user():
-    user = UserFactory.create(
+    yield UserFactory.create(
         username="admin",
         is_staff=True,
         is_superuser=True,
     )
-    yield user
 
 
 def pytest_addoption(parser):

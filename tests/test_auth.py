@@ -493,14 +493,14 @@ class AuthTestMixin:
     def get_sign_in_data(self):
         return self._user_create_kwargs.copy()
 
-    def assertNewUserCreated(self, count=1):  # noqa
+    def assertNewUserCreated(self, count=1):  # ruff:ignore[invalid-function-name]
         self.assertEqual(get_user_model().objects.count(),
                          self.existing_user_count + count)
 
-    def assertNoNewUserCreated(self):  # noqa
+    def assertNoNewUserCreated(self):  # ruff:ignore[invalid-function-name]
         self.assertEqual(self.existing_user_count, get_user_model().objects.count())
 
-    def assertURLEqual(self, url, expected, parse_qs=False):  # noqa
+    def assertURLEqual(self, url, expected, parse_qs=False):  # ruff:ignore[invalid-function-name]
         """
         Given two URLs, make sure all their components (the ones given by
         urlparse) are equal, only comparing components that are present in both
@@ -562,10 +562,10 @@ class AuthTestMixin:
                         self.assertIn(good_url, response.url,
                                       f"{good_url} should be allowed")
 
-    def assertSessionHasUserLoggedIn(self):  # noqa
+    def assertSessionHasUserLoggedIn(self):  # ruff:ignore[invalid-function-name]
         self.assertIn(SESSION_KEY, self.client.session)
 
-    def assertSessionHasNoUserLoggedIn(self):  # noqa
+    def assertSessionHasNoUserLoggedIn(self):  # ruff:ignore[invalid-function-name]
         self.assertNotIn(SESSION_KEY, self.client.session)
 
     def concatenate_redirect_url(self, url, redirect_to=None):
@@ -1038,7 +1038,7 @@ class SignUpTest(CoursesTestMixinBase, MockAddMessageMixing,
         expected_msg = (
                 "That email address is already in use. "
                 "Would you like to "
-                "<a href='{}'>reset your password</a> instead?".format(reverse("relate-reset_password")))  # noqa: E501
+                "<a href='{}'>reset your password</a> instead?".format(reverse("relate-reset_password")))  # ruff:ignore[line-too-long]
 
         data = self.get_sign_up_user_dict()
         data["email"] = self.test_user.email
@@ -1531,7 +1531,7 @@ class UserProfileTest(CoursesTestMixinBase, AuthTestMixin,
         field_div_with_id_pattern = (
             r".*(<div\s+[^\>]*id\s*=\s*['\"]div_id_%s['\"][^>]*\/?>).*")
 
-        def assertFieldDiv(field_name, exist=True):  # noqa
+        def assertFieldDiv(field_name, exist=True):  # ruff:ignore[invalid-function-name]
             resp = self.get_profile_by_request_factory()
             self.assertEqual(resp.status_code, 200)
             pattern = field_div_with_id_pattern % field_name
@@ -1751,10 +1751,10 @@ class ResetPasswordStageTwoTest(CoursesTestMixinBase, MockAddMessageMixing,
         self.client.logout()
         self.user.refresh_from_db()
 
-    def assertHasUserLoggedIn(self, user):  # noqa
+    def assertHasUserLoggedIn(self, user):  # ruff:ignore[invalid-function-name]
         self.assertEqual(self.get_logged_in_user(), user)
 
-    def assertHasNoUserLoggedIn(self):  # noqa
+    def assertHasNoUserLoggedIn(self):  # ruff:ignore[invalid-function-name]
         self.assertIsNone(self.get_logged_in_user())
 
     @override_settings(RELATE_REGISTRATION_ENABLED=False)

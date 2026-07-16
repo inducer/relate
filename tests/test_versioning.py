@@ -694,7 +694,7 @@ class RunCourseUpdateCommandTest(MockAddMessageMixing, unittest.TestCase):
                         "be called while not")
                 elif not will_check and self.mock_is_ancestor_commit.call_count > 0:
                     self.fail(
-                        f"'is_ancestor_commit' is not expected for command '{command}' to "  # noqa: E501
+                        f"'is_ancestor_commit' is not expected for command '{command}' to "  # ruff:ignore[line-too-long]
                         "be called while called")
 
         # when not prevent_discarding_revisions, is_ancestor_commit
@@ -712,11 +712,11 @@ class RunCourseUpdateCommandTest(MockAddMessageMixing, unittest.TestCase):
                     may_update, prevent_discarding_revisions)
                 if self.mock_is_ancestor_commit.call_count > 0:
                     self.fail(
-                        f"'is_ancestor_commit' is not expected for command '{command}' to "  # noqa: E501
+                        f"'is_ancestor_commit' is not expected for command '{command}' to "  # ruff:ignore[line-too-long]
                         "be called while called (expensive)")
                 elif self.mock_is_ancestor_commit.call_count > 0:
                     self.fail(
-                        f"'is_ancestor_commit' is not expected for command '{command}' to "  # noqa: E501
+                        f"'is_ancestor_commit' is not expected for command '{command}' to "  # ruff:ignore[line-too-long]
                         "be called while called")
 
     def test_is_content_validated(self):

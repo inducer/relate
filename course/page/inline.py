@@ -57,8 +57,10 @@ from course.page.base import (
     PageData,
     markup_to_html,
 )
-from course.page.choice import SingleChoiceDesc  # noqa: TC001
-from course.page.text import Matcher  # noqa: TC001
+from course.page.choice import (
+    SingleChoiceDesc,  # ruff:ignore[typing-only-first-party-import]
+)
+from course.page.text import Matcher  # ruff:ignore[typing-only-first-party-import]
 from course.validation import (
     CSSDimension,
     CSSDimensionMax,
@@ -146,7 +148,7 @@ class InlineMultiQuestionForm(StyledVerticalForm):
         for name in list(cleaned_data.keys()):
             answer = self.answers[name]
             if isinstance(answer, ShortAnswer):
-                for i, validator in enumerate(answer.correct_answer):  # pragma: no branch  # noqa
+                for i, validator in enumerate(answer.correct_answer):  # pragma: no branch  # ruff:ignore[line-too-long]
                     try:
                         validator.validate_text(cleaned_data[name])
                     except forms.ValidationError as e:
@@ -747,7 +749,7 @@ class InlineMultiQuestion(
             else:
                 snippets.append(t_or_b)
 
-        CA_PATTERN = string_concat(_("A correct answer is"), ": %s")  # noqa
+        CA_PATTERN = string_concat(_("A correct answer is"), ": %s")  # ruff:ignore[non-lowercase-variable-in-function]
 
         result = CA_PATTERN % ("".join(snippets))
 
