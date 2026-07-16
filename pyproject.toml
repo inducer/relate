@@ -318,6 +318,9 @@ reportImportCycles = "none"
 pythonVersion = "3.11"
 pythonPlatform = "All"
 
+# covered by ruff
+reportUnusedImport = "none"
+
 reportAny = "none"
 
 # for Sentinel
