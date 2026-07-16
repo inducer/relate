@@ -1,6 +1,6 @@
 # See https://docs.djangoproject.com/en/dev/howto/deployment/checklist/
 
-import os  # ruff:ignore[unused-import]  # pyright: ignore[reportUnusedImport]
+import os  # ruff:ignore[unused-import]
 from os import path
 
 
