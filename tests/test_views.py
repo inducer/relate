@@ -1928,7 +1928,7 @@ class GrantExceptionStage3Test(GrantExceptionTestMixin, TestCase):
         self.assertAddMessageCallCount(1)
         self.assertAddMessageCalledWith("'Grading' exception granted to ")
 
-    def test_create_grading_exception_due_same_as_access_expiration_while_expiration_not_set(self):  # noqa
+    def test_create_grading_exception_due_same_as_access_expiration_while_expiration_not_set(self):  # ruff:ignore[line-too-long]
         due = as_local_time(now() + timedelta(days=5))
         resp = self.post_grant_exception_stage_3_view(
             data=self.get_default_post_data(

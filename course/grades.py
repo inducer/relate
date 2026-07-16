@@ -1514,7 +1514,7 @@ def download_all_submissions(pctx: CoursePageContext, flow_id: str):
 
     access_rules_tags = flow_desc.rules.tags
 
-    ALL_SESSION_TAG = string_concat("<<<", _("ALL"), ">>>")  # noqa
+    ALL_SESSION_TAG = string_concat("<<<", _("ALL"), ">>>")  # ruff:ignore[non-lowercase-variable-in-function]
     session_tag_choices = [
             (tag, tag)
             for tag in access_rules_tags] + [(ALL_SESSION_TAG,

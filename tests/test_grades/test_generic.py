@@ -46,7 +46,7 @@ class GradeGenericTestMixin(SingleCoursePageTestMixin):
 
     # Use specified user to take a quiz
     @classmethod_with_client
-    def do_quiz(cls, client, participation):  # noqa: N805
+    def do_quiz(cls, client, participation):  # ruff:ignore[invalid-first-argument-name-for-method]
         # Login user first
         client.force_login(participation.user)
         cls.start_flow(client, cls.flow_id)
@@ -306,7 +306,7 @@ class GradeTwoQuizTakerTest(GradeGenericTestMixin, TestCase):
     force_login_student_for_each_test = False
 
     @classmethod
-    def setUpTestData(cls): # noqa
+    def setUpTestData(cls): # ruff:ignore[too-few-spaces-before-inline-comment]
         super().setUpTestData()
         client = Client()
 
@@ -326,7 +326,7 @@ class GradeThreeQuizTakerTest(GradeGenericTestMixin, TestCase):
     force_login_student_for_each_test = False
 
     @classmethod
-    def setUpTestData(cls): # noqa
+    def setUpTestData(cls): # ruff:ignore[too-few-spaces-before-inline-comment]
         super().setUpTestData()
         client = Client()
         cls.do_quiz(client, cls.ta_participation)

@@ -66,13 +66,13 @@ class CourseAdminTestMixin(AdminTestMixin):
                 if with_add_view:
                     resp = self.client.get(
                         self.get_admin_course_add_view_url(model_class.__name__))
-                    self.assertIn(resp.status_code, [200, 403])  # 403 for not implemented  # noqa
+                    self.assertIn(resp.status_code, [200, 403])  # 403 for not implemented  # ruff:ignore[line-too-long]
 
                 if with_change_view:
                     resp = self.client.get(
                         self.get_admin_course_change_view_url(
                             model_class.__name__, args=[1]))
-                    self.assertIn(resp.status_code, [200, 302])  # 302 for no objects  # noqa
+                    self.assertIn(resp.status_code, [200, 302])  # 302 for no objects
 
     def list_filter_result(self, model_class, model_admin_class,
                            expected_counts_dict):

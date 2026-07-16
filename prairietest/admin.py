@@ -32,7 +32,6 @@ from django.urls import reverse
 from django.utils.safestring import mark_safe
 from typing_extensions import override
 
-from accounts.models import User
 from course.constants import ParticipationPermission as PPerm
 from prairietest.models import AllowEvent, DenyEvent, Facility, MostRecentDenyEvent
 

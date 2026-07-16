@@ -195,7 +195,7 @@ def check_relate_settings(app_configs, **kwargs):
                                     msg=(
                                         INSTANCE_ERROR_PATTERN
                                         % {"location":
-                                               f"'ip_ranges' in facility `{facilities}` in {RELATE_FACILITIES}",  # noqa: E501
+                                               f"'ip_ranges' in facility `{facilities}` in {RELATE_FACILITIES}",  # ruff:ignore[line-too-long]
                                            "types": "list or tuple"}),
                                     id="relate_facilities.E004")
                                 )
@@ -210,7 +210,7 @@ def check_relate_settings(app_configs, **kwargs):
                                                 % {
                                                     "location":
                                                         "'ip_ranges' in "
-                                                        f"facility `{facility}` in {RELATE_FACILITIES}",  # noqa: E501
+                                                        f"facility `{facility}` in {RELATE_FACILITIES}",  # ruff:ignore[line-too-long]
                                                     "error_type": type(e).__name__,
                                                     "error_str": str(e)
                                                 }),
@@ -220,7 +220,7 @@ def check_relate_settings(app_configs, **kwargs):
                             if not callable(relate_facilities_conf):
                                 errors.append(Warning(
                                     msg=(
-                                        f"Faclity `{facility}` in {RELATE_FACILITIES} is an open facility "  # noqa: E501
+                                        f"Faclity `{facility}` in {RELATE_FACILITIES} is an open facility "  # ruff:ignore[line-too-long]
                                         "as it has no configured `ip_ranges`"
                                     ),
                                     id="relate_facilities.W001"
@@ -271,7 +271,7 @@ def check_relate_settings(app_configs, **kwargs):
             if relate_session_restart_cooldown_seconds < 0:
                 errors.append(RelateCriticalCheckMessage(
                     msg=(
-                        f"{RELATE_SESSION_RESTART_COOLDOWN_SECONDS} must be a positive number, "  # noqa: E501
+                        f"{RELATE_SESSION_RESTART_COOLDOWN_SECONDS} must be a positive number, "  # ruff:ignore[line-too-long]
                         f"got {relate_session_restart_cooldown_seconds} instead"),
                     id="relate_session_restart_cooldown_seconds.E002")
                 )
@@ -293,7 +293,7 @@ def check_relate_settings(app_configs, **kwargs):
             if relate_ticket_minutes_valid_after_use < 0:
                 errors.append(RelateCriticalCheckMessage(
                     msg=(
-                        f"{RELATE_TICKET_MINUTES_VALID_AFTER_USE} must be a positive number, "  # noqa: E501
+                        f"{RELATE_TICKET_MINUTES_VALID_AFTER_USE} must be a positive number, "  # ruff:ignore[line-too-long]
                         f"got {relate_ticket_minutes_valid_after_use} instead"),
                     id="relate_ticket_minutes_valid_after_use.E002")
                 )
@@ -360,7 +360,7 @@ def check_relate_settings(app_configs, **kwargs):
         if not isinstance(relate_disable_codehilite_markdown_extension, bool):
             errors.append(
                 Warning(
-                    msg=f"{RELATE_DISABLE_CODEHILITE_MARKDOWN_EXTENSION} is not a Boolean value: `{relate_disable_codehilite_markdown_extension!r}`, "  # noqa: E501
+                    msg=f"{RELATE_DISABLE_CODEHILITE_MARKDOWN_EXTENSION} is not a Boolean value: `{relate_disable_codehilite_markdown_extension!r}`, "  # ruff:ignore[line-too-long]
                         "assuming True",
                     id="relate_disable_codehilite_markdown_extension.W001"))
         elif not relate_disable_codehilite_markdown_extension:
@@ -409,7 +409,7 @@ def check_relate_settings(app_configs, **kwargs):
             errors.extend(Warning(
                         msg=(
                             "Duplicate language entries were found in "
-                            f"settings.LANGUAGES for '{lang_code}', '{options_dict[lang_code]}' will be used "  # noqa: E501
+                            f"settings.LANGUAGES for '{lang_code}', '{options_dict[lang_code]}' will be used "  # ruff:ignore[line-too-long]
                             "as its language_description"),
                         id="relate_languages.W001"
                     )
@@ -431,7 +431,7 @@ def check_relate_settings(app_configs, **kwargs):
             if not isinstance(site_name, str):
                 errors.append(RelateCriticalCheckMessage(
                     msg=(INSTANCE_ERROR_PATTERN
-                         % {"location": f"{RELATE_SITE_NAME}/{RELATE_CUSTOMIZED_SITE_NAME}",  # noqa: E501
+                         % {"location": f"{RELATE_SITE_NAME}/{RELATE_CUSTOMIZED_SITE_NAME}",  # ruff:ignore[line-too-long]
                             "types": "string"}),
                     id="relate_site_name.E003"))
             elif not site_name.strip():
@@ -464,12 +464,12 @@ def check_relate_settings(app_configs, **kwargs):
             if any(not isinstance(directory, str)
                    for directory in relate_override_templates_dirs):
                 errors.append(RelateCriticalCheckMessage(
-                    msg=(f"'{RELATE_OVERRIDE_TEMPLATES_DIRS}' must contain only string of paths."),  # noqa: E501
+                    msg=(f"'{RELATE_OVERRIDE_TEMPLATES_DIRS}' must contain only string of paths."),  # ruff:ignore[line-too-long]
                     id="relate_override_templates_dirs.E002"))
             else:
                 errors.extend(Warning(
                                 msg=(
-                                    f"Invalid Templates Dirs item '{directory}' in '{RELATE_OVERRIDE_TEMPLATES_DIRS}', "  # noqa: E501
+                                    f"Invalid Templates Dirs item '{directory}' in '{RELATE_OVERRIDE_TEMPLATES_DIRS}', "  # ruff:ignore[line-too-long]
                                     "it will be ignored."),
                                 id="relate_override_templates_dirs.W001"
                             )

@@ -42,9 +42,9 @@ if not os.path.isfile(_local_settings_file):
 local_settings_module_name, ext = (
     os.path.splitext(os.path.split(_local_settings_file)[-1]))
 assert ext == ".py"
-exec(f"import {local_settings_module_name} as local_settings_module")  # noqa: S102
+exec(f"import {local_settings_module_name} as local_settings_module")  # ruff:ignore[exec-builtin]
 
-local_settings = local_settings_module.__dict__  # type: ignore  # noqa
+local_settings = local_settings_module.__dict__  # type: ignore  # ruff:ignore[undefined-name]
 
 # {{{ django: apps
 
@@ -322,8 +322,8 @@ CELERY_TRACK_STARTED = True
 if "CELERY_RESULT_BACKEND" not in globals():
     if (
             "CACHES" in globals()
-            and "LocMem" not in CACHES["default"]["BACKEND"]  # type:ignore # noqa
-            and "Dummy" not in CACHES["default"]["BACKEND"]  # type:ignore # noqa
+            and "LocMem" not in CACHES["default"]["BACKEND"]  # type:ignore # ruff:ignore[undefined-name]
+            and "Dummy" not in CACHES["default"]["BACKEND"]  # type:ignore # ruff:ignore[undefined-name]
             ):
         # If possible, we would like to use an external cache as a
         # result backend--because then the progress bars work, because

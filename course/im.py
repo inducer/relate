@@ -30,12 +30,16 @@ from crispy_forms.layout import Submit
 from django import forms
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied
-from django.shortcuts import get_object_or_404, redirect, render  # noqa
+from django.shortcuts import (  # ruff:ignore[unused-import]
+    get_object_or_404,
+    redirect,
+    render,
+)
 from django.utils.translation import gettext as _, pgettext_lazy
 
 from course.constants import ParticipationPermission as PPerm
 from course.models import (
-    Course,  # noqa
+    Course,  # ruff:ignore[unused-import]
     InstantMessage,
 )
 from course.utils import course_view, render_course_page

@@ -14,7 +14,7 @@ class CourseConfig(AppConfig):
     default_auto_field = "django.db.models.BigAutoField"
 
     def ready(self):
-        import course.receivers  # noqa
+        import course.receivers  # ruff:ignore[unused-import]
 
         # register all checks
         register_startup_checks()

@@ -4,7 +4,7 @@ import os
 from collections import namedtuple
 
 from relate.utils import (
-    HTML5_DATETIME_FORMAT as DATE_TIME_PICKER_TIME_FORMAT,  # noqa: F401
+    HTML5_DATETIME_FORMAT as DATE_TIME_PICKER_TIME_FORMAT,  # ruff:ignore[unused-import]
 )
 
 

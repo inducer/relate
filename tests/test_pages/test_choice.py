@@ -433,12 +433,12 @@ class MultiChoicesQuestionTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
         self.maxDiff = None
         self.assertResponseContextEqual(
             resp, "correct_answer",
-            '<div class=\'relate-markup\'><p><i class="bi bi-check-square"></i> Sprinkles</p></div>\n'  # noqa: E501
-            '<div class=\'relate-markup\'><p><i class="bi bi-check-square"></i> Chocolate chunks</p></div>\n'  # noqa: E501
-            '<div class=\'relate-markup\'><p><i class="bi bi-square"></i> Vacuum cleaner dust</p></div>\n'  # noqa: E501
-            '<div class=\'relate-markup\'><p><i class="bi bi-square"></i> Spider webs</p></div>\n'  # noqa: E501
-            '<div class=\'relate-markup\'><p><i class="bi bi-check-square"></i> Almond bits</p></div>\n'  # noqa: E501
-            '<div class=\'relate-markup\'><p><i class="bi bi-question-square"></i> A flawed option</p></div>')  # noqa: E501
+            '<div class=\'relate-markup\'><p><i class="bi bi-check-square"></i> Sprinkles</p></div>\n'  # ruff:ignore[line-too-long]
+            '<div class=\'relate-markup\'><p><i class="bi bi-check-square"></i> Chocolate chunks</p></div>\n'  # ruff:ignore[line-too-long]
+            '<div class=\'relate-markup\'><p><i class="bi bi-square"></i> Vacuum cleaner dust</p></div>\n'  # ruff:ignore[line-too-long]
+            '<div class=\'relate-markup\'><p><i class="bi bi-square"></i> Spider webs</p></div>\n'  # ruff:ignore[line-too-long]
+            '<div class=\'relate-markup\'><p><i class="bi bi-check-square"></i> Almond bits</p></div>\n'  # ruff:ignore[line-too-long]
+            '<div class=\'relate-markup\'><p><i class="bi bi-question-square"></i> A flawed option</p></div>')  # ruff:ignore[line-too-long]
 
     # }}}
 
@@ -454,11 +454,11 @@ class MultiChoicesQuestionTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
         self.assertSandboxHasValidPage(resp)
         self.assertResponseContextEqual(
             resp, "correct_answer",
-            '<div class=\'relate-markup\'><p><i class="bi bi-check-square"></i> Sprinkles</p></div>\n'  # noqa: E501
-            '<div class=\'relate-markup\'><p><i class="bi bi-check-square"></i> Chocolate chunks</p></div>\n'  # noqa: E501
-            '<div class=\'relate-markup\'><p><i class="bi bi-square"></i> Vacuum cleaner dust</p></div>\n'  # noqa: E501
-            '<div class=\'relate-markup\'><p><i class="bi bi-square"></i> Spider webs</p></div>\n'  # noqa: E501
-            '<div class=\'relate-markup\'><p><i class="bi bi-check-square"></i> Almond bits</p></div>')  # noqa: E501
+            '<div class=\'relate-markup\'><p><i class="bi bi-check-square"></i> Sprinkles</p></div>\n'  # ruff:ignore[line-too-long]
+            '<div class=\'relate-markup\'><p><i class="bi bi-check-square"></i> Chocolate chunks</p></div>\n'  # ruff:ignore[line-too-long]
+            '<div class=\'relate-markup\'><p><i class="bi bi-square"></i> Vacuum cleaner dust</p></div>\n'  # ruff:ignore[line-too-long]
+            '<div class=\'relate-markup\'><p><i class="bi bi-square"></i> Spider webs</p></div>\n'  # ruff:ignore[line-too-long]
+            '<div class=\'relate-markup\'><p><i class="bi bi-check-square"></i> Almond bits</p></div>')  # ruff:ignore[line-too-long]
 
     def test_correct_answer_disregard_excluded(self):
         # Tests that ~DISREGARD~ choices are excluded from the correct answer display.

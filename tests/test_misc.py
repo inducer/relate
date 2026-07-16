@@ -81,10 +81,10 @@ class CourseSpecificLangTestMixin(SingleCourseTestMixin, TestCase):
         # Korean literals for 12th month (December)
         return "12월" in resp.content.decode("utf-8")
 
-    def assertResponseContainsChinese(self, resp):  # noqa
+    def assertResponseContainsChinese(self, resp):  # ruff:ignore[invalid-function-name]
         self.assertTrue(self.response_contains_korean(resp))
 
-    def assertResponseNotContainsChinese(self, resp):  # noqa
+    def assertResponseNotContainsChinese(self, resp):  # ruff:ignore[invalid-function-name]
         self.assertFalse(self.response_contains_korean(resp))
 
     # }}}
@@ -141,7 +141,7 @@ class CourseSpecificLangConfigureTest(CourseSpecificLangTestMixin, TestCase):
             "set": [""]}
         self.post_set_fake_time(set_fake_time_data)
 
-    def assertResponseBehaveLikeUnconfigured(self):  # noqa
+    def assertResponseBehaveLikeUnconfigured(self):  # ruff:ignore[invalid-function-name]
         # For each setting combinations, the response behaves the same
         # as before this functionality was introduced
         expected_result = ([False, True, False, True],
@@ -171,7 +171,7 @@ class CourseSpecificLangConfigureTest(CourseSpecificLangTestMixin, TestCase):
             ASSERTION_ERROR_CONTENT_LANGUAGE_PATTERN % "Course"
         )
 
-    def assertResponseBehaveAsExpectedForCourseWithForceLang(self):  # noqa
+    def assertResponseBehaveAsExpectedForCourseWithForceLang(self):  # ruff:ignore[invalid-function-name]
         # For each setting combinations, the response behaves as expected
         expected_result = ([False, True, False, True],
                            ["en", "ko", "en", "ko"])

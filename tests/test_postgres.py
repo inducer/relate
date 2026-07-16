@@ -30,7 +30,11 @@ from django.test import TestCase
 from relate.utils import retry_transaction_decorator
 from tests import factories
 from tests.base_test_mixins import HackRepoMixin, SingleCourseQuizPageTestMixin
-from tests.utils import SKIP_NON_PSQL_REASON, is_connection_psql, mock  # noqa
+from tests.utils import (
+    SKIP_NON_PSQL_REASON,  # ruff:ignore[unused-import]
+    is_connection_psql,  # ruff:ignore[unused-import]
+    mock,  # ruff:ignore[unused-import]
+)
 
 
 @pytest.mark.postgres
