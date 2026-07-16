@@ -30,7 +30,9 @@ import datetime
 import html.parser as html_parser
 import os
 import re
-from collections.abc import Set as AbstractSet
+from collections.abc import (
+    Set as AbstractSet,  # ruff:ignore[typing-only-standard-library-import]
+)
 from dataclasses import dataclass, field
 from itertools import starmap
 from pathlib import Path
@@ -73,8 +75,8 @@ from course.constants import (
     FlowSessionExpirationMode,
     GradeAggregationStrategy,
 )
-from course.datespec import Datespec  # noqa: TC001
-from course.page.base import PageBase  # noqa: TC001
+from course.datespec import Datespec  # ruff:ignore[typing-only-first-party-import]
+from course.page.base import PageBase  # ruff:ignore[typing-only-first-party-import]
 from course.repo import (
     CACHE_KEY_ROOT,
     PYTHON_CLASS_REPO_PREFIX,
@@ -107,7 +109,7 @@ from course.validation import (
 
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Collection, Mapping, Set as AbstractSet
+    from collections.abc import Callable, Collection, Mapping
 
     from course.models import Course, Participation
     from course.repo import Repo_ish
@@ -1513,7 +1515,7 @@ class LinkFixerExtension(Extension):
         self.commit_sha = commit_sha
         self.reverse_func = reverse_func
 
-    def extendMarkdown(self, md):  # noqa
+    def extendMarkdown(self, md):  # ruff:ignore[invalid-function-name]
         md.treeprocessors.register(
             LinkFixerTreeprocessor(md, self.course, self.commit_sha,
                                     reverse_func=self.reverse_func),
@@ -1857,7 +1859,7 @@ def get_course_commit_sha(
         if repo is not None:
             preview_sha_valid = is_commit_sha_valid(repo, preview_sha)
         else:
-            with get_course_repo(course) as repo:  # noqa: PLR1704
+            with get_course_repo(course) as repo:  # ruff:ignore[redefined-argument-from-local]
                 preview_sha_valid = is_commit_sha_valid(repo, preview_sha)
 
         if preview_sha_valid:

@@ -64,13 +64,13 @@ from tests.utils import mock
 if DJANGO_VERSION < (2, 0):
     REAL_TRANSLATION_FUNCTION_TO_MOCK = (
         "django.utils.translation.trans_real.do_translate")
-    real_trans_side_effect = lambda x, y: x  # noqa
+    real_trans_side_effect = lambda x, y: x  # ruff:ignore[lambda-assignment]
 else:
     # "do_translate(message, translation_function)" was refactored to
     # "gettext(message)" since Django >= 2.0
     REAL_TRANSLATION_FUNCTION_TO_MOCK = (
         "django.utils.translation._trans.gettext")
-    real_trans_side_effect = lambda x: x  # noqa
+    real_trans_side_effect = lambda x: x  # ruff:ignore[lambda-assignment]
 
 
 class GetCourseSpecificLanguageChoicesTest(SimpleTestCase):
@@ -837,7 +837,7 @@ class GetSessionRuleMixin:
     def get_result(self, **extra_kwargs):
         raise NotImplementedError()
 
-    def assertRuleEqual(self, rule, expected_rule):  # noqa
+    def assertRuleEqual(self, rule, expected_rule):  # ruff:ignore[invalid-function-name]
         self.assertIsInstance(rule, self.rule_klass)
         rule_dict = rule
 
@@ -1477,7 +1477,7 @@ class GetSessionGradingRuleTest(GetSessionRuleMixin,
         result = self.get_result(flow_desc=self.get_hacked_flow_desc())
         self.assertRuleEqual(result, self.get_default_rule())
 
-    def test_if_completed_before_using_last_activity_with_last_activity_none_skipped(self):  # noqa
+    def test_if_completed_before_using_last_activity_with_last_activity_none_skipped(self):  # ruff:ignore[line-too-long]
         self.mock_get_flow_rules.return_value = [
 
                 {"if_completed_before": "my_test_event 1",

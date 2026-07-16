@@ -419,7 +419,7 @@ class CSSDimension:
             else:
                 try:
                     data = float(data)
-                except Exception:  # noqa: S110
+                except Exception:  # ruff:ignore[try-except-pass]
                     pass
 
         if isinstance(data, (int, float)):

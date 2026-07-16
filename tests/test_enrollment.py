@@ -30,7 +30,7 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core import mail
 from django.test import RequestFactory, TestCase
-from django.test.utils import override_settings  # noqa
+from django.test.utils import override_settings  # ruff:ignore[unused-import]
 from django.urls import reverse
 
 from course import constants, enrollment
@@ -164,7 +164,7 @@ class EnrollmentTestMixin(MockAddMessageMixing, CoursesTestMixinBase):
 
         return factories.ParticipationPreapprovalFactory(**defaults)
 
-    def assertParticipationStatusCallCount(self, expected_counts):  # noqa
+    def assertParticipationStatusCallCount(self, expected_counts):  # ruff:ignore[invalid-function-name]
         from collections import OrderedDict
         d = OrderedDict()
         counts = []
@@ -1253,7 +1253,7 @@ class CreatePreapprovalsTest(EnrollmentTestMixin,
             course=self.course, user=user1, status=PStatus.requested)
         factories.ParticipationFactory(
             course=self.course, user=user2, status=PStatus.requested)
-        approval_data = f"{user1.institutional_id.upper()}\n  \ncde \n  {user2.institutional_id}\n"  # noqa: E501
+        approval_data = f"{user1.institutional_id.upper()}\n  \ncde \n  {user2.institutional_id}\n"  # ruff:ignore[line-too-long]
 
         resp = self.post_preapproval(
             "institutional_id",
@@ -1302,7 +1302,7 @@ class CreatePreapprovalsTest(EnrollmentTestMixin,
             course=self.course, user=user1, status=PStatus.requested)
         factories.ParticipationFactory(
             course=self.course, user=user2, status=PStatus.requested)
-        approval_data = f"{user1.institutional_id}\n  \ncde \n  {user2.institutional_id}\n"  # noqa: E501
+        approval_data = f"{user1.institutional_id}\n  \ncde \n  {user2.institutional_id}\n"  # ruff:ignore[line-too-long]
 
         resp = self.post_preapproval(
             "institutional_id",
@@ -1799,7 +1799,7 @@ class QueryParticipationsParseQueryTest(QueryParticipationsTestMixin, TestCase):
 
     def test_multiple_line(self):
         queries = (
-            f"id:{self.participations[0].user.id}\n  \n  id:{self.participations[2].user.id}")  # noqa: E501
+            f"id:{self.participations[0].user.id}\n  \n  id:{self.participations[2].user.id}")  # ruff:ignore[line-too-long]
 
         resp = self.post_query_participation(queries)
         self.assertEqual(resp.status_code, 200)

@@ -38,7 +38,11 @@ from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied, SuspiciousOperation
 from django.db import IntegrityError, transaction
 from django.db.models import Q
-from django.shortcuts import get_object_or_404, redirect, render  # noqa
+from django.shortcuts import (  # ruff:ignore[unused-import]
+    get_object_or_404,
+    redirect,
+    render,
+)
 from django.urls import reverse
 from django.utils.safestring import mark_safe
 from django.utils.translation import gettext_lazy as _, pgettext
@@ -416,13 +420,13 @@ def send_enrollment_decision(
 def approve_enrollment(modeladmin, request, queryset):
     decide_enrollment(True, modeladmin, request, queryset)
 
-approve_enrollment.short_description = pgettext("Admin", "Approve enrollment")  # type:ignore  # noqa
+approve_enrollment.short_description = pgettext("Admin", "Approve enrollment")  # type:ignore  # ruff:ignore[blank-lines-after-function-or-class]
 
 
 def deny_enrollment(modeladmin, request, queryset):
     decide_enrollment(False, modeladmin, request, queryset)
 
-deny_enrollment.short_description = _("Deny enrollment")  # type:ignore  # noqa
+deny_enrollment.short_description = _("Deny enrollment")  # type:ignore  # ruff:ignore[blank-lines-after-function-or-class]
 
 # }}}
 
@@ -841,7 +845,7 @@ def query_participations(pctx):
         if form.is_valid():
             parsed_query = None
             try:
-                for lineno, q in enumerate(  # noqa: B007
+                for lineno, q in enumerate(  # ruff:ignore[unused-loop-control-variable]
                         form.cleaned_data["queries"].split("\n")):
                     q = q.strip()
 

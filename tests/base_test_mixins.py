@@ -201,7 +201,7 @@ class CourseCreateFailure(Exception):
     pass
 
 
-class classmethod_with_client:  # noqa: N801
+class classmethod_with_client:  # ruff:ignore[invalid-class-name]
     """This acts like Python's built-in ``classmethod``, with one change:
     When called on an instance (i.e. not a class), it automatically supplies
     ``self.client`` as the first argument.
@@ -240,7 +240,7 @@ class ResponseContextMixin:
         else:
             return value
 
-    def assertResponseHasNoContext(self, response, context_name):  # noqa
+    def assertResponseHasNoContext(self, response, context_name):  # ruff:ignore[invalid-function-name]
         has_context = True
         try:
             response.context[context_name]
@@ -249,7 +249,7 @@ class ResponseContextMixin:
         if has_context:
             self.fail(f"{context_name} unexpectedly exist in given response")
 
-    def assertResponseContextIsNone(self, resp, context_name):  # noqa
+    def assertResponseContextIsNone(self, resp, context_name):  # ruff:ignore[invalid-function-name]
         try:
             value = self.get_response_context_value_by_name(resp, context_name)
         except AssertionError:
@@ -258,11 +258,11 @@ class ResponseContextMixin:
         else:
             self.assertIsNone(value)
 
-    def assertResponseContextIsNotNone(self, resp, context_name, msg=""):  # noqa
+    def assertResponseContextIsNotNone(self, resp, context_name, msg=""):  # ruff:ignore[invalid-function-name]
         value = self.get_response_context_value_by_name(resp, context_name)
         self.assertIsNotNone(value, msg)
 
-    def assertResponseContextEqual(self, resp, context_name, expected_value):  # noqa
+    def assertResponseContextEqual(self, resp, context_name, expected_value):  # ruff:ignore[invalid-function-name]
         value = self.get_response_context_value_by_name(resp, context_name)
         try:
             self.assertTrue(abs(float(value) - float(expected_value)) <= 1e-04)
@@ -270,7 +270,7 @@ class ResponseContextMixin:
         except Exception:
             self.assertEqual(value, expected_value)
 
-    def assertResponseContextContains(self, resp,  # noqa
+    def assertResponseContextContains(self, resp,  # ruff:ignore[invalid-function-name]
                                       context_name, expected_value, html=False,
                                       in_bulk=False):
         value = self.get_response_context_value_by_name(resp, context_name)
@@ -289,7 +289,7 @@ class ResponseContextMixin:
             else:
                 self.assertInHTML(expected_value, value)
 
-    def assertResponseContextRegex(  # noqa
+    def assertResponseContextRegex(  # ruff:ignore[invalid-function-name]
             self, resp,
             context_name, expected_value_regex):
         value = self.get_response_context_value_by_name(resp, context_name)
@@ -314,7 +314,7 @@ class ResponseContextMixin:
                 return answer_feedback.bulk_feedback
             return answer_feedback.feedback + answer_feedback.bulk_feedback
 
-    def assertResponseContextAnswerFeedbackContainsFeedback(  # noqa
+    def assertResponseContextAnswerFeedbackContainsFeedback(  # ruff:ignore[invalid-function-name]
             self, response, expected_feedback,
             include_bulk_feedback=True, html=False):
         feedback_str = self.get_response_context_answer_feedback_string(
@@ -325,7 +325,7 @@ class ResponseContextMixin:
         else:
             self.assertInHTML(expected_feedback, feedback_str)
 
-    def assertResponseContextAnswerFeedbackNotContainsFeedback(  # noqa
+    def assertResponseContextAnswerFeedbackNotContainsFeedback(  # ruff:ignore[invalid-function-name]
             self, response, expected_feedback,
             include_bulk_feedback=True,
             html=False):
@@ -337,7 +337,7 @@ class ResponseContextMixin:
         else:
             self.assertInHTML(expected_feedback, feedback_str, count=0)
 
-    def assertResponseContextAnswerFeedbackCorrectnessEquals(  # noqa
+    def assertResponseContextAnswerFeedbackCorrectnessEquals(  # ruff:ignore[invalid-function-name]
                                         self, response, expected_correctness):
         answer_feedback = self.get_response_context_answer_feedback(response)
         if expected_correctness is None:
@@ -349,11 +349,11 @@ class ResponseContextMixin:
                 self.assertIsNone(answer_feedback.correctness)
         else:
             if answer_feedback.correctness is None:
-                return self.fail(f"The returned correctness is None, not {expected_correctness}")  # noqa: E501
+                return self.fail(f"The returned correctness is None, not {expected_correctness}")  # ruff:ignore[line-too-long]
             self.assertTrue(
                 abs(float(answer_feedback.correctness)
                     - float(str(expected_correctness))) < CORRECTNESS_ATOL,
-                f"{str(answer_feedback.correctness)[:5]} does not equal {str(expected_correctness)[:5]}")  # noqa: E501
+                f"{str(answer_feedback.correctness)[:5]} does not equal {str(expected_correctness)[:5]}")  # ruff:ignore[line-too-long]
 
     def get_response_body(self, response):
         return self.get_response_context_value_by_name(response, "body")
@@ -442,11 +442,11 @@ class SuperuserCreateMixin(ResponseContextMixin):
         return reverse("relate-sign_up")
 
     @classmethod_with_client
-    def get_sign_up(cls, client, *, follow=True):  # noqa: N805
+    def get_sign_up(cls, client, *, follow=True):  # ruff:ignore[invalid-first-argument-name-for-method]
         return client.get(cls.get_sign_up_view_url(), follow=follow)
 
     @classmethod_with_client
-    def post_sign_up(cls, client, data, *, follow=True):  # noqa: N805
+    def post_sign_up(cls, client, data, *, follow=True):  # ruff:ignore[invalid-first-argument-name-for-method]
         return client.post(cls.get_sign_up_view_url(), data, follow=follow)
 
     @classmethod
@@ -454,11 +454,11 @@ class SuperuserCreateMixin(ResponseContextMixin):
         return reverse("relate-user_profile")
 
     @classmethod_with_client
-    def get_profile(cls, client, *, follow=True):  # noqa: N805
+    def get_profile(cls, client, *, follow=True):  # ruff:ignore[invalid-first-argument-name-for-method]
         return client.get(cls.get_profile_view_url(), follow=follow)
 
     @classmethod_with_client
-    def post_profile(cls, client, data, *, follow=True):  # noqa: N805
+    def post_profile(cls, client, data, *, follow=True):  # ruff:ignore[invalid-first-argument-name-for-method]
         data.update({"submit_user": [""]})
         return client.post(cls.get_profile_view_url(), data, follow=follow)
 
@@ -475,11 +475,11 @@ class SuperuserCreateMixin(ResponseContextMixin):
         return reverse("relate-stop_impersonating")
 
     @classmethod_with_client
-    def get_impersonate_view(cls, client):  # noqa: N805
+    def get_impersonate_view(cls, client):  # ruff:ignore[invalid-first-argument-name-for-method]
         return client.get(cls.get_impersonate_view_url())
 
     @classmethod_with_client
-    def post_impersonate_view(cls, client,  # noqa: N805
+    def post_impersonate_view(cls, client,  # ruff:ignore[invalid-first-argument-name-for-method]
             impersonatee, *, follow=True):
         data = {"add_impersonation_header": ["on"],
                 "submit": [""],
@@ -488,11 +488,11 @@ class SuperuserCreateMixin(ResponseContextMixin):
         return client.post(cls.get_impersonate_view_url(), data, follow=follow)
 
     @classmethod_with_client
-    def get_stop_impersonate(cls, client, *, follow=True):  # noqa: N805
+    def get_stop_impersonate(cls, client, *, follow=True):  # ruff:ignore[invalid-first-argument-name-for-method]
         return client.get(cls.get_stop_impersonate_view_url(), follow=follow)
 
     @classmethod_with_client
-    def post_stop_impersonate(cls, client, *,  # noqa: N805
+    def post_stop_impersonate(cls, client, *,  # ruff:ignore[invalid-first-argument-name-for-method]
             data=None, follow=True):
         if not data:
             data = {"stop_impersonating": ""}
@@ -521,11 +521,11 @@ class SuperuserCreateMixin(ResponseContextMixin):
         return reverse("relate-reset_password", kwargs=kwargs)
 
     @classmethod_with_client
-    def get_reset_password(cls, client, *, use_instid=False):  # noqa: N805
+    def get_reset_password(cls, client, *, use_instid=False):  # ruff:ignore[invalid-first-argument-name-for-method]
         return client.get(cls.get_reset_password_url(use_instid))
 
     @classmethod_with_client
-    def post_reset_password(cls, client, data, *, use_instid=False):  # noqa: N805
+    def post_reset_password(cls, client, data, *, use_instid=False):  # ruff:ignore[invalid-first-argument-name-for-method]
         return client.post(cls.get_reset_password_url(use_instid),
                           data=data)
 
@@ -552,14 +552,14 @@ class SuperuserCreateMixin(ResponseContextMixin):
         return reverse("relate-set_fake_time")
 
     @classmethod_with_client
-    def get_set_fake_time(cls, client):  # noqa: N805
+    def get_set_fake_time(cls, client):  # ruff:ignore[invalid-first-argument-name-for-method]
         return client.get(cls.get_fake_time_url())
 
     @classmethod_with_client
-    def post_set_fake_time(cls, client, data, *, follow=True):  # noqa: N805
+    def post_set_fake_time(cls, client, data, *, follow=True):  # ruff:ignore[invalid-first-argument-name-for-method]
         return client.post(cls.get_fake_time_url(), data, follow=follow)
 
-    def assertSessionFakeTimeEqual(self, session, expected_date_time):  # noqa
+    def assertSessionFakeTimeEqual(self, session, expected_date_time):  # ruff:ignore[invalid-function-name]
         fake_time_timestamp = session.get("relate_fake_time", None)
         if fake_time_timestamp is None:
             faked_time = None
@@ -570,7 +570,7 @@ class SuperuserCreateMixin(ResponseContextMixin):
             faked_time = datetime.datetime.fromtimestamp(fake_time_timestamp)
         self.assertEqual(faked_time, expected_date_time)
 
-    def assertSessionFakeTimeIsNone(self, session):  # noqa
+    def assertSessionFakeTimeIsNone(self, session):  # ruff:ignore[invalid-function-name]
         self.assertSessionFakeTimeEqual(session, None)
 
     @classmethod
@@ -578,11 +578,11 @@ class SuperuserCreateMixin(ResponseContextMixin):
         return reverse("relate-set_pretend_facilities")
 
     @classmethod_with_client
-    def get_set_pretend_facilities(cls, client):  # noqa: N805
+    def get_set_pretend_facilities(cls, client):  # ruff:ignore[invalid-first-argument-name-for-method]
         return client.get(cls.get_set_pretend_facilities_url())
 
     @classmethod_with_client
-    def post_set_pretend_facilities(cls, client, data, *,  # noqa: N805
+    def post_set_pretend_facilities(cls, client, data, *,  # ruff:ignore[invalid-first-argument-name-for-method]
             follow=True):
         return client.post(cls.get_set_pretend_facilities_url(), data,
                           follow=follow)
@@ -596,7 +596,7 @@ class SuperuserCreateMixin(ResponseContextMixin):
         for c in Course.objects.all():
             force_remove_path(get_course_repo_path(c))
 
-    def assertSessionPretendFacilitiesContains(self, session, expected_facilities):  # noqa
+    def assertSessionPretendFacilitiesContains(self, session, expected_facilities):  # ruff:ignore[invalid-function-name]
         pretended = session.get("relate_pretend_facilities", None)
         if expected_facilities is None:
             return self.assertIsNone(pretended)
@@ -610,11 +610,11 @@ class SuperuserCreateMixin(ResponseContextMixin):
         else:
             self.assertTrue(expected_facilities in pretended)
 
-    def assertSessionPretendFacilitiesIsNone(self, session):  # noqa
+    def assertSessionPretendFacilitiesIsNone(self, session):  # ruff:ignore[invalid-function-name]
         pretended = session.get("relate_pretend_facilities", None)
         self.assertIsNone(pretended)
 
-    def assertFormErrorLoose(self, response, errors, form_name="form"):  # noqa
+    def assertFormErrorLoose(self, response, errors, form_name="form"):  # ruff:ignore[invalid-function-name]
         """Assert that errors is found in response.context['form'] errors"""
         import itertools
         if errors is None:
@@ -815,7 +815,7 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
         return participation
 
     @classmethod_with_client
-    def post_create_course(cls, client, create_course_kwargs, *,  # noqa: N805
+    def post_create_course(cls, client, create_course_kwargs, *,  # ruff:ignore[invalid-first-argument-name-for-method]
             raise_error=True, login_superuser=True):
         # To speed up, use create_course instead, this is better used for tests
         if login_superuser:
@@ -860,7 +860,7 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
         return resp
 
     @classmethod_with_client
-    def create_course(cls, client, create_course_kwargs, *,  # noqa: N805
+    def create_course(cls, client, create_course_kwargs, *,  # ruff:ignore[invalid-first-argument-name-for-method]
             raise_error=True):
         return cls.post_create_course(
                         client, create_course_kwargs, raise_error=raise_error)
@@ -881,7 +881,7 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
         return reverse("relate-set_up_new_course")
 
     @classmethod_with_client
-    def get_set_up_new_course(cls, client):  # noqa: N805
+    def get_set_up_new_course(cls, client):  # ruff:ignore[invalid-first-argument-name-for-method]
         return client.get(cls.get_update_course_url)
 
     @classmethod
@@ -891,13 +891,13 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
         return cls.get_course_view_url("relate-edit_course", course_identifier)
 
     @classmethod_with_client
-    def post_edit_course(cls, client, data, *, course=None):  # noqa: N805
+    def post_edit_course(cls, client, data, *, course=None):  # ruff:ignore[invalid-first-argument-name-for-method]
         course = course or cls.get_default_course()
         edit_course_url = cls.get_edit_course_url(course.identifier)
         return client.post(edit_course_url, data)
 
     @classmethod_with_client
-    def get_edit_course(cls, client, *, course=None):  # noqa: N805
+    def get_edit_course(cls, client, *, course=None):  # ruff:ignore[invalid-first-argument-name-for-method]
         course = course or cls.get_default_course()
         return client.get(cls.get_edit_course_url(course.identifier))
 
@@ -929,7 +929,7 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
         return cls._get_grades_url(args=[course_identifier])
 
     @classmethod_with_client
-    def get_my_grades_view(cls, client, *, course_identifier=None):  # noqa: N805
+    def get_my_grades_view(cls, client, *, course_identifier=None):  # ruff:ignore[invalid-first-argument-name-for-method]
         return client.get(cls.get_my_grades_url(course_identifier))
 
     @classmethod
@@ -942,7 +942,7 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
 
     @classmethod_with_client
     def get_participant_grades_view(
-            cls, client, participation_id, *,  # noqa: N805
+            cls, client, participation_id, *,  # ruff:ignore[invalid-first-argument-name-for-method]
             course_identifier=None, force_login_instructor=True):
         course_identifier = (
             course_identifier or cls.get_default_course_identifier())
@@ -1001,7 +1001,7 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
 
     @classmethod_with_client
     def get_gradebook_by_opp_view(
-            cls, client, gopp_identifier, *,  # noqa: N805
+            cls, client, gopp_identifier, *,  # ruff:ignore[invalid-first-argument-name-for-method]
             view_page_grades=False, course_identifier=None,
             force_login_instructor=True):
         course_identifier = (
@@ -1017,7 +1017,7 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
 
     @classmethod_with_client
     def post_gradebook_by_opp_view(
-            cls, client, gopp_identifier, post_data, *,  # noqa: N805
+            cls, client, gopp_identifier, post_data, *,  # ruff:ignore[invalid-first-argument-name-for-method]
             view_page_grades=False,
             course_identifier=None,
             force_login_instructor=True):
@@ -1054,7 +1054,7 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
         return reverse("relate-view_reopen_session", kwargs=kwargs)
 
     @classmethod_with_client
-    def get_reopen_session_view(cls, client,  # noqa: N805
+    def get_reopen_session_view(cls, client,  # ruff:ignore[invalid-first-argument-name-for-method]
             gopp_identifier, *, flow_session_id=None,
             course_identifier=None, force_login_instructor=True):
 
@@ -1071,7 +1071,7 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
                     gopp_identifier, flow_session_id, course_identifier))
 
     @classmethod_with_client
-    def post_reopen_session_view(cls, client,  # noqa: N805
+    def post_reopen_session_view(cls, client,  # ruff:ignore[invalid-first-argument-name-for-method]
             gopp_identifier, data, *,
             flow_session_id=None, course_identifier=None,
             force_login_instructor=True):
@@ -1102,7 +1102,7 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
         return reverse("relate-view_single_grade", kwargs=kwargs)
 
     @classmethod_with_client
-    def get_view_single_grade(cls, client,  # noqa: N805
+    def get_view_single_grade(cls, client,  # ruff:ignore[invalid-first-argument-name-for-method]
             participation, gopp, *,
             course_identifier=None, force_login_instructor=True):
 
@@ -1123,7 +1123,7 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
                 participation.pk, opp_id, course_identifier))
 
     @classmethod_with_client
-    def post_view_single_grade(cls, client,  # noqa: N805
+    def post_view_single_grade(cls, client,  # ruff:ignore[invalid-first-argument-name-for-method]
             participation, gopp, data, *,
             course_identifier=None, force_login_instructor=True):
 
@@ -1145,7 +1145,7 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
                 data=data)
 
     @classmethod_with_client
-    def get_logged_in_user(cls, client):  # noqa: N805
+    def get_logged_in_user(cls, client):  # ruff:ignore[invalid-first-argument-name-for-method]
         try:
             logged_in_user_id = client.session["_auth_user_id"]
             from django.contrib.auth import get_user_model
@@ -1156,7 +1156,7 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
         return logged_in_user
 
     @classmethod_with_client
-    def temporarily_switch_to_user(cls, client, switch_to):  # noqa: N805
+    def temporarily_switch_to_user(cls, client, switch_to):  # ruff:ignore[invalid-first-argument-name-for-method]
         return _ClientUserSwitcher(
                 client, cls.get_logged_in_user(client), switch_to)
 
@@ -1220,7 +1220,7 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
         return reverse("relate-view_start_flow", kwargs=kwargs)
 
     @classmethod_with_client
-    def start_flow(cls, client, flow_id, *,  # noqa: N805
+    def start_flow(cls, client, flow_id, *,  # ruff:ignore[invalid-first-argument-name-for-method]
             course_identifier=None,
             ignore_cool_down=True, assume_success=True):
         """
@@ -1250,7 +1250,7 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
         return resp
 
     @classmethod_with_client
-    def end_flow(cls, client, *,  # noqa: N805
+    def end_flow(cls, client, *,  # ruff:ignore[invalid-first-argument-name-for-method]
             course_identifier=None, flow_session_id=None,
             post_parameter="submit"):
         if not course_identifier or not flow_session_id:
@@ -1361,7 +1361,7 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
             page_ordinal, course_identifier, flow_session_id)
 
     @classmethod_with_client
-    def post_answer_by_ordinal(cls, client,  # noqa: N805
+    def post_answer_by_ordinal(cls, client,  # ruff:ignore[invalid-first-argument-name-for-method]
             page_ordinal, answer_data, *,
             course_identifier=None, flow_session_id=None, visit_id=None):
         submit_data = answer_data
@@ -1373,7 +1373,7 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
 
     @classmethod_with_client
     def post_answer_by_page_id(
-            cls, client, page_id, answer_data, *,  # noqa: N805
+            cls, client, page_id, answer_data, *,  # ruff:ignore[invalid-first-argument-name-for-method]
             course_identifier=None, flow_session_id=None, visit_id=None):
         page_ordinal = cls.get_page_ordinal_via_page_id(
             page_id, course_identifier, flow_session_id)
@@ -1383,7 +1383,7 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
             flow_session_id=flow_session_id, visit_id=visit_id)
 
     @classmethod_with_client
-    def post_answer_by_ordinal_class(cls, client,  # noqa: N805
+    def post_answer_by_ordinal_class(cls, client,  # ruff:ignore[invalid-first-argument-name-for-method]
             page_ordinal, answer_data,
             course_identifier, flow_session_id):
         submit_data = answer_data
@@ -1397,14 +1397,14 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
         return client.post(page_url, submit_data)
 
     @classmethod_with_client
-    def post_answer_by_page_id_class(cls, client,  # noqa: N805
+    def post_answer_by_page_id_class(cls, client,  # ruff:ignore[invalid-first-argument-name-for-method]
             page_id, answer_data, course_identifier, flow_session_id):
         page_ordinal = get_flow_page_ordinal_from_page_id(flow_session_id, page_id)
         return cls.post_answer_by_ordinal_class(page_ordinal, answer_data,
                                                 course_identifier, flow_session_id)
 
     @classmethod_with_client
-    def post_grade_by_ordinal(cls, client,  # noqa: N805
+    def post_grade_by_ordinal(cls, client,  # ruff:ignore[invalid-first-argument-name-for-method]
             page_ordinal, grade_data, *,
             course_identifier=None, flow_session_id=None,
             force_login_instructor=True):
@@ -1426,7 +1426,7 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
                 follow=True)
 
     @classmethod_with_client
-    def post_grade_by_page_id(cls, client,  # noqa: N805
+    def post_grade_by_page_id(cls, client,  # ruff:ignore[invalid-first-argument-name-for-method]
             page_id, grade_data, *,
             course_identifier=None, flow_session_id=None,
             force_login_instructor=True):
@@ -1440,7 +1440,7 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
             force_login_instructor=force_login_instructor)
 
     @classmethod
-    def assertSessionScoreEqual(  # noqa
+    def assertSessionScoreEqual(  # ruff:ignore[invalid-function-name]
             cls, expected_score, course_identifier=None, flow_session_id=None):
         if flow_session_id is None:
             flow_params = cls.get_flow_params(course_identifier, flow_session_id)
@@ -1477,7 +1477,7 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
 
     @classmethod_with_client
     def get_page_submit_history_by_ordinal(
-            cls, client, page_ordinal, *,  # noqa: N805
+            cls, client, page_ordinal, *,  # ruff:ignore[invalid-first-argument-name-for-method]
             course_identifier=None, flow_session_id=None):
         return client.get(
             cls.get_page_submit_history_url_by_ordinal(
@@ -1486,14 +1486,14 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
 
     @classmethod_with_client
     def get_page_grade_history_by_ordinal(
-            cls, client, page_ordinal, *,  # noqa: N805
+            cls, client, page_ordinal, *,  # ruff:ignore[invalid-first-argument-name-for-method]
             course_identifier=None, flow_session_id=None):
         return client.get(
             cls.get_page_grade_history_url_by_ordinal(
                 page_ordinal, course_identifier, flow_session_id),
             HTTP_X_REQUESTED_WITH="XMLHttpRequest")
 
-    def assertSubmitHistoryItemsCount(  # noqa
+    def assertSubmitHistoryItemsCount(  # ruff:ignore[invalid-function-name]
             self, page_ordinal, expected_count, course_identifier=None,
             flow_session_id=None):
         resp = self.get_page_submit_history_by_ordinal(
@@ -1508,7 +1508,7 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
 
         assert count == expected_count
 
-    def assertGradeHistoryItemsCount(  # noqa
+    def assertGradeHistoryItemsCount(  # ruff:ignore[invalid-function-name]
             self, page_ordinal, expected_count,
             course_identifier=None,
             flow_session_id=None,
@@ -1548,7 +1548,7 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
         return get_course_commit_sha(course, participation)
 
     @classmethod_with_client
-    def post_update_course_content(cls, client: Client, commit_sha, *,  # noqa: N805
+    def post_update_course_content(cls, client: Client, commit_sha, *,  # ruff:ignore[invalid-first-argument-name-for-method]
                prevent_discarding_revisions=True,
                force_login_instructor=True,
                course: Course | None = None,
@@ -1631,7 +1631,7 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
         return reverse("relate-download_all_submissions", kwargs=params)
 
     @classmethod_with_client
-    def get_download_all_submissions(cls, client, flow_id, *,  # noqa: N805
+    def get_download_all_submissions(cls, client, flow_id, *,  # ruff:ignore[invalid-first-argument-name-for-method]
             course_identifier=None):
         if course_identifier is None:
             course_identifier = cls.get_default_course_identifier()
@@ -1641,7 +1641,7 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
 
     @classmethod_with_client
     def post_download_all_submissions_by_group_page_id(
-            cls, client,  # noqa: N805
+            cls, client,  # ruff:ignore[invalid-first-argument-name-for-method]
             group_page_id, flow_id, *, course_identifier=None, **kwargs):
         """
         :param group_page_id: format: group_id/page_id
@@ -1689,7 +1689,7 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
         return url
 
     @classmethod_with_client
-    def get_flow_page_analytics(cls, client,  # noqa: N805
+    def get_flow_page_analytics(cls, client,  # ruff:ignore[invalid-first-argument-name-for-method]
             flow_id, group_id, page_id, *,
             course_identifier=None,
             force_login_instructor=True,
@@ -2110,7 +2110,7 @@ class SingleCourseQuizPageTestMixin(SingleCoursePageTestMixin):
     skip_code_question = True
 
     @classmethod_with_client
-    def ensure_grading_ui_get(cls, client, page_id):  # noqa: N805
+    def ensure_grading_ui_get(cls, client, page_id):  # ruff:ignore[invalid-first-argument-name-for-method]
         with cls.temporarily_switch_to_user(
                 client, cls.instructor_participation.user):
             url = cls.get_page_grading_url_by_page_id(page_id)
@@ -2118,7 +2118,7 @@ class SingleCourseQuizPageTestMixin(SingleCoursePageTestMixin):
             assert resp.status_code == 200
 
     @classmethod_with_client
-    def ensure_analytic_page_get(cls, client, group_id, page_id):  # noqa: N805
+    def ensure_analytic_page_get(cls, client, group_id, page_id):  # ruff:ignore[invalid-first-argument-name-for-method]
         with cls.temporarily_switch_to_user(
                 client, cls.instructor_participation.user):
             resp = cls.get_flow_page_analytics(
@@ -2129,7 +2129,7 @@ class SingleCourseQuizPageTestMixin(SingleCoursePageTestMixin):
 
     @classmethod_with_client
     def ensure_download_submission(
-            cls, client, group_id, page_id, *,  # noqa: N805
+            cls, client, group_id, page_id, *,  # ruff:ignore[invalid-first-argument-name-for-method]
             dl_file_extension=None, file_with_ext_count=None):
         with cls.temporarily_switch_to_user(
                 client, cls.instructor_participation.user):
@@ -2174,7 +2174,7 @@ class SingleCourseQuizPageTestMixin(SingleCoursePageTestMixin):
 
     @classmethod_with_client
     def submit_page_answer_by_ordinal_and_test(
-            cls, client, page_ordinal, *,  # noqa: N805
+            cls, client, page_ordinal, *,  # ruff:ignore[invalid-first-argument-name-for-method]
             use_correct_answer=True, answer_data=None,
             skip_code_question=True,
             expected_grades=None, expected_post_answer_status_code=200,
@@ -2222,7 +2222,7 @@ class SingleCourseQuizPageTestMixin(SingleCoursePageTestMixin):
 
     @classmethod_with_client
     def submit_page_answer_by_page_id_and_test(
-            cls, client, page_id, *,  # noqa: N805
+            cls, client, page_id, *,  # ruff:ignore[invalid-first-argument-name-for-method]
             use_correct_answer=True, answer_data=None,
             skip_code_question=True,
             expected_grades=None, expected_post_answer_status_code=200,
@@ -2376,7 +2376,7 @@ class SingleCourseQuizPageTestMixin(SingleCoursePageTestMixin):
 
     @classmethod_with_client
     def submit_page_human_grading_by_page_id_and_test(
-            cls, client, page_id, *,  # noqa: N805
+            cls, client, page_id, *,  # ruff:ignore[invalid-first-argument-name-for-method]
             expected_post_grading_status_code=200,
             grade_data=None,
             expected_grades=None,
@@ -2477,7 +2477,7 @@ class MockAddMessageMixing:
                 return "; ".join(msgs)
             return msgs
 
-    def assertAddMessageCallCount(self, expected_call_count, reset=False):  # noqa
+    def assertAddMessageCallCount(self, expected_call_count, reset=False):  # ruff:ignore[invalid-function-name]
         fail_msg = (
             "%s is unexpectedly called %d times, instead of %d times." %
             (self._fake_add_message_path, self._mock_add_message.call_count,
@@ -2490,7 +2490,7 @@ class MockAddMessageMixing:
         if reset:
             self._mock_add_message.reset_mock()
 
-    def assertAddMessageCalledWith(self, expected_messages, reset=True):  # noqa
+    def assertAddMessageCalledWith(self, expected_messages, reset=True):  # ruff:ignore[invalid-function-name]
         joined_msgs = self._get_added_messages()
 
         if not isinstance(expected_messages, list):
@@ -2506,7 +2506,7 @@ class MockAddMessageMixing:
         if reset:
             self._mock_add_message.reset_mock()
 
-    def assertAddMessageNotCalledWith(self, expected_messages, reset=False):  # noqa
+    def assertAddMessageNotCalledWith(self, expected_messages, reset=False):  # ruff:ignore[invalid-function-name]
         joined_msgs = self._get_added_messages()
 
         if not isinstance(expected_messages, list):
@@ -2828,7 +2828,7 @@ class HackRepoMixin:
 
         raise ValueError("Page_ids for that commit_sha doesn't exist")
 
-    def assertGradeInfoEqual(self, resp, expected_grade_info_dict=None):  # noqa
+    def assertGradeInfoEqual(self, resp, expected_grade_info_dict=None):  # ruff:ignore[invalid-function-name]
         grade_info = resp.context["grade_info"]
 
         assert isinstance(grade_info, GradeInfo)
@@ -2843,7 +2843,7 @@ class HackRepoMixin:
         assert isinstance(expected_grade_info_dict, dict)
 
         grade_info_dict = grade_info.__dict__
-        not_match_infos = [f"'{k}' is expected to be {expected_grade_info_dict[k]!s}, while got {grade_info_dict[k]!s}" for k in grade_info_dict if grade_info_dict[k] != expected_grade_info_dict[k]]  # noqa: E501
+        not_match_infos = [f"'{k}' is expected to be {expected_grade_info_dict[k]!s}, while got {grade_info_dict[k]!s}" for k in grade_info_dict if grade_info_dict[k] != expected_grade_info_dict[k]]  # ruff:ignore[line-too-long]
 
         if not_match_infos:
             self.fail("\n".join(not_match_infos))

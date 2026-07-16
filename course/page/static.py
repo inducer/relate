@@ -36,7 +36,7 @@ from course.page.base import (
     PageData,
     markup_to_html,
 )
-from course.validation import Markup  # noqa: TC001
+from course.validation import Markup  # ruff:ignore[typing-only-first-party-import]
 
 
 if TYPE_CHECKING:

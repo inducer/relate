@@ -41,7 +41,7 @@ from django.utils.translation import gettext_lazy as _, pgettext_lazy
 from pytools import not_none
 from typing_extensions import override
 
-from course.constants import (  # noqa
+from course.constants import (  # ruff:ignore[unused-import]
     COURSE_ID_REGEX,
     EVENT_KIND_REGEX,
     EXAM_TICKET_STATE_CHOICES,
@@ -352,7 +352,7 @@ class Event(models.Model):
         super().clean()
 
         try:
-            self.course  # noqa: B018
+            self.course  # ruff:ignore[useless-expression]
         except ObjectDoesNotExist:
             raise ValidationError(
                 {"course":

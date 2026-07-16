@@ -47,7 +47,7 @@ class CheckRelateSettingsBase(SimpleTestCase):
     def msg_id_prefix(self):
         raise NotImplementedError()
 
-    def assertCheckMessages(self,  # noqa
+    def assertCheckMessages(self,  # ruff:ignore[invalid-function-name]
                             expected_ids=None, expected_msgs=None, length=None,
                             filter_message_id_prefixes=None, ignore_order=False):
         """

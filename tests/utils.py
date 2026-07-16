@@ -5,7 +5,7 @@ from functools import wraps
 from importlib import import_module, reload
 from io import StringIO
 from typing import TYPE_CHECKING
-from unittest import mock  # noqa: F401
+from unittest import mock  # ruff:ignore[unused-import]
 
 from django.conf import settings
 from django.core import mail
@@ -34,7 +34,7 @@ class BaseEmailBackendTestsMixin:
         self.email_backend_settings_override.enable()
         self.addCleanup(self.email_backend_settings_override.disable)
 
-    def assertStartsWith(self, first, second):  # noqa
+    def assertStartsWith(self, first, second):  # ruff:ignore[invalid-function-name]
         if not first.startswith(second):
             self.longMessage = True
             self.assertEqual(first[:len(second)], second,
@@ -109,7 +109,7 @@ class LocmemBackendTestsMixin(BaseEmailBackendTestsMixin):
 # }}}
 
 
-class suppress_stdout_decorator:  # noqa
+class suppress_stdout_decorator:  # ruff:ignore[invalid-class-name]
     def __init__(self, suppress_stderr=False):
         self.original_stdout = None
         self.suppress_stderr = None

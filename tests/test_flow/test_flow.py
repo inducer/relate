@@ -3533,18 +3533,18 @@ class GetPageBehaviorTest(unittest.TestCase):
     def setUp(self):
         self.page = mock.MagicMock()
 
-    def assertShowCorrectness(self, behavior, perms, show=True):  # noqa
+    def assertShowCorrectness(self, behavior, perms, show=True):  # ruff:ignore[invalid-function-name]
         self.assertEqual(
             behavior.show_correctness, show,
             "behavior.show_correctness unexpected to be {} with {}"
             .format(not show, ", ".join(perms)))
 
-    def assertShowAnswer(self, behavior, perms, show=True):  # noqa
+    def assertShowAnswer(self, behavior, perms, show=True):  # ruff:ignore[invalid-function-name]
         self.assertEqual(behavior.show_answer, show,
                          "behavior.show_answer unexpected to be {} with {}"
                          .format(not show, ", ".join(perms)))
 
-    def assertMayChangeAnswer(self, behavior, perms, may_change=True):  # noqa
+    def assertMayChangeAnswer(self, behavior, perms, may_change=True):  # ruff:ignore[invalid-function-name]
         self.assertEqual(behavior.may_change_answer, may_change,
                          "behavior.may_change_answer unexpected to be {} with {}"
                          .format(not may_change, ", ".join(perms)))
