@@ -309,6 +309,10 @@ reportUnnecessaryIsInstance = "none"
 reportUnusedCallResult = "none"
 reportExplicitAny = "none"
 reportUnreachable = "hint"
+
+# covered by ruff
+reportUnusedImport = "none"
+
 typeCheckingMode = "recommended"
 
 # This reports even cycles that are qualified by 'if TYPE_CHECKING'. Not what
