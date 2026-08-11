@@ -16,5 +16,41 @@
   <div class="relate-well">
     {% crispy form %}
   </div>
+
+  {# {{{ paste from clipboard #}
+
+  <script type="text/javascript">
+    (function() {
+      if (!navigator.clipboard || !navigator.clipboard.readText) {
+        return;
+      }
+      const previewBtn = document.getElementById('submit-id-preview');
+      if (!previewBtn) {
+        return;
+      }
+      const pasteBtn = document.createElement('input');
+      pasteBtn.type = 'button';
+      pasteBtn.className = 'btn btn-secondary ms-1';
+      pasteBtn.value = "{% trans 'Paste from clipboard' %}";
+      pasteBtn.addEventListener('click', function() {
+        navigator.clipboard.readText().then(function(text) {
+          const editorDom = document.querySelector('#div_id_content .cm-editor');
+          if (!editorDom) { return; }
+          const view = rlCodemirror.EditorView.findFromDOM(editorDom);
+          if (!view) { return; }
+          view.dispatch(view.state.update({
+            changes: { from: 0, to: view.state.doc.length, insert: text },
+          }));
+          previewBtn.click();
+        }).catch(function(err) {
+          console.error('Failed to read clipboard:', err);
+        });
+      });
+      previewBtn.parentNode.insertBefore(pasteBtn, previewBtn.nextSibling);
+    })();
+  </script>
+
+  {# }}} #}
+
 {% endblock %}
 
