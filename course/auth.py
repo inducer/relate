@@ -1163,7 +1163,9 @@ def sign_out_confirmation(request, redirect_field_name=REDIRECT_FIELD_NAME):
 
 
 @never_cache
-def sign_out(request, redirect_field_name=REDIRECT_FIELD_NAME):
+def sign_out(
+        request: HttpRequest,
+        redirect_field_name: str = REDIRECT_FIELD_NAME):
     if not request.user.is_authenticated:
         messages.add_message(request, messages.ERROR,
                              _("You've already signed out."))
@@ -1171,6 +1173,14 @@ def sign_out(request, redirect_field_name=REDIRECT_FIELD_NAME):
 
     redirect_to = request.POST.get(redirect_field_name,
                                    request.GET.get(redirect_field_name, ""))
+
+    # Ensure the user-originating redirection url is safe.
+    if redirect_to and not url_has_allowed_host_and_scheme(
+            url=redirect_to,
+            allowed_hosts={request.get_host()},
+            require_https=request.is_secure()):
+        redirect_to = resolve_url("relate-home")
+
     response = None
 
     if settings.RELATE_SIGN_IN_BY_SAML2_ENABLED:

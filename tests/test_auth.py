@@ -1127,6 +1127,38 @@ class SignOutTest(CoursesTestMixinBase, AuthTestMixin,
                                  fetch_redirect_response=False)
             self.assertSessionHasNoUserLoggedIn()
 
+    @override_settings(RELATE_SIGN_IN_BY_SAML2_ENABLED=False)
+    def test_sign_out_with_redirect_to_same_host(self):
+        with self.temporarily_switch_to_user(self.test_user):
+            resp = self.get_sign_out(redirect_to="https://testserver/")
+            self.assertRedirects(resp, "https://testserver/",
+                                 fetch_redirect_response=False)
+            self.assertSessionHasNoUserLoggedIn()
+
+    @override_settings(RELATE_SIGN_IN_BY_SAML2_ENABLED=False)
+    def test_sign_out_with_redirect_to_external_url_is_blocked(self):
+        with self.temporarily_switch_to_user(self.test_user):
+            bad_urls = (
+                "http://example.com",
+                "http://example.com/some/path",
+                "https://example.com",
+                "https://example.com/relate-login",
+                "ftp://example.com",
+                "///example.com",
+                "//example.com",
+                'javascript:alert("XSS")',
+            )
+            for bad_url in bad_urls:
+                with self.subTest(bad_url=bad_url):
+                    resp = self.get_sign_out(redirect_to=bad_url)
+                    self.assertEqual(resp.status_code, 302)
+                    self.assertNotIn(bad_url, resp.url,
+                                     f"{bad_url} should be blocked")
+                    self.assertRedirects(
+                        resp, reverse("relate-home"),
+                        fetch_redirect_response=False)
+            self.assertSessionHasNoUserLoggedIn()
+
     @override_settings(RELATE_SIGN_IN_BY_SAML2_ENABLED=True)
     def test_sign_out_with_saml2_enabled_no_subject_id(self):
         with mock.patch("djangosaml2.views._get_subject_id") \
