@@ -882,8 +882,8 @@ class TextQuestion(TextQuestionBase, PageBaseWithValue, PageBaseWithoutHumanGrad
               feedback: "Close, but not quite"
 
         If ``correctness`` is not explicitly given, the answer is considered
-        fully correct. The ``answers`` list of answers is evaluated in order.
-        The first applicable matcher yielding the highest correctness value
+        fully correct if it matches. The ``answers`` list of answers is evaluated
+        in order. The first matcher yielding the highest correctness value
         will determine the result shown to the user.
 
         Here are examples of all the supported simple/abbreviated matchers:
@@ -963,7 +963,7 @@ class TextQuestion(TextQuestionBase, PageBaseWithValue, PageBaseWithoutHumanGrad
 
         # Must start with 'None' to allow matcher to set feedback for zero
         # correctness.
-        afb = None
+        best_afb: AnswerFeedback | None = None
 
         for matcher in self.answers:
             try:
@@ -972,14 +972,16 @@ class TextQuestion(TextQuestionBase, PageBaseWithValue, PageBaseWithoutHumanGrad
                 continue
 
             matcher_afb = matcher.grade(answer)
-            if matcher_afb.correctness is not None:
-                if afb is None or matcher_afb.correctness > not_none(afb.correctness):
-                    afb = matcher_afb
+            if best_afb is None or best_afb.correctness is None:
+                best_afb = matcher_afb
+            else:
+                if matcher_afb.correctness is not None \
+                        and matcher_afb.correctness > not_none(best_afb.correctness):
+                    best_afb = matcher_afb
 
-        if afb is None:
-            afb = AnswerFeedback(0)
+        assert best_afb is not None
 
-        return afb
+        return best_afb
 
     @override
     def page_correct_answer(self,
