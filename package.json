@@ -46,7 +46,7 @@
     "prosemirror-schema-list": "^1.5.1",
     "prosemirror-state": "^1.4.4",
     "prosemirror-view": "^1.42.2",
-    "select2": "^4.1.0",
+    "select2": ">=4.0.13 <4.1.0",
     "select2-bootstrap-theme": "^0.1.0-beta.10",
     "sparklines": "^1.3.0",
     "video.js": "^8.23.9"
