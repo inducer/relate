@@ -24,6 +24,7 @@ THE SOFTWARE.
 """
 
 import operator
+import os
 import time
 
 import pytest
@@ -44,6 +45,10 @@ def _raise_value_error(msg):
     raise ValueError(msg)
 
 
+def _worker_pid():
+    return os.getpid()
+
+
 def _large_integer_calc() -> int:
     return 10000000**10000000
 
@@ -57,9 +62,13 @@ class TestCallWithTimeout:
         result = call_with_timeout(5, operator.add, 3, 4)
         assert result == 7
 
+    def test_reuses_worker(self):
+        assert call_with_timeout(5, _worker_pid) == call_with_timeout(5, _worker_pid)
+
     def test_returns_timed_out_sentinel_when_slow(self):
         result = call_with_timeout(1, _sleep_and_return, 10.0, "never")
         assert result is TIMED_OUT
+        assert call_with_timeout(5, _return_value, 42) == 42
 
     def test_slow_integer_math_times_out(self):
         result = call_with_timeout(2, _large_integer_calc)
