@@ -115,7 +115,7 @@ dev = [
     "matplotlib",
 ]
 mypy = [
-    "django-stubs[compatible-mypy]==6.0.*",
+    "django-stubs[compatible-mypy]>=6.0,<6.2",
     { include-group = "types" },
 ]
 types = [
