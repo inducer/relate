@@ -33,7 +33,7 @@ from django.urls import reverse
 from django.utils.timezone import now, timedelta
 
 from course import constants, exam
-from course.models import ExamTicket, FlowSession
+from course.models import Exam, ExamTicket, FlowSession
 from tests import factories
 from tests.base_test_mixins import (
     MockAddMessageMixing,
@@ -1070,5 +1070,110 @@ class ExamLockdownMiddlewareTest(SingleCoursePageTestMixin,
                     "to this exam flow. Navigating to other parts of "
                     "RELATE is not currently allowed. "
                     "To exit this exam, log out.")
+
+
+# {{{ edit exam tests
+
+class EditExamTest(ExamTestMixin, TestCase):
+    """Tests for exam.edit_exam view."""
+
+    def get_edit_exam_url(self, exam_id, course_identifier=None):
+        course_identifier = course_identifier or self.get_default_course_identifier()
+        kwargs = {"course_identifier": course_identifier,
+                  "exam_id": exam_id}
+        return reverse("relate-edit_exam", kwargs=kwargs)
+
+    def get_edit_exam_view(self, exam_id, course_identifier=None,
+                           use_instructor=True):
+        course_identifier = course_identifier or self.get_default_course_identifier()
+        user = (self.instructor_participation.user if use_instructor
+                else self.student_participation.user)
+        with self.temporarily_switch_to_user(user):
+            return self.client.get(
+                self.get_edit_exam_url(exam_id, course_identifier))
+
+    def post_edit_exam_view(self, exam_id, data, course_identifier=None,
+                            use_instructor=True):
+        course_identifier = course_identifier or self.get_default_course_identifier()
+        user = (self.instructor_participation.user if use_instructor
+                else self.student_participation.user)
+        with self.temporarily_switch_to_user(user):
+            return self.client.post(
+                self.get_edit_exam_url(exam_id, course_identifier), data)
+
+    def get_exam_post_data(self, **kwargs):
+        data = {
+            "course": self.course.pk,
+            "description": "Test Exam",
+            "flow_id": "quiz-test",
+            "active": True,
+            "listed": True,
+            "no_exams_before": datetime.datetime(
+                2019, 1, 1, tzinfo=UTC).strftime(DATE_TIME_PICKER_TIME_FORMAT),
+            "no_exams_after": datetime.datetime(
+                2019, 3, 1, tzinfo=UTC).strftime(DATE_TIME_PICKER_TIME_FORMAT),
+        }
+        data.update(kwargs)
+        return data
+
+    def test_get_create_new(self):
+        resp = self.get_edit_exam_view(-1)
+        self.assertEqual(resp.status_code, 200)
+
+    def test_get_edit_existing(self):
+        resp = self.get_edit_exam_view(self.exam.pk)
+        self.assertEqual(resp.status_code, 200)
+
+    def test_no_permission(self):
+        resp = self.get_edit_exam_view(-1, use_instructor=False)
+        self.assertEqual(resp.status_code, 403)
+
+        resp = self.post_edit_exam_view(-1, data={}, use_instructor=False)
+        self.assertEqual(resp.status_code, 403)
+
+    def test_not_authenticated(self):
+        with self.temporarily_switch_to_user(None):
+            resp = self.client.get(
+                self.get_edit_exam_url(-1))
+            self.assertEqual(resp.status_code, 403)
+
+    def test_post_create_new(self):
+        initial_count = Exam.objects.count()
+        data = self.get_exam_post_data()
+        resp = self.post_edit_exam_view(-1, data=data)
+        self.assertEqual(Exam.objects.count(), initial_count + 1)
+        new_exam = Exam.objects.order_by("id").last()
+        self.assertEqual(new_exam.description, "Test Exam")
+        self.assertRedirects(
+            resp, self.get_edit_exam_url(new_exam.pk),
+            fetch_redirect_response=False)
+
+    def test_post_edit_existing(self):
+        data = self.get_exam_post_data(description="Updated Description")
+        resp = self.post_edit_exam_view(self.exam.pk, data=data)
+        self.assertRedirects(
+            resp, self.get_edit_exam_url(self.exam.pk),
+            fetch_redirect_response=False)
+        self.exam.refresh_from_db()
+        self.assertEqual(self.exam.description, "Updated Description")
+
+    def test_post_form_invalid(self):
+        with mock.patch("course.exam.EditExamForm.is_valid") as mock_is_valid:
+            mock_is_valid.return_value = False
+            resp = self.post_edit_exam_view(
+                self.exam.pk, data=self.get_exam_post_data())
+            self.assertEqual(resp.status_code, 200)
+
+    def test_course_not_match(self):
+        another_course = factories.CourseFactory(identifier="another-course")
+        another_exam = factories.ExamFactory(course=another_course)
+
+        resp = self.get_edit_exam_view(
+            another_exam.pk,
+            course_identifier=self.course.identifier)
+        self.assertEqual(resp.status_code, 400)
+
+# }}}
+
 
 # vim: fdm=marker
