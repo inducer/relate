@@ -1897,4 +1897,116 @@ class QueryParticipationsParseQueryTest(QueryParticipationsTestMixin, TestCase):
     # }}}
 
 
+# {{{ participation tag CRUD tests
+
+class ParticipationTagCRUDTest(MockAddMessageMixing, SingleCourseTestMixin,
+        TestCase):
+
+    @classmethod
+    def setUpTestData(cls):
+        super().setUpTestData()
+        cls.tag = factories.ParticipationTagFactory(
+            course=cls.course, name="mytag")
+
+    @classmethod
+    def get_list_url(cls):
+        return reverse("relate-list_participation_tags",
+                       args=[cls.course.identifier])
+
+    @classmethod
+    def get_edit_url(cls, tag_id):
+        return reverse("relate-edit_participation_tag",
+                       args=[cls.course.identifier, tag_id])
+
+    @classmethod
+    def get_delete_url(cls, tag_id):
+        return reverse("relate-delete_participation_tag",
+                       args=[cls.course.identifier, tag_id])
+
+    def test_list_permission_denied(self):
+        with self.temporarily_switch_to_user(self.student_participation.user):
+            resp = self.client.get(self.get_list_url())
+            self.assertEqual(resp.status_code, 403)
+
+    def test_list_success(self):
+        with self.temporarily_switch_to_user(self.instructor_participation.user):
+            resp = self.client.get(self.get_list_url())
+            self.assertEqual(resp.status_code, 200)
+            self.assertIn(b"mytag", resp.content)
+
+    def test_edit_get_new(self):
+        with self.temporarily_switch_to_user(self.instructor_participation.user):
+            resp = self.client.get(self.get_edit_url(-1))
+            self.assertEqual(resp.status_code, 200)
+
+    def test_edit_get_existing(self):
+        with self.temporarily_switch_to_user(self.instructor_participation.user):
+            resp = self.client.get(self.get_edit_url(self.tag.pk))
+            self.assertEqual(resp.status_code, 200)
+
+    def test_edit_post_new(self):
+        with self.temporarily_switch_to_user(self.instructor_participation.user):
+            resp = self.client.post(self.get_edit_url(-1), {
+                "name": "newtag",
+                "shown_to_participant": False,
+                "submit": "",
+            })
+            self.assertRedirects(resp, self.get_list_url())
+            from course.models import ParticipationTag
+            self.assertTrue(ParticipationTag.objects.filter(
+                course=self.course, name="newtag").exists())
+
+    def test_edit_post_existing(self):
+        from tests.factories import ParticipationTagFactory
+        tag = ParticipationTagFactory(course=self.course, name="edittag")
+        with self.temporarily_switch_to_user(self.instructor_participation.user):
+            resp = self.client.post(self.get_edit_url(tag.pk), {
+                "name": "edittagrenamed",
+                "shown_to_participant": True,
+                "submit": "",
+            })
+            self.assertRedirects(resp, self.get_list_url())
+            tag.refresh_from_db()
+            self.assertEqual(tag.name, "edittagrenamed")
+
+    def test_edit_permission_denied(self):
+        with self.temporarily_switch_to_user(self.student_participation.user):
+            resp = self.client.get(self.get_edit_url(-1))
+            self.assertEqual(resp.status_code, 403)
+
+    def test_edit_wrong_course(self):
+        other_course = factories.CourseFactory(
+            identifier="another-course", git_source="other_git_source")
+        other_tag = factories.ParticipationTagFactory(
+            course=other_course, name="othertag")
+        with self.temporarily_switch_to_user(self.instructor_participation.user):
+            resp = self.client.get(self.get_edit_url(other_tag.pk))
+            self.assertEqual(resp.status_code, 400)
+
+    def test_delete_get(self):
+        from tests.factories import ParticipationTagFactory
+        tag = ParticipationTagFactory(course=self.course, name="deltag")
+        with self.temporarily_switch_to_user(self.instructor_participation.user):
+            resp = self.client.get(self.get_delete_url(tag.pk))
+            self.assertEqual(resp.status_code, 200)
+            self.assertIn(b"deltag", resp.content)
+
+    def test_delete_post(self):
+        from course.models import ParticipationTag
+        from tests.factories import ParticipationTagFactory
+        tag = ParticipationTagFactory(course=self.course, name="tagToDelete")
+        tag_id = tag.pk
+        with self.temporarily_switch_to_user(self.instructor_participation.user):
+            resp = self.client.post(self.get_delete_url(tag_id), {})
+            self.assertRedirects(resp, self.get_list_url())
+            self.assertFalse(ParticipationTag.objects.filter(pk=tag_id).exists())
+
+    def test_delete_permission_denied(self):
+        with self.temporarily_switch_to_user(self.student_participation.user):
+            resp = self.client.get(self.get_delete_url(self.tag.pk))
+            self.assertEqual(resp.status_code, 403)
+
+# }}}
+
+
 # vim: foldmethod=marker
