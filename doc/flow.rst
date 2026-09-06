@@ -362,6 +362,42 @@ the grade (and update it when rubrics change):
 
     The feedback update facility is not currently implemented (but planned!).
 
+.. _ai-grading:
+
+AI-assisted grading
+--------------------
+
+For human-graded questions (those using
+:class:`course.page.base.PageBaseWithHumanTextFeedback`,
+such as :class:`course.page.HumanGradedTextQuestion` and
+:class:`course.page.HumanGradedRichTextQuestion`), RELATE can use an
+AI grading assistant to draft grades and feedback in bulk, based on the
+question's ``rubric`` (and optional ``grading_prompt``, see below). This is
+available from a course's flow grade book, both from the per-page grading
+view (which offers to draft grades for all ungraded submissions of that one
+page) and from the per-opportunity grade book view (which additionally lets
+you choose which page of the flow to draft grades for). It requires the
+``batch_ai_grade_flow_page`` permission.
+
+AI-drafted grades are always saved **unreleased**: they are never shown to
+students and never contribute to the grade book until a human grader reviews
+and releases them, exactly as if a human had entered them but left
+"Released" unchecked. Grades that a human has already assigned are never
+touched by this process; re-running it only fills in still-ungraded
+submissions and refreshes previous AI drafts (e.g. after editing
+``grading_prompt``).
+
+If a question defines ``grading_prompt``, it is used to instruct the AI
+grading assistant; otherwise, a generic grading prompt derived from the
+question's ``rubric`` is used. If other submissions of the same question
+have already been graded by a human, a sample of those (with their feedback
+and score) is given to the AI assistant as calibration examples, so it can
+match the grading style and standards already established.
+
+This feature requires an OpenAI-API-compatible endpoint to be configured for
+the course (via "AI grading API base URL", "AI grading API key", and
+"AI grading model" on the course's "Edit Course" page).
+
 Sample Rule Sets
 ----------------
 
@@ -744,4 +780,3 @@ The rules for this can be written as follows::
     pages:
 
     -   ....
-

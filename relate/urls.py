@@ -241,6 +241,17 @@ urlpatterns = [
 
     re_path(r"^course"
         "/" + COURSE_ID_REGEX
+        + "/grading"
+        "/flow-page"
+        "/(?P<flow_session_id>[0-9]+)"
+        "/(?P<page_ordinal>[0-9]+)"
+        "/ai-grade-batch"
+        "/$",
+        course.grading.batch_ai_grade_flow_page,
+        name="relate-batch_ai_grade_flow_page"),
+
+    re_path(r"^course"
+        "/" + COURSE_ID_REGEX
         + "/prev-grades"
         "/flow-page"
         "/(?P<flow_session_id>[0-9]+)"

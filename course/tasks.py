@@ -23,12 +23,18 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from celery import shared_task
+from typing import TYPE_CHECKING
+
+from celery import Task, shared_task
 from django.db import transaction
 from django.utils.translation import gettext as _
 
 from course.content import get_course_repo
-from course.models import Course, FlowPageVisit, FlowSession
+from course.models import Course, FlowPageData, FlowPageVisit, FlowSession
+
+
+if TYPE_CHECKING:
+    from course.repo import RevisionID_ish
 
 
 @shared_task(bind=True)
@@ -164,6 +170,118 @@ def regrade_flow_sessions(self, course_id, flow_id, access_rules_tag, inprog_val
     repo.close()
 
     return {"message": _("%d sessions regraded.") % count}
+
+
+@shared_task(bind=True)
+def ai_grade_flow_page(
+        self: Task[..., dict[str, str]],
+        course_id: int,
+        flow_id: str,
+        group_id: str,
+        page_id: str,
+        ) -> dict[str, str]:
+    from course.ai_grading import (
+        AIGradingError,
+        create_ai_grade,
+        gather_calibration_examples,
+        get_openai_client,
+        run_ai_grading_for_visit,
+    )
+    from course.content import get_course_commit_sha, get_flow_desc, get_flow_page
+    from course.page import PageContext
+    from course.page.base import PageBaseWithHumanTextFeedback
+
+    course = Course.objects.get(id=course_id)
+    repo = get_course_repo(course)
+
+    course_commit_sha: RevisionID_ish = get_course_commit_sha(course, None)
+    flow_desc = get_flow_desc(repo, course, flow_id, course_commit_sha)
+    page = get_flow_page(flow_id, flow_desc, group_id, page_id)
+
+    if not isinstance(page, PageBaseWithHumanTextFeedback):
+        repo.close()
+        return {"message": _(
+            "Page '%(group_id)s/%(page_id)s' does not support human "
+            "(or AI) grading.")
+            % {"group_id": group_id, "page_id": page_id}}
+
+    try:
+        get_openai_client(course)
+    except AIGradingError as exc:
+        repo.close()
+        return {"message": str(exc)}
+
+    no_session_page_context = PageContext(
+            course=course, repo=repo, commit_sha=course_commit_sha,
+            flow_session=None)
+
+    calibration_examples = gather_calibration_examples(
+            course, flow_id, group_id, page_id, page,
+            no_session_page_context)
+
+    grading_prompt = page.grading_prompt
+
+    page_data_objs = (FlowPageData.objects
+            .filter(
+                flow_session__course=course,
+                flow_session__flow_id=flow_id,
+                flow_session__in_progress=False,
+                group_id=group_id,
+                page_id=page_id)
+            .select_related("flow_session"))
+
+    n = page_data_objs.count()
+    drafted = 0
+    skipped = 0
+    failed = 0
+
+    for i, page_data in enumerate(page_data_objs):
+        self.update_state(
+                state="PROGRESS", meta={"current": i, "total": n})
+
+        visit = (FlowPageVisit.objects
+                .filter(page_data=page_data, is_submitted_answer=True)
+                .order_by("-visit_time")
+                .first())
+
+        if visit is None:
+            skipped += 1
+            continue
+
+        most_recent_grade = visit.get_most_recent_grade()
+        if (most_recent_grade is not None
+                and most_recent_grade.grade_data is not None
+                and most_recent_grade.ai_generated_by is None):
+            # Already graded (with actual grade data, as opposed to the
+            # placeholder autograded-but-ungraded row created on submission)
+            # by a human -- never touch it.
+            skipped += 1
+            continue
+
+        page_context = PageContext(
+                course=course, repo=repo, commit_sha=course_commit_sha,
+                flow_session=visit.flow_session)
+
+        try:
+            point_value = page.human_feedback_point_value(
+                    page_context, page_data.data)
+            ai_result = run_ai_grading_for_visit(
+                    course, page, page_context, page_data.data, visit.answer,
+                    point_value, grading_prompt, calibration_examples)
+            create_ai_grade(
+                    visit, page, page_context, course_commit_sha, ai_result)
+        except AIGradingError:
+            failed += 1
+            continue
+
+        drafted += 1
+
+    repo.close()
+
+    return {"message": _(
+            "%(drafted)d grade(s) drafted, %(skipped)d already graded "
+            "(skipped), %(failed)d failed.")
+            % {"drafted": drafted, "skipped": skipped, "failed": failed}}
 
 
 @shared_task(bind=True)
