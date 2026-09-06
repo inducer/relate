@@ -147,7 +147,17 @@
           <td>{% trans "Graded" %}</td>
           <td>
             {% if shown_grade != None %}
-              {% if shown_grade.grader == None %}
+              {% if shown_grade.ai_generated_by %}
+                <span class="badge text-bg-warning">AI</span>
+                {% blocktrans trimmed with model_name=shown_grade.ai_generated_by %}
+                {{ model_name }}
+                {% endblocktrans %}
+                {% if shown_grade.grader != None %}
+                  {% blocktrans trimmed with grader_name=shown_grade.grader.get_full_name %}
+                  (initiated by {{ grader_name }})
+                  {% endblocktrans %}
+                {% endif %}
+              {% elif shown_grade.grader == None %}
                 {% trans "(autograded)" %}
               {% else %}
                 {# Translators: the grade is awarded "by" some humman grader. #}
@@ -208,6 +218,7 @@
             <a href="{% url "relate-view_flow_page" course.identifier flow_session.id page_ordinal %}">{% trans "View in flow" %}</a>
           </td>
         </tr>
+
       </table>
       {# }}} #}
 
@@ -248,6 +259,10 @@
 
     function setFeedback(p) {
       const view = getFeedbackCodemirror();
+      if (!view) {
+        $("#id_feedback_text").val(p);
+        return;
+      }
       const transaction = view.state.update({
         changes: {
           from: 0,
@@ -434,6 +449,150 @@
       $("#submit-id-submit").click();
     }
 
+    let aiDraftActive = false;
+
+    async function draftAIGrade(event) {
+      event.preventDefault();
+      if (aiDraftActive)
+        return;
+
+      const button = event.currentTarget;
+      const form = button.form;
+      const editor = getFeedbackCodemirror();
+      const feedback = form.elements.namedItem("feedback_text");
+      const percent = form.elements.namedItem("grade_percent");
+      const points = form.elements.namedItem("grade_points");
+      const draftFlags = $(form).find(
+        '[name="released"], [name="notify"], [name="notify_instructor"], [name="may_reply"]');
+      if (((editor && rlCodemirror.anyEditorChanged())
+          || (!editor && feedback.value !== feedback.defaultValue)
+          || percent.value !== percent.defaultValue
+          || (points && points.value !== points.defaultValue)
+          || draftFlags.toArray().some(element => element.checked !== element.defaultChecked))
+          && !window.confirm("{% trans 'Replace unsaved grading changes with an AI draft?' %}"))
+        return;
+      const data = new FormData(form);
+      // CodeMirror may not have synchronized its backing textarea yet.
+      data.set("feedback_text", editor ? editor.state.doc.toString() : feedback.value);
+      data.set("draft_ai_grade", button.value || "1");
+      data.set("ai_draft_visit_id", "{{ ai_draft_visit_id|default_if_none:'' }}");
+      data.set("ai_draft_grade_id", "{{ ai_draft_grade_id|default_if_none:'' }}");
+
+      const controls = $(form).find("input, select, textarea, button");
+      const disabledStates = controls.toArray().map(element => element.disabled);
+      const wasInert = form.inert;
+      const controller = new AbortController();
+      let submitted = false;
+      let outcome = "";
+      const stopOnSubmit = () => {
+        submitted = true;
+        controller.abort();
+      };
+      const deadline = Date.now() + 15 * 60 * 1000;
+      const deadlineTimer = window.setTimeout(() => controller.abort(), 15 * 60 * 1000);
+      const ensureActive = () => {
+        if (controller.signal.aborted || Date.now() >= deadline)
+          throw new Error("{% trans 'Timed out waiting for the AI draft. Please try again.' %}");
+      };
+      const wait = milliseconds => new Promise((resolve, reject) => {
+        ensureActive();
+        const onAbort = () => {
+          window.clearTimeout(timer);
+          reject(new Error("{% trans 'Timed out waiting for the AI draft. Please try again.' %}"));
+        };
+        const timer = window.setTimeout(() => {
+          controller.signal.removeEventListener("abort", onAbort);
+          resolve();
+        }, milliseconds);
+        controller.signal.addEventListener("abort", onAbort, {once: true});
+      });
+      const requestJSON = async (url, options = {}) => {
+        ensureActive();
+        const requestController = new AbortController();
+        const abortRequest = () => requestController.abort();
+        controller.signal.addEventListener("abort", abortRequest, {once: true});
+        const timer = window.setTimeout(abortRequest, 30000);
+        try {
+          const response = await fetch(url, {
+            ...options,
+            signal: requestController.signal,
+            credentials: "same-origin",
+            headers: {"Accept": "application/json"},
+          });
+          if (!response.ok) {
+            if (response.status === 409) {
+              const error = await response.json();
+              throw new Error(error.message);
+            }
+            throw new Error("{% trans 'AI draft request failed (HTTP status' %} " + response.status + ").");
+          }
+          return await response.json();
+        } finally {
+          window.clearTimeout(timer);
+          controller.signal.removeEventListener("abort", abortRequest);
+        }
+      };
+
+      aiDraftActive = true;
+      controls.prop("disabled", true);
+      // Also prevent edits through CodeMirror and canned-feedback links.
+      form.inert = true;
+      form.addEventListener("submit", stopOnSubmit, true);
+      bsUtils.showToast("{% trans 'Drafting AI grade. Page will reload when done.' %}",
+        "{% trans 'AI draft' %}", {autohide: false, spinner: true});
+      try {
+        // Do not retry enqueue: a lost response could otherwise create duplicate jobs.
+        const queued = await requestJSON(form.action, {method: "POST", body: data});
+        if (typeof queued.ticket !== "string" || !queued.ticket)
+          throw new Error("{% trans 'The AI draft request returned an invalid ticket.' %}");
+        const returnURL = new URL("{% url 'relate-ai_grade_draft_return' course.identifier %}", window.location.href);
+        returnURL.searchParams.set("ticket", queued.ticket);
+        let retryDelay = 5000;
+        while (true) {
+          await wait(5000);
+          let result;
+          try {
+            result = await requestJSON(returnURL, {cache: "no-store"});
+          } catch (error) {
+            ensureActive();
+            if (!(error instanceof TypeError) && error.name !== "AbortError")
+              throw error;
+            await wait(retryDelay);
+            retryDelay = Math.min(retryDelay * 2, 30000);
+            continue;
+          }
+          ensureActive();
+          retryDelay = 5000;
+          if (result.state === "pending")
+            continue;
+          if (result.state === "failed" || result.state === "unavailable")
+            throw new Error(result.message || "{% trans 'The AI draft is unavailable.' %}");
+          if (result.state !== "ready")
+            throw new Error("{% trans 'The AI draft returned an invalid response.' %}");
+          rlCodemirror.resetAnyEditorChanged();
+          window.location.reload();
+          break;
+        }
+      } catch (error) {
+        outcome = submitted
+          ? "{% trans 'AI draft cancelled because the grade was submitted.' %}"
+          : controller.signal.aborted || Date.now() >= deadline
+            ? "{% trans 'Timed out waiting for the AI draft. Please try again.' %}"
+            : error.message || "{% trans 'The AI draft request failed. Please try again.' %}";
+      } finally {
+        window.clearTimeout(deadlineTimer);
+        controller.abort();
+        form.removeEventListener("submit", stopOnSubmit, true);
+        controls.each((index, element) => { element.disabled = disabledStates[index]; });
+        form.inert = wasInert;
+        aiDraftActive = false;
+        if (outcome)
+          bsUtils.showToast(rlUtils.encodeEntities(String(outcome)), "{% trans 'AI draft' %}");
+        else
+          bsUtils.hideToast();
+      }
+    }
+
     function addSubmitNext()
     {
       if (next_page_url)
@@ -446,6 +605,8 @@
             " <button class='btn btn-outline-primary' id='save_next_session' type='button'>"
             + "{% trans "Submit and next session (Alt+S)" %} &raquo;"
             + "</button>");
+
+      $(".relate-ai-draft-button").click(draftAIGrade);
 
       $("#save_next_page").click(saveAndNextPage);
       $("#save_next_session").click(saveAndNextSession);

@@ -31,6 +31,7 @@ from typing import (
     Annotated,
     Any,
     ClassVar,
+    Literal,
     Self,
     TypeAlias,
     Union,  # pyright: ignore[reportDeprecated]
@@ -75,6 +76,7 @@ from relate.utils import (
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence, Set as AbstractSet
 
+    from course.ai_grading import AIGradeResult
     from course.models import Course, FlowSession
     from course.repo import Repo_ish, RevisionID_ish
 
@@ -82,6 +84,35 @@ if TYPE_CHECKING:
 PageData: TypeAlias = dict[str, Any]
 AnswerData: TypeAlias = dict[str, Any] | None
 GradeData: TypeAlias = dict[str, Any] | None
+
+
+@dataclass(frozen=True)
+class AIGradingSection:
+    """A labeled piece of grading evidence, independent of any AI provider.
+
+    *format* describes the raw *content*; it does not request rendering or
+    fetching resources referenced by that content.
+    """
+
+    title: str
+    content: str
+    format: Literal["text", "markdown", "html", "python"]
+
+
+@dataclass(frozen=True)
+class AIGradingInput:
+    """Evidence and instructions for suggesting a human-component grade.
+
+    *rubric* and *instructions* are raw Markdown. *human_point_value* is the
+    maximum for the human component, if known, not the combined page grade.
+    Sections are an immutable, ordered tuple and may explicitly label missing
+    evidence. Constructing this value does not contact an AI provider.
+    """
+
+    rubric: str
+    human_point_value: float | None
+    instructions: str
+    sections: tuple[AIGradingSection, ...]
 
 
 __doc__ = """
@@ -1131,6 +1162,48 @@ class PageBaseWithHumanTextFeedback(PageBase, ABC):
     """
 
     rubric: Markup
+    grading_prompt: Markup | None = None
+
+    def supports_ai_grading(self) -> bool:
+        """Return whether this page explicitly supports AI grade suggestions."""
+        return False
+
+    def make_ai_grading_input(
+            self,
+            context: PageContext,
+            page_data: PageData,
+            answer_data: AnswerData,
+            grade_data: GradeData,
+            *,
+            previous_feedback: AnswerFeedback | None,
+            ) -> AIGradingInput | None:
+        """Build provider-independent evidence, or return *None* if unsupported.
+
+        Implementations must not execute submissions or fetch external resources.
+        *previous_feedback* is already available feedback, not a request to grade
+        the submission again. This method does not persist anything.
+        """
+        return None
+
+    def update_grade_data_from_ai_grading(
+            self,
+            context: PageContext,
+            page_data: PageData,
+            grade_data: GradeData,
+            suggestion: AIGradeResult,
+            ) -> GradeData:
+        """Merge a suggestion into an unreleased human grade without side effects.
+
+        Preserve page-specific data and internal notes. No grade is persisted,
+        released, or emailed; the caller is responsible for review and saving.
+        """
+        return {
+            **(grade_data or {}),
+            "released": False,
+            "grade_percent": suggestion.grade_percent,
+            "feedback_text": suggestion.feedback_text,
+            "notes": (grade_data or {}).get("notes", ""),
+        }
 
     @abstractmethod
     def human_feedback_point_value(self,

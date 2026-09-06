@@ -324,7 +324,6 @@ def adjust_flow_session_page_data(
 # {{{ grade page visit
 
 def grade_page_visit(visit: FlowPageVisit,
-        visit_grade_model: type = FlowPageVisitGrade,
         grade_data: Any = None, respect_preview: bool = True) -> None:
     if not visit.is_submitted_answer:
         raise RuntimeError(_("cannot grade ungraded answer"))
@@ -335,7 +334,7 @@ def grade_page_visit(visit: FlowPageVisit,
 
     most_recent_grade: FlowPageVisitGrade | None = visit.get_most_recent_grade()
     if most_recent_grade is not None and grade_data is None:
-        grade_data = most_recent_grade.grade_data
+        grade_data = cast("GradeData", most_recent_grade.grade_data)
 
     from course.content import (
         get_course_commit_sha,
@@ -367,25 +366,9 @@ def grade_page_visit(visit: FlowPageVisit,
                 commit_sha=course_commit_sha,
                 flow_session=flow_session)
 
-        with c_utils.LanguageOverride(course=course):
-            answer_feedback = page.grade(
-                    grading_page_context, visit.page_data.data,
-                    visit.answer, grade_data=grade_data)
-
-        grade = visit_grade_model()
-        grade.visit = visit
-        grade.grade_data = grade_data
-        grade.max_points = page.max_points(visit.page_data)
-        grade.graded_at_git_commit_sha = serialize_revision(course_commit_sha)
-
-        bulk_feedback_json = None
-        if answer_feedback is not None:
-            grade.correctness = answer_feedback.correctness
-            grade.feedback, bulk_feedback_json = answer_feedback.as_json()
-
-        grade.save()
-
-        update_bulk_feedback(page_data, grade, bulk_feedback_json)
+        from course.grade_storage import persist_grade
+        persist_grade(
+                visit, page, grading_page_context, cast("GradeData", grade_data))
 
 # }}}
 

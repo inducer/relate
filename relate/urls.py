@@ -206,6 +206,13 @@ urlpatterns = [
         name="relate-view_grades_by_opportunity"),
     re_path(r"^course"
         "/" + COURSE_ID_REGEX
+        + "/grading/by-opportunity"
+        "/(?P<opp_id>[0-9]+)"
+        "/ai-grade/$",
+        course.grades.ai_grade_by_opportunity,
+        name="relate-ai_grade_by_opportunity"),
+    re_path(r"^course"
+        "/" + COURSE_ID_REGEX
         + "/grading/single-grade"
         "/(?P<participation_id>[0-9]+)"
         "/(?P<opportunity_id>[0-9]+)"
@@ -238,6 +245,13 @@ urlpatterns = [
         "/$",
         course.grading.grade_flow_page,
         name="relate-grade_flow_page"),
+
+    re_path(r"^course"
+        "/" + COURSE_ID_REGEX
+        + "/grading/ai-draft-return/$",
+        course.grading.ai_grade_draft_return,
+        name="relate-ai_grade_draft_return"),
+
 
     re_path(r"^course"
         "/" + COURSE_ID_REGEX

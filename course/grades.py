@@ -406,6 +406,85 @@ class ModifySessionsForm(StyledForm):
                 Submit("recalculate", _("Recalculate grades of ended sessions")))
 
 
+class AIGradeFlowPageForm(StyledForm):
+    def __init__(self, page_ids: list[str], *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+
+        self.fields["page_id"] = forms.ChoiceField(
+                choices=tuple(
+                    (pid, pid)
+                    for pid in page_ids),
+                label=_("Page ID"))
+        self.fields["redraft_ai_grades"] = forms.BooleanField(
+                label=_("Re-draft existing AI drafts"),
+                required=False,
+                initial=False)
+        self.fields["override_human_grades"] = forms.BooleanField(
+                label=_("Override existing human grades"),
+                required=False,
+                initial=False)
+
+        self.helper.add_input(
+                Submit("ai_grade", _("Draft AI grades")))
+
+
+def get_ai_gradable_page_ids(
+        pctx: CoursePageContext, flow_id: str) -> list[str]:
+    from course.content import get_flow_desc
+    from course.page.base import PageBaseWithHumanTextFeedback
+    from course.utils import PageInstanceCache
+
+    flow_desc = get_flow_desc(
+            pctx.repo, pctx.course, flow_id, pctx.course_commit_sha)
+    page_cache = PageInstanceCache(pctx.repo, pctx.course, flow_id)
+
+    return [
+            f"{group_desc.id}/{page_desc.id}"
+            for group_desc in flow_desc.groups
+            for page_desc in group_desc.pages
+            if isinstance(
+                page := page_cache.get_page(
+                    group_desc.id, page_desc.id, pctx.course_commit_sha),
+                PageBaseWithHumanTextFeedback)
+            and page.supports_ai_grading()]
+
+
+@course_view
+def ai_grade_by_opportunity(
+        pctx: CoursePageContext, opp_id: str) -> http.HttpResponse:
+    if not pctx.has_permission(PPerm.view_gradebook):
+        raise PermissionDenied(_("may not view grade book"))
+    if not pctx.has_permission(PPerm.assign_grade):
+        raise PermissionDenied(_("may not assign grades"))
+    if not pctx.has_permission(PPerm.use_ai_drafting):
+        raise PermissionDenied(_("may not use AI drafting"))
+
+    opportunity = get_object_or_404(GradingOpportunity, id=int(opp_id))
+    if pctx.course != opportunity.course:
+        raise SuspiciousOperation(_("opportunity from wrong course"))
+    if not opportunity.flow_id:
+        raise SuspiciousOperation(_("opportunity has no flow"))
+
+    page_ids = get_ai_gradable_page_ids(pctx, opportunity.flow_id)
+    form = AIGradeFlowPageForm(
+            page_ids, pctx.request.POST if pctx.request.method == "POST" else None)
+    if pctx.request.method == "POST" and form.is_valid():
+        group_id, page_id = form.cleaned_data["page_id"].split("/", 1)
+
+        from course.tasks import batch_ai_grade_flow_page
+        async_res = batch_ai_grade_flow_page.delay(
+                pctx.course.id, opportunity.flow_id, group_id, page_id,
+                override_human_grades=form.cleaned_data["override_human_grades"],
+                redraft_ai_grades=form.cleaned_data["redraft_ai_grades"],
+                initiated_by_id=pctx.request.user.pk)
+        return redirect("relate-monitor_task", async_res.id)
+
+    return render_course_page(pctx, "course/ai-grade-by-opp.html", {
+        "opportunity": opportunity,
+        "ai_grade_form": form if page_ids else None,
+        })
+
+
 RULE_TAG_NONE_STRING = "<<<NONE>>>"
 
 

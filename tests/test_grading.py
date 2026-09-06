@@ -426,6 +426,19 @@ class SingleCourseQuizPageGradeInterfaceTest(
             self.assertEqual(resp.status_code, 200)
         self.assertGradeHistoryItemsCount(page_ordinal=ordinal, expected_count=3)
 
+    def test_grade_not_persisted_if_session_regrade_fails(self):
+        # Saving a human grade and recomputing the session grade must be atomic.
+        from course.models import FlowPageVisitGrade
+
+        n_grades = FlowPageVisitGrade.objects.count()
+        with mock.patch("course.flow.grade_flow_session") as mock_grade_session:
+            mock_grade_session.side_effect = RuntimeError("session regrade failed")
+            with self.assertRaises(RuntimeError):
+                self.post_grade_by_page_id(
+                    self.page_id, {"grade_points": "4", "released": "on"})
+
+        self.assertEqual(FlowPageVisitGrade.objects.count(), n_grades)
+
     # }}}
 
     def test_flow_session_course_not_matching(self):

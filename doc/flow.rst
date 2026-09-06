@@ -362,6 +362,81 @@ the grade (and update it when rubrics change):
 
     The feedback update facility is not currently implemented (but planned!).
 
+.. _ai-grading:
+
+AI-assisted grading
+--------------------
+
+RELATE can use an AI grading assistant to suggest grades and feedback based
+on a question's ``rubric`` and optional ``grading_prompt``. Support is explicit:
+:class:`course.page.HumanGradedTextQuestion`,
+:class:`course.page.HumanGradedRichTextQuestion`, and
+:class:`course.page.PythonCodeQuestionWithHumanTextFeedback` (only when its
+``human_feedback_percentage`` is greater than zero) support AI grading.
+Other human-graded pages, including file uploads, are not supported by default.
+For code questions, the suggestion grades only the human component: it does
+not reweight or replace the automated score.
+
+In the normal per-page grading form, **Draft with AI** requests a suggestion
+for the displayed submission. It requires both ``assign_grade`` and
+``use_ai_drafting`` permissions. The suggestion replaces the form's
+percentage and feedback, clears any entered point count, and unchecks
+"Released", notification, and reply options. Unsaved internal notes and other
+posted form data are preserved. Requesting a draft does not require a valid
+final grade form, save a grade, or send email. **Review the suggestion before
+Save**, then explicitly choose whether to release it or send notifications.
+Confirmation is requested only if the feedback editor has changed since the
+page was loaded, including when existing feedback has been deleted.
+If the request fails, the posted values remain available for editing.
+The former separate per-page AI button is removed; its legacy task endpoint
+remains available.
+
+The per-opportunity flow grade book also offers bulk drafting, requiring the
+``use_ai_drafting`` permission. Bulk drafts are saved **unreleased**:
+they are not shown to students or counted as released grades until reviewed
+and released by a human. Bulk drafting preserves existing human grades by
+default; **Override existing human grades** allows replacing them with new
+drafts. Existing AI drafts are also preserved by default; **Re-draft existing
+AI drafts** allows refreshing them. These options are independent and both
+are off by default: enabling one does not allow replacing the other kind of
+grade. Without either option, only ungraded submissions receive drafts.
+The legacy single-submission task continues to allow replacing both existing
+human grades and AI drafts with an unreleased draft.
+
+The assistant uses the rubric and page-specific instructions, supplemented
+by ``grading_prompt`` when provided. For rubrics with point denominators,
+responses must fill every marker's earned points while preserving marker
+count, order, identifiers, and denominators. RELATE computes the percentage
+from these markers and rejects malformed responses. A numeric percentage is
+also accepted if it matches the computed percentage (within floating-point
+tolerance); inconsistent percentages are rejected.
+
+This feature requires an OpenAI-API-compatible endpoint configured for the
+course via "AI grading API base URL", "AI grading API key", and "AI grading
+model" on the course's "Edit Course" page. The optional "AI grading model
+parameters" field accepts a JSON object of additional request body parameters,
+for example ``{"reasoning_effort": "high"}`` or provider-specific nested
+options. Parameter names and values must be supported by the selected endpoint
+and model. These parameters cannot override ``model``, ``messages``,
+``response_format``, or ``stream``, which RELATE controls.
+
+.. warning::
+
+    Drafting shares question prompts, rubrics, reference answers or raw reference
+    code, student answers or raw submitted code, and available stored feedback
+    and output with the configured external AI provider. Check the provider's
+    privacy and data-retention policies and your institution's requirements
+    before enabling this feature.
+
+Evidence is sent as labeled, untrusted data. Rich-text answers retain their
+structured document content. Previously stored combined feedback (which may
+include human feedback) and bulk output can be included as bounded raw HTML;
+they are not treated as an isolated automated grade. Evidence sections and
+their total size are bounded, with truncation or missing evidence explicitly
+marked; the rubric is retained intact. Building the prompt does not run student
+or reference code, render HTML, load linked resources, or fetch external data.
+The assistant is instructed not to execute code or fetch resources either.
+
 Sample Rule Sets
 ----------------
 
@@ -744,4 +819,3 @@ The rules for this can be written as follows::
     pages:
 
     -   ....
-
