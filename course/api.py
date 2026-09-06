@@ -186,6 +186,7 @@ def get_flow_session_content(
                     grade_json = {
                             "grader": (grade.grader.username
                                 if grade.grader is not None else None),
+                            "ai_generated_by": grade.ai_generated_by,
                             "grade_time": grade.grade_time.isoformat(),
                             "graded_at_git_commit_sha": (
                                 grade.graded_at_git_commit_sha),

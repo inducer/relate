@@ -182,20 +182,19 @@ class GradePageVisitTest(SingleCourseQuizPageTestMixin, TestCase):
     # patching tests for flow.grade_page_visits
     def test_not_is_submitted_answer(self):
         visit = mock.MagicMock()
-        visit_grade_model = mock.MagicMock()
         visit.is_submitted_answer = False
 
         expected_error_msg = "cannot grade ungraded answer"
         with self.assertRaises(RuntimeError) as cm:
-            flow.grade_page_visit(visit, visit_grade_model)
+            flow.grade_page_visit(visit)
         self.assertIn(expected_error_msg, str(cm.exception))
 
         with self.assertRaises(RuntimeError) as cm:
-            flow.grade_page_visit(visit, visit_grade_model, {"key": "value"})
+            flow.grade_page_visit(visit, {"key": "value"})
         self.assertIn(expected_error_msg, str(cm.exception))
 
         with self.assertRaises(RuntimeError) as cm:
-            flow.grade_page_visit(visit, visit_grade_model, {"key": "value"}, False)
+            flow.grade_page_visit(visit, {"key": "value"}, False)
         self.assertIn(expected_error_msg, str(cm.exception))
 
     def test_page_answer_not_gradable(self):

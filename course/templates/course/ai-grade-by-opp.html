@@ -1,0 +1,38 @@
+{% extends "course/course-page.html" %}
+{% load i18n %}
+{% load crispy_forms_tags %}
+
+{% block title %}
+  {% trans "AI-draft grades" %}: {{ opportunity.name }} - {{ relate_site_name }}
+{% endblock %}
+
+{% block content %}
+  <h1>{% trans "AI-draft grades" %}: {{ opportunity.name }}</h1>
+
+  <p>
+    <a href="{% url "relate-view_grades_by_opportunity" course.identifier opportunity.id %}">{% trans "Back to grade book" %}</a>
+  </p>
+
+  {% if ai_grade_form %}
+    <div class="relate-well">
+      {% crispy ai_grade_form %}
+
+      <div class="text-muted col-lg-offset-2" style="margin-top:1ex">
+      {% blocktrans trimmed %}
+        <p>
+        "Draft AI grades" will use an AI grading assistant to draft grades
+        and feedback for all submissions of the selected page that are
+        ungraded. Existing AI drafts are skipped unless "Re-draft existing
+        AI drafts" is checked. Grades assigned by a human are skipped
+        unless "Override existing human grades" is checked. These options
+        are independent and both are off by default. Drafted grades are always saved
+        unreleased, and must be reviewed and released by a
+        human grader before students can see them.
+        </p>
+      {% endblocktrans %}
+      </div>
+    </div>
+  {% else %}
+    <p>{% trans "This flow has no pages that support AI grading." %}</p>
+  {% endif %}
+{% endblock %}

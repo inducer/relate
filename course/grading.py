@@ -26,21 +26,22 @@ THE SOFTWARE.
 
 import re
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, TypedDict, cast
+from typing import TYPE_CHECKING, ClassVar, Literal, NotRequired, TypedDict, cast
 
 from django import http
 from django.contrib import messages
+from django.core import signing
 from django.core.exceptions import (
     ObjectDoesNotExist,
     PermissionDenied,
     SuspiciousOperation,
 )
-from django.shortcuts import (  # ruff:ignore[unused-import]
+from django.shortcuts import (
     get_object_or_404,
-    redirect,
     render,
 )
 from django.utils.translation import gettext as _
+from pydantic import BaseModel, ConfigDict, ValidationError
 from pytools import not_none
 
 from course.constants import ParticipationPermission as PPerm
@@ -49,10 +50,8 @@ from course.models import (
     FlowSession,
     get_feedback_for_grade,
     get_flow_grading_opportunity,
-    update_bulk_feedback,
 )
 from course.page import InvalidPageData
-from course.repo import serialize_revision
 from course.utils import (
     FlowPageContext,
     course_view,
@@ -60,10 +59,7 @@ from course.utils import (
     render_course_page,
 )
 from course.views import get_now_or_fake_time
-from relate.utils import (
-    StyledFormBase,
-    retry_transaction_decorator,
-)
+from relate.utils import retry_transaction_decorator
 
 
 # {{{ for mypy
@@ -76,6 +72,7 @@ if TYPE_CHECKING:
     from course.models import GradingOpportunity
     from course.page.base import AnswerData, GradeData
     from course.utils import CoursePageContext
+    from relate.utils import StyledFormBase
 
 # }}}
 
@@ -198,6 +195,93 @@ def get_prev_grades_dropdown_content(pctx, flow_session_id, page_ordinal,
 
 
 # {{{ grading driver
+
+AI_DRAFT_TICKET_SALT = "course.ai-grade-draft"
+AI_DRAFT_MAX_AGE = 15 * 60
+
+
+class AIGradeDraftResponse(TypedDict):
+    state: Literal["pending", "ready", "failed", "unavailable"]
+    message: NotRequired[str]
+
+
+class AIGradeDraftTaskResult(AIGradeDraftResponse):
+    """Worker result, including the saved grade ID for stale-result checks."""
+
+    grade_id: NotRequired[int]
+
+
+class AIGradeDraftTicket(BaseModel):
+    model_config: ClassVar[ConfigDict] = ConfigDict(strict=True, extra="forbid")
+
+    task_id: str
+    user_id: int
+    course_id: int
+    visit_id: int
+    grade_id: int | None
+
+
+@course_view
+def ai_grade_draft_return(pctx: CoursePageContext) -> http.HttpResponse:
+    """Retrieve a saved draft only for the grader and submission that requested it."""
+    from celery import states
+    from celery.result import AsyncResult
+
+    if pctx.request.method != "GET":
+        return http.HttpResponseNotAllowed(["GET"])
+    if not all(pctx.has_permission(permission) for permission in (
+            PPerm.view_gradebook, PPerm.assign_grade, PPerm.use_ai_drafting)):
+        raise PermissionDenied(_("may not draft AI grades"))
+    try:
+        ticket = AIGradeDraftTicket.model_validate(signing.loads(
+            pctx.request.GET.get("ticket", ""),
+            salt=AI_DRAFT_TICKET_SALT, max_age=AI_DRAFT_MAX_AGE))
+    except signing.SignatureExpired:
+        payload: AIGradeDraftResponse = {"state": "unavailable", "message": _(
+            "This AI draft has expired. Please request a new draft.")}
+        return http.JsonResponse(payload)
+    except (signing.BadSignature, ValidationError) as exc:
+        raise PermissionDenied(_("Invalid AI draft ticket.")) from exc
+    if (ticket.user_id != pctx.request.user.pk
+            or ticket.course_id != pctx.course.pk):
+        raise PermissionDenied(_("AI draft belongs to another grader or course."))
+
+    from course.models import FlowPageVisit
+    visit = get_object_or_404(FlowPageVisit, pk=ticket.visit_id,
+                             flow_session__course=pctx.course)
+    current_visit = (FlowPageVisit.objects.filter(
+            page_data=visit.page_data, is_submitted_answer=True)
+            .order_by("-visit_time", "-pk").first())
+    result: AsyncResult[AIGradeDraftTaskResult] = AsyncResult(ticket.task_id)
+    task_result = result.result if result.state == states.SUCCESS else None
+    saved_grade_id = (task_result.get("grade_id")
+                      if isinstance(task_result, dict)
+                      and task_result.get("state") == "ready" else None)
+    current_grade = visit.get_most_recent_grade()
+    if (visit.flow_session.in_progress or current_visit != visit
+            or ((current_grade.pk if current_grade else None) != ticket.grade_id
+                and (saved_grade_id is None or current_grade is None
+                     or current_grade.pk != saved_grade_id))):
+        payload = {"state": "unavailable", "message": _(
+            "The submission or grade changed while drafting. "
+            "Please request a new draft.")}
+        return http.JsonResponse(payload)
+    if result.state == states.SUCCESS:
+        # The saved grade ID is only needed for the stale-result check above.
+        # The browser simply reloads the grading page when the draft is ready.
+        assert isinstance(task_result, dict)
+        payload = {"state": "ready"} if saved_grade_id is not None else task_result
+    elif result.state in {states.FAILURE, states.REVOKED}:
+        error = result.result
+        payload = {"state": "failed", "message": _(
+            "AI drafting failed. Please try again or contact "
+            "the course administrator.") + f"\n{type(error).__name__}: {error}"}
+    else:
+        payload = {"state": "pending"}
+    response = http.JsonResponse(payload)
+    response["Cache-Control"] = "no-store"
+    return response
+
 
 @course_view
 def grade_flow_page(
@@ -346,6 +430,20 @@ def grade_flow_page(
 
     # {{{ grading form
 
+    from course.page.base import PageBaseWithHumanTextFeedback
+
+    candidate = fpctx.page
+    ai_page = (
+            candidate
+            if isinstance(candidate, PageBaseWithHumanTextFeedback)
+            and candidate.supports_ai_grading() else None)
+    may_draft_ai = (
+            ai_page is not None
+            and pctx.has_permission(PPerm.assign_grade)
+            and pctx.has_permission(PPerm.use_ai_drafting)
+            and bool(pctx.course.ai_grading_api_base_url
+                and pctx.course.ai_grading_api_key
+                and pctx.course.ai_grading_model))
     grading_form: StyledFormBase | None = None
 
     if (page_expects_answer
@@ -358,46 +456,55 @@ def grade_flow_page(
             if not pctx.has_permission(PPerm.assign_grade):
                 raise PermissionDenied(_("may not assign grades"))
 
+            post_data = request.POST
+            drafting_ai = "draft_ai_grade" in post_data
+            if drafting_ai:
+                if not pctx.has_permission(PPerm.use_ai_drafting):
+                    raise PermissionDenied(_("may not draft AI grades"))
+                if ai_page is None:
+                    raise SuspiciousOperation(_("Page does not support AI grading."))
+
+                if (post_data.get("ai_draft_visit_id")
+                        != str(fpctx.prev_answer_visit.pk)
+                        or post_data.get("ai_draft_grade_id")
+                        != (str(shown_grade.pk) if shown_grade else "")):
+                    return http.JsonResponse({"message": _(
+                        "The displayed submission or grade is out of date. "
+                        "Please refresh the page before drafting.")}, status=409)
+
+                from course.repo import serialize_revision
+                from course.tasks import draft_ai_grade
+                result = draft_ai_grade.delay(
+                        pctx.course.pk, fpctx.prev_answer_visit.pk,
+                        serialize_revision(fpctx.page_context.commit_sha),
+                        shown_grade.pk if shown_grade else None,
+                        initiated_by_id=request.user.pk)
+                ticket_data = AIGradeDraftTicket(
+                    task_id=result.id,
+                    user_id=not_none(request.user.pk),
+                    course_id=pctx.course.pk,
+                    visit_id=fpctx.prev_answer_visit.pk,
+                    grade_id=shown_grade.pk if shown_grade else None,
+                )
+                ticket = signing.dumps(ticket_data.model_dump(),
+                                       salt=AI_DRAFT_TICKET_SALT)
+                response = http.JsonResponse({"ticket": ticket})
+                response["Cache-Control"] = "no-store"
+                return response
+
             grading_form = fpctx.page.post_grading_form(
                     fpctx.page_context, fpctx.page_data, grade_data,
-                    request.POST, request.FILES)
+                    post_data, request.FILES)
             if grading_form.is_valid():
                 grade_data = fpctx.page.update_grade_data_from_grading_form_v2(
                         request,
                         fpctx.page_context, fpctx.page_data, grade_data,
                         grading_form, request.FILES)
-                from course.utils import LanguageOverride
-                with LanguageOverride(pctx.course):
-                    feedback = fpctx.page.grade(
-                            fpctx.page_context, fpctx.page_data.data,
-                            answer_data, grade_data)
-
-                if feedback is not None:
-                    correctness = feedback.correctness
-                else:
-                    correctness = None
-
-                feedback_json: dict[str, Any] | None = None
-                bulk_feedback_json: dict[str, Any] | None = None
-
-                if feedback is not None:
-                    feedback_json, bulk_feedback_json = feedback.as_json()
-                else:
-                    feedback_json = bulk_feedback_json = None
-
-                most_recent_grade = FlowPageVisitGrade(
-                        visit=fpctx.prev_answer_visit,
-                        grader=pctx.request.user,
-                        graded_at_git_commit_sha=serialize_revision(pctx.course_commit_sha),
-
-                        grade_data=grade_data,
-
-                        max_points=fpctx.page.max_points(fpctx.page_data),
-                        correctness=correctness,
-                        feedback=feedback_json)
-
-                prev_grade_id = _save_grade(fpctx, flow_session, most_recent_grade,
-                        bulk_feedback_json, now_datetime)
+                most_recent_grade = _save_grade(
+                        fpctx, flow_session, grade_data,
+                        not_none(pctx.request.user.pk), now_datetime)
+                feedback = get_feedback_for_grade(most_recent_grade)
+                prev_grade_id = most_recent_grade.pk
         else:
             grading_form = fpctx.page.make_grading_form(
                     fpctx.page_context, fpctx.page_data, grade_data)
@@ -414,6 +521,12 @@ def grade_flow_page(
                 Submit(
                     "submit", _("Submit"),
                     css_class="relate-grading-save-button"))
+
+        if may_draft_ai:
+            grading_form.helper.add_input(Submit(
+                    "draft_ai_grade", _("Draft with AI"),
+                    css_class="btn-secondary relate-ai-draft-button",
+                    formnovalidate="formnovalidate"))
 
         grading_form_html = fpctx.page.grading_form_to_html(
                 pctx.request, fpctx.page_context, grading_form, grade_data)
@@ -470,6 +583,9 @@ def grade_flow_page(
                 "prev_flow_session_id": prev_flow_session_id,
                 "next_flow_session_id": next_flow_session_id,
 
+                "ai_draft_visit_id": (fpctx.prev_answer_visit.pk
+                    if fpctx.prev_answer_visit else None),
+                "ai_draft_grade_id": shown_grade.pk if shown_grade else None,
                 "grading_form": grading_form,
                 "grading_form_html": grading_form_html,
                 "correct_answer": fpctx.page.page_correct_answer(
@@ -478,29 +594,35 @@ def grade_flow_page(
             })
 
 
-@retry_transaction_decorator()
 def _save_grade(
         fpctx: FlowPageContext,
         flow_session: FlowSession,
-        most_recent_grade: FlowPageVisitGrade,
-        bulk_feedback_json: Any,
+        grade_data: GradeData,
+        grader_id: int,
         now_datetime: datetime.datetime,
-        ) -> int:
-    most_recent_grade.save()
-    most_recent_grade_id = most_recent_grade.id
-
-    update_bulk_feedback(
-            fpctx.prev_answer_visit.page_data,
-            most_recent_grade,
-            bulk_feedback_json)
-
-    grading_rule = get_session_grading_mode(
-            flow_session, fpctx.flow_desc, now_datetime)
-
+        ) -> FlowPageVisitGrade:
+    """Evaluate first, then store the grade and recompute its session atomically."""
     from course.flow import grade_flow_session
-    grade_flow_session(fpctx, flow_session, grading_rule)
+    from course.grade_storage import evaluate_grade, persist_evaluated_grade
 
-    return most_recent_grade_id
+    assert fpctx.page is not None
+    assert fpctx.page_context is not None
+
+    visit = not_none(fpctx.prev_answer_visit)
+    page_context = fpctx.page_context
+    evaluated = evaluate_grade(visit, fpctx.page, page_context, grade_data)
+
+    @retry_transaction_decorator()
+    def store_grade_and_update_session() -> FlowPageVisitGrade:
+        grade = persist_evaluated_grade(
+                visit, page_context, grade_data, evaluated, grader_id=grader_id)
+
+        grading_rule = get_session_grading_mode(
+                flow_session, fpctx.flow_desc, now_datetime)
+        grade_flow_session(fpctx, flow_session, grading_rule)
+        return grade
+
+    return store_grade_and_update_session()
 
 # }}}
 
@@ -519,7 +641,8 @@ def show_grader_statistics(pctx, flow_id):
 
                 # There are just way too many autograder grades, which makes this
                 # report super slow.
-                grader__isnull=False)
+                grader__isnull=False,
+                ai_generated_by__isnull=True)
             .order_by(
                 "visit__id",
                 "grade_time")

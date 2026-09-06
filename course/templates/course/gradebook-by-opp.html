@@ -45,6 +45,10 @@
     <tr>
       <td>{% trans "Operations" %}</td>
       <td>
+        {% if pperm.use_ai_drafting and pperm.assign_grade %}
+          <a class="btn btn-secondary" role="button"
+            href="{% url "relate-ai_grade_by_opportunity" course.identifier opportunity.id %}">{% trans "AI-draft grades" %}</a>
+        {% endif %}
         <a class="btn btn-secondary" role="button"
           href="{% url "relate-flow_analytics" course.identifier opportunity.flow_id %}">{% trans "View analytics" %}</a>
         {% if pperm.view_grader_stats %}

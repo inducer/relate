@@ -1430,6 +1430,7 @@ class EditCourseForm(StyledModelForm):
         widgets = {
                 "start_date": HTML5DateInput(),
                 "end_date": HTML5DateInput(),
+                "ai_grading_api_key": forms.PasswordInput(render_value=True),
                 "force_lang": forms.Select(
                     choices=get_course_specific_language_choices()),
                 }

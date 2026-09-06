@@ -144,7 +144,8 @@ class CourseAdminForm(forms.ModelForm):
     class Meta:
         model = Course
         widgets = {
-                "course_xmpp_password": UnsafePasswordInput
+                "course_xmpp_password": UnsafePasswordInput,
+                "ai_grading_api_key": forms.PasswordInput(render_value=True),
                 }
         exclude = ()
 

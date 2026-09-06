@@ -24,14 +24,56 @@ THE SOFTWARE.
 """
 
 import pytest
+from django import forms
 from django.contrib.admin import site
 from django.test import RequestFactory, TestCase
 from django.utils.timezone import now
 
-from course import admin, constants, models
+from course import admin, constants, models, views
 from tests import factories
 from tests.base_test_mixins import AdminTestMixin
 from tests.constants import QUIZ_FLOW_ID
+
+
+@pytest.mark.parametrize("form_class", [admin.CourseAdminForm, views.EditCourseForm])
+def test_course_api_key_password_widget(form_class: type[forms.ModelForm]):
+    course = models.Course(ai_grading_api_key="test-api-key")
+    form = form_class(instance=course)
+    field = form["ai_grading_api_key"]
+
+    assert isinstance(field.field.widget, forms.PasswordInput)
+    assert 'type="password"' in str(field)
+    assert 'value="test-api-key"' in str(field)
+    bound_form = form_class(
+        data={"ai_grading_api_key": "test-api-key"}, instance=course)
+    assert "ai_grading_api_key" not in bound_form.changed_data
+
+
+@pytest.mark.parametrize("form_class", [admin.CourseAdminForm, views.EditCourseForm])
+@pytest.mark.parametrize("parameters", [
+    {"reasoning_effort": "high"}, {},
+])
+def test_course_model_parameters_json_field(
+        form_class: type[forms.ModelForm], parameters: dict):
+    course = models.Course(ai_grading_model_parameters=parameters)
+    form = form_class(instance=course)
+    field = form.fields["ai_grading_model_parameters"]
+    assert isinstance(field, forms.JSONField)
+    assert field.clean(form["ai_grading_model_parameters"].value()) == parameters
+
+
+@pytest.mark.parametrize("parameters", [[], "high", {"messages": []}])
+def test_course_rejects_invalid_model_parameters(parameters: object):
+    from django.core.exceptions import ValidationError
+    course = models.Course(ai_grading_model_parameters=parameters)
+    with pytest.raises(ValidationError, match="AI grading model parameters"):
+        course.clean()
+
+
+def test_course_empty_model_parameters_become_object():
+    course = models.Course(ai_grading_model_parameters=None)
+    course.clean()
+    assert course.ai_grading_model_parameters == {}
 
 
 class CourseAdminTestMixin(AdminTestMixin):
