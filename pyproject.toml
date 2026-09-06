@@ -64,6 +64,9 @@ dependencies = [
     # Hard dependency to resolve vulnerability
     # https://github.com/inducer/relate/security/dependabot/130
     "cryptography>=50.0.0",
+
+    # Used for AI-assisted grading (see doc/flow.rst, :ref:`ai-grading`).
+    "openai>=1.0,<2",
 ]
 
 [project.optional-dependencies]

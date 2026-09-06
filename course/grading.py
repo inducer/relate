@@ -33,7 +33,7 @@ from django.core.exceptions import (
     PermissionDenied,
     SuspiciousOperation,
 )
-from django.shortcuts import (  # ruff:ignore[unused-import]
+from django.shortcuts import (
     get_object_or_404,
     redirect,
     render,
@@ -431,6 +431,41 @@ def _save_grade(
     grade_flow_session(fpctx, flow_session, grading_rule)
 
     return most_recent_grade_id
+
+
+@course_view
+def batch_ai_grade_flow_page(
+        pctx: CoursePageContext,
+        flow_session_id: int,
+        page_ordinal: int
+        ) -> http.HttpResponse:
+    if pctx.request.method != "POST":
+        raise SuspiciousOperation("must be POST")
+
+    if not pctx.has_permission(PPerm.batch_ai_grade_flow_page):
+        raise PermissionDenied(_("may not batch AI-grade"))
+
+    page_ordinal = int(page_ordinal)
+
+    flow_session = get_object_or_404(FlowSession, id=int(flow_session_id))
+
+    if flow_session.course.pk != pctx.course.pk:
+        raise SuspiciousOperation(
+                _("Flow session not part of specified course"))
+
+    from course.flow import adjust_flow_session_page_data
+    adjust_flow_session_page_data(pctx.repo, flow_session, respect_preview=False)
+
+    from course.models import FlowPageData
+    page_data = get_object_or_404(
+            FlowPageData, flow_session=flow_session, page_ordinal=page_ordinal)
+
+    from course.tasks import ai_grade_flow_page
+    async_res = ai_grade_flow_page.delay(
+            pctx.course.id, flow_session.flow_id,
+            page_data.group_id, page_data.page_id)
+
+    return redirect("relate-monitor_task", async_res.id)
 
 # }}}
 

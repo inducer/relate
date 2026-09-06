@@ -147,7 +147,11 @@
           <td>{% trans "Graded" %}</td>
           <td>
             {% if shown_grade != None %}
-              {% if shown_grade.grader == None %}
+              {% if shown_grade.ai_generated_by %}
+                {% blocktrans trimmed with model_name=shown_grade.ai_generated_by %}
+                (AI-drafted by {{ model_name }})
+                {% endblocktrans %}
+              {% elif shown_grade.grader == None %}
                 {% trans "(autograded)" %}
               {% else %}
                 {# Translators: the grade is awarded "by" some humman grader. #}
@@ -208,6 +212,19 @@
             <a href="{% url "relate-view_flow_page" course.identifier flow_session.id page_ordinal %}">{% trans "View in flow" %}</a>
           </td>
         </tr>
+        {% if pperm.batch_ai_grade_flow_page %}
+        <tr>
+          <td>{% trans "AI grading" %}</td>
+          <td>
+            <form method="post" action="{% url "relate-batch_ai_grade_flow_page" course.identifier flow_session.id page_ordinal %}" style="display: inline">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-secondary">
+                {% trans "Draft AI grades for all submissions of this page" %}
+              </button>
+            </form>
+          </td>
+        </tr>
+        {% endif %}
       </table>
       {# }}} #}
 
