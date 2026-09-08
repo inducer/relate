@@ -123,6 +123,7 @@ class ParticipationPermission(StrEnum):
     batch_regrade_flow_session = "batch_regrade_flow_session"
     recalculate_flow_session_grade = "recalculate_flow_session_grade"
     batch_recalculate_flow_session_grade = "batch_recalculate_flow_session_grade"
+    batch_ai_grade_flow_page = "batch_ai_grade_flow_page"
 
     reopen_flow_session = "reopen_flow_session"
     grant_exception = "grant_exception"
@@ -225,6 +226,9 @@ PARTICIPATION_PERMISSION_CHOICES = (
         (ParticipationPermission.batch_recalculate_flow_session_grade,
             pgettext_lazy("Participation permission",
                 "Batch-recalculate flow session grades")),
+        (ParticipationPermission.batch_ai_grade_flow_page,
+            pgettext_lazy("Participation permission",
+                "Batch AI-draft grades for a flow page")),
 
         (ParticipationPermission.reopen_flow_session,
             pgettext_lazy("Participation permission", "Reopen flow session")),
