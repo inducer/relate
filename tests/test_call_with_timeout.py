@@ -25,23 +25,27 @@ THE SOFTWARE.
 
 import operator
 import os
+import pathlib
 import time
+from concurrent.futures import ThreadPoolExecutor
 
 import pytest
+from django.test import override_settings
 
-from relate.utils import TIMED_OUT, call_with_timeout
+import relate.call_with_timeout as timeout_module
+from relate.call_with_timeout import TIMED_OUT, call_with_timeout
 
 
-def _return_value(x):
+def _return_value(x: object):
     return x
 
 
-def _sleep_and_return(seconds, x):
+def _sleep_and_return(seconds: float, x: object):
     time.sleep(seconds)
     return x
 
 
-def _raise_value_error(msg):
+def _raise_value_error(msg: str):
     raise ValueError(msg)
 
 
@@ -49,8 +53,24 @@ def _worker_pid():
     return os.getpid()
 
 
+def _sleep_and_return_pid(seconds: float):
+    time.sleep(seconds)
+    return os.getpid()
+
+
+def _mark_started_and_sleep(marker_path: str, seconds: float):
+    pathlib.Path(marker_path).write_text(str(os.getpid()))
+    time.sleep(seconds)
+
+
 def _large_integer_calc() -> int:
     return 10000000**10000000
+
+
+@pytest.fixture(autouse=True)
+def clean_timeout_worker_pool():
+    yield
+    timeout_module._close_timeout_pool()
 
 
 class TestCallWithTimeout:
@@ -65,10 +85,49 @@ class TestCallWithTimeout:
     def test_reuses_worker(self):
         assert call_with_timeout(5, _worker_pid) == call_with_timeout(5, _worker_pid)
 
+    def test_reuses_worker_across_calling_threads(self):
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            first_pid = executor.submit(call_with_timeout, 5, _worker_pid).result()
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            second_pid = executor.submit(call_with_timeout, 5, _worker_pid).result()
+        assert first_pid == second_pid
+
+    @override_settings(RELATE_TIMEOUT_WORKER_POOL_SIZE=2)
+    def test_worker_count_is_bounded(self):
+        with ThreadPoolExecutor(max_workers=4) as executor:
+            futures = [
+                    executor.submit(call_with_timeout, 5, _sleep_and_return_pid, 0.2)
+                    for _ in range(4)
+                    ]
+        assert len({future.result() for future in futures}) == 2
+
+    @override_settings(
+            RELATE_TIMEOUT_WORKER_POOL_SIZE=1,
+            RELATE_TIMEOUT_WORKER_MAX_IDLE_SECONDS=0.1,
+            )
+    def test_idle_worker_is_retired(self):
+        first_pid = call_with_timeout(5, _worker_pid)
+        time.sleep(0.5)
+        assert call_with_timeout(5, _worker_pid) != first_pid
+
     def test_returns_timed_out_sentinel_when_slow(self):
         result = call_with_timeout(1, _sleep_and_return, 10.0, "never")
         assert result is TIMED_OUT
         assert call_with_timeout(5, _return_value, 42) == 42
+
+    def test_pool_close_while_worker_is_busy(self, tmp_path: pathlib.Path):
+        marker_path = tmp_path / "started"
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            future = executor.submit(
+                    call_with_timeout, 5, _mark_started_and_sleep,
+                    str(marker_path), 10)
+            deadline = time.monotonic() + 5
+            while not marker_path.exists():
+                assert time.monotonic() < deadline
+                time.sleep(0.01)
+
+            timeout_module._close_timeout_pool()
+            assert future.result() is TIMED_OUT
 
     def test_slow_integer_math_times_out(self):
         result = call_with_timeout(2, _large_integer_calc)

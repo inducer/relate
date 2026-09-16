@@ -74,6 +74,12 @@ TIME_ZONE = "America/Chicago"
 # apt-get install rabbitmq-server
 CELERY_BROKER_URL = "amqp://"
 
+# Symbolic-expression grading uses a bounded pool of reusable worker processes.
+# The defaults are two workers per application-server process, retired after
+# 20 minutes of inactivity.
+# RELATE_TIMEOUT_WORKER_POOL_SIZE = 2
+# RELATE_TIMEOUT_WORKER_MAX_IDLE_SECONDS = 20 * 60
+
 # Set both of these to true if serving your site exclusively via HTTPS.
 SESSION_COOKIE_SECURE = False
 CSRF_COOKIE_SECURE = False
