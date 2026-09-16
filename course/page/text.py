@@ -80,11 +80,10 @@ from course.validation import (
     ValidationContext,
     validate_nonempty,
 )
+from relate.call_with_timeout import TIMED_OUT, call_with_timeout
 from relate.utils import (
-    TIMED_OUT,
     StyledFormBase,
     StyledVerticalForm,
-    call_with_timeout,
     string_concat,
 )
 

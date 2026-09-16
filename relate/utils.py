@@ -24,14 +24,8 @@ THE SOFTWARE.
 """
 
 
-import atexit
 import datetime
-import multiprocessing
-import multiprocessing.connection
-import threading
-import time
 from abc import ABC
-from dataclasses import dataclass
 from ipaddress import IPv4Address, IPv6Address, ip_address, ip_network
 from typing import (
     TYPE_CHECKING,
@@ -45,7 +39,7 @@ from django import forms
 from django.http import HttpRequest
 from django.utils.text import format_lazy
 from django.utils.translation import gettext_lazy as _
-from typing_extensions import Sentinel, TypeIs, deprecated, override
+from typing_extensions import TypeIs, deprecated, override
 
 
 if TYPE_CHECKING:
@@ -305,206 +299,6 @@ class retry_transaction_decorator:  # ruff:ignore[invalid-class-name]
 
         update_wrapper(wrapper, f)
         return wrapper
-
-
-# {{{ call with timeout
-
-TIMED_OUT = Sentinel("TIMED_OUT")
-
-
-@dataclass(frozen=True)
-class _RaisedException:
-    exc_value: Exception
-
-
-# 'spawn' avoids inheriting the WSGI process's database connections.
-MP_CONTEXT = multiprocessing.get_context("spawn")
-
-
-def _call_with_timeout_worker(
-            conn: multiprocessing.connection.Connection,
-        ) -> None:
-    from django.db import connections
-    connections.close_all()
-
-    try:
-        while True:
-            job = conn.recv()
-            if job is None:
-                return
-
-            f, args, kwargs = job
-            try:
-                conn.send(f(*args, **kwargs))
-            except Exception as exc:
-                conn.send(_RaisedException(exc))
-    except EOFError:
-        pass
-    finally:
-        conn.close()
-
-
-_WORKER_CONNECTION_CLOSED = object()
-
-
-class _TimeoutWorker:
-    def __init__(self) -> None:
-        self.conn: Any | None = None
-        self.process: Any | None = None
-        self.result: Any = _WORKER_CONNECTION_CLOSED
-        self.result_ready: threading.Event = threading.Event()
-        self.receiver: threading.Thread | None = None
-
-    def _receive_results(
-                self, conn: multiprocessing.connection.Connection) -> None:
-        while True:
-            try:
-                self.result = conn.recv()
-            except (EOFError, OSError):
-                self.result = _WORKER_CONNECTION_CLOSED
-                self.result_ready.set()
-                return
-            else:
-                self.result_ready.set()
-
-    def start(self) -> None:
-        parent_conn, child_conn = MP_CONTEXT.Pipe()
-        process = MP_CONTEXT.Process(
-                target=_call_with_timeout_worker,
-                args=(child_conn,),
-                daemon=True)
-        process.start()
-        child_conn.close()
-        self.conn = parent_conn
-        self.process = process
-        self.receiver = threading.Thread(
-                target=self._receive_results, args=(parent_conn,), daemon=True)
-        self.receiver.start()
-
-    def is_alive(self) -> bool:
-        return (
-                self.conn is not None
-                and self.process is not None
-                and self.process.is_alive())
-
-    def dispatch(self, job: tuple[Any, tuple[Any, ...], dict[str, Any]]) -> None:
-        assert self.conn is not None
-        self.result = _WORKER_CONNECTION_CLOSED
-        self.result_ready.clear()
-        self.conn.send(job)
-
-    def close(self) -> None:
-        if self.conn is not None:
-            try:
-                self.conn.send(None)
-            except (BrokenPipeError, EOFError, OSError):
-                pass
-            self.conn.close()
-            self.conn = None
-
-        if self.process is not None:
-            self.process.join(timeout=1)
-            if self.process.is_alive():
-                self.process.kill()
-                self.process.join()
-            self.process = None
-
-    def kill(self) -> None:
-        if self.conn is not None:
-            self.conn.close()
-            self.conn = None
-
-        if self.process is not None:
-            if self.process.is_alive():
-                self.process.kill()
-            self.process.join()
-            self.process = None
-
-
-_timeout_worker_local = threading.local()
-_timeout_workers: set[_TimeoutWorker] = set()
-_timeout_workers_lock = threading.Lock()
-
-
-def _get_timeout_worker() -> _TimeoutWorker:
-    worker = getattr(_timeout_worker_local, "worker", None)
-    if worker is not None and worker.is_alive():
-        return worker
-
-    if worker is not None:
-        worker.close()
-        with _timeout_workers_lock:
-            _timeout_workers.discard(worker)
-
-    worker = _TimeoutWorker()
-    worker.start()
-    _timeout_worker_local.worker = worker
-    with _timeout_workers_lock:
-        _timeout_workers.add(worker)
-    return worker
-
-
-def _discard_timeout_worker(worker: _TimeoutWorker) -> None:
-    worker.kill()
-    if getattr(_timeout_worker_local, "worker", None) is worker:
-        del _timeout_worker_local.worker
-    with _timeout_workers_lock:
-        _timeout_workers.discard(worker)
-
-
-def _close_timeout_workers() -> None:
-    with _timeout_workers_lock:
-        workers = list(_timeout_workers)
-        _timeout_workers.clear()
-
-    for worker in workers:
-        worker.close()
-
-
-atexit.register(_close_timeout_workers)
-
-
-def call_with_timeout(
-            timeout: int,
-            f: Callable[P, ResultT],
-            *args: P.args,
-            **kwargs: P.kwargs,
-        ) -> ResultT | TIMED_OUT:  # type: ignore[valid-type]
-    """Call *f* in a thread-local worker process.
-
-    The timeout covers worker creation, dispatch, and waiting for the result.
-    A worker that does not finish before the deadline is killed and replaced on
-    the next call from this thread. Worker startup and argument serialization
-    are synchronous and cannot be forcibly interrupted. The callable,
-    arguments, result, and any raised exception must be pickleable. Workers use
-    the ``spawn`` start method and close Django connections before accepting
-    jobs.
-    """
-    deadline = time.monotonic() + timeout
-    if timeout <= 0:
-        return TIMED_OUT
-
-    worker = _get_timeout_worker()
-    if time.monotonic() >= deadline:
-        _discard_timeout_worker(worker)
-        return TIMED_OUT
-
-    try:
-        worker.dispatch((f, args, kwargs))
-        remaining = deadline - time.monotonic()
-        if remaining > 0 and worker.result_ready.wait(remaining):
-            result = worker.result
-            if isinstance(result, _RaisedException):
-                raise result.exc_value
-            if result is not _WORKER_CONNECTION_CLOSED:
-                return result
-    except (BrokenPipeError, EOFError, OSError):
-        pass
-
-    _discard_timeout_worker(worker)
-    return TIMED_OUT
-
-# }}}
 
 
 # {{{ hang debugging
