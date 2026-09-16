@@ -197,7 +197,9 @@ Additional Setup Steps for Deploying to Production
 Starting the app server
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-The following should be in :file:`"/etc/systemd/system/relate.service"` (or similar)::
+The following should be in :file:`"/etc/systemd/system/relate.service"`.
+The file contains example values for a deployment on a VM with 16 GiB of RAM,
+adapt as needed::
 
     [Unit]
     Description=RELATE via Granian
@@ -210,10 +212,33 @@ The following should be in :file:`"/etc/systemd/system/relate.service"` (or simi
 
     WorkingDirectory=/home/andreas/relate
 
+    KillMode=control-group
+    SendSIGKILL=yes
+    TimeoutStopSec=30s
+
+    # Example aggregate limits for the entire service cgroup, including the
+    # Granian master, workers, timeout helper processes, and transient workers
+    # during respawn. Size these based on observed MemoryCurrent/MemoryPeak and
+    # the memory available on the host. These are not equivalent to
+    # GRANIAN_WORKERS_MAX_RSS multiplied by GRANIAN_WORKERS.
+    MemoryHigh=8000M
+    MemoryMax=9000M
+    OOMPolicy=kill
+    Restart=on-failure
+    RestartSec=5s
+
+    # Includes every process and thread in the unit. With four WSGI blocking
+    # threads per Granian worker, this leaves headroom for Granian runtime
+    # threads, timeout helpers, and worker replacement. Verify this limit under
+    # load using the service's TasksCurrent value.
+    TasksMax=512
+
     Environment="GRANIAN_HOST=127.0.0.1"
     Environment="GRANIAN_PORT=8123"
-    Environment="GRANIAN_WORKERS=16"
+    Environment="GRANIAN_WORKERS=12"
+    Environment="GRANIAN_BLOCKING_THREADS=4"
     Environment="GRANIAN_WORKERS_MAX_RSS=500"
+    Environment="GRANIAN_WORKERS_KILL_TIMEOUT=30"
     Environment="GRANIAN_INTERFACE=wsgi"
     Environment="GRANIAN_RESPAWN_FAILED_WORKERS=true"
 
