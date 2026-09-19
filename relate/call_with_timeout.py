@@ -452,26 +452,39 @@ def _close_timeout_pool() -> None:
 atexit.register(_close_timeout_pool)
 
 
-def call_with_timeout(
+def _can_start_timeout_worker_processes() -> bool:
+    # Python prohibits daemonic processes, including Celery's default prefork
+    # worker processes, from creating child processes.
+    return not multiprocessing.current_process().daemon
+
+
+def call_with_timeout_if_safe(
             timeout: int,
             f: Callable[P, ResultT],
             *args: P.args,
             **kwargs: P.kwargs,
         ) -> ResultT | TIMED_OUT:  # type: ignore[valid-type]
-    """Call *f* in a reusable worker process with a deadline.
+    """Call *f* with a process-based timeout when it is safe to do so.
 
-    Workers are shared by all threads in the current process and bounded by
-    ``RELATE_TIMEOUT_WORKER_POOL_SIZE``. The deadline includes waiting for a
-    worker, worker creation, dispatch, and execution. Worker startup and
-    argument serialization are synchronous and cannot be forcibly interrupted.
-    A worker that exceeds the deadline or loses its connection is killed rather
-    than returned to the pool. Idle workers are retired after
+    If the current process is not allowed to create child processes, as is the
+    case for Celery's default prefork workers, call *f* synchronously in the
+    current process. The timeout is not enforced in that fallback mode.
+
+    Otherwise, workers are shared by all threads in the current process and
+    bounded by ``RELATE_TIMEOUT_WORKER_POOL_SIZE``. The deadline includes
+    waiting for a worker, worker creation, dispatch, and execution. Worker
+    startup and argument serialization are synchronous and cannot be forcibly
+    interrupted. A worker that exceeds the deadline or loses its connection is
+    killed rather than returned to the pool. Idle workers are retired after
     ``RELATE_TIMEOUT_WORKER_MAX_IDLE_SECONDS``. Callables, arguments, results,
-    and raised exceptions must be pickleable.
+    and raised exceptions must be pickleable when the worker pool is used.
 
-    In order to reliably avoid process leakage, the callable *f* must
-    not launch subprocesses.
+    In order to reliably avoid process leakage, the callable *f* must not
+    launch subprocesses when the worker pool is used.
     """
+    if not _can_start_timeout_worker_processes():
+        return f(*args, **kwargs)
+
     deadline = time.monotonic() + timeout
     if timeout <= 0:
         return TIMED_OUT
