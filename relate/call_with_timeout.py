@@ -250,10 +250,6 @@ class _TimeoutWorkerPool:
             with self._condition:
                 while self._available:
                     worker = self._available.pop()
-                    if worker.last_used <= time.monotonic() - self.max_idle_seconds:
-                        self._workers.discard(worker)
-                        worker.close()
-                        continue
                     if worker.is_alive():
                         return worker
                     self._workers.discard(worker)
