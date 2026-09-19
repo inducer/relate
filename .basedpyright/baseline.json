@@ -470,16 +470,6 @@
                 }
             }
         ],
-        "./accounts/tests.py": [
-            {
-                "code": "reportUnusedImport",
-                "range": {
-                    "startColumn": 24,
-                    "endColumn": 32,
-                    "lineCount": 1
-                }
-            }
-        ],
         "./accounts/utils.py": [
             {
                 "code": "reportPrivateLocalImportUsage",
@@ -3398,14 +3388,6 @@
                 "range": {
                     "startColumn": 8,
                     "endColumn": 13,
-                    "lineCount": 1
-                }
-            },
-            {
-                "code": "reportUnusedImport",
-                "range": {
-                    "startColumn": 15,
-                    "endColumn": 31,
                     "lineCount": 1
                 }
             }
@@ -7994,14 +7976,6 @@
                 }
             },
             {
-                "code": "reportUnusedImport",
-                "range": {
-                    "startColumn": 58,
-                    "endColumn": 64,
-                    "lineCount": 1
-                }
-            },
-            {
                 "code": "reportArgumentType",
                 "range": {
                     "startColumn": 38,
@@ -9783,14 +9757,6 @@
                 "code": "reportUnknownVariableType",
                 "range": {
                     "startColumn": 12,
-                    "endColumn": 20,
-                    "lineCount": 1
-                }
-            },
-            {
-                "code": "reportUnknownVariableType",
-                "range": {
-                    "startColumn": 12,
                     "endColumn": 24,
                     "lineCount": 1
                 }
@@ -9856,14 +9822,6 @@
                 "range": {
                     "startColumn": 16,
                     "endColumn": 41,
-                    "lineCount": 1
-                }
-            },
-            {
-                "code": "reportUnknownVariableType",
-                "range": {
-                    "startColumn": 16,
-                    "endColumn": 24,
                     "lineCount": 1
                 }
             },
@@ -13012,14 +12970,6 @@
         ],
         "./course/grading.py": [
             {
-                "code": "reportUnusedImport",
-                "range": {
-                    "startColumn": 48,
-                    "endColumn": 56,
-                    "lineCount": 1
-                }
-            },
-            {
                 "code": "reportUnknownParameterType",
                 "range": {
                     "startColumn": 37,
@@ -13778,30 +13728,6 @@
                 "range": {
                     "startColumn": 5,
                     "endColumn": 24,
-                    "lineCount": 1
-                }
-            },
-            {
-                "code": "reportUnusedImport",
-                "range": {
-                    "startColumn": 29,
-                    "endColumn": 46,
-                    "lineCount": 1
-                }
-            },
-            {
-                "code": "reportUnusedImport",
-                "range": {
-                    "startColumn": 58,
-                    "endColumn": 64,
-                    "lineCount": 1
-                }
-            },
-            {
-                "code": "reportUnusedImport",
-                "range": {
-                    "startColumn": 4,
-                    "endColumn": 10,
                     "lineCount": 1
                 }
             },
@@ -14797,22 +14723,6 @@
             }
         ],
         "./course/models.py": [
-            {
-                "code": "reportUnusedImport",
-                "range": {
-                    "startColumn": 4,
-                    "endColumn": 23,
-                    "lineCount": 1
-                }
-            },
-            {
-                "code": "reportUnusedImport",
-                "range": {
-                    "startColumn": 4,
-                    "endColumn": 19,
-                    "lineCount": 1
-                }
-            },
             {
                 "code": "reportMissingTypeStubs",
                 "range": {
@@ -19758,16 +19668,6 @@
                 }
             }
         ],
-        "./course/tests.py": [
-            {
-                "code": "reportUnusedImport",
-                "range": {
-                    "startColumn": 24,
-                    "endColumn": 32,
-                    "lineCount": 1
-                }
-            }
-        ],
         "./course/utils.py": [
             {
                 "code": "reportUnknownMemberType",
@@ -21946,14 +21846,6 @@
         ],
         "./local_settings_example.py": [
             {
-                "code": "reportUnusedImport",
-                "range": {
-                    "startColumn": 37,
-                    "endColumn": 49,
-                    "lineCount": 1
-                }
-            },
-            {
                 "code": "reportMissingTypeStubs",
                 "range": {
                     "startColumn": 11,
@@ -22174,16 +22066,6 @@
                 "range": {
                     "startColumn": 58,
                     "endColumn": 74,
-                    "lineCount": 1
-                }
-            }
-        ],
-        "./relate/__init__.py": [
-            {
-                "code": "reportUnusedImport",
-                "range": {
-                    "startColumn": 31,
-                    "endColumn": 41,
                     "lineCount": 1
                 }
             }
@@ -23177,22 +23059,6 @@
                 "code": "reportUnknownMemberType",
                 "range": {
                     "startColumn": 8,
-                    "endColumn": 28,
-                    "lineCount": 1
-                }
-            },
-            {
-                "code": "reportUnknownArgumentType",
-                "range": {
-                    "startColumn": 8,
-                    "endColumn": 28,
-                    "lineCount": 1
-                }
-            },
-            {
-                "code": "reportUnknownMemberType",
-                "range": {
-                    "startColumn": 8,
                     "endColumn": 41,
                     "lineCount": 1
                 }
@@ -23644,14 +23510,6 @@
                 "range": {
                     "startColumn": 48,
                     "endColumn": 55,
-                    "lineCount": 1
-                }
-            },
-            {
-                "code": "reportUnnecessaryComparison",
-                "range": {
-                    "startColumn": 15,
-                    "endColumn": 47,
                     "lineCount": 1
                 }
             },
@@ -36887,14 +36745,6 @@
             }
         ],
         "./tests/constants.py": [
-            {
-                "code": "reportUnusedImport",
-                "range": {
-                    "startColumn": 29,
-                    "endColumn": 57,
-                    "lineCount": 1
-                }
-            },
             {
                 "code": "reportUnknownParameterType",
                 "range": {
@@ -52534,14 +52384,6 @@
                 }
             },
             {
-                "code": "reportUnusedImport",
-                "range": {
-                    "startColumn": 42,
-                    "endColumn": 47,
-                    "lineCount": 1
-                }
-            },
-            {
                 "code": "reportUnknownMemberType",
                 "range": {
                     "startColumn": 31,
@@ -53055,14 +52897,6 @@
             }
         ],
         "./tests/test_enrollment.py": [
-            {
-                "code": "reportUnusedImport",
-                "range": {
-                    "startColumn": 30,
-                    "endColumn": 47,
-                    "lineCount": 1
-                }
-            },
             {
                 "code": "reportUnknownParameterType",
                 "range": {
@@ -74558,30 +74392,6 @@
         ],
         "./tests/test_postgres.py": [
             {
-                "code": "reportUnusedImport",
-                "range": {
-                    "startColumn": 24,
-                    "endColumn": 44,
-                    "lineCount": 1
-                }
-            },
-            {
-                "code": "reportUnusedImport",
-                "range": {
-                    "startColumn": 46,
-                    "endColumn": 64,
-                    "lineCount": 1
-                }
-            },
-            {
-                "code": "reportUnusedImport",
-                "range": {
-                    "startColumn": 66,
-                    "endColumn": 70,
-                    "lineCount": 1
-                }
-            },
-            {
                 "code": "reportUnknownMemberType",
                 "range": {
                     "startColumn": 8,
@@ -74878,40 +74688,6 @@
                 "range": {
                     "startColumn": 12,
                     "endColumn": 28,
-                    "lineCount": 1
-                }
-            }
-        ],
-        "./tests/test_relate_utils.py": [
-            {
-                "code": "reportMissingParameterType",
-                "range": {
-                    "startColumn": 18,
-                    "endColumn": 19,
-                    "lineCount": 1
-                }
-            },
-            {
-                "code": "reportMissingParameterType",
-                "range": {
-                    "startColumn": 22,
-                    "endColumn": 29,
-                    "lineCount": 1
-                }
-            },
-            {
-                "code": "reportMissingParameterType",
-                "range": {
-                    "startColumn": 31,
-                    "endColumn": 32,
-                    "lineCount": 1
-                }
-            },
-            {
-                "code": "reportMissingParameterType",
-                "range": {
-                    "startColumn": 23,
-                    "endColumn": 26,
                     "lineCount": 1
                 }
             }
@@ -79000,14 +78776,6 @@
                 "range": {
                     "startColumn": 8,
                     "endColumn": 41,
-                    "lineCount": 1
-                }
-            },
-            {
-                "code": "reportUnknownMemberType",
-                "range": {
-                    "startColumn": 8,
-                    "endColumn": 38,
                     "lineCount": 1
                 }
             },
@@ -86207,14 +85975,6 @@
             }
         ],
         "./tests/utils.py": [
-            {
-                "code": "reportUnusedImport",
-                "range": {
-                    "startColumn": 21,
-                    "endColumn": 25,
-                    "lineCount": 1
-                }
-            },
             {
                 "code": "reportUnannotatedClassAttribute",
                 "range": {
