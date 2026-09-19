@@ -80,7 +80,7 @@ from course.validation import (
     ValidationContext,
     validate_nonempty,
 )
-from relate.call_with_timeout import TIMED_OUT, call_with_timeout
+from relate.call_with_timeout import TIMED_OUT, call_with_timeout_if_safe
 from relate.utils import (
     StyledFormBase,
     StyledVerticalForm,
@@ -455,7 +455,8 @@ class SymbolicExpressionMatcher(TextAnswerMatcher):
             return AnswerFeedback(0)
 
         try:
-            result = call_with_timeout(10, sympy_check_equality, s, str(self.value))
+            result = call_with_timeout_if_safe(
+                    10, sympy_check_equality, s, str(self.value))
         except Exception as e:
             return AnswerFeedback(None,
                 gettext("An exception occurred while evaluating the answer: %s (%s)")
@@ -519,7 +520,7 @@ class FloatMatcher(TextAnswerMatcher):
     @override
     def grade(self, s: str):
         try:
-            answer_float = call_with_timeout(10, float_or_sympy_evalf, s)
+            answer_float = call_with_timeout_if_safe(10, float_or_sympy_evalf, s)
         except Exception as e:
             return AnswerFeedback(None,
                 gettext("An exception occurred while evaluating the answer: %s (%s)")
