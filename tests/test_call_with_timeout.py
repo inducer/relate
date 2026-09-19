@@ -106,9 +106,20 @@ class TestCallWithTimeout:
             RELATE_TIMEOUT_WORKER_MAX_IDLE_SECONDS=0.1,
             )
     def test_idle_worker_is_retired(self):
-        first_pid = call_with_timeout(5, _worker_pid)
-        time.sleep(0.5)
-        assert call_with_timeout(5, _worker_pid) != first_pid
+        call_with_timeout(5, _worker_pid)
+        pool = timeout_module._get_timeout_pool()
+
+        with pool._condition:
+            [worker] = pool._available
+            assert pool._condition.wait_for(
+                lambda: worker not in pool._workers,
+                timeout=5,
+            )
+
+        assert not worker.is_alive()
+
+        # A retired worker can be replaced for the next request.
+        assert call_with_timeout(5, _worker_pid) is not TIMED_OUT
 
     def test_returns_timed_out_sentinel_when_slow(self):
         result = call_with_timeout(1, _sleep_and_return, 10.0, "never")
