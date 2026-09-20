@@ -1,0 +1,18 @@
+{% extends "course/course-base.html" %}
+{% load i18n %}
+
+{% block title %}
+  {% trans "Delete Participation Tag" %} - {{ relate_site_name }}
+{% endblock %}
+
+{% block content %}
+  <h1>{% trans "Delete Participation Tag" %}</h1>
+
+  <p>{% blocktrans with name=participation_tag.name %}Are you sure you want to delete the participation tag "{{ name }}"?{% endblocktrans %}</p>
+
+  <form method="post">
+    {% csrf_token %}
+    <a href="{% url "relate-list_participation_tags" course.identifier %}" class="btn btn-secondary">{% trans "Cancel" %}</a>
+    <button type="submit" class="btn btn-danger">{% trans "Delete" %}</button>
+  </form>
+{% endblock %}

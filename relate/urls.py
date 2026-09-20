@@ -302,6 +302,26 @@ urlpatterns = [
         "/$",
         course.enrollment.edit_participation,
         name="relate-edit_participation"),
+    re_path(r"^course"
+        "/" + COURSE_ID_REGEX
+        + "/participation-tags"
+        "/$",
+        course.enrollment.list_participation_tags,
+        name="relate-list_participation_tags"),
+    re_path(r"^course"
+        "/" + COURSE_ID_REGEX
+        + "/edit-participation-tag"
+         "/(?P<tag_id>[-0-9]+)"
+        "/$",
+        course.enrollment.edit_participation_tag,
+        name="relate-edit_participation_tag"),
+    re_path(r"^course"
+        "/" + COURSE_ID_REGEX
+        + "/delete-participation-tag"
+         "/(?P<tag_id>[0-9]+)"
+        "/$",
+        course.enrollment.delete_participation_tag,
+        name="relate-delete_participation_tag"),
 
     # }}}
 

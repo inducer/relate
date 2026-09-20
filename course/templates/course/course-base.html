@@ -144,7 +144,7 @@
     </li>
   {% endif %}
 
-  {% if pperm.query_participation or pperm.manage_instant_flow_requests or pperm.preapprove_participation %}
+  {% if pperm.query_participation or pperm.manage_instant_flow_requests or pperm.preapprove_participation or pperm.edit_participation %}
     {% if not pperm.view_participant_masked_profile %}
       <li class="nav-item relate-dropdown-menu">
         <a href="#" id="dropdownInstructorMenu" data-bs-toggle="dropdown" aria-expanded="false">
@@ -157,6 +157,9 @@
           {% endif %}
           {% if pperm.query_participation %}
             <li><a class="dropdown-item" href="{% url "relate-query_participations" course.identifier %}">{% trans "Query participations" context "menu item" %}</a></li>
+          {% endif %}
+          {% if pperm.edit_participation %}
+            <li><a class="dropdown-item" href="{% url "relate-list_participation_tags" course.identifier %}">{% trans "Manage participation tags" context "menu item" %}</a></li>
           {% endif %}
 
           {% if pperm.manage_instant_flow_requests %}
