@@ -168,6 +168,13 @@ class FileUploadQuestion(PageBaseWithTitle, PageBaseWithValue,
 
         Required.
         The grading guideline for this question, in :ref:`markup`.
+
+    .. attribute:: grading_prompt
+
+        Optional.
+        A prompt instructing an AI grading assistant how to grade this
+        question, in :ref:`markup` (see :ref:`ai-grading`). If not given, a
+        generic grading prompt derived from the rubric is used.
     """
 
     type: Literal["FileUploadQuestion"]  = "FileUploadQuestion"  # pyright: ignore[reportIncompatibleVariableOverride]

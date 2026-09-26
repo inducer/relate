@@ -1075,6 +1075,13 @@ class HumanGradedTextQuestion(TextQuestionBase, PageBaseWithValue,
 
         Required.
         The grading guideline for this question, in :ref:`markup`.
+
+    .. attribute:: grading_prompt
+
+        Optional.
+        A prompt instructing an AI grading assistant how to grade this
+        question, in :ref:`markup` (see :ref:`ai-grading`). If not given, a
+        generic grading prompt derived from the rubric is used.
     """
     type: Literal["HumanGradedTextQuestion"] = "HumanGradedTextQuestion"  # pyright: ignore[reportIncompatibleVariableOverride]
 
@@ -1153,6 +1160,13 @@ class HumanGradedRichTextQuestion(PageBaseWithValue, PageBaseWithTitle,
 
         Required.
         The grading guideline for this question, in :ref:`markup`.
+
+    .. attribute:: grading_prompt
+
+        Optional.
+        A prompt instructing an AI grading assistant how to grade this
+        question, in :ref:`markup` (see :ref:`ai-grading`). If not given, a
+        generic grading prompt derived from the rubric is used.
     """
     type: Literal["HumanGradedRichTextQuestion"] = "HumanGradedRichTextQuestion"  # pyright: ignore[reportIncompatibleVariableOverride]
 
