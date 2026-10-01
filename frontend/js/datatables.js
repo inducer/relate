@@ -1,13 +1,13 @@
 import './base';
 
 import datatables from 'datatables.net';
-import datatablesBs from 'datatables.net-bs5/js/dataTables.bootstrap5';
+import datatablesBs from 'datatables.net-bs5/js/dataTables.bootstrap5.js';
 import jQuery from 'jquery';
 import 'datatables.net-bs5/css/dataTables.bootstrap5.css';
 
-import datatablesFixedColumns from 'datatables.net-fixedcolumns/js/dataTables.fixedColumns';
+import datatablesFixedColumns from 'datatables.net-fixedcolumns/js/dataTables.fixedColumns.js';
 import 'datatables.net-fixedcolumns-bs5/css/fixedColumns.bootstrap5.css';
-import 'datatables.net-fixedcolumns-bs5/js/fixedColumns.bootstrap5';
+import 'datatables.net-fixedcolumns-bs5/js/fixedColumns.bootstrap5.js';
 
 import language_ar from 'datatables.net-plugins/i18n/ar.mjs';
 import language_az_AZ from 'datatables.net-plugins/i18n/az-AZ.mjs';
