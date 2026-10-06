@@ -26,6 +26,7 @@ THE SOFTWARE.
 import os
 from abc import ABC, abstractmethod
 from typing import (
+    TYPE_CHECKING,
     Annotated,
     Any,
     Literal,
@@ -68,6 +69,14 @@ from course.page.code_run_backend import RunRequest, RunResponse
 from course.repo import FileSystemFakeRepo, get_repo_blob
 from course.validation import IdentifierStr, Markup, RepoPathStr, get_validation_context
 from relate.utils import StyledVerticalForm, string_concat
+
+
+if TYPE_CHECKING:
+    import socket
+    from collections.abc import Callable
+
+    import docker
+    from docker.models.containers import Container
 
 
 # DEBUGGING SWITCH:
@@ -211,18 +220,12 @@ def request_run(
             run_timeout: float,
             image: str | None = None
         ) -> RunResponse:
-    import errno
-    import http.client as http_client
-
-    import docker
-    from docker.errors import APIError as DockerAPIError
-
     debug = False
     if debug:
-        def debug_print(s):
+        def debug_print(s: object) -> None:
             print(s)
     else:
-        def debug_print(s):
+        def debug_print(s: object) -> None:
             pass
 
     command_path = "/opt/runcode/runcode"
@@ -236,6 +239,9 @@ def request_run(
         image = not_none(settings.RELATE_DOCKER_RUNPY_IMAGE)
 
     if SPAWN_CONTAINERS:
+        import docker
+        from docker.errors import APIError as DockerAPIError
+
         docker_url = getattr(settings, "RELATE_DOCKER_URL",
                 "unix://var/run/docker.sock")
         docker_tls = getattr(settings, "RELATE_DOCKER_TLS_CONFIG",
@@ -249,150 +255,306 @@ def request_run(
         mem_limit = 384*10**6
         container = docker_cnx.containers.create(
                 image=image,
-                command=[
-                    command_path,
-                    "-1"],
+                # The main process merely keeps the container alive.
+                # The actual work is done by an exec'd runcode process
+                # that exchanges the run request and response over its
+                # stdin/stdout, so the container needs no networking at
+                # all.
+                command=["sleep", "infinity"],
                 mem_limit=mem_limit,
                 memswap_limit=mem_limit,
-                publish_all_ports=True,
+                network_disabled=True,
                 detach=True,
                 # Do not enable: matplotlib stops working if enabled.
                 # read_only=True,
                 user=user)
 
-    else:
-        container = None
-
-    connect_host_ip = "localhost"
-
-    try:
-        # FIXME: Prohibit networking
-
-        if container is not None:
-            container.start()
-            container_props = docker_cnx.api.inspect_container(container.id)
-
-            port_infos = (container_props
-                ["NetworkSettings"]["Ports"]
-                [f"{CODE_QUESTION_CONTAINER_PORT}/tcp"])
-
-            if not port_infos:
-                raise ValueError("got empty list of container ports")
-            port_info = port_infos[0]
-
-            port_host_ip = port_info.get("HostIp")
-
-            if port_host_ip != "0.0.0.0":
-                connect_host_ip = port_host_ip
-
-            port = int(port_info["HostPort"])
-        else:
-            port = CODE_QUESTION_CONTAINER_PORT
-
-        from time import sleep, time
-        start_time = time()
-
-        # {{{ ping until response received
-
-        from traceback import format_exc
-
-        def check_timeout():
-            if time() - start_time < DOCKER_TIMEOUT:
-                sleep(0.1)
-                # and retry
-            else:
-                return RunResponse(
-                        result="uncaught_error",
-                        message="Timeout waiting for container.",
-                        traceback="".join(format_exc()),
-                        exec_host=connect_host_ip,
-                        )
-
-        if not connect_host_ip:
-            # for compatibility with podman
-            connect_host_ip = "localhost"
-
-        while True:
-            try:
-                connection = http_client.HTTPConnection(connect_host_ip, port)
-
-                connection.request("GET", "/ping")
-
-                response = connection.getresponse()
-                response_data = response.read().decode()
-
-                if response_data != "OK":
-                    raise InvalidPingResponse()
-
-                break
-
-            except (http_client.BadStatusLine, InvalidPingResponse):
-                ct_res = check_timeout()
-                if ct_res is not None:
-                    return ct_res
-
-            except OSError as e:
-                if e.errno in [errno.ECONNRESET, errno.ECONNREFUSED]:
-                    ct_res = check_timeout()
-                    if ct_res is not None:
-                        return ct_res
-
-                else:
-                    raise
-
-        # }}}
-
-        debug_print("PING SUCCESSFUL")
-
         try:
-            # Add a second to accommodate 'wire' delays
-            connection = http_client.HTTPConnection(connect_host_ip, port,
-                    timeout=1 + run_timeout)
-
-            headers = {"Content-type": "application/json"}
-
-            json_run_req = run_req.model_dump_json().encode("utf-8")
-
-            from time import time
-            start_time = time()
-
-            debug_print("BEFPOST")
-            connection.request("POST", "/run-python", json_run_req, headers)
-            debug_print("AFTPOST")
-
-            http_response = connection.getresponse()
-            debug_print("GETR")
-            response_data = http_response.read().decode("utf-8")
-            debug_print("READR")
-
-            end_time = time()
-
-            result = RunResponse.model_validate_json(response_data)
-
-            result.feedback = [*result.feedback,
-                f"Execution time: {end_time - start_time:.1f} s "
-                f"-- Time limit: {run_timeout:.1f} s"]
-
-            result.exec_host = connect_host_ip
-
-            return result
-
-        except TimeoutError:
-            return RunResponse(
-                    result="timeout",
-                    exec_host=connect_host_ip,
-                    )
-    finally:
-        if container is not None:
-            debug_print(f"-----------BEGIN DOCKER LOGS for {container.id}")
-            debug_print(container.logs())
-            debug_print(f"-----------END DOCKER LOGS for {container.id}")
-
+            return request_run_in_container(
+                    docker_cnx, container, run_req, run_timeout,
+                    command_path=command_path,
+                    debug_print=debug_print)
+        finally:
             try:
                 container.remove(force=True)
             except DockerAPIError:
                 # Oh well. No need to bother the students with this nonsense.
                 pass
+
+    return request_run_via_http(run_req, run_timeout,
+            debug_print=debug_print)
+
+
+def request_run_in_container(
+            docker_cnx: docker.DockerClient,
+            container: Container,
+            run_req: RunRequest,
+            run_timeout: float,
+            command_path: str,
+            debug_print: Callable[[object], None],
+        ) -> RunResponse:
+    """
+    Run a run request in the given (not-yet-started) container.
+
+    The container's main process is a do-nothing keep-alive process. We
+    exec the runcode command, which takes the JSON-encoded run request
+    on its stdin and returns the JSON-encoded run response on its
+    stdout. The container has no network access at all.
+    """
+    import threading
+    from struct import unpack
+    from time import time
+    from typing import cast
+
+    container.start()
+
+    exec_info = docker_cnx.api.exec_create(  # pyright: ignore[reportUnknownMemberType]
+            container.id,
+            [command_path, "-s"],
+            stdin=True,
+            stdout=True,
+            stderr=True)
+
+    sock = docker_cnx.api.exec_start(exec_info["Id"], socket=True)
+
+    # On unix/TCP transports, the object returned above is a read-only
+    # file-like wrapper around the connection socket. Recover the actual
+    # socket, which supports both reading and writing. (Over SSH
+    # connections, the returned object already supports both.)
+    if hasattr(sock, "sendall"):
+        conn = cast("socket.socket", sock)
+    else:
+        conn = cast(
+            "socket.socket",
+            sock._sock)  # pyright: ignore[reportAttributeAccessIssue]
+
+    # The exec'd process may take a while to start up, after which the
+    # user code may take up to run_timeout to execute. If the overall
+    # budget is exceeded, kill the container; the resulting disconnect
+    # terminates the read loop below.
+    timed_out = threading.Event()
+
+    def kill_container() -> None:
+        timed_out.set()
+        try:
+            container.kill()
+        except Exception:  # ruff:ignore[try-except-pass]
+            # The container may already be gone.
+            pass
+
+    watchdog = threading.Timer(
+            DOCKER_TIMEOUT + 1 + run_timeout, kill_container)
+    watchdog.start()
+
+    exec_host = "localhost"
+
+    try:
+        # Send the request, framed with its length. (We cannot rely on
+        # an EOF to delimit it, because closing the connection would
+        # destroy the response channel as well.)
+        json_run_req = run_req.model_dump_json().encode("utf-8")
+
+        start_time = time()
+        conn.sendall(f"{len(json_run_req)}\n".encode("ascii") + json_run_req)
+
+        # Read the (multiplexed) response frames until the connection is
+        # closed, which happens when the runcode process exits.
+        response_parts: list[bytes] = []
+        stderr_parts: list[bytes] = []
+
+        def recv_exact(n: int) -> bytes:
+            # Return b"" on end of connection, else exactly n bytes.
+            buf = b""
+            while len(buf) < n:
+                chunk = conn.recv(n - len(buf))
+                if not chunk:
+                    return b""
+                buf += chunk
+            return buf
+
+        while True:
+            header = recv_exact(8)
+            if not header:
+                break
+
+            stream_id, size = unpack(">BxxxL", header)
+            if not size:
+                continue
+
+            chunk = recv_exact(size)
+            if not chunk:
+                # Connection closed in the middle of a frame. Should not
+                # happen: runcode writes its response in one go before
+                # exiting.
+                break
+
+            if stream_id == 1:
+                response_parts.append(chunk)
+            else:
+                stderr_parts.append(chunk)
+
+        end_time = time()
+
+        if stderr_parts:
+            debug_print("-----------BEGIN EXEC STDERR-----------")
+            debug_print(
+                    b"".join(stderr_parts).decode("utf-8", "replace"))
+            debug_print("-----------END EXEC STDERR-----------")
+
+        response_data = b"".join(response_parts)
+    except OSError:
+        if timed_out.is_set():
+            return RunResponse(
+                    result="timeout",
+                    exec_host=exec_host,
+                    )
+
+        from traceback import format_exc
+        return RunResponse(
+                result="uncaught_error",
+                message="Error communicating with container",
+                traceback="".join(format_exc()),
+                exec_host=exec_host,
+                )
+    finally:
+        watchdog.cancel()
+        try:
+            sock.close()
+        except OSError:
+            pass
+
+    if not response_data:
+        if timed_out.is_set():
+            return RunResponse(
+                    result="timeout",
+                    exec_host=exec_host,
+                    )
+
+        stderr_data = b"".join(stderr_parts).decode("utf-8", "replace")
+        return RunResponse(
+                result="uncaught_error",
+                message="Container exited without producing a response.",
+                traceback=stderr_data or None,
+                exec_host=exec_host,
+                )
+
+    result = RunResponse.model_validate_json(response_data)
+
+    result.feedback = [*result.feedback,
+        f"Execution time: {end_time - start_time:.1f} s "
+        f"-- Time limit: {run_timeout:.1f} s"]
+
+    result.exec_host = exec_host
+
+    return result
+
+
+def request_run_via_http(
+            run_req: RunRequest,
+            run_timeout: float,
+            debug_print: Callable[[object], None],
+        ) -> RunResponse:
+    """
+    Communicate with a runcode process listening on
+    localhost:CODE_QUESTION_CONTAINER_PORT.
+
+    Used when SPAWN_CONTAINERS is False (e.g. in unit tests).
+    """
+    import errno
+    import http.client as http_client
+
+    connect_host_ip = "localhost"
+    port = CODE_QUESTION_CONTAINER_PORT
+
+    from time import sleep, time
+    start_time = time()
+
+    # {{{ ping until response received
+
+    from traceback import format_exc
+
+    def check_timeout():
+        if time() - start_time < DOCKER_TIMEOUT:
+            sleep(0.1)
+            # and retry
+        else:
+            return RunResponse(
+                    result="uncaught_error",
+                    message="Timeout waiting for container.",
+                    traceback="".join(format_exc()),
+                    exec_host=connect_host_ip,
+                    )
+
+    while True:
+        try:
+            connection = http_client.HTTPConnection(connect_host_ip, port)
+
+            connection.request("GET", "/ping")
+
+            response = connection.getresponse()
+            response_data = response.read().decode()
+
+            if response_data != "OK":
+                raise InvalidPingResponse()
+
+            break
+
+        except (http_client.BadStatusLine, InvalidPingResponse):
+            ct_res = check_timeout()
+            if ct_res is not None:
+                return ct_res
+
+        except OSError as e:
+            if e.errno in [errno.ECONNRESET, errno.ECONNREFUSED]:
+                ct_res = check_timeout()
+                if ct_res is not None:
+                    return ct_res
+
+            else:
+                raise
+
+    # }}}
+
+    debug_print("PING SUCCESSFUL")
+
+    try:
+        # Add a second to accommodate 'wire' delays
+        connection = http_client.HTTPConnection(connect_host_ip, port,
+                timeout=1 + run_timeout)
+
+        headers = {"Content-type": "application/json"}
+
+        json_run_req = run_req.model_dump_json().encode("utf-8")
+
+        from time import time
+        start_time = time()
+
+        debug_print("BEFPOST")
+        connection.request("POST", "/run-python", json_run_req, headers)
+        debug_print("AFTPOST")
+
+        http_response = connection.getresponse()
+        debug_print("GETR")
+        response_data = http_response.read().decode("utf-8")
+        debug_print("READR")
+
+        end_time = time()
+
+        result = RunResponse.model_validate_json(response_data)
+
+        result.feedback = [*result.feedback,
+            f"Execution time: {end_time - start_time:.1f} s "
+            f"-- Time limit: {run_timeout:.1f} s"]
+
+        result.exec_host = connect_host_ip
+
+        return result
+
+    except TimeoutError:
+        return RunResponse(
+                result="timeout",
+                exec_host=connect_host_ip,
+                )
 
 
 def is_nuisance_failure(result: RunResponse):
