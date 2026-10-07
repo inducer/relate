@@ -90,7 +90,17 @@ def get_missing_fields(call: ast.Call, template: str) -> list[str]:
 
 def tracked_python_files(repo_root: Path) -> list[Path]:
     result = subprocess.run(
-        ["git", "-C", str(repo_root), "ls-files", "-z", "--", "*.py"],
+        [
+            "git",
+            "-c",
+            f"safe.directory={repo_root}",
+            "-C",
+            str(repo_root),
+            "ls-files",
+            "-z",
+            "--",
+            "*.py",
+        ],
         check=True,
         stdout=subprocess.PIPE,
     )
