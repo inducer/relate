@@ -37,6 +37,7 @@ ruff:
   <<: *quality
   script: |
     uv run ruff check
+    uv run python ./.ci/check-format-strings.py
 
 basedpyright:
   <<: *quality
