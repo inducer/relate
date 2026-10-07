@@ -1,0 +1,31 @@
+{% extends 'lab/index.html.j2' %}
+
+{# Export stylesheet resources separately, never from submitted HTML. #}
+{% block header %}
+{% if resources.relate_css_only %}
+{% for css in resources.inlining.css %}<style>{{ css }}</style>{% endfor %}
+{{ self.notebook_css() }}
+{% endif %}
+{% endblock header %}
+
+{% block body %}
+{% if not resources.relate_css_only %}{{ super() }}{% endif %}
+{% endblock body %}
+{% block body_header %}
+<div class="jp-Notebook" data-jp-theme-light="true" data-jp-theme-name="JupyterLab Light"><main>
+{% endblock body_header %}
+{% block body_footer %}</main></div>{% endblock body_footer %}
+
+{% block html_head_js %}{% endblock html_head_js %}
+{% block jupyter_widgets %}{% endblock jupyter_widgets %}
+{% block html_head_js_mathjax %}{% endblock html_head_js_mathjax %}
+{% block html_head_js_mermaidjs %}{% endblock html_head_js_mermaidjs %}
+{% block data_javascript %}{% endblock data_javascript %}
+{% block data_widget_view %}{% endblock data_widget_view %}
+{% block data_svg %}{% endblock data_svg %}
+{% block data_mermaid %}{% endblock data_mermaid %}
+{% block footer %}{% endblock footer %}
+
+{% block rawcell scoped %}
+<div class="jp-Cell jp-RawCell jp-Notebook-cell"><div class="jp-RenderedText"><pre>{{ cell.source | escape_html }}</pre></div></div>
+{% endblock rawcell %}

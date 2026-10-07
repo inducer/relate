@@ -31,8 +31,14 @@ from django.utils.translation import gettext as _, gettext_lazy
 from pydantic import NonNegativeFloat, ValidationInfo, model_validator
 from typing_extensions import override
 
+from course.notebook_rendering import (
+    NOTEBOOK_MIME_TYPE,
+    NotebookValidationError,
+    validate_notebook,
+)
 from course.page.base import (
     AnswerData,
+    AnswerResource,
     PageBaseWithCorrectAnswer,
     PageBaseWithHumanTextFeedback,
     PageBaseWithTitle,
@@ -47,6 +53,8 @@ from relate.utils import StyledFormBase, StyledVerticalForm
 
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from django.core.files import File
     from django.http import HttpRequest
 
@@ -57,7 +65,8 @@ class FileUploadForm(StyledVerticalForm):
     uploaded_file = forms.FileField(required=True,
             label=gettext_lazy("Uploaded file"))
 
-    def __init__(self, maximum_megabytes, mime_types, *args, **kwargs):
+    def __init__(self, maximum_megabytes: float, mime_types: Sequence[str] | None,
+            *args: Any, **kwargs: Any):
         super().__init__(*args, **kwargs)
 
         self.max_file_size = maximum_megabytes * 1024**2
@@ -70,7 +79,9 @@ class FileUploadForm(StyledVerticalForm):
             allow_accept = True
 
         field_kwargs = {}
-        if allow_accept:
+        if mime_types is not None and NOTEBOOK_MIME_TYPE in mime_types:
+            field_kwargs["accept"] = ",".join([".ipynb", *mime_types])
+        elif allow_accept and mime_types is not None:
             field_kwargs["accept"] = ",".join(mime_types)
 
         self.helper.layout = Layout(
@@ -91,6 +102,29 @@ class FileUploadForm(StyledVerticalForm):
             if uploaded_file.read()[:4] != b"%PDF":
                 raise forms.ValidationError(_("Uploaded file is not a PDF."))
 
+        if NOTEBOOK_MIME_TYPE in (self.mime_types or []):
+            notebook_only = self.mime_types == [NOTEBOOK_MIME_TYPE]
+            notebook_claim = uploaded_file.content_type == NOTEBOOK_MIME_TYPE
+            uploaded_file.seek(0)
+            data = uploaded_file.read()
+            uploaded_file.seek(0)
+            if notebook_only or notebook_claim or data.lstrip().startswith(b"{"):
+                try:
+                    validate_notebook(data)
+                except NotebookValidationError as exc:
+                    if notebook_only or notebook_claim:
+                        raise forms.ValidationError(
+                                _("Invalid notebook: %(reason)s"),
+                                params={"reason": str(exc)}) from exc
+                else:
+                    uploaded_file.content_type = NOTEBOOK_MIME_TYPE
+                    return uploaded_file
+
+            if uploaded_file.content_type not in self.mime_types:
+                raise forms.ValidationError(_(
+                    "The uploaded format could not be identified. Please choose "
+                    "an allowed format or upload a valid Jupyter notebook."))
+
         return uploaded_file
 
 
@@ -98,6 +132,7 @@ UploadableMimeType: TypeAlias = Literal[
             "application/pdf",
             "text/plain",
             "application/octet-stream",
+            "application/x-ipynb+json",
 ]
 
 
@@ -150,6 +185,20 @@ class FileUploadQuestion(PageBaseWithTitle, PageBaseWithValue,
         * ``application/pdf`` (will check for a PDF header)
         * ``text/plain`` (no check performed)
         * ``application/octet-stream`` (no check performed)
+        * ``application/x-ipynb+json`` (validated Jupyter notebook, format 4)
+
+        Notebooks support minor versions 0 through 5. With this as the sole
+        format, the server validates notebook contents regardless of the
+        browser's MIME claim or filename. With mixed formats, valid
+        JSON-looking notebooks are recognized when notebooks are allowed.
+        Missing cell IDs are accepted and generated only for the preview.
+        Original submitted bytes are retained unchanged.
+
+        Saved notebooks have a static, sandboxed preview for review and grading.
+        Cells are never executed. JavaScript, widgets, SVG, remote resources,
+        and rendered mathematics are not supported; download the original to
+        use it in Jupyter. Saved outputs are student-supplied, not verified
+        execution results.
 
     .. attribute:: maximum_megabytes
 
@@ -205,7 +254,9 @@ class FileUploadQuestion(PageBaseWithTitle, PageBaseWithValue,
                 page_context: PageContext,
                 mime_type: str | None):
         from mimetypes import guess_extension
-        if mime_type is not None:
+        if mime_type == NOTEBOOK_MIME_TYPE:
+            ext = ".ipynb"
+        elif mime_type is not None:
             ext = guess_extension(mime_type)
         else:
             ext = ".bin"
@@ -246,7 +297,7 @@ class FileUploadQuestion(PageBaseWithTitle, PageBaseWithValue,
                 }
 
     @staticmethod
-    def get_content_from_answer_data(answer_data) -> tuple[bytes, str]:
+    def get_content_from_answer_data(answer_data: Any) -> tuple[bytes, str]:
         mime_type = answer_data.get("mime_type", "application/octet-stream")
 
         if "storage_filename" in answer_data:
@@ -295,19 +346,56 @@ class FileUploadQuestion(PageBaseWithTitle, PageBaseWithValue,
             ):
         ctx: dict[str, object] = {"form": form}
         if answer_data is not None:
-            from base64 import b64encode
-            subm_data, subm_mime = self.get_content_from_answer_data(answer_data)
-            ctx["mime_type"] = subm_mime
-            ctx["data_url"] = f"data:{subm_mime};base64,{b64encode(subm_data).decode()}"
+            if self._is_notebook_answer(answer_data):
+                ctx["is_notebook"] = True
+                if page_context.answer_resource_url is not None:
+                    ctx["notebook_preview_url"] = page_context.answer_resource_url(
+                            "notebook-preview")
+                    ctx["notebook_download_url"] = page_context.answer_resource_url(
+                            "original")
+            else:
+                from base64 import b64encode
+                subm_data, subm_mime = self.get_content_from_answer_data(answer_data)
+                ctx["mime_type"] = subm_mime
+                ctx["data_url"] = (
+                        f"data:{subm_mime};base64,{b64encode(subm_data).decode()}")
 
         from django.template.loader import render_to_string
         return render_to_string(
                 "course/file-upload-form.html", ctx, request)
 
     def answer_data(self, page_context, page_data, form, files_data):
-        uploaded_file = files_data["uploaded_file"]
+        uploaded_file = form.cleaned_data["uploaded_file"]
         return self.file_to_answer_data(page_context, uploaded_file,
                 mime_type=uploaded_file.content_type)
+
+    def _is_notebook_answer(self, answer_data: AnswerData) -> bool:
+        if answer_data is None:
+            return False
+        mime_type = answer_data.get("mime_type")
+        return mime_type == NOTEBOOK_MIME_TYPE or (
+                self.mime_types == [NOTEBOOK_MIME_TYPE]
+                and mime_type in {None, "application/json", "text/plain",
+                                  "application/octet-stream"})
+
+    @override
+    def render_answer_resource(self,
+            page_context: PageContext,
+            page_data: PageData,
+            answer_data: AnswerData,
+            resource_name: str,
+            ) -> AnswerResource | None:
+        if (resource_name not in {"notebook-preview", "original"}
+                or not self._is_notebook_answer(answer_data)):
+            return None
+
+        # Rendering/validation and response security belong to the dispatcher.
+        # In particular, an invalid old notebook must remain downloadable.
+        content, _mime_type = self.get_content_from_answer_data(answer_data)
+        if resource_name == "notebook-preview":
+            return AnswerResource(kind="notebook-preview", content=content)
+        return AnswerResource(kind="original", content=content,
+                filename="submission.ipynb", content_type=NOTEBOOK_MIME_TYPE)
 
     @override
     def normalized_answer(
@@ -330,7 +418,8 @@ class FileUploadQuestion(PageBaseWithTitle, PageBaseWithValue,
         subm_data, subm_mime = self.get_content_from_answer_data(answer_data)
 
         from mimetypes import guess_extension
-        ext = guess_extension(subm_mime)
+        ext = (".ipynb" if self._is_notebook_answer(answer_data)
+               else guess_extension(subm_mime))
 
         if ext is None:
             ext = ".dat"

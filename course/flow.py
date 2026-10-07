@@ -1611,6 +1611,46 @@ def get_and_check_flow_session(
     return flow_session
 
 
+def check_flow_page_view_permissions(
+        pctx: CoursePageContext,
+        fpctx: c_utils.FlowPageContext,
+        flow_session: FlowSession,
+        ) -> AbstractSet[FlowPermission]:
+    assert fpctx.page is not None
+    access_rule = c_utils.get_session_access_mode(
+            flow_session, fpctx.flow_desc, get_now_or_fake_time(pctx.request),
+            facilities=pctx.request.relate_facilities,
+            login_exam_ticket=get_login_exam_ticket(pctx.request),
+            remote_ip_address=remote_address_from_request(pctx.request))
+    permissions = fpctx.page.get_modified_permissions_for_page(access_rule.permissions)
+    if access_rule.message:
+        messages.add_message(pctx.request, messages.INFO, access_rule.message)
+    lock_down_if_needed(pctx.request, permissions, flow_session)
+    if FlowPermission.view not in permissions:
+        raise PermissionDenied(_("not allowed to view flow"))
+    return permissions
+
+
+def select_flow_page_answer_visit(
+        page_data: FlowPageData,
+        visit_id: int | None = None,
+        *, strict: bool = False,
+        ) -> tuple[list[FlowPageVisit], FlowPageVisit | None, bool]:
+    """Select only answers eligible for the flow view's history dropdown.
+
+    The UI historically falls back to the latest answer for an unknown ID.
+    Resource requests instead fail closed rather than serve different bytes.
+    """
+    visits = list(get_prev_answer_visits_qset(page_data))
+    if visit_id is not None:
+        for index, visit in enumerate(visits):
+            if visit.pk == visit_id:
+                return visits, visit, index > 0
+        if strict:
+            raise http.Http404()
+    return visits, visits[0] if visits else None, False
+
+
 def will_receive_feedback(permissions: AbstractSet[FlowPermission]) -> bool:
     return (
             FlowPermission.see_correctness in permissions
@@ -1754,8 +1794,6 @@ def view_flow_page(
         flow_session_id: int,
         page_ordinal: int) -> http.HttpResponse:
     request = pctx.request
-    login_exam_ticket = get_login_exam_ticket(request)
-
     page_ordinal = int(page_ordinal)
 
     flow_session_id = int(flow_session_id)
@@ -1788,11 +1826,7 @@ def view_flow_page(
     assert fpctx.page_data is not None
 
     now_datetime = get_now_or_fake_time(request)
-    access_rule = c_utils.get_session_access_mode(
-            flow_session, fpctx.flow_desc, now_datetime,
-            facilities=pctx.request.relate_facilities,
-            login_exam_ticket=login_exam_ticket,
-            remote_ip_address=remote_address_from_request(pctx.request))
+    permissions = check_flow_page_view_permissions(pctx, fpctx, flow_session)
 
     grading_rule = c_utils.get_session_grading_mode(
             flow_session, fpctx.flow_desc, now_datetime)
@@ -1801,21 +1835,10 @@ def view_flow_page(
             and grading_rule.generates_grade)
     del grading_rule
 
-    permissions = fpctx.page.get_modified_permissions_for_page(
-            access_rule.permissions)
-
-    if access_rule.message:
-        messages.add_message(request, messages.INFO, access_rule.message)
-
-    lock_down_if_needed(pctx.request, permissions, flow_session)
-
     page_context = fpctx.page_context
     page_data = fpctx.page_data
     answer_data = None
     grade_data = None
-
-    if FlowPermission.view not in permissions:
-        raise PermissionDenied(_("not allowed to view flow"))
 
     answer_visit = None
     prev_visit_id = None
@@ -1861,22 +1884,12 @@ def view_flow_page(
     else:
         create_flow_page_visit(request, flow_session, fpctx.page_data)
 
-        prev_answer_visits = list(
-                get_prev_answer_visits_qset(fpctx.page_data))
+        prev_answer_visits, answer_visit, viewing_prior_version = (
+                select_flow_page_answer_visit(fpctx.page_data, prev_visit_id))
 
         # {{{ fish out previous answer_visit
 
-        if prev_answer_visits and prev_visit_id is not None:
-            answer_visit = prev_answer_visits[0]
-
-            for ivisit, pvisit in enumerate(prev_answer_visits):
-                if pvisit.id == prev_visit_id:
-                    answer_visit = pvisit
-                    if ivisit > 0:
-                        viewing_prior_version = True
-
-                    break
-
+        if answer_visit is not None:
             if viewing_prior_version:
                 from django.template import defaultfilters
                 messages.add_message(request, messages.INFO, (
@@ -1890,13 +1903,6 @@ def view_flow_page(
                     'role="button">&laquo; {}</a>'.format(_("Go back"))))
 
             prev_visit_id = answer_visit.id
-
-        elif prev_answer_visits:
-            answer_visit = prev_answer_visits[0]
-            prev_visit_id = answer_visit.id
-
-        else:
-            answer_visit = None
 
         # }}}
 
@@ -1913,6 +1919,9 @@ def view_flow_page(
                 generates_grade=generates_grade,
                 is_unenrolled_session=flow_session.participation is None,
                 viewing_prior_version=viewing_prior_version)
+
+        from course.answer_resources import bind_answer_resource_url
+        bind_answer_resource_url(page_context, answer_visit, "review")
 
         if fpctx.page.expects_answer():
             if answer_visit is not None:
@@ -2243,6 +2252,9 @@ def post_flow_page(
                 request.relate_impersonate_original_user
         answer_visit.save()
 
+        from course.answer_resources import bind_answer_resource_url
+        bind_answer_resource_url(page_context, answer_visit, "review")
+
         prev_answer_visits.insert(0, answer_visit)
 
         answer_was_graded = answer_visit.is_submitted_answer
@@ -2314,6 +2326,11 @@ def post_flow_page(
 
         if prev_answer_visits:
             answer_data = prev_answer_visits[0].answer
+
+        from course.answer_resources import bind_answer_resource_url
+        bind_answer_resource_url(
+                page_context, prev_answer_visits[0] if prev_answer_visits else None,
+                "review")
 
         feedback = None
         messages.add_message(request, messages.ERROR,
