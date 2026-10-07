@@ -26,11 +26,28 @@ exporter's default CDN scripts.
 without `allow-same-origin` creates an opaque origin even for a same-origin
 URL. Enforce that sandbox both in the iframe and in the HTTP response. 
 
-This document is a proposal, not an implementation. Upstream sources were
-inspected for the design; the selected dependency versions and browser
-behavior must be verified during implementation.
+The initial static-preview implementation follows this design. The lockfile
+selects nbconvert 7.17.1 and nbformat 5.11.1. Notebook validation supports format
+4, minor versions 0 through 5; missing cell IDs are accepted and generated only
+in the rendering copy, with a notice. The page's configured upload-byte limit
+is the initial resource budget; further limits and caching remain future work.
 
-## Current integration points
+The Python acceptance tests are in `tests/test_notebook_rendering.py`,
+`tests/test_notebook_upload.py`, and `tests/test_answer_resources.py`. Real-browser
+security tests are in `tests/test_notebook_browser.py` and have been exercised
+in Chromium, Firefox, and WebKit with Playwright 1.63.0. To run them in a fresh
+development environment, install Playwright and its browser/system dependencies
+using its documented installation procedure, then run:
+
+```sh
+uv run --with playwright==1.63.0 pytest --slow tests/test_notebook_browser.py -v
+```
+
+These optional tests skip when Playwright or the selected browser is unavailable.
+Deployment-specific reverse-proxy header preservation still requires checking
+in the deployed environment.
+
+## Pre-implementation integration points
 
 - `course/page/upload.py` currently accepts PDF, plain text, and octet-stream.
   `file_to_answer_data()` records bytes in `RELATE_BULK_STORAGE` and saves a

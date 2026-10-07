@@ -76,6 +76,108 @@ export function enablePreviewForFileUpload() {
   }
 }
 
+export function enablePreviewForNotebookUpload() {
+  document
+    .querySelectorAll('.relate-notebook-preview[data-preview-url]')
+    .forEach((preview) => {
+      if (preview.dataset.initialized) {
+        return;
+      }
+      preview.dataset.initialized = 'true';
+      const status = preview.querySelector('.relate-notebook-status');
+      const container = preview.querySelector('.relate-notebook-frame');
+      // Fail closed: this is a conservative support test, not proof of CSP enforcement.
+      if (
+        !('sandbox' in document.createElement('iframe')) ||
+        typeof window.SecurityPolicyViolationEvent !== 'function' ||
+        typeof window.URL !== 'function'
+      ) {
+        status.textContent = status.dataset.unsupported;
+        return;
+      }
+
+      let url;
+      try {
+        url = new URL(preview.dataset.previewUrl, window.location.href);
+      } catch {
+        status.textContent = status.dataset.error;
+        return;
+      }
+      const channel = url.searchParams.get('channel');
+      if (
+        url.origin !== window.location.origin ||
+        !/^[A-Za-z0-9_-]{32,128}$/.test(channel || '')
+      ) {
+        status.textContent = status.dataset.error;
+        return;
+      }
+
+      const frame = document.createElement('iframe');
+      frame.setAttribute('sandbox', 'allow-scripts');
+      frame.setAttribute('referrerpolicy', 'no-referrer');
+      frame.title = container.dataset.title;
+      frame.style.width = '100%';
+      frame.style.border = '0';
+      frame.style.height = '600px';
+      status.textContent = status.dataset.loading;
+      let ready = false;
+      let pendingHeight = null;
+      let resizeTimer = null;
+      let failed = false;
+      const timeout = window.setTimeout(() => {
+        failed = true;
+        status.textContent = status.dataset.error;
+        frame.remove();
+        window.removeEventListener('message', onMessage);
+        if (resizeTimer !== null) {
+          window.clearTimeout(resizeTimer);
+        }
+      }, 30000);
+
+      function onMessage(event) {
+        const message = event.data;
+        if (
+          failed ||
+          event.source !== frame.contentWindow ||
+          event.origin !== 'null' ||
+          message === null ||
+          typeof message !== 'object' ||
+          Array.isArray(message) ||
+          Object.keys(message).length !== 3 ||
+          message.type !== 'relate-notebook-resize' ||
+          message.channel !== channel ||
+          typeof message.height !== 'number' ||
+          !Number.isFinite(message.height)
+        ) {
+          return;
+        }
+        if (!ready) {
+          ready = true;
+          window.clearTimeout(timeout);
+          status.textContent = status.dataset.ready;
+        }
+        pendingHeight = Math.max(
+          100,
+          Math.min(6000, Math.ceil(message.height)),
+        );
+        // Apply at most ten resizes/second, retaining the latest valid height.
+        if (resizeTimer === null) {
+          resizeTimer = window.setTimeout(() => {
+            frame.style.height = `${pendingHeight}px`;
+            resizeTimer = null;
+          }, 100);
+        }
+      }
+
+      window.addEventListener('message', onMessage);
+      // HTTP error documents cannot be inspected across the opaque-origin boundary.
+      // Only the trusted child's validated message marks a successful load.
+      frame.src = url.href;
+      container.appendChild(frame);
+      preview.querySelector('.relate-notebook-standalone').hidden = false;
+    });
+}
+
 // }}}
 
 // {{{ grading ui: next/previous points field
