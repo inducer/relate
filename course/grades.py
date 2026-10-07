@@ -55,6 +55,7 @@ from course.constants import (
 from course.flow import adjust_flow_session_page_data
 from course.models import (
     FlowPageVisit,
+    FlowRuleException,
     FlowSession,
     GradeChange,
     GradeStateMachine,
@@ -1045,6 +1046,16 @@ def view_single_grade(pctx: CoursePageContext, participation_id: str,
 
     # }}}
 
+    flow_rule_exceptions: list[FlowRuleException] | None = None
+    if show_privileged_info and opportunity.flow_id:
+        flow_rule_exceptions = list(
+            FlowRuleException.objects
+            .filter(
+                participation=participation,
+                flow_id=opportunity.flow_id)
+            .order_by("creation_time")
+            .select_related("creator"))
+
     return render_course_page(pctx, "course/gradebook-single.html", {
         "opportunity": opportunity,
         "avg_grade_percentage": avg_grade_percentage,
@@ -1061,6 +1072,7 @@ def view_single_grade(pctx: CoursePageContext, participation_id: str,
             or PPerm.end_flow_session
             or PPerm.regrade_flow_session
             or PPerm.recalculate_flow_session_grade),
+        "flow_rule_exceptions": flow_rule_exceptions,
         })
 
 # }}}
