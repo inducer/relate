@@ -29,6 +29,8 @@ jobs:
       - name: "Ruff"
         run: |
           uv run ruff check
+      - name: "Check string format arguments"
+        run: uv run python ./.ci/check-format-strings.py
       - uses: crate-ci/typos@main
       - name: "Set up local settings"
         run: cp local_settings_example.py local_settings.py
