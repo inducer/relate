@@ -621,7 +621,7 @@ def check_grade_identifier_link(
 
         raise ValidationError(
                 _(
-                    "{location}: existing grading opportunity with identifier "
+                    "existing grading opportunity with identifier "
                     "'{grade_identifier}' refers to flow '{other_flow_id}', however "
                     "flow code in this flow ('{new_flow_id}') specifies the same "
                     "grade identifier. "
