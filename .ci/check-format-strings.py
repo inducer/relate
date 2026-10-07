@@ -92,7 +92,7 @@ def tracked_python_files(repo_root: Path) -> list[Path]:
     result = subprocess.run(
         ["git", "-C", str(repo_root), "ls-files", "-z", "--", "*.py"],
         check=True,
-        capture_output=True,
+        stdout=subprocess.PIPE,
     )
     return [
         repo_root / path.decode()
