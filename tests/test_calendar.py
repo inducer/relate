@@ -30,8 +30,10 @@ from zoneinfo import ZoneInfo
 from django.core.exceptions import ValidationError
 from django.test import TestCase
 from django.utils.timezone import now, timedelta
+from pydantic import ValidationError as PydanticValidationError
 
 from course import calendar
+from course.content import calendar_ta
 from course.models import Event
 from relate.utils import as_local_time
 from tests import factories
@@ -45,6 +47,23 @@ from tests.utils import mock
 
 
 UTC = ZoneInfo("UTC")
+
+
+class EventKindDescValidationTest(TestCase):
+    def test_accepts_nr_title_placeholder(self):
+        calendar_desc = calendar_ta.validate_python({
+            "event_kinds": {"lecture": {"title": "Lecture {nr:02d}"}},
+        })
+
+        self.assertEqual(
+            calendar_desc.event_kinds["lecture"].title.format(nr=3),
+            "Lecture 03")
+
+    def test_rejects_unknown_title_placeholder(self):
+        with self.assertRaises(PydanticValidationError):
+            calendar_ta.validate_python({
+                "event_kinds": {"lecture": {"title": "Lecture {location}"}},
+            })
 
 
 class CreateRecurringEventsTest(SingleCourseTestMixin,

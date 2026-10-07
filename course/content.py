@@ -36,6 +36,7 @@ from collections.abc import (
 from dataclasses import dataclass, field
 from itertools import starmap
 from pathlib import Path
+from string import Formatter
 from typing import (
     TYPE_CHECKING,
     Annotated,
@@ -923,6 +924,32 @@ flow_desc_ta = TypeAdapter(FlowDesc)
 class EventKindDesc:
     color: str | None = None
     title: str | None = None
+
+    @model_validator(mode="after")
+    def check_title_template(self) -> Self:
+        if self.title is None:
+            return self
+
+        formatter = Formatter()
+
+        def check_fields(template: str) -> None:
+            for _literal_text, field_name, format_spec, _conversion in (
+                    formatter.parse(template)):
+                if field_name is not None and field_name != "nr":
+                    raise ValueError(
+                        "event kind title may only use the '{nr}' placeholder")
+                if format_spec:
+                    check_fields(format_spec)
+
+        try:
+            check_fields(self.title)
+            self.title.format(nr=1)
+        except (IndexError, KeyError, ValueError) as exc:
+            raise ValueError(
+                "event kind title must be a valid format string using only '{nr}'"
+            ) from exc
+
+        return self
 
 
 @content_dataclass()
