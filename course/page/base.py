@@ -1123,6 +1123,7 @@ class PageBaseWithHumanTextFeedback(PageBase, ABC):
         "released", "grade_percent", "feedback_text", "notes"]
 
     rubric: Markup
+    grading_prompt: Markup | None = None
 
     @abstractmethod
     def human_feedback_point_value(self,
