@@ -25,7 +25,9 @@ THE SOFTWARE.
 
 import json
 import operator
+from collections import defaultdict
 from dataclasses import dataclass
+from datetime import timedelta
 from typing import TYPE_CHECKING, Any, ClassVar, final
 
 from django import http
@@ -33,7 +35,19 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ObjectDoesNotExist, PermissionDenied
 from django.db import connection
-from django.db.models import FloatField, OuterRef, Subquery
+from django.db.models import (
+    Avg,
+    Count,
+    DateTimeField,
+    DurationField,
+    ExpressionWrapper,
+    F,
+    FloatField,
+    Max,
+    Min,
+    OuterRef,
+    Subquery,
+)
 from django.urls import reverse
 from django.utils.translation import gettext as _, pgettext
 from pytools import not_none
@@ -551,6 +565,145 @@ def count_participants(pctx: CoursePageContext, flow_id: str):
     return qset.count()
 
 
+# {{{ page timing stats
+
+@dataclass
+class PageTimingStats:
+    group_id: str
+    page_id: str
+    count: int
+    avg_time: float | None  # in minutes
+    min_time: float | None  # in minutes
+    max_time: float | None  # in minutes
+    stddev_time: float | None  # in minutes
+
+
+def make_page_timing_stats_list(
+        pctx: CoursePageContext,
+        flow_id: str,
+        include_all_sessions: bool) -> list[PageTimingStats]:
+    """Return per-page timing statistics sorted by average time (descending).
+
+    For each submitted-answer visit, this function searches for the most recent
+    preceding page view (``is_submitted_answer`` is NULL) in the same session
+    and uses the elapsed time as "time spent on the page".  Summary statistics
+    (count, min, max, mean, sample standard deviation) are returned in minutes.
+
+    When *include_all_sessions* is ``False``, only sessions belonging to
+    participants with the ``included_in_grade_statistics`` permission are
+    considered.  When ``True``, all sessions are included (useful for seeing
+    where TAs spend time during test runs).
+    """
+
+    # Correlated sub-query: visit_time of the most recent preceding
+    # non-answer visit to the same page in the same session.
+    preceding_time_sq = Subquery(
+        FlowPageVisit.objects.filter(
+            page_data_id=OuterRef("page_data_id"),
+            flow_session_id=OuterRef("flow_session_id"),
+            visit_time__lt=OuterRef("visit_time"),
+            is_submitted_answer__isnull=True,
+        )
+        .order_by("-visit_time")
+        .values("visit_time")[:1],
+        output_field=DateTimeField(),
+    )
+
+    visits_qs = FlowPageVisit.objects.filter(
+        flow_session__course=pctx.course,
+        flow_session__flow_id=flow_id,
+        is_submitted_answer=True,
+    )
+
+    if not include_all_sessions:
+        visits_qs = visits_qs.filter(
+            flow_session__participation__roles__permissions__permission=(
+                PPerm.included_in_grade_statistics)
+        )
+
+    # Annotate each submitted-answer visit with its elapsed duration.
+    # Negative durations (clock-skew or data anomalies where the answer visit
+    # was recorded before the page view) are excluded at the database level so
+    # that the aggregated values and the per-row durations fetched for stddev
+    # are computed from the same filtered set.
+    # Count/Avg/Min/Max are pushed to the database.  StdDev is not universally
+    # supported across database backends (notably absent from SQLite), so sample
+    # standard deviation is computed in Python from a second fetch of the
+    # per-page duration values.  This is a known two-query approach for stddev.
+    annotated_qs = (visits_qs
+        .annotate(preceding_visit_time=preceding_time_sq)
+        .filter(preceding_visit_time__isnull=False)
+        .annotate(
+            duration=ExpressionWrapper(
+                F("visit_time") - F("preceding_visit_time"),
+                output_field=DurationField(),
+            )
+        )
+        .filter(duration__gte=timedelta(0))
+    )
+
+    page_agg = (annotated_qs
+        .values("page_data__group_id", "page_data__page_id")
+        .annotate(
+            count=Count("id"),
+            avg_duration=Avg("duration"),
+            min_duration=Min("duration"),
+            max_duration=Max("duration"),
+        )
+    )
+
+    # Collect individual durations per page for the stddev calculation.
+    page_durations: dict[tuple[str, str], list[float]] = defaultdict(list)
+    for row in (annotated_qs
+            .values_list("page_data__group_id", "page_data__page_id", "duration")):
+        page_durations[row[0], row[1]].append(row[2].total_seconds() / 60)
+
+    # Build result list.
+    result: list[PageTimingStats] = []
+    for agg in page_agg:
+        group_id = agg["page_data__group_id"]
+        page_id = agg["page_data__page_id"]
+        count = agg["count"]
+        avg_time = (
+            agg["avg_duration"].total_seconds() / 60
+            if agg["avg_duration"] is not None else None
+        )
+        min_time = (
+            agg["min_duration"].total_seconds() / 60
+            if agg["min_duration"] is not None else None
+        )
+        max_time = (
+            agg["max_duration"].total_seconds() / 60
+            if agg["max_duration"] is not None else None
+        )
+
+        # Sample stddev (requires at least two observations).
+        # avg_time and page_durations are derived from the same filtered set, so
+        # they are consistent.
+        stddev_time: float | None = None
+        times = page_durations.get((group_id, page_id), [])
+        if len(times) >= 2 and avg_time is not None:
+            variance = sum((t - avg_time) ** 2 for t in times) / (len(times) - 1)
+            stddev_time = variance ** 0.5
+
+        result.append(PageTimingStats(
+            group_id=group_id,
+            page_id=page_id,
+            count=count,
+            avg_time=avg_time,
+            min_time=min_time,
+            max_time=max_time,
+            stddev_time=stddev_time,
+        ))
+
+    # Sort by average time descending so the most time-consuming pages appear
+    # first.
+    result.sort(key=lambda s: s.avg_time or 0, reverse=True)
+    return result
+
+# }}}
+
+
 @login_required
 @course_view
 def flow_analytics(pctx: CoursePageContext, flow_id: str):
@@ -559,6 +712,9 @@ def flow_analytics(pctx: CoursePageContext, flow_id: str):
 
     restrict_to_first_attempt = bool(
             bool(pctx.request.GET.get("restrict_to_first_attempt") == "1"))
+
+    timing_include_all_sessions = (
+            pctx.request.GET.get("timing_include_all_sessions") == "1")
 
     try:
         stats_list = make_page_answer_stats_list(pctx, flow_id,
@@ -570,6 +726,9 @@ def flow_analytics(pctx: CoursePageContext, flow_id: str):
                 % flow_id)
         raise http.Http404()
 
+    page_timing_stats_list = make_page_timing_stats_list(
+            pctx, flow_id, timing_include_all_sessions)
+
     return render_course_page(pctx, "course/analytics-flow.html", {
         "flow_identifier": flow_id,
         "grade_histogram": make_grade_histogram(pctx, flow_id),
@@ -577,6 +736,8 @@ def flow_analytics(pctx: CoursePageContext, flow_id: str):
         "time_histogram": make_time_histogram(pctx, flow_id),
         "participant_count": count_participants(pctx, flow_id),
         "restrict_to_first_attempt": restrict_to_first_attempt,
+        "page_timing_stats_list": page_timing_stats_list,
+        "timing_include_all_sessions": timing_include_all_sessions,
         })
 
 # }}}

@@ -24,12 +24,12 @@
       {% blocktrans trimmed %}
       Showing results for <i>only the first attempt</i> by each participant.
       {% endblocktrans %}
-      <a href="?restrict_to_first_attempt=0">
+      <a href="?restrict_to_first_attempt=0&timing_include_all_sessions={{ timing_include_all_sessions|yesno:"1,0" }}">
         {% trans "Show all attempts" %}
       </a>
     {% else %}
       {% trans "Showing results for <i>all attempts</i> by each participant." %}
-      <a href="?restrict_to_first_attempt=1">
+      <a href="?restrict_to_first_attempt=1&timing_include_all_sessions={{ timing_include_all_sessions|yesno:"1,0" }}">
         {% trans "Show only the first attempt" %}
       </a>
     {% endif %}
@@ -108,4 +108,49 @@
   <h2>{% trans "Time Distribution" %}</h2>
 
   {{ time_histogram.html|safe }}
+
+  <h2>{% trans "Time Statistics Per Page" %}</h2>
+
+  <p>
+    {% if timing_include_all_sessions %}
+      {% trans "Showing timing for <i>all sessions</i>." %}
+      <a href="?restrict_to_first_attempt={{ restrict_to_first_attempt|yesno:"1,0" }}&timing_include_all_sessions=0">
+        {% trans "Show only grade-statistics sessions" %}
+      </a>
+    {% else %}
+      {% trans "Showing timing for <i>grade-statistics sessions only</i>." %}
+      <a href="?restrict_to_first_attempt={{ restrict_to_first_attempt|yesno:"1,0" }}&timing_include_all_sessions=1">
+        {% trans "Show all sessions (including TAs etc.)" %}
+      </a>
+    {% endif %}
+  </p>
+
+  {% if page_timing_stats_list %}
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        <th>{% trans "Page" %}</th>
+        <th>{% trans "Count" %}</th>
+        <th>{% trans "Min (min)" %}</th>
+        <th>{% trans "Max (min)" %}</th>
+        <th>{% trans "Mean (min)" %}</th>
+        <th>{% trans "Std Dev (min)" %}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for tstats in page_timing_stats_list %}
+      <tr>
+        <td><tt>{{ tstats.group_id }}/{{ tstats.page_id }}</tt></td>
+        <td>{{ tstats.count }}</td>
+        <td>{{ tstats.min_time|floatformat:1 }}</td>
+        <td>{{ tstats.max_time|floatformat:1 }}</td>
+        <td>{{ tstats.avg_time|floatformat:1 }}</td>
+        <td>{{ tstats.stddev_time|floatformat:1 }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p>{% trans "No timing data available." %}</p>
+  {% endif %}
 {% endblock %}
