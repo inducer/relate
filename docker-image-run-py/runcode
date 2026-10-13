@@ -73,6 +73,51 @@ def truncate_if_long(s: str):
     return s
 
 
+def service_run_request(recv_data: bytes) -> bytes:
+    """
+    Run the given (JSON-encoded) run request, and return the
+    JSON-encoded run response.
+
+    Any exception raised while servicing the request is propagated to
+    the caller.
+    """
+    global TEST_COUNT
+    TEST_COUNT += 1  # pyright: ignore[reportConstantRedefinition]
+
+    prev_stdout = sys.stdout
+    prev_stderr = sys.stderr
+
+    try:
+        print("RUNPY RECEIVED %d bytes" % len(recv_data),
+                file=prev_stderr)
+        run_req = RunRequest.model_validate_json(recv_data)
+
+        # recv_data contains test_code, which may be sensitive.
+        # Prevent access to this via the frame.
+        del recv_data
+
+        print("REQUEST: %r" % run_req, file=prev_stderr)
+
+        stdout = io.StringIO()
+        stderr = io.StringIO()
+
+        sys.stdin = None
+        sys.stdout = stdout
+        sys.stderr = stderr
+
+        response = run_code(run_req)
+
+        response.stdout = truncate_if_long(stdout.getvalue())
+        response.stderr = truncate_if_long(stderr.getvalue())
+
+        print("REQUEST SERVICED: %r" % response, file=prev_stderr)
+
+        return response.model_dump_json().encode("utf-8")
+    finally:
+        sys.stdout = prev_stdout
+        sys.stderr = prev_stderr
+
+
 class RunRequestHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         print("GET RECEIVED", file=sys.stderr)
@@ -87,9 +132,6 @@ class RunRequestHandler(BaseHTTPRequestHandler):
         print("PING RESPONSE DONE", file=sys.stderr)
 
     def do_POST(self):
-        global TEST_COUNT
-        TEST_COUNT += 1  # pyright: ignore[reportConstantRedefinition]
-
         prev_stdout = sys.stdout
         prev_stderr = sys.stderr
 
@@ -101,31 +143,7 @@ class RunRequestHandler(BaseHTTPRequestHandler):
             clength = int(self.headers["content-length"])
             recv_data = self.rfile.read(clength)
 
-            print("RUNPY RECEIVED %d bytes" % len(recv_data),
-                    file=prev_stderr)
-            run_req = RunRequest.model_validate_json(recv_data)
-
-            # recv_data contains test_code, which may be sensitive.
-            # Prevent access to this via the frame.
-            del recv_data
-
-            print("REQUEST: %r" % run_req, file=prev_stderr)
-
-            stdout = io.StringIO()
-            stderr = io.StringIO()
-
-            sys.stdin = None
-            sys.stdout = stdout
-            sys.stderr = stderr
-
-            response = run_code(run_req)
-
-            response.stdout = truncate_if_long(stdout.getvalue())
-            response.stderr = truncate_if_long(stderr.getvalue())
-
-            print("REQUEST SERVICED: %r" % response, file=prev_stderr)
-
-            json_result = response.model_dump_json().encode("utf-8")
+            json_result = service_run_request(recv_data)
 
             self.send_response(200)
             self.send_header("Content-type", "application/json")
@@ -137,8 +155,8 @@ class RunRequestHandler(BaseHTTPRequestHandler):
         except Exception:
             print("ERROR RESPONSE", file=prev_stderr)
             print_exc(file=prev_stderr)
-            response = package_exception("uncaught_error")
-            json_result = response.model_dump_json().encode("utf-8")
+            json_result = (package_exception("uncaught_error")
+                    .model_dump_json().encode("utf-8"))
 
             self.send_response(500)
             self.send_header("Content-type", "application/json")
@@ -150,7 +168,36 @@ class RunRequestHandler(BaseHTTPRequestHandler):
             sys.stderr = prev_stderr
 
 
+def stdin_stdout_mode() -> None:
+    """
+    Single-shot mode, used with 'docker exec':
+
+    Read a JSON run request from stdin. The request is preceded by its
+    length in decimal digits and a newline, because there is no other
+    way to delimit it (the host cannot signal an EOF on stdin without
+    destroying the response channel as well).
+
+    Write the JSON run response to stdout, and exit.
+    """
+    try:
+        length_line = sys.stdin.buffer.readline()
+        recv_data = sys.stdin.buffer.read(int(length_line))
+
+        json_result = service_run_request(recv_data)
+    except Exception:
+        print_exc(file=sys.stderr)
+        json_result = (package_exception("uncaught_error")
+                .model_dump_json().encode("utf-8"))
+
+    sys.stdout.buffer.write(json_result)
+    sys.stdout.buffer.flush()
+
+
 def main():
+    if len(sys.argv) > 1 and sys.argv[1] == "-s":
+        stdin_stdout_mode()
+        return
+
     print("STARTING, LISTENING ON %d" % PORT, file=sys.stderr)
     server = socketserver.TCPServer(("", PORT), RunRequestHandler)
 
