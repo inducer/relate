@@ -79,6 +79,8 @@ def _call_from_daemonic_process(
 
 @pytest.fixture(autouse=True)
 def clean_timeout_worker_pool():
+    # Other test modules may have created a pool with different settings.
+    timeout_module._close_timeout_pool()
     yield
     timeout_module._close_timeout_pool()
 
