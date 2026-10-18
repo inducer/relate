@@ -2804,7 +2804,7 @@ wheels = [
 
 [[package]]
 name = "social-auth-core"
-version = "5.0.0"
+version = "5.0.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "cryptography" },
@@ -2815,9 +2815,9 @@ dependencies = [
     { name = "requests" },
     { name = "requests-oauthlib" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/44/c2/06f62efd11c849431ea2de86a64555db5ebf6871d1c8f19501c78486925e/social_auth_core-5.0.0.tar.gz", hash = "sha256:e8c8197d44dee8fdc9f7c1dc772813ad9bda1627abc0a6d65f1452b2ec0f11d2", size = 258994, upload-time = "2026-06-23T14:18:36.731Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/a9/b7/f2878b7ce6a5195aa2f14eef8337f2734940b11d68e14a36308770b633d7/social_auth_core-5.0.2.tar.gz", hash = "sha256:f53930c9b2a86ee0fc8e8fb0eac79221cfc2f017d9efb578691e5a3e2cf36784", size = 260859, upload-time = "2026-06-26T07:25:19.522Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/85/96/c91707c0e9ffd7e98574f19ceffb013313c2a85265f720656d5778c0de1e/social_auth_core-5.0.0-py3-none-any.whl", hash = "sha256:16ad700be843614e60d6d891b92b6cf32cadd97954c2680753bdd01355380a54", size = 456679, upload-time = "2026-06-23T14:18:35.346Z" },
+    { url = "https://files.pythonhosted.org/packages/f9/04/7530b56a1eaa33bac6595739b19e4ebe3fe9d35a5c5f188790de9d3c26de/social_auth_core-5.0.2-py3-none-any.whl", hash = "sha256:c7250f0c1d539bb1420a7d165b240f066d866ec19d9b829e660260f024f0e2d3", size = 459405, upload-time = "2026-06-26T07:25:18.009Z" },
 ]
 
 [[package]]
