@@ -1015,6 +1015,7 @@ class HumanTextFeedbackForm(StyledVerticalForm):
         cm_widget, cm_help_text = get_codemirror_widget(
                     language_mode="markdown",
                     interaction_mode=editor_interaction_mode,
+                    line_wrapping=True,
                     additional_keys={
                         "Ctrl-;":
                         JsLiteral("rlUtils.goToNextPointsField"),

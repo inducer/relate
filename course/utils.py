@@ -908,6 +908,7 @@ class CodeMirrorTextarea(forms.Textarea):
                  indent_unit: int,
                  autofocus: bool,
                  additional_keys: dict[str, JsLiteral],
+                 line_wrapping: bool,
                  **kwargs):
         super().__init__(attrs, **kwargs)
         self.language_mode = language_mode
@@ -915,6 +916,7 @@ class CodeMirrorTextarea(forms.Textarea):
         self.indent_unit = indent_unit
         self.autofocus = autofocus
         self.additional_keys = additional_keys
+        self.line_wrapping: bool = line_wrapping
 
     # TODO: Maybe add VSCode keymap?
     # https://github.com/replit/codemirror-vscode-keymap
@@ -932,6 +934,9 @@ class CodeMirrorTextarea(forms.Textarea):
 
         if self.language_mode is not None:
             extensions.append(JsLiteral(f"rlCodemirror.{self.language_mode}()"))
+
+        if self.line_wrapping:
+            extensions.append(JsLiteral("rlCodemirror.EditorView.lineWrapping"))
 
         additional_keys = [
             {
@@ -962,6 +967,7 @@ def get_codemirror_widget(
         *,
         autofocus: bool = False,
         additional_keys: dict[str, JsLiteral] | None = None,
+        line_wrapping: bool = False,
         ) -> tuple[CodeMirrorTextarea, str]:
     if additional_keys is None:
         additional_keys = {}
@@ -982,6 +988,7 @@ def get_codemirror_widget(
                     indent_unit=indent_unit,
                     autofocus=autofocus,
                     additional_keys=additional_keys,
+                    line_wrapping=line_wrapping,
                     ), help_text
 
 # }}}
