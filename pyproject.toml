@@ -138,6 +138,9 @@ django-yamlfield = { git = "https://github.com/bakatrouble/django-yamlfield.git"
 # is merged.
 pysaml2 = { git = "https://github.com/ascii-dev/pysaml2.git", rev = "26f4ca7d5a156b9a13e0cac0c8e3f61f558a56b0" }
 
+[tool.uv.extra-build-variables]
+slixmpp = { PYO3_USE_ABI3_FORWARD_COMPATIBILITY = "1" }
+
 [tool.hatch.build.targets.sdist]
 include = [
     "course",
