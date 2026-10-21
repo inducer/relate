@@ -60,7 +60,6 @@ from tests.base_test_mixins import (
     SingleCoursePageTestMixin,
 )
 from tests.utils import (
-    LocmemBackendTestsMixin,
     load_url_pattern_names,
     mock,
     reload_urlconf,
@@ -788,7 +787,7 @@ class SignInByPasswordTest(CoursesTestMixinBase,
 
 @override_settings(RELATE_SIGN_IN_BY_EMAIL_ENABLED=True)
 class SignInByEmailTest(CoursesTestMixinBase, MockAddMessageMixing,
-                        AuthTestMixin, LocmemBackendTestsMixin, TestCase):
+                        AuthTestMixin, TestCase):
     courses_setup_list = []
 
     @classmethod
@@ -837,7 +836,7 @@ class SignInByEmailTest(CoursesTestMixinBase, MockAddMessageMixing,
     def setUp(self):
         super().setUp()
         self.user.refresh_from_db()
-        self.flush_mailbox()
+        mail.outbox.clear()
 
     def test_email_login_enabled_sign_in_view_anonymous(self):
         with self.temporarily_switch_to_user(None):
@@ -977,7 +976,7 @@ class SignInByEmailTest(CoursesTestMixinBase, MockAddMessageMixing,
 
 @override_settings(RELATE_REGISTRATION_ENABLED=True)
 class SignUpTest(CoursesTestMixinBase, MockAddMessageMixing,
-                 AuthTestMixin, LocmemBackendTestsMixin, TestCase):
+                 AuthTestMixin, TestCase):
     sign_up_user_dict = {
         "username": "test_sign_up_user", "password": "mypassword",
         "email": "test_sign_up@example.com"
@@ -996,7 +995,7 @@ class SignUpTest(CoursesTestMixinBase, MockAddMessageMixing,
         self.assertEqual(len(mail.outbox), 1)
         self.assertIn("self-registration is not enabled", mail.outbox[0].body)
 
-        self.flush_mailbox()
+        mail.outbox.clear()
 
         resp = self.post_sign_up({})
         self.assertEqual(resp.status_code, 400)
@@ -1627,7 +1626,7 @@ class UserProfileTest(CoursesTestMixinBase, AuthTestMixin,
 
 
 class ResetPasswordStageOneTest(CoursesTestMixinBase, MockAddMessageMixing,
-                                LocmemBackendTestsMixin, TestCase):
+                                TestCase):
     @classmethod
     def setUpTestData(cls):
         super().setUpTestData()
@@ -1759,7 +1758,7 @@ class ResetPasswordStageOneTest(CoursesTestMixinBase, MockAddMessageMixing,
 
 
 class ResetPasswordStageTwoTest(CoursesTestMixinBase, MockAddMessageMixing,
-                                LocmemBackendTestsMixin, TestCase):
+                                TestCase):
 
     @classmethod
     def setUpTestData(cls):

@@ -3033,7 +3033,7 @@ requires-dist = [
     { name = "colorama", specifier = ">=0.4.6" },
     { name = "crispy-bootstrap5", specifier = "~=2026.3" },
     { name = "cryptography", specifier = ">=50.0.0" },
-    { name = "django", specifier = ">=6.0.7,<7" },
+    { name = "django", specifier = ">=6.1,<7" },
     { name = "django-celery-results", specifier = ">=2.4.0,<3" },
     { name = "django-crispy-forms", specifier = ">=1.13.0" },
     { name = "django-select2", specifier = ">=8.2.1,<9" },
@@ -3099,7 +3099,7 @@ dev = [
 ]
 mypy = [
     { name = "celery-types" },
-    { name = "django-stubs", extras = ["compatible-mypy"], specifier = ">=6.0,<6.2" },
+    { name = "django-stubs", extras = ["compatible-mypy"], specifier = ">=6.1,<6.2" },
     { name = "types-bleach", specifier = ">=6.2.0,<7" },
     { name = "types-markdown", specifier = "~=3.7" },
     { name = "types-paramiko", specifier = ">=3.5.0,<6" },

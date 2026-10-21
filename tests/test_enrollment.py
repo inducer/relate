@@ -30,7 +30,6 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core import mail
 from django.test import RequestFactory, TestCase
-from django.test.utils import override_settings  # ruff:ignore[unused-import]
 from django.urls import reverse
 
 from course import constants, enrollment
@@ -47,18 +46,12 @@ from tests.base_test_mixins import (
     SingleCoursePageTestMixin,
     SingleCourseTestMixin,
 )
-from tests.utils import LocmemBackendTestsMixin, mock
+from tests.utils import mock
 
 
 TEST_EMAIL_SUFFIX1 = "@suffix.com"
 TEST_EMAIL_SUFFIX2 = "suffix.com"
 
-EMAIL_CONNECTIONS = "EMAIL_CONNECTIONS"
-EMAIL_CONNECTION_DEFAULT = "EMAIL_CONNECTION_DEFAULT"
-NO_REPLY_EMAIL_FROM = "NO_REPLY_EMAIL_FROM"
-NOTIFICATION_EMAIL_FROM = "NOTIFICATION_EMAIL_FROM"
-GRADER_FEEDBACK_EMAIL_FROM = "GRADER_FEEDBACK_EMAIL_FROM"
-STUDENT_INTERACT_EMAIL_FROM = "STUDENT_INTERACT_EMAIL_FROM"
 ENROLLMENT_EMAIL_FROM = "ENROLLMENT_EMAIL_FROM"
 
 # {{{ message constants
@@ -690,7 +683,7 @@ class EnrollmentTestBaseMixin(MockAddMessageMixing, SingleCourseTestMixin):
         return [str(role.pk)]
 
 
-class EnrollmentDecisionTestMixin(LocmemBackendTestsMixin, EnrollmentTestBaseMixin):
+class EnrollmentDecisionTestMixin(EnrollmentTestBaseMixin):
     courses_attributes_extra_list = [{"enrollment_approval_required": True}]
 
     @classmethod
@@ -1004,8 +997,7 @@ class EnrollmentDecisionTest(EnrollmentDecisionTestMixin, TestCase):
             self.assertEqual(len(mail.outbox), 0)
 
 
-class EnrollmentPreapprovalTestMixin(LocmemBackendTestsMixin,
-                                     EnrollmentTestBaseMixin):
+class EnrollmentPreapprovalTestMixin(EnrollmentTestBaseMixin):
 
     @classmethod
     def setUpTestData(cls):
@@ -1397,34 +1389,24 @@ class EditParticipationFormTest(SingleCourseTestMixin, TestCase):
         self.assertNotIn("drop", names)
 
 
-class EnrollmentEmailConnectionsTestMixin(LocmemBackendTestsMixin):
-    # Ensure request/decision mail will be sent with/without EmailConnection
-    # settings. https://github.com/inducer/relate/pull/366
+class EnrollmentMailersTestMixin:
     courses_attributes_extra_list = [{"enrollment_approval_required": True}]
 
-    email_connections = {
-        "enroll": {
-            "host": "smtp.gmail.com",
-            "username": "blah@blah.com",
-            "password": "password",
-            "port": 587,
-            "use_tls": True,
-        },
+    mailers = {
+        alias: {"BACKEND": "django.core.mail.backends.locmem.EmailBackend"}
+        for alias in ("default", "robot", "enroll")
     }
-
-    email_connections_none = {}
+    default_mailers = {"default": mailers["default"]}
     enrollment_email_from = "enroll@example.com"
     robot_email_from = "robot@example.com"
 
 
-# Todo: refactor email connections in all views
-class EnrollmentRequestEmailConnectionsTest(
-            EnrollmentEmailConnectionsTestMixin, EnrollmentTestBaseMixin, TestCase):
+class EnrollmentRequestMailersTest(
+            EnrollmentMailersTestMixin, EnrollmentTestBaseMixin, TestCase):
 
-    def test_email_with_email_connections1(self):
-        # with EMAIL_CONNECTIONS and ENROLLMENT_EMAIL_FROM configured
+    def test_email_with_enroll_mailer(self):
         with self.settings(
-                EMAIL_CONNECTIONS=self.email_connections,
+                MAILERS=self.mailers,
                 ROBOT_EMAIL_FROM=self.robot_email_from,
                 ENROLLMENT_EMAIL_FROM=self.enrollment_email_from):
 
@@ -1434,11 +1416,11 @@ class EnrollmentRequestEmailConnectionsTest(
 
             msg = mail.outbox[0]
             self.assertEqual(msg.from_email, expected_from_email)
+            self.assertEqual(msg.sent_using, "enroll")
 
-    def test_email_with_email_connections3(self):
-        # with neither EMAIL_CONNECTIONS nor ENROLLMENT_EMAIL_FROM configured
+    def test_email_with_robot_mailer(self):
         with self.settings(
-                EMAIL_CONNECTIONS=self.email_connections,
+                MAILERS=self.mailers,
                 ROBOT_EMAIL_FROM=self.robot_email_from):
             if hasattr(settings, ENROLLMENT_EMAIL_FROM):
                 del settings.ENROLLMENT_EMAIL_FROM
@@ -1450,16 +1432,33 @@ class EnrollmentRequestEmailConnectionsTest(
 
             msg = mail.outbox[0]
             self.assertEqual(msg.from_email, expected_from_email)
+            self.assertEqual(msg.sent_using, "robot")
+
+    def test_email_with_default_mailer_fallback(self):
+        with self.settings(
+                MAILERS=self.default_mailers,
+                ROBOT_EMAIL_FROM=self.robot_email_from):
+            if hasattr(settings, ENROLLMENT_EMAIL_FROM):
+                del settings.ENROLLMENT_EMAIL_FROM
+
+            expected_from_email = settings.ROBOT_EMAIL_FROM
+
+            with self.temporarily_switch_to_user(self.non_ptcp_active_user1):
+                self.client.post(self.enroll_request_url, follow=True)
+
+            msg = mail.outbox[0]
+            self.assertEqual(msg.from_email, expected_from_email)
+            self.assertEqual(msg.sent_using, "default")
 
 
-class EnrollmentDecisionEmailConnectionsTest(
-        EnrollmentEmailConnectionsTestMixin, EnrollmentDecisionTestMixin, TestCase):
+class EnrollmentDecisionMailersTest(
+        EnrollmentMailersTestMixin, EnrollmentDecisionTestMixin, TestCase):
 
-    # {{{ with EMAIL_CONNECTIONS and ENROLLMENT_EMAIL_FROM configured
-    def test_email_with_email_connections1(self):
+    # {{{ with purpose-specific mailers and ENROLLMENT_EMAIL_FROM configured
+    def test_email_with_enroll_mailer(self):
         with self.settings(
                 RELATE_EMAIL_SMTP_ALLOW_NONAUTHORIZED_SENDER=False,
-                EMAIL_CONNECTIONS=self.email_connections,
+                MAILERS=self.mailers,
                 ROBOT_EMAIL_FROM=self.robot_email_from,
                 ENROLLMENT_EMAIL_FROM=self.enrollment_email_from):
 
@@ -1473,11 +1472,12 @@ class EnrollmentDecisionEmailConnectionsTest(
 
             msg = mail.outbox[0]
             self.assertEqual(msg.from_email, expected_from_email)
+            self.assertEqual(msg.sent_using, "enroll")
 
-    def test_email_with_email_connections2(self):
+    def test_email_with_mailers_and_course_sender(self):
         with self.settings(
                 RELATE_EMAIL_SMTP_ALLOW_NONAUTHORIZED_SENDER=True,
-                EMAIL_CONNECTIONS=self.email_connections,
+                MAILERS=self.mailers,
                 ROBOT_EMAIL_FROM=self.robot_email_from,
                 ENROLLMENT_EMAIL_FROM=self.enrollment_email_from):
 
@@ -1491,15 +1491,15 @@ class EnrollmentDecisionEmailConnectionsTest(
 
             msg = mail.outbox[0]
             self.assertEqual(msg.from_email, expected_from_email)
+            self.assertEqual(msg.sent_using, "default")
     # }}}
 
-    # {{{ with neither EMAIL_CONNECTIONS nor ENROLLMENT_EMAIL_FROM configured
-    def test_email_with_email_connections3(self):
+    # {{{ with only the default mailer and no ENROLLMENT_EMAIL_FROM configured
+    def test_email_with_default_mailer_fallback(self):
         with self.settings(
                 RELATE_EMAIL_SMTP_ALLOW_NONAUTHORIZED_SENDER=False,
+                MAILERS=self.default_mailers,
                 ROBOT_EMAIL_FROM=self.robot_email_from):
-            if hasattr(settings, EMAIL_CONNECTIONS):
-                del settings.EMAIL_CONNECTIONS
             if hasattr(settings, ENROLLMENT_EMAIL_FROM):
                 del settings.ENROLLMENT_EMAIL_FROM
 
@@ -1513,13 +1513,13 @@ class EnrollmentDecisionEmailConnectionsTest(
 
             msg = mail.outbox[0]
             self.assertEqual(msg.from_email, expected_from_email)
+            self.assertEqual(msg.sent_using, "default")
 
-    def test_email_with_email_connections4(self):
+    def test_email_with_default_mailer_and_course_sender(self):
         with self.settings(
                 RELATE_EMAIL_SMTP_ALLOW_NONAUTHORIZED_SENDER=True,
+                MAILERS=self.default_mailers,
                 ROBOT_EMAIL_FROM=self.robot_email_from):
-            if hasattr(settings, EMAIL_CONNECTIONS):
-                del settings.EMAIL_CONNECTIONS
             if hasattr(settings, ENROLLMENT_EMAIL_FROM):
                 del settings.ENROLLMENT_EMAIL_FROM
 
@@ -1531,6 +1531,7 @@ class EnrollmentDecisionEmailConnectionsTest(
                             self.get_edit_participation_form_data("approve"))
             msg = mail.outbox[0]
             self.assertEqual(msg.from_email, expected_from_email)
+            self.assertEqual(msg.sent_using, "default")
     # }}}
 
 

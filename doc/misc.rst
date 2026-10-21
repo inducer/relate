@@ -33,6 +33,29 @@ Copy (and, optionally, edit) the example configuration::
     cp local_settings_example.py local_settings.py
     $EDITOR local_settings.py
 
+Email configuration
+^^^^^^^^^^^^^^^^^^^
+
+RELATE requires Django 6.1 or newer. Configure email delivery with ``MAILERS`` as shown in
+``local_settings_example.py``. Backend constructor arguments belong in each
+mailer's ``OPTIONS`` dictionary, using lowercase names such as ``host`` and
+``username``.
+
+RELATE uses the aliases ``robot``, ``no_reply``, ``notification``,
+``grader_feedback``, ``student_interact``, and ``enroll`` for purpose-specific
+email delivery. An omitted alias falls back to ``MAILERS["default"]``. Sender
+address settings such as ``ROBOT_EMAIL_FROM`` and ``ENROLLMENT_EMAIL_FROM``
+continue to control the sender independently of the mailer.
+
+The legacy ``EMAIL_CONNECTIONS`` and ``EMAIL_CONNECTION_DEFAULT`` settings
+are no longer supported. Move those connections into ``MAILERS``, renaming
+``backend`` to ``BACKEND`` and placing the remaining options inside ``OPTIONS``.
+To preserve a legacy default such as ``EMAIL_CONNECTION_DEFAULT = "robot"``,
+also use that configuration for ``MAILERS["default"]``.
+
+Continuing setup
+^^^^^^^^^^^^^^^^
+
 Initialize the database::
 
     uv run python manage.py migrate

@@ -328,29 +328,16 @@ if 0:
 # }}}
 
 
-# {{{ Allow multiple email connections
-# https://gist.github.com/niran/840999
+# {{{ Purpose-specific mailers
 
-def get_outbound_mail_connection(label: str | None = None, **kwargs: Any) -> Any:
+def get_outbound_mail_connection(label: str | None = None) -> Any:
+    """Select a purpose-specific mailer, falling back to the default."""
     from django.conf import settings
-    if label is None:
-        label = getattr(settings, "EMAIL_CONNECTION_DEFAULT", None)
-
-    try:
-        connections = settings.EMAIL_CONNECTIONS  # type: ignore[misc]
-        options = connections[label]
-    except (KeyError, AttributeError):
-        # Neither EMAIL_CONNECTIONS nor
-        # EMAIL_CONNECTION_DEFAULT in
-        # settings fail silently and fall
-        # back to django's built-in
-        # get_connection.
-        options = {}
-
-    options.update(kwargs)
-
     from django.core import mail
-    return mail.get_connection(**options)
+
+    # django-types does not yet expose Django's mailers API.
+    mailers = getattr(mail, "mailers")  # ruff:ignore[get-attr-with-constant]
+    return mailers[label if label in settings.MAILERS else "default"]
 
 # }}}
 
