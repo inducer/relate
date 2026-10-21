@@ -25,10 +25,12 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
+
 from django.core.validators import RegexValidator
 from django.db import models, transaction
 from django.utils.timezone import now
 from django.utils.translation import gettext_lazy as _
+from typing_extensions import override
 
 from course.models import Course
 
@@ -84,14 +86,15 @@ class AllowEvent(Event):
     end = models.DateTimeField(verbose_name=_("End time"))
     cidr_blocks = models.JSONField()
 
-    def __str__(self) -> str:
-        return f"PrairieTest allow event {self.event_id} for {self.user_uid}"
-
     class Meta:
         indexes = [
             models.Index(fields=["user_uid", "exam_uuid", "start"]),
             models.Index(fields=["user_uid", "exam_uuid", "end"]),
         ]
+
+    @override
+    def __str__(self) -> str:
+        return f"PrairieTest allow event {self.event_id} for {self.user_uid}"
 
 
 class DenyEvent(Event):
@@ -102,15 +105,16 @@ class DenyEvent(Event):
     end = models.DateTimeField(verbose_name=_("End time"))
     cidr_blocks = models.JSONField()
 
-    def __str__(self) -> str:
-        return f"PrairieTest deny event {self.event_id} with {self.deny_uuid}"
-
     class Meta:
         indexes = [
             models.Index(fields=["deny_uuid", "created"]),
             models.Index(fields=["deny_uuid", "start"]),
             models.Index(fields=["deny_uuid", "end"]),
         ]
+
+    @override
+    def __str__(self) -> str:
+        return f"PrairieTest deny event {self.event_id} with {self.deny_uuid}"
 
 
 class MostRecentDenyEvent(models.Model):
@@ -125,6 +129,7 @@ class MostRecentDenyEvent(models.Model):
             models.Index(fields=["end"]),
             ]
 
+    @override
     def __str__(self) -> str:
         return f"PrairieTest current deny event with {self.deny_uuid}"
 
