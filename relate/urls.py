@@ -27,6 +27,7 @@ from django.contrib import admin
 from django.urls import include, path, re_path
 
 import course.analytics
+import course.answer_resources
 import course.api
 import course.auth
 import course.calendar
@@ -403,6 +404,16 @@ urlpatterns = [
         "/$",
         course.flow.view_flow_page,
         name="relate-view_flow_page"),
+    re_path(r"^course"
+        "/" + COURSE_ID_REGEX
+        + "/answer-resource"
+        "/(?P<flow_session_id>[0-9]+)"
+        "/(?P<page_ordinal>[0-9]+)"
+        "/(?P<visit_id>[0-9]+)"
+        "/(?P<access_mode>[a-z-]+)"
+        "/(?P<resource_name>[a-z-]+)/$",
+        course.answer_resources.answer_resource,
+        name="relate-answer_resource"),
     re_path(r"^course"
         "/" + COURSE_ID_REGEX
         + "/flow-session"

@@ -1,7 +1,33 @@
 {% load i18n %}
 {% load crispy_forms_tags %}
 
-{% if data_url %}
+{% if is_notebook %}
+  <div class="relate-notebook-preview"{% if notebook_preview_url %} data-preview-url="{{ notebook_preview_url }}"{% endif %}>
+    <p role="status" aria-live="polite" class="relate-notebook-status"
+       data-loading="{% trans 'Loading notebook preview…' %}"
+       data-ready="{% trans 'Notebook preview ready.' %}"
+       data-error="{% trans 'The notebook preview is unavailable. Download the original submission instead.' %}"
+       data-unsupported="{% trans 'This browser does not support the required preview protections. Download the original submission instead.' %}">
+      {% if notebook_preview_url %}
+        {% trans "Loading notebook preview…" %}
+      {% else %}
+        {% trans "Preview unavailable until this answer has been saved. The grading form remains available." %}
+      {% endif %}
+    </p>
+    <p>{% trans "Saved outputs were submitted by the student and were not reproduced by execution. They are not evidence that the displayed code generated them. This static preview may omit unsupported outputs and remote resources." %}</p>
+    {% if notebook_download_url %}
+      <p>
+        <a href="{{ notebook_download_url }}" rel="noopener noreferrer">{% trans "Download original notebook" %}</a>
+        <a class="relate-notebook-standalone" href="{{ notebook_preview_url }}" target="_blank" rel="noopener noreferrer" hidden>{% trans "Open standalone notebook preview" %}</a>
+      </p>
+      <noscript><p>{% trans "JavaScript is required for the protected preview. Download the original notebook instead." %}</p></noscript>
+      <div class="relate-notebook-frame" data-title="{% trans 'Submitted notebook preview' %}"></div>
+      <script type="text/javascript">
+        $(document).ready(rlUtils.enablePreviewForNotebookUpload);
+      </script>
+    {% endif %}
+  </div>
+{% elif data_url %}
   <div id="file_upload_viewer_div">
   </div>
   <div class="col-lg-offset-2" style="margin-bottom:2ex">

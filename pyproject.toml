@@ -64,6 +64,10 @@ dependencies = [
     # Hard dependency to resolve vulnerability
     # https://github.com/inducer/relate/security/dependabot/130
     "cryptography>=50.0.0",
+
+    # Static, non-executing previews of submitted notebooks.
+    "nbformat>=5.10.4,<6",
+    "nbconvert>=7.17.0,<8",
 ]
 
 [project.optional-dependencies]

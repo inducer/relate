@@ -97,6 +97,11 @@ def get_prev_visit_grades(
             .select_related("visit"))
 
 
+def check_gradebook_permission(pctx: CoursePageContext) -> None:
+    if not pctx.has_permission(PPerm.view_gradebook):
+        raise PermissionDenied(_("may not view grade book"))
+
+
 @course_view
 def get_prev_grades_dropdown_content(pctx, flow_session_id, page_ordinal,
                                      prev_grade_id):
@@ -150,8 +155,7 @@ def grade_flow_page(
     else:
         prev_grade_id = None
 
-    if not pctx.has_permission(PPerm.view_gradebook):
-        raise PermissionDenied(_("may not view grade book"))
+    check_gradebook_permission(pctx)
     assert pctx.request.user.is_authenticated
 
     flow_session = get_object_or_404(FlowSession, id=int(flow_session_id))
@@ -242,6 +246,13 @@ def grade_flow_page(
 
         else:
             feedback = None
+
+        from course.answer_resources import bind_answer_resource_url
+        bind_answer_resource_url(
+                fpctx.page_context,
+                (shown_grade.visit if shown_grade is not None
+                 else fpctx.prev_answer_visit),
+                "grading")
 
         from course.page.base import PageBehavior
         page_behavior = PageBehavior(

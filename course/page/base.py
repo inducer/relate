@@ -31,6 +31,7 @@ from typing import (
     Annotated,
     Any,
     ClassVar,
+    Literal,
     Self,
     TypeAlias,
     Union,  # pyright: ignore[reportDeprecated]
@@ -149,6 +150,18 @@ class PageContext:
     in_sandbox: bool = False
     page_uri: str | None = None
     request: django.http.HttpRequest | None = None
+    # Bound by the framework only for the exact persisted answer being displayed.
+    answer_resource_url: Callable[[str], str] | None = None
+
+
+@dataclass(frozen=True)
+class AnswerResource:
+    """Page-owned bytes; HTTP policy and notebook rendering are framework-owned."""
+
+    kind: Literal["notebook-preview", "original"]
+    content: bytes
+    filename: str | None = None
+    content_type: str = "application/x-ipynb+json"
 
 
 @final
@@ -534,6 +547,19 @@ class PageBase(BaseModel, ABC):  # pyright: ignore[reportUnsafeMultipleInheritan
 
     # {{{ student input
 
+    def render_answer_resource(self,
+            page_context: PageContext,
+            page_data: PageData,  # pyright: ignore[reportUnusedParameter]
+            answer_data: AnswerData,
+            resource_name: str,  # pyright: ignore[reportUnusedParameter]
+            ) -> AnswerResource | None:
+        """Return a named resource for a persisted answer, or decline it.
+
+        This hook is called only after framework authorization. Preview content
+        must be original notebook bytes, never page-generated HTML.
+        """
+        return None
+
     @abstractmethod
     def answer_data(self,
             page_context: PageContext,
@@ -586,9 +612,9 @@ class PageBase(BaseModel, ABC):  # pyright: ignore[reportUnsafeMultipleInheritan
 
     def form_to_html(self,
             request: django.http.HttpRequest,
-            page_context: PageContext,
+            page_context: PageContext,  # pyright: ignore[reportUnusedParameter]
             form: StyledFormBase,
-            answer_data: AnswerData,
+            answer_data: AnswerData,  # pyright: ignore[reportUnusedParameter]
             ):
         """Returns an HTML rendering of *form*."""
 
