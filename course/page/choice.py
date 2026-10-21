@@ -315,7 +315,7 @@ class ChoiceAnswerData(BaseModel):
 
 
 class ChoiceQuestion(ChoiceQuestionBase, PageBaseWithoutHumanGrading):
-    """
+    r"""
     A page asking the participant to choose one of multiple answers.
 
     Example:

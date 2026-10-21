@@ -917,10 +917,10 @@ class CheckRelateCourseLanguages(CheckRelateSettingsBase):
                 # 'my Simplified Chinese' is used for language description of
                 # 'zh-hans' instead of 'Simplified Chinese'
                 expected_msgs=[
-                    "Duplicate language entries were found in "
+                    ("Duplicate language entries were found in "
                     "settings.LANGUAGES for 'zh-hans', 'my Simplified "
                     "Chinese' will be used as its "
-                    "language_description"]
+                    "language_description")]
             )
 
 

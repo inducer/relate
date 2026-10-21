@@ -274,8 +274,8 @@ def test_code_question(page: CodeQuestion) -> bool:
 
     stop = time()
     response.feedback = [*response.feedback,
-            f"Execution took {stop-start:.1f} seconds. "
-            f"(Timeout is {page.timeout:.1f} seconds.)"]
+            (f"Execution took {stop-start:.1f} seconds. "
+            f"(Timeout is {page.timeout:.1f} seconds.)")]
 
     from colorama import Fore, Style
     if response.result == "success":
