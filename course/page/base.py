@@ -444,7 +444,7 @@ class PageBase(BaseModel, ABC):  # pyright: ignore[reportUnsafeMultipleInheritan
         # The following will create a new type adapter every time a new subclass
         # is created. Somewhat suboptimal, but there aren't very many.
         PageBase._discriminating_type_adapter = TypeAdapter(
-            Annotated[Union[tuple(PageBase._subclasses.values())],  # ruff:ignore[non-pep604-annotation-union]  # pyright: ignore[reportDeprecated]
+            Annotated[Union[tuple(PageBase._subclasses.values())],    # type: ignore[arg-type]  # ruff:ignore[non-pep604-annotation-union]  # pyright: ignore[reportDeprecated, reportArgumentType, reportInvalidTypeArguments, reportInvalidTypeForm]
             Field(discriminator="type")])
 
         # emphasize that this should be fully defined at this point
