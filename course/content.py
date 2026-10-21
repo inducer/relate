@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing_extensions import override
-
 
 __copyright__ = "Copyright (C) 2014 Andreas Kloeckner"
 
@@ -67,6 +65,7 @@ from pydantic import (
     ValidationInfo,
     model_validator,
 )
+from typing_extensions import override
 from yaml import safe_load as load_yaml
 
 from course.constants import (
