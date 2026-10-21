@@ -26,6 +26,7 @@ THE SOFTWARE.
 from socket import error as socket_error
 from typing import TYPE_CHECKING, cast
 
+from django.core import mail
 from django.test import Client, RequestFactory, TestCase, override_settings
 
 from course.constants import MAX_EXTRA_CREDIT_FACTOR
@@ -39,7 +40,7 @@ from tests.base_test_mixins import (
 )
 from tests.constants import MESSAGE_ANSWER_SAVED_TEXT, PAGE_ERRORS
 from tests.test_sandbox import SingleCoursePageSandboxTestBaseMixin
-from tests.utils import LocmemBackendTestsMixin, mail, mock
+from tests.utils import mock
 
 from . import markdowns
 
@@ -214,8 +215,7 @@ class SingleCourseQuizPageCodeQuestionTest(
 
 
 class CodeQuestionTest(SingleCoursePageSandboxTestBaseMixin,
-                       SubprocessRunpyContainerMixin, LocmemBackendTestsMixin,
-                       TestCase):
+                       SubprocessRunpyContainerMixin, TestCase):
     def test_data_files_missing_random_question_data_file(self):
         file_name = "foo"
         markdown = (

@@ -40,6 +40,12 @@ from tests.base_test_mixins import (
 from tests.utils import mock
 
 
+GRADER_FEEDBACK_MAIL_SETTINGS = {"MAILERS": {
+    "default": {"BACKEND": "django.core.mail.backends.locmem.EmailBackend"},
+    "grader_feedback": {"BACKEND": "tests.resource.MyFakeEmailBackend"},
+}}
+
+
 class SingleCourseQuizPageGradeInterfaceTestMixin(SingleCourseQuizPageTestMixin):
 
     page_id = "anyup"
@@ -174,11 +180,7 @@ class SingleCourseQuizPageGradeInterfaceTest(
         self.assertIn("Dear user", mail.outbox[0].body)
 
     @override_settings(
-        EMAIL_CONNECTIONS={
-            "grader_feedback": {
-                "backend": "tests.resource.MyFakeEmailBackend",
-            },
-        },
+        **GRADER_FEEDBACK_MAIL_SETTINGS,
         GRADER_FEEDBACK_EMAIL_FROM="my_feedback_from_email@example.com"
     )
     def test_feedback_notify_with_grader_feedback_connection(self):
@@ -187,21 +189,12 @@ class SingleCourseQuizPageGradeInterfaceTest(
             "notify": "on"
         }
 
-        from django.core.mail import get_connection
-        connection = get_connection(
-            backend="django.core.mail.backends.locmem.EmailBackend")
-
-        with mock.patch("django.core.mail.get_connection") as mock_get_connection:
-            mock_get_connection.return_value = connection
-            self.submit_page_human_grading_by_page_id_and_test(
-                self.page_id, grade_data_extra_kwargs=grade_data_extra_kwargs)
-            self.assertEqual(len(mail.outbox), 1)
-            self.assertEqual(mail.outbox[0].from_email,
-                             "my_feedback_from_email@example.com")
-            self.assertEqual(
-                mock_get_connection.call_args[1]["backend"],
-                "tests.resource.MyFakeEmailBackend"
-            )
+        self.submit_page_human_grading_by_page_id_and_test(
+            self.page_id, grade_data_extra_kwargs=grade_data_extra_kwargs)
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].from_email,
+                         "my_feedback_from_email@example.com")
+        self.assertEqual(mail.outbox[0].sent_using, "grader_feedback")
 
         # make sure the name (appellation) is in the email body, not the masked one
         self.assertIn(
@@ -300,11 +293,7 @@ class SingleCourseQuizPageGradeInterfaceTest(
             mail.outbox[0].body)
 
     @override_settings(
-        EMAIL_CONNECTIONS={
-            "grader_feedback": {
-                "backend": "tests.resource.MyFakeEmailBackend",
-            },
-        },
+        **GRADER_FEEDBACK_MAIL_SETTINGS,
         GRADER_FEEDBACK_EMAIL_FROM="my_feedback_from_email@example.com"
     )
     def test_notes_and_notify_with_grader_feedback_connection(self):
@@ -313,26 +302,17 @@ class SingleCourseQuizPageGradeInterfaceTest(
             "notify_instructor": "on"
         }
 
-        from django.core.mail import get_connection
-        connection = get_connection(
-            backend="django.core.mail.backends.locmem.EmailBackend")
+        with self.temporarily_switch_to_user(self.ta_participation.user):
+            self.submit_page_human_grading_by_page_id_and_test(
+                self.page_id, grade_data_extra_kwargs=grade_data_extra_kwargs,
+                force_login_instructor=False)
 
-        with mock.patch("django.core.mail.get_connection") as mock_get_connection:
-            mock_get_connection.return_value = connection
-            with self.temporarily_switch_to_user(self.ta_participation.user):
-                self.submit_page_human_grading_by_page_id_and_test(
-                    self.page_id, grade_data_extra_kwargs=grade_data_extra_kwargs,
-                    force_login_instructor=False)
-
-            self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(len(mail.outbox), 1)
 
         self.assertIn(self.course.notify_email, mail.outbox[0].recipients())
         self.assertEqual(mail.outbox[0].from_email,
                          "my_feedback_from_email@example.com")
-        self.assertEqual(
-            mock_get_connection.call_args[1]["backend"],
-            "tests.resource.MyFakeEmailBackend"
-        )
+        self.assertEqual(mail.outbox[0].sent_using, "grader_feedback")
 
         # make sure the name (appellation) is in the email body, not the masked one
         self.assertIn(

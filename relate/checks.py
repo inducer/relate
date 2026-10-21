@@ -43,7 +43,6 @@ LANGUAGES = "LANGUAGES"
 RELATE_SITE_NAME = "RELATE_SITE_NAME"
 RELATE_CUSTOMIZED_SITE_NAME = "RELATE_CUSTOMIZED_SITE_NAME"
 RELATE_OVERRIDE_TEMPLATES_DIRS = "RELATE_OVERRIDE_TEMPLATES_DIRS"
-EMAIL_CONNECTIONS = "EMAIL_CONNECTIONS"
 RELATE_BASE_URL = "RELATE_BASE_URL"
 RELATE_FACILITIES = "RELATE_FACILITIES"
 RELATE_MAINTENANCE_MODE_EXCEPTIONS = "RELATE_MAINTENANCE_MODE_EXCEPTIONS"
@@ -111,45 +110,6 @@ def check_relate_settings(app_configs, **kwargs):
 
     # check RELATE_USER_PROFILE_MASK_METHOD
     errors.extend(relate_user_method_settings.check_user_profile_mask_method())
-
-    # {{{ check EMAIL_CONNECTIONS
-    email_connections = getattr(settings, EMAIL_CONNECTIONS, None)
-    if email_connections is not None:
-        if not isinstance(email_connections, dict):
-            errors.append(RelateCriticalCheckMessage(
-                msg=(
-                    INSTANCE_ERROR_PATTERN
-                    % {"location": EMAIL_CONNECTIONS,
-                       "types": "dict"}),
-                id="email_connections.E001"
-            ))
-        else:
-            for label, c in email_connections.items():
-                if not isinstance(c, dict):
-                    errors.append(RelateCriticalCheckMessage(
-                        msg=(
-                            INSTANCE_ERROR_PATTERN
-                            % {"location": f"'{label}' in '{EMAIL_CONNECTIONS}'",
-                               "types": "dict"}),
-                        id="email_connections.E002"
-                    ))
-                else:
-                    if "backend" in c:
-                        try:
-                            import_string(c["backend"])
-                        except ImportError as e:
-                            errors.append(RelateCriticalCheckMessage(
-                                msg=(
-                                    GENERIC_ERROR_PATTERN
-                                    % {
-                                        "location":
-                                            f"'{label}' in {RELATE_FACILITIES}",
-                                        "error_type": type(e).__name__,
-                                        "error_str": str(e)
-                                    }),
-                                id="email_connections.E003")
-                            )
-    # }}}
 
     # {{{ check RELATE_FACILITIES
 

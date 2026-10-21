@@ -27,6 +27,7 @@ import datetime
 import re
 import unittest
 
+from django.core import mail
 from django.core.management import CommandError
 from django.test import RequestFactory, TestCase
 from django.test.utils import override_settings
@@ -50,7 +51,7 @@ from tests.test_utils import (
     REAL_TRANSLATION_FUNCTION_TO_MOCK,
     real_trans_side_effect,
 )
-from tests.utils import LocmemBackendTestsMixin, mail, mock
+from tests.utils import mock
 
 
 LANGUAGES = [
@@ -371,7 +372,7 @@ class HasPermissionTemplateFilterTest(SingleCourseTestMixin, TestCase):
             self.assertEqual(text, "NO")
 
 
-class RelateSiteNameTest(SingleCourseTestMixin, LocmemBackendTestsMixin, TestCase):
+class RelateSiteNameTest(SingleCourseTestMixin, TestCase):
     def setUp(self):
         super().setUp()
 
