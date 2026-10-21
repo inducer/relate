@@ -264,12 +264,17 @@ class Course(models.Model):
         return self.identifier
 
     @override
-    def clean(self) -> None:
-        if self.force_lang:
-            self.force_lang = self.force_lang.strip()
+    def save(self, *args, **kwargs):
+        self.full_clean()  # performs regular validation then clean()
+        super().save(*args, **kwargs)
 
     def get_absolute_url(self) -> str:
         return reverse("relate-course_page", args=(self.identifier,))
+
+    @override
+    def clean(self) -> None:
+        if self.force_lang:
+            self.force_lang = self.force_lang.strip()
 
     def get_from_email(self) -> str:
         if settings.RELATE_EMAIL_SMTP_ALLOW_NONAUTHORIZED_SENDER:
@@ -286,10 +291,6 @@ class Course(models.Model):
             return self.from_email
         else:
             return self.notify_email
-
-    def save(self, *args, **kwargs):
-        self.full_clean()  # performs regular validation then clean()
-        super().save(*args, **kwargs)
 
 # }}}
 
@@ -348,6 +349,11 @@ class Event(models.Model):
             return self.kind
 
     @override
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        return super().save(*args, **kwargs)
+
+    @override
     def clean(self) -> None:
         super().clean()
 
@@ -378,10 +384,6 @@ class Event(models.Model):
                             "of kind '{evt_kind}' in course '{course}'")
                         .format(evt_kind=self.kind, course=self.course))
 
-    def save(self, *args, **kwargs):
-        self.full_clean()
-        return super().save(*args, **kwargs)
-
 # }}}
 
 
@@ -400,6 +402,16 @@ class ParticipationTag(models.Model):
     shown_to_participant = models.BooleanField(default=False,
             verbose_name=_("Shown to participant"))
 
+    class Meta:
+        verbose_name = _("Participation tag")
+        verbose_name_plural = _("Participation tags")
+        unique_together = (("course", "name"),)
+        ordering = ("course", "name")
+
+    @override
+    def __str__(self) -> str:
+        return f"{self.name} ({self.course})"
+
     @override
     def clean(self):
         super().clean()
@@ -409,16 +421,6 @@ class ParticipationTag(models.Model):
             raise ValidationError(
                 {field_name:
                      _("'%s' contains invalid characters.") % field_name})
-
-    @override
-    def __str__(self) -> str:
-        return f"{self.name} ({self.course})"
-
-    class Meta:
-        verbose_name = _("Participation tag")
-        verbose_name_plural = _("Participation tags")
-        unique_together = (("course", "name"),)
-        ordering = ("course", "name")
 
 
 class ParticipationRole(models.Model):
@@ -440,6 +442,18 @@ class ParticipationRole(models.Model):
     is_default_for_unenrolled = models.BooleanField(default=False,
             verbose_name=_("Is default role for unenrolled users"))
 
+    class Meta:
+        verbose_name = _("Participation role")
+        verbose_name_plural = _("Participation roles")
+        unique_together = (("course", "identifier"),)
+        ordering = ("course", "identifier")
+
+    @override
+    def __str__(self) -> str:
+        return _("%(identifier)s in %(course)s") % {
+            "identifier": self.identifier,
+            "course": self.course}
+
     @override
     def clean(self):
         super().clean()
@@ -449,12 +463,6 @@ class ParticipationRole(models.Model):
             raise ValidationError(
                 {field_name:
                      _("'%s' contains invalid characters.") % field_name})
-
-    @override
-    def __str__(self) -> str:
-        return _("%(identifier)s in %(course)s") % {
-            "identifier": self.identifier,
-            "course": self.course}
 
     # {{{ permissions handling
 
@@ -480,12 +488,6 @@ class ParticipationRole(models.Model):
         return (perm, argument) in self.permission_tuples()
 
     # }}}
-
-    class Meta:
-        verbose_name = _("Participation role")
-        verbose_name_plural = _("Participation roles")
-        unique_together = (("course", "identifier"),)
-        ordering = ("course", "identifier")
 
 
 class ParticipationPermissionBase(models.Model):
@@ -516,17 +518,17 @@ class ParticipationRolePermission(ParticipationPermissionBase):
             verbose_name=_("Role"), on_delete=models.CASCADE,
             related_name="permissions")
 
+    class Meta:
+        verbose_name = _("Participation role permission")
+        verbose_name_plural = _("Participation role permissions")
+        unique_together = (("role", "permission", "argument"),)
+
     @override
     def __str__(self) -> str:
         # Translators: permissions for roles
         return _("%(permission)s for %(role)s") % {
             "permission": super().__str__(),
             "role": self.role}
-
-    class Meta:
-        verbose_name = _("Participation role permission")
-        verbose_name_plural = _("Participation role permissions")
-        unique_together = (("role", "permission", "argument"),)
 
 
 class Participation(models.Model):
@@ -565,6 +567,12 @@ class Participation(models.Model):
     notes = models.TextField(blank=True, null=True,
             verbose_name=_("Notes"))
 
+    class Meta:
+        verbose_name = _("Participation")
+        verbose_name_plural = _("Participations")
+        unique_together = (("user", "course"),)
+        ordering = ("course", "user")
+
     @override
     def __str__(self) -> str:
         # Translators: displayed format of Participation: some user in some
@@ -575,12 +583,6 @@ class Participation(models.Model):
                     role.identifier
                     for role in self.roles.all())
                 }
-
-    class Meta:
-        verbose_name = _("Participation")
-        verbose_name_plural = _("Participations")
-        unique_together = (("user", "course"),)
-        ordering = ("course", "user")
 
     def get_role_desc(self):
         return ", ".join(role.name for role in self.roles.all())
@@ -650,6 +652,12 @@ class ParticipationPreapproval(models.Model):
     creation_time = models.DateTimeField(default=now, db_index=True,
             verbose_name=_("Creation time"))
 
+    class Meta:
+        verbose_name = _("Participation preapproval")
+        verbose_name_plural = _("Participation preapprovals")
+        unique_together = (("course", "email"),)
+        ordering = ("course", "email")
+
     @override
     def __str__(self) -> str:
         if self.email:
@@ -665,12 +673,6 @@ class ParticipationPreapproval(models.Model):
         else:
             return _("Preapproval with pk %(pk)s in %(course)s") % {
                     "pk": self.pk, "course": self.course}
-
-    class Meta:
-        verbose_name = _("Participation preapproval")
-        verbose_name_plural = _("Participation preapprovals")
-        unique_together = (("course", "email"),)
-        ordering = ("course", "email")
 
 
 def add_default_roles_and_permissions(course,
@@ -837,17 +839,17 @@ class AuthenticationToken(models.Model):
             null=True, blank=True, unique=True,
             verbose_name=_("Hash of git authentication token"))
 
+    class Meta:
+        verbose_name = _("Authentication token")
+        verbose_name_plural = _("Authentication tokens")
+        ordering = ("participation", "creation_time")
+
     @override
     def __str__(self) -> str:
         return _("Token %(id)d for %(participation)s: %(description)s") % {
                 "id": self.id,
                 "participation": self.participation,
                 "description": self.description}
-
-    class Meta:
-        verbose_name = _("Authentication token")
-        verbose_name_plural = _("Authentication tokens")
-        ordering = ("participation", "creation_time")
 
 # }}}
 
@@ -1122,6 +1124,12 @@ class FlowPageVisit(models.Model):
             verbose_name=_("Is submitted answer"),
             null=True)
 
+    class Meta:
+        verbose_name = _("Flow page visit")
+        verbose_name_plural = _("Flow page visits")
+        # These must be distinguishable, to figure out what came later.
+        unique_together = (("page_data", "visit_time"),)
+
     @override
     def __str__(self) -> str:
         result = (
@@ -1139,12 +1147,6 @@ class FlowPageVisit(models.Model):
             result += str(_(" (with answer)"))
 
         return result
-
-    class Meta:
-        verbose_name = _("Flow page visit")
-        verbose_name_plural = _("Flow page visits")
-        # These must be distinguishable, to figure out what came later.
-        unique_together = (("page_data", "visit_time"),)
 
     def get_most_recent_grade(self) -> FlowPageVisitGrade | None:
 
@@ -1218,18 +1220,6 @@ class FlowPageVisitGrade(models.Model):
             # Translators: "Feedback" stands for the feedback of answers.
             verbose_name=_("Feedback"))
 
-    def percentage(self) -> float | None:
-        if self.correctness is not None:
-            return 100*self.correctness
-        else:
-            return None
-
-    def value(self):
-        if self.correctness is not None and self.max_points is not None:
-            return self.correctness * self.max_points
-        else:
-            return None
-
     class Meta:
         verbose_name = _("Flow page visit grade")
         verbose_name_plural = _("Flow page visit grades")
@@ -1245,6 +1235,18 @@ class FlowPageVisitGrade(models.Model):
         # by percentage.
         return _("grade of %(visit)s: %(percentage)s") % {
                 "visit": self.visit, "percentage": self.percentage()}
+
+    def percentage(self) -> float | None:
+        if self.correctness is not None:
+            return 100*self.correctness
+        else:
+            return None
+
+    def value(self):
+        if self.correctness is not None and self.max_points is not None:
+            return self.correctness * self.max_points
+        else:
+            return None
 
 # }}}
 
@@ -1263,6 +1265,11 @@ class FlowPageBulkFeedback(models.Model):
             # Show correct characters in admin for non ascii languages.
             dump_kwargs={"ensure_ascii": False},
             verbose_name=_("Bulk feedback"))
+
+    @override
+    def __str__(self) -> str:
+        return _("Bulk feedback for %(page_data)s") % {
+                "page_data": self.page_data}
 
 
 BULK_FEEDBACK_FILENAME_KEY = "_rl_stor_fn"
@@ -1400,6 +1407,10 @@ class FlowRuleException(models.Model):
             verbose_name=pgettext_lazy(
                 "Is the flow rule exception activated?", "Active"))
 
+    class Meta:
+        verbose_name = _("Flow rule exception")
+        verbose_name_plural = _("Flow rule exceptions")
+
     @override
     def __str__(self) -> str:
         return (
@@ -1457,10 +1468,6 @@ class FlowRuleException(models.Model):
                 # the rule refers to FlowRuleException rule
                 raise ValidationError(
                     string_concat(_("invalid existing_session_rules"), ": ", str(e)))
-
-    class Meta:
-        verbose_name = _("Flow rule exception")
-        verbose_name_plural = _("Flow rule exceptions")
 
 # }}}
 
@@ -1603,7 +1610,8 @@ class GradeChange(models.Model):
         verbose_name_plural = _("Grade changes")
         ordering = ("opportunity", "participation", "grade_time")
 
-    def str(self):
+    @override
+    def __str__(self):
         # Translators: information for GradeChange
         return _("%(participation)s %(state)s on %(opportunityname)s") % {
             "participation": self.participation,
