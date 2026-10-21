@@ -437,6 +437,7 @@ def start_flow(
     identifier = flow_desc.rules.grade_identifier
 
     if identifier is not None:
+        assert flow_desc.rules.grade_aggregation_strategy is not None
         from course.models import get_flow_grading_opportunity
         get_flow_grading_opportunity(
                 course, flow_id, flow_desc,
@@ -1110,6 +1111,7 @@ def grade_flow_session(
     if (grading_mode.grade_identifier
             and grading_mode.generates_grade
             and flow_session.participation is not None):
+        assert grading_mode.grade_aggregation_strategy is not None
         from course.models import get_flow_grading_opportunity
         gopp = get_flow_grading_opportunity(
                 flow_session.course, flow_session.flow_id, fctx.flow_desc,
