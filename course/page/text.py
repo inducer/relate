@@ -800,7 +800,7 @@ class SurveyTextQuestion(TextQuestionBase, PageBaseUngraded):
 # {{{ text question
 
 class TextQuestion(TextQuestionBase, PageBaseWithValue, PageBaseWithoutHumanGrading):
-    """
+    r"""
     A page asking for a textual answer.
 
     Example:

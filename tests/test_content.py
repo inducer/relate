@@ -412,8 +412,8 @@ class TagProcessingHTMLParserAndLinkFixerTreeprocessorTest(
             # "FIFVSTDogY291cnNlOnRlc3QjYWJjZA==",
 
             # images
-            "https://raw.githubusercontent.com/inducer/relate/master/"
-            "doc/images/screenshot.png",
+            ("https://raw.githubusercontent.com/inducer/relate/master/"
+            "doc/images/screenshot.png"),
             f"/course/test-course/file-version/{self.course.active_git_commit_sha}/images/cc.png",
 
             # object data

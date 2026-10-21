@@ -1669,8 +1669,8 @@ class GrantExceptionStage3Test(GrantExceptionTestMixin, TestCase):
                     kind=constants.FlowRuleKind.access).count(), 1)
             self.assertAddMessageCallCount(2)
             self.assertAddMessageCalledWith(
-                ["Access rules tag of the selected session updated "
-                 f"to '{flow_desc_access_rule_tags[1]}'.",
+                [("Access rules tag of the selected session updated "
+                 f"to '{flow_desc_access_rule_tags[1]}'."),
                  "'Session Access' exception granted to "], reset=True)
             self.fs.refresh_from_db()
             self.assertEqual(self.fs.access_rules_tag, flow_desc_access_rule_tags[1])
@@ -1849,8 +1849,8 @@ class GrantExceptionStage3Test(GrantExceptionTestMixin, TestCase):
             self.assertEqual(models.FlowRuleException.objects.count(), 0)
             self.assertAddMessageCallCount(2)
             self.assertAddMessageCalledWith(
-                ["Access rules tag of the selected session updated "
-                 f"to '{flow_desc_access_rule_tags[1]}'.",
+                [("Access rules tag of the selected session updated "
+                 f"to '{flow_desc_access_rule_tags[1]}'."),
                  "No grading or access exception granted"], reset=True)
             self.fs.refresh_from_db()
             self.assertEqual(self.fs.access_rules_tag, flow_desc_access_rule_tags[1])

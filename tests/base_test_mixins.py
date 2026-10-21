@@ -829,7 +829,7 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
             if all_courses.count() != existing_course_count + 1:
                 error_string = None
                 # most probably the reason course creation form error
-                form_context = resp.context.__getitem__("form")
+                form_context = resp.context["form"]
                 assert form_context
                 error_list = []
                 if form_context.errors:

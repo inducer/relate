@@ -1026,11 +1026,7 @@ def is_repo_file_accessible_as(
         access_patterns.extend(attributes.access_if_has_role.get(kind, []))
 
     from fnmatch import fnmatch
-    for pattern in access_patterns:
-        if fnmatch(path_basename, pattern):
-            return True
-
-    return False
+    return any(fnmatch(path_basename, pattern) for pattern in access_patterns)
 
 # }}}
 

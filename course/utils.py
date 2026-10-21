@@ -1127,7 +1127,7 @@ def csv_data_importable(file_contents, column_idx_list, header_count):
     spamreader = csv.reader(file_contents)
     n_header_row = 0
     try:
-        row0 = spamreader.__next__()
+        row0 = next(spamreader)
     except Exception as e:
         err_msg = type(e).__name__
         err_str = str(e)

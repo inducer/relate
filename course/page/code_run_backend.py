@@ -136,7 +136,7 @@ def user_code_thread(
             user_ctx: dict[str, object],
             exc_info: list[ExcInfo]) -> None:
     try:
-        exec(user_code, user_ctx)  # ruff:ignore[exec-builtin]
+        exec(user_code, user_ctx)
     except Exception:
         tp, val, tb = sys.exc_info()
         assert tp is not None
@@ -214,7 +214,7 @@ def run_code(
 
     if setup_code is not None:
         try:
-            exec(setup_code, maint_ctx)  # ruff:ignore[exec-builtin]
+            exec(setup_code, maint_ctx)
         except BaseException:
             return package_exception("setup_error")
 
@@ -293,7 +293,7 @@ def run_code(
 
     if test_code is not None:
         try:
-            exec(test_code, maint_ctx)  # ruff:ignore[exec-builtin]
+            exec(test_code, maint_ctx)
         except GradingComplete:
             pass
         except BaseException:

@@ -370,8 +370,8 @@ def request_run(
             result = RunResponse.model_validate_json(response_data)
 
             result.feedback = [*result.feedback,
-                f"Execution time: {end_time - start_time:.1f} s "
-                f"-- Time limit: {run_timeout:.1f} s"]
+                (f"Execution time: {end_time - start_time:.1f} s "
+                f"-- Time limit: {run_timeout:.1f} s")]
 
             result.exec_host = connect_host_ip
 
@@ -1014,8 +1014,8 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue, ABC):
             feedback_bits.append("".join([
                 "<p>",
                 _("Here is some feedback on your code"),
-                ":"
-                "<ul>%s</ul></p>"]) %
+                (":"
+                "<ul>%s</ul></p>")]) %
                         "".join(
                             f"<li>{sanitize(fb_item)}</li>"
                             for fb_item in response.feedback))
@@ -1023,8 +1023,8 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue, ABC):
             feedback_bits.append("".join([
                 "<p>",
                 _("This is the exception traceback"),
-                ":"
-                "<pre>%s</pre></p>"]) % escape(response.traceback))
+                (":"
+                "<pre>%s</pre></p>")]) % escape(response.traceback))
         if response.exec_host and response.exec_host != "localhost":
             import socket
             try:
@@ -1042,15 +1042,15 @@ class CodeQuestion(PageBaseWithTitle, PageBaseWithValue, ABC):
             bulk_feedback_bits.append("".join([
                 "<p>",
                 _("Your code printed the following output"),
-                ":"
-                "<pre>%s</pre></p>"])
+                (":"
+                "<pre>%s</pre></p>")])
                     % escape(response.stdout))
         if response.stderr and response.stderr:
             bulk_feedback_bits.append("".join([
                 "<p>",
                 _("Your code printed the following error messages"),
-                ":"
-                "<pre>%s</pre></p>"]) % escape(response.stderr))
+                (":"
+                "<pre>%s</pre></p>")]) % escape(response.stderr))
         if response.figures and response.figures:
             fig_lines = ["".join([
                 "<p>",
