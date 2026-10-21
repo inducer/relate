@@ -1836,7 +1836,7 @@ def get_flow_grading_opportunity(
             flow_id: str,
             flow_desc: FlowDesc,
             grade_identifier: str,
-            grade_aggregation_strategy: GradeAggregationStrategy | None
+            grade_aggregation_strategy: GradeAggregationStrategy
         ) -> GradingOpportunity:
 
     default_name = (
