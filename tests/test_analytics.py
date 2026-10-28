@@ -23,11 +23,16 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 import json
+import re
+from dataclasses import FrozenInstanceError
+from types import SimpleNamespace
 
 import pytest
 from django.core.exceptions import ObjectDoesNotExist
-from django.test import Client, TestCase
+from django.template.loader import render_to_string
+from django.test import Client, TestCase, override_settings
 from django.urls import reverse
+from django.utils.translation import override
 
 from course import analytics
 from course.models import FlowSession
@@ -142,29 +147,34 @@ class HistogramTest(CoursesTestMixinBase, TestCase):
 
 
 class PageAnswerStatsTest(CoursesTestMixinBase, TestCase):
-    """Test analytics.PageAnswerStats JSON serialization."""
+    """Test JSON serialization on analytics.PageAnswerStats.statistics."""
 
     def _make_stats(self, quartile_correctness_list):
         return analytics.PageAnswerStats(
             group_id="grp",
             page_id="pg",
             title="Test",
-            average_correctness=0.5,
-            average_emptiness=0.1,
-            answer_count=5,
-            total_count=6,
             url=None,
-            quartile_correctness_list=quartile_correctness_list,
+            statistics=analytics.PageAnswerStatistics(
+                average_correctness=0.5,
+                average_credited_fraction=0.5,
+                average_emptiness=0.1,
+                average_wrongness=0.4,
+                answer_count=5,
+                total_count=6,
+                graded_count=5,
+                quartile_correctness_list=quartile_correctness_list,
+            ),
         )
 
     def test_quartile_correctness_json_values(self):
         stats = self._make_stats([0.25, 0.5, 0.75, 1.0])
-        parsed = json.loads(stats.quartile_correctness_json)
+        parsed = json.loads(stats.statistics.quartile_correctness_json)
         self.assertEqual(parsed, [0.25, 0.5, 0.75, 1.0])
 
     def test_quartile_correctness_json_with_none(self):
         stats = self._make_stats([None, 0.5, None, 1.0])
-        parsed = json.loads(stats.quartile_correctness_json)
+        parsed = json.loads(stats.statistics.quartile_correctness_json)
         self.assertIsNone(parsed[0])
         self.assertEqual(parsed[1], 0.5)
         self.assertIsNone(parsed[2])
@@ -172,8 +182,242 @@ class PageAnswerStatsTest(CoursesTestMixinBase, TestCase):
 
     def test_quartile_correctness_json_all_none(self):
         stats = self._make_stats([None, None, None, None])
-        parsed = json.loads(stats.quartile_correctness_json)
+        parsed = json.loads(stats.statistics.quartile_correctness_json)
         self.assertEqual(parsed, [None, None, None, None])
+
+
+@pytest.mark.parametrize("has_answer", [False, True], ids=["unanswered", "answered"])
+@pytest.mark.parametrize("correctness", [0.0, 0.25, 1.0, 1.5, None])
+def test_compute_page_answer_statistics_single_visit(
+        has_answer: bool, correctness: float | None) -> None:
+    visit = analytics.PageAnswerVisitData(
+        has_answer=has_answer, correctness=correctness)
+    assert visit.quartile is None
+
+    stats = analytics.compute_page_answer_statistics([visit])
+
+    assert isinstance(stats, analytics.PageAnswerStatistics)
+    assert stats.total_count == 1
+    assert stats.answer_count == int(has_answer)
+    assert stats.graded_count == int(correctness is not None)
+    assert stats.average_correctness == pytest.approx(
+        correctness if correctness is not None else 0.0)
+    credited = min(correctness, 1.0) if correctness is not None else 0.0
+    uncredited = 1.0 - credited if correctness is not None else 0.0
+    assert stats.average_credited_fraction == pytest.approx(credited)
+    assert stats.average_emptiness == pytest.approx(
+        0.0 if has_answer else uncredited)
+    assert stats.average_wrongness == pytest.approx(
+        uncredited if has_answer else 0.0)
+    assert stats.quartile_correctness_list == [None, None, None, None]
+
+
+@pytest.mark.parametrize("field,value", [
+    ("has_answer", False),
+    ("correctness", None),
+    ("quartile", 3),
+])
+def test_page_answer_visit_data_is_frozen(
+        field: str, value: bool | float | None) -> None:
+    visit = analytics.PageAnswerVisitData(
+        has_answer=True, correctness=0.5, quartile=0)
+    with pytest.raises(FrozenInstanceError):
+        setattr(visit, field, value)
+
+
+@pytest.mark.parametrize((
+    "visit_data,expected_score,expected_credit,expected_empty,expected_wrong,"
+    "answer_count,graded_count"
+), [
+    pytest.param([], 0.0, 0.0, 0.0, 0.0, 0, 0, id="no-visits"),
+    pytest.param(
+        [(False, None), (True, None)],
+        0.0, 0.0, 0.0, 0.0, 1, 0, id="no-graded-visits"),
+    pytest.param(
+        [(False, 0.0), (False, 0.5), (True, 0.0), (True, 0.5),
+         (True, 1.0), (False, 1.5)],
+        3.5 / 6, 0.5, 0.25, 0.25, 3, 6, id="mixed-population"),
+    pytest.param(
+        [(False, 0.5), (True, 0.0), (True, None), (False, None)],
+        0.25, 0.25, 0.25, 0.5, 2, 2, id="unknowns-excluded-from-denominator"),
+    pytest.param(
+        [(False, 0.0), (True, 2.0)],
+        1.0, 0.5, 0.5, 0.0, 1, 2, id="clip-before-average-answered-bonus"),
+    pytest.param(
+        [(True, 0.0), (False, 2.0)],
+        1.0, 0.5, 0.0, 0.5, 1, 2, id="clip-before-average-unanswered-bonus"),
+    pytest.param(
+        [(False, 1.5), (True, 2.0)],
+        1.75, 1.0, 0.0, 0.0, 1, 2, id="all-extra-credit"),
+])
+@pytest.mark.parametrize("as_iterator", [False, True], ids=["list", "iterator"])
+def test_compute_page_answer_statistics_population(
+        visit_data: list[tuple[bool, float | None]],
+        expected_score: float, expected_credit: float, expected_empty: float,
+        expected_wrong: float, answer_count: int, graded_count: int,
+        as_iterator: bool) -> None:
+    visits = [
+        analytics.PageAnswerVisitData(has_answer=answered, correctness=score)
+        for answered, score in visit_data
+    ]
+    stats = analytics.compute_page_answer_statistics(
+        iter(visits) if as_iterator else visits)
+
+    assert stats.total_count == len(visit_data)
+    assert stats.answer_count == answer_count
+    assert stats.graded_count == graded_count
+    assert stats.average_correctness == pytest.approx(expected_score)
+    assert stats.average_credited_fraction == pytest.approx(expected_credit)
+    assert stats.average_emptiness == pytest.approx(expected_empty)
+    assert stats.average_wrongness == pytest.approx(expected_wrong)
+    assert stats.quartile_correctness_list == [None, None, None, None]
+    assert (stats.average_credited_fraction + stats.average_emptiness
+            + stats.average_wrongness) == pytest.approx(1.0 if graded_count else 0.0)
+
+    assert stats.average_credited_fraction_ui == pytest.approx(expected_credit * 99.99)
+    assert stats.average_credited_fraction_percent == pytest.approx(
+        expected_credit * 100)
+    assert stats.average_score_percent == pytest.approx(expected_score * 100)
+    assert stats.average_emptiness_ui == pytest.approx(expected_empty * 99.99)
+    assert stats.average_emptiness_percent == pytest.approx(expected_empty * 100)
+    assert stats.average_wrongness_ui == pytest.approx(expected_wrong * 99.99)
+    assert stats.average_wrongness_percent == pytest.approx(expected_wrong * 100)
+    for fraction in ("credited_fraction", "emptiness", "wrongness"):
+        assert 0.0 <= getattr(stats, f"average_{fraction}_ui") <= 99.99
+        assert 0.0 <= getattr(stats, f"average_{fraction}_percent") <= 100.0
+
+
+@pytest.mark.parametrize("visit_data,expected_quartiles,expected_score", [
+    pytest.param([], [None, None, None, None], 0.0, id="empty"),
+    pytest.param(
+        [(True, None, 0), (False, None, 3)],
+        [None, None, None, None], 0.0, id="unknown-only"),
+    pytest.param(
+        [(True, 0.25, 0), (False, 0.5, 1),
+         (True, 1.0, 2), (False, 1.5, 3)],
+        [0.25, 0.5, 1.0, 1.5], 3.25 / 4, id="all-quartiles-uncapped"),
+    pytest.param(
+        [(True, 0.5, 0), (False, 2.0, 0), (True, None, 0),
+         (False, None, 1), (True, 0.0, 2), (False, 1.5, None),
+         (True, None, None)],
+        [1.25, None, 0.0, None], 1.0,
+        id="average-within-quartile-ignore-unknown-and-unassigned"),
+])
+def test_compute_page_answer_statistics_quartiles(
+        visit_data: list[tuple[bool, float | None, int | None]],
+        expected_quartiles: list[float | None], expected_score: float) -> None:
+    stats = analytics.compute_page_answer_statistics(
+        analytics.PageAnswerVisitData(
+            has_answer=answered, correctness=score, quartile=quartile)
+        for answered, score, quartile in visit_data
+    )
+
+    assert len(stats.quartile_correctness_list) == 4
+    for actual, expected in zip(
+            stats.quartile_correctness_list, expected_quartiles, strict=True):
+        if expected is None:
+            assert actual is None
+        else:
+            assert actual == pytest.approx(expected)
+    assert json.loads(stats.quartile_correctness_json) == expected_quartiles
+    assert stats.average_correctness == pytest.approx(expected_score)
+    assert stats.total_count == len(visit_data)
+    assert stats.answer_count == sum(answered for answered, _, _ in visit_data)
+    assert stats.graded_count == sum(score is not None for _, score, _ in visit_data)
+
+
+def _render_page_answer_statistics(
+        visit_data: list[tuple[bool, float | None]]) -> str:
+    stats = analytics.PageAnswerStats(
+        group_id="grp",
+        page_id="pg",
+        title="Test question",
+        url=None,
+        statistics=analytics.compute_page_answer_statistics(
+            analytics.PageAnswerVisitData(has_answer=answered, correctness=score)
+            for answered, score in visit_data
+        ),
+    )
+    histogram = SimpleNamespace(total_weight=0, html=mock.Mock(return_value=""))
+    # Isolate the analytics content from navigation and request-dependent context.
+    with override_settings(TEMPLATES=[{
+        "BACKEND": "django.template.backends.django.DjangoTemplates",
+        "OPTIONS": {
+            "loaders": [
+                ("django.template.loaders.locmem.Loader", {
+                    "course/course-base-with-markup.html":
+                        "{% block content %}{% endblock %}",
+                }),
+                "django.template.loaders.app_directories.Loader",
+            ],
+        },
+    }]), override("en"):
+        return render_to_string("course/analytics-flow.html", {
+            "flow_identifier": "test-flow",
+            "page_answer_stats_list": [stats],
+            "grade_histogram": histogram,
+            "time_histogram": histogram,
+            "participant_count": None,
+        })
+
+
+@pytest.mark.parametrize("visit_data,answer_count,total_count", [
+    pytest.param([], 0, 0, id="no-visits"),
+    pytest.param([(False, None)], 0, 1, id="ungraded-empty"),
+    pytest.param([(True, None), (False, None)], 1, 2, id="ungraded-mixed"),
+])
+def test_page_answer_statistics_template_no_known_grades(
+        visit_data: list[tuple[bool, float | None]],
+        answer_count: int, total_count: int) -> None:
+    html = _render_page_answer_statistics(visit_data)
+
+    assert "Credit breakdown unavailable: no known grades." in html
+    assert "Average score:" not in html
+    assert 'role="progressbar"' not in html
+    assert f"({answer_count} non-empty response" in html
+    assert f"{total_count} response" in html
+    assert 'data-points="[null, null, null, null]"' in html
+
+
+@pytest.mark.parametrize((
+    "visit_data,expected_score,expected_credit,expected_empty,expected_wrong"
+), [
+    pytest.param(
+        [(False, 0.25)], 25.0, 25.0, 75.0, 0.0, id="credited-empty"),
+    pytest.param(
+        [(False, 1.5)], 150.0, 100.0, 0.0, 0.0, id="extra-credit-empty"),
+    pytest.param(
+        [(True, 1.5)], 150.0, 100.0, 0.0, 0.0, id="extra-credit-answered"),
+    pytest.param(
+        [(False, 0.5), (True, 1.5), (True, None)],
+        100.0, 75.0, 25.0, 0.0, id="mixed-with-ungraded"),
+    pytest.param(
+        [(True, 0.25)], 25.0, 25.0, 0.0, 75.0, id="answered-uncredited"),
+])
+def test_page_answer_statistics_template_credit_display(
+        visit_data: list[tuple[bool, float | None]],
+        expected_score: float, expected_credit: float,
+        expected_empty: float, expected_wrong: float) -> None:
+    html = _render_page_answer_statistics(visit_data)
+
+    assert "Credit breakdown unavailable" not in html
+    assert f"Average score: {expected_score:.1f}%" in html
+    bars = re.findall(
+        r'aria-label="([^"]+)"[^>]*aria-valuenow="([^"]+)"'
+        r'[^>]*style="width: ([^%]+)%"', html)
+    assert len(bars) == 3
+    for (label, percentage, width), (expected_label, expected_percent) in zip(
+            bars, [
+                ("Credit earned", expected_credit),
+                ("Answered, uncredited", expected_wrong),
+                ("Unanswered, uncredited", expected_empty),
+            ], strict=True):
+        assert label == expected_label
+        assert float(percentage) == pytest.approx(expected_percent)
+        assert float(width) == pytest.approx(expected_percent * 0.9999)
+        assert 0.0 <= float(percentage) <= 100.0
+        assert 0.0 <= float(width) <= 99.99
+        assert f"{expected_percent:.1f}%</span>" in html
 
 
 @pytest.mark.slow
@@ -369,6 +613,41 @@ class FlowAnalyticsTest(SingleCourseQuizPageTestMixin, HackRepoMixin,
         self.assertEqual(resp.status_code, 200)
         self.assertResponseContextEqual(
             resp, "flow_identifier", self.flow_id)
+
+    def test_credit_on_unanswered_visit(self) -> None:
+        from course.models import FlowPageVisit, FlowPageVisitGrade
+
+        visit = FlowPageVisit.objects.filter(
+            flow_session__course=self.course,
+            flow_session__participation=self.student_participation,
+            flow_session__flow_id=self.flow_id,
+            is_synthetic=True,
+            is_submitted_answer=True,
+        ).select_related("page_data").first()
+        assert visit is not None
+        assert visit.answer is None
+        previous_grade = visit.get_most_recent_grade()
+        assert previous_grade is not None
+        FlowPageVisitGrade.objects.create(
+            visit=visit,
+            max_points=previous_grade.max_points,
+            correctness=0.5,
+            grader=self.instructor_participation.user,
+            graded_at_git_commit_sha=self.course.active_git_commit_sha,
+        )
+
+        with mock.patch(
+                "course.analytics.compute_page_answer_statistics",
+                wraps=analytics.compute_page_answer_statistics,
+                ) as compute_stats:
+            resp = self.get_flow_analytics_view(flow_id=self.flow_id)
+        self.assertEqual(resp.status_code, 200)
+        # Verify the access layer passes the latest grade and missing-answer
+        # status through to the pure computation, not an older zero grade.
+        assert any(
+            not data.has_answer and data.correctness == pytest.approx(0.5)
+            for call in compute_stats.call_args_list
+            for data in call.args[0])
 
     def test_success_check_func_call(self):
         with mock.patch(

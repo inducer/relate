@@ -53,10 +53,21 @@
 
   <h2>{% trans "Page-by-Page Statistics" %}</h2>
 
+  <p>
+    {% blocktrans trimmed %}
+      The bars show credit earned, answered but uncredited, and unanswered and
+      uncredited portions, averaged over responses with known grades. Credit
+      earned without an answer is included. Each response's credit is capped at
+      100% for the bars only; average scores and quartile scores include extra credit.
+      Response counts include ungraded responses.
+    {% endblocktrans %}
+  </p>
+
   <div class="page-by-page-analytics">
   <table>
   <thead><tr><th>{% trans "Question" %}</th><th>{% trans "Score by quartile" %}</th></tr></thead>
   {% for astats in page_answer_stats_list %}
+  {% with stats=astats.statistics %}
   <tr>
     <td class="page-entry" style="vertical-align: bottom;">
       {% if astats.url %}
@@ -66,42 +77,55 @@
         <tt>{{ astats.group_id }}/{{ astats.page_id }}</tt>:
       {% endif %}
       {{ astats.title|safe }}
-        {% blocktrans trimmed with answer_count=astats.answer_count count counter=astats.answer_count %}
+        {% blocktrans trimmed with answer_count=stats.answer_count count counter=stats.answer_count %}
             ({{ answer_count }} non-empty response,
         {% plural %}
             ({{ answer_count }} non-empty responses,
         {% endblocktrans %}
-        {% blocktrans trimmed with total_count=astats.total_count count counter=astats.total_count %}
+        {% blocktrans trimmed with total_count=stats.total_count count counter=stats.total_count %}
             {{ total_count }} response total)
         {% plural %}
             {{ total_count }} responses total)
         {% endblocktrans %}
 
+      {% if stats.graded_count %}
+      <div>
+        {% blocktrans trimmed with score=stats.average_score_percent|floatformat:1 %}
+          Average score: {{ score }}%
+        {% endblocktrans %}
+      </div>
       <div class="progress">
         <div class="progress-bar bg-success" role="progressbar"
-          aria-valuenow="{{ astats.average_correctness_percent |floatformat:1 }}" aria-valuemin="0" aria-valuemax="100"
-          style="width: {{ astats.average_correctness_ui|stringformat:".9f" }}%">
-          <span class="stats-percentage">{{ astats.average_correctness_percent|floatformat:1 }}%</span>
+          aria-label="{% trans 'Credit earned' %}" title="{% trans 'Credit earned' %}"
+          aria-valuenow="{{ stats.average_credited_fraction_percent|floatformat:1 }}" aria-valuemin="0" aria-valuemax="100"
+          style="width: {{ stats.average_credited_fraction_ui|stringformat:".9f" }}%">
+          <span class="stats-percentage">{{ stats.average_credited_fraction_percent|floatformat:1 }}%</span>
         </div>
         <div class="progress-bar bg-danger" role="progressbar"
-          aria-valuenow="{{ astats.average_wrongness_percent|floatformat:1  }}" aria-valuemin="0" aria-valuemax="100"
-          style="width: {{ astats.average_wrongness_ui|stringformat:".9f" }}%">
-          <span class="stats-percentage">{{ astats.average_wrongness_percent|floatformat:1 }}%</span>
+          aria-label="{% trans 'Answered, uncredited' %}" title="{% trans 'Answered, uncredited' %}"
+          aria-valuenow="{{ stats.average_wrongness_percent|floatformat:1 }}" aria-valuemin="0" aria-valuemax="100"
+          style="width: {{ stats.average_wrongness_ui|stringformat:".9f" }}%">
+          <span class="stats-percentage">{{ stats.average_wrongness_percent|floatformat:1 }}%</span>
         </div>
         <div class="progress-bar bg-warning" role="progressbar"
-          aria-valuenow="{{ astats.average_emptiness_percent|floatformat:1  }}" aria-valuemin="0" aria-valuemax="100"
-          style="width: {{ astats.average_emptiness_ui|stringformat:".9f" }}%">
-          <span class="stats-percentage">{{ astats.average_emptiness_percent|floatformat:1 }}%</span>
+          aria-label="{% trans 'Unanswered, uncredited' %}" title="{% trans 'Unanswered, uncredited' %}"
+          aria-valuenow="{{ stats.average_emptiness_percent|floatformat:1 }}" aria-valuemin="0" aria-valuemax="100"
+          style="width: {{ stats.average_emptiness_ui|stringformat:".9f" }}%">
+          <span class="stats-percentage">{{ stats.average_emptiness_percent|floatformat:1 }}%</span>
         </div>
       </div>
+      {% else %}
+        <div>{% trans "Credit breakdown unavailable: no known grades." %}</div>
+      {% endif %}
     </td>
 
     <td style="text-align: center; vertical-align: bottom;">
       <span class="relate-sparkline d-inline-block"
-        data-points="{{ astats.quartile_correctness_json }}"
+        data-points="{{ stats.quartile_correctness_json }}"
         style="height: 2em; vertical-align: middle;"></span>
     </td>
   </tr>
+  {% endwith %}
   {% endfor %}
   </table>
 
