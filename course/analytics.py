@@ -26,7 +26,7 @@ THE SOFTWARE.
 import json
 import operator
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, ClassVar, final
+from typing import TYPE_CHECKING, Any, ClassVar, cast, final
 
 from django import http
 from django.contrib import messages
@@ -50,7 +50,7 @@ from course.utils import (
 
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
+    from collections.abc import Callable, Iterable
 
     from course.page.base import PageBase
 
@@ -324,17 +324,33 @@ def compute_session_quartile_map(
     }
 
 
-@dataclass
-class PageAnswerStats:
-    group_id: str
-    page_id: str
-    title: str
+@dataclass(frozen=True)
+class PageAnswerVisitData:
+    """Database-independent input for one selected submitted visit.
+
+    ``has_answer`` means the stored answer is not None, not that its content
+    is nonempty. ``quartile`` is the session's score quartile, if available.
+    """
+
+    has_answer: bool
+    correctness: float | None
+    quartile: int | None = None
+
+
+@dataclass(frozen=True)
+class PageAnswerStatistics:
+    # Actual average score, including credit awarded without an answer and
+    # extra credit. Only known grades contribute to these averages.
     average_correctness: float
+    # Bounded credited portion for the stacked bar (cap each grade, not the mean).
+    average_credited_fraction: float
     average_emptiness: float
+    average_wrongness: float
+    # Raw counts include ungraded visits; graded_count is the averages' denominator.
     answer_count: int
     total_count: int
-    url: str | None
-    # Average correctness (0–1) per score quartile (index 0 = Q1 … 3 = Q4).
+    graded_count: int
+    # Actual (uncapped) average score per quartile (index 0 = Q1 … 3 = Q4).
     # A quartile entry is None when no graded visits exist for that quartile.
     quartile_correctness_list: list[float | None]
 
@@ -342,15 +358,11 @@ class PageAnswerStats:
     def quartile_correctness_json(self) -> str:
         return json.dumps(self.quartile_correctness_list)
 
-    @property
-    def average_wrongness(self):
-        return 1-self.average_correctness-self.average_emptiness
-
     _ui_scale_factor: ClassVar[float] = 99.99
 
     @property
-    def average_correctness_ui(self):
-        return self.average_correctness * self._ui_scale_factor
+    def average_credited_fraction_ui(self):
+        return self.average_credited_fraction * self._ui_scale_factor
 
     @property
     def average_emptiness_ui(self):
@@ -361,7 +373,11 @@ class PageAnswerStats:
         return self.average_wrongness * self._ui_scale_factor
 
     @property
-    def average_correctness_percent(self):
+    def average_credited_fraction_percent(self):
+        return self.average_credited_fraction * 100
+
+    @property
+    def average_score_percent(self):
         return self.average_correctness * 100
 
     @property
@@ -379,6 +395,82 @@ def safe_div(num: float, denom: float):
     return num/denom
 
 
+def compute_page_answer_statistics(
+        visits: Iterable[PageAnswerVisitData]) -> PageAnswerStatistics:
+    """Compute scores and a disjoint credit breakdown without database access.
+
+    Human graders may intentionally award credit without a submitted answer.
+    For each known grade, let c = min(correctness, 1). The stacked bar uses:
+
+    ==================  =============  ====================  ==================
+    Visit               Credit earned  Unanswered/uncredited Answered/uncredited
+    ==================  =============  ====================  ==================
+    Answer submitted    c              0                     1 - c
+    No answer submitted c              1 - c                 0
+    ==================  =============  ====================  ==================
+
+    Each column is averaged over *graded* visits only. Unknown grades affect
+    raw submission counts but none of the breakdown or score denominators.
+    With no known grades all portions are zero (the UI shows unavailable),
+    rather than incorrectly implying that all visits were wrong.
+
+    Capping each grade keeps the bar bounded even with extra credit. Actual
+    overall and quartile scores remain uncapped. Thus 'emptiness' here is the
+    uncredited remainder of unanswered visits, not the missing-answer rate.
+    """
+    points = 0.0
+    credited_points = 0.0
+    empty_points = 0.0
+    wrong_points = 0.0
+    answer_count = 0
+    total_count = 0
+    graded_count = 0
+    quartile_points = [0.0] * NUM_QUARTILES
+    quartile_graded_counts = [0] * NUM_QUARTILES
+
+    for visit in visits:
+        total_count += 1
+        answer_count += int(visit.has_answer)
+        if visit.correctness is None:
+            continue
+
+        graded_count += 1
+        points += visit.correctness
+        credited = min(visit.correctness, 1)
+        credited_points += credited
+        if visit.has_answer:
+            wrong_points += 1 - credited
+        else:
+            empty_points += 1 - credited
+
+        if visit.quartile is not None:
+            quartile_points[visit.quartile] += visit.correctness
+            quartile_graded_counts[visit.quartile] += 1
+
+    return PageAnswerStatistics(
+        average_correctness=safe_div(points, graded_count),
+        average_credited_fraction=safe_div(credited_points, graded_count),
+        average_emptiness=safe_div(empty_points, graded_count),
+        average_wrongness=safe_div(wrong_points, graded_count),
+        answer_count=answer_count,
+        total_count=total_count,
+        graded_count=graded_count,
+        quartile_correctness_list=[
+            safe_div(quartile_points[q], quartile_graded_counts[q])
+            if quartile_graded_counts[q] else None
+            for q in range(NUM_QUARTILES)],
+    )
+
+
+@dataclass
+class PageAnswerStats:
+    group_id: str
+    page_id: str
+    title: str
+    url: str | None
+    statistics: PageAnswerStatistics
+
+
 def make_page_answer_stats_list(
             pctx: CoursePageContext,
             flow_id: str,
@@ -393,15 +485,7 @@ def make_page_answer_stats_list(
     page_info_list: list[PageAnswerStats] = []
     for group_desc in flow_desc.groups:
         for page_desc in group_desc.pages:
-            points = 0
-            graded_count = 0
-            empty_count = 0
-
-            answer_count = 0
-            total_count = 0
-
-            quartile_points: list[float] = [0.0] * NUM_QUARTILES
-            quartile_graded_counts: list[int] = [0] * NUM_QUARTILES
+            visit_data: list[PageAnswerVisitData] = []
 
             visits = (FlowPageVisit.objects
                     .filter(
@@ -455,48 +539,28 @@ def make_page_answer_stats_list(
 
                 title = page.page_title(grading_page_context, visit.page_data.data)
 
-                correctness: float | None = visit.latest_grade_correctness
-
+                # Django's dynamically added annotation is not part of the model type.
+                correctness: float | None = cast("Any", visit).latest_grade_correctness
+                quartile = session_quartile_map.get(visit.flow_session.id)
                 if visit.answer is not None:
-                    answer_count += 1
+                    has_answer = True
                 else:
-                    empty_count += 1
-
-                total_count += 1
-
-                if correctness is not None:
-                    if visit.answer is None:
-                        assert correctness == 0
-                    else:
-                        points += correctness
-
-                    graded_count += 1
-
-                    quartile = session_quartile_map.get(
-                            visit.flow_session_id)
-                    if quartile is not None:
-                        quartile_points[quartile] += correctness
-                        quartile_graded_counts[quartile] += 1
+                    has_answer = False
+                visit_data.append(PageAnswerVisitData(
+                    has_answer=has_answer,
+                    correctness=correctness,
+                    quartile=quartile,
+                ))
 
             if not answer_expected:
                 continue
-
-            quartile_correctness_list: list[float | None] = [
-                    safe_div(quartile_points[q], quartile_graded_counts[q])
-                    if quartile_graded_counts[q] > 0
-                    else None
-                    for q in range(NUM_QUARTILES)]
 
             page_info_list.append(
                     PageAnswerStats(
                         group_id=group_desc.id,
                         page_id=page_desc.id,
                         title=not_none(title),
-                        average_correctness=safe_div(points, graded_count),
-                        average_emptiness=safe_div(
-                            empty_count, graded_count),
-                        answer_count=answer_count,
-                        total_count=total_count,
+                        statistics=compute_page_answer_statistics(visit_data),
                         url=reverse(
                             "relate-page_analytics",
                             args=(
@@ -504,8 +568,7 @@ def make_page_answer_stats_list(
                                 flow_id,
                                 group_desc.id,
                                 page_desc.id,
-                                )),
-                        quartile_correctness_list=quartile_correctness_list))
+                                ))))
 
     return page_info_list
 
