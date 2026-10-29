@@ -183,7 +183,6 @@ def ai_grade_flow_page(
     from course.ai_grading import (
         AIGradingError,
         create_ai_grade,
-        gather_calibration_examples,
         get_openai_client,
         run_ai_grading_for_visit,
     )
@@ -210,14 +209,6 @@ def ai_grade_flow_page(
     except AIGradingError as exc:
         repo.close()
         return {"message": str(exc)}
-
-    no_session_page_context = PageContext(
-            course=course, repo=repo, commit_sha=course_commit_sha,
-            flow_session=None)
-
-    calibration_examples = gather_calibration_examples(
-            course, flow_id, group_id, page_id, page,
-            no_session_page_context)
 
     grading_prompt = page.grading_prompt
 
@@ -267,7 +258,7 @@ def ai_grade_flow_page(
                     page_context, page_data.data)
             ai_result = run_ai_grading_for_visit(
                     course, page, page_context, page_data.data, visit.answer,
-                    point_value, grading_prompt, calibration_examples)
+                    point_value, grading_prompt)
             create_ai_grade(
                     visit, page, page_context, course_commit_sha, ai_result)
         except AIGradingError:

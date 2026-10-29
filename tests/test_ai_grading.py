@@ -24,7 +24,6 @@ THE SOFTWARE.
 """
 
 import importlib
-from typing import Any
 
 import pytest
 from django.apps import apps as django_apps
@@ -35,7 +34,6 @@ from course.ai_grading import (
     AIGradeResult,
     build_messages,
     create_ai_grade,
-    gather_calibration_examples,
 )
 from course.constants import ParticipationPermission as PPerm
 from course.page import PageContext
@@ -83,83 +81,6 @@ def make_matching_visit(
             answer={"answer": answer_text})
 
 
-class GatherCalibrationExamplesTest(TestCase):
-    def setUp(self):
-        super().setUp()
-        self.course = factories.CourseFactory()
-        self.page = make_page()
-        self.page_context = make_page_context(self.course)
-
-    def make_grade(
-            self, *, grade_data: dict[str, Any],
-            ai_generated_by: str | None = None, **visit_kwargs: Any,
-            ) -> models.FlowPageVisitGrade:
-        visit = make_matching_visit(self.course, **visit_kwargs)
-        return factories.FlowPageVisitGradeFactory(
-                visit=visit, ai_generated_by=ai_generated_by,
-                grade_data=grade_data)
-
-    def test_only_released_human_graded_with_feedback_are_used(self):
-        good = self.make_grade(
-                answer_text="a good answer",
-                grade_data={
-                    "released": True, "grade_percent": 90,
-                    "feedback_text": "Well done", "notes": ""})
-
-        # not released -- excluded
-        self.make_grade(
-                grade_data={
-                    "released": False, "grade_percent": 10,
-                    "feedback_text": "draft", "notes": ""})
-
-        # no feedback text -- excluded
-        self.make_grade(
-                grade_data={
-                    "released": True, "grade_percent": 50,
-                    "feedback_text": "", "notes": ""})
-
-        # AI-generated -- excluded
-        self.make_grade(
-                ai_generated_by="some-model",
-                grade_data={
-                    "released": True, "grade_percent": 70,
-                    "feedback_text": "AI feedback", "notes": ""})
-
-        # different page -- excluded
-        other_visit = make_matching_visit(self.course)
-        other_visit.page_data.page_id = "other-page"
-        other_visit.page_data.save()
-        factories.FlowPageVisitGradeFactory(
-                visit=other_visit,
-                grade_data={
-                    "released": True, "grade_percent": 60,
-                    "feedback_text": "Other page", "notes": ""})
-
-        examples = gather_calibration_examples(
-                self.course, FLOW_ID, GROUP_ID, PAGE_ID,
-                self.page, self.page_context)
-
-        self.assertEqual(len(examples), 1)
-        self.assertEqual(examples[0].answer_text, "a good answer")
-        self.assertEqual(examples[0].grade_percent, 90)
-        self.assertEqual(examples[0].feedback_text, "Well done")
-        self.assertEqual(good.visit.page_data.group_id, GROUP_ID)
-
-    def test_limit(self):
-        for i in range(3):
-            self.make_grade(
-                    answer_text=f"answer {i}",
-                    grade_data={
-                        "released": True, "grade_percent": 50 + i,
-                        "feedback_text": f"feedback {i}", "notes": ""})
-
-        examples = gather_calibration_examples(
-                self.course, FLOW_ID, GROUP_ID, PAGE_ID,
-                self.page, self.page_context, limit=2)
-
-        self.assertEqual(len(examples), 2)
-
-
 class BuildMessagesTest(TestCase):
     def setUp(self):
         super().setUp()
@@ -170,8 +91,7 @@ class BuildMessagesTest(TestCase):
         page = make_page(grading_prompt=None)
         messages = build_messages(
                 page, self.page_context, {}, {"answer": "42"},
-                point_value=5, grading_prompt=page.grading_prompt,
-                calibration_examples=[])
+                point_value=5, grading_prompt=page.grading_prompt)
 
         system_message = messages[0]["content"]  # pyright: ignore[reportTypedDictNotRequiredAccess]
         self.assertIn("experienced", system_message)
@@ -181,31 +101,20 @@ class BuildMessagesTest(TestCase):
         page = make_page(grading_prompt="Only grade based on correctness.")
         messages = build_messages(
                 page, self.page_context, {}, {"answer": "42"},
-                point_value=5, grading_prompt=page.grading_prompt,
-                calibration_examples=[])
+                point_value=5, grading_prompt=page.grading_prompt)
 
         system_message = messages[0]["content"]  # pyright: ignore[reportTypedDictNotRequiredAccess]
         self.assertIn("Only grade based on correctness.", system_message)
 
-    def test_rubric_and_answer_and_examples_included(self):
-        from course.ai_grading import CalibrationExample
-
+    def test_rubric_and_answer_included(self):
         page = make_page()
-        examples = [
-                CalibrationExample(
-                    answer_text="prior answer", grade_percent=80,
-                    feedback_text="prior feedback"),
-                ]
         messages = build_messages(
                 page, self.page_context, {}, {"answer": "the answer"},
-                point_value=5, grading_prompt=None,
-                calibration_examples=examples)
+                point_value=5, grading_prompt=None)
 
         user_message = messages[1]["content"]  # pyright: ignore[reportTypedDictNotRequiredAccess]
         self.assertIn(page.rubric, user_message)
         self.assertIn("the answer", user_message)
-        self.assertIn("prior answer", user_message)
-        self.assertIn("prior feedback", user_message)
 
 
 class CreateAIGradeTest(TestCase):

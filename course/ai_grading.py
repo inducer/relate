@@ -23,7 +23,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
 from django.utils.timezone import now
@@ -36,8 +35,6 @@ from course.repo import serialize_revision
 
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
-
     from openai import OpenAI
     from openai.types.chat import ChatCompletionMessageParam
 
@@ -75,13 +72,6 @@ class AIGradeResult(BaseModel):
     feedback_text: str
 
 
-@dataclass(frozen=True)
-class CalibrationExample:
-    answer_text: str
-    grade_percent: float
-    feedback_text: str
-
-
 def get_openai_client(course: Course) -> OpenAI:
     if not (course.ai_grading_api_base_url
             and course.ai_grading_api_key
@@ -98,59 +88,6 @@ def get_openai_client(course: Course) -> OpenAI:
             api_key=course.ai_grading_api_key)
 
 
-def gather_calibration_examples(
-        course: Course,
-        flow_id: str,
-        group_id: str,
-        page_id: str,
-        page: PageBaseWithHumanTextFeedback,
-        page_context: PageContext,
-        limit: int = 5,
-        ) -> list[CalibrationExample]:
-    """Collect a sample of already human-graded submissions of the same
-    question, to give the AI grading assistant as few-shot calibration
-    examples.
-    """
-
-    grades = (FlowPageVisitGrade.objects
-            .filter(
-                visit__flow_session__course=course,
-                visit__flow_session__flow_id=flow_id,
-                visit__page_data__group_id=group_id,
-                visit__page_data__page_id=page_id,
-                ai_generated_by__isnull=True)
-            .select_related("visit", "visit__page_data")
-            .order_by("-grade_time")[:4*limit])
-
-    examples: list[CalibrationExample] = []
-    for grade in grades:
-        grade_data: dict[str, Any] | None = grade.grade_data
-        if not grade_data or not grade_data.get("released"):
-            continue
-
-        feedback_text: str | None = grade_data.get("feedback_text")
-        grade_percent: float | None = grade_data.get("grade_percent")
-        if not feedback_text or grade_percent is None:
-            continue
-
-        visit_page_data: PageData = grade.visit.page_data.data
-        visit_answer: AnswerData = grade.visit.answer
-        answer_text = page.normalized_answer(
-                page_context, visit_page_data, visit_answer)
-        if not answer_text:
-            continue
-
-        examples.append(CalibrationExample(
-            answer_text=answer_text,
-            grade_percent=grade_percent,
-            feedback_text=feedback_text))
-
-        if len(examples) >= limit:
-            break
-
-    return examples
-
-
 def build_messages(
         page: PageBaseWithHumanTextFeedback,
         page_context: PageContext,
@@ -158,7 +95,6 @@ def build_messages(
         answer_data: AnswerData,
         point_value: float | None,
         grading_prompt: str | None,
-        calibration_examples: Sequence[CalibrationExample],
         ) -> list[ChatCompletionMessageParam]:
     system_prompt = (grading_prompt or str(DEFAULT_AI_GRADING_PROMPT)) + "\n\n" + str(_(
         'Respond with a single JSON object with exactly two keys: '
@@ -177,18 +113,6 @@ def build_messages(
     correct_answer = getattr(page, "correct_answer", None)
     if correct_answer:
         parts.append(f"# Reference/correct answer\n\n{correct_answer}")
-
-    if calibration_examples:
-        example_parts = [
-                f"## Example {i+1}\n\n"
-                f"Student answer:\n\n{ex.answer_text}\n\n"
-                f"Grade given: {ex.grade_percent:.1f}%\n\n"
-                f"Feedback given:\n\n{ex.feedback_text}"
-                for i, ex in enumerate(calibration_examples)]
-        parts.append(
-                "# Previously graded examples for this question\n\n"
-                "Use these to calibrate your grading standard and style.\n\n"
-                + "\n\n".join(example_parts))
 
     student_answer_text = page.normalized_answer(
             page_context, page_data, answer_data)
@@ -210,7 +134,6 @@ def run_ai_grading_for_visit(
         answer_data: AnswerData,
         point_value: float | None,
         grading_prompt: str | None,
-        calibration_examples: Sequence[CalibrationExample],
         ) -> AIGradeResult:
     client = get_openai_client(course)
 
@@ -219,7 +142,7 @@ def run_ai_grading_for_visit(
 
     messages = build_messages(
             page, page_context, page_data, answer_data, point_value,
-            grading_prompt, calibration_examples)
+            grading_prompt)
 
     try:
         response = client.chat.completions.create(
