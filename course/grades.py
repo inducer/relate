@@ -406,6 +406,20 @@ class ModifySessionsForm(StyledForm):
                 Submit("recalculate", _("Recalculate grades of ended sessions")))
 
 
+class AIGradeFlowPageForm(StyledForm):
+    def __init__(self, page_ids: list[str], *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+
+        self.fields["page_id"] = forms.ChoiceField(
+                choices=tuple(
+                    (pid, pid)
+                    for pid in page_ids),
+                label=_("Page ID"))
+
+        self.helper.add_input(
+                Submit("ai_grade", _("Draft AI grades")))
+
+
 RULE_TAG_NONE_STRING = "<<<NONE>>>"
 
 
@@ -450,7 +464,11 @@ def view_grades_by_opportunity(
                 mangle_session_access_rule_tag(row[0]) for row in cursor.fetchall()]
 
         request = pctx.request
-        if request.method == "POST":
+        if request.method == "POST" and "ai_grade" in request.POST:
+            # Handled by the separate AI-grade batch form below.
+            batch_session_ops_form = ModifySessionsForm(session_rule_tags)
+
+        elif request.method == "POST":
             bsf = batch_session_ops_form = ModifySessionsForm(
                     session_rule_tags, request.POST, request.FILES)
 
@@ -527,6 +545,55 @@ def view_grades_by_opportunity(
 
         else:
             batch_session_ops_form = ModifySessionsForm(session_rule_tags)
+
+    # }}}
+
+    # {{{ AI-grade batch form
+
+    ai_grade_form: AIGradeFlowPageForm | None = None
+    if (pctx.request.method == "POST" and "ai_grade" in pctx.request.POST
+            and not pctx.has_permission(PPerm.batch_ai_grade_flow_page)):
+        raise PermissionDenied(_("may not batch AI-grade"))
+
+    if (pctx.has_permission(PPerm.batch_ai_grade_flow_page)
+            and opportunity.flow_id):
+        from course.content import get_flow_desc
+        from course.page.base import PageBaseWithHumanTextFeedback
+        from course.utils import PageInstanceCache
+
+        ai_flow_desc = get_flow_desc(pctx.repo, pctx.course,
+                opportunity.flow_id, pctx.course_commit_sha)
+        ai_page_cache = PageInstanceCache(
+                pctx.repo, pctx.course, opportunity.flow_id)
+
+        ai_gradable_page_ids = [
+                f"{group_desc.id}/{page_desc.id}"
+                for group_desc in ai_flow_desc.groups
+                for page_desc in group_desc.pages
+                if isinstance(
+                    ai_page_cache.get_page(
+                        group_desc.id, page_desc.id, pctx.course_commit_sha),
+                    PageBaseWithHumanTextFeedback)]
+
+        if ai_gradable_page_ids:
+            request = pctx.request
+            if request.method == "POST" and "ai_grade" in request.POST:
+                ai_grade_form = AIGradeFlowPageForm(
+                        ai_gradable_page_ids, request.POST)
+
+                if ai_grade_form.is_valid():
+                    slash_index = ai_grade_form.cleaned_data["page_id"].index("/")
+                    ai_group_id = ai_grade_form.cleaned_data["page_id"][:slash_index]
+                    ai_page_id = ai_grade_form.cleaned_data["page_id"][slash_index+1:]
+
+                    from course.tasks import ai_grade_flow_page
+                    async_res = ai_grade_flow_page.delay(
+                            pctx.course.id, opportunity.flow_id,
+                            ai_group_id, ai_page_id)
+
+                    return redirect("relate-monitor_task", async_res.id)
+            else:
+                ai_grade_form = AIGradeFlowPageForm(ai_gradable_page_ids)
 
     # }}}
 
@@ -671,6 +738,7 @@ def view_grades_by_opportunity(
         "grade_state_change_types": GradeStateChangeType,
         "grade_table": grade_table,
         "batch_session_ops_form": batch_session_ops_form,
+        "ai_grade_form": ai_grade_form,
         "page_numbers": page_numbers,
         "view_page_grades": view_page_grades,
 

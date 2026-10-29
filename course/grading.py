@@ -24,7 +24,8 @@ THE SOFTWARE.
 """
 
 
-from typing import TYPE_CHECKING, Any, cast
+import re
+from typing import TYPE_CHECKING, Any, TypedDict, cast
 
 from django import http
 from django.contrib import messages
@@ -33,7 +34,7 @@ from django.core.exceptions import (
     PermissionDenied,
     SuspiciousOperation,
 )
-from django.shortcuts import (  # ruff:ignore[unused-import]
+from django.shortcuts import (
     get_object_or_404,
     redirect,
     render,
@@ -76,6 +77,73 @@ if TYPE_CHECKING:
     from course.utils import CoursePageContext
 
 # }}}
+
+
+class PointsSpec(TypedDict):
+    points: float | None
+    maxPoints: float | None
+    identifier: str | None
+    matchStart: int
+    matchLength: int
+
+
+def parse_points_specs(feedback_text: str) -> list[PointsSpec]:
+    """Parse feedback points specifications, with UTF-16 offsets for JS clients."""
+    def parse_number(text: str) -> float:
+        # Match Number.parseFloat's numeric-prefix behavior.
+        match = re.match(r"\s*(-?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+))", text)
+        if match is None:
+            raise ValueError(f"Numeral not understood: {text}")
+        return float(match[1])
+
+    result: list[PointsSpec] = []
+    for body_match in re.finditer(r"\[pts:\s*([^\]]*)\]", feedback_text):
+        body = body_match[1]
+        match = re.fullmatch(
+            r"([-0-9.]*)\s*((?:/\s*[-0-9.]*)?)\s*"
+            r"((?:#[a-zA-Z_][a-zA-Z_0-9]*)?)\s*", body)
+        if match is None:
+            raise ValueError(f"Points spec not understood: '{body}'")
+
+        points_str, max_points_str, identifier_str = match.groups()
+        points = parse_number(points_str) if points_str else None
+        max_points = parse_number(max_points_str[1:]) if max_points_str else None
+        if max_points is not None and max_points <= 0:
+            raise ValueError(f"Point denominator must be positive: '{body}'")
+
+        result.append({
+            "points": points,
+            "maxPoints": max_points,
+            "identifier": identifier_str or None,
+            "matchStart": len(feedback_text[:body_match.start()].encode(
+                "utf-16-le", errors="surrogatepass")) // 2,
+            "matchLength": len(body_match[0].encode(
+                "utf-16-le", errors="surrogatepass")) // 2,
+        })
+    return result
+
+
+class PointsTotals(TypedDict):
+    points: float | None
+    maxPoints: float | None
+
+
+def sum_points_specs(points_specs: list[PointsSpec]) -> PointsTotals:
+    """Sum points and explicit denominators, rejecting missing point values.
+
+    Totals remain *None* if no corresponding values occur in *points_specs*.
+    """
+    points = None
+    max_points = None
+    for pspec in points_specs:
+        if pspec["points"] is None:
+            raise ValueError("Not applying points total when a pts spec "
+                             "is missing a point value.")
+        points = (0 if points is None else points) + pspec["points"]
+        if pspec["maxPoints"] is not None:
+            max_points = (0 if max_points is None else max_points) + pspec["maxPoints"]
+
+    return {"points": points, "maxPoints": max_points}
 
 
 def get_prev_visit_grades(
@@ -431,6 +499,41 @@ def _save_grade(
     grade_flow_session(fpctx, flow_session, grading_rule)
 
     return most_recent_grade_id
+
+
+@course_view
+def batch_ai_grade_flow_page(
+        pctx: CoursePageContext,
+        flow_session_id: int,
+        page_ordinal: int
+        ) -> http.HttpResponse:
+    if pctx.request.method != "POST":
+        raise SuspiciousOperation("must be POST")
+
+    if not pctx.has_permission(PPerm.batch_ai_grade_flow_page):
+        raise PermissionDenied(_("may not batch AI-grade"))
+
+    page_ordinal = int(page_ordinal)
+
+    flow_session = get_object_or_404(FlowSession, id=int(flow_session_id))
+
+    if flow_session.course.pk != pctx.course.pk:
+        raise SuspiciousOperation(
+                _("Flow session not part of specified course"))
+
+    from course.flow import adjust_flow_session_page_data
+    adjust_flow_session_page_data(pctx.repo, flow_session, respect_preview=False)
+
+    from course.models import FlowPageData
+    page_data = get_object_or_404(
+            FlowPageData, flow_session=flow_session, page_ordinal=page_ordinal)
+
+    from course.tasks import ai_grade_flow_page
+    async_res = ai_grade_flow_page.delay(
+            pctx.course.id, flow_session.flow_id,
+            page_data.group_id, page_data.page_id)
+
+    return redirect("relate-monitor_task", async_res.id)
 
 # }}}
 
