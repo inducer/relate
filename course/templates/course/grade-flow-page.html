@@ -369,30 +369,8 @@
 
     function processFeedbackChange(feedbackText) {
       try {
-        let maxPoints = null;
-        let points = null;
-
-        rlUtils.parsePointsSpecs(feedbackText).forEach(
-              pspec => {
-                    if (pspec.points !== null) {
-                      if (points === null)
-                        points = 0;
-
-                      points += pspec.points;
-                    }
-                    else {
-                      throw new Error("Not applying points total when a pts spec "
-                            + "is missing a point value.");
-                    }
-
-
-                    if (pspec.maxPoints !== null)
-                    {
-                          if (maxPoints === null)
-                            maxPoints = 0;
-                          maxPoints += pspec.maxPoints;
-                        }
-                  })
+        const { points, maxPoints } = rlUtils.sumPointsSpecs(
+          rlUtils.parsePointsSpecs(feedbackText));
 
         if (points !== null)
         {
