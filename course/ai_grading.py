@@ -23,13 +23,14 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Literal
 
 from django.utils.timezone import now
 from django.utils.translation import gettext as _
-from pydantic import BaseModel, Field, ValidationError
+from pydantic import BaseModel, Field
 
 from course.constants import MAX_EXTRA_CREDIT_FACTOR
+from course.grading import parse_points_specs, sum_points_specs
 from course.models import FlowPageVisitGrade, update_bulk_feedback
 from course.repo import serialize_revision
 
@@ -54,17 +55,51 @@ class AIGradingError(RuntimeError):
     """
 
 
-DEFAULT_AI_GRADING_PROMPT = _(
-    "You are an experienced, fair, and detail-oriented teaching assistant "
-    "grading a student's answer to a course assignment question. Carefully "
-    "compare the student's answer against the rubric provided below, and "
-    "write feedback in RELATE-flavored Markdown (roughly GitHub-flavored "
-    "Markdown) explaining what was correct, what was missing or incorrect, "
-    "and how the grade was determined. Be specific and refer to the rubric. "
-    "If prior graded examples for this question are given, use them to "
-    "calibrate the standard and style of your grading, so that your "
-    "grading is consistent with what has already been done for other "
-    "students.")
+DEFAULT_AI_GRADING_PROMPT = """
+You are an experienced, fair, and detail-oriented teaching assistant
+grading a student's answer to a course assignment question. Carefully
+compare the student's answer against the rubric provided below, and
+write feedback in RELATE-flavored Markdown (roughly GitHub-flavored
+Markdown) explaining what was correct, what was missing or incorrect,
+and how the grade was determined. Be specific and refer to the rubric.
+If prior graded examples for this question are given, use them to
+calibrate the standard and style of your grading, so that your
+grading is consistent with what has already been done for other
+students.
+"""
+
+SYSTEM_PROMPT = """
+Respond with a single JSON object with exactly two keys:
+"grade_percent" (a number from 0 to 100, the percentage of credit
+earned, or the string "COMPUTED" as described below) and
+"feedback_text" (a string containing feedback for the student,
+written in RELATE-flavored Markdown). Do not include any other
+text outside of the JSON object.\n\n
+RELATE supports automatic point calculation using [pts:...] markers.
+If the rubric contains these markers, you must use them: return an
+updated version of the rubric as feedback_text, with every marker's
+earned points filled in. Preserve the rubric's structure, all markers,
+their denominators, and optional #identifiers. For example,
+[pts:/2 #reasoning] becomes [pts:1/2 #reasoning] when one of two
+points is earned. Markers without denominators (such as [pts:-1.5])
+also contribute to the earned point total, including negative
+contributions. If any rubric marker has a denominator, you must
+return grade_percent: "COMPUTED"; RELATE will calculate the percentage
+as 100 times the sum of all earned points divided by the sum of all
+explicit denominators in feedback_text. Do not calculate or return a
+numeric percentage yourself in that case. If no denominator is
+present, return a numeric grade_percent. Explain deductions where
+needed, but awarding full points suffices as feedback for correct
+work; do not add laudatory verbiage.
+
+Respond in the language used by the provided prompt, which indicates
+the language in which the course is being offered.
+"""
+
+
+class _AIGradeResponse(BaseModel):
+    grade_percent: float | Literal["COMPUTED"]
+    feedback_text: str
 
 
 class AIGradeResult(BaseModel):
@@ -96,12 +131,10 @@ def build_messages(
         point_value: float | None,
         grading_prompt: str | None,
         ) -> list[ChatCompletionMessageParam]:
-    system_prompt = (grading_prompt or str(DEFAULT_AI_GRADING_PROMPT)) + "\n\n" + str(_(
-        'Respond with a single JSON object with exactly two keys: '
-        '"grade_percent" (a number from 0 to 100, the percentage of credit '
-        'earned) and "feedback_text" (a string containing feedback for the '
-        "student, written in RELATE-flavored Markdown). Do not include any "
-        "other text outside of the JSON object."))
+    system_prompt = (
+        (grading_prompt or str(DEFAULT_AI_GRADING_PROMPT))
+        + "\n\n"
+        + str(SYSTEM_PROMPT))
 
     parts = [f"# Rubric\n\n{page.rubric}"]
 
@@ -159,8 +192,27 @@ def run_ai_grading_for_visit(
                 _("AI grading endpoint returned an empty response."))
 
     try:
-        return AIGradeResult.model_validate_json(content)
-    except ValidationError as exc:
+        result = _AIGradeResponse.model_validate_json(content)
+        rubric_specs = parse_points_specs(page.rubric or "")
+        if (any(spec["maxPoints"] is not None for spec in rubric_specs)
+                and result.grade_percent != "COMPUTED"):
+            raise ValueError(
+                    "Rubrics with point denominators require "
+                    'grade_percent: "COMPUTED".')
+
+        if result.grade_percent == "COMPUTED":
+            totals = sum_points_specs(parse_points_specs(result.feedback_text))
+            if totals["points"] is None or totals["maxPoints"] is None:
+                raise ValueError(
+                        "Computed grades require earned points and denominators "
+                        "in the feedback rubric.")
+            grade_percent = 100 * totals["points"] / totals["maxPoints"]
+        else:
+            grade_percent = result.grade_percent
+
+        return AIGradeResult(
+                grade_percent=grade_percent, feedback_text=result.feedback_text)
+    except ValueError as exc:
         raise AIGradingError(
                 _("AI grading endpoint returned a malformed response: %s")
                 % exc) from exc

@@ -24,6 +24,7 @@ THE SOFTWARE.
 """
 
 import importlib
+import json
 
 import pytest
 from django.apps import apps as django_apps
@@ -32,8 +33,10 @@ from django.test import TestCase
 from course import models
 from course.ai_grading import (
     AIGradeResult,
+    AIGradingError,
     build_messages,
     create_ai_grade,
+    run_ai_grading_for_visit,
 )
 from course.constants import ParticipationPermission as PPerm
 from course.page import PageContext
@@ -115,6 +118,72 @@ class BuildMessagesTest(TestCase):
         user_message = messages[1]["content"]  # pyright: ignore[reportTypedDictNotRequiredAccess]
         self.assertIn(page.rubric, user_message)
         self.assertIn("the answer", user_message)
+
+
+@pytest.mark.parametrize("grading_prompt", [None, "Grade correctness only."])
+def test_point_marker_instructions(grading_prompt: str | None):
+    page = make_page(grading_prompt=grading_prompt)
+    page.rubric = "- Reasoning [pts:/2 #reasoning]"
+    messages = build_messages(
+            page, make_page_context(models.Course()), {}, {"answer": "4"},
+            point_value=2, grading_prompt=grading_prompt)
+
+    system_message = messages[0]["content"]  # pyright: ignore[reportTypedDictNotRequiredAccess]
+    assert isinstance(system_message, str)
+    assert "updated version of the rubric" in system_message
+    assert 'grade_percent: "COMPUTED"' in system_message
+    assert "full points suffices as feedback" in system_message
+    assert "do not add laudatory verbiage" in system_message
+
+
+@pytest.mark.parametrize(("grade_percent", "feedback", "expected_percent"), [
+    ("COMPUTED", "- Answer [pts:2/2 #answer]\n- Reasoning [pts:1/2 #reasoning]", 75),
+    ("COMPUTED", "- Answer [pts:2/2]\n- Penalty [pts:-0.5]", 75),
+    ("COMPUTED", "- Answer [pts:2.5/2]", 125),
+    (75, "Some reasoning missing.", 75),
+    (75, "- Penalty [pts:-1]", 75),
+])
+def test_run_ai_grading_computes_percentage(
+        grade_percent: str | float, feedback: str, expected_percent: float):
+    page = make_page()
+    if grade_percent == "COMPUTED":
+        page.rubric = "- Answer [pts:/2 #answer]"
+    course = models.Course(ai_grading_model="test-model")
+    with mock.patch("course.ai_grading.get_openai_client") as mock_client:
+        mock_client.return_value.chat.completions.create.return_value.choices[
+                0].message.content = json.dumps({
+                    "grade_percent": grade_percent, "feedback_text": feedback})
+        result = run_ai_grading_for_visit(
+                course, page, make_page_context(course), {}, {"answer": "4"},
+                point_value=2, grading_prompt=None)
+
+    assert result.grade_percent == expected_percent
+    assert result.feedback_text == feedback
+
+
+@pytest.mark.parametrize(("grade_percent", "feedback"), [
+    (75, "- Answer [pts:1.5/2]"),
+    ("COMPUTED", "No markers."),
+    ("COMPUTED", "- Answer [pts:2]"),
+    ("COMPUTED", "- Answer [pts:/2]"),
+    ("COMPUTED", "- Answer [pts:1/0]"),
+    ("COMPUTED", "- Answer [pts:invalid]"),
+    ("COMPUTED", "- Answer [pts:-1/2]"),
+    ("COMPUTED", "- Answer [pts:1000/2]"),
+])
+def test_run_ai_grading_rejects_invalid_computed_grade(
+        grade_percent: str | float, feedback: str):
+    page = make_page()
+    page.rubric = "- Answer [pts:/2]"
+    course = models.Course(ai_grading_model="test-model")
+    with mock.patch("course.ai_grading.get_openai_client") as mock_client:
+        mock_client.return_value.chat.completions.create.return_value.choices[
+                0].message.content = json.dumps({
+                    "grade_percent": grade_percent, "feedback_text": feedback})
+        with pytest.raises(AIGradingError, match="malformed response"):
+            run_ai_grading_for_visit(
+                    course, page, make_page_context(course), {}, {"answer": "4"},
+                    point_value=2, grading_prompt=None)
 
 
 class CreateAIGradeTest(TestCase):
