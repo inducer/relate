@@ -107,6 +107,26 @@
     </div>
   {% endif %}
 
+  {% if ai_grade_form %}
+    <div class="relate-well" style="margin-top: 20px">
+      <h3 class="start-well-title">{% trans "AI-draft grades" %}</h3>
+      {% crispy ai_grade_form %}
+
+      <div class="text-muted col-lg-offset-2" style="margin-top:1ex">
+      {% blocktrans trimmed %}
+        <p>
+        "Draft AI grades" will use an AI grading assistant to draft grades
+        and feedback for all submissions of the selected page that are
+        either ungraded or whose most recent grade is itself an AI draft.
+        Grades assigned by a human are never touched. Drafted grades are
+        always saved unreleased, and must be reviewed and released by a
+        human grader before students can see them.
+        </p>
+      {% endblocktrans %}
+      </div>
+    </div>
+  {% endif %}
+
   <table class="table table-striped gradebook-by-opportunity">
     <thead>
       {% if not pperm.view_participant_masked_profile %}
