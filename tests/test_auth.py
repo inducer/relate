@@ -48,6 +48,7 @@ from course.auth import (
     EmailedTokenBackend,
     get_impersonable_user_qset,
     get_user_model,
+    social_auth_check_domain_against_blacklist,
     with_course_api_auth,
 )
 from course.models import AuthenticationToken, FlowPageVisit, ParticipationPermission
@@ -651,6 +652,54 @@ class AuthTestMixin:
     def post_user_profile(self, data, redirect_to=None, follow=False):
         return self.client.post(self.get_user_profile_url(redirect_to),
                            data=data, follow=follow)
+
+
+class SocialAuthTest(TestCase):
+    @override_settings(
+        AUTHENTICATION_BACKENDS=["social_core.backends.google.GoogleOAuth2"],
+        SOCIAL_AUTH_GOOGLE_OAUTH2_KEY="test-client-id",
+        SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET="test-client-secret",
+    )
+    def test_sign_in_requires_csrf_protected_post(self):
+        client = Client(enforce_csrf_checks=True)
+        begin_url = reverse("social:begin", args=["google-oauth2"])
+        response = client.get(reverse("relate-sign_in_choice"), {"next": "/profile/"})
+        self.assertContains(
+            response, f'<form method="post" action="{begin_url}?next=/profile/">')
+        self.assertContains(response, 'name="csrfmiddlewaretoken"')
+        csrf_token = str(response.context["csrf_token"])
+
+        self.assertEqual(client.get(begin_url).status_code, 405)
+        self.assertEqual(client.post(begin_url).status_code, 403)
+        response = client.post(
+            f"{begin_url}?next=/profile/",
+            {"csrfmiddlewaretoken": csrf_token})
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(urlparse(response.url).netloc, "accounts.google.com")
+
+    @override_settings(
+        RELATE_SOCIAL_AUTH_BLACKLIST_EMAIL_DOMAINS={
+            "example.com": "Must use institutional login."})
+    def test_blacklisted_domain(self):
+        from social_core.exceptions import AuthPolicyError
+
+        backend = mock.Mock()
+        with self.assertRaises(AuthPolicyError) as exc:
+            social_auth_check_domain_against_blacklist(
+                backend, {"email": "student@example.com"})
+        self.assertIs(exc.exception.backend, backend)
+        self.assertEqual(exc.exception.code, "authentication_disallowed")
+        self.assertEqual(exc.exception.stage, "pipeline")
+        self.assertEqual(exc.exception.detail, "Must use institutional login.")
+
+    @override_settings(
+        RELATE_SOCIAL_AUTH_BLACKLIST_EMAIL_DOMAINS={
+            "example.com": "Must use institutional login."})
+    def test_allowed_domain(self):
+        for details in [{}, {"email": "student@other.example"}]:
+            with self.subTest(details=details):
+                self.assertIsNone(social_auth_check_domain_against_blacklist(
+                    mock.Mock(), details))
 
 
 class AuthViewNamedURLTests(AuthTestMixin, TestCase):

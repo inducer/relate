@@ -52,11 +52,12 @@
     {% endif %}
     {% for backend in backends.backends %}
     <li>
-      <a
-        class="btn btn-primary"
-        href="{% url "social:begin" backend %}{{next_uri}}"
-        role="button"><i class="bi bi-{{ social_provider_to_logo|get_item_or_key:backend }}"></i>
-        {% blocktrans with bkend=social_provider_to_human_name|get_item_or_key:backend %}Sign in with {{ bkend }}{% endblocktrans %} &raquo;</a>
+      <form method="post" action="{% url "social:begin" backend %}{{next_uri}}">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-primary">
+          <i class="bi bi-{{ social_provider_to_logo|get_item_or_key:backend }}"></i>
+          {% blocktrans with bkend=social_provider_to_human_name|get_item_or_key:backend %}Sign in with {{ bkend }}{% endblocktrans %} &raquo;</button>
+      </form>
     </li>
     {% endfor %}
   </ul>
