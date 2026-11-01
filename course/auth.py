@@ -95,6 +95,7 @@ if TYPE_CHECKING:
     import datetime
 
     from django.db.models import query
+    from social_core.backends.base import BaseAuth
 
 
 # {{{ impersonation
@@ -1127,7 +1128,9 @@ def social_set_user_email_verified(backend, details, user=None, *args, **kwargs)
     # continue the social auth pipeline
 
 
-def social_auth_check_domain_against_blacklist(backend, details, *args, **kwargs):
+def social_auth_check_domain_against_blacklist(
+        backend: BaseAuth, details: dict[str, str],
+        *_args: Any, **_kwargs: Any):
     email = details.get("email")
 
     domain_blacklist = getattr(
@@ -1135,8 +1138,9 @@ def social_auth_check_domain_against_blacklist(backend, details, *args, **kwargs
     if domain_blacklist and email:
         domain = email.split("@", 1)[1]
         if domain in domain_blacklist:
-            from social_core.exceptions import SocialAuthBaseException
-            raise SocialAuthBaseException(domain_blacklist[domain])
+            from social_core.exceptions import AuthPolicyError
+            raise AuthPolicyError(
+                    backend, domain_blacklist[domain], stage="pipeline")
 
     # continue the social auth pipeline
 
