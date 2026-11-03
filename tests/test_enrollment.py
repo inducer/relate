@@ -106,6 +106,56 @@ def get_not_empty_count_from_list(lst):
     return len([data for data in lst if data.strip()])
 
 
+class ParticipationPermissionsTest(TestCase):
+    def test_unenrolled_permissions_are_course_scoped(self):
+        from course.models import ParticipationRolePermission
+
+        course = factories.CourseFactory(identifier="target")
+        ParticipationRole.objects.filter(course=course).delete()
+        other_course = factories.CourseFactory(identifier="other")
+        target_role = factories.ParticipationRoleFactory(
+            course=course, identifier="visitor", is_default_for_unenrolled=True)
+        other_role = factories.ParticipationRoleFactory(
+            course=other_course, identifier="visitor", is_default_for_unenrolled=True)
+        nondefault_role = factories.ParticipationRoleFactory(
+            course=course, identifier="staff", is_default_for_unenrolled=False)
+        for role, argument in [
+                (target_role, "public"), (other_role, "ta"),
+                (nondefault_role, "instructor")]:
+            ParticipationRolePermission.objects.create(
+                role=role,
+                permission=constants.ParticipationPermission.access_files_for,
+                argument=argument)
+        ParticipationRolePermission.objects.create(
+            role=target_role,
+            permission=constants.ParticipationPermission.view_hidden_course_page,
+            argument="")
+
+        self.assertEqual(enrollment.get_participation_permissions(course, None),
+                         frozenset({
+                             (constants.ParticipationPermission.access_files_for,
+                              "public"),
+                             (constants.ParticipationPermission.view_hidden_course_page,
+                              None),
+                         }))
+
+    def test_no_unenrolled_role_grants_no_permissions(self):
+        from course.models import ParticipationRolePermission
+
+        course = factories.CourseFactory(identifier="target")
+        ParticipationRole.objects.filter(course=course).delete()
+        other_role = factories.ParticipationRoleFactory(
+            course=factories.CourseFactory(identifier="other"),
+            is_default_for_unenrolled=True)
+        ParticipationRolePermission.objects.create(
+            role=other_role,
+            permission=constants.ParticipationPermission.access_files_for,
+            argument="ta")
+
+        self.assertEqual(enrollment.get_participation_permissions(course, None),
+                         frozenset())
+
+
 class EnrollmentTestMixin(MockAddMessageMixing, CoursesTestMixinBase):
 
     @classmethod

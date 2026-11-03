@@ -141,6 +141,7 @@ def get_participation_permissions(
 
         perm_list = list(
                 ParticipationRolePermission.objects.filter(
+                    role__course=course,
                     role__is_default_for_unenrolled=True)
                 .values_list("permission", "argument"))
 
