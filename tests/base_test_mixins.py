@@ -34,6 +34,7 @@ from copy import deepcopy
 from functools import partial
 from pathlib import Path
 from types import MethodType
+from typing import TYPE_CHECKING
 
 import pytest
 from django.conf import settings
@@ -71,6 +72,12 @@ from tests.constants import (
     TEST_PAGE_TUPLE,
 )
 from tests.utils import mock
+
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
+
+    from dulwich.repo import Repo
 
 
 CORRECTNESS_ATOL = 1e-05
@@ -2798,7 +2805,9 @@ class HackRepoMixin:
                 data = (Path(FAKED_YAML_PATH) / yaml_file_name).read_bytes()
                 self.data = data
 
-        def get_repo_side_effect(repo, full_name, commit_sha):
+        def get_repo_side_effect(
+                repo: Repo, full_name: str, commit_sha: bytes, *,
+                on_symlink_target: Callable[[str], None] | None = None):
             commit_sha_path_maps = COMMIT_SHA_MAP.get(full_name)
             if commit_sha_path_maps:
                 assert isinstance(commit_sha_path_maps, list)
@@ -2807,7 +2816,9 @@ class HackRepoMixin:
                         path = cs_map[commit_sha.decode()]["path"]
                         return Blob(path)
 
-            return get_repo_blob(repo, full_name, repo[b"HEAD"].id)
+            return get_repo_blob(
+                repo, full_name, repo[b"HEAD"].id,
+                on_symlink_target=on_symlink_target)
 
         cls.batch_fake_get_repo_blob = mock.patch("course.repo.get_repo_blob")
         cls.mock_get_repo_blob = cls.batch_fake_get_repo_blob.start()

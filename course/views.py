@@ -361,19 +361,34 @@ def get_repo_file_backend(
         if not is_repo_file_accessible_as(access_kinds, repo, commit_sha, path):
             raise PermissionDenied()
 
-        return get_repo_file_response(repo, path, commit_sha)
+        from course.repo import get_repo_blob
+
+        def authorize_target(target_path: str) -> None:
+            if not is_repo_file_accessible_as(
+                    access_kinds, repo, commit_sha, target_path):
+                raise PermissionDenied()
+
+        try:
+            blob = get_repo_blob(
+                repo, path, commit_sha, on_symlink_target=authorize_target)
+        except ObjectDoesNotExist:
+            raise http.Http404()
+
+        return get_repo_file_response(repo, path, commit_sha, data=blob.data)
 
 
 def get_repo_file_response(
-        repo: Any, path: str, commit_sha: RevisionID_ish
+        repo: Any, path: str, commit_sha: RevisionID_ish,
+        *, data: bytes | None = None,
         ) -> http.HttpResponse:
 
     from course.repo import get_repo_blob_data_cached
 
-    try:
-        data = get_repo_blob_data_cached(repo, path, commit_sha)
-    except ObjectDoesNotExist:
-        raise http.Http404()
+    if data is None:
+        try:
+            data = get_repo_blob_data_cached(repo, path, commit_sha)
+        except ObjectDoesNotExist:
+            raise http.Http404()
 
     from mimetypes import guess_type
     content_type, __ = guess_type(path)
