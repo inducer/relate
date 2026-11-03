@@ -518,7 +518,7 @@ prompt: |
 question: |
 
     Foo and [[blank1]] are often used in code examples.
-    <img src="media:images/classroom.jpeg">
+    <img src="repo:images/classroom.jpeg">
 
 answers:
 
@@ -1030,7 +1030,7 @@ class InlineMultiQuestionTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
         self.assertEqual(resp.status_code, 200)
         self.assertSandboxHasValidPage(resp)
         self.assertContains(
-            resp, f'<img src="/course/test-course/media/{commit_sha}'
+            resp, f'<img src="/course/test-course/file-version/{commit_sha}'
                   '/images/classroom.jpeg">', html=True)
 
 

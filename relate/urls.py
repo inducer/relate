@@ -319,14 +319,7 @@ urlpatterns = [
 
     # }}}
 
-    # {{{ media
-
-    re_path(r"^course"
-        "/" + COURSE_ID_REGEX
-        + "/media/(?P<commit_sha>[a-f0-9]+)"
-        "/(?P<media_path>.*)$",
-        course.views.get_media,
-        name="relate-get_media"),
+    # {{{ repository files
 
     re_path(r"^course"
         "/" + COURSE_ID_REGEX

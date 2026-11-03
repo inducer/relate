@@ -256,29 +256,7 @@ def static_page(pctx: CoursePageContext, page_path: str) -> http.HttpResponse:
 # }}}
 
 
-# {{{ media
-
-def media_etag_func(
-            request: RelateHttpRequest,  # pyright: ignore[reportUnusedParameter]
-            course_identifier: str,
-            commit_sha: str,
-            media_path: str):
-    return f"{course_identifier}:{commit_sha}:{media_path}"
-
-
-@cache_control(max_age=3600*24*31)  # cache for a month
-@http_dec.condition(etag_func=media_etag_func)
-def get_media(
-            request: RelateHttpRequest,  # pyright: ignore[reportUnusedParameter]
-            course_identifier: str,
-            commit_sha: str,
-            media_path: str
-        ):
-    course = get_object_or_404(Course, identifier=course_identifier)
-
-    with get_course_repo(course) as repo:
-        return get_repo_file_response(
-            repo, "media/" + media_path, deserialize_revision(commit_sha))
+# {{{ repository files
 
 
 def repo_file_etag_func(
