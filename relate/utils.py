@@ -64,6 +64,7 @@ class RelateHttpRequest(HttpRequest, ABC):
 
     # added by ExamLockdownMiddleware
     relate_exam_lockdown: bool
+    relate_exam_lockdown_course_id: int | None
 
     relate_impersonate_original_user: User
 
