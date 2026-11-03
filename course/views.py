@@ -343,6 +343,8 @@ def get_repo_file_backend(
 
     # set access to public (or unenrolled), student, etc
     if request.relate_exam_lockdown:
+        if request.relate_exam_lockdown_course_id != course.pk:
+            raise PermissionDenied()
         access_kinds = ["in_exam"]
     else:
         from course.enrollment import get_participation_permissions

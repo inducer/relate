@@ -846,6 +846,7 @@ class ExamLockdownMiddlewareTest(SingleCoursePageTestMixin,
             request_obj = mock_render.call_args[0][0]
             self.assertTrue(hasattr(request_obj, "relate_exam_lockdown"))
             self.assertFalse(request_obj.relate_exam_lockdown)
+            self.assertIsNone(request_obj.relate_exam_lockdown_course_id)
 
         # add lock down to the session
         self.tweak_session_to_lock_down()
@@ -858,6 +859,8 @@ class ExamLockdownMiddlewareTest(SingleCoursePageTestMixin,
             request_obj = mock_render.call_args[0][0]
             self.assertTrue(hasattr(request_obj, "relate_exam_lockdown"))
             self.assertTrue(request_obj.relate_exam_lockdown)
+            self.assertEqual(
+                request_obj.relate_exam_lockdown_course_id, self.course.pk)
 
     def test_lock_down_session_does_not_exist(self):
         """lock down to a session which does not exist"""
