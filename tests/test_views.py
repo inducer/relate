@@ -803,11 +803,32 @@ class GetRepoFileTestMocked(GetRepoFileTestMixin, HackRepoMixin, TestCase):
                     resp = self.get_current_repo_file_view(repo_file)
                     self.assertEqual(resp.status_code, status_code)
 
+    def test_exam_file_access_is_course_scoped(self):
+        other_course = factories.CourseFactory(identifier="other-course")
+
+        for exam_course in [self.course, other_course]:
+            flow_session = factories.FlowSessionFactory(course=exam_course)
+            session = self.client.session
+            session[constants.SESSION_LOCKED_TO_FLOW_PK] = flow_session.pk
+            session.save()
+
+            for path, same_course_status in [
+                    ("images/classroom.jpeg", 200),
+                    ("images/django-logo.png", 403)]:
+                for url in [self.get_repo_file_url(path),
+                            self.get_current_repo_file_url(path)]:
+                    with self.subTest(exam_course=exam_course.identifier, url=url):
+                        expected_status = (
+                            same_course_status if exam_course == self.course else 403)
+                        self.assertEqual(
+                            self.client.get(url).status_code, expected_status)
+
     def test_in_exam(self):
         req = RequestFactory()
         repo_file = "images/classroom.jpeg"
         request = req.get(self.get_repo_file_url(repo_file))
         request.relate_exam_lockdown = True
+        request.relate_exam_lockdown_course_id = self.course.pk
 
         from django.contrib.auth.models import AnonymousUser
         users = (AnonymousUser(),
