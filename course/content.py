@@ -88,6 +88,7 @@ from course.repo import (
     SubdirRepoWrapper,
     deserialize_revision,
     get_repo_blob_data_cached,
+    get_repo_cache_key,
     get_repo_tree,
     serialize_revision,
 )
@@ -1207,7 +1208,7 @@ def get_raw_yaml_from_repo(
     from urllib.parse import quote_plus
     cache_key = "%RAW%%2".join((
         CACHE_KEY_ROOT,
-        quote_plus(str(repo.controldir())),
+        get_repo_cache_key(repo),
         quote_plus(full_name),
         serialize_revision(commit_sha),
         ))
@@ -1283,7 +1284,7 @@ def get_model_from_repo(
             from urllib.parse import quote_plus
             cache_key = "%%%2".join(
                     (CACHE_KEY_ROOT,
-                        quote_plus(str(repo.controldir())), quote_plus(full_name),
+                        get_repo_cache_key(repo), quote_plus(full_name),
                         serialize_revision(commit_sha)))
 
             def_cache = cache.caches["default"]

@@ -568,6 +568,14 @@ def get_true_repo_and_path(
     return repo, path
 
 
+def get_repo_cache_key(repo: Repo_ish) -> str:
+    """Return a cache identity for the repository and its effective course root."""
+    from urllib.parse import quote_plus
+
+    base_repo, subdir = get_true_repo_and_path(repo, "")
+    return ":".join((quote_plus(str(base_repo.controldir())), quote_plus(subdir)))
+
+
 def get_commit_obj(
             repo: dulwich.repo.Repo | PythonClassFakeRepo,
             commit_sha: RevisionID_ish
@@ -679,7 +687,7 @@ def get_repo_blob_data_cached(
         from urllib.parse import quote_plus
         cache_key: str | None = "%s%R%1".join((
             CACHE_KEY_ROOT,
-            quote_plus(str(repo.controldir())),
+            get_repo_cache_key(repo),
             quote_plus(full_name),
             commit_sha.decode(),
             ".".join(str(s) for s in sys.version_info[:2]),
