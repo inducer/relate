@@ -25,18 +25,24 @@ THE SOFTWARE.
 
 
 from typing import TYPE_CHECKING
+from unittest.mock import patch
 
 import pytest
 from django.core.exceptions import ObjectDoesNotExist
+from django.test import override_settings
 from dulwich.objects import Blob, Commit, Tree
 from dulwich.repo import Repo
+from pydantic import TypeAdapter
 
+from course import content
 from course.repo import (
     SubdirRepoWrapper,
     get_repo_blob,
+    get_repo_blob_data_cached,
     get_repo_tree,
     get_true_repo_and_path,
 )
+from course.validation import ValidationContext
 
 
 if TYPE_CHECKING:
@@ -111,3 +117,58 @@ def test_subdir_repo_lookup_stays_within_course_root(tmp_path: Path):
         for path in ["..", "../sibling", "nested/../../sibling"]:
             with pytest.raises(ObjectDoesNotExist, match="outside the course root"):
                 get_repo_tree(wrapped_repo, path, commit.id)
+
+
+@pytest.mark.parametrize("cache_kind", ["blob", "raw_yaml", "model"])
+@override_settings(
+    CACHES={"default": {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        "LOCATION": "repo-course-root-tests",
+    }},
+    RELATE_CACHE_MAX_BYTES=1024,
+)
+def test_repo_caches_distinguish_course_roots(tmp_path: Path, cache_kind: str):
+    with Repo.init_bare(tmp_path) as repo:
+        root = Tree()
+        root_blob = Blob.from_string(b"title: root\n")
+        repo.object_store.add_object(root_blob)
+        root.add(b"course.yml", 0o100644, root_blob.id)
+        for subdir in ["first", "second"]:
+            blob = Blob.from_string(f"title: {subdir}\n".encode())
+            tree = Tree()
+            tree.add(b"course.yml", 0o100644, blob.id)
+            repo.object_store.add_object(blob)
+            repo.object_store.add_object(tree)
+            root.add(subdir.encode(), 0o040000, tree.id)
+
+        commit = Commit()
+        commit.tree = root.id
+        commit.author = commit.committer = b"Test <test@example.com>"
+        commit.author_time = commit.commit_time = 0
+        commit.author_timezone = commit.commit_timezone = 0
+        commit.message = b"Test cache isolation between course roots"
+        repo.object_store.add_object(root)
+        repo.object_store.add_object(commit)
+
+        model_ta = TypeAdapter(dict[str, str])
+        with patch("course.repo.get_repo_blob", wraps=get_repo_blob) as get_blob:
+            for _ in range(2):
+                for subdir in ["", "first", "second"]:
+                    course_repo = SubdirRepoWrapper(repo, subdir) if subdir else repo
+                    title = subdir or "root"
+                    if cache_kind == "blob":
+                        result = get_repo_blob_data_cached(
+                            course_repo, "course.yml", commit.id)
+                        assert result == f"title: {title}\n".encode()
+                    elif cache_kind == "raw_yaml":
+                        result = content.get_raw_yaml_from_repo(
+                            course_repo, "course.yml", commit.id)
+                        assert result == {"title": title}
+                    else:
+                        result = content.get_model_from_repo(
+                            ValidationContext(course_repo, commit.id),
+                            model_ta, course_repo, "course.yml", commit.id)
+                        assert result == {"title": title}
+
+            # Each root is read once, then served from its own cache entry.
+            assert get_blob.call_count == 3
