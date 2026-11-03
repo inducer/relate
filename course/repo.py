@@ -24,6 +24,7 @@ THE SOFTWARE.
 """
 
 import os
+import posixpath
 import sys
 from dataclasses import dataclass
 from hashlib import sha256
@@ -38,7 +39,7 @@ from typing_extensions import Self, override
 
 
 if TYPE_CHECKING:
-    from collections.abc import Mapping, Sequence
+    from collections.abc import Callable, Mapping, Sequence
     from types import TracebackType
 
     from dulwich.refs import Ref
@@ -393,7 +394,6 @@ class FileSystemFakeRepoTree:
             return stat_result.st_mode, FileSystemFakeRepoFile(path)
 
     def items(self) -> list[FileSystemFakeRepoTreeEntry]:
-        import os
         return [
                 FileSystemFakeRepoTreeEntry(
                     path=n.encode(),
@@ -465,9 +465,16 @@ def _look_up_git_object(
                 | FileSystemFakeRepoTree
                 | PythonClassFakeRepoTree,
             full_name: str,
-            _max_symlink_depth: int | None = None
+            _max_symlink_depth: int | None = None,
+            *,
+            on_symlink_target: Callable[[str], None] | None = None,
+            course_root: str = "",
         ) -> Tree_ish | Blob_ish:
-    """Traverse git directory tree from *root_tree*, respecting symlinks."""
+    """Traverse the Git tree, reporting complete course-relative symlink targets.
+
+    The callback runs for every hop, including intermediate links and directory
+    links with their unconsumed suffix, before the target is looked up.
+    """
 
     if _max_symlink_depth is None:
         _max_symlink_depth = 20
@@ -477,7 +484,8 @@ def _look_up_git_object(
 
     # https://github.com/inducer/relate/pull/556
     # FIXME: https://github.com/inducer/relate/issues/767
-    name_parts = os.path.normpath(full_name).split(os.sep)
+    # Git paths use POSIX separators, regardless of the host operating system.
+    name_parts = posixpath.normpath(full_name).split("/")
 
     processed_name_parts: list[str] = []
 
@@ -489,7 +497,7 @@ def _look_up_git_object(
         if not isinstance(cur_lookup, Tree_ish):
             raise ObjectDoesNotExist(
                     _("'%s' is not a directory, cannot lookup nested names")
-                    % os.sep.join(processed_name_parts))
+                    % "/".join(processed_name_parts))
 
         name_part = name_parts.pop(0)
 
@@ -518,9 +526,28 @@ def _look_up_git_object(
             else:
                 raise ValueError("unexpected repo type")
 
-            link_target = os.sep.join([*processed_name_parts, link_data.decode()])
-            cur_lookup = _look_up_git_object(repo, root_tree, link_target,
-                    _max_symlink_depth=_max_symlink_depth-1)
+            try:
+                target = link_data.decode()
+            except UnicodeDecodeError as exc:
+                raise ObjectDoesNotExist(_("invalid symlink target")) from exc
+            if not target or "\x00" in target:
+                raise ObjectDoesNotExist(_("invalid symlink target"))
+            if posixpath.isabs(target):
+                raise ObjectDoesNotExist(_("absolute symlink target is not allowed"))
+            link_target = posixpath.normpath(posixpath.join(
+                *processed_name_parts, target, *name_parts))
+            relative_target = posixpath.relpath(link_target, course_root or ".")
+            if (relative_target == ".."
+                    or relative_target.startswith("../")):
+                raise ObjectDoesNotExist(_("symlink target is outside the course root"))
+            if on_symlink_target is not None:
+                on_symlink_target(relative_target)
+            # Restart with the complete target path, including any remaining
+            # suffix, so later relative links use their actual containing directory.
+            return _look_up_git_object(
+                repo, root_tree, link_target,
+                _max_symlink_depth=_max_symlink_depth-1,
+                on_symlink_target=on_symlink_target, course_root=course_root)
         else:
             processed_name_parts.append(name_part)
             if isinstance(repo, dulwich.repo.Repo):
@@ -551,10 +578,10 @@ def get_true_repo_and_path(
     while isinstance(repo, SubdirRepoWrapper):
         # Check before prefixing: otherwise '..' can escape the course root
         # when the resulting repository path is normalized during lookup.
-        normalized_path = os.path.normpath(path)
-        if (os.path.isabs(normalized_path)
-                or normalized_path == os.pardir
-                or normalized_path.startswith(os.pardir + os.sep)):
+        normalized_path = posixpath.normpath(path)
+        if (posixpath.isabs(normalized_path)
+                or normalized_path == ".."
+                or normalized_path.startswith("../")):
             raise ObjectDoesNotExist(
                 _("resource '%s' is outside the course root") % path)
 
@@ -609,6 +636,7 @@ def get_repo_tree(
     :arg allow_tree: Allow the resulting object to be a directory
     """
 
+    course_root = get_true_repo_and_path(repo, "")[1]
     base_repo, full_name = get_true_repo_and_path(repo, full_name)
 
     if isinstance(base_repo, FileSystemFakeRepo):
@@ -628,7 +656,8 @@ def get_repo_tree(
     assert isinstance(tree_obj, Tree_ish)
 
     git_obj = _look_up_git_object(
-            base_repo, root_tree=tree_obj, full_name=full_name)
+            base_repo, root_tree=tree_obj, full_name=full_name,
+            course_root=course_root)
 
     msg_full_name = full_name or _("(repo root)")
 
@@ -641,13 +670,18 @@ def get_repo_tree(
 def get_repo_blob(
             repo: Repo_ish,
             full_name: str,
-            commit_sha: RevisionID_ish
+            commit_sha: RevisionID_ish,
+            *,
+            on_symlink_target: Callable[[str], None] | None = None,
         ) -> Blob_ish:
     """
     :arg full_name: A Unicode string indicating the file name.
     :arg commit_sha: A byte string containing the commit hash
-    :arg allow_tree: Allow the resulting object to be a directory
+    :arg on_symlink_target: Called with each course-relative target path before
+        following a symlink. May raise to deny access; the caller must separately
+        authorize *full_name*.
     """
+    course_root = get_true_repo_and_path(repo, "")[1]
     base_repo, full_name = get_true_repo_and_path(repo, full_name)
 
     if isinstance(base_repo, FileSystemFakeRepo):
@@ -667,7 +701,8 @@ def get_repo_blob(
     assert isinstance(tree_obj, Tree_ish)
 
     git_obj = _look_up_git_object(
-            base_repo, root_tree=tree_obj, full_name=full_name)
+            base_repo, root_tree=tree_obj, full_name=full_name,
+            on_symlink_target=on_symlink_target, course_root=course_root)
 
     msg_full_name = full_name or _("(repo root)")
 
