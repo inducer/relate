@@ -743,6 +743,36 @@ class GetRepoFileTestMocked(GetRepoFileTestMixin, HackRepoMixin, TestCase):
 
     initial_commit_sha = "abcdef001"
 
+    def test_unenrolled_file_access_is_course_scoped(self):
+        other_course = factories.CourseFactory(identifier="other-course")
+        other_role = factories.ParticipationRoleFactory(
+            course=other_course, identifier="visitor", is_default_for_unenrolled=True)
+        models.ParticipationRolePermission.objects.create(
+            role=other_role,
+            permission=constants.ParticipationPermission.access_files_for,
+            argument="ta")
+        unenrolled_user = factories.UserFactory()
+        repo_file = "images/django-logo.png"
+
+        for user in [None, unenrolled_user]:
+            with self.temporarily_switch_to_user(user):
+                for url in [self.get_repo_file_url(repo_file),
+                            self.get_current_repo_file_url(repo_file)]:
+                    with self.subTest(user=str(user), url=url):
+                        self.assertEqual(self.client.get(url).status_code, 403)
+
+        target_role = factories.ParticipationRoleFactory(
+            course=self.course, identifier="visitor", is_default_for_unenrolled=True)
+        models.ParticipationRolePermission.objects.create(
+            role=target_role,
+            permission=constants.ParticipationPermission.access_files_for,
+            argument="ta")
+        with self.temporarily_switch_to_user(None):
+            for url in [self.get_repo_file_url(repo_file),
+                        self.get_current_repo_file_url(repo_file)]:
+                with self.subTest(url=url):
+                    self.assertEqual(self.client.get(url).status_code, 200)
+
     def test_accessible_by_ta_and_above_fullname(self):
         repo_file = "images/django-logo.png"
         tup = ((None, 403),
