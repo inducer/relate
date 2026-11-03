@@ -275,16 +275,11 @@ a RELATE site:
 
 .. note::
 
-    A URL schema ``media:`` used to exist and will continue to be
-    supported. Its use is discouraged in favor of ``repo:`` and
-    ``repocur:``.
-
-.. warning::
-
-    For the continued support of the ``media:`` URL schema, the entire
-    ``media/`` subdirectory of the git repository is unconditionally
-    accessible from anywhere in the world, by anyone. Sensitive files
-    should not be stored there.
+    The deprecated ``media:`` URL scheme and its file-serving endpoint
+    have been removed. Replace ``media:some/file.png`` with
+    ``repo:media/some/file.png`` or ``repocur:media/some/file.png``, and
+    add a :file:`media/.attributes.yml` file granting the intended access.
+    Files in ``media/`` are no longer automatically public.
 
 LaTeX-based mathematics
 ^^^^^^^^^^^^^^^^^^^^^^^

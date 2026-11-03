@@ -771,18 +771,6 @@ def validate_course_content(
             get_repo_tree(repo, "", validate_sha),
             access_kinds)
 
-    try:
-        get_repo_tree(repo, "media", validate_sha)
-    except ObjectDoesNotExist:
-        # That's great--no media directory.
-        pass
-    else:
-        vctx.with_location("media/").add_warning(
-                _(
-                    "Your course repository has a 'media/' directory. "
-                    "Linking to media files using 'media:' is discouraged. "
-                    "Use the 'repo:' and 'repocur:' linkng schemes instead."))
-
     # {{{ flows
 
     try:

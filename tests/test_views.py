@@ -27,10 +27,9 @@ import datetime
 import unittest
 
 from celery import states, uuid
-from django import http
-from django.test import RequestFactory, TestCase
+from django.test import RequestFactory, SimpleTestCase, TestCase
 from django.test.utils import override_settings
-from django.urls import reverse
+from django.urls import NoReverseMatch, Resolver404, resolve, reverse
 from django.utils.timezone import now, timedelta
 
 from course import constants, models, views
@@ -632,43 +631,15 @@ class CoursePageTest(SingleCourseTestMixin, MockAddMessageMixing, TestCase):
     # }}}
 
 
-class GetMediaTest(SingleCourseTestMixin, TestCase):
-    # test views.get_media
-    # currently only mock test, because there's no media in the sample repo
+class RemovedMediaTest(SimpleTestCase):
+    def test_route_removed(self):
+        for path in ["foo.jpg", "../course.yml", "%2e%2e/course.yml"]:
+            with self.subTest(path=path), self.assertRaises(Resolver404):
+                resolve(f"/course/test-course/media/abcdef/{path}")
 
-    def get_media_url(self, media_path, course_identifier=None, commit_sha=None):
-        course_identifier = course_identifier or self.get_default_course_identifier()
-        if commit_sha is None:
-            commit_sha = self.course.active_git_commit_sha
-
-        return reverse("relate-get_media",
-                       kwargs={"course_identifier": course_identifier,
-                               "commit_sha": commit_sha,
-                               "media_path": media_path})
-
-    def get_media_view(self, media_path, course_identifier=None, commit_sha=None):
-        return self.client.get(
-            self.get_media_url(media_path, course_identifier, commit_sha))
-
-    def test(self):
-        resp = self.get_media_view("foo.jpg")
-        self.assertEqual(resp.status_code, 404)
-
-    def test_func_call(self):
-        with mock.patch(
-                "course.views.get_repo_file_response") as mock_get_repo_file_resp:
-            mock_get_repo_file_resp.return_value = http.HttpResponse("hi")
-            resp = self.get_media_view("foo.jpg")
-            self.assertEqual(resp.status_code, 200)
-            self.assertEqual(mock_get_repo_file_resp.call_count, 1)
-
-    def test_course_does_not_exist_404(self):
-        with mock.patch(
-                "course.views.get_repo_file_response") as mock_get_repo_file_resp:
-            mock_get_repo_file_resp.return_value = http.HttpResponse("hi")
-            resp = self.get_media_view("foo.jpg", course_identifier="no-course")
-            self.assertEqual(resp.status_code, 404)
-            self.assertEqual(mock_get_repo_file_resp.call_count, 0)
+    def test_url_name_removed(self):
+        with self.assertRaises(NoReverseMatch):
+            reverse("relate-get_media", args=("test-course", "abcdef", "foo.jpg"))
 
 
 class GetRepoFileTestMixin(SingleCourseTestMixin):
@@ -702,6 +673,16 @@ class GetRepoFileTestMixin(SingleCourseTestMixin):
 
 class GetRepoFileTest(GetRepoFileTestMixin, TestCase):
     # test views.get_repo_file
+
+    def test_traversal_does_not_bypass_target_attributes(self):
+        for user in [None, self.student_participation.user]:
+            with self.temporarily_switch_to_user(user):
+                for path in ["course.yml", "images/../course.yml"]:
+                    for url in [self.get_repo_file_url(path),
+                                self.get_current_repo_file_url(path)]:
+                        with self.subTest(user=str(user), url=url):
+                            self.assertEqual(self.client.get(url).status_code, 403)
+
     def test_file_not_exist(self):
 
         repo_file = "images/file_not_exist.png"
