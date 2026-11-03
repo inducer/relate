@@ -1433,14 +1433,6 @@ class LinkFixerTreeprocessor(Treeprocessor):
                                 self.get_course_identifier(),
                                 PreserveFragment(page_path)))
 
-            elif url.startswith("media:"):
-                media_path = url[6:]
-                return self.reverse("relate-get_media",
-                            args=(
-                                self.get_course_identifier(),
-                                self.commit_sha.decode(),
-                                PreserveFragment(media_path)))
-
             elif url.startswith("repo:"):
                 path = url[5:]
                 return self.reverse("relate-get_repo_file",
