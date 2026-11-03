@@ -549,6 +549,15 @@ def get_true_repo_and_path(
             path: str
         ) -> tuple[UnwrappedRepo_ish, str]:
     while isinstance(repo, SubdirRepoWrapper):
+        # Check before prefixing: otherwise '..' can escape the course root
+        # when the resulting repository path is normalized during lookup.
+        normalized_path = os.path.normpath(path)
+        if (os.path.isabs(normalized_path)
+                or normalized_path == os.pardir
+                or normalized_path.startswith(os.pardir + os.sep)):
+            raise ObjectDoesNotExist(
+                _("resource '%s' is outside the course root") % path)
+
         if path:
             path = f"{repo.subdir}/{path}"
         else:
