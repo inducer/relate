@@ -88,7 +88,7 @@ those long-running tasks. Start a worker by running::
 
     and then run::
 
-        celery worker -A relate -P gevent
+        celery -A relate worker -P gevent
 
     See the `related issue <https://stackoverflow.com/a/47331438/3437454>`_ for more information.
 
