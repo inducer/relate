@@ -322,6 +322,9 @@ CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
 CELERY_TRACK_STARTED = True
 
+# So that tracebacks can be shown in task progress
+CELERY_RESULT_EXTENDED = True
+
 if "CELERY_RESULT_BACKEND" not in globals():
     if (
             "CACHES" in globals()
