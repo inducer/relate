@@ -15,12 +15,20 @@
         &middot;
         {% trans "Grade:" %} {{ grade.grade_time }}
         {% if grade.id == prev_grade_id %}</b>{% endif %}
-        {% if grade.value == none %}
-          [{% trans "no grade" %}]
+        &middot; {% if grade.value == none %}
+          {% trans "no grade" %}
         {% else %}
-          [{{ grade.value }} {% trans "points" %}]
+          {{ grade.value }} {% trans "points" %}
         {% endif %}
-        {% if forloop.first %}(current){% endif %}
+        {% if grade.grade_data %}
+            <span class="badge text-bg-info">{% trans "feedback" %}</span>
+        {% endif %}
+        {% if grade.ai_generated_by  %}
+            <span class="badge text-bg-warning">{% trans "AI" %}</span>
+        {% endif %}
+        {% if forloop.first %}
+            <span class="badge text-bg-success">{% trans "current" %}</span>
+        {% endif %}
       </a>
     </li>
   {% endfor %}
