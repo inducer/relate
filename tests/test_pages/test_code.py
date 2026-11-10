@@ -973,6 +973,7 @@ class CodeQuestionWithHumanTextFeedbackSpecialCase(
         grade_data.setdefault("grade_percent", None)
         grade_data.setdefault("released", True)
         grade_data.setdefault("feedback_text", "")
+        grade_data.setdefault("notes", "")
         page_data = fpctx.page_data
         return page.grade(
             page_context=page_context,
