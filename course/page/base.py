@@ -1112,6 +1112,16 @@ class HumanTextFeedbackForm(StyledVerticalForm):
             return max(candidate_percentages)
 
 
+class HumanTextFeedbackGradeData(BaseModel):
+    # Subclasses may store additional grading data alongside the human feedback.
+    model_config: ClassVar[ConfigDict] = ConfigDict(extra="allow")
+
+    released: bool
+    grade_percent: float | None
+    feedback_text: str
+    notes: str
+
+
 class PageBaseWithHumanTextFeedback(PageBase, ABC):
     """
     .. automethod:: human_feedback_point_value
@@ -1119,9 +1129,6 @@ class PageBaseWithHumanTextFeedback(PageBase, ABC):
     Supports automatic computation of point values from textual feedback.
     See :ref:`points-from-feedback`.
     """
-    # FIXME This should use pydantic/validation
-    grade_data_attrs: ClassVar[list[str]] = [
-        "released", "grade_percent", "feedback_text", "notes"]
 
     rubric: Markup
 
@@ -1139,17 +1146,17 @@ class PageBaseWithHumanTextFeedback(PageBase, ABC):
     def make_grading_form(
             self,
             page_context: PageContext,
-            page_data: Any,
-            grade_data: Any,
+            page_data: PageData,
+            grade_data: GradeData,
             ) -> StyledFormBase | None:
         human_feedback_point_value = self.human_feedback_point_value(
                 page_context, page_data)
 
         editor_interaction_mode = get_editor_interaction_mode(page_context)
         if grade_data is not None:
-            form_data = {}
-            for k in self.grade_data_attrs:
-                form_data[k] = grade_data[k]
+            form_data = HumanTextFeedbackGradeData.model_validate(
+                    grade_data).model_dump(
+                        include=set(HumanTextFeedbackGradeData.model_fields))
 
             return HumanTextFeedbackForm(human_feedback_point_value, form_data,
                     editor_interaction_mode=editor_interaction_mode,
@@ -1163,8 +1170,8 @@ class PageBaseWithHumanTextFeedback(PageBase, ABC):
     def post_grading_form(
             self,
             page_context: PageContext,
-            page_data: Any,
-            grade_data: Any,
+            page_data: PageData,
+            grade_data: GradeData,
             post_data: Any,
             files_data: Any,
             ) -> StyledFormBase:
@@ -1181,18 +1188,18 @@ class PageBaseWithHumanTextFeedback(PageBase, ABC):
             self,
             request: django.http.HttpRequest,
             page_context: PageContext,
-            page_data: Any,
-            grade_data: Any,
-            grading_form: Any,
+            page_data: PageData,
+            grade_data: GradeData,
+            grading_form: HumanTextFeedbackForm,
             files_data: Any
-            ):
-        if grade_data is None:
-            grade_data = {}
-        for k in self.grade_data_attrs:
-            if k == "grade_percent":
-                grade_data[k] = grading_form.cleaned_percent()
-            else:
-                grade_data[k] = grading_form.cleaned_data[k]
+            ) -> GradeData:
+        v_grade_data = HumanTextFeedbackGradeData.model_validate({
+            **(grade_data or {}),
+            "released": grading_form.cleaned_data["released"],
+            "grade_percent": grading_form.cleaned_percent(),
+            "feedback_text": grading_form.cleaned_data["feedback_text"],
+            "notes": grading_form.cleaned_data["notes"],
+        })
 
         if grading_form.cleaned_data["notify"] and page_context.flow_session:
             from course.utils import LanguageOverride
@@ -1208,7 +1215,7 @@ class PageBaseWithHumanTextFeedback(PageBase, ABC):
                     "page_title": self.page_title(page_context, page_data),
                     "course": page_context.course,
                     "participation": page_context.flow_session.participation,
-                    "feedback_text": grade_data["feedback_text"],
+                    "feedback_text": v_grade_data.feedback_text,
                     "flow_session": page_context.flow_session,
                     "review_uri": page_context.page_uri,
                     "use_masked_profile":
@@ -1235,7 +1242,7 @@ class PageBaseWithHumanTextFeedback(PageBase, ABC):
                     msg.connection = get_outbound_mail_connection("grader_feedback")
                 msg.send()
 
-        if (grading_form.cleaned_data["notes"]
+        if (v_grade_data.notes
                 and grading_form.cleaned_data["notify_instructor"]
                 and page_context.flow_session):
             from course.utils import LanguageOverride
@@ -1261,7 +1268,7 @@ class PageBaseWithHumanTextFeedback(PageBase, ABC):
                         "username": username,
                         "course": page_context.course,
                         "participation": page_context.flow_session.participation,
-                        "notes_text": grade_data["notes"],
+                        "notes_text": v_grade_data.notes,
                         "flow_session": page_context.flow_session,
                         "review_uri": page_context.page_uri,
                         "sender": request.user,
@@ -1287,7 +1294,7 @@ class PageBaseWithHumanTextFeedback(PageBase, ABC):
                     msg.connection = get_outbound_mail_connection("grader_feedback")
                 msg.send()
 
-        return grade_data
+        return v_grade_data.model_dump(mode="json")
 
     @override
     def grading_form_to_html(self, request, page_context, grading_form, grade_data):
@@ -1320,27 +1327,28 @@ class PageBaseWithHumanTextFeedback(PageBase, ABC):
         if grade_data is None:
             return None
 
-        if not grade_data["released"]:
+        v_grade_data = HumanTextFeedbackGradeData.model_validate(grade_data)
+        if not v_grade_data.released:
             return None
 
-        if (grade_data["grade_percent"] is not None
-                or grade_data["feedback_text"]):
-            if grade_data["grade_percent"] is not None:
-                correctness = grade_data["grade_percent"]/100
+        if (v_grade_data.grade_percent is not None
+                or v_grade_data.feedback_text):
+            if v_grade_data.grade_percent is not None:
+                correctness = v_grade_data.grade_percent/100
                 feedback_text = f"<p>{get_auto_feedback(correctness)}</p>"
 
             else:
                 correctness = None
                 feedback_text = ""
 
-            if grade_data["feedback_text"]:
+            if v_grade_data.feedback_text:
                 feedback_text += (
                         string_concat(
                             "<p>",
                             _("The following feedback was provided"),
                             ":<p>")
                         + markup_to_html(
-                            page_context, grade_data["feedback_text"],
+                            page_context, v_grade_data.feedback_text,
                             use_jinja=False))
 
             return AnswerFeedback(

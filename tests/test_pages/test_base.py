@@ -23,7 +23,9 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
+import json
 import unittest
+from typing import Any
 
 import pytest
 from django.test import Client, TestCase
@@ -36,6 +38,7 @@ from course.page.base import (
     get_editor_interaction_mode,
 )
 from course.page.static import Page
+from course.page.text import HumanGradedTextQuestion
 from course.repo import EmptyRepo
 from course.validation import ValidationContext
 from tests.base_test_mixins import SingleCourseQuizPageTestMixin
@@ -391,6 +394,164 @@ class HumanTextFeedbackFormTest(unittest.TestCase):
 
             with self.assertRaises(RuntimeError):
                 form.cleaned_percent()
+
+
+@pytest.fixture
+def human_text_feedback_grade_data():
+    return {
+        "released": True,
+        "grade_percent": 75.0,
+        "feedback_text": "Good work.",
+        "notes": "Checked by a grader.",
+        "autograder": {"points": [1, 2], "complete": True},
+    }
+
+
+@pytest.fixture
+def human_text_feedback_page():
+    return HumanGradedTextQuestion.model_validate({
+        "type": "HumanGradedTextQuestion",
+        "id": "human_feedback",
+        "title": "Human feedback",
+        "value": 10,
+        "prompt": "Explain your answer.",
+        "rubric": "Check the reasoning.",
+    }, context=ValidationContext(EmptyRepo(), b"norev"))
+
+
+@pytest.fixture
+def human_text_feedback_page_context():
+    page_context = mock.MagicMock()
+    page_context.flow_session = None
+    return page_context
+
+
+@pytest.mark.parametrize("grade_percent", [75.0, None])
+def test_human_text_feedback_grade_data_roundtrip(
+        human_text_feedback_grade_data: dict[str, Any],
+        grade_percent: float | None):
+    from course.page.base import HumanTextFeedbackGradeData
+
+    stored = {**human_text_feedback_grade_data, "grade_percent": grade_percent}
+    grade_data = HumanTextFeedbackGradeData.model_validate(stored)
+
+    assert grade_data.released is True
+    assert grade_data.grade_percent == grade_percent
+    assert grade_data.feedback_text == stored["feedback_text"]
+    assert grade_data.notes == stored["notes"]
+    assert grade_data.model_dump(mode="json") == stored
+    assert HumanTextFeedbackGradeData.model_validate_json(
+        grade_data.model_dump_json()).model_dump(mode="json") == stored
+
+
+@pytest.mark.parametrize("field", [
+    "released", "grade_percent", "feedback_text", "notes",
+])
+def test_human_text_feedback_grade_data_required(
+        human_text_feedback_grade_data: dict[str, Any], field: str):
+    from course.page.base import HumanTextFeedbackGradeData
+
+    del human_text_feedback_grade_data[field]
+    with pytest.raises(PdValidationError) as exc_info:
+        HumanTextFeedbackGradeData.model_validate(human_text_feedback_grade_data)
+    assert exc_info.value.errors()[0]["loc"] == (field,)
+
+
+@pytest.mark.parametrize(("field", "invalid_value"), [
+    ("released", "not-a-boolean"),
+    ("grade_percent", "not-a-number"),
+    ("feedback_text", ["not text"]),
+    ("notes", None),
+])
+def test_human_text_feedback_grade_data_invalid(
+        human_text_feedback_grade_data: dict[str, Any], field: str,
+        invalid_value: Any):
+    from course.page.base import HumanTextFeedbackGradeData
+
+    human_text_feedback_grade_data[field] = invalid_value
+    with pytest.raises(PdValidationError) as exc_info:
+        HumanTextFeedbackGradeData.model_validate(human_text_feedback_grade_data)
+    assert exc_info.value.errors()[0]["loc"] == (field,)
+
+
+@pytest.mark.parametrize("grade_percent", [75.0, None])
+def test_human_text_feedback_grading_form_roundtrip(
+        human_text_feedback_page: HumanGradedTextQuestion,
+        human_text_feedback_page_context: mock.MagicMock,
+        human_text_feedback_grade_data: dict[str, Any],
+        grade_percent: float | None):
+    stored = {**human_text_feedback_grade_data, "grade_percent": grade_percent}
+    form = human_text_feedback_page.make_grading_form(
+        human_text_feedback_page_context, {}, stored)
+
+    assert isinstance(form, HumanTextFeedbackForm)
+    assert form.is_valid(), form.errors
+    assert form.cleaned_percent() == grade_percent
+    for field in ["released", "feedback_text", "notes"]:
+        assert form.cleaned_data[field] == stored[field]
+
+    updated = human_text_feedback_page.update_grade_data_from_grading_form_v2(
+        mock.MagicMock(), human_text_feedback_page_context, {}, stored, form, None)
+    assert isinstance(updated, dict)
+    assert json.loads(json.dumps(updated)) == stored
+
+
+@pytest.mark.parametrize("existing_grade_data", [False, True])
+@pytest.mark.parametrize("grade_percent", [60.0, None])
+def test_human_text_feedback_grading_form_update(
+        human_text_feedback_page: HumanGradedTextQuestion,
+        human_text_feedback_page_context: mock.MagicMock,
+        human_text_feedback_grade_data: dict[str, Any],
+        existing_grade_data: bool, grade_percent: float | None):
+    stored = human_text_feedback_grade_data if existing_grade_data else None
+    form = HumanTextFeedbackForm(10, {
+        "released": False,
+        "grade_percent": grade_percent,
+        "feedback_text": "Revised feedback.",
+        "notes": "Regraded.",
+    })
+    assert form.is_valid(), form.errors
+
+    updated = human_text_feedback_page.update_grade_data_from_grading_form_v2(
+        mock.MagicMock(), human_text_feedback_page_context, {}, stored, form, None)
+
+    expected = {
+        "released": False,
+        "grade_percent": grade_percent,
+        "feedback_text": "Revised feedback.",
+        "notes": "Regraded.",
+    }
+    if existing_grade_data:
+        expected["autograder"] = human_text_feedback_grade_data["autograder"]
+    assert isinstance(updated, dict)
+    assert updated == expected
+    assert json.loads(json.dumps(updated)) == expected
+
+
+@pytest.mark.parametrize("method", ["make_grading_form", "grade"])
+@pytest.mark.parametrize("invalid_data", [
+    pytest.param({"grade_percent": "not-a-number"}, id="invalid-percent"),
+    pytest.param({"notes": None}, id="invalid-notes"),
+    pytest.param({}, id="missing-notes"),
+])
+def test_human_text_feedback_rejects_invalid_stored_grade_data(
+        human_text_feedback_page: HumanGradedTextQuestion,
+        human_text_feedback_page_context: mock.MagicMock,
+        human_text_feedback_grade_data: dict[str, Any], method: str,
+        invalid_data: dict[str, Any]):
+    stored = {**human_text_feedback_grade_data, **invalid_data}
+    if not invalid_data:
+        del stored["notes"]
+
+    if method == "make_grading_form":
+        with pytest.raises(PdValidationError):
+            human_text_feedback_page.make_grading_form(
+                human_text_feedback_page_context, {}, stored)
+    else:
+        with pytest.raises(PdValidationError):
+            human_text_feedback_page.grade(
+                human_text_feedback_page_context, {}, {"answer": "My answer."},
+                stored)
 
 
 def make_page_data_side_effect_has_data(self):

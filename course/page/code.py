@@ -52,6 +52,7 @@ from course.page.base import (
     AnswerData,
     AnswerFeedback,
     GradeData,
+    HumanTextFeedbackGradeData,
     InvalidFeedbackPointsError,
     PageBaseWithHumanTextFeedback,
     PageBaseWithoutHumanGrading,
@@ -1458,8 +1459,12 @@ class PythonCodeQuestionWithHumanTextFeedback(
             return AnswerFeedback(correctness=0,
                     feedback=_("No answer provided."))
 
-        if grade_data is not None and not grade_data["released"]:
+        v_grade_data = (
+                HumanTextFeedbackGradeData.model_validate(grade_data)
+                if grade_data is not None else None)
+        if v_grade_data is not None and not v_grade_data.released:
             grade_data = None
+            v_grade_data = None
 
         code_feedback = not_none(CodeQuestion.grade(
                             self, page_context, page_data, answer_data, grade_data))
@@ -1471,20 +1476,20 @@ class PythonCodeQuestionWithHumanTextFeedback(
         percentage = None
         if (
                 code_feedback.correctness is not None
-                and grade_data is not None
-                and grade_data["grade_percent"] is not None):
+                and v_grade_data is not None
+                and v_grade_data.grade_percent is not None):
             code_feedback_percentage = 100 - self.human_feedback_percentage
             percentage = (
                     code_feedback.correctness * code_feedback_percentage
 
-                    + grade_data["grade_percent"] / 100
+                    + v_grade_data.grade_percent / 100
                     * self.human_feedback_percentage
                     )
             correctness = percentage / 100
         elif (self.human_feedback_percentage == 100
-                and grade_data is not None
-                and grade_data["grade_percent"] is not None):
-            correctness = grade_data["grade_percent"] / 100
+                and v_grade_data is not None
+                and v_grade_data.grade_percent is not None):
+            correctness = v_grade_data.grade_percent / 100
             percentage = correctness * 100
         elif (self.human_feedback_percentage == 0
                 and code_feedback.correctness is not None):
@@ -1494,13 +1499,12 @@ class PythonCodeQuestionWithHumanTextFeedback(
         human_feedback_text = None
 
         human_feedback_points = None
-        if grade_data is not None:
-            assert grade_data["feedback_text"] is not None
-            if grade_data["feedback_text"].strip():
+        if v_grade_data is not None:
+            if v_grade_data.feedback_text.strip():
                 human_feedback_text = markup_to_html(
-                        page_context, grade_data["feedback_text"])
+                        page_context, v_grade_data.feedback_text)
 
-            human_graded_percentage = grade_data["grade_percent"]
+            human_graded_percentage = v_grade_data.grade_percent
             if human_graded_percentage is not None:
                 human_feedback_points = (human_graded_percentage/100.
                         * human_points)
