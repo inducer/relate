@@ -1017,6 +1017,12 @@ class HumanTextFeedbackForm(StyledVerticalForm):
 
         self.point_value = point_value
 
+        self.fields["released"] = forms.BooleanField(
+                initial=True, required=False,
+                help_text=_("Whether the grade and feedback are to "
+                "be shown to student."),
+                label=_("Released"))
+
         self.fields["grade_percent"] = forms.FloatField(
                 min_value=0,
                 max_value=100 * MAX_EXTRA_CREDIT_FACTOR,
@@ -1082,14 +1088,6 @@ class HumanTextFeedbackForm(StyledVerticalForm):
                 initial=False, required=False,
                 help_text=_("Allow recipient to reply to this email?"),
                 label=_("May reply email to me"))
-        self.fields["released"] = forms.BooleanField(
-                initial=True, required=False,
-                help_text=_("Whether the grade and feedback are to "
-                "be shown to student. (If you would like to release "
-                "all grades at once, do not use this. Instead, use "
-                "the 'shown to students' checkbox for this 'grading "
-                "opportunity' in the grade book admin.)"),
-                label=_("Released"))
         self.fields["notes"] = forms.CharField(
                 widget=forms.Textarea(),
                 help_text=_("Internal notes, not shown to student"),
