@@ -13,3 +13,13 @@ $bootstrap-icons-font-file: "./fonts/bootstrap-icons";
 // Ideally, these should be separate, but they use Bootstrap classes.
 @import "./codemirror.scss";
 @import "./prosemirror.scss";
+
+.grading-page-grade-entry #div_id_released {
+  padding: $spacer * .5;
+  padding-left: calc(#{$form-check-padding-start} + #{$spacer * .5});
+  border-radius: var(--bs-border-radius);
+
+  &:has(input[type="checkbox"]:not(:checked)) {
+    background-color: color-mix(in srgb, var(--bs-warning) 15%, var(--bs-body-bg));
+  }
+}
