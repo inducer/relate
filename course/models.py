@@ -37,7 +37,7 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.urls import reverse
 from django.utils.timezone import now
-from django.utils.translation import gettext_lazy as _, pgettext_lazy
+from django.utils.translation import gettext, gettext_lazy as _, pgettext_lazy
 from pytools import not_none
 from typing_extensions import override
 
@@ -711,28 +711,29 @@ class ParticipationPreapproval(models.Model):
                     "pk": self.pk, "course": self.course}
 
 
-def add_default_roles_and_permissions(course,
-        role_model=ParticipationRole,
-        role_permission_model=ParticipationRolePermission):
+def add_default_roles_and_permissions(course: Course,
+        role_model: type[ParticipationRole] = ParticipationRole,
+        role_permission_model: type[ParticipationRolePermission]
+        = ParticipationRolePermission):
     from course.constants import ParticipationPermission as PPerm
 
     rpm = role_permission_model
 
-    def add_unenrolled_permissions(role):
+    def add_unenrolled_permissions(role: ParticipationRole):
         rpm(role=role, permission=PPerm.view_calendar).save()
         rpm(role=role, permission=PPerm.access_files_for,
                 argument="unenrolled").save()
         rpm(role=role, permission=PPerm.access_files_for,
                 argument="public").save()
 
-    def add_student_permissions(role):
+    def add_student_permissions(role: ParticipationRole):
         rpm(role=role, permission=PPerm.send_instant_message).save()
         rpm(role=role, permission=PPerm.access_files_for,
                 argument="student").save()
 
         add_unenrolled_permissions(role)
 
-    def add_teaching_assistant_permissions(role):
+    def add_teaching_assistant_permissions(role: ParticipationRole):
         rpm(role=role, permission=PPerm.impersonate_role,
                 argument="student").save()
         rpm(role=role, permission=PPerm.set_fake_time).save()
@@ -772,7 +773,7 @@ def add_default_roles_and_permissions(course,
 
         add_student_permissions(role)
 
-    def add_instructor_permissions(role):
+    def add_instructor_permissions(role: ParticipationRole):
         rpm(role=role, permission=PPerm.use_admin_interface).save()
         rpm(role=role, permission=PPerm.impersonate_role,
                 argument="ta").save()
@@ -805,20 +806,20 @@ def add_default_roles_and_permissions(course,
 
     instructor = role_model(
             course=course, identifier="instructor",
-            name=_("Instructor"))
+            name=gettext("Instructor"))
     instructor.save()
     teaching_assistant = role_model(
             course=course, identifier="ta",
-            name=_("Teaching Assistant"))
+            name=gettext("Teaching Assistant"))
     teaching_assistant.save()
     student = role_model(
             course=course, identifier="student",
-            name=_("Student"),
+            name=gettext("Student"),
             is_default_for_new_participants=True)
     student.save()
     unenrolled = role_model(
             course=course, identifier="unenrolled",
-            name=_("Unenrolled"),
+            name=gettext("Unenrolled"),
             is_default_for_unenrolled=True)
     unenrolled.save()
 
