@@ -449,10 +449,9 @@ def grade_flow_page(
     if (page_expects_answer
             and fpctx.page.is_answer_gradable()
             and fpctx.prev_answer_visit is not None
-            and not flow_session.in_progress
-            and not viewing_prev_grade):
+            and not flow_session.in_progress):
         request = pctx.request
-        if pctx.request.method == "POST":
+        if pctx.request.method == "POST" and not viewing_prev_grade:
             if not pctx.has_permission(PPerm.assign_grade):
                 raise PermissionDenied(_("may not assign grades"))
 
@@ -576,6 +575,7 @@ def grade_flow_page(
                 "points_awarded": points_awarded,
                 "shown_grade": shown_grade,
                 "prev_grade_id": prev_grade_id,
+                "viewing_prev_grade": viewing_prev_grade,
                 "expects_answer": page_expects_answer,
 
                 "grading_opportunity": grading_opportunity,

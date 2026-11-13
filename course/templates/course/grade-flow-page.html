@@ -225,7 +225,13 @@
       {# {{{ grading form #}
 
       {% if grading_form_html != None %}
-        {{ grading_form_html|safe }}
+        {% if viewing_prev_grade %}
+          <fieldset disabled inert>
+            {{ grading_form_html|safe }}
+          </fieldset>
+        {% else %}
+          {{ grading_form_html|safe }}
+        {% endif %}
       {% endif %}
 
       {# }}} #}
@@ -423,7 +429,9 @@
       document.addEventListener("keydown", listenForFocusHotkey);
     }
 
-    $(document).ready(addGradeUI);
+    {% if not viewing_prev_grade %}
+      $(document).ready(addGradeUI);
+    {% endif %}
 
     {% if page_data.next_ordinal < flow_session.page_count %}
       var next_page_url = "{% url "relate-grade_flow_page" course.identifier flow_session.id page_data.next_ordinal %}";
@@ -622,7 +630,9 @@
       }
     }
 
-    $(document).ready(addSubmitNext);
+    {% if not viewing_prev_grade %}
+      $(document).ready(addSubmitNext);
+    {% endif %}
   </script>
 
   {# }}} #}
