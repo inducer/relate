@@ -45,3 +45,8 @@ uv run pytest --slow -n 4    # includes slow tests
 
 Both commands can take multiple minutes. Focus test runs on newly-created or
 modified tests rather than the full suite, and rely on CI for full coverage.
+
+## uv's cache and the sandbox
+
+Uv's cache sits outside the sandbox available to agents. Use
+a temporary uv cache directory to avoid permission prompts.
