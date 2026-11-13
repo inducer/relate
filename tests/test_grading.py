@@ -407,6 +407,39 @@ class SingleCourseQuizPageGradeInterfaceTest(
             self.assertEqual(resp.status_code, 200)
             self.assertEqual(mock_get_feedback.call_count, 1)
 
+    def test_viewing_prev_grade_shows_inert_grading_form(self):
+        self.submit_page_human_grading_by_page_id_and_test(
+            self.page_id,
+            grade_data={"grade_points": "4", "released": "on"},
+            grade_data_extra_kwargs={"feedback_text": "Historical feedback"},
+            expected_grades=4)
+
+        url = self.get_page_grading_url_by_page_id(self.page_id)
+        with self.temporarily_switch_to_user(self.instructor_participation.user):
+            response = self.client.get(url)
+            grade_id = response.context["shown_grade"].pk
+            self.assertNotContains(response, "<fieldset disabled inert>")
+            self.assertContains(response, "$(document).ready(addGradeUI);")
+
+        self.submit_page_human_grading_by_page_id_and_test(
+            self.page_id,
+            grade_data={"grade_points": "5", "released": "on"},
+            grade_data_extra_kwargs={"feedback_text": "Current feedback"},
+            expected_grades=5)
+
+        with self.temporarily_switch_to_user(self.instructor_participation.user):
+            response = self.client.get(f"{url}?grade_id={grade_id}")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "<fieldset disabled inert>")
+        self.assertIn("Historical feedback", response.context["grading_form_html"])
+        self.assertNotIn("Current feedback", response.context["grading_form_html"])
+        self.assertEqual(
+            response.context["grading_form"]["grade_percent"].value(),
+            100 * 4 / response.context["max_points"])
+        self.assertNotContains(response, "$(document).ready(addGradeUI);")
+        self.assertNotContains(response, "$(document).ready(addSubmitNext);")
+
     def test_viewing_prev_grade_may_not_post_grade(self):
         grade_data = {
             "grade_points": "4",
