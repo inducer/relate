@@ -4,29 +4,6 @@ from django.conf import settings
 from django.db import migrations, models
 
 
-def store_grading_results(apps, schema_editor):
-    FlowPageVisit = apps.get_model("course", "FlowPageVisit")
-    FlowPageVisitGrade = apps.get_model("course", "FlowPageVisitGrade")
-
-    qset = FlowPageVisit.objects.all()
-    qset = qset.prefetch_related("page_data")
-    qset = qset.prefetch_related("flow_session")
-
-    count = qset.count()
-    for i, visit in enumerate(qset):
-        import sys
-        if i % 10 == 0:
-            sys.stderr.write("%d/%d...\n" % (i, count))
-            sys.stderr.flush()
-
-        if not visit.is_graded_answer:
-            continue
-
-        from course.flow import grade_page_visit
-        grade_page_visit(visit, visit_grade_model=FlowPageVisitGrade,
-                grade_data=visit.grade_data)
-
-
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -69,7 +46,6 @@ class Migration(migrations.Migration):
             name='flowpagevisitgrade',
             unique_together={('visit', 'grade_time')},
         ),
-        migrations.RunPython(store_grading_results),
         migrations.RemoveField(
             model_name='flowpagevisit',
             name='grade_data',
