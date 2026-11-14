@@ -24,7 +24,6 @@ THE SOFTWARE.
 """
 
 import datetime
-import os
 import stat
 import unittest
 from copy import deepcopy
@@ -302,7 +301,7 @@ class GetRepoBlobTest(SingleCourseTestMixin, TestCase):
 
     def test_access_directory_content_type_error(self):
         path_parts = "course.yml", "cc.png"
-        full_name = os.path.join(*path_parts)
+        full_name = "/".join(path_parts)
         with self.pctx.repo as repo:
             with self.assertRaises(ObjectDoesNotExist) as cm:
                 get_repo_tree(
