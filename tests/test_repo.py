@@ -401,6 +401,22 @@ def test_git_paths_use_posix_rules_on_windows(
     assert targets == ["real/file.txt"]
 
 
+@pytest.mark.parametrize(("path", "expected"), [
+    ("allowed.txt", True),
+    ("target/allowed.txt", True),
+    ("target/allowed-missing.txt", True),
+    ("target/denied.txt", False),
+    ("portal/file.txt", True),
+    ("unmarked/file.txt", False),
+])
+def test_repo_file_access_uses_posix_rules_on_windows(
+        repo_file_git: tuple[Repo, bytes], path: str, expected: bool):
+    repo, commit_sha = repo_file_git
+    with patch("course.content.os", path=ntpath):
+        assert content.is_repo_file_accessible_as(
+            ["student"], repo, commit_sha, path) is expected
+
+
 def test_warm_blob_cache_does_not_skip_target_authorization(
         repo_file_git: tuple[Repo, bytes],
         repo_file_view: tuple[MagicMock, Course, bytes]):

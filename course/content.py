@@ -27,6 +27,7 @@ THE SOFTWARE.
 import datetime
 import html.parser as html_parser
 import os
+import posixpath
 import re
 from collections.abc import (
     Set as AbstractSet,  # ruff:ignore[typing-only-standard-library-import]
@@ -1005,8 +1006,8 @@ def is_repo_file_accessible_as(
     :arg commit_sha: A byte string containing the commit hash
     """
 
-    # set the path to .attributes.yml
-    attributes_path = os.path.join(os.path.dirname(path), ATTRIBUTES_FILENAME)
+    # Git paths use POSIX separators, regardless of the host operating system.
+    attributes_path = posixpath.join(posixpath.dirname(path), ATTRIBUTES_FILENAME)
 
     vctx = ValidationContext(repo, commit_sha)
     # retrieve the .attributes.yml structure
@@ -1019,7 +1020,7 @@ def is_repo_file_accessible_as(
         # no attributes file: not accessible
         return False
 
-    path_basename = os.path.basename(path)
+    path_basename = posixpath.basename(path)
 
     access_patterns: list[str] = []
     for kind in access_kinds:

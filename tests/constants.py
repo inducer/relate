@@ -140,8 +140,7 @@ PAGE_ERRORS = "page_errors"
 HAVE_VALID_PAGE = "have_valid_page"
 
 COMMIT_SHA_MAP = {
-    # This didn't use os.path.join, because "get_flow_desc" used "flows/%s.yml" to
-    # get the path.
+    # Keys are Git paths and use POSIX separators on every platform.
     f"flows/{QUIZ_FLOW_ID}.yml": [
 
         # key: commit_sha, value: attributes
@@ -177,8 +176,7 @@ COMMIT_SHA_MAP = {
         }}
     ],
 
-    # This had to use path join
-    os.path.join("images", ".attributes.yml"): [
+    "images/.attributes.yml": [
         # faked commit sha for .attributes.yml
         {"abcdef001":
              {"path": "fake-images-attributes.yml"}},
