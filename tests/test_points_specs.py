@@ -66,6 +66,7 @@ def run_points_javascript(text: str, operation: str) -> object:
         # JSON escapes preserve lone surrogates across the UTF-8 boundary.
         input=json.dumps(text, ensure_ascii=True),
         text=True,
+        encoding="utf-8",
         capture_output=True,
         check=True,
         timeout=10,
@@ -158,6 +159,18 @@ def test_parse_points_specs_multiple_utf16_offsets(
             match_length=9,
         ),
     ]
+
+
+def test_parse_points_specs_large_input(
+        points_parser: Callable[[str], list[PointsSpec]]):
+    prefix = "é" * 100_000
+    assert points_parser(prefix + "[pts: 2/3]") == [PointsSpec(
+        points=2,
+        max_points=3,
+        identifier=None,
+        match_start=len(prefix),
+        match_length=10,
+    )]
 
 
 def test_parse_points_specs_lone_surrogate_offset(

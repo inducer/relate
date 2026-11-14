@@ -1,10 +1,15 @@
-import { readFileSync } from 'node:fs';
 import {
   parsePointsSpecs,
   sumPointsSpecs,
 } from '../../frontend/js/pointsSpecs.mjs';
 
-const text = JSON.parse(readFileSync(0, 'utf8'));
+// Consume subprocess pipes through Node's cross-platform stream API.
+process.stdin.setEncoding('utf8');
+let input = '';
+for await (const chunk of process.stdin) {
+  input += chunk;
+}
+const text = JSON.parse(input);
 
 let response;
 try {
