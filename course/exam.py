@@ -812,6 +812,7 @@ class ExamLockdownMiddleware:
 
     def __call__(self, request: RelateHttpRequest):
         request.relate_exam_lockdown = False
+        request.relate_exam_lockdown_course_id = None
 
         if SESSION_LOCKED_TO_FLOW_PK in request.session:
             exam_flow_session_pk = request.session[SESSION_LOCKED_TO_FLOW_PK]
@@ -825,6 +826,7 @@ class ExamLockdownMiddleware:
                 raise PermissionDenied(msg)
 
             request.relate_exam_lockdown = True
+            request.relate_exam_lockdown_course_id = exam_flow_session.course.pk
 
             from django.urls import resolve
             resolver_match = resolve(request.path)

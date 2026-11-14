@@ -256,29 +256,7 @@ def static_page(pctx: CoursePageContext, page_path: str) -> http.HttpResponse:
 # }}}
 
 
-# {{{ media
-
-def media_etag_func(
-            request: RelateHttpRequest,  # pyright: ignore[reportUnusedParameter]
-            course_identifier: str,
-            commit_sha: str,
-            media_path: str):
-    return f"{course_identifier}:{commit_sha}:{media_path}"
-
-
-@cache_control(max_age=3600*24*31)  # cache for a month
-@http_dec.condition(etag_func=media_etag_func)
-def get_media(
-            request: RelateHttpRequest,  # pyright: ignore[reportUnusedParameter]
-            course_identifier: str,
-            commit_sha: str,
-            media_path: str
-        ):
-    course = get_object_or_404(Course, identifier=course_identifier)
-
-    with get_course_repo(course) as repo:
-        return get_repo_file_response(
-            repo, "media/" + media_path, deserialize_revision(commit_sha))
+# {{{ repository files
 
 
 def repo_file_etag_func(
@@ -365,6 +343,8 @@ def get_repo_file_backend(
 
     # set access to public (or unenrolled), student, etc
     if request.relate_exam_lockdown:
+        if request.relate_exam_lockdown_course_id != course.pk:
+            raise PermissionDenied()
         access_kinds = ["in_exam"]
     else:
         from course.enrollment import get_participation_permissions
@@ -381,19 +361,34 @@ def get_repo_file_backend(
         if not is_repo_file_accessible_as(access_kinds, repo, commit_sha, path):
             raise PermissionDenied()
 
-        return get_repo_file_response(repo, path, commit_sha)
+        from course.repo import get_repo_blob
+
+        def authorize_target(target_path: str) -> None:
+            if not is_repo_file_accessible_as(
+                    access_kinds, repo, commit_sha, target_path):
+                raise PermissionDenied()
+
+        try:
+            blob = get_repo_blob(
+                repo, path, commit_sha, on_symlink_target=authorize_target)
+        except ObjectDoesNotExist:
+            raise http.Http404()
+
+        return get_repo_file_response(repo, path, commit_sha, data=blob.data)
 
 
 def get_repo_file_response(
-        repo: Any, path: str, commit_sha: RevisionID_ish
+        repo: Any, path: str, commit_sha: RevisionID_ish,
+        *, data: bytes | None = None,
         ) -> http.HttpResponse:
 
     from course.repo import get_repo_blob_data_cached
 
-    try:
-        data = get_repo_blob_data_cached(repo, path, commit_sha)
-    except ObjectDoesNotExist:
-        raise http.Http404()
+    if data is None:
+        try:
+            data = get_repo_blob_data_cached(repo, path, commit_sha)
+        except ObjectDoesNotExist:
+            raise http.Http404()
 
     from mimetypes import guess_type
     content_type, __ = guess_type(path)

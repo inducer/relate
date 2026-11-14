@@ -439,6 +439,13 @@ class TagProcessingHTMLParserAndLinkFixerTreeprocessorTest(
         if table_literals[0] not in resp.context["body"]:
             self.assertResponseContextContains(resp, "body", table_literals[1])
 
+    def test_media_scheme_removed(self):
+        reverse_func = mock.MagicMock()
+        processor = content.LinkFixerTreeprocessor(
+            mock.MagicMock(), None, b"abcdef", reverse_func)
+        self.assertIsNone(processor.process_url("media:images/classroom.jpeg"))
+        reverse_func.assert_not_called()
+
     def test_course_is_none(self):
         md = mock.MagicMock()
         commit_sha = mock.MagicMock()
