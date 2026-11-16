@@ -1,0 +1,13 @@
+type: TextQuestion
+id: neumann
+value: 5
+prompt: |
+
+  # Neumann series
+
+  What's $\operatorname{Id} + A + A^2 +A^3+\cdots$?
+
+answers:
+
+  - <sym_expr>1/(1-A)
+

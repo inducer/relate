@@ -1,0 +1,21 @@
+type: SurveyChoiceQuestion
+id: age_group
+prompt: |
+
+    # Age
+
+    How old are you?
+
+choices:
+
+    - 0-10 years
+    - 11-20 years
+    - 21-30 years
+    - 31-40 years
+    - 41-50 years
+    - 51-60 years
+    - 61-70 years
+    - 71-80 years
+    - 81-90 years
+    - older
+

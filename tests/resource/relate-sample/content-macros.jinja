@@ -1,0 +1,37 @@
+{# Make sure to avoid 4-spaces-deep (or deeper) indentation #}
+
+{# The results get of Jinja expansion get fed into Markdown, which #}
+{# may do undesired things with such deeply indented content. #}
+
+{% macro youtube(id) -%}
+  <iframe width="420" height="315" src="//www.youtube.com/embed/{{id}}" frameborder="0" allowfullscreen>
+  </iframe>
+
+  <div class="well" markdown="1">
+    (This embedded video was brought to you by the `youtube` macro.
+    See [this macro definition file](https://github.com/inducer/relate-sample/blob/master/macros.jinja)
+    in the sample content repository for an example of how to do define macros.)
+
+    (If you see HTML tags instead of an embedded YouTube video, go to the [Admin](/admin)
+    and edit this course to allow presenting arbitrary HTML.)
+  </div>
+{%- endmacro %}
+
+
+{% macro collapsible(title, id="collapsery") -%}
+{# don't be tempted to add indentation here, markdown will eat your markup#}
+<div class="card mb-3" markdown="span"><div class="card-header">
+  <h5 class="card-title dropdown-toggle">
+  <a class="text-decoration-none link-secondary"
+  data-bs-toggle="collapse" href="#{{ id }}" aria-expanded="false" aria-controls="{{ id }}">
+  {{ title }}
+  </a>
+  </h5>
+</div>
+<div id="{{ id }}" class="collapse" markdown="1">
+<div class="card-body" markdown="1">
+{{ caller() }}
+</div>
+</div>
+</div>
+{%- endmacro %}

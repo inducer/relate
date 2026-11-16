@@ -1,0 +1,32 @@
+title: "Linear Algebra"
+description: |
+    # Linear Algebra Recap
+
+rules:
+    access:
+    -
+        if_has_role: [student, ta, instructor]
+        permissions: [view]
+
+    grade_identifier: null
+
+pages:
+
+-
+    type: Page
+    id: intro
+    content: |
+
+        # A little distraction to start
+
+        Yadda yadda.
+
+        {% from "content-macros.jinja" import youtube %}
+        {{ youtube("2yJgwwDcgV8") }}
+
+
+completion_text: |
+
+    # End of Linear Algebra Recap
+
+    Now you're ready to take the [quiz](flow:quiz-test).

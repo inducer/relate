@@ -283,6 +283,7 @@ python_files = [
 markers = [
     "slow: marks tests as slow (run with '--slow')",
     "postgres: mark test as postgres specific",
+    "network: requires external network access (run with '--network')",
 ]
 
 [tool.typos.default]

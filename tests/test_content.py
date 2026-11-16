@@ -40,6 +40,7 @@ from course.datespec import InvalidDatespec, parse_date_spec
 from course.repo import SubdirRepoWrapper, get_repo_blob, get_repo_tree
 from tests import factories
 from tests.base_test_mixins import (
+    SINGLE_COURSE_SETUP_LIST,
     HackRepoMixin,
     MockAddMessageMixing,
     SingleCoursePageTestMixin,
@@ -47,6 +48,7 @@ from tests.base_test_mixins import (
     SingleCourseTestMixin,
     improperly_configured_cache_patch,
 )
+from tests.sample_repo import get_sample_git_repo
 from tests.test_sandbox import SingleCoursePageSandboxTestBaseMixin
 from tests.utils import mock
 
@@ -184,6 +186,14 @@ class YamlJinjaExpansionTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
 
 class GetCourseCommitShaTest(SingleCourseTestMixin, TestCase):
     # test content.get_course_commit_sha
+    @classmethod
+    def setUpTestData(cls):
+        cls.courses_setup_list = deepcopy(SINGLE_COURSE_SETUP_LIST)
+        course_data = cls.courses_setup_list[0]["course"]
+        assert isinstance(course_data, dict)
+        course_data["git_source"] = get_sample_git_repo().as_uri()
+        super().setUpTestData()
+
     def setUp(self):
         super().setUp()
         self.valid_sha = self.course.active_git_commit_sha
@@ -257,6 +267,10 @@ class SubDirRepoTest(SingleCourseQuizPageTestMixin, MockAddMessageMixing, TestCa
 
     @classmethod
     def setUpTestData(cls):
+        cls.courses_setup_list = deepcopy(SINGLE_COURSE_SETUP_LIST)
+        course_data = cls.courses_setup_list[0]["course"]
+        assert isinstance(course_data, dict)
+        course_data["git_source"] = get_sample_git_repo().as_uri()
         super().setUpTestData()
 
         cls.course.course_root_path = "course_content"
@@ -413,11 +427,11 @@ class TagProcessingHTMLParserAndLinkFixerTreeprocessorTest(
             # images
             ("https://raw.githubusercontent.com/inducer/relate/master/"
             "doc/images/screenshot.png"),
-            f"/course/test-course/file-version/{self.course.active_git_commit_sha}/images/cc.png",
+            "/course/test-course/f/images/cc.png",
 
             # object data
             'data="helloworld.swf"',
-            f"/course/test-course/file-version/{self.course.active_git_commit_sha}/images/cc.png",
+            "/course/test-course/f/images/cc.png",
         ]
 
         resp = self.get_page_sandbox_preview_response(markdown)
@@ -840,7 +854,7 @@ class MarkupToHtmlTest(SingleCoursePageTestMixin, TestCase):
         with self.pctx.repo as repo:
             text = "[this course](course:)"
             self.assertEqual(content.markup_to_html(
-                self.course, repo, self.course.active_git_commit_sha, text),
+                self.course, repo, self.pctx.course_commit_sha, text),
                 "<div class='relate-markup'>"
                 f'<p><a href="{self.course_page_url}">this course</a></p>'
                 "</div>")

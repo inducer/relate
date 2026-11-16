@@ -1,0 +1,22 @@
+type: FileUploadQuestion
+id: anyup
+access_rules:
+    add_permissions:
+        - change_answer
+value: 5
+maximum_megabytes: 0.5
+prompt: |
+
+    # Upload your favorite file
+
+    Upload anything you like below.
+
+mime_types:
+
+    - application/octet-stream
+
+rubric: |
+
+    Have they uploaded a file?
+
+

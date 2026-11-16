@@ -1021,17 +1021,13 @@ class InlineMultiQuestionTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
 
     def test_embedded_question_with_markdown(self):
 
-        commit_sha = "b3cca1b997b24f526196a11c7e34098313a8950b"
-        self.post_update_course_content(
-            commit_sha=commit_sha.encode())
-
         markdown = INLINE_MULTI_EMBEDDED_WITH_MARKDOWN
         resp = self.get_page_sandbox_preview_response(markdown)
         self.assertEqual(resp.status_code, 200)
         self.assertSandboxHasValidPage(resp)
         self.assertContains(
-            resp, f'<img src="/course/test-course/file-version/{commit_sha}'
-                  '/images/classroom.jpeg">', html=True)
+            resp, '<img src="/course/test-course/f/images/classroom.jpeg">',
+            html=True)
 
 
 @pytest.mark.slow

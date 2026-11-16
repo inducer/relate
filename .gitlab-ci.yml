@@ -60,6 +60,12 @@ Python 3 Expensive:
     RL_CI_TEST: expensive
   needs: [setup]
 
+Python 3 Network:
+  <<: *test
+  variables:
+    RL_CI_TEST: network
+  needs: [setup]
+
 Python 3 CLI Tool:
   <<: *test
   script:

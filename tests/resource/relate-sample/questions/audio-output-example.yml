@@ -1,0 +1,48 @@
+type: PythonCodeQuestion
+id: test_audio_output
+access_rules:
+    add_permissions:
+    -  change_answer
+timeout: 5
+prompt: |
+
+    # Audio
+
+setup_code: |
+
+    import numpy as np
+
+    sample_rate = 44100
+
+    def output_audio(data):
+        data = np.asarray(data)
+        if np.max(data) > 1.1 or np.min(data) < -1.1:
+            raise ValueError("sound sample values must lie between 0 and 1")
+        data = (data * np.iinfo(np.int16).max).astype(np.int16)
+
+        from scipy.io import wavfile
+        from io import BytesIO
+        bio = BytesIO()
+        wavfile.write(bio, sample_rate, data)
+
+        val = bio.getvalue()
+
+        import base64
+
+        output_html("""
+            <audio controls>
+              <source
+                src="data:audio/wav;base64,{base64}" type="audio/wav" />
+              Your browser does not support the audio element.
+            </audio>
+            """.format(base64=base64.encodebytes(val).decode()))
+
+names_for_user: [sample_rate, output_audio]
+initial_code: |
+
+    import numpy as np
+    t = np.linspace(0, 1, sample_rate, endpoint=False)
+    signal = np.sin(2*np.pi*t * 440)
+
+    output_audio(signal)
+

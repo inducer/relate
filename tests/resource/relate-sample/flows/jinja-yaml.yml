@@ -1,0 +1,28 @@
+title: "Linear Algebra"
+description: |
+
+    # Linear Algebra Quiz
+
+    Yadda yadda.
+
+{% from "yaml-macros.yml" import grace_rules %}
+{{ grace_rules(1) }}
+
+pages:
+
+-
+    type: Page
+    id: welcome
+    title: "Linear algebra quiz"
+    content: |
+
+        # Welcome to the linear algebra quiz!
+
+        Don't be scared.
+
+
+completion_text: |
+
+    # See you in class!
+
+    Thanks for completing the linear algebra quiz.

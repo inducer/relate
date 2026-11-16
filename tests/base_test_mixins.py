@@ -32,7 +32,6 @@ import tempfile
 from collections import OrderedDict
 from copy import deepcopy
 from functools import partial
-from pathlib import Path
 from types import MethodType
 from typing import TYPE_CHECKING
 
@@ -62,22 +61,22 @@ from course.models import (
     Participation,
     ParticipationRole,
 )
-from course.repo import get_repo_blob
+from course.repo import NoRevisionNeeded, get_repo_blob
 from course.validation import ValidationContext
 from course.versioning import CourseRevisionCommand
 from tests.constants import (
     COMMIT_SHA_MAP,
-    FAKED_YAML_PATH,
     QUIZ_FLOW_ID,
     TEST_PAGE_TUPLE,
 )
+from tests.sample_repo import SAMPLE_SOURCE, get_revision_overlay
 from tests.utils import mock
 
 
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-    from dulwich.repo import Repo
+    from course.repo import Repo_ish, RevisionID_ish
 
 
 CORRECTNESS_ATOL = 1e-05
@@ -99,7 +98,7 @@ SINGLE_COURSE_SETUP_LIST = [
             "hidden": False,
             "listed": True,
             "accepts_enrollment": True,
-            "git_source": "https://github.com/inducer/relate-sample.git",
+            "git_source": SAMPLE_SOURCE,
             "course_file": "course.yml",
             "events_file": "events.yml",
             "enrollment_approval_required": False,
@@ -869,8 +868,17 @@ class CoursesTestMixinBase(SuperuserCreateMixin):
     @classmethod_with_client
     def create_course(cls, client, create_course_kwargs, *,  # ruff:ignore[invalid-first-argument-name-for-method]
             raise_error=True):
-        return cls.post_create_course(
-                        client, create_course_kwargs, raise_error=raise_error)
+        if create_course_kwargs["git_source"] != SAMPLE_SOURCE:
+            return cls.post_create_course(
+                client, create_course_kwargs, raise_error=raise_error)
+
+        from course.repo import PythonClassFakeRepo
+        from course.versioning import create_course
+        from tests.sample_repo import SampleCourse
+
+        course = Course(**create_course_kwargs)
+        create_course(PythonClassFakeRepo(SampleCourse), NoRevisionNeeded,
+                      course, cls.superuser)
 
     @classmethod
     def get_course_view_url(cls, view_name, course_identifier=None):
@@ -2800,24 +2808,13 @@ class HackRepoMixin:
     def setUpTestData(cls):
         super().setUpTestData()
 
-        class Blob:
-            def __init__(self, yaml_file_name):
-                data = (Path(FAKED_YAML_PATH) / yaml_file_name).read_bytes()
-                self.data = data
-
         def get_repo_side_effect(
-                repo: Repo, full_name: str, commit_sha: bytes, *,
+                repo: Repo_ish, full_name: str, commit_sha: RevisionID_ish, *,
                 on_symlink_target: Callable[[str], None] | None = None):
-            commit_sha_path_maps = COMMIT_SHA_MAP.get(full_name)
-            if commit_sha_path_maps:
-                assert isinstance(commit_sha_path_maps, list)
-                for cs_map in commit_sha_path_maps:
-                    if commit_sha.decode() in cs_map:
-                        path = cs_map[commit_sha.decode()]["path"]
-                        return Blob(path)
-
+            if isinstance(commit_sha, bytes):
+                repo = get_revision_overlay(commit_sha)
             return get_repo_blob(
-                repo, full_name, repo[b"HEAD"].id,
+                repo, full_name, NoRevisionNeeded,
                 on_symlink_target=on_symlink_target)
 
         cls.batch_fake_get_repo_blob = mock.patch("course.repo.get_repo_blob")

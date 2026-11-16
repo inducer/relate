@@ -86,7 +86,7 @@ jobs:
     strategy:
       matrix:
         python-version: ['3.10', '3.11', '3.x']
-        suite: ['base', 'postgres', 'expensive']
+        suite: ['base', 'postgres', 'expensive', 'network']
     services:
         postgres:
           image: postgres

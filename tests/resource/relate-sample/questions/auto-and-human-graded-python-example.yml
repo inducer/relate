@@ -1,0 +1,57 @@
+type: PythonCodeQuestionWithHumanTextFeedback
+id: pymult
+access_rules:
+    add_permissions:
+        - change_answer
+value: 4
+human_feedback_percentage: 50
+timeout: 10
+data_files:
+    - "question-data/random-data.npy"
+
+prompt: |
+
+    # Multiplying two numbers in Python
+
+    Your code will receive two variables, *a* and *b*. Compute their product and
+    assign it to *c*.
+
+show_setup_code: True
+setup_code: |
+    import random
+
+    a = random.uniform(-10, 10)
+    b = random.uniform(-10, 10)
+
+    from io import BytesIO
+    bio = BytesIO(data_files["question-data/random-data.npy"])
+
+    import numpy as np
+    data = np.load(bio)
+
+names_for_user: [a, b, data]
+
+names_from_user: [c]
+
+show_test_code: True
+test_code: |
+    correct_c = a * b
+
+    # Note: This won't return a points feedback. You need to
+    # to add points by feedback.add_points or feedback.finish
+    feedback.check_scalar("c", correct_c, c)
+    feedback.finish(1, "Nicely done!")
+
+correct_code: |
+
+    c = a * b
+
+rubric: |
+
+    - The code has to be squeaky-clean. [pts:/2]
+    - The code has to do what it claims to. [pts:/2]
+
+initial_code: |
+
+    # Assign the product value to c.
+    c = ...
