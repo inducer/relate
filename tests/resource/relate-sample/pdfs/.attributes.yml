@@ -1,0 +1,3 @@
+access_if_has_role:
+    unenrolled:
+        - "*.pdf"

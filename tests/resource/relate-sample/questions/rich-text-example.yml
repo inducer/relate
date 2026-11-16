@@ -1,0 +1,22 @@
+type: HumanGradedRichTextQuestion
+id: proof_rich
+access_rules:
+    add_permissions:
+        - change_answer
+value: 5
+prompt: |
+
+    # Pythagorean Theorem via Rich Text
+
+    Prove that $$\|a\|^2 +\|b\|^2=\|a + b\|^2$$ if $a\cdot b$ = 0.
+
+rubric: |
+
+    A full-credit solution needs to:
+
+    * Use the inner product to make the argument [pts:/3]
+    * Be readable [pts:/3]
+    * Argue correctly [pts:/3]
+    * Contain no formal mistakes [pts:/1]
+
+

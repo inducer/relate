@@ -1,0 +1,21 @@
+type: MultipleChoiceQuestion
+id: matrix_props
+value: 1
+shuffle: False
+credit_mode: proportional
+prompt: |
+
+    # Matrix properties
+
+    You know that the matrix $A$ satisfies $A=A^T$.
+
+    Which of the following is true about $A$?
+
+choices:
+
+  - ~CORRECT~ $A$ has real eigenvalues.
+  - $A$ has eigenvalues with positive real part.
+  - $(x,y) = x^TAy$ is an inner product.
+  - ~CORRECT~ $A$ has orthogonal eigenvectors.
+  - $AA^T=I$
+

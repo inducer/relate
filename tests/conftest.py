@@ -22,6 +22,10 @@ def pytest_addoption(parser):
         "--slow", action="store_true", default=False, help="run slow tests",
     )
     parser.addoption(
+        "--network", action="store_true", default=False,
+        help="allow tests that access external network services",
+    )
+    parser.addoption(
         "--all", action="store_true", default=False, help="run all tests",
     )
 
@@ -37,6 +41,12 @@ def pytest_collection_modifyitems(config, items):
         for item in items:
             if "postgres" in item.keywords:
                 item.add_marker(skip_pg)
+
+    if not config.getoption("--network"):
+        skip_network = pytest.mark.skip(reason="need --network option to run")
+        for item in items:
+            if "network" in item.keywords:
+                item.add_marker(skip_network)
 
     if config.getoption("--all"):
         return

@@ -1,0 +1,77 @@
+type: HumanGradedTextQuestion
+id: hgtext
+value: 5
+widget: "editor:yaml"
+validators:
+
+    -
+        type: relate_page
+        page_type: ChoiceQuestion
+
+prompt: |
+
+    # Submit an exam question
+
+    Submit your practice exam question in the box below.
+
+    {% from "content-macros.jinja" import collapsible %}
+    {% call collapsible("Instructions", id="instr") %}
+
+    Use this pattern as a starting point:
+    ```
+    type: ChoiceQuestion
+    id: myquestion
+    shuffle: True
+    prompt: |
+
+        # What is your favorite number?
+
+        There are many beautiful numbers. What's your
+        favorite one?
+
+    choices:
+
+      - "1"
+      - "2"
+      - ~CORRECT~ 15
+      - ~CORRECT~ $\pi$
+      - $\sqrt 2$
+    ```
+
+    A few comments on how the questions are written:
+
+    * You just need to change the `prompt` and the `choices`.
+      Leave everything else as it is.
+    * If you like, you can assign an `id`. This field must be all
+      lower-case alphanumeric, no spaces. Underscores `_` are allowed.
+    * Bare numbers as answer choices must be enclosed in quotes.
+    * Mark the correct answer with a `~CORRECT~` tag.
+    * Everything is formatted using [Markdown](https://guides.github.com/features/mastering-markdown/).
+      You may use LaTeX math, enclosed in `$...$` for in-line math and
+      `$$...$$` for display math.
+    * Make sure to keep the indentation in place, otherwise the question
+      won't be accepted by RELATE.
+    * If you'd like to see what your question will look like, you can play with it
+      [here](../../../sandbox/page/).
+
+    You will receive the extra credit for your submitted question if we
+    determine that you have done an 'honest job' trying to create a
+    good exam question--basically if we can tell that you've put some
+    work into your question.  For example, just copying and pasting a
+    quiz question and changing the numbers slightly does not count. You
+    can look for inspiration in the quizzes, though. Other sources of
+    inspiration include the notes, the textbook and the
+    demos--basically any fact that we've learned can be turned into a
+    good question. Try to avoid True/False questions--those are very
+    easy to guess and therefore not often good. Try to come up with
+    good, confusing, plausible-sounding (but wrong) alternatives.
+
+    {% endcall %}
+
+    Please try to emphasize the part of the class that will be on the
+    second midterm--that is to say, everything from orthogonality onward.
+
+rubric: |
+
+    (None yet)
+

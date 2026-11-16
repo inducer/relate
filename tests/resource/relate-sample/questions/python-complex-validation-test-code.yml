@@ -1,0 +1,54 @@
+type: PythonCodeQuestionWithHumanTextFeedback
+id: py_simple_list
+access_rules:
+    add_permissions:
+        - change_answer
+value: 4
+human_feedback_percentage: 25
+timeout: 10
+
+prompt: |
+
+    # Making a list
+
+    Your code will receive one variables *a*. Return a list named *b* which
+    contains 50 *a*s.
+
+show_setup_code: False
+setup_code: |
+    import random
+
+    a = random.uniform(-10, 10)
+
+names_for_user: [a]
+
+names_from_user: [b]
+
+show_test_code: False
+test_code: |
+    if not isinstance(b, list):
+        feedback.finish(0, "b should be a list.")
+
+    if not len(b) == 50:
+        feedback.finish(0, "The length of b is not correct.")
+
+    if not len(set(b)) == 1:
+        feedback.finish(0, "The elements in b should be the same.")
+
+    if not b[0] == a:
+        feedback.finish(0.3, "The elements in b have wrong values.")
+
+    feedback.finish(1, "b looks good.")
+
+correct_code: |
+    b = [a] * 50
+
+rubric: |
+
+    The code has to be squeaky-clean.
+
+initial_code: |
+
+    # Create a list containing 50 a.
+    b = ...
+

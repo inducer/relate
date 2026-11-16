@@ -45,6 +45,7 @@ from tests.base_test_mixins import (
     MockAddMessageMixing,
     SingleCourseTestMixin,
 )
+from tests.sample_repo import get_sample_git_repo
 from tests.utils import make_pyclass_course, mock, suppress_stdout_decorator
 
 
@@ -99,10 +100,31 @@ class VersioningTestMixin(CoursesTestMixinBase, MockAddMessageMixing):
         self.addCleanup(self.force_remove_all_course_dir)
 
     def get_set_up_new_course_form_data(self):
-        return deepcopy(SINGLE_COURSE_SETUP_LIST[0]["course"])
+        data = deepcopy(SINGLE_COURSE_SETUP_LIST[0]["course"])
+        assert isinstance(data, dict)
+        data["git_source"] = get_sample_git_repo().as_uri()
+        return data
 
 
 class CourseCreationTest(VersioningTestMixin, TestCase):
+    def test_set_up_new_course_local_git(self):
+        data = self.get_set_up_new_course_form_data()
+        resp = self.post_create_course(data)
+        self.assertEqual(resp.status_code, 302)
+        course = Course.objects.get()
+        self.assertEqual(course.git_source, get_sample_git_repo().as_uri())
+        self.assertTrue(course.active_git_commit_sha)
+
+    @pytest.mark.network
+    def test_set_up_new_course_github(self):
+        data = self.get_set_up_new_course_form_data()
+        data["git_source"] = "https://github.com/inducer/relate-sample.git"
+        resp = self.post_create_course(data)
+        self.assertEqual(resp.status_code, 302)
+        course = Course.objects.get()
+        self.assertEqual(course.git_source, data["git_source"])
+        self.assertTrue(course.active_git_commit_sha)
+
     def test_get_set_up_new_course_view(self):
         with self.temporarily_switch_to_user(self.instructor):
             resp = self.client.get(self.get_set_up_new_course_url(),
@@ -114,14 +136,14 @@ class CourseCreationTest(VersioningTestMixin, TestCase):
             resp = self.get_set_up_new_course()
             self.assertTrue(resp.status_code, 403)
 
-            data = SINGLE_COURSE_SETUP_LIST[0]["course"]
+            data = self.get_set_up_new_course_form_data()
             resp = self.post_create_course(data, raise_error=False,
                                            login_superuser=False)
             self.assertTrue(resp.status_code, 403)
             self.assertEqual(Course.objects.count(), 0)
 
     def test_post_set_up_new_course_form_not_valid(self):
-        data = SINGLE_COURSE_SETUP_LIST[0]["course"].copy()
+        data = self.get_set_up_new_course_form_data()
         del data["identifier"]
         resp = self.post_create_course(data, raise_error=False)
         self.assertTrue(resp.status_code, 200)
@@ -161,7 +183,7 @@ class CourseCreationTest(VersioningTestMixin, TestCase):
         resp = self.get_set_up_new_course()
         self.assertTrue(resp.status_code, 403)
 
-        data = SINGLE_COURSE_SETUP_LIST[0]["course"]
+        data = self.get_set_up_new_course_form_data()
 
         with mock.patch("course.versioning.Repo.init") as mock_repo_innit:
             mock_repo_innit.side_effect = RuntimeError("Repo init error")
@@ -182,10 +204,10 @@ class CourseCreationTest(VersioningTestMixin, TestCase):
             force_remove_path(path)
             raise OSError("my os error")
 
-        data = SINGLE_COURSE_SETUP_LIST[0]["course"]
+        data = self.get_set_up_new_course_form_data()
 
         with mock.patch(
-                "dulwich.client.GitClient.fetch"
+                "dulwich.client.LocalGitClient.fetch"
         ) as mock_fetch, mock.patch(
                 "relate.utils.force_remove_path"
         )as mock_force_remove_path:
@@ -207,7 +229,7 @@ class CourseCreationTest(VersioningTestMixin, TestCase):
         data = self.get_set_up_new_course_form_data()
         request = self.rf.post(self.get_set_up_new_course_url(), data=data)
         request.user = self.instructor
-        with mock.patch("dulwich.client.GitClient.fetch",
+        with mock.patch("dulwich.client.LocalGitClient.fetch",
                         return_value=FetchPackResult(
                             refs={},
                             symrefs={},
@@ -244,6 +266,7 @@ class ParamikoSSHVendorTest(TestCase):
         assert isinstance(ssh_vendor, ParamikoSSHVendor)
         return ssh_vendor
 
+    @pytest.mark.network
     def test_invalid(self):
         ssh_vendor = self.make_ssh_vendor()
 
@@ -1005,6 +1028,16 @@ class RunCourseUpdateCommandTest(MockAddMessageMixing, unittest.TestCase):
                     self.course.active_git_commit_sha, expected_course_sha)
 
 
+class LocalGitSingleCourseTestMixin(SingleCourseTestMixin):
+    @classmethod
+    def setUpTestData(cls):
+        cls.courses_setup_list = deepcopy(SINGLE_COURSE_SETUP_LIST)
+        course_data = cls.courses_setup_list[0]["course"]
+        assert isinstance(course_data, dict)
+        course_data["git_source"] = get_sample_git_repo().as_uri()
+        super().setUpTestData()
+
+
 class VersioningRepoMixin:
     @classmethod
     def setUpTestData(cls):
@@ -1018,7 +1051,7 @@ class VersioningRepoMixin:
         cls.repo = pctx.repo
 
 
-class GitUpdateFormTest(VersioningRepoMixin, SingleCourseTestMixin, TestCase):
+class GitUpdateFormTest(VersioningRepoMixin, LocalGitSingleCourseTestMixin, TestCase):
 
     # Todo: test inner format_commit
     def test_may_not_update(self):
@@ -1068,21 +1101,19 @@ class GitUpdateFormTest(VersioningRepoMixin, SingleCourseTestMixin, TestCase):
         self.assertIn("end_preview", submit_input_names)
 
 
-class GetCommitMessageAsHtmlTest(VersioningRepoMixin, SingleCourseTestMixin,
+class GetCommitMessageAsHtmlTest(VersioningRepoMixin, LocalGitSingleCourseTestMixin,
                                  TestCase):
     # test versioning._get_commit_message_as_html
     def test_result_text(self):
-        commit_sha = "593a1cdcecc6f4759fd5cadaacec0ba9dd0715a7"
-        expected_msg = ("Added an optional_page, another "
-                        "PythonCodeQuestionWithHumanTextFeedback page.")
+        commit_sha = self.course.active_git_commit_sha
+        expected_msg = self.repo[commit_sha.encode()].message.decode().strip()
         self.assertEqual(
             versioning._get_commit_message_as_html(self.repo, commit_sha),
             expected_msg)
 
     def test_result_byte(self):
-        commit_sha = b"593a1cdcecc6f4759fd5cadaacec0ba9dd0715a7"
-        expected_msg = ("Added an optional_page, another "
-                        "PythonCodeQuestionWithHumanTextFeedback page.")
+        commit_sha = self.course.active_git_commit_sha.encode()
+        expected_msg = self.repo[commit_sha].message.decode().strip()
         self.assertEqual(
             versioning._get_commit_message_as_html(self.repo, commit_sha),
             expected_msg)
@@ -1124,7 +1155,7 @@ class GetCommitMessageAsHtmlTest(VersioningRepoMixin, SingleCourseTestMixin,
             expected_msg)
 
 
-class UpdateCourseTest(SingleCourseTestMixin, MockAddMessageMixing, TestCase):
+class UpdateCourseTest(LocalGitSingleCourseTestMixin, MockAddMessageMixing, TestCase):
     def test_no_permission(self):
         with self.temporarily_switch_to_user(self.student_participation.user):
             resp = self.client.get(self.get_update_course_url())
@@ -1231,7 +1262,7 @@ class UpdateCourseTest(SingleCourseTestMixin, MockAddMessageMixing, TestCase):
 
 # {{{ UpdateCourseFromBranchTest
 
-class UpdateCourseFromBranchTest(SingleCourseTestMixin, MockAddMessageMixing,
+class UpdateCourseFromBranchTest(LocalGitSingleCourseTestMixin, MockAddMessageMixing,
                                   TestCase):
 
     default_branch_name = "main"
@@ -1465,7 +1496,7 @@ class UpdateCourseFromBranchTest(SingleCourseTestMixin, MockAddMessageMixing,
         self.assertEqual(resp.status_code, 200)
 
 
-class GetModifiedFlowIdsTest(SingleCourseTestMixin, TestCase):
+class GetModifiedFlowIdsTest(LocalGitSingleCourseTestMixin, TestCase):
 
     def test_same_commit_no_changes(self):
         from course.utils import CoursePageContext

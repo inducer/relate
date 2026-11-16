@@ -50,6 +50,7 @@ from course.content import (
 from course.datespec import Datespec, parse_date_spec
 from tests import factories
 from tests.base_test_mixins import (
+    SINGLE_COURSE_SETUP_LIST,
     CoursesTestMixinBase,
     MockAddMessageMixing,
     SingleCoursePageTestMixin,
@@ -58,6 +59,7 @@ from tests.base_test_mixins import (
     SubprocessRunpyContainerMixin,
 )
 from tests.constants import QUIZ_FLOW_ID
+from tests.sample_repo import get_sample_git_repo
 from tests.utils import mock
 
 
@@ -1578,14 +1580,21 @@ class GetSessionGradingRuleTest(GetSessionRuleMixin,
 class CoursePageContextTest(SingleCourseTestMixin, MockAddMessageMixing, TestCase):
     # test utils.CoursePageContext (for cases not covered by other tests)
 
+    @classmethod
+    def setUpTestData(cls):
+        cls.courses_setup_list = deepcopy(SINGLE_COURSE_SETUP_LIST)
+        course_data = cls.courses_setup_list[0]["course"]
+        assert isinstance(course_data, dict)
+        course_data["git_source"] = get_sample_git_repo().as_uri()
+        super().setUpTestData()
+
     def setUp(self):
         super().setUp()
         rf = RequestFactory()
         self.request = rf.get(self.get_course_page_url())
 
     def test_preview_commit_sha(self):
-        # commit_sha of https://github.com/inducer/relate-sample/pull/11
-        commit_sha = "ec41a2de73a99e6022060518cb5c5c162b88cdf5"
+        commit_sha = self.course.active_git_commit_sha
         self.ta_participation.preview_git_commit_sha = commit_sha
         self.ta_participation.save()
         self.request.user = self.ta_participation.user

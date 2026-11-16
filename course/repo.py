@@ -94,7 +94,7 @@ class SubdirRepoWrapper:
         assert subdir
         self.subdir = subdir
 
-    def controldir(self) -> Path | str:
+    def repo_location_hash(self) -> Path | str:
         return self.repo.controldir()
 
     def close(self) -> None:
@@ -123,8 +123,8 @@ class SubdirRepoWrapper:
 
 
 class EmptyRepo:
-    def controldir(self):
-        return None
+    def repo_location_hash(self):
+        return "none:"
 
     def close(self):
         pass
@@ -198,7 +198,7 @@ class PythonClassFakeRepo:
     def tree(self):
         return PythonClassFakeRepoTree(self.cls)
 
-    def controldir(self):
+    def repo_location_hash(self):
         return f"{self.cls.__module__}:{self.cls.__qualname__}"
 
     def __enter__(self):
@@ -276,8 +276,9 @@ class PythonClassFakeRepoFile:
 
     @property
     def data(self):
+        if isinstance(self.obj, bytes):
+            return self.obj
         assert isinstance(self.obj, str)
-
         return self.obj.encode("utf-8")
 
 
@@ -329,8 +330,8 @@ class FileSystemFakeRepo:
     def close(self):
         pass
 
-    def controldir(self):
-        return self.root
+    def repo_location_hash(self):
+        return str(self.root)
 
     def __getitem__(self,
                 obj_id: FileSystemFakeRepoFile | FileSystemFakeRepoTree | bytes
@@ -421,6 +422,82 @@ class FileSystemFakeRepoFile:
 # }}}
 
 
+class OverlayRepo:
+    """Combine repositories in priority order (first wins).
+
+    Directories merge recursively; files and directories mask lower-priority
+    entries of the other kind. Layers are borrowed: closing the overlay does
+    not close them. Git layers use the revision supplied to the lookup helpers;
+    overlays containing only fake repositories accept :class:`NoRevisionNeeded`.
+    """
+
+    repos: tuple[Repo_ish, ...]
+
+    def __init__(self, repos: Sequence[Repo_ish]) -> None:
+        self.repos = tuple(repos)
+
+    def repo_location_hash(self) -> str:
+        # Hash a structured sequence, not a delimiter-joined list of identities.
+        import json
+        identities = [get_repo_cache_key(repo) for repo in self.repos]
+        return "overlay:" + sha256(json.dumps(identities).encode()).hexdigest()
+
+    def close(self) -> None:
+        pass
+
+    def __enter__(self) -> Self:
+        return self
+
+    def __exit__(self,
+                exc_type: type[BaseException] | None,
+                exc_val: BaseException | None,
+                exc_tb: TracebackType | None) -> None:
+        self.close()
+
+    def __getitem__(self, obj: Tree_ish | Blob_ish | bytes) -> Tree_ish | Blob_ish:
+        if isinstance(obj, bytes):
+            # Cannot look up bare git objtects, but `_get_repo_root_tree`
+            # knows how to resolve provided revisions.
+            raise KeyError(obj)
+        return obj
+
+
+@dataclass(frozen=True)
+class OverlayRepoTree:
+    layers: tuple[tuple[UnwrappedRepo_ish, Tree_ish], ...]
+
+    def __getitem__(self, name: bytes) -> tuple[int, Tree_ish | Blob_ish]:
+        from stat import S_ISDIR
+
+        directories: list[tuple[UnwrappedRepo_ish, Tree_ish]] = []
+        directory_mode = 0
+        for repo, tree in self.layers:
+            try:
+                mode, obj = tree[name]
+            except KeyError:
+                continue
+            if isinstance(obj, bytes):
+                assert isinstance(repo, dulwich.repo.Repo)
+                obj = repo[obj]
+            assert isinstance(obj, Tree_ish | Blob_ish)
+            if S_ISDIR(mode):
+                assert isinstance(obj, Tree_ish)
+                if not directories:
+                    directory_mode = mode
+                directories.append((repo, obj))
+            elif not directories:
+                return mode, obj
+
+        if directories:
+            return directory_mode, OverlayRepoTree(tuple(directories))
+        raise KeyError(name)
+
+    def items(self) -> list[FileSystemFakeRepoTreeEntry]:
+        names = {entry.path for _, tree in self.layers for entry in tree.items()}
+        return [FileSystemFakeRepoTreeEntry(name, self[name][0])
+                for name in sorted(names)]
+
+
 class NoRevisionNeeded:
     pass
 
@@ -428,6 +505,7 @@ class NoRevisionNeeded:
 UnwrappedRepo_ish: TypeAlias = (dulwich.repo.Repo
     | PythonClassFakeRepo
     | FileSystemFakeRepo
+    | OverlayRepo
     | EmptyRepo)
 Repo_ish: TypeAlias = (dulwich.repo.Repo
     | SubdirRepoWrapper
@@ -437,7 +515,8 @@ Blob_ish: TypeAlias = (dulwich.objects.Blob
     | PythonClassFakeRepoFile)
 Tree_ish: TypeAlias = (dulwich.objects.Tree
     | FileSystemFakeRepoTree
-    | PythonClassFakeRepoTree)
+    | PythonClassFakeRepoTree
+    | OverlayRepoTree)
 RevisionID_ish: TypeAlias = dulwich.objects.ObjectID | type[NoRevisionNeeded]
 Commit_ish: TypeAlias = dulwich.objects.Commit | PythonClassFakeRepoCommit
 
@@ -460,10 +539,9 @@ def deserialize_revision(serialized_rev: str) -> RevisionID_ish:
 
 
 def _look_up_git_object(
-            repo: dulwich.repo.Repo | FileSystemFakeRepo | PythonClassFakeRepo,
-            root_tree: dulwich.objects.Tree
-                | FileSystemFakeRepoTree
-                | PythonClassFakeRepoTree,
+            repo: dulwich.repo.Repo | FileSystemFakeRepo | PythonClassFakeRepo
+                | OverlayRepo,
+            root_tree: Tree_ish,
             full_name: str,
             _max_symlink_depth: int | None = None,
             *,
@@ -516,15 +594,15 @@ def _look_up_git_object(
         mode, cur_lookup_sha = mode_sha
 
         if S_ISLNK(mode):
-            if isinstance(repo, dulwich.repo.Repo):
-                assert isinstance(cur_lookup_sha, bytes)
-                link_data = cast("dulwich.objects.Blob", repo[cur_lookup_sha]).data
-                assert isinstance(link_data, bytes)
-            elif isinstance(repo, FileSystemFakeRepo):
-                # The filesystem will have resolved these behind our back.
-                raise AssertionError()
+            # Git trees return object IDs; overlay trees already resolve them
+            # against the layer that owns the entry.
+            if isinstance(cur_lookup_sha, bytes):
+                assert isinstance(repo, dulwich.repo.Repo)
+                link_blob = repo[cur_lookup_sha]
             else:
-                raise ValueError("unexpected repo type")
+                link_blob = cur_lookup_sha
+            assert isinstance(link_blob, Blob_ish)
+            link_data = link_blob.data
 
             try:
                 target = link_data.decode()
@@ -552,6 +630,9 @@ def _look_up_git_object(
             processed_name_parts.append(name_part)
             if isinstance(repo, dulwich.repo.Repo):
                 assert isinstance(cur_lookup_sha, bytes)
+                lkup = repo[cur_lookup_sha]
+            elif isinstance(repo, OverlayRepo):
+                assert isinstance(cur_lookup_sha, Tree_ish | Blob_ish)
                 lkup = repo[cur_lookup_sha]
             elif isinstance(repo, PythonClassFakeRepo):
                 assert isinstance(cur_lookup_sha,
@@ -600,7 +681,11 @@ def get_repo_cache_key(repo: Repo_ish) -> str:
     from urllib.parse import quote_plus
 
     base_repo, subdir = get_true_repo_and_path(repo, "")
-    return ":".join((quote_plus(str(base_repo.controldir())), quote_plus(subdir)))
+    if isinstance(base_repo, dulwich.repo.Repo):
+        repo_location_hash = str(base_repo.controldir())
+    else:
+        repo_location_hash = base_repo.repo_location_hash()
+    return ":".join((quote_plus(repo_location_hash), quote_plus(subdir)))
 
 
 def get_commit_obj(
@@ -626,6 +711,29 @@ def get_commit_obj(
     return commit_obj
 
 
+def _get_repo_root_tree(repo: UnwrappedRepo_ish,
+                        commit_sha: RevisionID_ish) -> Tree_ish:
+    if isinstance(repo, FileSystemFakeRepo):
+        if not repo.root.is_dir():
+            raise ObjectDoesNotExist(str(repo.root))
+        return repo.tree
+    if isinstance(repo, OverlayRepo):
+        return OverlayRepoTree(tuple(
+            (get_true_repo_and_path(layer, "")[0],
+             get_repo_tree(layer, "", commit_sha))
+            for layer in repo.repos if not isinstance(layer, EmptyRepo)))
+    if isinstance(repo, EmptyRepo):
+        raise ObjectDoesNotExist("empty repository")
+
+    if isinstance(repo, PythonClassFakeRepo):
+        return repo.tree
+    tree_sha = get_commit_obj(repo, commit_sha).tree
+    assert isinstance(tree_sha, bytes)
+    tree = repo[tree_sha]
+    assert isinstance(tree, dulwich.objects.Tree)
+    return tree
+
+
 def get_repo_tree(
             repo: Repo_ish,
             full_name: str,
@@ -639,21 +747,9 @@ def get_repo_tree(
     course_root = get_true_repo_and_path(repo, "")[1]
     base_repo, full_name = get_true_repo_and_path(repo, full_name)
 
-    if isinstance(base_repo, FileSystemFakeRepo):
-        return FileSystemFakeRepoTree(base_repo.root / full_name)
+    tree_obj = _get_repo_root_tree(base_repo, commit_sha)
     if isinstance(base_repo, EmptyRepo):
         raise ObjectDoesNotExist(full_name)
-
-    commit_obj = get_commit_obj(base_repo, commit_sha)
-    tree_sha = commit_obj.tree
-
-    if isinstance(tree_sha, PythonClassFakeRepoTree):
-        assert isinstance(base_repo, PythonClassFakeRepo)
-        tree_obj = base_repo[tree_sha]
-    else:
-        assert not isinstance(base_repo, PythonClassFakeRepo)
-        tree_obj = base_repo[tree_sha]
-    assert isinstance(tree_obj, Tree_ish)
 
     git_obj = _look_up_git_object(
             base_repo, root_tree=tree_obj, full_name=full_name,
@@ -684,21 +780,9 @@ def get_repo_blob(
     course_root = get_true_repo_and_path(repo, "")[1]
     base_repo, full_name = get_true_repo_and_path(repo, full_name)
 
-    if isinstance(base_repo, FileSystemFakeRepo):
-        return FileSystemFakeRepoFile(Path(full_name))
+    tree_obj = _get_repo_root_tree(base_repo, commit_sha)
     if isinstance(base_repo, EmptyRepo):
         raise ObjectDoesNotExist("empty repository")
-
-    commit_obj = get_commit_obj(base_repo, commit_sha)
-
-    tree_sha = commit_obj.tree
-    if isinstance(tree_sha, PythonClassFakeRepoTree):
-        assert isinstance(base_repo, PythonClassFakeRepo)
-        tree_obj = base_repo[tree_sha]
-    else:
-        assert not isinstance(base_repo, PythonClassFakeRepo)
-        tree_obj = base_repo[tree_sha]
-    assert isinstance(tree_obj, Tree_ish)
 
     git_obj = _look_up_git_object(
             base_repo, root_tree=tree_obj, full_name=full_name,

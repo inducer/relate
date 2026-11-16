@@ -1380,7 +1380,7 @@ class LinkFixerTreeprocessor(Treeprocessor):
         Treeprocessor.__init__(self)
         self.md = md
         self.course = course
-        self.commit_sha = commit_sha
+        self.commit_sha: RevisionID_ish = commit_sha
         self.reverse_func = reverse_func
 
     def reverse(self, viewname: str, args: tuple[Any, ...]) -> str:
@@ -1437,10 +1437,14 @@ class LinkFixerTreeprocessor(Treeprocessor):
 
             elif url.startswith("repo:"):
                 path = url[5:]
+                if self.commit_sha is NoRevisionNeeded:
+                    return self.reverse("relate-get_current_repo_file",
+                                args=(self.get_course_identifier(),
+                                      PreserveFragment(path)))
                 return self.reverse("relate-get_repo_file",
                             args=(
                                 self.get_course_identifier(),
-                                self.commit_sha.decode(),
+                                serialize_revision(self.commit_sha),
                                 PreserveFragment(path)))
 
             elif url.startswith("repocur:"):
@@ -1637,7 +1641,8 @@ def markup_to_html(
             import hashlib
             cache_key = ("markup:v9:%s:%d:%s:%s:%s%s"
                     % (CACHE_KEY_ROOT,
-                       course.id, course.trusted_for_markup, str(commit_sha),
+                       course.id, course.trusted_for_markup,
+                       serialize_revision(commit_sha),
                        hashlib.md5(text.encode("utf-8")).hexdigest(),
                        ":NOCODEHILITE" if disable_codehilite else ""
                        ))

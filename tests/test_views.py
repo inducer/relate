@@ -25,6 +25,7 @@ THE SOFTWARE.
 
 import datetime
 import unittest
+from copy import deepcopy
 
 from celery import states, uuid
 from django.test import RequestFactory, SimpleTestCase, TestCase
@@ -37,6 +38,7 @@ from relate.celery import app
 from relate.utils import as_local_time
 from tests import factories
 from tests.base_test_mixins import (
+    SINGLE_COURSE_SETUP_LIST,
     CoursesTestMixinBase,
     HackRepoMixin,
     MockAddMessageMixing,
@@ -44,6 +46,7 @@ from tests.base_test_mixins import (
     SingleCourseTestMixin,
 )
 from tests.constants import DATE_TIME_PICKER_TIME_FORMAT
+from tests.sample_repo import get_sample_git_repo
 from tests.test_auth import AuthTestMixin
 from tests.utils import mock
 
@@ -673,6 +676,14 @@ class GetRepoFileTestMixin(SingleCourseTestMixin):
 
 class GetRepoFileTest(GetRepoFileTestMixin, TestCase):
     # test views.get_repo_file
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.courses_setup_list = deepcopy(SINGLE_COURSE_SETUP_LIST)
+        course_data = cls.courses_setup_list[0]["course"]
+        assert isinstance(course_data, dict)
+        course_data["git_source"] = get_sample_git_repo().as_uri()
+        super().setUpTestData()
 
     def test_traversal_does_not_bypass_target_attributes(self):
         for user in [None, self.student_participation.user]:

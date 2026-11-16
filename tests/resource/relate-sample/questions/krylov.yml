@@ -1,0 +1,15 @@
+type: ChoiceQuestion
+id: krylov
+value: 2
+prompt: |
+
+    # Krylov-space methods
+
+    What form of a matrix is produced by Arnoldi iteration?
+
+choices:
+
+  - ~CORRECT~ Upper Hessenberg form
+  - Diagonal
+  - Schur form
+  - Tridiagonal form

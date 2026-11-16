@@ -1,0 +1,16 @@
+type: TextQuestion
+id: quarter
+is_optional_page: True
+prompt: |
+
+  # What is a quarter?
+
+answers:
+
+  - type: float
+    value: 0.25
+    rtol: 1e-4
+  - <plain>1/4
+  - <plain>a quarter
+  - <plain>四分之一
+

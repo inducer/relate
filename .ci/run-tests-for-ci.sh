@@ -52,6 +52,9 @@ fi
 if [[ "$RL_CI_TEST" = "expensive" ]]; then
     echo "Expensive tests"
     uv run python -m pytest "${PYTEST_COMMON_FLAGS[@]}" --slow
+elif [[ "$RL_CI_TEST" = "network" ]]; then
+    echo "Network tests"
+    uv run pytest --network -m network tests/test_versioning.py
 elif [[ "$RL_CI_TEST" = "postgres" ]]; then
     export PGPASSWORD=relatepgpass
 

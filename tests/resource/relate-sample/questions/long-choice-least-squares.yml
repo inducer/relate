@@ -1,0 +1,24 @@
+type: ChoiceQuestion
+id: lsq
+value: 1
+shuffle: False
+prompt: |
+
+    # Least squares problems
+
+    Let $m\ge n$ and $\boldsymbol A$ be an $m\times n$ matrix. Which of the
+    following conditions suffices to guarantee that
+    the least squares system $\boldsymbol A \boldsymbol x\cong \boldsymbol b$
+    has a *unique* solution?
+
+choices:
+
+  - Always
+  - When $\operatorname{rank}(\boldsymbol A)=m$
+  - ~CORRECT~ When $\operatorname{rank}(\boldsymbol A)=n$
+  - When $\boldsymbol b$ lies in $\operatorname{span}(\boldsymbol A)$
+  - This is a really long option, but *certainly* not the correct one.
+
+    Instead, it tests whether Markdown works in choice questions.
+
+

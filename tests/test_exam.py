@@ -25,6 +25,7 @@ THE SOFTWARE.
 
 import datetime
 import unittest
+from copy import deepcopy
 from zoneinfo import ZoneInfo
 
 from django import http
@@ -36,11 +37,13 @@ from course import constants, exam
 from course.models import ExamTicket, FlowSession
 from tests import factories
 from tests.base_test_mixins import (
+    SINGLE_COURSE_SETUP_LIST,
     MockAddMessageMixing,
     SingleCoursePageTestMixin,
     SingleCourseTestMixin,
 )
 from tests.constants import DATE_TIME_PICKER_TIME_FORMAT
+from tests.sample_repo import get_sample_git_repo
 from tests.utils import mock, reload_urlconf
 
 
@@ -820,6 +823,10 @@ class ExamLockdownMiddlewareTest(SingleCoursePageTestMixin,
     """
     @classmethod
     def setUpTestData(cls):
+        cls.courses_setup_list = deepcopy(SINGLE_COURSE_SETUP_LIST)
+        course_data = cls.courses_setup_list[0]["course"]
+        assert isinstance(course_data, dict)
+        course_data["git_source"] = get_sample_git_repo().as_uri()
         super(SingleCoursePageTestMixin, cls).setUpTestData()
         client = Client()
         client.force_login(cls.student_participation.user)

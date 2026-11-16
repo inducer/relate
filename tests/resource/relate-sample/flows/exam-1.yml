@@ -1,0 +1,76 @@
+title: "RELATE Test Exam"
+description: |
+
+    # RELATE Test Exam
+
+rules:
+    start:
+    -
+        if_has_role: [instructor, ta, student]
+        if_has_fewer_sessions_than: 1
+        if_in_facility: test_center
+        may_start_new_session: True
+        may_list_existing_sessions: True
+
+    -
+        if_has_role: [instructor, ta, student]
+        if_in_facility: test_center
+        may_start_new_session: False
+        may_list_existing_sessions: True
+
+    -
+        may_start_new_session: False
+        may_list_existing_sessions: False
+
+    access:
+    -
+        if_has_role: [unenrolled]
+        permissions: []
+
+    -
+        if_in_facility: test_center
+        if_session_duration_shorter_than_minutes: 0.5
+        permissions: [view, submit_answer, end_session, see_session_time, lock_down_as_exam_session]
+
+    -
+        if_in_facility: test_center
+        message: "You exam will end soon."
+        if_session_duration_shorter_than_minutes: 1
+        permissions: [view, submit_answer, end_session, see_session_time, lock_down_as_exam_session]
+
+    -
+        if_in_facility: test_center
+        if_in_progress: True
+        message: "You exam has ended. You may no longer make changes. Please click 'Submit assignment' to finish."
+        permissions: [view, end_session, see_correctness, see_session_time, lock_down_as_exam_session]
+
+    -
+        if_in_facility: test_center
+        permissions: [view, see_correctness, see_session_time]
+
+    -
+        permissions: []
+
+    grade_identifier: exam_1
+    grade_aggregation_strategy: max_grade
+
+    grading:
+    -
+        credit_percent: 100
+
+
+pages:
+
+-
+    type: Page
+    id: welcome
+    content: |
+
+        # Welcome to the test exam for RELATE!
+
+        Don't be scared.
+
+
+completion_text: |
+
+    You have successfully completed the test exam!
