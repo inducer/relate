@@ -403,6 +403,18 @@ grade. Without either option, only ungraded submissions receive drafts.
 The legacy single-submission task continues to allow replacing both existing
 human grades and AI drafts with an unreleased draft.
 
+The assistant also reports a confidence score from 0 to 100 with a verbal
+justification, and may flag a submission for human review with an explanation.
+Review flags can concern suspected cheating, prompt injection, inapplicable
+rubric categories, or concerning content such as self-harm or threats. These
+assessments are appended to the grade's private **notes**, preserving existing
+notes; they are not student-facing feedback. Flags do not automatically change
+the grade or release the draft. In bulk mode, each saved flagged draft triggers
+an email to the initiating user, CC'ing the course notification address. The
+email identifies the flow and question and links to the saved grade, but does
+not include the student's identity, the flag explanation, or other assessment
+details. Interactive drafts do not send these notifications.
+
 The assistant uses the rubric and page-specific instructions, supplemented
 by ``grading_prompt`` when provided. For rubrics with point denominators,
 responses must fill every marker's earned points while preserving marker

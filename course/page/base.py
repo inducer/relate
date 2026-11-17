@@ -1195,12 +1195,22 @@ class PageBaseWithHumanTextFeedback(PageBase, ABC):
         Preserve page-specific data and internal notes. No grade is persisted,
         released, or emailed; the caller is responsible for review and saving.
         """
+        ai_notes = _(
+                "AI grading assessment\n"
+                "Human review: %(human_review)s\n"
+                "Confidence: %(confidence)s/100\n"
+                "Confidence justification: %(justification)s") % {
+                    "human_review": suggestion.human_review or _("Not requested"),
+                    "confidence": f"{suggestion.confidence.score_percent:g}",
+                    "justification": suggestion.confidence.justification,
+                }
+        existing_notes = (grade_data or {}).get("notes", "")
         return {
             **(grade_data or {}),
             "released": False,
             "grade_percent": suggestion.grade_percent,
             "feedback_text": suggestion.feedback_text,
-            "notes": (grade_data or {}).get("notes", ""),
+            "notes": "\n\n".join(note for note in (existing_notes, ai_notes) if note),
         }
 
     @abstractmethod
