@@ -101,7 +101,7 @@ from relate.utils import (
 if TYPE_CHECKING:
     from accounts.models import User
     from course.content import FlowDesc
-    from course.repo import RevisionID_ish
+    from course.repo import Repo, RevisionID_ish
 
 # }}}
 
@@ -378,7 +378,7 @@ def get_repo_file_backend(
 
 
 def get_repo_file_response(
-        repo: Any, path: str, commit_sha: RevisionID_ish,
+        repo: Repo, path: str, commit_sha: RevisionID_ish,
         *, data: bytes | None = None,
         ) -> http.HttpResponse:
 

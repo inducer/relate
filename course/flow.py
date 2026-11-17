@@ -105,7 +105,7 @@ if TYPE_CHECKING:
         PageBehavior,
         PageData,
     )
-    from course.repo import Repo_ish, RevisionID_ish
+    from course.repo import Repo, RevisionID_ish
     from course.utils import CoursePageContext
 
 # }}}
@@ -115,7 +115,7 @@ if TYPE_CHECKING:
 
 @retry_transaction_decorator(serializable=True)
 def _adjust_flow_session_page_data_inner(
-            repo: Repo_ish,
+            repo: Repo,
             flow_session: FlowSession,
             flow_desc: FlowDesc,
             commit_sha: RevisionID_ish) -> int:
@@ -286,7 +286,7 @@ def _adjust_flow_session_page_data_inner(
 
 
 def adjust_flow_session_page_data(
-        repo: Repo_ish,
+        repo: Repo,
         flow_session: FlowSession,
         flow_desc: FlowDesc | None = None,
         respect_preview: bool = True) -> None:
@@ -376,7 +376,7 @@ def grade_page_visit(visit: FlowPageVisit,
 # {{{ start flow
 
 def start_flow(
-            repo: Repo_ish,
+            repo: Repo,
             course: Course,
             participation: Participation | None,
             user: Any,
@@ -1197,7 +1197,7 @@ def reopen_session(
 
 
 def finish_flow_session_standalone(
-        repo: Repo_ish,
+        repo: Repo,
         course: Course,
         session: FlowSession,
         force_regrade: bool = False,
@@ -1254,7 +1254,7 @@ def expire_flow_session_standalone(
 
 
 def regrade_session(
-        repo: Repo_ish,
+        repo: Repo,
         course: Course,
         session: FlowSession,
         ) -> None:
@@ -1291,7 +1291,7 @@ def regrade_session(
 
 
 def recalculate_session_grade(
-        repo: Repo_ish, course: Course, session: FlowSession) -> None:
+        repo: Repo, course: Course, session: FlowSession) -> None:
     """Only redoes the final grade determination without regrading
     individual pages.
     """

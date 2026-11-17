@@ -33,11 +33,17 @@ from zoneinfo import ZoneInfo
 import pytest
 from django.core.exceptions import ObjectDoesNotExist
 from django.test import Client, RequestFactory, TestCase, override_settings
-from dulwich.objects import Tree
 
 from course import content
 from course.datespec import InvalidDatespec, parse_date_spec
-from course.repo import SubdirRepoWrapper, get_repo_blob, get_repo_tree
+from course.repo import (
+    Repo,
+    RepoTree,
+    RepoTreeEntry,
+    SubdirRepoWrapper,
+    get_repo_blob,
+    get_repo_tree,
+)
 from tests import factories
 from tests.base_test_mixins import (
     SINGLE_COURSE_SETUP_LIST,
@@ -279,7 +285,7 @@ class SubDirRepoTest(SingleCourseQuizPageTestMixin, MockAddMessageMixing, TestCa
     def test_validation_and_flow(self):
         repo = content.get_course_repo(self.course)
         assert isinstance(repo, SubdirRepoWrapper)
-        sha = repo.repo[self.subdir_branch_commit_ref.encode()].id
+        sha = repo.get_git_repo()[self.subdir_branch_commit_ref.encode()].id
 
         self.post_update_course_content(sha)
         self.assertAddMessageCallCount(2)
@@ -873,29 +879,25 @@ class MarkupToHtmlTest(SingleCoursePageTestMixin, TestCase):
 class ListFlowIdsTest(unittest.TestCase):
     # test content.list_flow_ids
     def setUp(self):
-        fake_get_repo_blob = mock.patch("course.repo.get_repo_blob")
-        self.mock_get_repo_blob = fake_get_repo_blob.start()
-        self.addCleanup(fake_get_repo_blob.stop)
-        self.repo = mock.MagicMock()
-        self.commit_sha = mock.MagicMock()
-
         fake_get_repo_tree = mock.patch("course.content.get_repo_tree")
         self.mock_get_repo_tree = fake_get_repo_tree.start()
         self.addCleanup(fake_get_repo_tree.stop)
-        self.repo = mock.MagicMock()
+        self.repo = mock.MagicMock(spec=Repo)
         self.commit_sha = mock.MagicMock()
 
     def test_object_does_not_exist(self):
-        self.mock_get_repo_blob.side_effect = ObjectDoesNotExist()
+        self.mock_get_repo_tree.side_effect = ObjectDoesNotExist()
         self.assertEqual(content.list_flow_ids(self.repo, self.commit_sha), [])
 
     def test_result(self):
-        tree = Tree()
-        tree.add(b"not_a_flow.txt", stat.S_IFREG, b"not a flow")
-        tree.add(b"flow_b.yml", stat.S_IFREG, b"flow_b content")
-        tree.add(b"flow_a.yml", stat.S_IFREG, b"flow_a content")
-        tree.add(b"flow_c.yml", stat.S_IFREG, b"flow_c content")
-        tree.add(b"temp_dir", stat.S_IFDIR, b"a temp dir")
+        tree = mock.MagicMock(spec=RepoTree)
+        tree.items.return_value = [
+            RepoTreeEntry(b"not_a_flow.txt", stat.S_IFREG),
+            RepoTreeEntry(b"flow_b.yml", stat.S_IFREG),
+            RepoTreeEntry(b"flow_a.yml", stat.S_IFREG),
+            RepoTreeEntry(b"flow_c.yml", stat.S_IFREG),
+            RepoTreeEntry(b"temp_dir", stat.S_IFDIR),
+        ]
 
         self.mock_get_repo_tree.return_value = tree
 

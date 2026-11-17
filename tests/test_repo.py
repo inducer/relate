@@ -25,6 +25,7 @@ THE SOFTWARE.
 
 
 import ntpath
+from abc import ABC
 from typing import TYPE_CHECKING
 from unittest.mock import MagicMock, patch
 
@@ -33,18 +34,25 @@ from django.core.exceptions import ObjectDoesNotExist, PermissionDenied
 from django.http import Http404
 from django.test import override_settings
 from dulwich.objects import Blob, Commit, Tree
-from dulwich.repo import Repo
+from dulwich.repo import Repo as DulwichRepo
 from pydantic import TypeAdapter
 
 from course import content, views
 from course.constants import ParticipationPermission as PPerm
 from course.models import Course
 from course.repo import (
+    FileSystemFakeRepo,
+    GitRepo,
+    NoRevisionNeeded,
+    Repo,
+    RepoBlob,
+    RepoTree,
+    RepoTreeEntry,
     SubdirRepoWrapper,
     get_repo_blob,
     get_repo_blob_data_cached,
+    get_repo_cache_key,
     get_repo_tree,
-    get_true_repo_and_path,
 )
 from course.validation import ValidationContext
 
@@ -52,6 +60,81 @@ from course.validation import ValidationContext
 if TYPE_CHECKING:
     from collections.abc import Iterator
     from pathlib import Path
+
+    from course.repo import RevisionID_ish
+
+
+def test_repo_interface_is_abstract():
+    with pytest.raises(TypeError, match="abstract"):
+        Repo()  # pyright: ignore[reportAbstractUsage]
+
+    class IncompleteRepo(Repo, ABC):
+        pass
+
+    with pytest.raises(TypeError, match="abstract"):
+        IncompleteRepo()  # pyright: ignore[reportAbstractUsage]
+
+
+def test_helpers_delegate_to_new_backend_without_git_emulation():
+    class ContentBlob(RepoBlob):
+        def __init__(self, data: bytes):
+            self._data = data
+
+        @property
+        def data(self) -> bytes:
+            return self._data
+
+    class ContentTree(RepoTree):
+        def __init__(self, children: dict[bytes, tuple[int, RepoTree | RepoBlob]]):
+            self.children = children
+
+        def lookup(self, name: bytes) -> tuple[int, RepoTree | RepoBlob]:
+            return self.children[name]
+
+        def items(self) -> list[RepoTreeEntry]:
+            return [RepoTreeEntry(name, mode)
+                    for name, (mode, _) in self.children.items()]
+
+    directory = ContentTree({b"file.txt": (0o100644, ContentBlob(b"content"))})
+    root = ContentTree({
+        b"directory": (0o040000, directory),
+        b"file.txt": (0o120000, ContentBlob(b"directory/file.txt")),
+    })
+
+    class ContentRepo(Repo):
+        def repo_location_hash(self) -> str:
+            return "new-backend"
+
+        def has_revision(self, revision: RevisionID_ish) -> bool:
+            return revision is NoRevisionNeeded
+
+        def get_root_tree(self, revision: RevisionID_ish) -> RepoTree:
+            assert revision is NoRevisionNeeded
+            return root
+
+    with ContentRepo() as repo:
+        assert repo.has_revision(NoRevisionNeeded)
+        assert not repo.has_revision(b"missing")
+        assert get_repo_cache_key(repo) == repo.cache_key()
+        tree = get_repo_tree(repo, "directory", NoRevisionNeeded)
+        assert tree is directory
+        assert [(entry.path, entry.mode) for entry in tree.items()] == [
+            (b"file.txt", 0o100644)]
+        targets = []
+        assert get_repo_blob(
+            repo, "file.txt", NoRevisionNeeded,
+            on_symlink_target=targets.append).data == b"content"
+        assert targets == ["directory/file.txt"]
+        assert get_repo_blob_data_cached(
+            repo, "file.txt", NoRevisionNeeded) == b"content"
+        wrapped = SubdirRepoWrapper(repo, "directory")
+        assert wrapped.get_blob("file.txt", NoRevisionNeeded).data == b"content"
+        with pytest.raises(ObjectDoesNotExist):
+            repo.get_blob("missing", NoRevisionNeeded)
+        with pytest.raises(TypeError, match="does not support Git"):
+            repo.get_git_repo()
+        for node in [repo, root, directory, directory.lookup(b"file.txt")[1]]:
+            assert not hasattr(node, "__getitem__")
 
 
 @pytest.mark.parametrize("path", [
@@ -64,10 +147,10 @@ if TYPE_CHECKING:
     "//sibling/secret.txt",
 ])
 def test_subdir_repo_rejects_escape(tmp_path: Path, path: str):
-    with Repo.init_bare(tmp_path) as repo:
-        wrapped_repo = SubdirRepoWrapper(repo, "courses/current")
+    wrapped_repo = SubdirRepoWrapper(FileSystemFakeRepo(tmp_path), "courses/current")
+    for lookup in [get_repo_blob, get_repo_tree]:
         with pytest.raises(ObjectDoesNotExist, match="outside the course root"):
-            get_true_repo_and_path(wrapped_repo, path)
+            lookup(wrapped_repo, path, NoRevisionNeeded)
 
 
 @pytest.mark.parametrize("path", [
@@ -79,15 +162,37 @@ def test_subdir_repo_rejects_escape(tmp_path: Path, path: str):
     "nested//./file.txt",
 ])
 def test_subdir_repo_accepts_relative_paths(tmp_path: Path, path: str):
-    with Repo.init_bare(tmp_path) as repo:
-        wrapped_repo = SubdirRepoWrapper(repo, "courses/current")
-        base_repo, full_name = get_true_repo_and_path(wrapped_repo, path)
-        assert base_repo is repo
-        assert full_name == (f"courses/current/{path}" if path else "courses/current")
+    root = tmp_path / "courses" / "current"
+    (root / "nested").mkdir(parents=True)
+    (root / "file.txt").write_bytes(b"course content")
+    (root / "nested" / "file.txt").write_bytes(b"course content")
+    repo = FileSystemFakeRepo(tmp_path)
+    wrapped_repo = SubdirRepoWrapper(repo, "courses/current")
+    assert wrapped_repo.repo is repo
+    if path in {"", "."}:
+        tree = wrapped_repo.get_tree(path, NoRevisionNeeded)
+        assert {entry.path for entry in tree.items()} == {b"file.txt", b"nested"}
+    else:
+        assert wrapped_repo.get_blob(path, NoRevisionNeeded).data == b"course content"
+
+
+def test_git_repo_composition_and_explicit_access(tmp_path: Path):
+    with DulwichRepo.init_bare(tmp_path) as git_repo:
+        repo = GitRepo(git_repo)
+        wrapped = SubdirRepoWrapper(SubdirRepoWrapper(repo, "courses"), "current")
+        assert isinstance(repo, Repo)
+        assert not isinstance(repo, DulwichRepo)
+        assert repo.git_repo is git_repo
+        assert repo.get_git_repo() is git_repo
+        assert isinstance(wrapped.repo, Repo)
+        assert wrapped.repo.repo is repo
+        assert wrapped.get_git_repo() is git_repo
+        assert not hasattr(repo, "__getitem__")
+        assert not hasattr(wrapped, "__getitem__")
 
 
 def test_subdir_repo_lookup_stays_within_course_root(tmp_path: Path):
-    with Repo.init_bare(tmp_path) as repo:
+    with DulwichRepo.init_bare(tmp_path) as repo:
         public = Blob.from_string(b"course content")
         secret = Blob.from_string(b"sibling course content")
         current = Tree()
@@ -107,12 +212,17 @@ def test_subdir_repo_lookup_stays_within_course_root(tmp_path: Path):
             repo.object_store.add_object(obj)
 
         # Verify the sibling objects exist and are readable without the wrapper.
-        assert get_repo_blob(repo, "sibling/secret.txt", commit.id).data == secret.data
-        assert get_repo_tree(repo, "sibling", commit.id).id == sibling.id
+        assert get_repo_blob(
+            GitRepo(repo), "sibling/secret.txt", commit.id).data == secret.data
+        sibling_tree = get_repo_tree(GitRepo(repo), "sibling", commit.id)
+        assert [(entry.path, entry.mode) for entry in sibling_tree.items()] == [
+            (b"secret.txt", 0o100644)]
 
-        wrapped_repo = SubdirRepoWrapper(repo, "current")
+        wrapped_repo = SubdirRepoWrapper(GitRepo(repo), "current")
         assert get_repo_blob(wrapped_repo, "file.txt", commit.id).data == public.data
-        assert get_repo_tree(wrapped_repo, "", commit.id).id == current.id
+        current_tree = get_repo_tree(wrapped_repo, "", commit.id)
+        assert [(entry.path, entry.mode) for entry in current_tree.items()] == [
+            (b"file.txt", 0o100644)]
         assert get_repo_blob(
             wrapped_repo, "nested/../file.txt", commit.id).data == public.data
 
@@ -133,7 +243,7 @@ def test_subdir_repo_lookup_stays_within_course_root(tmp_path: Path):
     RELATE_CACHE_MAX_BYTES=1024,
 )
 def test_repo_caches_distinguish_course_roots(tmp_path: Path, cache_kind: str):
-    with Repo.init_bare(tmp_path) as repo:
+    with DulwichRepo.init_bare(tmp_path) as repo:
         root = Tree()
         root_blob = Blob.from_string(b"title: root\n")
         repo.object_store.add_object(root_blob)
@@ -159,7 +269,9 @@ def test_repo_caches_distinguish_course_roots(tmp_path: Path, cache_kind: str):
         with patch("course.repo.get_repo_blob", wraps=get_repo_blob) as get_blob:
             for _ in range(2):
                 for subdir in ["", "first", "second"]:
-                    course_repo = SubdirRepoWrapper(repo, subdir) if subdir else repo
+                    course_repo = (
+                        SubdirRepoWrapper(GitRepo(repo), subdir)
+                        if subdir else GitRepo(repo))
                     title = subdir or "root"
                     if cache_kind == "blob":
                         result = get_repo_blob_data_cached(
@@ -180,7 +292,7 @@ def test_repo_caches_distinguish_course_roots(tmp_path: Path, cache_kind: str):
 
 
 @pytest.fixture
-def repo_file_git(tmp_path: Path) -> Iterator[tuple[Repo, bytes]]:
+def repo_file_git(tmp_path: Path) -> Iterator[tuple[DulwichRepo, bytes]]:
     files = {
         ".attributes.yml": (0o100644, b"""access_if_has_role:
   student: ["allowed*.txt"]
@@ -229,7 +341,7 @@ def repo_file_git(tmp_path: Path) -> Iterator[tuple[Repo, bytes]]:
             0o100644, b'access_if_has_role: {student: ["allowed*.txt"]}\n'),
         "final/allowed.txt": (0o100644, b"wrong relative target\n"),
     }
-    with Repo.init_bare(tmp_path) as repo:
+    with DulwichRepo.init_bare(tmp_path) as repo:
         trees = {"": Tree()}
         for path, (mode, data) in files.items():
             parent, _, name = path.rpartition("/")
@@ -259,9 +371,20 @@ def repo_file_git(tmp_path: Path) -> Iterator[tuple[Repo, bytes]]:
         yield repo, commit.id
 
 
+def test_git_repo_revision_existence(repo_file_git: tuple[DulwichRepo, bytes]):
+    git_repo, revision = repo_file_git
+    repo = GitRepo(git_repo)
+    assert repo.has_revision(revision)
+    assert not repo.has_revision(b"0" * 40)
+    assert not repo.has_revision(NoRevisionNeeded)
+    wrapped = SubdirRepoWrapper(repo, "nested")
+    assert wrapped.has_revision(revision)
+    assert not wrapped.has_revision(b"0" * 40)
+
+
 @pytest.fixture
 def repo_file_view(
-        repo_file_git: tuple[Repo, bytes],
+        repo_file_git: tuple[DulwichRepo, bytes],
         ) -> Iterator[tuple[MagicMock, Course, bytes]]:
     repo, commit_sha = repo_file_git
     course = Course(pk=1, identifier="repo-test")
@@ -272,7 +395,8 @@ def repo_file_view(
     request.relate_exam_lockdown_course_id = course.pk
     with (
             patch("course.views.check_course_state"),
-            patch("course.views.get_course_repo", return_value=Repo(repo.path)),
+            patch("course.views.get_course_repo",
+                  return_value=GitRepo(DulwichRepo(repo.path))),
             patch("course.enrollment.get_participation_permissions",
                   return_value=[(PPerm.access_files_for, "student")]),
             ):
@@ -367,9 +491,9 @@ def test_repo_file_invalid_symlink(
 
 @pytest.mark.parametrize("is_tree", [False, True])
 def test_symlink_cannot_escape_course_root(
-        repo_file_git: tuple[Repo, bytes], is_tree: bool):
+        repo_file_git: tuple[DulwichRepo, bytes], is_tree: bool):
     repo, commit_sha = repo_file_git
-    wrapped = SubdirRepoWrapper(repo, "nested")
+    wrapped = SubdirRepoWrapper(GitRepo(repo), "nested")
     lookup = get_repo_tree if is_tree else get_repo_blob
     path = "escape-dir" if is_tree else "escape.txt"
     with pytest.raises(ObjectDoesNotExist, match="outside the course root"):
@@ -377,24 +501,24 @@ def test_symlink_cannot_escape_course_root(
 
 
 def test_symlink_callback_uses_course_relative_paths(
-        repo_file_git: tuple[Repo, bytes]):
+        repo_file_git: tuple[DulwichRepo, bytes]):
     repo, commit_sha = repo_file_git
     targets = []
     blob = get_repo_blob(
-        SubdirRepoWrapper(repo, "nested"), "local.txt", commit_sha,
+        SubdirRepoWrapper(GitRepo(repo), "nested"), "local.txt", commit_sha,
         on_symlink_target=targets.append)
     assert blob.data == b"directory resource\n"
     assert targets == ["real/file.txt"]
 
 
 def test_git_paths_use_posix_rules_on_windows(
-        repo_file_git: tuple[Repo, bytes]):
+        repo_file_git: tuple[DulwichRepo, bytes]):
     repo, commit_sha = repo_file_git
-    wrapped = SubdirRepoWrapper(repo, "nested")
+    wrapped = SubdirRepoWrapper(GitRepo(repo), "nested")
     targets = []
-    with patch("course.repo.os", path=ntpath, sep="\\", pardir=".."):
+    with patch("course.repo.os", path=ntpath, sep="\\", pardir="..", create=True):
         with pytest.raises(ObjectDoesNotExist, match="outside the course root"):
-            get_true_repo_and_path(wrapped, "/sibling/secret.txt")
+            wrapped.get_blob("/sibling/secret.txt", commit_sha)
         blob = get_repo_blob(
             wrapped, "local.txt", commit_sha, on_symlink_target=targets.append)
     assert blob.data == b"directory resource\n"
@@ -410,19 +534,19 @@ def test_git_paths_use_posix_rules_on_windows(
     ("unmarked/file.txt", False),
 ])
 def test_repo_file_access_uses_posix_rules_on_windows(
-        repo_file_git: tuple[Repo, bytes], path: str, expected: bool):
+        repo_file_git: tuple[DulwichRepo, bytes], path: str, expected: bool):
     repo, commit_sha = repo_file_git
     with patch("course.content.os", path=ntpath):
         assert content.is_repo_file_accessible_as(
-            ["student"], repo, commit_sha, path) is expected
+            ["student"], GitRepo(repo), commit_sha, path) is expected
 
 
 def test_warm_blob_cache_does_not_skip_target_authorization(
-        repo_file_git: tuple[Repo, bytes],
+        repo_file_git: tuple[DulwichRepo, bytes],
         repo_file_view: tuple[MagicMock, Course, bytes]):
     repo, commit_sha = repo_file_git
     assert get_repo_blob_data_cached(
-        repo, "allowed-denied.txt", commit_sha) == b"secret target\n"
+        GitRepo(repo), "allowed-denied.txt", commit_sha) == b"secret target\n"
     request, course, commit_sha = repo_file_view
     with pytest.raises(PermissionDenied):
         views.get_repo_file_backend(

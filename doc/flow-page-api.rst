@@ -21,8 +21,11 @@ Stub Docs
 .. class:: Course
 .. class:: FlowSession
 
-.. currentmodule:: relate.utils
+.. currentmodule:: course.repo
 
+.. class:: Repo
+.. class:: RepoTree
+.. class:: RepoBlob
 .. class:: SubdirRepoWrapper
 
 .. currentmodule:: course.utils

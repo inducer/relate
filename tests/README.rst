@@ -17,7 +17,11 @@ Tests of Git operations instead use ``get_sample_git_repo()``. This builds a
 process-local temporary Git remote with a deterministic initial commit, a
 ``main`` branch, and a ``subdir-repo`` branch containing the same snapshot under
 ``course_content/``. No Git executable or upstream history is required. Use this helper for tests that specifically need revision
-existence checks, Git views, or repository updates.
+existence checks, Git views, or repository updates. Git-only fixtures may use
+``dulwich.repo.Repo`` directly, but wrap them in ``course.repo.GitRepo`` before
+passing them to generic content APIs or ``SubdirRepoWrapper``. Use
+``repo.get_git_repo()`` for Git management; ``SubdirRepoWrapper.repo`` remains a
+generic ``course.repo.Repo`` rather than exposing Dulwich implicitly.
 
 Run the ordinary suite as usual::
 
