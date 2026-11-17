@@ -64,10 +64,8 @@ from course.constants import (
     ParticipationPermission as PPerm,
 )
 from course.repo import (
-    Blob_ish,
     NoRevisionNeeded,
     RevisionID_ish,
-    Tree_ish,
     get_repo_tree,
 )
 from relate.utils import string_concat
@@ -81,7 +79,7 @@ if TYPE_CHECKING:
 
     from course.content import FlowDesc
     from course.models import Course
-    from course.repo import FileSystemFakeRepo, Repo_ish
+    from course.repo import Repo, RepoTree
 
 
 __doc__ = """
@@ -91,7 +89,7 @@ Stub Docs
 =========
 
 .. class:: Course
-.. class:: Repo_ish
+.. class:: Repo
 """
 
 P = ParamSpec("P")
@@ -150,7 +148,7 @@ class ValidationContext:
     .. autoattribute:: course
     """
 
-    repo: Repo_ish | FileSystemFakeRepo
+    repo: Repo
     commit_sha: RevisionID_ish
     course: Course | None = None
     _location: str | None = None
@@ -507,8 +505,8 @@ attributes_file_ta = TypeAdapter(AttributesFile)
 
 def check_attributes_yml(
         vctx: ValidationContext,
-        repo: Repo_ish,
-        path: str, tree: Tree_ish,
+        repo: Repo,
+        path: str, tree: RepoTree,
         access_kinds: Collection[str]) -> None:
     """
     This function reads the .attributes.yml file and checks
@@ -529,32 +527,19 @@ def check_attributes_yml(
             - test2.pdf
             - 42
     """
-    from course.repo import get_true_repo_and_path
-    true_repo, path = get_true_repo_and_path(repo, path)
+    entry_names = {entry.path for entry in tree.items()}
 
     # {{{ analyze attributes file
 
-    try:
-        _dummy, attr_blob_sha = tree[ATTRIBUTES_FILENAME.encode()]
-    except KeyError:
-        # no .attributes.yml here
-        pass
-    except ValueError:
-        # the path root only contains a directory
-        pass
-    else:
+    if ATTRIBUTES_FILENAME.encode() in entry_names:
         from yaml import safe_load as load_yaml
-        yaml_blob = true_repo[attr_blob_sha]  # pyright: ignore[reportArgumentType]
-        if not isinstance(yaml_blob, Blob_ish):
-            raise RuntimeError(
-                    _("{}/{} is not a file/blob")
-                    .format(path, ATTRIBUTES_FILENAME))
-        yaml_data = load_yaml(yaml_blob.data)
 
         if path:
             loc = path + "/" + ATTRIBUTES_FILENAME
         else:
             loc = ATTRIBUTES_FILENAME
+        yaml_blob = repo.get_blob(loc, vctx.commit_sha)
+        yaml_data = load_yaml(yaml_blob.data)
 
         vctx.with_location(loc).annotate_errors(
             lambda vctx, data: attributes_file_ta.validate_python(data, context=vctx),
@@ -566,18 +551,9 @@ def check_attributes_yml(
 
     gitignore_lines: list[str] = []
 
-    try:
-        _dummy, gitignore_sha = tree[b".gitignore"]
-    except KeyError:
-        # no .gitignore here
-        pass
-    except ValueError:
-        # the path root only contains a directory
-        pass
-    else:
-        gitignore_blob = true_repo[gitignore_sha]  # pyright: ignore[reportArgumentType]
-        if not isinstance(gitignore_blob, Blob_ish):
-            raise ValueError(".gitignore is not a file/blob")
+    if b".gitignore" in entry_names:
+        gitignore_path = path + "/.gitignore" if path else ".gitignore"
+        gitignore_blob = repo.get_blob(gitignore_path, vctx.commit_sha)
         gitignore_lines = gitignore_blob.data.decode("utf-8").split("\n")
 
     # }}}
@@ -596,10 +572,8 @@ def check_attributes_yml(
             subpath = entry_name
 
         if stat.S_ISDIR(entry.mode):
-            _dummy, blob_sha = tree[entry.path]
-            subtree = true_repo[blob_sha]  # pyright: ignore[reportArgumentType]
-            assert isinstance(subtree, Tree_ish)
-            check_attributes_yml(vctx, true_repo, subpath, subtree, access_kinds)
+            subtree = repo.get_tree(subpath, vctx.commit_sha)
+            check_attributes_yml(vctx, repo, subpath, subtree, access_kinds)
 
 
 # {{{ check whether flow grade identifiers were changed in sketchy ways
@@ -704,7 +678,7 @@ def validate_static_page_name(
 
 
 def validate_course_content(
-            repo: Repo_ish | FileSystemFakeRepo,
+            repo: Repo,
             course_file: str,
             events_file: str,
             validate_sha: RevisionID_ish,

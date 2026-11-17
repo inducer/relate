@@ -35,7 +35,7 @@ from course import versioning
 from course.constants import ParticipationPermission as PPerm
 from course.models import Course
 from course.paramiko_vendor import ParamikoSSHVendor
-from course.repo import python_repo_class
+from course.repo import GitRepo, python_repo_class
 from course.validation import ValidationWarning
 from relate.utils import force_remove_path
 from tests import factories
@@ -50,7 +50,11 @@ from tests.utils import make_pyclass_course, mock, suppress_stdout_decorator
 
 
 if TYPE_CHECKING:
+    from collections.abc import Iterator
+    from pathlib import Path
+
     from django.contrib.auth.models import User
+    from dulwich.objects import ObjectID
 
 
 TEST_PRIVATE_KEY = """\
@@ -185,7 +189,7 @@ class CourseCreationTest(VersioningTestMixin, TestCase):
 
         data = self.get_set_up_new_course_form_data()
 
-        with mock.patch("course.versioning.Repo.init") as mock_repo_innit:
+        with mock.patch("course.versioning.DulwichRepo.init") as mock_repo_innit:
             mock_repo_innit.side_effect = RuntimeError("Repo init error")
             resp = self.post_create_course(data, raise_error=False)
             self.assertTrue(resp.status_code, 200)
@@ -1048,7 +1052,7 @@ class VersioningRepoMixin:
 
         from course.utils import CoursePageContext
         pctx = CoursePageContext(request, cls.course.identifier)
-        cls.repo = pctx.repo
+        cls.repo = pctx.repo.get_git_repo()
 
 
 class GitUpdateFormTest(VersioningRepoMixin, LocalGitSingleCourseTestMixin, TestCase):
@@ -1310,7 +1314,7 @@ class UpdateCourseFromBranchTest(LocalGitSingleCourseTestMixin, MockAddMessageMi
         request.user = self.instructor_participation.user
         with CoursePageContext(request, self.course.identifier) as pctx:
             repo = pctx.repo
-            refs = repo.get_refs()
+            refs = repo.get_git_repo().get_refs()
         # Check that some refs exist (from the test course setup)
         self.assertGreater(len(refs), 0)
 
@@ -1352,12 +1356,7 @@ class UpdateCourseFromBranchTest(LocalGitSingleCourseTestMixin, MockAddMessageMi
         request = rf.get(self.get_branch_preview_url())
         request.user = self.instructor_participation.user
         with CoursePageContext(request, self.course.identifier) as pctx:
-            from course.repo import SubdirRepoWrapper
-            repo = pctx.repo
-            if isinstance(repo, SubdirRepoWrapper):
-                real_repo = repo.repo
-            else:
-                real_repo = repo
+            real_repo = pctx.repo.get_git_repo()
             head_sha = real_repo.head()
             branch_ref = b"refs/remotes/origin/" + self.default_branch_name.encode()
             real_repo[branch_ref] = head_sha
@@ -1383,12 +1382,7 @@ class UpdateCourseFromBranchTest(LocalGitSingleCourseTestMixin, MockAddMessageMi
         request = rf.get(self.get_branch_preview_url())
         request.user = self.instructor_participation.user
         with CoursePageContext(request, self.course.identifier) as pctx:
-            from course.repo import SubdirRepoWrapper
-            repo = pctx.repo
-            if isinstance(repo, SubdirRepoWrapper):
-                real_repo = repo.repo
-            else:
-                real_repo = repo
+            real_repo = pctx.repo.get_git_repo()
             head_sha = real_repo.head()
             branch_ref = b"refs/remotes/origin/" + self.default_branch_name.encode()
             real_repo[branch_ref] = head_sha
@@ -1418,12 +1412,7 @@ class UpdateCourseFromBranchTest(LocalGitSingleCourseTestMixin, MockAddMessageMi
         request = rf.get(self.get_branch_preview_url())
         request.user = self.instructor_participation.user
         with CoursePageContext(request, self.course.identifier) as pctx:
-            from course.repo import SubdirRepoWrapper
-            repo = pctx.repo
-            if isinstance(repo, SubdirRepoWrapper):
-                real_repo = repo.repo
-            else:
-                real_repo = repo
+            real_repo = pctx.repo.get_git_repo()
             head_sha = real_repo.head()
             branch_ref = b"refs/remotes/origin/" + self.default_branch_name.encode()
             real_repo[branch_ref] = head_sha
@@ -1462,12 +1451,7 @@ class UpdateCourseFromBranchTest(LocalGitSingleCourseTestMixin, MockAddMessageMi
         request = rf.get(self.get_branch_preview_url())
         request.user = self.instructor_participation.user
         with CoursePageContext(request, self.course.identifier) as pctx:
-            from course.repo import SubdirRepoWrapper
-            repo = pctx.repo
-            if isinstance(repo, SubdirRepoWrapper):
-                real_repo = repo.repo
-            else:
-                real_repo = repo
+            real_repo = pctx.repo.get_git_repo()
             head_sha = real_repo.head()
 
         mock_client = mock.MagicMock()
@@ -1496,6 +1480,70 @@ class UpdateCourseFromBranchTest(LocalGitSingleCourseTestMixin, MockAddMessageMi
         self.assertEqual(resp.status_code, 200)
 
 
+@pytest.fixture
+def flow_fingerprint_repo(tmp_path: Path) -> Iterator[GitRepo]:
+    from dulwich.repo import Repo as DulwichRepo
+
+    with GitRepo(DulwichRepo.init_bare(tmp_path)) as repo:
+        yield repo
+
+
+def _make_flow_entry_commit(
+        repo: GitRepo, entry_data: bytes, entry_mode: int) -> ObjectID:
+    from dulwich.objects import Blob, Commit, Tree
+
+    git_repo = repo.get_git_repo()
+    entry_blob = Blob.from_string(entry_data)
+    git_repo.object_store.add_object(entry_blob)
+    entry_oid = entry_blob.id
+    if entry_mode == 0o040000:
+        directory = Tree()
+        directory.add(b"child.txt", 0o100644, entry_blob.id)
+        git_repo.object_store.add_object(directory)
+        entry_oid = directory.id
+
+    flows = Tree()
+    flows.add(b"flow.yml", entry_mode, entry_oid)
+    target = Blob.from_string(b"same resolved content")
+    root = Tree()
+    root.add(b"flows", 0o040000, flows.id)
+    root.add(b"target-a.txt", 0o100644, target.id)
+    root.add(b"target-b.txt", 0o100644, target.id)
+    commit = Commit()
+    commit.tree = root.id
+    commit.author = commit.committer = b"Test <test@example.com>"
+    commit.author_time = commit.commit_time = 0
+    commit.author_timezone = commit.commit_timezone = 0
+    commit.message = b"Flow entry fingerprint regression"
+    for obj in [flows, target, root, commit]:
+        git_repo.object_store.add_object(obj)
+    return commit.id
+
+
+def test_modified_flow_ids_detects_symlink_target_change(
+        flow_fingerprint_repo: GitRepo):
+    repo = flow_fingerprint_repo
+    old_sha = _make_flow_entry_commit(repo, b"../target-a.txt", 0o120000)
+    new_sha = _make_flow_entry_commit(repo, b"../target-b.txt", 0o120000)
+
+    assert (repo.get_blob("flows/flow.yml", old_sha).data
+            == repo.get_blob("flows/flow.yml", new_sha).data)
+    assert versioning.get_modified_flow_ids(repo, old_sha, new_sha) == ["flow"]
+
+
+@pytest.mark.parametrize("entry_mode", [0o120000, 0o040000],
+                         ids=["dangling-symlink", "directory"])
+def test_modified_flow_ids_compares_non_blob_entries(
+        flow_fingerprint_repo: GitRepo, entry_mode: int):
+    repo = flow_fingerprint_repo
+    old_sha = _make_flow_entry_commit(repo, b"missing-a", entry_mode)
+    new_sha = _make_flow_entry_commit(repo, b"missing-b", entry_mode)
+
+    assert set(versioning.get_flow_entry_map(repo, old_sha)) == {"flow"}
+    assert versioning.get_modified_flow_ids(repo, old_sha, old_sha) == []
+    assert versioning.get_modified_flow_ids(repo, old_sha, new_sha) == ["flow"]
+
+
 class GetModifiedFlowIdsTest(LocalGitSingleCourseTestMixin, TestCase):
 
     def test_same_commit_no_changes(self):
@@ -1507,7 +1555,7 @@ class GetModifiedFlowIdsTest(LocalGitSingleCourseTestMixin, TestCase):
         request.user = self.instructor_participation.user
         with CoursePageContext(request, self.course.identifier) as pctx:
             repo = pctx.repo
-            head_sha = repo.get_refs()[b"HEAD"]
+            head_sha = repo.get_git_repo().get_refs()[b"HEAD"]
             result = versioning.get_modified_flow_ids(repo, head_sha, head_sha)
         # Same commit → no modifications
         self.assertEqual(result, [])

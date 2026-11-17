@@ -82,7 +82,7 @@ from course.repo import (
     CACHE_KEY_ROOT,
     PYTHON_CLASS_REPO_PREFIX,
     PYTHON_CLASS_REPO_REGISTRY,
-    FileSystemFakeRepo,
+    GitRepo,
     NoRevisionNeeded,
     PythonClassFakeRepo,
     RevisionID_ish,
@@ -114,7 +114,7 @@ if TYPE_CHECKING:
     from collections.abc import Callable, Collection, Mapping
 
     from course.models import Course, Participation
-    from course.repo import Repo_ish
+    from course.repo import Repo
 
 
 T = TypeVar("T")
@@ -979,14 +979,14 @@ def get_course_repo_path(course: Course) -> Path:
     return Path(settings.GIT_ROOT) / course.identifier
 
 
-def get_course_repo(course: Course) -> Repo_ish:
+def get_course_repo(course: Course) -> Repo:
     if course.git_source.startswith(PYTHON_CLASS_REPO_PREFIX):
         return PythonClassFakeRepo(
             PYTHON_CLASS_REPO_REGISTRY[
                 course.git_source[len(PYTHON_CLASS_REPO_PREFIX):]])
 
-    from dulwich.repo import Repo
-    repo = Repo(get_course_repo_path(course))
+    from dulwich.repo import Repo as DulwichRepo
+    repo = GitRepo(DulwichRepo(get_course_repo_path(course)))
 
     if course.course_root_path:
         return SubdirRepoWrapper(repo, course.course_root_path)
@@ -995,7 +995,7 @@ def get_course_repo(course: Course) -> Repo_ish:
 
 
 def is_repo_file_accessible_as(
-        access_kinds: list[str], repo: Repo_ish, commit_sha: RevisionID_ish, path: str
+        access_kinds: list[str], repo: Repo, commit_sha: RevisionID_ish, path: str
         ) -> bool:
     """
     Check of a file in a repo directory is accessible.  For example,
@@ -1111,7 +1111,7 @@ def process_yaml_for_expansion(yaml_str: str) -> str:
 
 
 class GitTemplateLoader:
-    def __init__(self, repo: Repo_ish, commit_sha: RevisionID_ish) -> None:
+    def __init__(self, repo: Repo, commit_sha: RevisionID_ish) -> None:
         self.repo = repo
         self.commit_sha = commit_sha
 
@@ -1161,7 +1161,7 @@ class YamlBlockEscapingFileSystemLoader:
 
 
 def expand_yaml_macros(
-            repo: Repo_ish,
+            repo: Repo,
             commit_sha: RevisionID_ish,
             yaml_str: str
         ) -> str:
@@ -1199,7 +1199,7 @@ def expand_yaml_macros(
 # {{{ repo yaml getting
 
 def get_raw_yaml_from_repo(
-        repo: Repo_ish, full_name: str, commit_sha: RevisionID_ish) -> Any:
+        repo: Repo, full_name: str, commit_sha: RevisionID_ish) -> Any:
     """Return decoded YAML data structure from
     the given file in *repo* at *commit_sha*.
 
@@ -1241,7 +1241,7 @@ LINE_HAS_INDENTING_TABS_RE = re.compile(r"^\s*\t\s*", re.MULTILINE)
 
 
 def get_yaml_from_repo(
-        repo: Repo_ish | FileSystemFakeRepo,
+        repo: Repo,
         full_name: str,
         commit_sha: RevisionID_ish,
         tolerate_tabs: bool = False,
@@ -1264,7 +1264,7 @@ def get_yaml_from_repo(
 def get_model_from_repo(
         vctx: ValidationContext,
         model_ta: TypeAdapter[ModelT],
-        repo: Repo_ish | FileSystemFakeRepo,
+        repo: Repo,
         full_name: str,
         commit_sha: RevisionID_ish,
         cached: bool = True,
@@ -1554,7 +1554,7 @@ JINJA_PREFIX = "[JINJA]"
 
 def expand_markup(
         course: Course | None,
-        repo: Repo_ish,
+        repo: Repo,
         commit_sha: RevisionID_ish,
         text: str,
         use_jinja: bool = True,
@@ -1611,7 +1611,7 @@ def filter_html_attributes(tag: str, name: str, value: str):
 
 def markup_to_html(
         course: Course | None,
-        repo: Repo_ish,
+        repo: Repo,
         commit_sha: RevisionID_ish,
         text: str,
         reverse_func: Callable[[str], str] | None = None,
@@ -1795,7 +1795,7 @@ def get_processed_page_chunks(
 # {{{ repo desc getting
 
 def get_staticpage_desc(
-            repo: Repo_ish,
+            repo: Repo,
             course: Course,
             commit_sha: RevisionID_ish,
             filename: str
@@ -1807,7 +1807,7 @@ def get_staticpage_desc(
 
 
 def get_flow_desc(
-        repo: Repo_ish, course: Course, flow_id: str,
+        repo: Repo, course: Course, flow_id: str,
         commit_sha: RevisionID_ish, tolerate_tabs: bool = False) -> FlowDesc:
     """
     :arg tolerate_tabs: At one point, Relate accepted tabs
@@ -1851,21 +1851,13 @@ class CourseCommitSHADoesNotExist(Exception):
 def get_course_commit_sha(
         course: Course,
         participation: Participation | None,
-        repo: Repo_ish | None = None,
+        repo: Repo | None = None,
         raise_on_nonexistent_preview_commit: bool | None = False
         ) -> RevisionID_ish:
     sha = deserialize_revision(course.active_git_commit_sha)
 
-    def is_commit_sha_valid(repo: Repo_ish, commit_sha: RevisionID_ish) -> bool:
-        if isinstance(commit_sha, type):
-            assert commit_sha is NoRevisionNeeded
-            return True
-
-        if isinstance(repo, SubdirRepoWrapper):
-            repo = repo.repo
-        try:
-            repo[commit_sha]
-        except KeyError:
+    def is_commit_sha_valid(repo: Repo, commit_sha: RevisionID_ish) -> bool:
+        if not repo.has_revision(commit_sha):
             if raise_on_nonexistent_preview_commit:
                 raise CourseCommitSHADoesNotExist(
                     _("Preview revision '{}' does not exist").format(
@@ -1889,7 +1881,7 @@ def get_course_commit_sha(
     return sha
 
 
-def list_flow_ids(repo: Repo_ish, commit_sha: RevisionID_ish) -> list[str]:
+def list_flow_ids(repo: Repo, commit_sha: RevisionID_ish) -> list[str]:
     flow_ids: list[str] = []
     try:
         flows_tree = get_repo_tree(repo, "flows", commit_sha)

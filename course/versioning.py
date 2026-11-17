@@ -36,7 +36,6 @@ from typing import (
 )
 
 import dulwich.client
-import dulwich.objects
 import dulwich.repo
 import paramiko
 from crispy_forms.layout import Submit
@@ -57,7 +56,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django_select2.forms import Select2Widget
 from dulwich.objects import ObjectID
 from dulwich.refs import HEADREF, Ref
-from dulwich.repo import Repo
+from dulwich.repo import Repo as DulwichRepo
 from pytools import not_none
 
 from course.auth import with_course_api_auth
@@ -65,6 +64,7 @@ from course.constants import ParticipationPermission as PPerm, ParticipationStat
 from course.content import get_course_repo
 from course.models import Course, Participation, ParticipationRole
 from course.repo import (
+    GitRepo,
     RevisionID_ish,
     SubdirRepoWrapper,
     deserialize_revision,
@@ -94,7 +94,7 @@ if TYPE_CHECKING:
 
     from accounts.models import User
     from course.auth import APIContext
-    from course.repo import Repo_ish
+    from course.repo import Repo
 
 
 def _remove_prefix(prefix: bytes, s: bytes) -> bytes:
@@ -153,7 +153,7 @@ def get_dulwich_client_and_remote_path_from_course(
 # {{{ new course setup
 
 def create_course(
-            repo: Repo_ish,
+            repo: Repo,
             revision_id: RevisionID_ish,
             course: Course,
             owner: User,
@@ -205,8 +205,8 @@ def git_clone_and_create_course(
             new_course: Course,
             owner: User,
             *, skip_validate: bool = False,
-        ) -> Repo:
-    repo = Repo.init(repo_fs_path)
+        ) -> DulwichRepo:
+    repo = DulwichRepo.init(repo_fs_path)
 
     client, remote_path = \
         get_dulwich_client_and_remote_path_from_course(
@@ -223,11 +223,9 @@ def git_clone_and_create_course(
     transfer_remote_refs(repo, fetch_pack_result)
     new_sha = repo[HEADREF] = not_none(fetch_pack_result.refs[HEADREF])
 
+    vrepo: Repo = GitRepo(repo)
     if new_course.course_root_path:
-        vrepo: Repo_ish = SubdirRepoWrapper(
-                repo, new_course.course_root_path)
-    else:
-        vrepo = repo
+        vrepo = SubdirRepoWrapper(vrepo, new_course.course_root_path)
 
     create_course(vrepo, ObjectID(new_sha),
         new_course, owner, skip_validate=skip_validate)
@@ -358,7 +356,7 @@ def set_up_new_course(request: http.HttpRequest) -> http.HttpResponse:
 def fetch_course(
             request: http.HttpRequest,
             course: Course,
-            repo: Repo,
+            repo: DulwichRepo,
         ):
     client, remote_path = \
         get_dulwich_client_and_remote_path_from_course(course)
@@ -373,7 +371,7 @@ def fetch_course(
 def validate_course(
             request: http.HttpRequest,
             course: Course,
-            content_repo: Repo | SubdirRepoWrapper,
+            content_repo: Repo,
             new_sha: RevisionID_ish,
         ):
     from course.validation import (
@@ -414,7 +412,7 @@ def validate_course(
 # {{{ update
 
 def is_ancestor_commit(
-        repo: Repo, potential_ancestor: Commit, child: Commit,
+        repo: DulwichRepo, potential_ancestor: Commit, child: Commit,
         max_history_check_size: int | None = None) -> bool:
 
     queue = [cast("Commit", repo[parent]) for parent in child.parents]
@@ -446,8 +444,8 @@ class CourseRevisionCommand(StrEnum):
 
 def run_course_update_command(
             request: http.HttpRequest,
-            repo: Repo,
-            content_repo: Repo | SubdirRepoWrapper,
+            repo: DulwichRepo,
+            content_repo: Repo,
             pctx: CoursePageContext,
             command: CourseRevisionCommand,
             new_sha: ObjectID,
@@ -524,7 +522,8 @@ def run_course_update_command(
 
 class GitUpdateForm(StyledForm):
 
-    def __init__(self, may_update, previewing, repo, *args, **kwargs):
+    def __init__(self, may_update: bool, previewing: bool,
+            repo: DulwichRepo, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
 
         repo_refs = repo.get_refs()
@@ -580,14 +579,14 @@ class GitUpdateForm(StyledForm):
         add_button("fetch", _("Fetch"))
 
 
-def _get_commit_message_as_html(repo, commit_sha):
+def _get_commit_message_as_html(repo: DulwichRepo, commit_sha: str | bytes):
     from html import escape
 
     if isinstance(commit_sha, str):
         commit_sha = commit_sha.encode()
 
     try:
-        commit = repo[commit_sha]
+        commit = cast("Commit", repo[commit_sha])
     except KeyError:
         return _("- not found -")
 
@@ -606,12 +605,7 @@ def update_course(pctx: CoursePageContext):
     request = pctx.request
     content_repo = pctx.repo
 
-    from course.repo import SubdirRepoWrapper
-    if isinstance(content_repo, SubdirRepoWrapper):
-        repo = content_repo.repo
-    else:
-        repo = content_repo
-    assert isinstance(repo, dulwich.repo.Repo)
+    repo = content_repo.get_git_repo()
 
     participation = pctx.participation
 
@@ -638,8 +632,6 @@ def update_course(pctx: CoursePageContext):
         if form.is_valid():
             new_sha = cast("ObjectID",
                 deserialize_revision(form.cleaned_data["new_sha"]))
-
-            assert isinstance(content_repo, (Repo, SubdirRepoWrapper))
 
             try:
                 run_course_update_command(
@@ -705,9 +697,10 @@ def update_course(pctx: CoursePageContext):
 # {{{ branch preview
 
 def get_flow_entry_map(
-            content_repo: Repo | SubdirRepoWrapper,
+            content_repo: Repo,
             commit_sha: RevisionID_ish
         ) -> dict[str, bytes]:
+    """Map flow IDs to raw-entry fingerprints without resolving symlinks."""
     from django.core.exceptions import ObjectDoesNotExist
 
     from course.repo import get_repo_tree
@@ -716,16 +709,15 @@ def get_flow_entry_map(
     except ObjectDoesNotExist:
         return {}
 
-    assert isinstance(flows_tree, dulwich.objects.Tree)
     return {
-        entry.path[:-4].decode("utf-8"): entry.sha
+        entry.path[:-4].decode("utf-8"): flows_tree.get_entry_fingerprint(entry.path)
         for entry in flows_tree.items()
         if entry.path.endswith(b".yml")
     }
 
 
 def get_modified_flow_ids(
-        content_repo: Repo | SubdirRepoWrapper,
+        content_repo: Repo,
         old_sha: RevisionID_ish,
         new_sha: RevisionID_ish) -> list[str]:
     """Return flow IDs that were added or modified between *old_sha* and *new_sha*."""
@@ -735,8 +727,8 @@ def get_modified_flow_ids(
 
     return sorted(
         flow_id
-        for flow_id, sha in new_entries.items()
-        if old_entries.get(flow_id) != sha
+        for flow_id, fingerprint in new_entries.items()
+        if old_entries.get(flow_id) != fingerprint
     )
 
 
@@ -773,14 +765,7 @@ def update_course_from_branch(
     request = pctx.request
     content_repo = pctx.repo
 
-    from course.repo import SubdirRepoWrapper
-    if isinstance(content_repo, SubdirRepoWrapper):
-        repo = content_repo.repo
-    elif isinstance(content_repo, Repo):
-        repo = content_repo
-    else:
-        raise AssertionError("only actual dulwich repos allowed")
-    assert isinstance(repo, dulwich.repo.Repo)
+    repo = content_repo.get_git_repo()
 
     participation = pctx.participation
     assert participation is not None
@@ -834,7 +819,7 @@ def update_course_from_branch(
                     else:
                         new_sha = refs[branch_ref]
 
-                        if validate_course(request, course, repo, new_sha):
+                        if validate_course(request, course, content_repo, new_sha):
                             participation.preview_git_commit_sha = \
                                 new_sha.decode()
                             participation.save()
@@ -872,10 +857,10 @@ def update_course_from_branch(
         raise SuspiciousOperation("unexpected method")
 
     refs = repo.get_refs()
-    branch_sha: bytes | None = None
+    branch_sha: ObjectID | None = None
     modified_flow_ids: list[str] | None = None
     if branch_ref in refs:
-        branch_sha = refs[branch_ref]
+        branch_sha = ObjectID(refs[branch_ref])
 
         modified_flow_ids = get_modified_flow_ids(
                 content_repo,
@@ -982,11 +967,7 @@ def git_endpoint(api_ctx: APIContext, course_identifier: str,
     from course.content import get_course_repo
     repo = get_course_repo(course)
 
-    from course.repo import SubdirRepoWrapper
-    if isinstance(repo, SubdirRepoWrapper):
-        true_repo = repo.repo
-    else:
-        true_repo = cast("dulwich.repo.Repo", repo)
+    true_repo = repo.get_git_repo()
 
     base_path = reverse(git_endpoint, args=(course_identifier, ""))
     assert base_path.endswith("/")

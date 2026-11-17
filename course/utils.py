@@ -97,7 +97,7 @@ if TYPE_CHECKING:
         FlowSession,
         Participation,
     )
-    from course.repo import Repo_ish, RevisionID_ish
+    from course.repo import Repo, RevisionID_ish
 
 # }}}
 
@@ -534,7 +534,7 @@ class CoursePageContext:
 
     course: Course
     participation: Participation | None
-    repo: Repo_ish
+    repo: Repo
     course_commit_sha: RevisionID_ish
 
     _permissions_cache: frozenset[tuple[str, str | None]] | None
@@ -641,7 +641,7 @@ class CoursePageContext:
 
 
 class FlowContext:
-    repo: Repo_ish
+    repo: Repo
     course: Course
     flow_id: str
     course_commit_sha: RevisionID_ish
@@ -649,7 +649,7 @@ class FlowContext:
 
     def __init__(
             self,
-            repo: Repo_ish,
+            repo: Repo,
             course: Course,
             flow_id: str,
             participation: Participation | None = None) -> None:
@@ -690,7 +690,7 @@ class FlowPageContext(FlowContext):
 
     def __init__(
             self,
-            repo: Repo_ish,
+            repo: Repo,
             course: Course,
             flow_id: str,
             page_ordinal: int,
@@ -831,13 +831,13 @@ def render_course_page(
 class PageInstanceCache:
     """Caches instances of :class:`course.page.Page`."""
 
-    repo: Repo_ish
+    repo: Repo
     course: Course
     flow_id: str
     flow_desc_cache: dict[RevisionID_ish, FlowDesc]
     page_cache: dict[Hashable, PageBase]
 
-    def __init__(self, repo: Repo_ish, course: Course, flow_id: str):
+    def __init__(self, repo: Repo, course: Course, flow_id: str):
         self.repo = repo
         self.course = course
         self.flow_id = flow_id
@@ -1282,7 +1282,7 @@ class RelateJinjaMacroBase:
     def __init__(
             self,
             course: Course | None,
-            repo: Repo_ish,
+            repo: Repo,
             commit_sha: bytes) -> None:
         self.course = course
         self.repo = repo

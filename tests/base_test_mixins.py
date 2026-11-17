@@ -76,7 +76,7 @@ from tests.utils import mock
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-    from course.repo import Repo_ish, RevisionID_ish
+    from course.repo import Repo, RevisionID_ish
 
 
 CORRECTNESS_ATOL = 1e-05
@@ -2809,7 +2809,7 @@ class HackRepoMixin:
         super().setUpTestData()
 
         def get_repo_side_effect(
-                repo: Repo_ish, full_name: str, commit_sha: RevisionID_ish, *,
+                repo: Repo, full_name: str, commit_sha: RevisionID_ish, *,
                 on_symlink_target: Callable[[str], None] | None = None):
             if isinstance(commit_sha, bytes):
                 repo = get_revision_overlay(commit_sha)

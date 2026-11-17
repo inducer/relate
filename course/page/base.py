@@ -78,7 +78,7 @@ if TYPE_CHECKING:
 
     from course.ai_grading import AIGradeResult
     from course.models import Course, FlowSession
-    from course.repo import Repo_ish, RevisionID_ish
+    from course.repo import Repo, RevisionID_ish
 
 
 PageData: TypeAlias = dict[str, Any]
@@ -119,9 +119,9 @@ __doc__ = """
 Stub Docs of Internals
 ======================
 
-.. class:: Repo_ish
+.. class:: Repo
 
-    See ``relate.utils.Repo_ish``.
+    See ``course.repo.Repo``.
 
 .. class:: Course
 
@@ -174,7 +174,7 @@ class PageContext:
     """
 
     course: Course
-    repo: Repo_ish
+    repo: Repo
     commit_sha: RevisionID_ish
     flow_session: FlowSession | None
     in_sandbox: bool = False

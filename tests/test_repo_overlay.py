@@ -31,15 +31,17 @@ import pytest
 from django.core.exceptions import ObjectDoesNotExist, PermissionDenied
 from django.test import override_settings
 from dulwich.objects import Blob, Commit, Tree
-from dulwich.repo import Repo
+from dulwich.repo import Repo as DulwichRepo
 
 from course.repo import (
     EmptyRepo,
     FileSystemFakeRepo,
+    GitRepo,
     NoRevisionNeeded,
     OverlayRepo,
     OverlayRepoTree,
     PythonClassFakeRepo,
+    Repo,
     get_repo_blob,
     get_repo_blob_data_cached,
     get_repo_cache_key,
@@ -53,8 +55,6 @@ if TYPE_CHECKING:
     from pathlib import Path
 
     from dulwich.objects import ObjectID
-
-    from course.repo import Repo_ish
 
 
 @python_repo_class
@@ -101,8 +101,8 @@ def _write_files(root: Path, files: dict[str, str]) -> FileSystemFakeRepo:
 
 @pytest.fixture(params=["python", "filesystem", "mixed"])
 def overlay(request: pytest.FixtureRequest, tmp_path: Path) -> OverlayRepo:
-    upper: Repo_ish = PythonClassFakeRepo(Upper)
-    lower: Repo_ish = PythonClassFakeRepo(Lower)
+    upper: Repo = PythonClassFakeRepo(Upper)
+    lower: Repo = PythonClassFakeRepo(Lower)
     if request.param in {"filesystem", "mixed"}:
         upper = _write_files(tmp_path / "upper", {
             "shared": "upper",
@@ -123,6 +123,21 @@ def overlay(request: pytest.FixtureRequest, tmp_path: Path) -> OverlayRepo:
             "merged/deep/lower": "deep lower",
         })
     return OverlayRepo([upper, lower])
+
+
+def test_non_git_backends_do_not_emulate_git_objects(tmp_path: Path):
+    filesystem = _write_files(tmp_path / "repo", {"file": "content"})
+    python_repo = PythonClassFakeRepo(Upper)
+    overlay = OverlayRepo([python_repo, filesystem])
+    for repo in [python_repo, filesystem, EmptyRepo(), overlay]:
+        assert isinstance(repo, Repo)
+        assert not hasattr(repo, "__getitem__")
+        assert not hasattr(repo, "decode")
+        assert not hasattr(repo, "tree")
+    for repo in [python_repo, filesystem, overlay]:
+        tree = repo.get_tree("", NoRevisionNeeded)
+        assert not hasattr(tree, "__getitem__")
+        assert all(isinstance(entry.path, bytes) for entry in tree.items())
 
 
 def test_overlay_precedence_and_recursive_merge(overlay: OverlayRepo):
@@ -148,8 +163,8 @@ def test_overlay_precedence_and_recursive_merge(overlay: OverlayRepo):
     }
     merged = get_repo_tree(overlay, "merged/deep", NoRevisionNeeded)
     assert {entry.path for entry in merged.items()} == {b"upper", b"lower"}
-    with pytest.raises(KeyError):
-        root[b"missing"]
+    with pytest.raises(ObjectDoesNotExist):
+        overlay.get_blob("missing", NoRevisionNeeded)
 
 
 @pytest.mark.parametrize("name", ["missing", "merged/missing", "blocked/child"])
@@ -255,7 +270,7 @@ def test_filesystem_rooted_lookup_and_validation(
 
 
 def test_git_layer_and_symlink(tmp_path: Path):
-    with Repo.init_bare(tmp_path) as git_repo:
+    with DulwichRepo.init_bare(tmp_path) as git_repo:
         blob = Blob.from_string(b"git fallback")
         link = Blob.from_string(b"shared")
         tree = Tree()
@@ -270,7 +285,11 @@ def test_git_layer_and_symlink(tmp_path: Path):
         commit.message = b"Overlay layer"
         for obj in [blob, link, tree, commit]:
             git_repo.object_store.add_object(obj)
-        repo = OverlayRepo([PythonClassFakeRepo(Upper), git_repo])
+        repo = OverlayRepo([
+            EmptyRepo(), PythonClassFakeRepo(Upper), GitRepo(git_repo)])
+        assert repo.has_revision(commit.id)
+        assert not repo.has_revision(b"0" * 40)
+        assert not repo.has_revision(NoRevisionNeeded)
         assert get_repo_blob(repo, "shared", commit.id).data == b"upper"
         assert get_repo_blob(repo, "fallback", commit.id).data == b"git fallback"
         targets: list[str] = []
@@ -289,7 +308,7 @@ def symlink_overlay(
     })
     git_path = tmp_path / "git"
     git_path.mkdir()
-    with Repo.init_bare(git_path) as git_repo:
+    with DulwichRepo.init_bare(git_path) as git_repo:
         files = {
             "chain": (0o120000, b"middle/link"),
             "middle/link": (0o120000, b"../shared"),
@@ -306,7 +325,8 @@ def symlink_overlay(
             "escape": (0o120000, b"../shared"),
             "invalid": (0o120000, b"\xff"),
             "empty": (0o120000, b""),
-            "nul": (0o120000, b"shared\x00"),
+            # "nul" would resolve to a device in the Windows filesystem layer.
+            "embedded-nul": (0o120000, b"shared\x00"),
             "dangling": (0o120000, b"missing"),
             "cycle": (0o120000, b"cycle"),
         }
@@ -332,7 +352,7 @@ def symlink_overlay(
         commit.author_timezone = commit.commit_timezone = 0
         commit.message = b"Overlay symlinks"
         git_repo.object_store.add_object(commit)
-        layers: list[Repo_ish] = [PythonClassFakeRepo(Upper), git_repo]
+        layers: list[Repo] = [PythonClassFakeRepo(Upper), GitRepo(git_repo)]
         if request.param:
             layers = [OverlayRepo(layers)]
         yield OverlayRepo([override, *layers]), commit.id
@@ -386,7 +406,7 @@ def test_overlay_symlink_targets_obey_masking(
     ("escape", "outside the course root", []),
     ("invalid", "invalid symlink target", []),
     ("empty", "invalid symlink target", []),
-    ("nul", "invalid symlink target", []),
+    ("embedded-nul", "invalid symlink target", []),
     ("dangling", "not found", ["missing"]),
     ("cycle", "symlink nesting depth exceeded", ["cycle"] * 20),
 ])
