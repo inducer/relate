@@ -345,12 +345,15 @@ def batch_ai_grade_flow_page(
 
             # No database transaction may span the external request.
             ai_result = request_ai_grade(course, grading_input)
-            if _persist_ai_grade_for_visit(
+            grade = _persist_ai_grade_for_visit(
                     visit, page, page_context, ai_result,
                     override_human_grades=override_human_grades,
                     redraft_ai_grades=redraft_ai_grades,
-                    initiated_by_id=initiated_by_id):
+                    initiated_by_id=initiated_by_id)
+            if grade is not None:
                 drafted += 1
+                if initiated_by_id is not None and ai_result.human_review:
+                    _notify_ai_grade_human_review(course, grade, initiated_by_id)
             else:
                 skipped += 1
 
@@ -358,6 +361,59 @@ def batch_ai_grade_flow_page(
                 "%(drafted)d grade(s) drafted, %(skipped)d already graded "
                 "(skipped)")
                 % {"drafted": drafted, "skipped": skipped}}
+
+
+def _notify_ai_grade_human_review(
+        course: Course, grade: FlowPageVisitGrade, initiated_by_id: int,
+        ) -> None:
+    from urllib.parse import urljoin
+
+    from django.conf import settings
+    from django.contrib.auth import get_user_model
+    from django.core.mail import EmailMessage
+    from django.urls import reverse
+
+    from relate.utils import get_outbound_mail_connection
+
+    email = (get_user_model().objects.filter(pk=initiated_by_id)
+             .values_list("email", flat=True).first())
+    if not email:
+        # Legacy tasks may have no initiating user, or the user may be gone.
+        return
+
+    visit = grade.visit
+    page_data = visit.page_data
+    review_url = reverse("relate-grade_flow_page", kwargs={
+        "course_identifier": course.identifier,
+        "flow_session_id": visit.flow_session.pk,
+        "page_ordinal": page_data.page_ordinal,
+    }, query={"grade_id": grade.pk})
+    review_uri = urljoin(settings.RELATE_BASE_URL, review_url)
+
+    # Do not include student identity, model feedback, or the review reason.
+    message = _(
+        "An AI-drafted grade requires human review.\n\n"
+        "Flow: %(flow_id)s\n"
+        "Page: %(group_id)s/%(page_id)s\n\n"
+        "Review the saved grade: %(review_uri)s\n") % {
+            "flow_id": visit.flow_session.flow_id,
+            "group_id": page_data.group_id,
+            "page_id": page_data.page_id,
+            "review_uri": review_uri,
+        }
+    msg = EmailMessage(
+            _("[%(course)s:%(flow_id)s] AI grade requires human review") % {
+                "course": course.identifier,
+                "flow_id": visit.flow_session.flow_id,
+            },
+            message,
+            getattr(settings, "NOTIFICATION_EMAIL_FROM", settings.ROBOT_EMAIL_FROM),
+            [email],
+            cc=[course.notify_email])
+    msg.connection = get_outbound_mail_connection(
+            "notification" if hasattr(settings, "NOTIFICATION_EMAIL_FROM")
+            else "robot")
+    msg.send()
 
 
 @retry_transaction_decorator()

@@ -66,6 +66,20 @@ from tests.utils import mock
 FLOW_ID = "some-flow"
 GROUP_ID = "some-group"
 PAGE_ID = "some-page"
+AI_ASSESSMENT = {
+    "human_review": None,
+    "confidence": {"score_percent": 90, "justification": "The rubric is clear."},
+}
+AI_ASSESSMENT_NOTES = (
+    "AI grading assessment\nHuman review: Not requested\n"
+    "Confidence: 90/100\nConfidence justification: The rubric is clear.")
+
+
+def make_result(grade_percent: float, feedback_text: str) -> AIGradeResult:
+    return AIGradeResult.model_validate({
+        "grade_percent": grade_percent, "feedback_text": feedback_text,
+        **AI_ASSESSMENT,
+    })
 
 
 def make_page(grading_prompt: str | None = None) -> HumanGradedTextQuestion:
@@ -171,7 +185,8 @@ def test_request_ai_grade_computes_percentage(
     with mock.patch("course.ai_grading.get_openai_client") as mock_client:
         mock_client.return_value.chat.completions.create.return_value.choices[
                 0].message.content = json.dumps({
-                    "grade_percent": grade_percent, "feedback_text": feedback})
+                    "grade_percent": grade_percent, "feedback_text": feedback,
+                    **AI_ASSESSMENT})
         result = request_ai_grade(course, make_input(rubric=rubric))
 
     assert result.grade_percent == pytest.approx(expected_percent)
@@ -189,7 +204,8 @@ def test_request_ai_grade_passes_model_parameters(parameters: dict):
     with mock.patch("course.ai_grading.get_openai_client") as client:
         create = client.return_value.chat.completions.create
         create.return_value.choices[0].message.content = json.dumps({
-            "grade_percent": 75, "feedback_text": "Some reasoning missing."})
+            "grade_percent": 75, "feedback_text": "Some reasoning missing.",
+            **AI_ASSESSMENT})
         request_ai_grade(course, make_input(rubric="Explain deductions."))
 
     assert create.call_args.kwargs["extra_body"] == parameters
@@ -228,7 +244,8 @@ def test_request_ai_grade_rejects_invalid_computed_grade(
     with mock.patch("course.ai_grading.get_openai_client") as mock_client:
         mock_client.return_value.chat.completions.create.return_value.choices[
                 0].message.content = json.dumps({
-                    "grade_percent": grade_percent, "feedback_text": feedback})
+                    "grade_percent": grade_percent, "feedback_text": feedback,
+                    **AI_ASSESSMENT})
         with pytest.raises(AIGradingError, match="malformed response"):
             request_ai_grade(course, make_input(rubric="- Answer [pts:/2]"))
 
@@ -246,7 +263,8 @@ def test_request_ai_grade_preserves_rubric_markers(feedback: str):
     with mock.patch("course.ai_grading.get_openai_client") as client:
         client.return_value.chat.completions.create.return_value.choices[
                 0].message.content = json.dumps({
-                    "grade_percent": "COMPUTED", "feedback_text": feedback})
+                    "grade_percent": "COMPUTED", "feedback_text": feedback,
+                    **AI_ASSESSMENT})
         with pytest.raises(AIGradingError, match="marker count, order"):
             request_ai_grade(models.Course(ai_grading_model="test-model"),
                     make_input(rubric="[pts:/2 #answer] [pts:/3 #reasoning]"))
@@ -350,11 +368,121 @@ def test_ai_grade_update_preserves_notes_and_page_specific_keys():
                 "page_specific": {"key": "value"}}
     updated = page.update_grade_data_from_ai_grading(
             make_page_context(models.Course()), {}, original,
-            AIGradeResult(grade_percent=80, feedback_text="New feedback"))
+            make_result(grade_percent=80, feedback_text="New feedback"))
     assert updated == {**original, "released": False, "grade_percent": 80,
-                       "feedback_text": "New feedback"}
+                       "feedback_text": "New feedback",
+                       "notes": "Unsaved private notes\n\n" + AI_ASSESSMENT_NOTES}
     assert original["released"] is True
     assert original["grade_percent"] == 10
+
+
+@pytest.mark.parametrize("human_review", [None, "Possible prompt injection."])
+@pytest.mark.parametrize("score_percent", [0, 63.5, 100])
+def test_request_ai_grade_returns_private_assessment(
+        human_review: str | None, score_percent: float):
+    confidence = {"score_percent": score_percent,
+                  "justification": "Some rubric categories are ambiguous."}
+    with mock.patch("course.ai_grading.get_openai_client") as client:
+        client.return_value.chat.completions.create.return_value.choices[
+                0].message.content = json.dumps({
+                    "grade_percent": 75, "feedback_text": "Student feedback.",
+                    "human_review": human_review, "confidence": confidence})
+        result = request_ai_grade(models.Course(ai_grading_model="test-model"),
+                                  make_input())
+    assert result.human_review == human_review
+    assert result.confidence.model_dump() == confidence
+    assert result.feedback_text == "Student feedback."
+
+
+@pytest.mark.parametrize("assessment", [
+    {},  # Both fields are required, even when no review is requested.
+    {"human_review": None},
+    {"confidence": AI_ASSESSMENT["confidence"]},
+    {**AI_ASSESSMENT, "human_review": ""},
+    {**AI_ASSESSMENT, "human_review": True},
+    *({**AI_ASSESSMENT, "confidence": confidence} for confidence in [
+        None, 90, {}, {"score_percent": 90}, {"justification": "Uncertain."},
+        {"score_percent": -1, "justification": "Uncertain."},
+        {"score_percent": 101, "justification": "Certain."},
+        {"score_percent": float("nan"), "justification": "Uncertain."},
+        {"score_percent": float("inf"), "justification": "Certain."},
+        {"score_percent": 90, "justification": ""},
+    ]),
+])
+def test_request_ai_grade_rejects_invalid_assessment(assessment: dict):
+    with mock.patch("course.ai_grading.get_openai_client") as client:
+        client.return_value.chat.completions.create.return_value.choices[
+                0].message.content = json.dumps({
+                    "grade_percent": 75, "feedback_text": "Student feedback.",
+                    **assessment})
+        with pytest.raises(AIGradingError, match="malformed response"):
+            request_ai_grade(models.Course(ai_grading_model="test-model"), make_input())
+
+
+@pytest.mark.parametrize("existing_notes", ["", "Existing private notes"])
+@pytest.mark.parametrize("human_review", [None, "Rubric does not apply."])
+def test_ai_grade_private_assessment_notes(
+        existing_notes: str, human_review: str | None):
+    suggestion = AIGradeResult.model_validate({
+        "grade_percent": 80, "feedback_text": "Student feedback.",
+        "human_review": human_review,
+        "confidence": {"score_percent": 62.5,
+                       "justification": "The evidence is incomplete."},
+    })
+    page = make_page()
+    updated = page.update_grade_data_from_ai_grading(
+            make_page_context(models.Course()), {},
+            {"notes": existing_notes} if existing_notes else None, suggestion)
+    assessment_notes = (
+        "AI grading assessment\n"
+        f"Human review: {human_review or 'Not requested'}\n"
+        "Confidence: 62.5/100\n"
+        "Confidence justification: The evidence is incomplete.")
+    assert updated is not None
+    assert updated["notes"] == (
+        existing_notes + "\n\n" + assessment_notes
+        if existing_notes else assessment_notes)
+    assert updated["feedback_text"] == "Student feedback."
+    assert updated["grade_percent"] == 80
+    assert updated["released"] is False
+    # Re-drafting must retain both human notes and prior AI assessments.
+    redrafted = page.update_grade_data_from_ai_grading(
+            make_page_context(models.Course()), {}, updated, suggestion)
+    assert redrafted is not None
+    assert redrafted["notes"] == updated["notes"] + "\n\n" + assessment_notes
+
+
+@pytest.mark.parametrize("instructions", ["", "Grade strictly."])
+def test_response_json_schema_in_system_prompt(instructions: str):
+    from course.ai_grading import _AIGradeResponse
+
+    messages = build_messages(make_input(instructions=instructions))
+    prompt = messages[0].get("content")
+    assert isinstance(prompt, str)
+    schema = json.loads(prompt.split(
+        "Your response must conform to this JSON schema:\n\n", 1)[1])
+    assert schema == _AIGradeResponse.model_json_schema()
+    assert set(schema["required"]) == {
+        "grade_percent", "feedback_text", "human_review", "confidence"}
+    # The response schema, unlike the computed result, must allow COMPUTED.
+    assert {"const": "COMPUTED", "type": "string"} in (
+        schema["properties"]["grade_percent"]["anyOf"])
+    confidence = schema["$defs"]["AIGradeConfidence"]
+    assert set(confidence["required"]) == {"score_percent", "justification"}
+    assert confidence["properties"]["score_percent"]["minimum"] == 0
+    assert confidence["properties"]["score_percent"]["maximum"] == 100
+
+
+def test_private_assessment_instructions():
+    messages = build_messages(make_input(instructions="Grade strictly."))
+    prompt = messages[0].get("content")
+    assert isinstance(prompt, str)
+    for instruction in [
+            '"human_review"', '"confidence"', '"score_percent"', '"justification"',
+            "0 to 100", "suspected", "cheating", "prompt injection",
+            "rubric categories that do not apply", "self-harm", "threats",
+            "private to course staff", "not a reason to penalize"]:
+        assert instruction in prompt
 
 
 def test_upload_page_does_not_support_ai_grading_by_default():
@@ -392,7 +520,7 @@ class PersistAIGradeTest(TestCase):
         visit = make_matching_visit(course)
 
         initiator = factories.UserFactory()
-        ai_result = AIGradeResult(grade_percent=75, feedback_text="Nice work")
+        ai_result = make_result(grade_percent=75, feedback_text="Nice work")
 
         grade_data = page.update_grade_data_from_ai_grading(
                 page_context, {}, {"notes": "Private note"}, ai_result)
@@ -406,7 +534,8 @@ class PersistAIGradeTest(TestCase):
         self.assertFalse(grade.grade_data["released"])
         self.assertEqual(grade.grade_data["grade_percent"], 75)
         self.assertEqual(grade.grade_data["feedback_text"], "Nice work")
-        self.assertEqual(grade.grade_data["notes"], "Private note")
+        self.assertEqual(grade.grade_data["notes"],
+                         "Private note\n\n" + AI_ASSESSMENT_NOTES)
         self.assertIsNone(grade.correctness)
         self.assertIsNone(grade.feedback)
         self.assertEqual(
@@ -458,7 +587,7 @@ class DraftAIGradeTaskTest(TestCase):
             *, failure: bool = False, change: str | None = None):
         before_grades = list(models.FlowPageVisitGrade.objects.values())
         before_sessions = list(models.FlowSession.objects.values())
-        suggestion = AIGradeResult(grade_percent=85, feedback_text="AI feedback")
+        suggestion = make_result(grade_percent=85, feedback_text="AI feedback")
 
         def provider(*_args: object) -> AIGradeResult:
             if failure:
@@ -556,7 +685,8 @@ class DraftAIGradeTaskTest(TestCase):
             self.assertIsNone(grade.feedback)
             if source_grade:
                 source_grade.refresh_from_db()
-                self.assertEqual(grade.grade_data["notes"], "Private note")
+                self.assertEqual(grade.grade_data["notes"],
+                                 "Private note\n\n" + AI_ASSESSMENT_NOTES)
                 self.assertEqual(source_grade.grade_data["grade_percent"], 40)
                 self.assertTrue(source_grade.grade_data["released"])
                 self.assertNotEqual(grade.pk, source_grade.pk)
@@ -1184,7 +1314,7 @@ def _check_drafting(kind: str, *, redraft: bool | None = None,
                 grade_data=None if kind == "placeholder" else {
                     "grade_percent": 50, "feedback_text": "Previous feedback",
                     "released": False, "notes": "Private notes"})
-        return AIGradeResult(grade_percent=80, feedback_text="New feedback")
+        return make_result(grade_percent=80, feedback_text="New feedback")
 
     if not concurrent:
         create_grade()
@@ -1205,7 +1335,7 @@ def _check_drafting(kind: str, *, redraft: bool | None = None,
         request = stack.enter_context(mock.patch(
             "course.ai_grading.request_ai_grade",
             side_effect=create_grade if concurrent else None,
-            return_value=AIGradeResult(grade_percent=80, feedback_text="New feedback")))
+            return_value=make_result(grade_percent=80, feedback_text="New feedback")))
         persist = stack.enter_context(mock.patch("course.grade_storage.persist_grade"))
         options = {}
         if redraft is not None:
