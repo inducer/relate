@@ -1,0 +1,33 @@
+server {
+  listen *:80;
+  listen [::]:80;
+  server_name {{relate_server_name}};
+
+  rewrite ^ https://$server_name$request_uri? permanent;  # enforce https
+
+  add_header X-Frame-Options SAMEORIGIN;
+}
+
+server {
+  listen *:443 ssl;
+  listen [::]:443 ssl;
+
+  ssl_certificate {{ relate_cert.cert }};
+  ssl_certificate_key {{ relate_cert.key }};
+
+  client_max_body_size 100M;
+
+  location / {
+    include uwsgi_params;
+    uwsgi_read_timeout 300;
+    uwsgi_pass unix:/tmp/uwsgi-relate.sock;
+  }
+  location /static {
+    alias /home/relate/relate/static;
+  }
+  location /media {
+    alias /home/relate/relate/media;
+  }
+
+  add_header X-Frame-Options SAMEORIGIN;
+}
