@@ -533,6 +533,44 @@ answers:
         - <plain>bar
 """
 
+INLINE_MULTI_MARKDOWN_BLOCK_BLANKS = """
+type: InlineMultiQuestion
+id: inlinemulti
+value: 10
+prompt: |
+
+    # An InlineMultiQuestion example
+
+    Questions with blanks on their own paragraphs.
+
+question: |
+
+    Text before the first blank.
+
+    [[blank1]]
+
+    Text between the two blanks.
+
+    [[blank2]]
+
+answers:
+
+    blank1:
+        type: ShortAnswer
+        width: 4em
+        correct_answer:
+        - <plain> FOO
+        - <plain>foo
+
+    blank2:
+        type: ShortAnswer
+        width: 4em
+        correct_answer:
+        - <plain> BAR
+        - <plain>bar
+
+"""
+
 INLINE_MULTI_MARKDOWN_NO_ANSWER_FIELD = """
 type: InlineMultiQuestion
 id: inlinemulti
@@ -850,6 +888,54 @@ class InlineMultiQuestionTest(SingleCoursePageSandboxTestBaseMixin, TestCase):
 
         # There's no html string between rendered blank1 field and blank2 field
         self.assertIn('</div> <div id="div_id_blank2"', resp.content.decode())
+
+    def test_block_blank_no_flex_container_on_text_paragraphs(self):
+        """Regression test: text-only paragraphs must not be wrapped in a
+        flex (``input-group``) container when blanks appear on their own
+        paragraphs (i.e. separated from surrounding text by blank lines)."""
+        markdown = INLINE_MULTI_MARKDOWN_BLOCK_BLANKS
+        resp = self.get_page_sandbox_preview_response(markdown)
+        self.assertEqual(resp.status_code, 200)
+        self.assertSandboxHasValidPage(resp)
+
+        content = resp.content.decode()
+
+        # Text-only paragraphs must keep their <p> wrapper and must NOT
+        # be placed inside an ``input-group`` flex container.
+        self.assertIn("<p>Text before the first blank.</p>", content)
+        self.assertIn("<p>Text between the two blanks.</p>", content)
+
+        # The text paragraphs must not be inside flex containers.
+        self.assertNotIn(
+            'class="input-group gap-1 align-items-center">'
+            "Text before the first blank.",
+            content)
+        self.assertNotIn(
+            'class="input-group gap-1 align-items-center">'
+            "Text between the two blanks.",
+            content)
+
+        # The form fields must still be present.
+        self.assertIn('id="div_id_blank1"', content)
+        self.assertIn('id="div_id_blank2"', content)
+
+        # Submitting correct answers should work normally.
+        resp = self.get_page_sandbox_submit_answer_response(
+            markdown,
+            answer_data={"blank1": "foo", "blank2": "bar"})
+        self.assertResponseContextAnswerFeedbackCorrectnessEquals(resp, 1)
+
+    def test_inline_blank_uses_flex_container(self):
+        """Blanks appearing inline with text (on the same paragraph line)
+        must still be wrapped in a flex container for proper inline layout."""
+        markdown = INLINE_MULTI_MARKDOWN_SINGLE
+        resp = self.get_page_sandbox_preview_response(markdown)
+        self.assertEqual(resp.status_code, 200)
+        self.assertSandboxHasValidPage(resp)
+
+        content = resp.content.decode()
+        # The paragraph with an inline blank should be wrapped in a flex container.
+        self.assertIn('class="input-group gap-1 align-items-center', content)
 
     def test_embedded_weight_count(self):
         markdown = (INLINE_MULTI_MARKDOWN_EMBEDDED_ATTR_PATTERN
