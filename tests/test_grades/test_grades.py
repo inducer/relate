@@ -617,8 +617,19 @@ class GetGradeTableTest(GradesTestMixin, TestCase):
             gchange_kwargs = kwarg_list.pop(0)
             factories.GradeChangeFactory(**gchange_kwargs)
 
-        participations, grading_opps, grade_table = (
+        stats_participations, stats_grading_opps, stats_grade_table = (
             grades.get_grade_table(self.course))
+        self.assertEqual(stats_participations, [
+            self.student_participation, self.ptpt1, self.ptpt2])
+
+        participations, grading_opps, grade_table = (
+            grades.get_grade_table(self.course, stats_only=False))
+        self.assertEqual(stats_grading_opps, grading_opps)
+        self.assertEqual(
+            [[info.grade_state_machine.percentage() for info in row]
+             for row in stats_grade_table],
+            [[info.grade_state_machine.percentage() for info in row]
+             for row in grade_table[2:]])
 
         self.assertEqual(
             participations, [
@@ -882,8 +893,8 @@ class ViewGradesByOpportunityTest(GradesTestMixin, TestCase):
 
         resp = self.get_gradebook_by_opp_view(self.gopp_id)
         self.assertEqual(resp.status_code, 200)
-        # The instructor and ta didn't start the session
-        self.assertContains(resp, not_started, count=2, html=True)
+        # The instructor and TA are excluded from grade statistics by default.
+        self.assertContains(resp, not_started, count=0, html=True)
 
         self.assertContains(resp, finished, count=2, html=True)
         self.assertContains(resp, unfinished, count=1, html=True)
@@ -904,7 +915,7 @@ class ViewGradesByOpportunityTest(GradesTestMixin, TestCase):
 
         resp = self.get_gradebook_by_opp_view(self.gopp_id)
         self.assertEqual(resp.status_code, 200)
-        self.assertContains(resp, not_started, count=3, html=True)
+        self.assertContains(resp, not_started, count=1, html=True)
         self.assertContains(resp, finished, count=0, html=True)
         self.assertContains(resp, unfinished, count=0, html=True)
 

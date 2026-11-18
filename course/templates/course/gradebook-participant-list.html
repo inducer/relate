@@ -12,6 +12,8 @@
 
   <a href="{% url "relate-edit_participation" course.identifier -1 %}" class="btn btn-outline-secondary">{% trans "Add participant" %}</a>
 
+  {% include "course/gradebook-participant-toggle.html" %}
+
   {% include "course/participation-table.html" with participations=participations %}
 
 {% endblock %}

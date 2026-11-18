@@ -33,7 +33,7 @@
           {% endif %}
         ">
         <td class="datacol" data-order="{{ opp.identifier }}">
-          <a href="{% url "relate-view_grades_by_opportunity" course.identifier opp.id %}">{{ opp.name }}</a>
+          <a href="{% url "relate-view_grades_by_opportunity" course.identifier opp.id %}?stats_only_participants={{ request.GET.stats_only_participants|default:'1' }}">{{ opp.name }}</a>
           <span style="font-size:x-small">(<tt>{{ opp.identifier }}</tt>)</span>
         </td>
         {% if pperm.edit_grading_opportunity %}

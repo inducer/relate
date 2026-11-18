@@ -8,6 +8,8 @@
 {% block content %}
   <h1>{% trans "Grade book" %}</h1>
 
+  {% include "course/gradebook-participant-toggle.html" %}
+
   <table class="table table-striped gradebook ">
     <thead>
     {% if not pperm.view_participant_masked_profile %}
@@ -17,13 +19,13 @@
         <th class="datacol">{% trans "User" %}</th>
     {% endif %}
       {% for opp in grading_opportunities reversed %}
-      <th class="datacol"><a href="{% url "relate-view_grades_by_opportunity" course.identifier opp.pk %}">{{ opp.name }}</a> <tt style="font-size:x-small">({{ opp.identifier }})</tt></th>
+      <th class="datacol"><a href="{% url "relate-view_grades_by_opportunity" course.identifier opp.pk %}?stats_only_participants={{ request.GET.stats_only_participants|default:'1' }}">{{ opp.name }}</a> <tt style="font-size:x-small">({{ opp.identifier }})</tt></th>
       {% endfor %}
     </thead>
     <tbody>
       {% for participation, grades in grade_table %}
       <tr>
-        <td class="headcol"><a href="{% url "relate-view_participant_grades" course.identifier participation.id %}">
+        <td class="headcol"><a href="{% url "relate-view_participant_grades" course.identifier participation.id %}?stats_only_participants={{ request.GET.stats_only_participants|default:'1' }}">
             <span class="sensitive">
                 {% if not pperm.view_participant_masked_profile %}
                     {{ participation.user.username }}
@@ -55,7 +57,7 @@
             data-order="-1"
             {% endif %}
                       >
-            <a href="{% url "relate-view_single_grade" course.identifier participation.id grade_info.opportunity.id %}"
+            <a href="{% url "relate-view_single_grade" course.identifier participation.id grade_info.opportunity.id %}?stats_only_participants={{ request.GET.stats_only_participants|default:'1' }}"
                ><span class="sensitive">{{ grade_info.grade_state_machine.stringify_state }}</span></a>
           </td>
         {% endfor %}

@@ -63,7 +63,7 @@
         <td data-order="{{ grade_info.opportunity.identifier }}">{{ grade_info.opportunity.name }}</td>
         {% if grade_info.opportunity.result_shown_in_participant_grade_book %}
           <td data-order="{{ gsm.stringify_percentage }}">
-            <a href="{% url "relate-view_single_grade" course.identifier grade_participation.id grade_info.opportunity.id %}"
+            <a href="{% url "relate-view_single_grade" course.identifier grade_participation.id grade_info.opportunity.id %}?stats_only_participants={{ request.GET.stats_only_participants|default:'1' }}"
              ><span class="sensitive">{{ gsm.stringify_state }}</span></a>
           </td>
           <td
@@ -98,5 +98,3 @@
   </script>
   {{ block.super }}
 {% endblock %}
-
-

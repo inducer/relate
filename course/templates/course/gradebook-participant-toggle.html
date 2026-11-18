@@ -1,0 +1,11 @@
+{% load i18n %}
+
+<div class="mb-3">
+  {% if request.GET.stats_only_participants != '0' %}
+    <span class="text-muted">{% trans "Showing participants who count toward statistics." %}</span>
+    <a class="btn btn-outline-secondary btn-sm" href="{% querystring stats_only_participants='0' %}">{% trans "Show all participants" %}</a>
+  {% else %}
+    <span class="text-muted">{% trans "Showing all participants." %}</span>
+    <a class="btn btn-outline-secondary btn-sm" href="{% querystring stats_only_participants='1' %}">{% trans "Show only participants who count toward statistics" %}</a>
+  {% endif %}
+</div>

@@ -11,6 +11,8 @@
 {% block content %}
   <h1>{% trans "Grade book" %}: {{ opportunity.name }} </h1>
 
+  {% include "course/gradebook-participant-toggle.html" %}
+
   <table class="table table-condensed">
     <thead>
       <th>{% trans "Property" %}</th><th>{% trans "Value" %}</th>
@@ -57,11 +59,11 @@
         {% endif %}
         {% if not view_page_grades %}
             <a class="btn btn-secondary" role="button"
-              href="{% url "relate-view_grades_by_opportunity" course.identifier opportunity.id %}?view_page_grades=1">
+              href="{% url "relate-view_grades_by_opportunity" course.identifier opportunity.id %}{% querystring view_page_grades='1' %}">
               {% trans "View page grades" %}</a>
         {% else %}
             <a class="btn btn-secondary" role="button"
-              href="{% url "relate-view_grades_by_opportunity" course.identifier opportunity.id %}">
+              href="{% url "relate-view_grades_by_opportunity" course.identifier opportunity.id %}{% querystring view_page_grades=None %}">
               {% trans "Hide page grades" %}</a>
         {% endif %}
         {% if pperm.batch_download_submission %}
@@ -134,7 +136,7 @@
       {% for participation, grade_info in grade_table %}
       <tr>
         <th class="headcol">
-          <a href="{% url "relate-view_single_grade" course.identifier participation.id opportunity.id %}"><span class="sensitive">
+          <a href="{% url "relate-view_single_grade" course.identifier participation.id opportunity.id %}?stats_only_participants={{ request.GET.stats_only_participants|default:'1' }}"><span class="sensitive">
               {% if not pperm.view_participant_masked_profile %}
                   {{ participation.user.username }}
               {% else %}
@@ -173,7 +175,7 @@
             {% if page_idx == None %}
               &mdash;
             {% else %}
-              <a href="{% url "relate-grade_flow_page" course.identifier grade_info.flow_session.id page_idx %}">
+              <a href="{% url "relate-grade_flow_page" course.identifier grade_info.flow_session.id page_idx %}?stats_only_participants={{ request.GET.stats_only_participants|default:'1' }}">
                 {% if grade != None and grade.percentage != None %}
                   {{ grade.percentage|floatformat:"-2" }}%
                 {% else %}
@@ -242,7 +244,7 @@
           {% endif %}
           >
           {% if grade_info.grade_state_machine != None %}
-            <a href="{% url "relate-view_single_grade" course.identifier participation.id opportunity.id %}">
+            <a href="{% url "relate-view_single_grade" course.identifier participation.id opportunity.id %}?stats_only_participants={{ request.GET.stats_only_participants|default:'1' }}">
               <span class="sensitive">{{ grade_info.grade_state_machine.stringify_state }}</span></a>
           {% endif %}
         </td>
