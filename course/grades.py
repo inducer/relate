@@ -53,6 +53,7 @@ from course.constants import (
     ParticipationStatus,
 )
 from course.flow import adjust_flow_session_page_data
+from course.gradebook import get_gradebook_participations, stats_only_participants
 from course.models import (
     FlowPageVisit,
     FlowSession,
@@ -173,13 +174,12 @@ def view_participant_grades(pctx, participation_id=None):
 # {{{ participant list
 
 @course_view
-def view_participant_list(pctx):
+def view_participant_list(pctx: CoursePageContext) -> http.HttpResponse:
     if not pctx.has_permission(PPerm.view_gradebook):
         raise PermissionDenied(_("may not view grade book"))
 
-    participations = list(Participation.objects
-            .filter(
-                course=pctx.course)
+    participations = list(get_gradebook_participations(
+                pctx.course, stats_only_participants(pctx.request))
             .order_by("id")
             .select_related("user"))
 
@@ -218,7 +218,7 @@ class GradeInfo:
     grade_state_machine: GradeStateMachine
 
 
-def get_grade_table(course: Course) -> tuple[
+def get_grade_table(course: Course, stats_only: bool = True) -> tuple[
         list[Participation], list[GradingOpportunity], list[list[GradeInfo]]]:
 
     # NOTE: It's important that these queries are sorted consistently,
@@ -230,10 +230,8 @@ def get_grade_table(course: Course) -> tuple[
                 )
             .order_by("identifier"))
 
-    participations = list(Participation.objects
-            .filter(
-                course=course,
-                status=ParticipationStatus.active)
+    participations = list(get_gradebook_participations(course, stats_only)
+            .filter(status=ParticipationStatus.active)
             .order_by("id")
             .select_related("user"))
 
@@ -289,11 +287,12 @@ def get_grade_table(course: Course) -> tuple[
 
 
 @course_view
-def view_gradebook(pctx):
+def view_gradebook(pctx: CoursePageContext) -> http.HttpResponse:
     if not pctx.has_permission(PPerm.view_gradebook):
         raise PermissionDenied(_("may not view grade book"))
 
-    participations, grading_opps, grade_table = get_grade_table(pctx.course)
+    participations, grading_opps, grade_table = get_grade_table(
+            pctx.course, stats_only_participants(pctx.request))
 
     def grade_key(entry):
         (participation, _grades) = entry
@@ -311,11 +310,12 @@ def view_gradebook(pctx):
 
 
 @course_view
-def export_gradebook_csv(pctx):
+def export_gradebook_csv(pctx: CoursePageContext) -> http.HttpResponse:
     if not pctx.has_permission(PPerm.batch_export_grade):
         raise PermissionDenied(_("may not batch-export grades"))
 
-    participations, grading_opps, grade_table = get_grade_table(pctx.course)
+    participations, grading_opps, grade_table = get_grade_table(
+            pctx.course, stats_only_participants(pctx.request))
 
     from io import StringIO
     csvfile = StringIO()
@@ -612,10 +612,9 @@ def view_grades_by_opportunity(
     # NOTE: It's important that these queries are sorted consistently,
     # also consistently with the code below.
 
-    participations = list(Participation.objects
-            .filter(
-                course=pctx.course,
-                status=ParticipationStatus.active)
+    participations = list(get_gradebook_participations(
+                pctx.course, stats_only_participants(pctx.request))
+            .filter(status=ParticipationStatus.active)
             .order_by("id")
             .select_related("user"))
 

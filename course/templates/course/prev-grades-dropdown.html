@@ -6,9 +6,9 @@
   {% for grade in prev_grades %}
     <li>
       {% if forloop.first %}
-        <a class="dropdown-item" href="?">
+        <a class="dropdown-item" href="?stats_only_participants={{ request.GET.stats_only_participants|default:'1' }}">
       {% else %}
-        <a class="dropdown-item" href="?grade_id={{ grade.id }}">
+        <a class="dropdown-item" href="?grade_id={{ grade.id }}&amp;stats_only_participants={{ request.GET.stats_only_participants|default:'1' }}">
       {% endif %}
         {% if grade.id == prev_grade_id %}<b>{% endif %}
         {{ grade.visit.visit_time }}

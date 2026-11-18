@@ -51,7 +51,7 @@
       <td>{% trans "Flow" %}</td>
       <td>
         {% if show_privileged_info %}
-          <a href="{% url "relate-view_grades_by_opportunity" course.identifier opportunity.id %}"><i class="bi bi-arrow-90deg-up"></i> <tt>{{ opportunity.flow_id }}</tt></a>
+          <a href="{% url "relate-view_grades_by_opportunity" course.identifier opportunity.id %}?stats_only_participants={{ request.GET.stats_only_participants|default:'1' }}"><i class="bi bi-arrow-90deg-up"></i> <tt>{{ opportunity.flow_id }}</tt></a>
           &middot;
         {% endif %}
         <a href="{% url "relate-view_start_flow" course.identifier opportunity.flow_id %}">{% trans "Flow start page" %}</a>
@@ -253,7 +253,7 @@
                           <td>{{ visit.page_data.page_ordinal }}</td>
                           <td>
                             {% if show_privileged_info %}
-                              <a href="{% url "relate-grade_flow_page" course.identifier flow_session.id visit.page_data.page_ordinal %}"><tt>{{ visit.page_data.group_id }}/{{ visit.page_data.page_id }}</tt></a>
+                              <a href="{% url "relate-grade_flow_page" course.identifier flow_session.id visit.page_data.page_ordinal %}?stats_only_participants={{ request.GET.stats_only_participants|default:'1' }}"><tt>{{ visit.page_data.group_id }}/{{ visit.page_data.page_id }}</tt></a>
                             {% else %}
                               {% if visit.page_data.title %}
                                 {% if visit.page_data.bookmarked %}

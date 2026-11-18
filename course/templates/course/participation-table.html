@@ -23,7 +23,7 @@
   <tbody>
     {% for participation in participations %}
     <tr class="relate-participation-{{ participation.status }}">
-      <td class="headcol"><a href="{% url "relate-view_participant_grades" course.identifier participation.id %}">
+      <td class="headcol"><a href="{% url "relate-view_participant_grades" course.identifier participation.id %}?stats_only_participants={{ request.GET.stats_only_participants|default:'1' }}">
           <span class="sensitive">
               {% if not pperm.view_participant_masked_profile %}
                   {{ participation.user.username }}

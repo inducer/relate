@@ -45,6 +45,7 @@ from pydantic import BaseModel, ConfigDict, ValidationError
 from pytools import not_none
 
 from course.constants import ParticipationPermission as PPerm
+from course.gradebook import get_gradebook_participations, stats_only_participants
 from course.models import (
     FlowPageVisitGrade,
     FlowSession,
@@ -337,6 +338,8 @@ def grade_flow_page(
                 course=pctx.course,
                 flow_id=flow_session.flow_id,
                 participation__isnull=False,
+                participation__in=get_gradebook_participations(
+                    pctx.course, stats_only_participants(pctx.request)),
                 in_progress=flow_session.in_progress)
             .order_by(
                 # Datatables will default to sorting the user list

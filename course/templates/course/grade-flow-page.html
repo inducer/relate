@@ -58,6 +58,7 @@
       <h1> {% trans "Grading" %}: <tt>{{ flow_identifier}} - {{ page_data.group_id }}/{{ page_data.page_id }}</tt> </h1>
 
       {% include "base-page-top.html" %}
+      {% include "course/gradebook-participant-toggle.html" %}
 
       {# {{{ header table #}
       <table class="table table-condensed">
@@ -66,7 +67,7 @@
           <tr>
             <td>{% trans "Flow session" %}</td>
             <td>
-              <tt><a href="{% url "relate-view_single_grade" course.identifier flow_session.participation.id grading_opportunity.id %}"><i class="bi bi-arrow-90deg-up"></i> {{ flow_identifier }}</a></tt>
+              <tt><a href="{% url "relate-view_single_grade" course.identifier flow_session.participation.id grading_opportunity.id %}?stats_only_participants={{ request.GET.stats_only_participants|default:'1' }}"><i class="bi bi-arrow-90deg-up"></i> {{ flow_identifier }}</a></tt>
               <span class="sensitive">
               {% if not pperm.view_participant_masked_profile %}
                   {# Translators: the grade information "for" a participant #}
@@ -126,7 +127,7 @@
                 <button
                     class="btn btn-sm btn-outline-secondary dropdown-toggle"
                     type="button" id="past-submission-and-grades_dropdown_button"
-                    hx-get='{% url "relate-get_prev_grades_dropdown_content" course.identifier flow_session.id page_ordinal prev_grade_id %}'
+                    hx-get='{% url "relate-get_prev_grades_dropdown_content" course.identifier flow_session.id page_ordinal prev_grade_id %}?stats_only_participants={{ request.GET.stats_only_participants|default:"1" }}'
                     hx-target="#past-submission-and-grades_dropdown_content"
                     data-bs-toggle="dropdown">
                   {% trans "Past submissions/grades" %}
@@ -176,13 +177,13 @@
         <tr>
           <td>
             {% if prev_flow_session_id != None %}
-              <a href="{% url "relate-grade_flow_page" course.identifier prev_flow_session_id page_data.page_ordinal %}"
+              <a href="{% url "relate-grade_flow_page" course.identifier prev_flow_session_id page_data.page_ordinal %}?stats_only_participants={{ request.GET.stats_only_participants|default:'1' }}"
                  accesskey="p" class="btn btn-secondary" title="Alt/Cmd(+Shift+)p"><i class="bi bi-chevron-left"></i></a>
             {% else %}
               <a href="#" class="btn btn-secondary disabled"><i class="bi bi-chevron-left"></i></a>
             {% endif %}
             {% if next_flow_session_id %}
-              <a href="{% url "relate-grade_flow_page" course.identifier next_flow_session_id page_data.page_ordinal %}"
+              <a href="{% url "relate-grade_flow_page" course.identifier next_flow_session_id page_data.page_ordinal %}?stats_only_participants={{ request.GET.stats_only_participants|default:'1' }}"
                  accesskey="n" class="btn btn-secondary" title="Alt/Cmd+(Shift+)n"><i class="bi bi-chevron-right"></i></a>
             {% else %}
               <a href="#" class="btn btn-secondary disabled"><i class="bi bi-chevron-right"></i></a>
@@ -199,13 +200,13 @@
         <tr>
           <td>
             {% if page_data.page_ordinal > 0 %}
-              <a href="{% url "relate-grade_flow_page" course.identifier flow_session.id page_data.previous_ordinal %}"
+              <a href="{% url "relate-grade_flow_page" course.identifier flow_session.id page_data.previous_ordinal %}?stats_only_participants={{ request.GET.stats_only_participants|default:'1' }}"
                   class="btn btn-secondary"><i class="bi bi-chevron-left"></i></a>
             {% else %}
               <a href="#" class="btn btn-secondary disabled"><i class="bi bi-chevron-left"></i></a>
             {% endif %}
             {% if page_data.next_ordinal < flow_session.page_count %}
-              <a href="{% url "relate-grade_flow_page" course.identifier flow_session.id page_data.next_ordinal %}"
+              <a href="{% url "relate-grade_flow_page" course.identifier flow_session.id page_data.next_ordinal %}?stats_only_participants={{ request.GET.stats_only_participants|default:'1' }}"
                   class="btn btn-secondary"><i class="bi bi-chevron-right"></i></a>
             {% else %}
               <a href="#" class="btn btn-secondary disabled"><i class="bi bi-chevron-right"></i></a>
@@ -215,7 +216,7 @@
           <td>
             {{ page_ordinal }}
             &middot;
-            <a href="{% url "relate-view_flow_page" course.identifier flow_session.id page_ordinal %}">{% trans "View in flow" %}</a>
+            <a href="{% url "relate-view_flow_page" course.identifier flow_session.id page_ordinal %}?stats_only_participants={{ request.GET.stats_only_participants|default:'1' }}">{% trans "View in flow" %}</a>
           </td>
         </tr>
 
@@ -434,13 +435,13 @@
     {% endif %}
 
     {% if page_data.next_ordinal < flow_session.page_count %}
-      var next_page_url = "{% url "relate-grade_flow_page" course.identifier flow_session.id page_data.next_ordinal %}";
+      var next_page_url = "{% url "relate-grade_flow_page" course.identifier flow_session.id page_data.next_ordinal %}?stats_only_participants={{ request.GET.stats_only_participants|default:'1'|escapejs }}";
     {% else %}
       var next_page_url = null;
     {% endif %}
 
     {% if next_flow_session_id %}
-      var next_session_url = "{% url "relate-grade_flow_page" course.identifier next_flow_session_id page_data.page_ordinal %}";
+      var next_session_url = "{% url "relate-grade_flow_page" course.identifier next_flow_session_id page_data.page_ordinal %}?stats_only_participants={{ request.GET.stats_only_participants|default:'1'|escapejs }}";
     {% else %}
       var next_session_url = null;
     {% endif %}
