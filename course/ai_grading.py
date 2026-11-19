@@ -47,6 +47,10 @@ class AIGradingError(RuntimeError):
     """
 
 
+class MalformedAIGradingResponseError(AIGradingError):
+    """Raised when generated output cannot be used to draft a grade."""
+
+
 DEFAULT_AI_GRADING_PROMPT = """
 You are an experienced, fair, and detail-oriented teaching assistant
 grading a student's answer to a course assignment question. Carefully
@@ -232,7 +236,7 @@ def request_ai_grade(
 
     content = response.choices[0].message.content if response.choices else None
     if not content:
-        raise AIGradingError(
+        raise MalformedAIGradingResponseError(
                 _("AI grading endpoint returned an empty response."))
 
     try:
@@ -277,6 +281,6 @@ def request_ai_grade(
                 grade_percent=grade_percent, feedback_text=result.feedback_text,
                 human_review=result.human_review, confidence=result.confidence)
     except ValueError as exc:
-        raise AIGradingError(
+        raise MalformedAIGradingResponseError(
                 _("AI grading endpoint returned a malformed response: %s")
                 % exc) from exc

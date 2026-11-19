@@ -256,10 +256,13 @@ def batch_ai_grade_flow_page(
         override_human_grades: bool = False,
         initiated_by_id: int | None = None,
         redraft_ai_grades: bool = False,
+        retry_count: int = 2,
+        stop_on_malformed_output: bool = False,
         ) -> dict[str, str]:
 
     from course.ai_grading import (
         AIGradingError,
+        MalformedAIGradingResponseError,
         get_openai_client,
         request_ai_grade,
     )
@@ -270,6 +273,9 @@ def batch_ai_grade_flow_page(
         AnswerData,
         PageBaseWithHumanTextFeedback,
     )
+
+    if retry_count < 0:
+        raise ValueError("retry_count must be nonnegative")
 
     course = Course.objects.get(id=course_id)
     with get_course_repo(course) as repo:
@@ -284,10 +290,7 @@ def batch_ai_grade_flow_page(
                 "(or AI) grading.")
                 % {"group_id": group_id, "page_id": page_id}}
 
-        try:
-            get_openai_client(course)
-        except AIGradingError as exc:
-            return {"message": str(exc)}
+        get_openai_client(course)
 
         page_data_objs = (FlowPageData.objects
                 .filter(
@@ -301,6 +304,8 @@ def batch_ai_grade_flow_page(
         n = page_data_objs.count()
         drafted = 0
         skipped = 0
+        failures: list[str] = []
+        first_failure: MalformedAIGradingResponseError | None = None
 
         for i, page_data in enumerate(page_data_objs):
             self.update_state(
@@ -344,7 +349,25 @@ def batch_ai_grade_flow_page(
                 continue
 
             # No database transaction may span the external request.
-            ai_result = request_ai_grade(course, grading_input)
+            ai_result = None
+            for attempt in range(retry_count + 1):
+                try:
+                    ai_result = request_ai_grade(course, grading_input)
+                except MalformedAIGradingResponseError as exc:
+                    if attempt < retry_count:
+                        continue
+                    if stop_on_malformed_output:
+                        raise
+                    failures.append(f"Visit {visit.pk}: {exc}")
+                    if first_failure is None:
+                        first_failure = exc
+                    break
+                else:
+                    break
+
+            if ai_result is None:
+                continue
+
             grade = _persist_ai_grade_for_visit(
                     visit, page, page_context, ai_result,
                     override_human_grades=override_human_grades,
@@ -356,6 +379,12 @@ def batch_ai_grade_flow_page(
                     _notify_ai_grade_human_review(course, grade, initiated_by_id)
             else:
                 skipped += 1
+
+        if failures:
+            raise AIGradingError(
+                    f"{len(failures)} submission(s) failed AI grading after "
+                    f"{retry_count} retries each; {drafted} grade(s) drafted, "
+                    f"{skipped} skipped.\n" + "\n".join(failures)) from first_failure
 
         return {"message": _(
                 "%(drafted)d grade(s) drafted, %(skipped)d already graded "
