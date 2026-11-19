@@ -14,6 +14,6 @@
 
   {% include "course/gradebook-participant-toggle.html" %}
 
-  {% include "course/participation-table.html" with participations=participations %}
+  {% include "course/participation-table.html" with participations=participations preserve_participant_order=True %}
 
 {% endblock %}
