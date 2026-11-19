@@ -177,6 +177,16 @@ class ParticipantFilterViewTests(SingleCoursePageTestMixin, TestCase):
         cls.dropped = factories.ParticipationFactory(
             course=cls.course, roles=list(cls.student_participation.roles.all()),
             status=ParticipationStatus.dropped)
+        # Make username ordering differ from both ID and real-name ordering.
+        for participation, username, last_name in (
+                (cls.instructor_participation, "z-instructor", "A"),
+                (cls.student_participation, "c-student", "B"),
+                (cls.ta_participation, "a-ta", "C"),
+                (cls.dropped, "b-dropped", "D")):
+            user = participation.user
+            user.username = username
+            user.last_name = last_name
+            user.save()
 
     def setUp(self):
         super().setUp()
@@ -228,6 +238,35 @@ class ParticipantFilterViewTests(SingleCoursePageTestMixin, TestCase):
                         self.assertCountEqual(
                             [p for p, _row in response.context["grade_table"]],
                             expected)
+
+    def test_list_views_preserve_username_order(self):
+        for index, url in enumerate(self.list_urls()):
+            for value in FILTER_VALUES:
+                with self.subTest(url=url, value=value):
+                    response = self.client.get(url, filter_query(value))
+                    self.assertEqual(response.status_code, 200)
+                    expected = sorted(self.expected_participations(
+                        value, include_dropped=index == 0),
+                        key=lambda p: p.user.username)
+                    if index == 0:
+                        actual = response.context["participations"]
+                    else:
+                        actual = [p for p, _info in response.context["grade_table"]]
+                    self.assertEqual(actual, expected)
+                    # DataTables must not replace server ordering on initialization.
+                    self.assertContains(response, '"order": []')
+                    links = [urlsplit(link).path
+                             for link in LinkParser(response.content).links]
+                    participant_paths = [reverse(
+                        "relate-view_single_grade" if index == 2
+                        else "relate-view_participant_grades",
+                        args=[self.course.identifier, p.pk, self.opportunity.pk]
+                        if index == 2 else [self.course.identifier, p.pk])
+                        for p in expected]
+                    # Opportunity rows also link to the same participant's overall
+                    # grade; compare the first occurrence for each participant.
+                    self.assertEqual(
+                        sorted(participant_paths, key=links.index), participant_paths)
 
     def test_csv_default_and_explicit_filter(self):
         url = reverse("relate-export_gradebook_csv", args=[self.course.identifier])

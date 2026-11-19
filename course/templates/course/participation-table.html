@@ -65,6 +65,9 @@
         "scrollCollapse": true,
         "paging": false,
         "ordering": true,
+        {% if preserve_participant_order %}
+        "order": [],
+        {% endif %}
         "columnDefs": [{ type: 'name', targets: 1 }],
         "language": rlDataTables.getI18nTable('{{ LANG}}'),
     } );

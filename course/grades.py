@@ -180,7 +180,7 @@ def view_participant_list(pctx: CoursePageContext) -> http.HttpResponse:
 
     participations = list(get_gradebook_participations(
                 pctx.course, stats_only_participants(pctx.request))
-            .order_by("id")
+            .order_by("user__username")
             .select_related("user"))
 
     return render_course_page(pctx, "course/gradebook-participant-list.html", {
@@ -294,10 +294,9 @@ def view_gradebook(pctx: CoursePageContext) -> http.HttpResponse:
     participations, grading_opps, grade_table = get_grade_table(
             pctx.course, stats_only_participants(pctx.request))
 
-    def grade_key(entry):
+    def grade_key(entry: tuple[Participation, list[GradeInfo]]) -> str:
         (participation, _grades) = entry
-        return (participation.user.last_name.lower(),
-                    participation.user.first_name.lower())
+        return participation.user.username
 
     grade_table = sorted(zip(participations, grade_table, strict=True), key=grade_key)
 
@@ -756,7 +755,9 @@ def view_grades_by_opportunity(
     else:
         page_numbers = []
 
-    # No need to sort here, datatables resorts anyhow.
+    # Sort only after the ID-ordered merge above, matching grading navigation.
+    # The stable sort preserves start_time order for each participant's sessions.
+    grade_table.sort(key=lambda entry: entry[0].user.username)
 
     return render_course_page(pctx, "course/gradebook-by-opp.html", {
         "opportunity": opportunity,
