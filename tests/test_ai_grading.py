@@ -25,6 +25,7 @@ THE SOFTWARE.
 
 import importlib
 import json
+import traceback
 from contextlib import ExitStack
 from dataclasses import replace
 from inspect import unwrap
@@ -44,6 +45,7 @@ from course.ai_grading import (
     MAX_SECTIONS,
     AIGradeResult,
     AIGradingError,
+    MalformedAIGradingResponseError,
     build_messages,
     request_ai_grade,
 )
@@ -246,7 +248,7 @@ def test_request_ai_grade_rejects_invalid_computed_grade(
                 0].message.content = json.dumps({
                     "grade_percent": grade_percent, "feedback_text": feedback,
                     **AI_ASSESSMENT})
-        with pytest.raises(AIGradingError, match="malformed response"):
+        with pytest.raises(MalformedAIGradingResponseError, match="malformed response"):
             request_ai_grade(course, make_input(rubric="- Answer [pts:/2]"))
 
 
@@ -265,7 +267,8 @@ def test_request_ai_grade_preserves_rubric_markers(feedback: str):
                 0].message.content = json.dumps({
                     "grade_percent": "COMPUTED", "feedback_text": feedback,
                     **AI_ASSESSMENT})
-        with pytest.raises(AIGradingError, match="marker count, order"):
+        with pytest.raises(
+                        MalformedAIGradingResponseError, match="marker count, order"):
             request_ai_grade(models.Course(ai_grading_model="test-model"),
                     make_input(rubric="[pts:/2 #answer] [pts:/3 #reasoning]"))
 
@@ -415,7 +418,7 @@ def test_request_ai_grade_rejects_invalid_assessment(assessment: dict):
                 0].message.content = json.dumps({
                     "grade_percent": 75, "feedback_text": "Student feedback.",
                     **assessment})
-        with pytest.raises(AIGradingError, match="malformed response"):
+        with pytest.raises(MalformedAIGradingResponseError, match="malformed response"):
             request_ai_grade(models.Course(ai_grading_model="test-model"), make_input())
 
 
@@ -1189,6 +1192,7 @@ class AIGradeBatchViewPermissionTest(
                 response = self.client.post(form_url, {
                     "ai_grade": "Draft AI grades",
                     "page_id": "invalid/page",
+                    "retry_count": 3,
                 })
                 self.assertEqual(response.status_code, 200)
                 self.assertTrue(response.context["ai_grade_form"].errors)
@@ -1197,24 +1201,28 @@ class AIGradeBatchViewPermissionTest(
                 response = self.client.post(form_url, {
                     "ai_grade": "Draft AI grades",
                     "page_id": page_id,
+                    "retry_count": 3,
                 })
                 self.assertEqual(response.status_code, 302)
                 group_id, page_id = page_id.split("/", 1)
                 delay.assert_called_once_with(
                         self.course.id, self.flow_id, group_id, page_id,
                         override_human_grades=False, redraft_ai_grades=False,
+                        retry_count=3, stop_on_malformed_output=False,
                         initiated_by_id=self.instructor_participation.user.pk)
 
                 delay.reset_mock()
                 response = self.client.post(form_url, {
                     "ai_grade": "Draft AI grades",
                     "page_id": f"{group_id}/{page_id}",
+                    "retry_count": 3,
                     "override_human_grades": "on",
                 })
                 self.assertEqual(response.status_code, 302)
                 delay.assert_called_once_with(
                         self.course.id, self.flow_id, group_id, page_id,
                         override_human_grades=True, redraft_ai_grades=False,
+                        retry_count=3, stop_on_malformed_output=False,
                         initiated_by_id=self.instructor_participation.user.pk)
 
         with self.temporarily_switch_to_user(self.ta_participation.user):
@@ -1227,6 +1235,7 @@ class AIGradeBatchViewPermissionTest(
 def test_batch_form_independent_options(redraft: bool, override: bool):
     form = AIGradeFlowPageForm(["group/page"], {
         "page_id": "group/page",
+        "retry_count": 3,
         "redraft_ai_grades": redraft,
         "override_human_grades": override,
     })
@@ -1237,21 +1246,40 @@ def test_batch_form_independent_options(redraft: bool, override: bool):
 
 def test_batch_form_options_default_off():
     unbound = AIGradeFlowPageForm(["group/page"])
-    bound = AIGradeFlowPageForm(["group/page"], {"page_id": "group/page"})
+    bound = AIGradeFlowPageForm(["group/page"], {
+        "page_id": "group/page", "retry_count": 3})
     assert bound.is_valid()
-    for name in ["redraft_ai_grades", "override_human_grades"]:
+    assert unbound.fields["retry_count"].initial == 2
+    assert bound.cleaned_data["retry_count"] == 3
+    for name in [
+            "redraft_ai_grades", "override_human_grades", "stop_on_malformed_output"]:
         assert unbound.fields[name].initial is False
         assert bound.cleaned_data[name] is False
+
+
+@pytest.mark.parametrize("retry_count", [None, "", -1, "1.5", "invalid"])
+def test_batch_form_rejects_invalid_retry_count(retry_count: object):
+    data = {"page_id": "group/page"}
+    if retry_count is not None:
+        data["retry_count"] = retry_count
+    form = AIGradeFlowPageForm(["group/page"], data)
+    assert not form.is_valid()
+    assert set(form.errors) == {"retry_count"}
 
 
 @pytest.mark.django_db
 @pytest.mark.parametrize("redraft", [False, True])
 @pytest.mark.parametrize("override", [False, True])
-def test_batch_view_passes_options(redraft: bool, override: bool):
+@pytest.mark.parametrize("retry_count", [0, 3])
+@pytest.mark.parametrize("stop", [False, True])
+def test_batch_view_passes_options(
+        redraft: bool, override: bool, retry_count: int, stop: bool):
     course = factories.CourseFactory()
     opportunity = factories.GradingOpportunityFactory(course=course)
     request = RequestFactory().post("/", {
         "page_id": "group/page",
+        "retry_count": retry_count,
+        "stop_on_malformed_output": stop,
         "redraft_ai_grades": redraft,
         "override_human_grades": override,
     })
@@ -1267,6 +1295,7 @@ def test_batch_view_passes_options(redraft: bool, override: bool):
     delay.assert_called_once_with(
         course.pk, opportunity.flow_id, "group", "page",
         override_human_grades=override, redraft_ai_grades=redraft,
+        retry_count=retry_count, stop_on_malformed_output=stop,
         initiated_by_id=request.user.pk)
 
 
@@ -1352,5 +1381,113 @@ def _check_drafting(kind: str, *, redraft: bool | None = None,
     if allowed:
         assert persist.call_args.args[3]["released"] is False
         assert persist.call_args.kwargs["ai_generated_by"] == "test-model"
+
+
+@pytest.fixture
+def batch_generation(db: None):
+    del db
+    course = factories.CourseFactory(ai_grading_model="test-model")
+    visits = []
+    for _ in range(3):
+        session = factories.FlowSessionFactory(
+                course=course, flow_id="test-flow", in_progress=False)
+        page_data = factories.FlowPageDataFactory(
+                flow_session=session, group_id="group", page_id="page")
+        visits.append(factories.FlowPageVisitFactory(
+                page_data=page_data, is_submitted_answer=True,
+                answer={"answer": "Student answer"}))
+    with ExitStack() as stack:
+        for target in [
+                "course.tasks.get_course_repo", "course.content.get_flow_desc",
+                "course.ai_grading.get_openai_client",
+                "celery.app.task.Task.update_state"]:
+            stack.enter_context(mock.patch(target))
+        stack.enter_context(mock.patch(
+                "course.content.get_flow_page", return_value=make_page()))
+        request = stack.enter_context(mock.patch(
+                "course.ai_grading.request_ai_grade"))
+        persist = stack.enter_context(mock.patch(
+                "course.tasks._persist_ai_grade_for_visit"))
+        yield SimpleNamespace(
+                args=(course.pk, "test-flow", "group", "page"),
+                request=request, persist=persist, visits=visits)
+
+
+@pytest.mark.parametrize("retry_count", [0, 1, 3])
+def test_batch_retries_until_success(
+        batch_generation: SimpleNamespace, retry_count: int):
+    batch = batch_generation
+    success = make_result(80, "Feedback")
+    batch.request.side_effect = [
+        *[MalformedAIGradingResponseError("bad JSON") for _ in range(retry_count)],
+        success, success, success]
+    result = batch_ai_grade_flow_page(*batch.args, retry_count=retry_count)
+    assert batch.request.call_count == retry_count + 3
+    assert batch.persist.call_count == 3
+    assert "3 grade(s) drafted" in result["message"]
+
+
+@pytest.mark.parametrize(("retry_count", "use_default"), [
+    (0, False), (2, False), (3, False), (2, True),
+])
+def test_batch_collects_failures_and_preserves_traceback(
+        batch_generation: SimpleNamespace, retry_count: int, use_default: bool):
+    batch = batch_generation
+    first = MalformedAIGradingResponseError("first malformed response")
+    last = MalformedAIGradingResponseError("last malformed response")
+    batch.request.side_effect = [
+        *[first] * (retry_count + 1), make_result(80, "Feedback"),
+        *[last] * (retry_count + 1)]
+    options = {} if use_default else {"retry_count": retry_count}
+    with pytest.raises(AIGradingError, match="2 submission") as caught:
+        batch_ai_grade_flow_page(*batch.args, **options)
+    assert batch.request.call_count == 2 * (retry_count + 1) + 1
+    assert batch.persist.call_count == 1
+    assert "1 grade(s) drafted" in str(caught.value)
+    assert "first malformed response" in str(caught.value)
+    assert "last malformed response" in str(caught.value)
+    assert str(caught.value).count("Visit ") == 2
+    assert caught.value.__cause__ is first
+    assert first.__traceback__ is not None
+    assert "request_ai_grade" in "".join(traceback.format_exception(caught.value))
+
+
+@pytest.mark.parametrize("retry_count", [0, 2])
+def test_batch_stops_after_exhausting_retries(
+        batch_generation: SimpleNamespace, retry_count: int):
+    batch = batch_generation
+    failure = MalformedAIGradingResponseError("bad JSON")
+    batch.request.side_effect = failure
+    with pytest.raises(MalformedAIGradingResponseError) as caught:
+        batch_ai_grade_flow_page(
+                *batch.args, retry_count=retry_count, stop_on_malformed_output=True)
+    assert caught.value is failure
+    assert batch.request.call_count == retry_count + 1
+    batch.persist.assert_not_called()
+
+
+@pytest.mark.parametrize("after_malformed", [False, True])
+def test_batch_api_errors_fail_immediately(
+        batch_generation: SimpleNamespace, after_malformed: bool):
+    batch = batch_generation
+    failure = AIGradingError("Invalid API key")
+    batch.request.side_effect = (
+        [MalformedAIGradingResponseError("bad JSON"), failure]
+        if after_malformed else [failure])
+    with pytest.raises(AIGradingError, match="Invalid API key") as caught:
+        batch_ai_grade_flow_page(*batch.args)
+    assert caught.value is failure
+    assert batch.request.call_count == 1 + int(after_malformed)
+    batch.persist.assert_not_called()
+
+
+@pytest.mark.parametrize("content", ["", "not JSON", "{}"])
+def test_request_ai_grade_classifies_malformed_output(content: str):
+    with mock.patch("course.ai_grading.get_openai_client") as client:
+        client.return_value.chat.completions.create.return_value.choices[
+                0].message.content = content
+        with pytest.raises(MalformedAIGradingResponseError):
+            request_ai_grade(models.Course(ai_grading_model="test-model"), make_input())
+
 
 # vim: foldmethod=marker

@@ -424,6 +424,19 @@ class AIGradeFlowPageForm(StyledForm):
                 required=False,
                 initial=False)
 
+        self.fields["retry_count"] = forms.IntegerField(
+                label=_("Malformed response retry count"),
+                min_value=0,
+                initial=2,
+                help_text=_("Number of additional generation attempts after a "
+                    "malformed response. Use 0 to disable retries."))
+        self.fields["stop_on_malformed_output"] = forms.BooleanField(
+                label=_("Stop on malformed output"),
+                required=False,
+                initial=False,
+                help_text=_("Stop the batch after exhausting retries. Otherwise, "
+                    "continue grading and report all failures at the end."))
+
         self.helper.add_input(
                 Submit("ai_grade", _("Draft AI grades")))
 
@@ -476,6 +489,8 @@ def ai_grade_by_opportunity(
                 pctx.course.id, opportunity.flow_id, group_id, page_id,
                 override_human_grades=form.cleaned_data["override_human_grades"],
                 redraft_ai_grades=form.cleaned_data["redraft_ai_grades"],
+                retry_count=form.cleaned_data["retry_count"],
+                stop_on_malformed_output=form.cleaned_data["stop_on_malformed_output"],
                 initiated_by_id=pctx.request.user.pk)
         return redirect("relate-monitor_task", async_res.id)
 
